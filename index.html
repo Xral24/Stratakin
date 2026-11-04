@@ -671,10 +671,10 @@ const PRESETS = {
   earth: { id: 'earth', name: 'Earth', gravity: 1, water: true, trees: true, skyIslands: true, weather: true, seedXor: 0, arrival: null, villages: { nc: 64, prefix: '', style: 'land' }, fisher: true, founding: true, zoneBase: 0, lostWorld: true, reefs: true },
   moon: { id: 'moon', name: 'the Moon', gravity: 0.38, water: false, trees: false, skyIslands: false, weather: false, seedXor: 0x100D, craters: true, spires: true, flatDay: 0.85, airless: true,
     palette: { [B.GRASS]: ['#a3a3ab', '#8b8b93'], [B.DIRT]: ['#80808a', '#76767f'], [B.STONE]: ['#8e8e97', '#85858e'], [B.SAND]: ['#bcbcc3', '#b0b0b7'], [B.GRAVEL]: ['#6f6f78', '#65656e'], [B.SNOW]: ['#e4e4ea', '#d4d4da'], [B.MOSS]: ['#9d9da6', '#8d8d96'] },
-    sky: [0.01, 0.01, 0.03], fogMul: 1, biomes: 'moon', villages: { nc: 96, prefix: 'm', style: 'alien' }, zoneBase: 28, legend: { name: 'Selenaut', level: 150, elem: 'Light', shape: 'floater', zone: 60 }, worms: true, people: 'alien' },
+    sky: [0.01, 0.01, 0.03], fogMul: 1, biomes: 'moon', villages: { nc: 96, prefix: 'm', style: 'alien' }, zoneBase: 28, legend: { name: 'Selenaut', level: 1500, elem: 'Light', shape: 'floater', zone: 60 }, worms: true, people: 'alien' },
   halo: { id: 'halo', name: 'Halo', gravity: 0.72, water: false, brine: true, brineLevel: 40, trees: false, skyIslands: false, weather: false, seedXor: 0x4A10, craters: false, spires: false, airless: true,
     palette: { [B.GRASS]: ['#d9b96a', '#b9955a'], [B.DIRT]: ['#b08a4c', '#9c7a42'], [B.STONE]: ['#b49a6a', '#a68c5e'], [B.SAND]: ['#e2c374', '#d4b468'], [B.GRAVEL]: ['#9a8458', '#8a7650'], [B.SNOW]: ['#f0ead8', '#d8d0b8'], [B.MOSS]: ['#b4a060', '#a08c54'], [B.BASALT]: ['#5a4a3a', '#4a3c30'] },
-    skyNoon: [0.95, 0.78, 0.42], skyNight: [0.08, 0.05, 0.03], skyDusk: [0.98, 0.55, 0.25], fogMul: 0.85, biomes: 'halo', villages: { nc: 80, prefix: 'h', style: 'halo' }, zoneBase: 110, legend: { name: 'Ringwarden', level: 350, elem: 'Spark', shape: 'bird', zone: 160 }, ringfall: true, people: 'halo' },
+    skyNoon: [0.95, 0.78, 0.42], skyNight: [0.08, 0.05, 0.03], skyDusk: [0.98, 0.55, 0.25], fogMul: 0.85, biomes: 'halo', villages: { nc: 80, prefix: 'h', style: 'halo' }, zoneBase: 110, legend: { name: 'Ringwarden', level: 2000, elem: 'Spark', shape: 'bird', zone: 160 }, ringfall: true, people: 'halo' },
 };
 let ACTIVE_PRESET = PRESETS.earth;
 
@@ -2344,7 +2344,7 @@ const KIN = (() => {
     { name: 'epic', w: 2.5, lvl: 4, stat: 60, catch: 0.6, xp: 1.8 },
     { name: 'legendary', w: 0.35, lvl: 10, stat: 130, catch: 0.3, xp: 3.5 },
   ];
-  const MAX_LEVEL = 1000; // the planets go far past 99; a fusion keeps its levels too
+  const MAX_LEVEL = 2000; // the planets go far past 99; a fusion keeps its levels too
   function growth(level) { return 1 + 0.06 * level + 0.0015 * level * level; }
   function xpToNext(level) { return Math.floor(20 + 12 * Math.pow(level, 1.4) * (1 + level / 150)); } // steeper the higher you go
   function dominant(elem, n = 2) { return elem.map((w, i) => [w, i]).sort((a, b) => b[0] - a[0]).slice(0, n).filter(x => x[0] > 0.12).map(x => E[x[1]]); }
@@ -3086,6 +3086,7 @@ const Wild = (() => {
   let legendRef = null;
   function ensureLegend(player) {
     const L = world.legend; if (!L || !world.preset.legend) return;
+    if ((G.stats.apex || {}).rex !== true) return; // the endgame: they only show once the Tyrannorex is caught
     const lb = (G.stats.legendBack || {})[world.preset.id]; const done = lb === 'caught' || (typeof lb === 'number' && (G.dayCount || 0) < lb); // beaten: back in a few days; caught: gone for good
     const d = Math.hypot(wdd(player.x - L.x), wdd(player.z - L.z));
     if (legendRef && !list.includes(legendRef)) legendRef = null;
@@ -5055,8 +5056,9 @@ const Battle = (() => {
     let c = stealth ? ITEMS[item].snare * (wildE && wildE.alert < 0.5 ? 0.6 : 0.45) : ITEMS[item].snare * (1 - frac * 0.8);
     if (wild.level > mine.level + 3) c *= 0.75;
     // the level gap: a little above you is fair, 20% above is a long shot, twice your level and nothing holds it
-    const gap = wild.level / Math.max(1, G.trainerLevel || 1); // your level as a trainer, not your Kin's
-    if (gap >= 2) return { chance: 0, item, gap, hopeless: true };
+    const grip = 4 * Math.max(1, G.trainerLevel || 1); // snare strength: four times your trainer level, not your Kin's level
+    const gap = wild.level / grip;
+    if (gap >= 2) return { chance: 0, item, gap, grip, hopeless: true };
     if (gap > 1.2) c *= 0.55 * Math.pow((2 - gap) / 0.8, 3);
     else if (gap > 1) c *= 1 - (gap - 1) * 2.25;
     if (ambush && !stealth) c *= 1.25;
@@ -5064,10 +5066,10 @@ const Battle = (() => {
     if (wildE && wildE.isBoss) c *= 0.7;
     if (typeof Npcs !== 'undefined' && Npcs.active('hunter')) c *= 1.5; // the Hunter's Amulet
     if (wild.sp.mythic || wild.sp.legend) c = frac < 0.15 ? Math.min(c, 0.5) : Math.min(c, 0.12);
-    return { chance: U.clamp(c, gap > 1.2 ? 0.002 : 0.04, 0.9), item, gap };
+    return { chance: U.clamp(c, gap > 1.2 ? 0.002 : 0.04, 0.9), item, gap, grip };
   }
   function beginSnare() {
-    const { chance, item, gap, hopeless } = catchChance();
+    const { chance, item, gap, grip, hopeless } = catchChance();
     if (!G.player.take(item, 1)) return;
     if (typeof Npcs !== 'undefined' && Npcs.active('hunter')) Npcs.useCharge('hunter');
     busy = true;
@@ -5084,8 +5086,8 @@ const Battle = (() => {
     el.snare.classList.remove('hidden'); el.root.classList.add('snaring'); el.root.scrollTop = 0;
     const pct = chance === 0 ? '0%' : chance < 0.01 ? 'under 1%' : Math.round(chance * 100) + '%';
     log(`You set a ${ITEMS[item].name} on the ground${stealth ? ', quietly' : ''}. Catch chance ${pct}.`);
-    if (hopeless) log(`${KIN.name(wild)} is more than twice your trainer level (${G.trainerLevel}). No snare made will hold it. Beat it, or come back stronger.`, 'bad');
-    else if (gap > 1.2) log(`${KIN.name(wild)} is far above your trainer level (${G.trainerLevel}). It will fight the cage hard.`, 'bad');
+    if (hopeless) log(`${KIN.name(wild)} is more than twice your snare strength (${grip}, four times your trainer level). No snare made will hold it. Beat it, or come back stronger.`, 'bad');
+    else if (gap > 1.2) log(`${KIN.name(wild)} is far above your snare strength (${grip}). It will fight the cage hard.`, 'bad');
     G.sfx('snare');
     requestAnimationFrame(snareFrame);
   }
@@ -5278,7 +5280,13 @@ const QUESTS = [
   { id: 'lab', title: 'The Splice', desc: 'Somewhere out there an apprentice waits by a tent: her master is shut in his own lab with the thing he made. Find her, follow ⚗ to the hatch, and beat or cage what is down there. The incubator is the reward: Kin grow fast in it and learn techniques.', hint: 'Find the apprentice by the tent and rescue the maker', check: G => (G.stats.labDone || 0) >= 1 ? 1 : 0, reward: { xp: 400 } },
   { id: 'lost', title: 'The Lost World', desc: 'People on the road talk about a jungle on the far side of the world where the Kin are old and big. Nobody has a map, or nobody admits to one. Do jobs for the people by the fires, rescue the scientist, or beat a legendary, and someone will hand you theirs. Then follow 🦖.', hint: 'Find someone with a map of the Lost World', check: G => G.stats.lostFound ? 1 : 0, reward: { xp: 500 } },
   { id: 'halo', title: 'The Ringed World', desc: 'Fly the Starship above the clouds and choose Halo: amber dunes under a ring that fills the sky, brine that burns, stones that fall. Caravan towns to free, amber and sulfur to dig, and ring shards for wings.', hint: 'Fly to Halo', check: G => (G.stats.reached || {}).halo ? 1 : 0, reward: { xp: 600 } },
-  { id: 'legend', title: 'Legend', desc: 'Every world beyond Earth has one creature at a level nothing else reaches: the Selenaut over the Moon, the Ringwarden on Halo. ✶ on the map. Beat or cage one and the portal arches reach across the sky.', hint: 'Beat or cage a world\'s legendary (✶ on the map)', check: G => Object.keys(G.stats.legends || {}).length ? 1 : 0, reward: { xp: 2000 } },
+  { id: 'moonjobs', title: 'Moonfolk', desc: 'The Moon has its own people by its own fires, out on the grey between the domes. They do not trust you yet. Do three of their jobs before anyone tells you where the Selenaut sleeps.', hint: 'Do 3 jobs for people on the Moon', check: G => ((G.stats.jobsBy || {}).moon || 0) / 3, reward: { xp: 600, items: { snare2: 3 } } },
+  { id: 'moonfree', title: 'Under the Dome', desc: 'Every alien town on the Moon has a tyrant in its square, the same as on Earth. Free one and its people will open the dome to you and keep your Kin fed.', hint: 'Free a village on the Moon', check: G => Object.values(G.villageState || {}).some(st => st.freed && st.meta && st.meta.world === 'moon') ? 1 : 0, reward: { xp: 800 } },
+  { id: 'halojobs', title: 'Caravan Work', desc: 'The caravan people on Halo pay well and talk even better. Three jobs for them and someone will mention the Ringwarden on the high mesa.', hint: 'Do 3 jobs for people on Halo', check: G => ((G.stats.jobsBy || {}).halo || 0) / 3, reward: { xp: 900, items: { snare2: 3 } } },
+  { id: 'wings', title: 'Wings', desc: 'Ring shards fall out of the sky on Halo (mind your head). Three of them with amber, sulfur and cloudstone make Halo Wings: jump in the air to open them.', hint: 'Craft Halo Wings (3 ring shard, 6 amber, 4 sulfur, 4 cloud)', check: G => (G.player.has('wings') || (G.stats.crafted.wings || 0) > 0) ? 1 : 0, reward: { xp: 900 } },
+  { id: 'abyss', title: 'Abyssaurus', desc: 'Something circles the deep water outside the Lost World cliffs, level 850, and comes up for air now and then. A water mount helps.', hint: 'Beat or cage Abyssaurus in the sea by the Lost World', check: G => (G.stats.apex || {}).mosa ? 1 : 0, reward: { xp: 5000 } },
+  { id: 'rex', title: 'The Tyrant', desc: 'In the clearing at the middle of the Lost World stands Tyrannorex, level 1000. Beating it is not enough: it limps off and comes back in about ten days. Cage it. Your snare strength is four times your trainer level, and nothing above twice that will stay caged: you need trainer level 125 to have any chance, and more like 200 for real odds.', hint: 'Cage Tyrannorex in the Lost World', check: G => (G.stats.apex || {}).rex === true ? 1 : 0, reward: { xp: 5000 } },
+  { id: 'legend', title: 'Legend', desc: 'With the Tyrannorex in your bag, the old ones notice. Every world beyond Earth has one creature at a level even it does not reach: the Selenaut over the Moon, the Ringwarden on Halo. ✶ on the map. Beat or cage one and the portal arches reach across the sky.', hint: 'Beat or cage a world\'s legendary (✶ on the map)', check: G => Object.keys(G.stats.legends || {}).length ? 1 : 0, reward: { xp: 2000 } },
 ];
 
 const Quests = (() => {
@@ -5345,7 +5353,10 @@ const Quests = (() => {
     suit: () => G.player.has('lavasuit') ? 'done' : `iron ${G.player.count('iron')}/5 · void ${G.player.count('void')}/3 · ember ${G.player.count('ember')}/4`,
     moon: () => G.player.has('ship') ? (G.player.has('spacesuit') ? 'board the Starship (Ship button) and climb' : 'craft a Space Suit first') : 'beat the Mantlewyrm first',
     halo: () => G.player.has('ship') ? 'Ship, climb above the clouds, choose Halo' : 'you need the Starship', ship: () => 'tap the Starmetal in the Heart',
-    lost: () => 'do jobs for the people by the fires (yellow dots on the map)', legend: () => 'fly to the Moon or Halo; ✶ on the map there',
+    lost: () => 'do jobs for the people by the fires (yellow dots on the map)', legend: () => G.worldId === 'earth' ? 'take the Starship to the Moon or Halo; the ✶ shows on your radar there' : 'the ✶ is beaten for now; try the other world',
+    moonjobs: () => G.worldId === 'moon' ? 'yellow dots on the radar' : 'fly the Starship to the Moon', halojobs: () => G.worldId === 'halo' ? 'yellow dots on the radar' : 'fly the Starship to Halo',
+    moonfree: () => G.worldId === 'moon' ? 'red dots on the radar are held towns' : 'fly the Starship to the Moon', wings: () => `ring shard ${G.player.count('ringshard')}/3 · amber ${G.player.count('amber')}/6 · sulfur ${G.player.count('sulfur')}/4 · cloud ${G.player.count('cloud')}/4`,
+    rex: () => G.stats.lostMap ? 'follow 🦖 to the Lost World tunnel' : 'you need the Lost World map', abyss: () => G.stats.lostMap ? 'the deep water outside the Lost World cliffs' : 'you need the Lost World map',
   };
   // where the current quest points, for the compass
   let targetCache = { t: 0, v: null, id: null };
@@ -5366,10 +5377,17 @@ const Quests = (() => {
     if ((q.id === 'heart' || q.id === 'core' || q.id === 'mythic' || q.id === 'ship') && G.world.heart) return { x: G.world.heart.x, z: G.world.heart.z };
     if (q.id === 'catch' || q.id === 'party') { let best = null, bd = 60; for (const e of Wild.list) { if (e.isBoss || e.lieutenant || e.isLegend || e.isApex) continue; const d = Math.hypot(e.x - p.x, e.z - p.z); if (d < bd) { bd = d; best = e; } } return best ? { x: best.x, z: best.z, note: KIN.name(best.kin) } : null; }
     if (q.id === 'suit') { const b = G.world.findNearest(B.IRON, p.x, p.z, 40); return b ? { x: b.x, z: b.z, note: b.y < p.y - 3 ? 'iron ore, below you' : 'iron ore' } : null; }
+    if ((q.id === 'moonjobs' && G.worldId === 'moon') || (q.id === 'halojobs' && G.worldId === 'halo')) q = { id: 'job' };
+    if (q.id === 'moonfree' && G.worldId === 'moon') { let best = null, bd = Infinity; for (const m of Village.markers(p.x, p.z, 2)) { if (m.kind !== 'village' || m.freed) continue; const d = Math.hypot(m.x - p.x, m.z - p.z); if (d < bd) { bd = d; best = m; } } return best ? { x: best.x, z: best.z, note: best.name } : null; }
+    if ((q.id === 'rex' || q.id === 'abyss') && G.world.lost && G.stats.lostMap) {
+      const L = G.world.lost, inside = Math.hypot(p.x - L.x, p.z - L.z) < L.inner;
+      if (q.id === 'rex') { if (inside) return { x: L.x, z: L.z, note: 'Tyrannorex' }; const T = G.world.lostTunnel(); return { x: T.ax, z: T.az, note: 'the tunnel' }; }
+      const s = Wild.apexSea(); return s ? { x: s.x, z: s.z, note: 'Abyssaurus' } : null;
+    }
     if (q.id === 'job') { const ws = Npcs.mapMarks(p, 400).filter(m => m.kind === 'wanderer'); let best = null, bd = Infinity; for (const m of ws) { const d = Math.hypot(m.x - p.x, m.z - p.z); if (d < bd) { bd = d; best = m; } } return best ? { x: best.x, z: best.z, note: best.name } : null; }
     if (q.id === 'lab' && G.world.preset.villages) { const L = Lab.state; const m = Lab.mapMarks(p); const tent = m.find(x => x.kind === 'tent'), lab = m.find(x => x.kind === 'lab'); if (L.told && lab && !L.rescued) return { x: lab.x, z: lab.z, note: 'the hatch' }; return tent ? { x: tent.x, z: tent.z, note: 'the apprentice' } : null; }
     if (q.id === 'lost' && G.world.lost && G.stats.lostMap) { const T = G.world.lostTunnel(); return { x: T.ax, z: T.az, note: 'the tunnel' }; }
-    if (q.id === 'legend' && G.world.legend && !(G.stats.legends || {})[G.worldId]) return { x: G.world.legend.x, z: G.world.legend.z, note: G.world.preset.legend.name };
+    if (q.id === 'legend' && G.world.legend && (G.stats.apex || {}).rex === true && !(G.stats.legends || {})[G.worldId]) return { x: G.world.legend.x, z: G.world.legend.z, note: G.world.preset.legend.name };
     return null;
   }
   return { init, current, update, hintText, target, RECIPES, QUESTS };
@@ -5719,6 +5737,7 @@ const Npcs = (() => {
     if (world.preset.id === 'earth' && !G.stats.lostMap && (G.stats.questsDone || 0) >= 2) { setTimeout(() => G.giveLostMap(w.name), 900); }
     UI.toast(`${w.name}: +${rw.shards} Shards${rw.amulet ? ' and the ' + ITEMS[rw.amulet].name : Object.keys(rw.items).map(k => ', ' + ITEMS[k].name).join('')}.`, 'good');
     G.stats.questsDone = (G.stats.questsDone || 0) + 1;
+    if (!G.stats.jobsBy) G.stats.jobsBy = {}; G.stats.jobsBy[world.preset.id] = (G.stats.jobsBy[world.preset.id] || 0) + 1;
   }
   function talkWanderer(n) {
     const w = n.wanderer; const q = questFor(w); const P = people(); const st = npcState(w.id);
@@ -6857,6 +6876,11 @@ const UI = (() => {
     const wd = (v) => U.mod(v + WORLD_W / 2, WORLD_W) - WORLD_W / 2;
     const dot = (x, z, r, col, ring) => { const sx = S / 2 + wd(x - p.x) / bpp, sy = S / 2 + wd(z - p.z) / bpp; if (sx < 2 || sy < 2 || sx > S - 2 || sy > S - 2) return; ctx.beginPath(); ctx.arc(sx, sy, r, 0, Math.PI * 2); ctx.fillStyle = col; ctx.fill(); if (ring) { ctx.lineWidth = 2; ctx.strokeStyle = ring; ctx.stroke(); } };
     const label = (x, z, t, col, force) => { if (!big || (bpp > 8 && !force)) return; const sx = S / 2 + wd(x - p.x) / bpp, sy = S / 2 + wd(z - p.z) / bpp; if (sx < 4 || sy < 4 || sx > S - 4 || sy > S - 4) return; ctx.font = 'bold 13px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(0,0,0,.75)'; ctx.strokeText(t, sx, sy + 7); ctx.fillStyle = col; ctx.fillText(t, sx, sy + 7); };
+    // off the edge: pin it to the rim of the map, pointing the way, with the distance
+    const edge = (x, z, t, col) => { const dx = wd(x - p.x) / bpp, dz = wd(z - p.z) / bpp; const r = S / 2 - 13; if (Math.abs(dx) < r && Math.abs(dz) < r) return; const k = r / Math.max(Math.abs(dx), Math.abs(dz)); const sx = S / 2 + dx * k, sy = S / 2 + dz * k; const a = Math.atan2(dz, dx);
+      ctx.save(); ctx.translate(sx, sy); ctx.rotate(a); ctx.beginPath(); ctx.moveTo(11, 0); ctx.lineTo(3, -6); ctx.lineTo(3, 6); ctx.closePath(); ctx.fillStyle = col; ctx.fill(); ctx.restore();
+      ctx.font = 'bold 15px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(0,0,0,.75)'; const gx = sx - Math.cos(a) * 9, gy = sy - Math.sin(a) * 9; ctx.strokeText(t, gx, gy); ctx.fillStyle = col; ctx.fillText(t, gx, gy);
+      const m = Math.round(Math.hypot(wd(x - p.x), wd(z - p.z))); const ds = m >= 1000 ? (m / 1000).toFixed(1) + 'k' : m + 'm'; ctx.font = 'bold 10px sans-serif'; const tx = U.clamp(gx - Math.cos(a) * 14, 14, S - 14), ty = U.clamp(gy - Math.sin(a) * 14, 8, S - 8); ctx.lineWidth = 3; ctx.strokeText(ds, tx, ty); ctx.fillStyle = '#ffffff'; ctx.fillText(ds, tx, ty); };
     const glyph = (x, z, t, col) => { const sx = S / 2 + wd(x - p.x) / bpp, sy = S / 2 + wd(z - p.z) / bpp; if (sx < 4 || sy < 4 || sx > S - 4 || sy > S - 4) return; ctx.font = 'bold 16px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(0,0,0,.7)'; ctx.strokeText(t, sx, sy); ctx.fillStyle = col; ctx.fillText(t, sx, sy); };
     if (G.world.preset.villages) {
       for (const m of Village.markers(p.x, p.z, big ? Math.min(4, Math.ceil(bpp * S / 2 / 256) + 1) : 1)) {
@@ -6877,11 +6901,11 @@ const UI = (() => {
     if (G.world.lost && G.stats.lostMap) { const L = G.world.lost; glyph(L.x, L.z, '🦖', '#ffffff'); label(L.x, L.z, 'Lost World', '#c0ffc0', true); const T = G.world.lostTunnel(); if (T) { glyph(T.ax, T.az, '◠', '#ffffff'); if (bpp <= 8) label(T.ax, T.az, 'tunnel', '#e0e0e0'); } }
     if (G.world.lost && G.stats.lostMap) { const ap0 = G.stats.apex || {}, ap = {}; for (const k in ap0) ap[k] = ap0[k] === true || (ap0[k] && (G.dayCount || 0) < ap0[k].back); if (!ap.rex) { glyph(G.world.lost.x, G.world.lost.z + 22, '✶', '#ff5a2a'); label(G.world.lost.x, G.world.lost.z + 22, 'Tyrannorex', '#ffb090'); } const sea = Wild.apexSea(); if (sea && !ap.mosa) { glyph(sea.x, sea.z, '✶', '#3fd1c4'); label(sea.x, sea.z, 'Abyssaurus', '#a8f0ea'); } }
     const lb = (G.stats.legendBack || {})[G.worldId];
-    if (G.world.legend && lb !== 'caught' && !(typeof lb === 'number' && lb > (G.dayCount || 0))) { glyph(G.world.legend.x, G.world.legend.z, '✶', '#ff2bd6'); label(G.world.legend.x, G.world.legend.z, G.world.preset.legend.name, '#ffc0f0'); }
+    if (G.world.legend && (G.stats.apex || {}).rex === true && lb !== 'caught' && !(typeof lb === 'number' && lb > (G.dayCount || 0))) { glyph(G.world.legend.x, G.world.legend.z, '✶', '#ff2bd6'); label(G.world.legend.x, G.world.legend.z, G.world.preset.legend.name, '#ffc0f0'); edge(G.world.legend.x, G.world.legend.z, '✶', '#ff2bd6'); }
     for (const e of Wild.list) { if (Math.abs(wd(e.x - p.x)) > S / 2 * bpp || Math.abs(wd(e.z - p.z)) > S / 2 * bpp) continue; dot(e.x, e.z, e.isBoss ? 4 : e.lieutenant ? 3.5 : 2, e.isBoss || e.lieutenant || e.raider ? '#ff3030' : (e.kin.sp.rarity || 0) >= 3 ? '#ffd040' : '#ffb0a0'); }
-    const qt = Quests.target(); if (qt) glyph(qt.x, qt.z, '★', '#ffd040');
+    const qt = Quests.target(); if (qt) { glyph(qt.x, qt.z, '★', '#ffd040'); if (!(G.world.legend && Math.hypot(qt.x - G.world.legend.x, qt.z - G.world.legend.z) < 4)) edge(qt.x, qt.z, '★', '#ffd040'); }
     const ft = G.world.preset.fisher ? Village.questTarget() : null; if (ft) glyph(ft.x, ft.z, '⚑', '#ff6060');
-    if (G.pin) glyph(G.pin.x, G.pin.z, '◎', '#ffffff');
+    if (G.pin) { glyph(G.pin.x, G.pin.z, '◎', '#ffffff'); edge(G.pin.x, G.pin.z, '◎', '#ffffff'); }
     // you: a white arrow pointing where you look (the map is north up)
     const ax = S / 2 - ox / MM.bpp, ay = S / 2 - oz / MM.bpp;
     if (ax > -10 && ay > -10 && ax < S + 10 && ay < S + 10) { ctx.save(); ctx.translate(ax, ay); ctx.rotate(-p.yaw); ctx.beginPath(); ctx.moveTo(0, -9); ctx.lineTo(6, 7); ctx.lineTo(0, 3); ctx.lineTo(-6, 7); ctx.closePath(); ctx.fillStyle = '#ffffff'; ctx.fill(); ctx.lineWidth = 2; ctx.strokeStyle = 'rgba(0,0,0,.6)'; ctx.stroke(); ctx.restore(); }
