@@ -5754,10 +5754,10 @@ const Npcs = (() => {
   function talk(n) {
     if (n.role === 'wanderer') return talkWanderer(n);
     if (n.role === 'mer') return Mer.talk(n);
-    if (n.role === 'scientist') return Lab.talk(n);
+    if (n.role === 'scientist' || n.role === 'apprentice') return Lab.talk(n);
     if (n.role === 'duststrider') return Camps.tame(n);
   }
-  function label(n) { return n.role === 'wanderer' ? `${n.name} · has a job for you` : n.role === 'mer' ? `${n.name} · one of the sea people` : n.role === 'scientist' ? `${n.name} · scientist` : n.role === 'duststrider' ? `${n.name} · the camp's mount · tap to take it` : n.name; }
+  function label(n) { return n.role === 'wanderer' ? `${n.name} · has a job for you` : n.role === 'mer' ? `${n.name} · one of the sea people` : n.role === 'scientist' ? `${n.name} · scientist` : n.role === 'apprentice' ? `${n.name} · needs your help` : n.role === 'duststrider' ? `${n.name} · the camp's mount · tap to take it` : n.name; }
   // compass marks: dens of taken quests, the lab once you know of it
   function marks(p) {
     const out = [];
@@ -6044,10 +6044,12 @@ const Lab = (() => {
     if (site) return site;
     const o = world.preset.id === 'earth' ? world.spawn : (world.pad || world.spawn);
     const r = U.rng(world.seed ^ 0x1AB);
-    const land = (ang, d) => { for (let k = 0; k < 40; k++) { const a = ang + (k % 2 ? 1 : -1) * Math.ceil(k / 2) * 0.12; const x = Math.round(o.x + Math.cos(a) * d), z = Math.round(o.z + Math.sin(a) * d); const info = world.colInfo(x, z); if (info.h > sea() + 3 && info.h < 66 && !info.lost && !info.lostRim) return { x, z, y: info.h + 1, a }; } return null; };
+    // dry, flat-ish ground well above the water, searched round the circle and outwards until found
+    const dry = (x, z) => { const info = world.colInfo(x, z); if (!(info.h > sea() + 3 && info.h < 66) || info.lost || info.lostRim) return null; for (const [dx, dz] of [[4, 0], [-4, 0], [0, 4], [0, -4]]) { const c = world.colInfo(x + dx, z + dz); if (c.h <= sea() + 1 || Math.abs(c.h - info.h) > 4) return null; } return info; };
+    const land = (ang, d0, cx, cz) => { for (let d = d0; d < d0 + 900; d += 40) for (let k = 0; k < 52; k++) { const a = ang + (k % 2 ? 1 : -1) * Math.ceil(k / 2) * 0.12; const x = Math.round(cx + Math.cos(a) * d), z = Math.round(cz + Math.sin(a) * d); const info = dry(x, z); if (info) return { x, z, y: info.h + 1, a }; } return null; };
     const a0 = r() * Math.PI * 2;
-    const tent = land(a0, 300) || { x: o.x + 300, z: o.z, y: world.colInfo(o.x + 300, o.z).h + 1, a: 0 };
-    const hatch = land(tent.a + 0.9, 400) || { x: tent.x + 90, z: tent.z + 40, y: world.colInfo(tent.x + 90, tent.z + 40).h + 1 };
+    const tent = land(a0, 300, o.x, o.z) || { x: o.x + 300, z: o.z, y: world.colInfo(o.x + 300, o.z).h + 1, a: 0 };
+    const hatch = land(tent.a + 0.9, 90, tent.x, tent.z) || { x: tent.x + 90, z: tent.z + 40, y: world.colInfo(tent.x + 90, tent.z + 40).h + 1 };
     site = { tent, hatch, roomY: hatch.y - 8 };
     return site;
   }
@@ -6103,13 +6105,15 @@ const Lab = (() => {
     frame(s.tent, p.x, p.z); frame(s.hatch, p.x, p.z); if (s.room) { frame(s.room, p.x, p.z); frame(s.incubator, p.x, p.z); }
     const dt0 = Math.hypot(p.x - s.tent.x, p.z - s.tent.z), dh = Math.hypot(p.x - s.hatch.x, p.z - s.hatch.z);
     if (dt0 < 70) {
-      if (!L.tentStamped) { world.ensureAround(Math.floor(s.tent.x / CH), Math.floor(s.tent.z / CH), 1, 99); stampTent(s.tent); L.tentStamped = true; G.meshPass(99); }
+      const tk = U.mod(s.tent.x, WORLD_W) + ',' + U.mod(s.tent.z, WORLD_W);
+      if (L.tentStamped !== tk) { world.ensureAround(Math.floor(s.tent.x / CH), Math.floor(s.tent.z / CH), 1, 99); stampTent(s.tent); L.tentStamped = tk; G.meshPass(99); }
       if (!apprentice) { const gy = standY(s.tent.x + 0.5, s.tent.y, s.tent.z + 0.5) ?? s.tent.y; apprentice = person('apprentice', s.tent.x + 0.5, gy, s.tent.z + 0.5, story().kid); }
       const a = apprentice; a.bob += dt; const dx = p.x - a.x, dz = p.z - a.z; if (Math.hypot(dx, dz) < 8) a.yaw = Math.atan2(dx, dz);
       if (!L.seen && dt0 < 24) { L.seen = true; UI.toast(`${story().kid} waves you over. Something is wrong.`, 'good'); }
     } else apprentice = null;
     if (dh < 70 && L.told) {
-      if (!L.stamped) { world.ensureAround(Math.floor(s.hatch.x / CH), Math.floor(s.hatch.z / CH), 2, 999); stampLab(s); L.stamped = true; G.meshPass(99); UI.toast(`The hatch to ${story().place}. It is open. Something is breathing down there.`, 'bad'); }
+      const hk = U.mod(s.hatch.x, WORLD_W) + ',' + U.mod(s.hatch.z, WORLD_W);
+      if (L.stamped !== hk) { world.ensureAround(Math.floor(s.hatch.x / CH), Math.floor(s.hatch.z / CH), 2, 999); stampLab(s); L.stamped = hk; G.meshPass(99); UI.toast(`The hatch to ${story().place}. It is open. Something is breathing down there.`, 'bad'); }
       if (!s.room) stampLab(s);
       if (!scientist) { const gy = standY(s.room.x + 6.5, s.room.y, s.room.z - 4.5) ?? s.room.y; scientist = person('scientist', s.room.x + 6.5, gy, s.room.z - 4.5, story().who); }
       const sc = scientist; sc.bob += dt; const dx = p.x - sc.x, dz = p.z - sc.z; if (Math.hypot(dx, dz) < 8) sc.yaw = Math.atan2(dx, dz);
