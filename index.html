@@ -819,13 +819,13 @@ class World {
     const r = U.hash3(x, 99, z, this.seed + 303);
     let p = 0, type = 'oak';
     switch (info.biome) {
-      case BIOME.FOREST: p = 0.045; type = U.hash3(x, 98, z, this.seed) < 0.25 ? 'pine' : 'oak'; break;
+      case BIOME.FOREST: p = 0.008 + 0.03 * U.vnoise2(x, z, 48, WORLD_W, this.seed + 371); // thick in patches, open glades between type = U.hash3(x, 98, z, this.seed) < 0.25 ? 'pine' : 'oak'; break;
       case BIOME.PLAINS: p = 0.004; break;
       case BIOME.SNOW: p = 0.02; type = 'pine'; break;
-      case BIOME.SWAMP: p = 0.035; type = 'swamp'; break;
+      case BIOME.SWAMP: p = 0.006 + 0.024 * U.vnoise2(x, z, 48, WORLD_W, this.seed + 373); type = 'swamp'; break;
       case BIOME.MOUNTAIN: p = 0.006; type = 'pine'; break;
       case BIOME.DESERT: p = 0.01; type = 'cactus'; break;
-      case BIOME.LOSTWORLD: p = 0.05; type = 'jungle'; break;
+      case BIOME.LOSTWORLD: p = 0.01 + 0.03 * U.vnoise2(x, z, 40, WORLD_W, this.seed + 375); type = 'jungle'; break;
       default: return null;
     }
     if (r >= p) return null;
@@ -5197,7 +5197,7 @@ const QUESTS = [
   { id: 'moon', title: 'Beyond', desc: 'Craft a Space Suit first (6 iron, 4 glass, 4 cloudstone, 2 void): the Moon has no air and freezes you in moments without one. Then board the Starship on the surface (select it, tap). Hold jump to climb. Above the clouds, the world lets go of you and asks where to. Mind what you fly into.', hint: 'Craft a Space Suit, then fly the Starship above the clouds', check: G => (G.stats.reachedMoon || (G.stats.reached || {}).moon) ? 1 : 0, reward: { xp: 400 } },
   { id: 'job', title: 'Odd Jobs', desc: 'People sit by little fires all over the world, and the Moon and Halo too, each with a job: fetch this, beat that, carry a parcel, clear a den. Yellow dots on the map. Some of them pay in amulets, which nobody sells.', hint: 'Do a job for someone on the road', check: G => (G.stats.questsDone || 0) >= 1 ? 1 : 0, reward: { xp: 120 } },
   { id: 'lab', title: 'The Splice', desc: 'Somewhere out there an apprentice waits by a tent: her master is shut in his own lab with the thing he made. Find her, follow ⚗ to the hatch, and beat or cage what is down there. The incubator is the reward: Kin grow fast in it and learn techniques.', hint: 'Find the apprentice by the tent and rescue the maker', check: G => (G.stats.labDone || 0) >= 1 ? 1 : 0, reward: { xp: 400 } },
-  { id: 'lost', title: 'The Lost World', desc: 'On the far side of the world from your camp, a ring of cliffs hides a jungle plateau where the Kin are old and big: the dinosaurs. Only a tunnel gets in; it is marked on the map. Ride one into a Painted camp and watch them scatter.', hint: 'Find the tunnel into the Lost World (marked on the map)', check: G => G.stats.lostFound ? 1 : 0, reward: { xp: 500 } },
+  { id: 'lost', title: 'The Lost World', desc: 'People on the road talk about a jungle on the far side of the world where the Kin are old and big. Nobody has a map, or nobody admits to one. Do jobs for the people by the fires, rescue the scientist, or beat a legendary, and someone will hand you theirs. Then follow 🦖.', hint: 'Find someone with a map of the Lost World', check: G => G.stats.lostFound ? 1 : 0, reward: { xp: 500 } },
   { id: 'halo', title: 'The Ringed World', desc: 'Fly the Starship above the clouds and choose Halo: amber dunes under a ring that fills the sky, brine that burns, stones that fall. Caravan towns to free, amber and sulfur to dig, and ring shards for wings.', hint: 'Fly to Halo', check: G => (G.stats.reached || {}).halo ? 1 : 0, reward: { xp: 600 } },
   { id: 'legend', title: 'Legend', desc: 'Every world beyond Earth has one creature at a level nothing else reaches: the Selenaut over the Moon, the Ringwarden on Halo. ✶ on the map. Beat or cage one and the portal arches reach across the sky.', hint: 'Beat or cage a world\'s legendary (✶ on the map)', check: G => Object.keys(G.stats.legends || {}).length ? 1 : 0, reward: { xp: 2000 } },
 ];
@@ -5252,12 +5252,22 @@ const Quests = (() => {
       }
       t += treeHint.text;
     }
-    if (q.id === 'heart' && G.world.heart) {
-      const h = G.world.heart, dx = h.x - G.player.x, dz = h.z - G.player.z, d = Math.round(Math.hypot(dx, dz));
-      t += ` · ${d}m ${dirTo(dx, dz)}`;
+    // every quest with a place on the map: distance and direction, the ★ on the compass points the same way
+    if (!['village', 'fuse', 'snare', 'timber', 'ember', 'void'].includes(q.id)) {
+      const tg = target();
+      if (tg) { const wd = (d) => U.mod(d + WORLD_W / 2, WORLD_W) - WORLD_W / 2; const dx = wd(tg.x - G.player.x), dz = wd(tg.z - G.player.z); const d = Math.round(Math.hypot(dx, dz)); t += d < 6 ? ` · here${tg.note ? ' · ' + tg.note : ''}` : ` · ★ ${d}m ${dirTo(dx, dz)}${tg.note ? ' · ' + tg.note : ''}`; }
+      else if (tg === null && NOTE[q.id]) t += ' · ' + NOTE[q.id]();
     }
     return t;
   }
+  // quests with no single spot to go to still say what to do
+  const NOTE = {
+    catch: () => 'any wild Kin near you will do', party: () => 'any wild Kin near you will do', mines: () => 'dig straight down where you stand',
+    suit: () => G.player.has('lavasuit') ? 'done' : `iron ${G.player.count('iron')}/5 · void ${G.player.count('void')}/3 · ember ${G.player.count('ember')}/4`,
+    moon: () => G.player.has('ship') ? (G.player.has('spacesuit') ? 'board the Starship (Ship button) and climb' : 'craft a Space Suit first') : 'beat the Mantlewyrm first',
+    halo: () => G.player.has('ship') ? 'Ship, climb above the clouds, choose Halo' : 'you need the Starship', ship: () => 'tap the Starmetal in the Heart',
+    lost: () => 'do jobs for the people by the fires (yellow dots on the map)', legend: () => 'fly to the Moon or Halo; ✶ on the map there',
+  };
   // where the current quest points, for the compass
   let targetCache = { t: 0, v: null, id: null };
   function target() {
@@ -5275,6 +5285,12 @@ const Quests = (() => {
     if (q.id === 'void') { const b = G.world.findNearest(B.VOID, p.x, p.z, 40); return b ? { x: b.x, z: b.z } : null; }
     if (q.id === 'fuse' || q.id === 'snare') { const b = G.world.findNearest(B.FUSION, p.x, p.z, 80); return b ? { x: b.x, z: b.z } : null; }
     if ((q.id === 'heart' || q.id === 'core' || q.id === 'mythic' || q.id === 'ship') && G.world.heart) return { x: G.world.heart.x, z: G.world.heart.z };
+    if (q.id === 'catch' || q.id === 'party') { let best = null, bd = 60; for (const e of Wild.list) { if (e.isBoss || e.lieutenant || e.isLegend) continue; const d = Math.hypot(e.x - p.x, e.z - p.z); if (d < bd) { bd = d; best = e; } } return best ? { x: best.x, z: best.z, note: KIN.name(best.kin) } : null; }
+    if (q.id === 'suit') { const b = G.world.findNearest(B.IRON, p.x, p.z, 40); return b ? { x: b.x, z: b.z, note: b.y < p.y - 3 ? 'iron ore, below you' : 'iron ore' } : null; }
+    if (q.id === 'job') { const ws = Npcs.mapMarks(p, 400).filter(m => m.kind === 'wanderer'); let best = null, bd = Infinity; for (const m of ws) { const d = Math.hypot(m.x - p.x, m.z - p.z); if (d < bd) { bd = d; best = m; } } return best ? { x: best.x, z: best.z, note: best.name } : null; }
+    if (q.id === 'lab' && G.world.preset.villages) { const L = Lab.state; const m = Lab.mapMarks(p); const tent = m.find(x => x.kind === 'tent'), lab = m.find(x => x.kind === 'lab'); if (L.told && lab && !L.rescued) return { x: lab.x, z: lab.z, note: 'the hatch' }; return tent ? { x: tent.x, z: tent.z, note: 'the apprentice' } : null; }
+    if (q.id === 'lost' && G.world.lost && G.stats.lostMap) { const T = G.world.lostTunnel(); return { x: T.ax, z: T.az, note: 'the tunnel' }; }
+    if (q.id === 'legend' && G.world.legend && !(G.stats.legends || {})[G.worldId]) return { x: G.world.legend.x, z: G.world.legend.z, note: G.world.preset.legend.name };
     return null;
   }
   return { init, current, update, hintText, target, RECIPES, QUESTS };
@@ -5484,7 +5500,7 @@ const Hazards = (() => {
 // and the mer-schools out at sea that only a swimmer's mount can catch.
 const Npcs = (() => {
   let G = null, world = null;
-  const QN = 85;                       // wanderer cells across the map (about 190 blocks)
+  const QN = 110;                      // wanderer cells across the map (about 150 blocks)
   let QCELL = WORLD_W / QN;
   const wd = (d) => U.mod(d + WORLD_W / 2, WORLD_W) - WORLD_W / 2;
   const dist2d = (ax, az, bx, bz) => Math.hypot(wd(ax - bx), wd(az - bz));
@@ -5530,7 +5546,7 @@ const Npcs = (() => {
     if (wanderers.has(id)) return wanderers.get(id);
     let w = null;
     const h0 = U.hash3(cx, 91, cz, 0x5EED);
-    if (h0 < 0.72) {
+    if (h0 < 0.85) {
       const h1 = U.hash3(cx, 92, cz, 0x5EED), h2 = U.hash3(cx, 93, cz, 0x5EED);
       const x = Math.round(cx * QCELL + 20 + h1 * (QCELL - 40)), z = Math.round(cz * QCELL + 20 + h2 * (QCELL - 40));
       const info = world.colInfo(x, z);
@@ -5564,7 +5580,7 @@ const Npcs = (() => {
   function makeQuest(w, round) {
     const r = U.rng(U.combine(w.seedN, round, 0x51));
     const wid = world.preset.id; const diff = Math.min(4, 1 + Math.floor(round / 2) + (w.lost ? 1 : 0));
-    const kinds = ['fetch', 'hunt', 'catch', 'dig', 'deliver', 'lair', 'fetch', 'hunt'];
+    const kinds = ['fetch', 'hunt', 'catch', 'dig', 'deliver', 'lair', 'explore', 'explore', 'lair', 'fetch'];
     const kind = kinds[r.int(kinds.length)];
     const base = { kind, round, diff, taken: false, done: false };
     if (kind === 'fetch') { const pool = (FETCH[wid] || FETCH.earth).filter(f => f[2] <= diff); const f = pool[r.int(pool.length)]; return Object.assign(base, { item: f[0], n: f[1], line: `I need ${f[1]} ${ITEMS[f[0]].name}. Do not ask what for.` }); }
@@ -5572,6 +5588,7 @@ const Npcs = (() => {
     if (kind === 'catch') { const e = r.pick(ELEMENTS); return Object.assign(base, { elem: e, n: 1, line: `Catch me a ${e} Kin. Any one will do. Keep it; I only want to see it done.` }); }
     if (kind === 'dig') { const pool = DIG[wid] || DIG.earth; const it = pool[Math.min(pool.length - 1, r.int(diff + 1))]; const n = 2 + diff * 2; return Object.assign(base, { item: it, n, line: `Dig me ${n} ${ITEMS[it].name} out of the ground with your own hands. Bought does not count.` }); }
     if (kind === 'deliver') return Object.assign(base, { line: 'Take this parcel to the nearest headman and tell him it is from me. Then come back.' });
+    if (kind === 'explore') { const tales = [['My brother buried his savings out there before the raiders came. He never came back for them. You go; bring me half.', 'the buried savings'], ['A cart went off the road out that way. The driver walked. The cargo did not. See what is left.', 'the lost cart'], ['There is a cairn out there I built for my mother. Someone has been at it. Go and see, and keep what you find.', 'the cairn'], ['I saw something fall out of the sky over there last night. Something shiny. Go and look before somebody else does.', 'the fallen thing'], ['An old shrine. People leave gifts. Nobody has been for years. Go, and tell me it still stands.', 'the shrine']]; const tl = tales[r.int(tales.length)]; return Object.assign(base, { line: tl[0], spotName: tl[1] }); }
     return Object.assign(base, { elem: r.pick(ELEMENTS), line: 'Something has made a den out that way and it took what was mine. Beat it or cage it; I do not care which.' });
   }
   function questFor(w) { const st = npcState(w.id); if (!st.quest) st.quest = makeQuest(w, st.done); return st.quest; }
@@ -5585,14 +5602,18 @@ const Npcs = (() => {
     if (q.kind === 'dig') return Math.min(1, (dugCount(q.item) - (q.base || 0)) / q.n);
     if (q.kind === 'deliver') return q.delivered ? 1 : 0;
     if (q.kind === 'lair') return q.beaten ? 1 : 0;
+    if (q.kind === 'explore') return q.reached ? 1 : 0;
     return 0;
   }
+  const lairEnts = new Map(); // quest -> live entity (never saved)
+  function takenQuests() { const out = []; for (const id in (G.npcState || {})) { const q = G.npcState[id].quest; if (q && q.taken && (q.world || 'earth') === world.preset.id && !String(id).startsWith('mer')) out.push([{ id, name: q.wname, seedN: q.seedN, x: q.wx, z: q.wz }, q]); } return out; }
   function take(w, q) {
-    q.taken = true;
+    q.taken = true; q.wname = w.name; q.seedN = w.seedN; q.world = world.preset.id; q.wx = w.x; q.wz = w.z;
     if (q.kind === 'hunt') q.base = elemCount(q.elem);
     if (q.kind === 'catch') q.base = caughtCount(q.elem);
     if (q.kind === 'dig') q.base = dugCount(q.item);
     if (q.kind === 'deliver') { G.player.add('parcel', 1); const v = nearestVillage(w.x, w.z); q.target = v ? v.id : null; q.targetName = v ? v.name : 'any headman'; }
+    if (q.kind === 'explore') { const r = U.rng(U.combine(w.seedN, q.round, 0x1E)); const a = r() * Math.PI * 2, d = 60 + r() * 60; q.spot = { x: Math.round(w.x + Math.cos(a) * d), z: Math.round(w.z + Math.sin(a) * d) }; }
     if (q.kind === 'lair') { const r = U.rng(U.combine(w.seedN, q.round, 0x1A)); const a = r() * Math.PI * 2, d = 55 + r() * 50; q.lair = { x: Math.round(w.x + Math.cos(a) * d), z: Math.round(w.z + Math.sin(a) * d), a }; q.lairName = ['Grey Maw', 'the Thing in the Hollow', 'Old Bitter', 'the Den-Keeper', 'Scarback', 'the Nest Mother'][r.int(6)]; }
   }
   function nearestVillage(x, z) { let best = null, bd = Infinity; for (const m of Village.markers(x, z, 2)) if (m.kind === 'village') { const d = dist2d(m.x, m.z, x, z); if (d < bd) { bd = d; best = { id: markerId(m), name: m.name }; } } return best; }
@@ -5616,6 +5637,7 @@ const Npcs = (() => {
     if (rw.amulet) { G.player.add(rw.amulet, 1); UI.sfx('quest'); UI.openPanel('reveal', { kind: 'item', item: rw.amulet, n: 1 }); }
     else UI.sfx('quest');
     st.done++; st.quest = null; q.done = true;
+    if (world.preset.id === 'earth' && !G.stats.lostMap && (G.stats.questsDone || 0) >= 2) { setTimeout(() => G.giveLostMap(w.name), 900); }
     UI.toast(`${w.name}: +${rw.shards} Shards${rw.amulet ? ' and the ' + ITEMS[rw.amulet].name : Object.keys(rw.items).map(k => ', ' + ITEMS[k].name).join('')}.`, 'good');
     G.stats.questsDone = (G.stats.questsDone || 0) + 1;
   }
@@ -5625,17 +5647,17 @@ const Npcs = (() => {
     const greet = P.greet[U.combine(w.seedN, st.done) % P.greet.length];
     if (!q.taken) {
       const lines = [greet, q.line];
-      if (q.kind === 'lair') lines.push('Follow the mark on your compass: ⌖. It is not far, as the crow flies.');
+      if (q.kind === 'lair' || q.kind === 'explore') lines.push('Follow the mark on your compass: ⌖. It is not far, as the crow flies.');
       if (q.kind === 'deliver') lines.push('Any headman will do if the nearest is not to your taste.');
       Dialogue.show(w.name, lines, () => { take(w, q); UI.toast(`Job from ${w.name}: ${questText(q)}`, 'good'); });
       return;
     }
     if (progress(w, q) >= 1) { Dialogue.show(w.name, ['That is it. That is exactly it.', 'Here, what I promised. Come back; there is always more.'], () => complete(w, q)); return; }
-    const need = q.kind === 'fetch' ? `${G.player.count(q.item)} of ${q.n} ${ITEMS[q.item].name} so far.` : q.kind === 'hunt' ? `${Math.min(q.n, elemCount(q.elem) - (q.base || 0))} of ${q.n} ${q.elem} Kin beaten.` : q.kind === 'catch' ? `No ${q.elem} Kin caught yet.` : q.kind === 'dig' ? `${Math.min(q.n, dugCount(q.item) - (q.base || 0))} of ${q.n} ${ITEMS[q.item].name} dug.` : q.kind === 'deliver' ? `The parcel is for ${q.targetName}. ${G.player.has('parcel') ? 'You still have it.' : 'Lost it? Here is another.'}` : `${q.lairName} is still out there. Follow ⌖.`;
+    const need = q.kind === 'fetch' ? `${G.player.count(q.item)} of ${q.n} ${ITEMS[q.item].name} so far.` : q.kind === 'hunt' ? `${Math.min(q.n, elemCount(q.elem) - (q.base || 0))} of ${q.n} ${q.elem} Kin beaten.` : q.kind === 'catch' ? `No ${q.elem} Kin caught yet.` : q.kind === 'dig' ? `${Math.min(q.n, dugCount(q.item) - (q.base || 0))} of ${q.n} ${ITEMS[q.item].name} dug.` : q.kind === 'deliver' ? `The parcel is for ${q.targetName}. ${G.player.has('parcel') ? 'You still have it.' : 'Lost it? Here is another.'}` : q.kind === 'explore' ? `You have not found ${q.spotName} yet. Follow ⌖.` : `${q.lairName} is still out there. Follow ⌖.`;
     if (q.kind === 'deliver' && !G.player.has('parcel')) G.player.add('parcel', 1);
     Dialogue.show(w.name, ['Not done yet.', need]);
   }
-  function questText(q) { return q.kind === 'fetch' ? `bring ${q.n} ${ITEMS[q.item].name}` : q.kind === 'hunt' ? `beat ${q.n} ${q.elem} Kin` : q.kind === 'catch' ? `catch a ${q.elem} Kin` : q.kind === 'dig' ? `dig ${q.n} ${ITEMS[q.item].name}` : q.kind === 'deliver' ? `deliver the parcel to ${q.targetName}` : `beat ${q.lairName} at its den`; }
+  function questText(q) { if (q.kind === 'explore') return `find ${q.spotName}`; return q.kind === 'fetch' ? `bring ${q.n} ${ITEMS[q.item].name}` : q.kind === 'hunt' ? `beat ${q.n} ${q.elem} Kin` : q.kind === 'catch' ? `catch a ${q.elem} Kin` : q.kind === 'dig' ? `dig ${q.n} ${ITEMS[q.item].name}` : q.kind === 'deliver' ? `deliver the parcel to ${q.targetName}` : `beat ${q.lairName} at its den`; }
   // the parcel reaches a headman
   function onElderTalk(v) {
     if (!G.player.has('parcel')) return false;
@@ -5644,21 +5666,30 @@ const Npcs = (() => {
   }
   // dens: a beast at a marked spot, stamped as a ring of stones with bones when you get close
   function updateLairs(p) {
-    for (const w of activeW) {
-      const q = npcState(w.id).quest; if (!q || !q.taken || q.kind !== 'lair' || q.beaten) continue;
+    for (const [w, q] of takenQuests()) {
+      if (q.kind !== 'lair' || q.beaten) continue;
       const lx = p.x + wd(q.lair.x - p.x), lz = p.z + wd(q.lair.z - p.z); const d = Math.hypot(p.x - lx, p.z - lz);
       if (d > 60) continue;
       if (!q.lairStamped) { q.lairStamped = true; world.ensureAround(Math.floor(lx / CH), Math.floor(lz / CH), 1, 99); const gy = world.groundY(Math.floor(lx), Math.floor(lz)); for (let i = 0; i < 8; i++) { const a = i / 8 * Math.PI * 2; const x = Math.floor(lx + Math.cos(a) * 3.5), z = Math.floor(lz + Math.sin(a) * 3.5); const g = world.groundY(x, z, gy + 4); world.setBlock(x, g + 1, z, i % 2 ? B.STONE : B.BASALT); } world.setBlock(Math.floor(lx), gy + 1, Math.floor(lz), B.SNOW); G.meshPass(99); }
-      if (!q.lairEnt || !Wild.list.includes(q.lairEnt)) {
-        if (q.lairEnt) { q.lairEnt = null; continue; } // beaten or gone: onBattleEnd marks it
+      const le = lairEnts.get(q);
+      if (!le || !Wild.list.includes(le)) {
+        if (le) { lairEnts.delete(q); continue; } // beaten or gone: onBattleEnd marks it
         const rx = Math.floor(U.mod(lx, WORLD_W) / 1024), rz = Math.floor(U.mod(lz, WORLD_W) / 1024);
         const list = KIN.roster(world.preset.id, rx, rz, 'Surface', BIOME_NAME[world.colInfo(Math.floor(lx), Math.floor(lz)).biome] || 'Plains', Math.min(9, 2 + q.diff)).filter(sp => KIN.dominant(sp.elem, 1)[0] === q.elem || (sp.rarity || 0) >= 2);
         const sp = Object.assign({}, list[U.combine(w.seedN, q.round) % list.length] || KIN.roster(world.preset.id, 0, 0, 'Surface', 'Plains', 1)[0]);
         sp.names = [q.lairName, q.lairName, q.lairName]; sp.size = (sp.size || 1) * 1.3;
         const lvl = Math.max(4, Wild.zoneLevel(lx, gy0(lx, lz), lz, { layer: 'Surface' }, G.trainerLevel) + 3 + q.diff);
         const e = Wild.makeEntity(sp, lvl, lx + 0.5, gy0(lx, lz), lz + 0.5, { senseR: 6, elite: true }); e.lairQuest = { wid: w.id }; e.speed = 1.2; e.patrol = { ax: lx - 2.5, az: lz + 0.5, bx: lx + 3.5, bz: lz + 0.5, period: 7, phase: 0 };
-        Wild.list.push(e); q.lairEnt = e;
+        Wild.list.push(e); lairEnts.set(q, e);
       }
+    }
+  }
+  function updateSpots(p) {
+    for (const [w, q] of takenQuests()) {
+      if (q.kind !== 'explore' || q.reached) continue;
+      const sx = p.x + wd(q.spot.x - p.x), sz = p.z + wd(q.spot.z - p.z); const d = Math.hypot(p.x - sx, p.z - sz);
+      if (d < 50 && !q.stampedSpot) { q.stampedSpot = true; const bx = Math.floor(sx), bz = Math.floor(sz); world.ensureAround(Math.floor(bx / CH), Math.floor(bz / CH), 1, 99); const gy = world.groundY(bx, bz); for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const g = world.groundY(bx + dx, bz + dz, gy + 4); world.setBlock(bx + dx, g + 1, bz + dz, B.STONE); } world.setBlock(bx, gy + 1, bz, B.CHEST); world.setBlock(bx + 1, world.groundY(bx + 1, bz, gy + 4) + 1, bz, B.TORCH); const ch = G.chestAt(bx, gy + 1, bz, true); const r = U.rng(U.combine(w.seedN, q.round, 0x5C)); const pool = (FETCH[world.preset.id] || FETCH.earth).filter(f => f[2] >= 2); const f = pool[r.int(pool.length)]; ch.items = { [f[0]]: f[1] + r.int(3), tonic_heal: 1 + r.int(2) }; if (r() < 0.4) ch.items.tonic_revive = 1; ch.treasure = true; q.chest = { x: bx, y: gy + 1, z: bz }; G.meshPass(99); }
+      if (d < 3.5) { q.reached = true; UI.sfx('quest'); UI.toast(`You found ${q.spotName}. Open the chest, then go back to ${w.name}.`, 'good'); }
     }
   }
   const gy0 = (x, z) => world.groundY(Math.floor(x), Math.floor(z)) + 1;
@@ -5695,7 +5726,7 @@ const Npcs = (() => {
       if (!w.npc) w.npc = makeNpc(w);
       const n = w.npc; n.bob += dt; const ddx = p.x - n.x, ddz = p.z - n.z; if (Math.hypot(ddx, ddz) < 7) n.yaw = Math.atan2(ddx, ddz);
     }
-    updateLairs(p);
+    updateLairs(p); updateSpots(p);
     Camps.update(dt, p, inBattle);
     Mer.update(dt, p, inBattle);
     Lab.update(dt, p, inBattle);
@@ -5730,7 +5761,7 @@ const Npcs = (() => {
   // compass marks: dens of taken quests, the lab once you know of it
   function marks(p) {
     const out = [];
-    for (const w of activeW) { const q = npcState(w.id).quest; if (q && q.taken && q.kind === 'lair' && !q.beaten) out.push({ t: '⌖', x: p.x + wd(q.lair.x - p.x), z: p.z + wd(q.lair.z - p.z), name: q.lairName }); }
+    for (const [w, q] of takenQuests()) { if (q.kind === 'lair' && !q.beaten) out.push({ t: '⌖', x: p.x + wd(q.lair.x - p.x), z: p.z + wd(q.lair.z - p.z), name: q.lairName }); if (q.kind === 'explore' && !q.reached) out.push({ t: '⌖', x: p.x + wd(q.spot.x - p.x), z: p.z + wd(q.spot.z - p.z), name: q.spotName }); }
     out.push(...Lab.marks(p), ...Camps.marks(p));
     return out;
   }
@@ -6093,7 +6124,7 @@ const Lab = (() => {
         // the maker comes over, then the incubator is explained
         const d = Math.hypot(p.x - sc.x, p.z - sc.z);
         if (d > 2.2 && d < 30) { const sp = 2.2 * dt; const nx = sc.x + dx / d * sp, nz = sc.z + dz / d * sp; const gy = standY(nx, sc.y, nz); if (gy != null) { sc.x = nx; sc.z = nz; sc.y += (gy - sc.y) * 0.5; } sc.yaw = Math.atan2(dx, dz); sc.moving = true; }
-        else if (d <= 2.2 && !Dialogue.active() && !inBattle) { sc.moving = false; L.thanked = true; G.talkNpc = sc; Dialogue.show(story().who, story().thanks, () => { G.shards += 200; G.player.add('snare2', 2); UI.sfx('quest'); UI.toast('+200 Shards and two Void Snares. The incubator is yours.', 'good'); G.stats.labDone = (G.stats.labDone || 0) + 1; }); }
+        else if (d <= 2.2 && !Dialogue.active() && !inBattle) { sc.moving = false; L.thanked = true; G.talkNpc = sc; Dialogue.show(story().who, story().thanks, () => { G.shards += 200; G.player.add('snare2', 2); UI.sfx('quest'); UI.toast('+200 Shards and two Void Snares. The incubator is yours.', 'good'); G.stats.labDone = (G.stats.labDone || 0) + 1; if (world.preset.id === 'earth' && !G.stats.lostMap) setTimeout(() => G.giveLostMap(story().who), 600); }); }
       }
     } else { scientist = null; if (bossRef && dh > 90) { Wild.remove(bossRef); bossRef = null; } }
   }
@@ -6173,8 +6204,8 @@ const Avatar = (() => {
     return { x: p.x, y: p.y + seat, z: p.z, yaw: p.yaw + Math.PI, model: mm.model, mesh: mm.mesh, scale: 1, hover: moving && !p.mount && !p.flying ? Math.abs(Math.sin(performance.now() / 110)) * 0.08 : 0, skyMul: 1, isMount: true };
   }
   // a camera behind and a little above you, pulled in when something is in the way
-  function thirdCam(cam, p, world) {
-    const f = U.forwardVec(p.yaw, p.pitch); const back = 4.2;
+  function thirdCam(cam, p, world, back = 4.2, lift = 0) {
+    const f = U.forwardVec(p.yaw, p.pitch); cam = Object.assign({}, cam, { y: cam.y + lift });
     const free = (x, y, z) => { const b = world.getBlock(Math.floor(x), Math.floor(y), Math.floor(z)); return !isSolid(b) || BLOCKS[b].partial; };
     let d = back;
     for (let t = 0.3; t <= back; t += 0.25) { const x = cam.x - f[0] * t, y = cam.y - f[1] * t + 0.45 * (t / back), z = cam.z - f[2] * t; if (!free(x, y, z)) { d = Math.max(0.3, t - 0.3); break; } }
@@ -6606,9 +6637,12 @@ const UI = (() => {
   function renderQuests() {
     setTitle('Quests');
     const idx = G.questState.index, b = G.questState.bounty;
-    el['panel-body'].innerHTML = `<div class="quest bounty"><b>Villages</b><div class="small">${Village.summaryHtml()}</div></div><div class="quest bounty"><b>Bounty ${b.round}</b><div class="small">Win ${b.need} battles: ${G.stats.battlesWon - (b.base || 0)}/${b.need}. Reward: Snare Cube and XP. Repeats, bigger each time.</div></div>` +
+    const cur = Quests.current(); const tg = Quests.target();
+    const head = cur ? `<div class="quest current"><b>Now: ${cur.title}</b><div class="small">${cur.desc}</div><div class="small"><b>${Quests.hintText()}</b></div>${tg ? '<div class="row"><button class="btn" id="q-pin">Point me there</button></div>' : ''}</div>` : '';
+    el['panel-body'].innerHTML = head + `<div class="quest bounty"><b>Villages</b><div class="small">${Village.summaryHtml()}</div></div><div class="quest bounty"><b>Bounty ${b.round}</b><div class="small">Win ${b.need} battles: ${G.stats.battlesWon - (b.base || 0)}/${b.need}. Reward: Snare Cube and XP. Repeats, bigger each time.</div></div>` +
       QUESTS.map((qq, i) => { const state = i < idx ? 'done' : i === idx ? 'current' : 'locked'; return `<div class="quest ${state}"><b>${i < idx ? '✓ ' : ''}${qq.title}</b>${state !== 'locked' ? `<div class="small">${qq.desc}</div>` : '<div class="small">Locked</div>'}${state === 'current' ? `<div class="qbar"><div style="width:${Math.round(100 * U.clamp(qq.check(G), 0, 1))}%"></div></div>` : ''}</div>`; }).join('');
     el['quest-dot'].classList.add('hidden');
+    const qp = document.getElementById('q-pin'); if (qp) qp.addEventListener('click', () => { const t = Quests.target(); if (t) { G.pin = { x: Math.round(t.x), z: Math.round(t.z) }; closePanel(); toast('Pinned. Follow ◎ and ★ on the compass.', 'good'); } });
   }
   function renderMenu() {
     setTitle(G.gameName ? `Stratakin · ${G.gameName}` : 'Stratakin');
@@ -6689,6 +6723,8 @@ const UI = (() => {
   }
   // draws terrain (cached per spot) and markers onto a map holder {cv, ctx, size, bpp, step, terrain...}; big maps get names and a legend
   function drawMap(MM, p, big) {
+    const ox = big ? (MM.ox || 0) : 0, oz = big ? (MM.oz || 0) : 0; // the big map can be dragged away from you
+    if (ox || oz) p = { x: p.x + ox, y: p.y, z: p.z + oz, yaw: p.yaw, eye: p.eye ? p.eye.bind(p) : null };
     const ctx = MM.ctx, S = MM.size, bpp = MM.bpp, w = G.world; const cx = Math.round(p.x), cz = Math.round(p.z);
     const now = performance.now();
     if (!MM.terrain || Math.abs(cx - MM.tx) >= 6 || Math.abs(cz - MM.tz) >= 6 || now - MM.t > 4000 || MM.dirty) {
@@ -6722,15 +6758,16 @@ const UI = (() => {
       else if (m.kind === 'lab') { glyph(m.x, m.z, '⚗', '#7ad7ff'); label(m.x, m.z, m.name, '#cfe9ff'); }
     }
     for (const m of Npcs.marks(p)) if (m.t === '⌖') { glyph(m.x, m.z, '⌖', '#ff8040'); label(m.x, m.z, m.name, '#ffd0b0'); }
-    if (G.world.lost) { const L = G.world.lost; glyph(L.x, L.z, '🦖', '#ffffff'); label(L.x, L.z, 'Lost World', '#c0ffc0', true); const T = G.world.lostTunnel(); if (T) { glyph(T.ax, T.az, '◠', '#ffffff'); if (bpp <= 8) label(T.ax, T.az, 'tunnel', '#e0e0e0'); } }
+    if (G.world.lost && G.stats.lostMap) { const L = G.world.lost; glyph(L.x, L.z, '🦖', '#ffffff'); label(L.x, L.z, 'Lost World', '#c0ffc0', true); const T = G.world.lostTunnel(); if (T) { glyph(T.ax, T.az, '◠', '#ffffff'); if (bpp <= 8) label(T.ax, T.az, 'tunnel', '#e0e0e0'); } }
     if (G.world.legend && !(G.stats.legends || {})[G.worldId]) { glyph(G.world.legend.x, G.world.legend.z, '✶', '#ff2bd6'); label(G.world.legend.x, G.world.legend.z, G.world.preset.legend.name, '#ffc0f0'); }
     for (const e of Wild.list) { if (Math.abs(wd(e.x - p.x)) > S / 2 * bpp || Math.abs(wd(e.z - p.z)) > S / 2 * bpp) continue; dot(e.x, e.z, e.isBoss ? 4 : e.lieutenant ? 3.5 : 2, e.isBoss || e.lieutenant || e.raider ? '#ff3030' : (e.kin.sp.rarity || 0) >= 3 ? '#ffd040' : '#ffb0a0'); }
     const qt = Quests.target(); if (qt) glyph(qt.x, qt.z, '★', '#ffd040');
     const ft = G.world.preset.fisher ? Village.questTarget() : null; if (ft) glyph(ft.x, ft.z, '⚑', '#ff6060');
     if (G.pin) glyph(G.pin.x, G.pin.z, '◎', '#ffffff');
     // you: a white arrow pointing where you look (the map is north up)
-    ctx.save(); ctx.translate(S / 2, S / 2); ctx.rotate(-p.yaw); ctx.beginPath(); ctx.moveTo(0, -9); ctx.lineTo(6, 7); ctx.lineTo(0, 3); ctx.lineTo(-6, 7); ctx.closePath(); ctx.fillStyle = '#ffffff'; ctx.fill(); ctx.lineWidth = 2; ctx.strokeStyle = 'rgba(0,0,0,.6)'; ctx.stroke(); ctx.restore();
-    if (big && bpp > 8) { const sx = S / 2, sy = S / 2; ctx.font = 'bold 13px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(0,0,0,.8)'; ctx.strokeText('you', sx, sy + 11); ctx.fillStyle = '#ffffff'; ctx.fillText('you', sx, sy + 11); }
+    const ax = S / 2 - ox / MM.bpp, ay = S / 2 - oz / MM.bpp;
+    if (ax > -10 && ay > -10 && ax < S + 10 && ay < S + 10) { ctx.save(); ctx.translate(ax, ay); ctx.rotate(-p.yaw); ctx.beginPath(); ctx.moveTo(0, -9); ctx.lineTo(6, 7); ctx.lineTo(0, 3); ctx.lineTo(-6, 7); ctx.closePath(); ctx.fillStyle = '#ffffff'; ctx.fill(); ctx.lineWidth = 2; ctx.strokeStyle = 'rgba(0,0,0,.6)'; ctx.stroke(); ctx.restore(); }
+    if (big && bpp > 8) { const sx = ax, sy = ay; ctx.font = 'bold 13px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(0,0,0,.8)'; ctx.strokeText('you', sx, sy + 11); ctx.fillStyle = '#ffffff'; ctx.fillText('you', sx, sy + 11); }
     ctx.font = 'bold 11px sans-serif'; ctx.fillStyle = 'rgba(255,255,255,.85)'; ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic'; ctx.fillText('N', S / 2, 10);
   }
   // the big map: opened from the HUD, you at the centre, zoom in and out
@@ -6738,10 +6775,22 @@ const UI = (() => {
   const MAPSTEP = () => { BIG.step = BIG.bpp > 8 ? 6 : 4; };
   function renderMap() {
     setTitle('Map');
-    el['panel-body'].innerHTML = `<div class="maphead"><button class="btn ghost" id="map-out">−</button><span class="small">${Math.round(BIG.bpp * BIG.size)} blocks across · north up · you are the arrow</span><button class="btn ghost" id="map-in">+</button></div><canvas id="bigmap" width="480" height="480"></canvas><p class="small">Tap the map to drop a pin; the compass and the hint line guide you to it. ${G.pin ? '<button class="btn ghost" id="pin-clear">Clear pin</button>' : ''}</p><p class="small"><span style="color:#5ad66a">●</span> village you hold · <span style="color:#ff4040">●</span> held by a tyrant · <span style="color:#d9b36a">●</span> hermit · <span style="color:#ffd040">●</span> someone with a job · <span style="color:#5b9fd0">●</span> Brannock · <span style="color:#ff6a3a">△</span> Painted camp · ⚗ lab · ⌖ den · ✶ legendary · ▲ landing pad · ✦ camp fire · ★ quest · ⚑ fisherman's target · <span style="color:#ff6060">●</span> tyrant and guards · <span style="color:#ffb0a0">●</span> wild Kin</p>`;
-    BIG.cv = document.getElementById('bigmap'); BIG.ctx = BIG.cv.getContext('2d'); BIG.dirty = true;
+    el['panel-body'].innerHTML = `<div class="maphead"><button class="btn ghost" id="map-out">−</button><span class="small">${Math.round(BIG.bpp * BIG.size)} blocks across · north up · you are the arrow</span><button class="btn ghost" id="map-in">+</button></div><canvas id="bigmap" width="480" height="480"></canvas><p class="small">Drag the map to look around; tap it to drop a pin, and the compass and the hint line guide you to it. <button class="btn ghost" id="map-centre">Back to me</button> ${G.pin ? '<button class="btn ghost" id="pin-clear">Clear pin</button>' : ''}</p><p class="small"><span style="color:#5ad66a">●</span> village you hold · <span style="color:#ff4040">●</span> held by a tyrant · <span style="color:#d9b36a">●</span> hermit · <span style="color:#ffd040">●</span> someone with a job · <span style="color:#5b9fd0">●</span> Brannock · <span style="color:#ff6a3a">△</span> Painted camp · ⚗ lab · ⌖ den · ✶ legendary · ▲ landing pad · ✦ camp fire · ★ quest · ⚑ fisherman's target · <span style="color:#ff6060">●</span> tyrant and guards · <span style="color:#ffb0a0">●</span> wild Kin</p>`;
+    BIG.cv = document.getElementById('bigmap'); BIG.ctx = BIG.cv.getContext('2d'); BIG.dirty = true; BIG.ox = 0; BIG.oz = 0;
     drawMap(BIG, G.player, true);
-    BIG.cv.addEventListener('click', (ev) => { const r = BIG.cv.getBoundingClientRect(); const sx = (ev.clientX - r.left) / r.width * BIG.size, sy = (ev.clientY - r.top) / r.height * BIG.size; const p = G.player; G.pin = { x: Math.round(p.x + (sx - BIG.size / 2) * BIG.bpp), z: Math.round(p.z + (sy - BIG.size / 2) * BIG.bpp) }; drawMap(BIG, G.player, true); toast('Pin set. The compass ◎ and the hint line point to it.', 'good'); });
+    // drag to scroll, tap to pin
+    BIG.cv.style.touchAction = 'none';
+    let drag = null;
+    BIG.cv.addEventListener('pointerdown', (ev) => { BIG.cv.setPointerCapture(ev.pointerId); drag = { x: ev.clientX, y: ev.clientY, ox: BIG.ox || 0, oz: BIG.oz || 0, moved: false }; });
+    BIG.cv.addEventListener('pointermove', (ev) => { if (!drag) return; const r = BIG.cv.getBoundingClientRect(); const dx = ev.clientX - drag.x, dy = ev.clientY - drag.y; if (Math.hypot(dx, dy) > 8) drag.moved = true; if (!drag.moved) return; const k = BIG.size / r.width * BIG.bpp; BIG.ox = drag.ox - dx * k; BIG.oz = drag.oz - dy * k; const now = performance.now(); if (!BIG.lastDraw || now - BIG.lastDraw > 60) { BIG.lastDraw = now; drawMap(BIG, G.player, true); } });
+    BIG.cv.addEventListener('pointerup', (ev) => {
+      const d = drag; drag = null; if (!d) return;
+      if (d.moved) { drawMap(BIG, G.player, true); return; }
+      const r = BIG.cv.getBoundingClientRect(); const sx = (ev.clientX - r.left) / r.width * BIG.size, sy = (ev.clientY - r.top) / r.height * BIG.size; const p = G.player;
+      G.pin = { x: Math.round(p.x + (BIG.ox || 0) + (sx - BIG.size / 2) * BIG.bpp), z: Math.round(p.z + (BIG.oz || 0) + (sy - BIG.size / 2) * BIG.bpp) }; drawMap(BIG, G.player, true); toast('Pin set. The compass ◎ and the hint line point to it.', 'good');
+    });
+    BIG.cv.addEventListener('pointercancel', () => { drag = null; });
+    const ctr = document.getElementById('map-centre'); if (ctr) ctr.addEventListener('click', () => { BIG.ox = 0; BIG.oz = 0; drawMap(BIG, G.player, true); });
     const pc = document.getElementById('pin-clear'); if (pc) pc.addEventListener('click', () => { G.pin = null; renderMap(); });
     q('map-in').addEventListener('click', () => { BIG.bpp = Math.max(0.5, BIG.bpp / 2); MAPSTEP(); BIG.dirty = true; drawMap(BIG, G.player, true); q('map-in').parentElement.querySelector('span').textContent = `${Math.round(BIG.bpp * BIG.size)} blocks across · north up · you are the arrow`; });
     q('map-out').addEventListener('click', () => { BIG.bpp = Math.min(36, BIG.bpp * 2); MAPSTEP(); BIG.dirty = true; drawMap(BIG, G.player, true); q('map-out').parentElement.querySelector('span').textContent = `${Math.round(BIG.bpp * BIG.size)} blocks across · north up · you are the arrow`; });
@@ -6761,7 +6810,7 @@ const UI = (() => {
     if (G.world.pad) marks.push({ t: '▲', x: G.world.pad.x, z: G.world.pad.z });
     const qt = Quests.target(); if (qt) marks.push({ t: '★', x: qt.x, z: qt.z });
     for (const m of Npcs.marks(p)) marks.push({ t: m.t, x: m.x, z: m.z });
-    if (G.world.lost && !G.stats.lostFound) marks.push({ t: '🦖', x: G.world.lost.x, z: G.world.lost.z });
+    if (G.world.lost && G.stats.lostMap && !G.stats.lostFound) marks.push({ t: '🦖', x: G.world.lost.x, z: G.world.lost.z });
     const wrap = (d) => U.mod(d + WORLD_W / 2, WORLD_W) - WORLD_W / 2;
     for (const m of marks) { const dx = wrap(m.x - p.x), dz = wrap(m.z - p.z); if (Math.hypot(dx, dz) < 6) continue; items.push({ t: m.t, b: Math.atan2(dx, -dz), cls: 'mark' }); }
     let html = '';
@@ -7430,6 +7479,7 @@ G.onBattleEnd = function (result, wildE, wild, mine, ambush) {
     }
     Wild.remove(wildE);
     if (wildE.isBoss) { Village.onBossGone(wildE.villageId); Village.freed(wildE.villageId); UI.toast('The village is free.', 'good'); }
+    if (wildE.isLegend && !this.stats.lostMap) setTimeout(() => this.giveLostMap('A voice on the wind'), 4000);
     if (wildE.isLegend) { if (!this.stats.legends) this.stats.legends = {}; this.stats.legends[this.worldId] = true; UI.sfx('quest'); UI.toast(`${KIN.name(wild)} is ${result === 'caught' ? 'yours' : 'beaten'}. The portals of ${this.world.preset.name} wake: every arch you hold now reaches the other worlds, and theirs reach here.`, 'good'); this.addTrainerXp(2000); }
     if (wildE.lieutenant) Village.lieutenantDown(wildE.lieutenant);
   } else if (result === 'ran') {
@@ -7625,7 +7675,7 @@ G.loop = function (t) {
       if (layer === 'Mines' && p.y < w.topAt(Math.floor(p.x), Math.floor(p.z)) - 6) this.stats.reachedMines = true;
       if (layer === 'Core' && !this.stats.reachedCore) { this.stats.reachedCore = true; UI.toast('You have broken into the Core: a sea of lava under a basalt sky, and the Heart somewhere in the dark. The compass star points at it.', 'good'); }
       if (p.y < 2.5 && (this.frame & 127) === 0) UI.toast('Mantle Rock. The floor of the world; nothing digs through it.');
-      if (!this.stats.lostFound && (this.frame & 31) === 0 && w.lost && w.colInfo(Math.floor(p.x), Math.floor(p.z)).lost) { this.stats.lostFound = true; UI.toast('The Lost World. Ferns, old trees, and things that walked here before anything else did.', 'good'); }
+      if (!this.stats.lostFound && (this.frame & 31) === 0 && w.lost && w.colInfo(Math.floor(p.x), Math.floor(p.z)).lost) { this.stats.lostFound = true; this.stats.lostMap = true; UI.toast('The Lost World. Ferns, old trees, and things that walked here before anything else did.', 'good'); }
       if (w.heart && p.y < 12 && Math.hypot(p.x - w.heart.x, p.z - w.heart.z) < 14) this.stats.heartFound = true;
       this.questTimer += dt;
       if (this.questTimer > 0.5) {
@@ -7647,7 +7697,10 @@ G.loop = function (t) {
   // render
   const eye = p.eye();
   let cam = { x: eye.x, y: eye.y, z: eye.z, yaw: p.yaw, pitch: p.pitch, fov: (this.mobile ? 75 : 70) * Math.PI / 180 };
-  if (this.thirdPerson && !inBattle) cam = Avatar.thirdCam(cam, p, w);
+  if (!inBattle && p.mount) { // riding: the camera sits back and up, further for bigger mounts, so the mount never fills the view
+    const mm = KIN.model(p.mount.sp, p.mount.stage); const size = Math.max(mm.height, mm.radius * 1.4);
+    cam = Avatar.thirdCam(cam, p, w, 4.5 + size * 1.6, 0.6 + mm.height * 0.45);
+  } else if (this.thirdPerson && !inBattle) cam = Avatar.thirdCam(cam, p, w);
   if (inBattle && Battle.camera) { const bc = Battle.camera(dt, this.mobile); if (bc) cam = Object.assign(cam, bc); }
   // talking to someone: the camera slides round to their face, a little to one side
   const talking = !inBattle && this.talkNpc && (Dialogue.active() || UI.panelOpen === 'shop' || UI.panelOpen === 'village');
@@ -7670,8 +7723,8 @@ G.loop = function (t) {
   if (Battle.mineEntity) ents.push(Battle.mineEntity);
   ents.push(...Village.entities());
   if (p.flying) ents.push({ x: p.x, y: p.y - 0.85, z: p.z, yaw: p.yaw + Math.PI, model: { height: 1 }, mesh: R.entityMesh('ship', (mb) => { const c = [0.75, 0.9, 0.95], d = [0.35, 0.4, 0.5], g = [0.4, 0.95, 1.0]; mb.box(-0.8, 0, -1.3, 0.8, 0.5, 1.4, c); mb.box(-0.4, 0.5, -0.2, 0.4, 0.9, 0.7, d); mb.box(-2.2, 0.15, -0.9, -0.8, 0.25, 0.1, c); mb.box(0.8, 0.15, -0.9, 2.2, 0.25, 0.1, c); mb.box(-0.6, 0.1, -1.6, -0.2, 0.4, -1.3, g, 1, true); mb.box(0.2, 0.1, -1.6, 0.6, 0.4, -1.3, g, 1, true); mb.box(-0.15, 0.15, 1.4, 0.15, 0.35, 1.9, g, 1, true); }), scale: 1, hover: Math.sin(performance.now() / 300) * 0.05, skyMul: 1, isMount: true });
-  const showMe = inBattle || this.thirdPerson || this.talkK > 0;
-  if (showMe) ents.push(Avatar.entity(p, Math.hypot(p.vx, p.vz) > 0.6));
+  const showMe = inBattle || this.thirdPerson || this.talkK > 0 || !!p.mount;
+  if (showMe) { const me = Avatar.entity(p, Math.hypot(p.vx, p.vz) > 0.6); if (p.mount) { const mm = KIN.model(p.mount.sp, p.mount.stage); me.y = p.y - 0.75 + mm.height * 0.62; } ents.push(me); }
   if (p.mount) { const k = p.mount; const m = KIN.model(k.sp, k.stage); const fwd = U.forwardVec(p.yaw, 0); ents.push({ x: p.x + fwd[0] * 0.5, y: p.y - 0.75 + (p.inWater ? -0.2 : 0) + Math.sin(performance.now() / 160) * (Math.hypot(p.vx, p.vz) > 0.5 ? 0.06 : 0), z: p.z + fwd[2] * 0.5, yaw: p.yaw + Math.PI, model: m, mesh: R.entityMesh(KIN.meshKey(k.sp, k.stage), (mb) => KIN.buildMesh(mb, m)), scale: 1, hover: 0, skyMul: 1, isMount: true }); }
   ents.push(...Battle.fxEntities()); ents.push(...Hazards.entities()); ents.push(...Npcs.entities());
   for (const o of w.statues.values()) {
@@ -7848,6 +7901,13 @@ G.portalTo = function (dest) {
 };
 
 // ---------- chests: storage that survives anything ----------
+// the old map: the Lost World is on nobody's chart until somebody gives you theirs
+G.giveLostMap = function (from) {
+  if (this.stats.lostMap) return false;
+  this.stats.lostMap = true; UI.sfx('quest');
+  Dialogue.show(from, ['Here. An old map, older than me. There is a ring of cliffs on the far side of the world with a jungle inside, and things in it that walked here before anything else did.', 'There is one way in, a tunnel through the rock. I have marked it. It is a long road; take a mount and plenty of tonics.'], () => UI.toast('The Lost World is on your map and your compass now: 🦖.', 'good'));
+  return true;
+};
 G.damageMul = function () { return (typeof Npcs !== 'undefined' && this.amulet && Npcs.active('skin')) ? 0.5 : 1; };
 G.chestKey = function (x, y, z) { return `${this.worldId}:${U.mod(x, WORLD_W)},${y},${U.mod(z, WORLD_W)}`; };
 G.chestAt = function (x, y, z, create) { if (!this.chests) this.chests = {}; const k = this.chestKey(x, y, z); if (!this.chests[k] && create) this.chests[k] = { items: {} }; return this.chests[k] || null; };
