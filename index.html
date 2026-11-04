@@ -817,6 +817,7 @@ class World {
   treeAt(x, z, info) {
     if (!this.preset.trees) return null;
     if (info.h <= SEA || info.h > 72) return null;
+    if (info.lost && this.lost && Math.hypot(x - this.lost.x, z - this.lost.z) < 26) return null; // the tyrant's clearing
     const r = U.hash3(x, 99, z, this.seed + 303);
     let p = 0, type = 'oak';
     switch (info.biome) {
@@ -987,17 +988,18 @@ class World {
           // distance from the column to the tunnel's centre line, and how far along it we are
           const ix = (T.bx - T.ax) / len, iz = (T.bz - T.az) / len; // inward, from the outer mouth to the plateau
           const px = x + 0.5 - T.ax, pz = z + 0.5 - T.az; const t = U.clamp((px * ix + pz * iz) / len, 0, 1); const cx = T.ax + ix * len * t, cz = T.az + iz * len * t;
-          const dd = Math.hypot(x + 0.5 - cx, z + 0.5 - cz); if (dd > 2.7 || t <= 0 || t >= 1.02) continue;
+          const dd = Math.hypot(x + 0.5 - cx, z + 0.5 - cz); if (dd > 2.9 || t <= 0 || t >= 1.02) continue;
           const fy = Math.round(U.lerp(T.ya, T.yb, t)); const base = (lx * CH + lz) * WH;
           const along = Math.round(len * t);
-          if (dd > 1.6) { // the gate at the outer mouth: two stone pillars and a lintel with torches
-            if (along >= 2 && along <= 3) { for (let y = fy + 1; y <= fy + 5; y++) blocks[base + y] = B.STONE; if (along === 2) blocks[base + fy + 6] = B.TORCH; }
+          if (dd > 2.2) { // the gate at the outer mouth: two stone pillars and a lintel with torches
+            if (along >= 2 && along <= 3) { for (let y = fy + 1; y <= fy + 6; y++) blocks[base + y] = B.STONE; if (along === 2) blocks[base + fy + 7] = B.TORCH; }
             continue;
           }
-          for (let y = fy + 1; y <= fy + 3; y++) if (y > 0 && y < WH) blocks[base + y] = B.AIR;
-          if (along >= 2 && along <= 3) { blocks[base + fy + 4] = B.AIR; blocks[base + fy + 5] = B.STONE; }
-          if (blocks[base + fy] === B.AIR || blocks[base + fy] === B.WATER) blocks[base + fy] = B.STONE;
-          if (dd < 0.5 && along % 6 === 3) blocks[base + fy + 1] = B.TORCH;
+          // 5 high so you can jump the steps (and ride a big mount through), 4 wide
+          for (let y = fy + 1; y <= fy + 5; y++) if (y > 0 && y < WH) blocks[base + y] = B.AIR;
+          if (along >= 2 && along <= 3) blocks[base + fy + 6] = B.STONE;
+          if (blocks[base + fy] === B.AIR || blocks[base + fy] === B.WATER || blocks[base + fy] === B.LEAVES) blocks[base + fy] = B.STONE;
+          if (dd > 1.6 && along % 6 === 3) blocks[base + fy + 3] = B.TORCH; // lamps along the walls, off the walkway
         }
       }
     }
@@ -2342,9 +2344,9 @@ const KIN = (() => {
     { name: 'epic', w: 2.5, lvl: 4, stat: 60, catch: 0.6, xp: 1.8 },
     { name: 'legendary', w: 0.35, lvl: 10, stat: 130, catch: 0.3, xp: 3.5 },
   ];
-  const MAX_LEVEL = 999; // the planets go far past 99; a fusion keeps its levels too
+  const MAX_LEVEL = 1000; // the planets go far past 99; a fusion keeps its levels too
   function growth(level) { return 1 + 0.06 * level + 0.0015 * level * level; }
-  function xpToNext(level) { return Math.floor(20 + 12 * Math.pow(level, 1.4)); }
+  function xpToNext(level) { return Math.floor(20 + 12 * Math.pow(level, 1.4) * (1 + level / 150)); } // steeper the higher you go
   function dominant(elem, n = 2) { return elem.map((w, i) => [w, i]).sort((a, b) => b[0] - a[0]).slice(0, n).filter(x => x[0] > 0.12).map(x => E[x[1]]); }
   function normalize(v) { const s = v.reduce((a, b) => a + b, 0) || 1; return v.map(x => x / s); }
   function hexMix(a, b, t) { return U.rgbToHex(U.mixColor(U.hexToRgb(a), U.hexToRgb(b), t)); }
@@ -2456,6 +2458,17 @@ const KIN = (() => {
     else { sp.colors = { body: '#ffd25a', belly: '#fff6b0', accent: '#ffe600', dark: '#7a5a22', eye: '#ff2bd6' }; sp.elem = normalize([0.15, 0, 0, 0, 0.2, 0, 0.4, 0, 0.25]); }
     return sp;
   }
+  // the Lost World's two giants: the tyrant in the middle of the jungle and the sea-lizard in the water around it
+  function apexSpecies(kind) {
+    const rex = kind === 'rex';
+    const sp = species(U.combine(SPECIES_SEED.earth, rex ? 1001 : 1002), [rex ? 'Flame' : 'Tide'], 9, { primary: rex ? 'Flame' : 'Tide', shape: rex ? 'raptor' : 'serpent', total: rex ? 1500 : 1350, evolveAt: [9999, 9999], size: rex ? 5.2 : 5.8 });
+    sp.names = rex ? ['Tyrannorex', 'Tyrannorex', 'Tyrannorex'] : ['Abyssaurus', 'Abyssaurus', 'Abyssaurus'];
+    sp.legend = true; sp.apex = kind; sp.rarity = 4; sp.dino = true;
+    sp.feat = { horns: !rex, wings: false, spikes: true, tail: true, ears: false, crest: rex, bigEyes: false, stripes: rex, spots: !rex, armor: true, bigTail: true };
+    if (rex) { sp.colors = { body: '#4a3a2a', belly: '#c9a46a', accent: '#d8341e', dark: '#1e1610', eye: '#ffcc00' }; sp.elem = normalize([0.5, 0, 0, 0.35, 0, 0, 0, 0.15, 0]); }
+    else { sp.colors = { body: '#1f4a5e', belly: '#cfe6dc', accent: '#3fd1c4', dark: '#0a1e28', eye: '#ff4a3a' }; sp.elem = normalize([0, 0.65, 0, 0, 0, 0, 0, 0.35, 0]); }
+    return sp;
+  }
   function wardenSpecies(worldSeed, i) {
     const sp = species(U.combine(SPECIES_SEED.earth, 778, i), ['Stone'], 7, { primary: 'Stone', shape: 'biped', total: 520 });
     sp.names = ['Core Warden', 'Core Warden', 'Core Warden'];
@@ -2550,7 +2563,7 @@ const KIN = (() => {
   function fusionLevel(levels) {
     const n = levels.length; const s = levels.slice().sort((a, b) => a - b);
     const median = s[Math.floor((n - 1) / 2)];
-    const bonus = (1 + 1.6 * Math.sqrt(n - 1)) * (1 + median / 60);
+    const bonus = (1 + 1.6 * Math.sqrt(n - 1)) * (1 + median / 300); // fusing no longer snowballs at high level
     return Math.min(MAX_LEVEL, Math.round(median + bonus));
   }
   // Fusion of 2..16 Kin plus any number of element items -> a brand new species. Deterministic: same inputs, same result.
@@ -2853,7 +2866,7 @@ const KIN = (() => {
   function serialize(k) { return { id: k.id, sp: k.sp, level: k.level, xp: k.xp, iv: k.iv, stage: k.stage, hp: k.hp, nick: k.nick, equip: k.equip || null, tech: k.tech || null }; }
   function deserialize(d) { return Object.assign({ status: null }, d); }
 
-  return { E, EI, CHART, STAT_KEYS, STAT_NAMES, growth, xpToNext, dominant, species, speciesForContext, mythicSpecies, legendSpecies, wardenSpecies, MAX_LEVEL, TECH, techFor, techByName, starters, create, stats, name, moves, effectiveness, gainXp, fuse, fusionLevel, TRAITS, RARITY, roster, buildUniverse, decorate, makeStatue, statueModel, shardsFor, model, buildMesh, meshKey, portrait, serialize, deserialize, UTIL_DESC };
+  return { E, EI, CHART, STAT_KEYS, STAT_NAMES, growth, xpToNext, dominant, species, speciesForContext, mythicSpecies, legendSpecies, apexSpecies, wardenSpecies, MAX_LEVEL, TECH, techFor, techByName, starters, create, stats, name, moves, effectiveness, gainXp, fuse, fusionLevel, TRAITS, RARITY, roster, buildUniverse, decorate, makeStatue, statueModel, shardsFor, model, buildMesh, meshKey, portrait, serialize, deserialize, UTIL_DESC };
 })();
 
 </script>
@@ -3008,7 +3021,7 @@ const Wild = (() => {
       speed: Math.min(3.2, 0.9 + st.spd / 90), senseR: opts.senseR || (3.4 + Math.min(2.6, st.agi / 55) + Math.min(2, m.radius * 0.5)), alert: 0, // the ring grows a little with agility and size, never past about eight blocks
       aquatic: !!opts.aquatic, flying: sp.shape === 'bird' || sp.shape === 'floater', model: m, scale: 1, hover: m.hover, bob: Math.random() * 6,
       mesh: R.entityMesh(KIN.meshKey(sp, kin.stage), (mb) => KIN.buildMesh(mb, m)),
-      skyMul: 1, elite: !!opts.elite, patrol: opts.patrol || null, sleep: !!opts.sleep, isMythic: !!opts.isMythic, isWarden: !!opts.isWarden, skyT: 0
+      skyMul: 1, elite: !!opts.elite, patrol: opts.patrol || null, sleep: !!opts.sleep, isMythic: !!opts.isMythic, isWarden: !!opts.isWarden, isLegend: !!opts.isLegend, isApex: opts.isApex || null, skyT: 0
     };
     return e;
   }
@@ -3073,7 +3086,7 @@ const Wild = (() => {
   let legendRef = null;
   function ensureLegend(player) {
     const L = world.legend; if (!L || !world.preset.legend) return;
-    const done = G.stats.legends && G.stats.legends[world.preset.id];
+    const lb = (G.stats.legendBack || {})[world.preset.id]; const done = lb === 'caught' || (typeof lb === 'number' && (G.dayCount || 0) < lb); // beaten: back in a few days; caught: gone for good
     const d = Math.hypot(wdd(player.x - L.x), wdd(player.z - L.z));
     if (legendRef && !list.includes(legendRef)) legendRef = null;
     if (legendRef || done || d > 70) return;
@@ -3086,6 +3099,45 @@ const Wild = (() => {
     legendRef.patrol = { ax: lx - 4.5, az: lz + 0.5, bx: lx + 5.5, bz: lz + 0.5, period: 14, phase: 0 };
     list.push(legendRef);
     UI.toast(`${sp.names[0]}. Lv ${world.preset.legend.level}. It has seen you.`, 'bad');
+  }
+  // the Lost World's giants: Tyrannorex walks the middle of the plateau, Abyssaurus circles the nearest deep water
+  const apexRefs = { rex: null, mosa: null };
+  const APEX_LV = { rex: 1000, mosa: 850 };
+  function apexSea() {
+    const L = world.lost; if (!L) return null;
+    if (L.sea !== undefined) return L.sea;
+    L.sea = null;
+    const deep = (x, z) => world.colInfo(x, z).h < SEA - 7;
+    for (let r = L.rim + 40; r < 2400 && !L.sea; r += 24) {
+      for (let k = 0; k < 48; k++) {
+        const a = k / 48 * Math.PI * 2 + r * 0.01; const x = Math.round(L.x + Math.cos(a) * r), z = Math.round(L.z + Math.sin(a) * r);
+        if (!deep(x, z)) continue;
+        // room to swim: a 30-block lane of deep water
+        const ok = [-15, -8, 0, 8, 15].every(o => deep(x + o, z) && deep(x + o, z + 6) && deep(x + o, z - 6));
+        if (ok) { L.sea = { x, z }; break; }
+      }
+    }
+    return L.sea;
+  }
+  function ensureApex(player) {
+    const L = world.lost; if (!L || !G.stats.lostMap) return;
+    const st = G.stats.apex || {}; const done = {}; for (const k in st) done[k] = st[k] === true || (st[k] && (G.dayCount || 0) < st[k].back);
+    const spots = { rex: { x: L.x, z: L.z }, mosa: apexSea() };
+    for (const kind of ['rex', 'mosa']) {
+      const ref = apexRefs[kind]; if (ref && !list.includes(ref)) apexRefs[kind] = null;
+      const at = spots[kind]; if (!at || apexRefs[kind] || done[kind]) continue;
+      if (Math.hypot(wdd(player.x - at.x), wdd(player.z - at.z)) > 80) continue;
+      const ax = player.x + wdd(at.x - player.x), az = player.z + wdd(at.z - player.z);
+      world.ensureAround(Math.floor(ax / CH), Math.floor(az / CH), 1, 99);
+      const sp = KIN.apexSpecies(kind); const mosa = kind === 'mosa';
+      const gy = mosa ? SEA - 4 : world.groundY(Math.floor(ax), Math.floor(az)) + 1;
+      const e = makeEntity(sp, APEX_LV[kind], ax + 0.5, gy, az + 0.5, { senseR: mosa ? 9 : 8, isApex: kind, aquatic: mosa });
+      e.speed = mosa ? 1.4 : 0.8; e.elite = true; e.legend = true;
+      e.patrol = mosa ? { ax: ax - 14, az: az + 0.5, bx: ax + 14, bz: az + 0.5, period: 26, phase: 0 } : { ax: ax - 6, az: az - 3, bx: ax + 6, bz: az + 3, period: 22, phase: 0 };
+      if (mosa) e.breach = 0;
+      apexRefs[kind] = e; list.push(e);
+      UI.toast(mosa ? `Something huge moves under the water. ${sp.names[0]}, Lv ${APEX_LV[kind]}.` : `The ground shakes. ${sp.names[0]}, Lv ${APEX_LV[kind]}, rules the Lost World.`, 'bad');
+    }
   }
   function findGround(x, y, z, e) {
     const bx = Math.floor(x), bz = Math.floor(z);
@@ -3110,8 +3162,8 @@ const Wild = (() => {
       const e = list[i];
       const dx = px - e.x, dz = pz - e.z, dy = (py + 0.9) - (e.y + 0.6);
       const dist = Math.hypot(dx, dz, dy * 0.8);
-      if (dist > 58 && !e.isMythic && !e.isWarden && !e.raider && !e.lieutenant && !e.isLegend) { list.splice(i, 1); continue; }
-      if ((e.isMythic || e.isWarden || e.isLegend) && dist > 90) { list.splice(i, 1); if (e.isMythic) mythicRef = null; if (e.isLegend) legendRef = null; continue; }
+      if (dist > 58 && !e.isMythic && !e.isWarden && !e.raider && !e.lieutenant && !e.isLegend && !e.isApex) { list.splice(i, 1); continue; }
+      if ((e.isMythic || e.isWarden || e.isLegend || e.isApex) && dist > 100) { list.splice(i, 1); if (e.isMythic) mythicRef = null; if (e.isLegend) legendRef = null; if (e.isApex) apexRefs[e.isApex] = null; continue; }
       e.bob += dt;
       if (e.breach != null) { e.breach += dt; const c = e.breach % 11; e.hover = c < 2.2 ? Math.sin(c / 2.2 * Math.PI) * 3.0 : 0; }
       e.skyT -= dt; if (e.skyT <= 0) { e.skyT = 0.4; e.skyMul = skyExposure(e); }
@@ -3177,7 +3229,7 @@ const Wild = (() => {
         else rate = -0.6;
         e.alert = U.clamp(e.alert + rate * dt * (dist < senseR * 0.5 && !sneaking ? 1.5 : 1), 0, 1);
         // only the real threats force a fight: tyrants, their guards, legends, the lab's splice and the truly rare; everything else follows you and gives up
-        const strong = (e.kin.sp.rarity || 0) >= 3 || e.lieutenant || e.isBoss || e.isLegend || e.isLabBoss || e.lairQuest;
+        const strong = (e.kin.sp.rarity || 0) >= 3 || e.lieutenant || e.isBoss || e.isLegend || e.isApex || e.isLabBoss || e.lairQuest;
         // once it has seen you, stay in its ring for three seconds and it attacks; walk out in time and it lets you go
         if (e.alert >= 1) { e.ringT = (e.ringT || 0) + dt; if (!strong) e.hunt = 4; } else e.ringT = Math.max(0, (e.ringT || 0) - dt);
         if (e.alert >= 1 && !trigger && (strong || e.ringT >= 3)) trigger = { e, ambush: false };
@@ -3191,14 +3243,14 @@ const Wild = (() => {
     if (spawnTimer <= 0 && !battleActive) {
       const lured = G.lure && G.lure.until > performance.now(); const hushed = G.repelUntil > performance.now();
       spawnTimer = lured ? 1.2 : 3.5;
-      const near = list.filter(e => !e.isMythic && !e.isWarden && !e.lieutenant && !e.raider && !e.isBoss && !e.isLegend).length;
+      const near = list.filter(e => !e.isMythic && !e.isWarden && !e.lieutenant && !e.raider && !e.isBoss && !e.isLegend && !e.isApex).length;
       const inWater = player.inWater || player.underwater;
       const cap = inWater ? Math.min(maxCount, 4) : calmHere(player) ? Math.min(maxCount, 4) : Math.min(maxCount, 6);
       if (near < (lured ? cap + 3 : cap) && !hushed) trySpawn(player, player.trainerLevel || 1);
     }
     return trigger;
   }
-  function remove(e) { const i = list.indexOf(e); if (i >= 0) list.splice(i, 1); if (e === mythicRef) mythicRef = null; if (e === legendRef) legendRef = null; }
+  function remove(e) { const i = list.indexOf(e); if (i >= 0) list.splice(i, 1); if (e === mythicRef) mythicRef = null; if (e === legendRef) legendRef = null; if (e.isApex && apexRefs[e.isApex] === e) apexRefs[e.isApex] = null; }
   function nearest(player, maxD = 6) {
     let best = null, bd = maxD;
     for (const e of list) { const d = Math.hypot(e.x - player.x, e.z - player.z, e.y - player.y); if (d < bd) { bd = d; best = e; } }
@@ -3223,17 +3275,17 @@ const Wild = (() => {
     const out = [];
     for (const e of list) {
       const d = Math.hypot(e.x - player.x, e.z - player.z);
-      if (d > (e.lieutenant || e.isBoss || e.isLegend ? 48 : 16)) continue;
+      if (d > (e.lieutenant || e.isBoss || e.isLegend || e.isApex ? 48 : 16)) continue;
       const a = e.alert;
-      const col = e.chase ? [1, 0.1, 0.1, 0.9] : (e.isMythic || e.isLegend) ? [1, 0.4, 0.9, 0.5] : [1, 1 - a * 0.8, 0.2, 0.25 + a * 0.5];
+      const col = e.chase ? [1, 0.1, 0.1, 0.9] : (e.isMythic || e.isLegend || e.isApex) ? [1, 0.4, 0.9, 0.5] : [1, 1 - a * 0.8, 0.2, 0.25 + a * 0.5];
       if (e.lieutenant || e.isBoss) { const pulse = 0.6 + 0.4 * Math.sin(e.bob * 4); out.push({ data: R.ringLines(e.x, e.y + 0.06, e.z, 1.6 + 0.3 * pulse), color: [1, 0.15, 0.1, 0.95] }); out.push({ data: R.ringLines(e.x, e.y + 0.1, e.z, 2.4), color: [1, 0.3, 0.1, 0.6] }); if (e.senseR <= 0) continue; }
       out.push({ data: R.ringLines(e.x, e.y + 0.05, e.z, e.senseR), color: col });
       if (a > 0.05) out.push({ data: R.ringLines(e.x, e.y + 0.08, e.z, e.senseR * (1 - a) + 0.3), color: [1, 0.2, 0.1, 0.8] });
     }
     return out;
   }
-  function clear() { list.length = 0; mythicRef = null; legendRef = null; }
-  const api = { init, update, list, remove, nearest, pick, rings, ensureHeart, ensureLegend, clear, makeEntity, zoneLevel, noSpawn: null, chaser: null, get mythic() { return mythicRef; }, get legend() { return legendRef; } };
+  function clear() { list.length = 0; mythicRef = null; legendRef = null; apexRefs.rex = apexRefs.mosa = null; }
+  const api = { init, update, list, remove, nearest, pick, rings, ensureHeart, ensureLegend, ensureApex, apexSea, apexLevel: APEX_LV, clear, makeEntity, zoneLevel, noSpawn: null, chaser: null, get mythic() { return mythicRef; }, get legend() { return legendRef; } };
   return api;
 })();
 
@@ -4822,6 +4874,7 @@ const Battle = (() => {
     if (wild.sp.mythic) log('The Heart stirs. This is the Mythic of the Core.', 'bad');
     if (wildE.isBoss) log(`${n} blocks the square.`, 'bad');
     if (wildE.isLegend) log(`${n}, the legend of this world. Lv ${wild.level}.`, 'bad');
+    if (wildE.isApex) log(`${n}. Lv ${wild.level}. Run, or be very, very sure.`, 'bad');
     camState = null;
     stealth = !!opts.stealth;
     if (stealth) { el.log.innerHTML = ''; log(`${n} has not seen you. Set the snare before it does.`, 'good'); renderActions(); busy = false; beginSnare(); return; }
@@ -5001,28 +5054,38 @@ const Battle = (() => {
     const item = G.player.has('snare2') ? 'snare2' : 'snare';
     let c = stealth ? ITEMS[item].snare * (wildE && wildE.alert < 0.5 ? 0.6 : 0.45) : ITEMS[item].snare * (1 - frac * 0.8);
     if (wild.level > mine.level + 3) c *= 0.75;
+    // the level gap: a little above you is fair, 20% above is a long shot, twice your level and nothing holds it
+    const gap = wild.level / Math.max(1, G.trainerLevel || 1); // your level as a trainer, not your Kin's
+    if (gap >= 2) return { chance: 0, item, gap, hopeless: true };
+    if (gap > 1.2) c *= 0.55 * Math.pow((2 - gap) / 0.8, 3);
+    else if (gap > 1) c *= 1 - (gap - 1) * 2.25;
     if (ambush && !stealth) c *= 1.25;
     c *= KIN.RARITY[wild.sp.rarity || 0].catch;
     if (wildE && wildE.isBoss) c *= 0.7;
     if (typeof Npcs !== 'undefined' && Npcs.active('hunter')) c *= 1.5; // the Hunter's Amulet
     if (wild.sp.mythic || wild.sp.legend) c = frac < 0.15 ? Math.min(c, 0.5) : Math.min(c, 0.12);
-    return { chance: U.clamp(c, 0.04, 0.9), item };
+    return { chance: U.clamp(c, gap > 1.2 ? 0.002 : 0.04, 0.9), item, gap };
   }
   function beginSnare() {
-    const { chance, item } = catchChance();
+    const { chance, item, gap, hopeless } = catchChance();
     if (!G.player.take(item, 1)) return;
     if (typeof Npcs !== 'undefined' && Npcs.active('hunter')) Npcs.useCharge('hunter');
     busy = true;
     el.actions.querySelectorAll('button').forEach(b => b.disabled = true);
     const st = KIN.stats(wild);
     const rar = wild.sp.rarity || 0;
-    const width = Math.max(0.02, chance * 0.9 * [1, 0.9, 0.75, 0.5, 0.5][rar]);
+    const width = hopeless ? 0.006 : Math.max(gap > 1.2 ? 0.008 : 0.02, chance * 0.9 * [1, 0.9, 0.75, 0.5, 0.5][rar]);
     const left = 0.05 + Math.random() * (0.9 - width);
-    const period = U.clamp(2.3 - st.agi / 110, 0.75, 2.3) * [1, 0.95, 0.85, 0.65, 0.45][rar];
-    snareState = { width, left, period, t0: performance.now(), done: false, hits: 0, need: rar >= 4 ? 3 : rar === 3 ? 2 : 1 };
+    let period = U.clamp(2.3 - st.agi / 110, 0.75, 2.3) * [1, 0.95, 0.85, 0.65, 0.45][rar];
+    if (gap > 1.2) period *= U.clamp(1 - (gap - 1.2) * 0.9, 0.25, 1); // a strong Kin fights the cage: the marker races
+    if (hopeless) period = 0.08;
+    snareState = { width, left, period, hopeless, t0: performance.now(), done: false, hits: 0, need: rar >= 4 ? 3 : rar === 3 ? 2 : 1 };
     el.zone.style.left = (left * 100) + '%'; el.zone.style.width = (width * 100) + '%';
     el.snare.classList.remove('hidden'); el.root.classList.add('snaring'); el.root.scrollTop = 0;
-    log(`You set a ${ITEMS[item].name} on the ground${stealth ? ', quietly' : ''}. Catch chance ${Math.round(chance * 100)}%.`);
+    const pct = chance === 0 ? '0%' : chance < 0.01 ? 'under 1%' : Math.round(chance * 100) + '%';
+    log(`You set a ${ITEMS[item].name} on the ground${stealth ? ', quietly' : ''}. Catch chance ${pct}.`);
+    if (hopeless) log(`${KIN.name(wild)} is more than twice your trainer level (${G.trainerLevel}). No snare made will hold it. Beat it, or come back stronger.`, 'bad');
+    else if (gap > 1.2) log(`${KIN.name(wild)} is far above your trainer level (${G.trainerLevel}). It will fight the cage hard.`, 'bad');
     G.sfx('snare');
     requestAnimationFrame(snareFrame);
   }
@@ -5037,7 +5100,7 @@ const Battle = (() => {
   async function onSnareGo() {
     if (!snareState || snareState.done) return;
     snareState.done = true;
-    const p = snareState.pos, ok = p >= snareState.left && p <= snareState.left + snareState.width;
+    const p = snareState.pos, ok = !snareState.hopeless && p >= snareState.left && p <= snareState.left + snareState.width;
     el.marker.classList.add(ok ? 'ok' : 'bad');
     await sleep(500);
     el.marker.classList.remove('ok', 'bad');
@@ -5301,7 +5364,7 @@ const Quests = (() => {
     if (q.id === 'void') { const b = G.world.findNearest(B.VOID, p.x, p.z, 40); return b ? { x: b.x, z: b.z } : null; }
     if (q.id === 'fuse' || q.id === 'snare') { const b = G.world.findNearest(B.FUSION, p.x, p.z, 80); return b ? { x: b.x, z: b.z } : null; }
     if ((q.id === 'heart' || q.id === 'core' || q.id === 'mythic' || q.id === 'ship') && G.world.heart) return { x: G.world.heart.x, z: G.world.heart.z };
-    if (q.id === 'catch' || q.id === 'party') { let best = null, bd = 60; for (const e of Wild.list) { if (e.isBoss || e.lieutenant || e.isLegend) continue; const d = Math.hypot(e.x - p.x, e.z - p.z); if (d < bd) { bd = d; best = e; } } return best ? { x: best.x, z: best.z, note: KIN.name(best.kin) } : null; }
+    if (q.id === 'catch' || q.id === 'party') { let best = null, bd = 60; for (const e of Wild.list) { if (e.isBoss || e.lieutenant || e.isLegend || e.isApex) continue; const d = Math.hypot(e.x - p.x, e.z - p.z); if (d < bd) { bd = d; best = e; } } return best ? { x: best.x, z: best.z, note: KIN.name(best.kin) } : null; }
     if (q.id === 'suit') { const b = G.world.findNearest(B.IRON, p.x, p.z, 40); return b ? { x: b.x, z: b.z, note: b.y < p.y - 3 ? 'iron ore, below you' : 'iron ore' } : null; }
     if (q.id === 'job') { const ws = Npcs.mapMarks(p, 400).filter(m => m.kind === 'wanderer'); let best = null, bd = Infinity; for (const m of ws) { const d = Math.hypot(m.x - p.x, m.z - p.z); if (d < bd) { bd = d; best = m; } } return best ? { x: best.x, z: best.z, note: best.name } : null; }
     if (q.id === 'lab' && G.world.preset.villages) { const L = Lab.state; const m = Lab.mapMarks(p); const tent = m.find(x => x.kind === 'tent'), lab = m.find(x => x.kind === 'lab'); if (L.told && lab && !L.rescued) return { x: lab.x, z: lab.z, note: 'the hatch' }; return tent ? { x: tent.x, z: tent.z, note: 'the apprentice' } : null; }
@@ -6812,7 +6875,9 @@ const UI = (() => {
     }
     for (const m of Npcs.marks(p)) if (m.t === '⌖') { glyph(m.x, m.z, '⌖', '#ff8040'); label(m.x, m.z, m.name, '#ffd0b0'); }
     if (G.world.lost && G.stats.lostMap) { const L = G.world.lost; glyph(L.x, L.z, '🦖', '#ffffff'); label(L.x, L.z, 'Lost World', '#c0ffc0', true); const T = G.world.lostTunnel(); if (T) { glyph(T.ax, T.az, '◠', '#ffffff'); if (bpp <= 8) label(T.ax, T.az, 'tunnel', '#e0e0e0'); } }
-    if (G.world.legend && !(G.stats.legends || {})[G.worldId]) { glyph(G.world.legend.x, G.world.legend.z, '✶', '#ff2bd6'); label(G.world.legend.x, G.world.legend.z, G.world.preset.legend.name, '#ffc0f0'); }
+    if (G.world.lost && G.stats.lostMap) { const ap0 = G.stats.apex || {}, ap = {}; for (const k in ap0) ap[k] = ap0[k] === true || (ap0[k] && (G.dayCount || 0) < ap0[k].back); if (!ap.rex) { glyph(G.world.lost.x, G.world.lost.z + 22, '✶', '#ff5a2a'); label(G.world.lost.x, G.world.lost.z + 22, 'Tyrannorex', '#ffb090'); } const sea = Wild.apexSea(); if (sea && !ap.mosa) { glyph(sea.x, sea.z, '✶', '#3fd1c4'); label(sea.x, sea.z, 'Abyssaurus', '#a8f0ea'); } }
+    const lb = (G.stats.legendBack || {})[G.worldId];
+    if (G.world.legend && lb !== 'caught' && !(typeof lb === 'number' && lb > (G.dayCount || 0))) { glyph(G.world.legend.x, G.world.legend.z, '✶', '#ff2bd6'); label(G.world.legend.x, G.world.legend.z, G.world.preset.legend.name, '#ffc0f0'); }
     for (const e of Wild.list) { if (Math.abs(wd(e.x - p.x)) > S / 2 * bpp || Math.abs(wd(e.z - p.z)) > S / 2 * bpp) continue; dot(e.x, e.z, e.isBoss ? 4 : e.lieutenant ? 3.5 : 2, e.isBoss || e.lieutenant || e.raider ? '#ff3030' : (e.kin.sp.rarity || 0) >= 3 ? '#ffd040' : '#ffb0a0'); }
     const qt = Quests.target(); if (qt) glyph(qt.x, qt.z, '★', '#ffd040');
     const ft = G.world.preset.fisher ? Village.questTarget() : null; if (ft) glyph(ft.x, ft.z, '⚑', '#ff6060');
@@ -7321,8 +7386,10 @@ G.toggleCamera = function () { this.thirdPerson = !this.thirdPerson; UI.toast(th
 G.activeKin = function () { const k = this.kin[this.activeIdx]; return (k && k.hp > 0) ? k : this.healthyKin()[0] || null; };
 G.healthyKin = function () { return this.kin.filter(k => k.hp > 0); };
 G.setActive = function (k) { this.activeIdx = this.kin.indexOf(k); UI.toast(`${KIN.name(k)} leads.`); };
-G.trainerLevelFor = function (xp) { return Math.floor(Math.sqrt(xp / 40)) + 1; };
-G.trainerProgress = function () { const L = this.trainerLevel; const a = 40 * (L - 1) * (L - 1), b = 40 * L * L; return U.clamp((this.xp - a) / (b - a), 0, 1); };
+// total xp to reach trainer level L: quadratic early, steeper later (level 100 takes about three and a half times what it used to)
+G.trainerXpFor = function (L) { const x = L - 1; return 40 * x * x * (1 + x / 40); };
+G.trainerLevelFor = function (xp) { let L = 1; while (L < 1000 && this.trainerXpFor(L + 1) <= xp) L++; return L; };
+G.trainerProgress = function () { const L = this.trainerLevel; const a = this.trainerXpFor(L), b = this.trainerXpFor(L + 1); return U.clamp((this.xp - a) / (b - a), 0, 1); };
 G.addTrainerXp = function (n) {
   this.xp += n; const L = this.trainerLevelFor(this.xp);
   if (L > this.trainerLevel) { this.trainerLevel = L; UI.sfx('level'); UI.toast(`Trainer level ${L}.` + (L % 4 === 0 ? ' New, stronger Kin have appeared in the wilds.' : ''), 'good'); }
@@ -7533,7 +7600,8 @@ G.onBattleEnd = function (result, wildE, wild, mine, ambush) {
     Wild.remove(wildE);
     if (wildE.isBoss) { Village.onBossGone(wildE.villageId); Village.freed(wildE.villageId); UI.toast('The village is free.', 'good'); }
     if (wildE.isLegend && !this.stats.lostMap) setTimeout(() => this.giveLostMap('A voice on the wind'), 4000);
-    if (wildE.isLegend) { if (!this.stats.legends) this.stats.legends = {}; this.stats.legends[this.worldId] = true; UI.sfx('quest'); UI.toast(`${KIN.name(wild)} is ${result === 'caught' ? 'yours' : 'beaten'}. The portals of ${this.world.preset.name} wake: every arch you hold now reaches the other worlds, and theirs reach here.`, 'good'); this.addTrainerXp(2000); }
+    if (wildE.isApex) { if (!this.stats.apex) this.stats.apex = {}; this.stats.apex[wildE.isApex] = result === 'caught' ? true : { back: (this.dayCount || 0) + 10 }; UI.sfx('quest'); UI.toast(result === 'caught' ? `${KIN.name(wild)} is yours. Nobody is going to believe this.` : `${KIN.name(wild)} is beaten, not caught. It will be back in about ten days.`, 'good'); this.addTrainerXp(5000); }
+    if (wildE.isLegend) { if (!this.stats.legends) this.stats.legends = {}; this.stats.legends[this.worldId] = true; if (!this.stats.legendBack) this.stats.legendBack = {}; this.stats.legendBack[this.worldId] = result === 'caught' ? 'caught' : (this.dayCount || 0) + 6; if (result !== 'caught') setTimeout(() => UI.toast(`${KIN.name(wild)} limps away. It will be back in about six days, for another chance to catch it.`), 2500); UI.sfx('quest'); UI.toast(`${KIN.name(wild)} is ${result === 'caught' ? 'yours' : 'beaten'}. The portals of ${this.world.preset.name} wake: every arch you hold now reaches the other worlds, and theirs reach here.`, 'good'); this.addTrainerXp(2000); }
     if (wildE.lieutenant) Village.lieutenantDown(wildE.lieutenant);
   } else if (result === 'ran') {
     wildE.alert = 0; wildE.cool = 7;
@@ -7545,7 +7613,7 @@ G.onBattleEnd = function (result, wildE, wild, mine, ambush) {
   }
   p.frozen = false;
   this.fightGrace = performance.now() + 8000; // a breather: nothing jumps you for eight seconds after a fight
-  for (const e of Wild.list) if (!e.isBoss && !e.lieutenant && !e.isLegend && !e.isLabBoss && !e.chase) { e.alert = 0; e.hunt = 0; }
+  for (const e of Wild.list) if (!e.isBoss && !e.lieutenant && !e.isLegend && !e.isApex && !e.isLabBoss && !e.chase) { e.alert = 0; e.hunt = 0; }
   Controls.setEnabled(true); if (!this.mobile) Controls.lock();
   this.save();
 };
@@ -7717,7 +7785,7 @@ G.loop = function (t) {
       }
       if (w.regrow && w.regrow.length && (this.frame & 31) === 0) { const now = performance.now(); w.regrow = w.regrow.filter(r => { if (now < r.t) return true; const b = w.getBlock(r.x, r.y, r.z); if (r.id != null) { if (b === B.AIR && !(Math.abs(r.x + 0.5 - p.x) < 0.8 && Math.abs(r.z + 0.5 - p.z) < 0.8 && r.y >= Math.floor(p.y) - 1 && r.y <= Math.floor(p.y) + 2)) { if (r.id === B.GLOWWORM && !isSolid(w.getBlock(r.x, r.y - 1, r.z))) return false; w.setBlock(r.x, r.y, r.z, r.id); } else if (b === B.AIR) { r.t = now + 15000; return true; } } else if (r.leaf) { if (b === B.LEAVES) w.setBlock(r.x, r.y, r.z, B.BERRYLEAF); } else if (b === B.AIR) w.setBlock(r.x, r.y, r.z, B.BERRY); return false; }); }
       const trig = (Dialogue.active() || Village.walking) ? null : Wild.update(dt, p, performance.now() / 1000, false);
-      Wild.ensureHeart(p, this.trainerLevel, this.mythicCaught); Wild.ensureLegend(p);
+      Wild.ensureHeart(p, this.trainerLevel, this.mythicCaught); Wild.ensureLegend(p); Wild.ensureApex(p);
       if (trig && !trig.e.cool && !Dialogue.active() && !p.flying && !(this.fightGrace > performance.now())) Battle.start(trig.e, trig.ambush);
       for (const e of Wild.list) if (e.cool > 0) e.cool -= dt;
       Hazards.update(dt, p, false); Npcs.update(dt, p, false);
