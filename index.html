@@ -584,7 +584,7 @@ const B = {
   AIR: 0, BEDROCK: 1, STONE: 2, DIRT: 3, GRASS: 4, SAND: 5, WATER: 6, LOG: 7, LEAVES: 8, SNOW: 9,
   COPPER: 10, IRON: 11, EMBER: 12, VOID: 13, BASALT: 14, LAVA: 15, CLOUD: 16, GLOWGRASS: 17,
   TORCH: 18, FUSION: 19, GRAVEL: 20, CACTUS: 21, STARMETAL: 22, MOSS: 23, STATUE: 24, PLANKS: 25, BERRY: 26, GLASS: 27, CAMPFIRE: 28, IRONWALL: 29, VOIDWALL: 30, GLOWWORM: 31, BERRYLEAF: 32, DOOR: 33, DOOR_OPEN: 34, PORTAL: 35,
-  CHEST: 36, SELENITE: 37, TYCHO: 38, STARSALT: 39, MOONGLOW: 40, AMBER: 41, SULFUR: 42, RINGSHARD: 43, BRINE: 44, CORAL_R: 45, CORAL_B: 46, CORAL_Y: 47, PEARLCORAL: 48, GOLD: 49, DIAMOND: 50, FERN: 51, SELGLASS: 52, INCUBATOR: 53, REGOLITH: 54, DUNE: 55, SALTCRUST: 56
+  CHEST: 36, SELENITE: 37, TYCHO: 38, STARSALT: 39, MOONGLOW: 40, AMBER: 41, SULFUR: 42, RINGSHARD: 43, BRINE: 44, CORAL_R: 45, CORAL_B: 46, CORAL_Y: 47, PEARLCORAL: 48, GOLD: 49, DIAMOND: 50, FERN: 51, SELGLASS: 52, INCUBATOR: 53, REGOLITH: 54, DUNE: 55, SALTCRUST: 56, LADDER: 57
 };
 
 // name, top colour, side colour, solid, hardness (seconds to mine), drop item id, emissive, fluid
@@ -652,12 +652,13 @@ defBlock(B.GOLD, 'Gold Ore', '#8e8e97', '#85858e', { hard: 1.6, drop: 'gold' });
 defBlock(B.DIAMOND, 'Diamond Ore', '#8e8e97', '#85858e', { hard: 2.2, drop: 'diamond' });
 defBlock(B.FERN, 'Fern', '#3f8a33', '#2f7a2a', { solid: false, hard: 0.15, drop: 'frond', partial: true, transparent: true });
 defBlock(B.SELGLASS, 'Selenite Glass', '#dff4ff', '#cfeafc', { hard: 0.5, drop: 'selglass', transparent: true });
+defBlock(B.LADDER, 'Ladder', '#a07a44', '#8a6a3c', { solid: false, hard: 0.3, drop: 'ladder', partial: true, transparent: true });
 defBlock(B.INCUBATOR, 'Incubator', '#7ad7ff', '#2c3e50', { hard: Infinity, emissive: true });
 
 // blocks that light their surroundings, and how far
 const LIGHT_R = { [B.TORCH]: 10, [B.CAMPFIRE]: 14, [B.MOONGLOW]: 12, [B.RINGSHARD]: 10, [B.PEARLCORAL]: 8, [B.INCUBATOR]: 9 };
 // blocks the sky light passes through when working out how deep a column is
-const SKY_CLEAR = { [B.TORCH]: 1, [B.GLASS]: 1, [B.SELGLASS]: 1, [B.CAMPFIRE]: 1, [B.MOONGLOW]: 1, [B.GLOWWORM]: 1, [B.FERN]: 1, [B.PORTAL]: 1, [B.BERRY]: 1, [B.RINGSHARD]: 1 };
+const SKY_CLEAR = { [B.LADDER]: 1, [B.TORCH]: 1, [B.GLASS]: 1, [B.SELGLASS]: 1, [B.CAMPFIRE]: 1, [B.MOONGLOW]: 1, [B.GLOWWORM]: 1, [B.FERN]: 1, [B.PORTAL]: 1, [B.BERRY]: 1, [B.RINGSHARD]: 1 };
 const isSolid = (id) => BLOCKS[id].solid;
 const isLeaf = (id) => id === B.LEAVES || id === B.BERRYLEAF;
 const isOpaque = (id) => BLOCKS[id].solid && !BLOCKS[id].partial && !BLOCKS[id].transparent;
@@ -1498,6 +1499,15 @@ const R = (() => {
           if (pearl) { op.box(lx + 0.42, y + 0.68 + h0 * 0.35, lz + 0.42, lx + 0.58, y + 0.84 + h0 * 0.35, lz + 0.58, [1, 0.97, 1], 1, true); }
           continue;
         }
+        if (id === B.LADDER) { // two rails and rungs, flat against whichever side has a wall
+          const sk = skyAt(lx, y, lz); const wood = [0.62, 0.47, 0.26], dark = [0.48, 0.35, 0.18];
+          const wall = (dx, dz) => isOpaque(get(lx + dx, y, lz + dz));
+          const side = wall(1, 0) ? 'x+' : wall(-1, 0) ? 'x-' : wall(0, 1) ? 'z+' : wall(0, -1) ? 'z-' : 'x+';
+          const at = side === 'x+' ? 0.86 : side === 'x-' ? 0.02 : side === 'z+' ? 0.86 : 0.02;
+          if (side[0] === 'x') { op.box(lx + at, y, lz + 0.12, lx + at + 0.12, y + 1, lz + 0.22, dark, sk, false); op.box(lx + at, y, lz + 0.78, lx + at + 0.12, y + 1, lz + 0.88, dark, sk, false); for (const r of [0.15, 0.4, 0.65, 0.9]) op.box(lx + at, y + r - 0.04, lz + 0.22, lx + at + 0.1, y + r + 0.04, lz + 0.78, wood, sk, false); }
+          else { op.box(lx + 0.12, y, lz + at, lx + 0.22, y + 1, lz + at + 0.12, dark, sk, false); op.box(lx + 0.78, y, lz + at, lx + 0.88, y + 1, lz + at + 0.12, dark, sk, false); for (const r of [0.15, 0.4, 0.65, 0.9]) op.box(lx + 0.22, y + r - 0.04, lz + at, lx + 0.78, y + r + 0.04, lz + at + 0.1, wood, sk, false); }
+          continue;
+        }
         if (id === B.FERN) {
           const sk = skyAt(lx, y + 1, lz); const g = [0.26, 0.56, 0.22], g2 = [0.36, 0.7, 0.28];
           op.box(lx + 0.46, y, lz + 0.46, lx + 0.54, y + 0.5, lz + 0.54, [0.3, 0.45, 0.2], sk, false);
@@ -1767,6 +1777,7 @@ const ITEMS = {
   bait_berry: { name: 'Berry Bait', col: '#c8334a', crafted: true, desc: 'Used up on a cast. Uncommon fish bite more.' },
   bait_glow: { name: 'Glow Bait', col: '#d8ff6a', crafted: true, desc: 'Used up on a cast. Rare fish come to the light.' },
   bait_void: { name: 'Void Bait', col: '#9a4de0', crafted: true, desc: 'Used up on a cast. Epic and legendary fish answer it.' },
+  ladder: { name: 'Ladder', block: B.LADDER, col: '#a07a44', crafted: true, desc: 'Place it against a wall and climb: jump or push forward to go up, sneak to go down. Stack them for a shaft.' },
   chest: { name: 'Chest', block: B.CHEST, col: '#a0783c', crafted: true, desc: 'Place it and tap it: whatever you store inside stays there, safe, even if the wild beats you. Build as many as you like.' },
   kit_bridge: { name: 'Bridge kit', kit: 'bridge', col: '#b58d58', crafted: true, desc: 'A plank bridge with rails, from where you tap straight ahead until it meets ground, up to twelve blocks.' },
   claw: { name: 'Claw Band', kinGear: 'weapon', boost: { atk: 0.12 }, col: '#c9a84c', crafted: true, desc: 'Kin weapon: Attack +12%.' },
@@ -1832,7 +1843,7 @@ const ITEMS = {
 };
 for (const e of ELEMENTS) ITEMS['ess_' + e] = { name: e + ' Essence', col: ELEM_COLOR[e], elem: e, desc: 'Left behind by ' + e + ' Kin. Fusion ingredient.' };
 for (const e of ELEMENTS) ITEMS['lure_' + e] = { name: e + ' Lure', col: ELEM_COLOR[e], use: 'self', lure: e, crafted: true, desc: 'Drink it and ' + e + ' Kin come to you for four minutes, twice as often and far more of them.' };
-const HOTBAR_ORDER = ['torch', 'snare', 'snare2', 'bread', 'smoothie', 'tonic_revive', 'tonic_heal', 'tonic_vigor', 'tonic_might', 'tonic_swift', 'wood', 'planks', 'glass', 'door', 'chest', 'ironwall', 'voidwall', 'kit_house', 'kit_bakery', 'kit_juice', 'kit_trader', 'kit_voodoo', 'kit_post', 'kit_wall', 'kit_wall_stone', 'kit_wall_iron', 'kit_bridge', 'kit_portal', 'kit_dome', 'rod', 'rod_iron', 'rod_void', 'tonic_hush', 'moonlamp', 'selglass', 'stone', 'dirt', 'sand', 'gravel', 'snow', 'basalt', 'cloud', 'fusion', 'berry', 'glowworm', 'frond', 'copper', 'iron', 'ember', 'void', 'selenite', 'tycho', 'starsalt', 'amber', 'sulfur', 'ringshard', 'coral', 'pearl', 'gold', 'diamond', ...ELEMENTS.map(e => 'ess_' + e), 'bulb', 'glider', 'lavasuit'];
+const HOTBAR_ORDER = ['torch', 'snare', 'snare2', 'bread', 'smoothie', 'tonic_revive', 'tonic_heal', 'tonic_vigor', 'tonic_might', 'tonic_swift', 'wood', 'planks', 'glass', 'door', 'ladder', 'chest', 'ironwall', 'voidwall', 'kit_house', 'kit_bakery', 'kit_juice', 'kit_trader', 'kit_voodoo', 'kit_post', 'kit_wall', 'kit_wall_stone', 'kit_wall_iron', 'kit_bridge', 'kit_portal', 'kit_dome', 'rod', 'rod_iron', 'rod_void', 'tonic_hush', 'moonlamp', 'selglass', 'stone', 'dirt', 'sand', 'gravel', 'snow', 'basalt', 'cloud', 'fusion', 'berry', 'glowworm', 'frond', 'copper', 'iron', 'ember', 'void', 'selenite', 'tycho', 'starsalt', 'amber', 'sulfur', 'ringshard', 'coral', 'pearl', 'gold', 'diamond', ...ELEMENTS.map(e => 'ess_' + e), 'bulb', 'glider', 'lavasuit'];
 
 class Player {
   constructor(world) {
@@ -1948,7 +1959,10 @@ class Player {
       this.vy = U.clamp(this.vy, -3, 3.2);
       this.fallStart = null;
     } else {
-      if (!this.gliding) this.vy -= 25 * this.gravity * dt;
+      const ladder = this.blockInBody(B.LADDER);
+      if (ladder) { // climb: jump or push forward goes up, sneak goes down, let go and you hold on
+        const up = input.jump || input.mz > 0.3; this.vy = up ? 3.4 : input.sneak ? -3 : 0; this.fallStart = null; this.onGround = false;
+      } else if (!this.gliding) this.vy -= 25 * this.gravity * dt;
       if (this.vy < -40) this.vy = -40;
       if (input.jumpPressed && this.onGround) { this.vy = 8.4 * this.jumpMul * (mountShape === 'quadruped' ? 1.25 : 1) * (this.mount && this.mount.sp.climber && mountShape === 'land' ? 1.45 : 1); this.onGround = false; }
       if (!this.onGround && this.vy < 0 && this.fallStart == null) this.fallStart = this.y;
@@ -5134,6 +5148,7 @@ const RECIPES = [
   { id: 'ironwall', out: 'ironwall', n: 4, needs: { iron: 2, stone: 2 } },
   { id: 'voidwall', out: 'voidwall', n: 4, needs: { iron: 3, void: 1 } },
   { id: 'door', out: 'door', n: 1, needs: { planks: 4 }, cat: 'blocks' },
+  { id: 'ladder', out: 'ladder', n: 4, needs: { planks: 3 }, cat: 'blocks' },
   { id: 'chest', out: 'chest', n: 1, needs: { planks: 8, iron: 1 }, cat: 'blocks' },
   { id: 'kit_house', out: 'kit_house', n: 1, needs: { planks: 20, glass: 4 }, cat: 'builds' },
   { id: 'kit_bakery', out: 'kit_bakery', n: 1, needs: { planks: 24, glass: 4, ember: 2 }, cat: 'builds' },
@@ -6036,7 +6051,7 @@ const Lab = (() => {
       ask: ['Idris dug under the mesa for ring shards and found something in the amber, asleep. He woke it. Of course he woke it.', 'It has him in the dig and the shaft is blocked from inside. ⚗ marks the hatch. Beat it or cage it and bring him out.'],
       wait: ['Not me! It! Look at it!'], thanks: ['Out. I am out. I owe you the dig, and I mean the incubator in it, the one thing down there that works.', 'Kin left in it grow a level every other dawn and after three dawns they learn a technique. Three at a time. Take what you want from the chest too.'] },
   };
-  function init(game) { G = game; world = game.world; apprentice = null; scientist = null; bossRef = null; site = null; if (!G.labState) G.labState = {}; }
+  function init(game) { G = game; world = game.world; apprentice = null; scientist = null; bossRef = null; site = null; specimens = null; if (!G.labState) G.labState = {}; }
   function S() { const id = world.preset.id; if (!G.labState[id]) G.labState[id] = { told: false, stamped: false, rescued: false, kin: [], days: [], seen: false }; return G.labState[id]; }
   const story = () => STORY[world.preset.id] || STORY.earth;
   const sea = () => world.preset.water ? SEA : world.preset.brine ? world.preset.brineLevel : -99;
@@ -6066,20 +6081,35 @@ const Lab = (() => {
     const set = (x, y, z, id) => world.setBlock(x, y, z, id); const hx = s.hatch.x, hz = s.hatch.z, hy = s.hatch.y; const ry = s.roomY;
     for (let dx = -1; dx <= 1; dx++) for (let dz = -1; dz <= 1; dz++) { set(hx + dx, hy - 1, hz + dz, B.STONE); for (let y = hy; y <= hy + 2; y++) if (world.getBlock(hx + dx, y, hz + dz) !== B.AIR) set(hx + dx, y, hz + dz, B.AIR); }
     set(hx - 1, hy, hz - 1, B.IRONWALL); set(hx + 1, hy, hz - 1, B.IRONWALL); set(hx - 1, hy + 1, hz - 1, B.TORCH); set(hx + 1, hy + 1, hz - 1, B.TORCH);
-    set(hx, hy - 1, hz, B.DOOR_OPEN); // the hatch, open: the shaft is below it
-    for (let y = ry + 1; y < hy - 1; y++) { set(hx, y, hz, B.AIR); set(hx, y, hz + 1, B.AIR); if ((y - ry) % 2 === 0) set(hx + 1, y, hz, B.TORCH); for (const [dx, dz] of [[-1, 0], [1, 0], [0, -1], [0, 2], [-1, 1], [1, 1]]) if (!isSolid(world.getBlock(hx + dx, y, hz + dz))) set(hx + dx, y, hz + dz, B.STONE); }
+    // the hatch: a 2 x 2 opening in an iron frame, a ladder down the north wall of the shaft, torches in the walls
+    for (let dx = 0; dx <= 1; dx++) for (let dz = 0; dz <= 1; dz++) set(hx + dx, hy - 1, hz + dz, B.AIR);
+    for (let y = ry; y < hy; y++) {
+      for (let dx = 0; dx <= 1; dx++) for (let dz = 0; dz <= 1; dz++) set(hx + dx, y, hz + dz, B.AIR);
+      for (let dx = -1; dx <= 2; dx++) for (let dz = -1; dz <= 2; dz++) { if (dx >= 0 && dx <= 1 && dz >= 0 && dz <= 1) continue; if (y < hy - 1 || !isSolid(world.getBlock(hx + dx, y, hz + dz))) set(hx + dx, y, hz + dz, (y - ry) % 3 === 1 && dx === 2 && dz === 1 ? B.TORCH : B.IRONWALL); }
+      set(hx, y, hz, B.LADDER); // against the wall at hz - 1
+    }
     // the room: 15 x 11 inside, 4 high, the shaft arriving at its north-east corner
     const cx = hx - 6, cz = hz + 6;
     for (let dx = -8; dx <= 8; dx++) for (let dz = -6; dz <= 6; dz++) for (let dy = -1; dy <= 5; dy++) {
       const wall = Math.abs(dx) === 8 || Math.abs(dz) === 6; const x = cx + dx, y = ry + dy, z = cz + dz;
       if (dy === -1) set(x, y, z, wall ? B.IRONWALL : B.PLANKS); else if (dy === 5) set(x, y, z, B.IRONWALL); else set(x, y, z, wall ? B.IRONWALL : B.AIR);
     }
-    set(hx, ry, hz, B.AIR); set(hx, ry + 1, hz, B.AIR); set(hx, ry + 2, hz, B.AIR); set(hx, ry, hz + 1, B.AIR); set(hx, ry + 1, hz + 1, B.AIR); // the shaft opens into the room
+    for (let dx = 0; dx <= 1; dx++) for (let dz = 0; dz <= 1; dz++) for (let y = ry; y < hy; y++) set(hx + dx, y, hz + dz, dx === 0 && dz === 0 ? B.LADDER : B.AIR); // the shaft runs clean through the room's ceiling to the floor, ladder all the way
+    set(hx, hy - 1, hz - 1, B.IRONWALL); for (let y = ry; y < hy; y++) if (!isSolid(world.getBlock(hx, y, hz - 1))) set(hx, y, hz - 1, B.IRONWALL); // the wall the ladder hangs on
+    for (let y = ry; y <= ry + 3; y++) { set(hx - 1, y, hz + 1, B.AIR); set(hx, y, hz + 2, B.AIR); }
     // tanks: glass columns full of water with a light on top
-    for (const [tx, tz] of [[cx - 5, cz - 3], [cx - 5, cz + 3], [cx + 5, cz - 3], [cx + 5, cz + 3]]) { for (let y = ry; y <= ry + 2; y++) { for (let dx = -1; dx <= 1; dx++) for (let dz = -1; dz <= 1; dz++) set(tx + dx, y, tz + dz, (dx || dz) ? B.GLASS : B.WATER); } set(tx, ry + 3, tz, B.TORCH); }
+    s.tanks = [];
+    for (const [tx, tz] of [[cx - 5, cz - 3], [cx - 5, cz + 3], [cx + 5, cz - 3], [cx + 5, cz + 3], [cx - 1, cz - 3], [cx - 1, cz + 3]]) {
+      for (let y = ry; y <= ry + 3; y++) for (let dx = -1; dx <= 1; dx++) for (let dz = -1; dz <= 1; dz++) set(tx + dx, y, tz + dz, y === ry ? B.IRONWALL : (dx || dz) ? B.GLASS : B.WATER);
+      set(tx, ry + 4, tz, B.MOONGLOW); // green light over every tank
+      s.tanks.push({ x: tx, y: ry + 1, z: tz });
+    }
+    // strip lights across the ceiling, and a glow along the floor by the walls
+    for (let dx = -7; dx <= 7; dx++) for (const dz of [-3, 0, 3]) if ((dx + 8) % 2 === 0) set(cx + dx, ry + 5, cz + dz, B.GLOWGRASS);
+    for (let dx = -7; dx <= 7; dx += 2) { set(cx + dx, ry, cz - 5, B.STARSALT); set(cx + dx, ry, cz + 5, B.STARSALT); }
     // benches and lights
-    for (let dx = -2; dx <= 2; dx++) { set(cx + dx, ry, cz - 5, B.PLANKS); set(cx + dx, ry, cz + 5, B.PLANKS); }
-    set(cx - 2, ry + 1, cz - 5, B.TORCH); set(cx + 2, ry + 1, cz + 5, B.TORCH); set(cx, ry + 3, cz, B.TORCH);
+    for (let dx = 2; dx <= 5; dx++) set(cx + dx, ry, cz, B.IRONWALL); // the operating table
+    set(cx + 3, ry + 1, cz, B.MOONGLOW); set(cx - 3, ry, cz, B.FUSION);
     // the incubator at the west wall, a chest of tonics beside it
     set(cx - 7, ry, cz, B.INCUBATOR); set(cx - 7, ry + 1, cz, B.GLASS); set(cx - 7, ry, cz + 2, B.CHEST);
     const ch = G.chestAt(cx - 7, ry, cz + 2, true); if (!Object.keys(ch.items).length) ch.items = { tonic_heal: 3, tonic_revive: 1 };
@@ -6113,7 +6143,7 @@ const Lab = (() => {
       if (!L.seen && dt0 < 24) { L.seen = true; UI.toast(`${story().kid} waves you over. Something is wrong.`, 'good'); }
     } else apprentice = null;
     if (dh < 70 && L.told) {
-      const hk = U.mod(s.hatch.x, WORLD_W) + ',' + U.mod(s.hatch.z, WORLD_W);
+      const hk = 'v3:' + U.mod(s.hatch.x, WORLD_W) + ',' + U.mod(s.hatch.z, WORLD_W);
       if (L.stamped !== hk) { world.ensureAround(Math.floor(s.hatch.x / CH), Math.floor(s.hatch.z / CH), 2, 999); stampLab(s); L.stamped = hk; G.meshPass(99); UI.toast(`The hatch to ${story().place}. It is open. Something is breathing down there.`, 'bad'); }
       if (!s.room) stampLab(s);
       if (!scientist) { const gy = standY(s.room.x + 6.5, s.room.y, s.room.z - 4.5) ?? s.room.y; scientist = person('scientist', s.room.x + 6.5, gy, s.room.z - 4.5, story().who); }
@@ -6145,7 +6175,25 @@ const Lab = (() => {
     if (!L.thanked) { L.thanked = true; Dialogue.show(n.name, story().thanks, () => { G.shards += 200; G.player.add('snare2', 2); UI.sfx('quest'); }); return; }
     Dialogue.show(n.name, ['The incubator takes three. Two dawns a level, three dawns a technique. Go on.']);
   }
-  function entities() { const out = []; const put = (n) => out.push({ x: n.x, y: n.y, z: n.z, yaw: n.yaw, model: n.model, mesh: n.mesh, scale: 1, hover: n.moving ? Math.abs(Math.sin(n.bob * 9)) * 0.08 : 0, skyMul: 1 }); if (apprentice) put(apprentice); if (scientist) put(scientist); return out; }
+  // what floats in the tanks: half-made Kin, a head on its own, a pair of wings; and something strapped to the table
+  let specimens = null;
+  function makeSpecimens(s) {
+    const r = U.rng(world.seed ^ 0x5BEC); const out = [];
+    const ros = KIN.roster(world.preset.id, 0, 0, 'Surface', world.preset.id === 'moon' ? 'Mare' : world.preset.id === 'halo' ? 'Dunes' : 'Forest', 3);
+    (s.tanks || []).forEach((t, i) => {
+      const sp = Object.assign({}, ros[r.int(ros.length)]); sp.size = 0.7; const m = KIN.model(sp, 2);
+      const kind = i % 3; // 0 whole and curled, 1 the head only, 2 the top half
+      const cut = kind === 1 ? m.height * 0.58 : kind === 2 ? m.height * 0.4 : -1;
+      const boxes = m.boxes.filter(b => b.y + b.h > cut).map(b => Object.assign({}, b, { y: b.y - Math.max(0, cut), emis: b.emis || r() < 0.25 }));
+      const mm = Object.assign({}, m, { boxes, height: Math.max(...boxes.map(b => b.y + b.h)) });
+      out.push({ t, mesh: R.entityMesh('spec:' + world.preset.id + ':' + i, (mb) => { for (const b of mm.boxes) mb.box(b.x, b.y, b.z, b.x + b.w, b.y + b.h, b.z + b.d, U.mixColor(U.hexToRgb(b.c), [0.4, 1.0, 0.6], 0.35), 1, !!b.emis); }), model: mm, yaw: r() * 6, spin: (r() - 0.5) * 0.5, ph: r() * 6, scale: Math.min(1, 1.4 / Math.max(0.6, mm.height)) });
+    });
+    if (s.room) { const sp = Object.assign({}, ros[0]); sp.size = 0.8; const m = KIN.model(sp, 2); out.push({ t: { x: s.room.x + 3.5, y: s.room.y + 1, z: s.room.z }, mesh: R.entityMesh('spec:table:' + world.preset.id, (mb) => KIN.buildMesh(mb, m)), model: m, yaw: Math.PI / 2, spin: 0, ph: 0, scale: 0.45, lie: true }); }
+    return out;
+  }
+  function entities() { const out = []; const put = (n) => out.push({ x: n.x, y: n.y, z: n.z, yaw: n.yaw, model: n.model, mesh: n.mesh, scale: 1, hover: n.moving ? Math.abs(Math.sin(n.bob * 9)) * 0.08 : 0, skyMul: 1 }); if (apprentice) put(apprentice); if (scientist) put(scientist);
+    if (site && site.room && scientist) { if (!specimens) specimens = makeSpecimens(site); const now = performance.now() / 1000; for (const sp of specimens) out.push({ x: sp.t.x + 0.5, y: sp.t.y + (sp.lie ? 0 : 0.35 + Math.sin(now * 0.8 + sp.ph) * 0.12), z: sp.t.z + 0.5, yaw: sp.yaw + now * sp.spin, model: sp.model, mesh: sp.mesh, scale: sp.scale, hover: 0, skyMul: 1, isFx: true }); }
+    return out; }
   function talkable() { const l = []; if (apprentice) l.push(apprentice); if (scientist) l.push(scientist); return l; }
   function marks(p) { const L = S(); const s = site; if (!s) return []; const out = []; if (L.told && !L.rescued) out.push({ t: '⚗', x: p.x + wd(s.hatch.x - p.x), z: p.z + wd(s.hatch.z - p.z), name: story().place }); return out; }
   function mapMarks(p) { const L = S(); const s = place(); const out = [{ kind: 'tent', x: p.x + wd(s.tent.x - p.x), z: p.z + wd(s.tent.z - p.z), name: story().kid }]; if (L.told) out.push({ kind: 'lab', x: p.x + wd(s.hatch.x - p.x), z: p.z + wd(s.hatch.z - p.z), name: story().place }); return out; }
