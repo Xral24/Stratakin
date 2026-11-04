@@ -739,7 +739,7 @@ class World {
       if (!best || h > best.ya) best = { ang, ux, uz, ax, az, ya: h };
     }
     const { ux, uz, ax, az, ya } = best;
-    const bx = Math.round(L.x + ux * (L.inner - 8)), bz = Math.round(L.z + uz * (L.inner - 8)); // inside mouth
+    const bx = Math.round(L.x + ux * (L.inner - 4)), bz = Math.round(L.z + uz * (L.inner - 4)); // inside mouth
     const yb = this.colInfo(bx, bz).h;
     L.tunnel = { ax, az, bx, bz, ya, yb, ux, uz };
     return L.tunnel;
@@ -984,8 +984,9 @@ class World {
         for (let lx = 0; lx < CH; lx++) for (let lz = 0; lz < CH; lz++) {
           const x = ox + lx, z = oz + lz;
           // distance from the column to the tunnel's centre line, and how far along it we are
-          const px = x + 0.5 - T.ax, pz = z + 0.5 - T.az; const t = U.clamp((px * T.ux + pz * T.uz) / len, 0, 1); const cx = T.ax + T.ux * len * t, cz = T.az + T.uz * len * t;
-          const dd = Math.hypot(x + 0.5 - cx, z + 0.5 - cz); if (dd > 2.7 || t <= 0 || t >= 1) continue;
+          const ix = (T.bx - T.ax) / len, iz = (T.bz - T.az) / len; // inward, from the outer mouth to the plateau
+          const px = x + 0.5 - T.ax, pz = z + 0.5 - T.az; const t = U.clamp((px * ix + pz * iz) / len, 0, 1); const cx = T.ax + ix * len * t, cz = T.az + iz * len * t;
+          const dd = Math.hypot(x + 0.5 - cx, z + 0.5 - cz); if (dd > 2.7 || t <= 0 || t >= 1.02) continue;
           const fy = Math.round(U.lerp(T.ya, T.yb, t)); const base = (lx * CH + lz) * WH;
           const along = Math.round(len * t);
           if (dd > 1.6) { // the gate at the outer mouth: two stone pillars and a lintel with torches
