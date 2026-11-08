@@ -272,9 +272,10 @@ const R = (() => {
     for (int i = 0; i < 8; i++) { float d = distance(vWorld, uLights[i]); torch = max(torch, clamp(1.0 - d / max(uLightR[i], 0.001), 0.0, 1.0)); }
     torch = torch * torch * (3.0 - 2.0 * torch);
     float lam = max(dot(n, uSun), 0.0) * uSunAmt;
-    float ramp = smoothstep(0.02, 0.3, lam) * 0.6 + smoothstep(0.45, 0.8, lam) * 0.4;
-    vec3 amb = vec3(0.78, 0.86, 1.05) * (0.4 + 0.26 * uDay) * (0.82 + 0.22 * n.y);
-    vec3 light = skyL * (amb + uSunCol * ramp * 0.82 * uDay);
+    float hl = (dot(n, uSun) * 0.5 + 0.5) * uSunAmt; // half-lambert: the shadow side still turns toward the light, the way toon shading does
+    float ramp = smoothstep(0.3, 0.52, hl) * 0.62 + smoothstep(0.68, 0.9, hl) * 0.38;
+    vec3 amb = vec3(0.86, 0.9, 1.02) * (0.42 + 0.24 * uDay) * (0.84 + 0.2 * n.y);
+    vec3 light = skyL * (amb + uSunCol * ramp * 0.78 * uDay);
     light = max(light, vec3(uAmbient)); light = max(light, vec3(1.0, 0.78, 0.52) * torch * 0.95);
     light = mix(light, vec3(1.0), emis);
     vec3 vc = vCol.rgb; float lum = dot(vc, vec3(0.3, 0.59, 0.11)); vc = mix(vec3(lum), vc, 0.84);
@@ -799,9 +800,18 @@ const R = (() => {
     gl.bindFramebuffer(gl.FRAMEBUFFER, pfb);
     if (psize !== S) { gl.bindTexture(gl.TEXTURE_2D, ptex); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, S, S, 0, gl.RGBA, gl.UNSIGNED_BYTE, null); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR); gl.bindRenderbuffer(gl.RENDERBUFFER, pdepth); gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, S, S); gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, ptex, 0); gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, pdepth); psize = S; }
     gl.viewport(0, 0, S, S); gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-    const h = Math.max(0.6, model ? model.height : 1.5), r = Math.max(0.4, model ? model.radius : 0.6); const ext = Math.max(h * 0.62, r * 0.9) * 1.25 * (opts.zoom || 1);
-    const yaw = opts.yaw == null ? Math.PI * 0.78 : opts.yaw, pitch = opts.pitch == null ? -0.28 : opts.pitch; const dist = ext / Math.tan(0.32) + r;
-    const fwd = U.forwardVec(yaw, pitch); const cx = -fwd[0] * dist, cy = h * 0.5 - fwd[1] * dist + (opts.lift || 0), cz = -fwd[2] * dist;
+    // frame the model's bounding box: look at its centre from the front-left, a little above
+    let x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9, z0 = 1e9, z1 = -1e9;
+    if (model && model.boxes) for (const b of model.boxes) { x0 = Math.min(x0, b.x); x1 = Math.max(x1, b.x + b.w); y0 = Math.min(y0, b.y); y1 = Math.max(y1, b.y + b.h); z0 = Math.min(z0, b.z); z1 = Math.max(z1, b.z + b.d); }
+    if (x0 > x1) { x0 = -0.5; x1 = 0.5; y0 = 0; y1 = model ? model.height : 1.5; z0 = -0.5; z1 = 0.5; }
+    const yaw = opts.yaw == null ? -0.62 : opts.yaw, pitch = opts.pitch == null ? -0.24 : opts.pitch;
+    const fwd = U.forwardVec(yaw, pitch);
+    // the box's extent across the view: project its half-sizes onto the camera's right and up axes (generous, so nothing is clipped)
+    const rx = Math.cos(yaw), rz = -Math.sin(yaw); const hw = Math.abs((x1 - x0) / 2 * rx) + Math.abs((z1 - z0) / 2 * rz), hh = (y1 - y0) / 2 * Math.cos(pitch) + (Math.abs((x1 - x0) / 2 * fwd[0]) + Math.abs((z1 - z0) / 2 * fwd[2])) * Math.abs(Math.sin(pitch));
+    const half = Math.max(hw, hh, 0.3) * 0.98 / (opts.zoom || 1); const depth = Math.hypot((x1 - x0) / 2, (z1 - z0) / 2, (y1 - y0) / 2);
+    const dist = half / Math.tan(0.32) + depth * 0.3;
+    const tx = (x0 + x1) / 2, ty = (y0 + y1) / 2 + (opts.lift || 0), tz = (z0 + z1) / 2;
+    const cx = tx - fwd[0] * dist, cy = ty - fwd[1] * dist, cz = tz - fwd[2] * dist;
     const pv = U.m4mul(U.m4perspective(0.64, 1, 0.1, 60), U.m4view(cx, cy, cz, yaw, pitch));
     const saved = { fog: state.fogColor, fn: state.fogNear, ff: state.fogFar, sun: state.sun, sc: state.sunCol, sa: state.sunAmt, day: state.dayLight, z: state.zenith, tint: state.tint, amb: state.ambient, sp: state.skyPass };
     state.fogColor = [0.5, 0.6, 0.7]; state.fogNear = 50; state.fogFar = 60; state.sun = [-0.45, 0.72, 0.53]; state.sunCol = [1.0, 0.95, 0.86]; state.sunAmt = 1; state.dayLight = 1; state.zenith = [0.5, 0.65, 0.95]; state.tint = [1, 1, 1]; state.ambient = 0.06; state.skyPass = true;

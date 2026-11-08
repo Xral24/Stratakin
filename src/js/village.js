@@ -1028,7 +1028,7 @@ const Village = (() => {
     const plain = style && style !== 'frontier' && style !== 'land';
     const body = plain ? cloth : role === 'elder' ? '#f0d090' : role === 'voodoo' ? '#2c3e50' : role === 'fisher' ? '#5b7f95' : role === 'traveller' ? '#6b5a3e' : role === 'hermit' ? '#7a6f5a' : cloth;
     const accent = style === 'alien' ? r.pick(skins) : role === 'elder' ? '#e0b84a' : cloth;
-    return { shape: 'biped', feat: { crest: false, ears: false, horns: false, spikes: false, tail: false, wings: false, bigEyes: style === 'alien' }, colors: { body, belly: skin, accent, dark: style === 'alien' ? '#05050f' : style === 'atlantis' ? '#1a3a4a' : '#3a2a20', eye: style === 'alien' ? '#ffffff' : '#222222' }, size: role === 'elder' ? 1.15 : role === 'voodoo' ? 1.1 : 1, gen: 0, names: ['villager'], neon: style === 'alien' };
+    return { shape: 'human', feat: { crest: false, ears: false, horns: false, spikes: false, tail: false, wings: false, bigEyes: style === 'alien' }, colors: { body, belly: skin, accent, dark: style === 'alien' ? '#05050f' : style === 'atlantis' ? '#1a3a4a' : '#3a2a20', eye: style === 'alien' ? '#ffffff' : '#222222' }, size: role === 'elder' ? 1.15 : role === 'voodoo' ? 1.1 : 1, gen: 0, names: ['villager'], neon: style === 'alien' };
   }
   function makeNpc(i, role, x, z, name, shop, y, vid, style) {
     style = style || (vid === 'shore' ? 'land' : (world.preset.people || 'land'));

@@ -58,7 +58,7 @@ const Campaign = (() => {
 
   // ---------- people ----------
   function personModel(colors, decos) {
-    const sp = { shape: 'biped', feat: { crest: false, ears: false, horns: false, spikes: false, tail: false, wings: false, bigEyes: false }, colors: Object.assign({ accent: '#c94c4c', dark: '#3a2a20', eye: '#222222' }, colors), size: 1, gen: 0, names: ['person'] };
+    const sp = { shape: 'human', feat: { crest: false, ears: false, horns: false, spikes: false, tail: false, wings: false, bigEyes: false }, colors: Object.assign({ accent: '#c94c4c', dark: '#3a2a20', eye: '#222222' }, colors), size: 1, gen: 0, names: ['person'] };
     const m = KIN.model(sp, 2); for (const d of decos) KIN.decorate(m, d); return m;
   }
   function person(id, name, role, x, z, colors, decos, walk) {

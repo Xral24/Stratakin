@@ -22,5 +22,7 @@ Working copy: /home/claude/strata (mirrored to this repo's src/ before each comm
 9. Combat animation
 10. Eggs, UI polish
 
+Scope (Alexander, 8 Nov evening): EVERYTHING visible goes to the same standard: Kin, people, towns, and also every block and prop. Grass (he says the current grass is not at the standard, wants it far better), sand, rock, dirt, water, trees, leaves, berries, glowworms, fusion tables (ordinary and dark), torches, chests, tools and items in hand. Terrain materials are a major item, not a touch-up.
+
 ## Done
 (nothing yet)

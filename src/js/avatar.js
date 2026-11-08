@@ -23,7 +23,7 @@ const Avatar = (() => {
   function init(game) { G = game; }
   function skin() { return SKINS.find(s => s.id === (G.skin || 'ranger')) || SKINS[0]; }
   function unlocked(s) { try { return !!s.unlock(G); } catch (e) { return false; } }
-  function species(s) { return { shape: 'biped', feat: { crest: false, ears: false, horns: false, spikes: false, tail: false, wings: false, bigEyes: s.id === 'neon' }, colors: s.colors, size: 1, gen: 0, names: [s.name], neon: !!s.neon }; }
+  function species(s) { return { shape: 'human', feat: { crest: false, ears: false, horns: false, spikes: false, tail: false, wings: false, bigEyes: s.id === 'neon' }, colors: s.colors, size: 1, gen: 0, names: [s.name], neon: !!s.neon }; }
   // your look: hair, skin tone, height, face paint, a cape, your own outfit colours (from the barber, the mirror hall and the designer)
   const look = () => (G && G.stats && G.stats.look) || {};
   const HAIR = {
@@ -44,10 +44,13 @@ const Avatar = (() => {
   }
   function mesh(s) { const key = s.id + ':' + JSON.stringify(look()); let m = meshes.get(key); if (!m) { const mdl = model(s); m = { model: mdl, mesh: R.entityMesh('avatar:' + key, (mb) => KIN.buildMesh(mb, mdl)) }; meshes.set(key, m); } return m; }
   // the entity for the render list: standing where you stand, facing where you face, bobbing when you walk, seated on a mount
+  const an = { ph: 0, mv: 0, lx: 0, lz: 0, ly: 0, lt: 0, vy: 0, seed: 3, air: 0 };
   function entity(p, moving) {
     const s = skin(); const mm = mesh(s);
     const seat = p.mount ? 0.75 : p.flying ? 0.35 : 0;
-    return { x: p.x, y: p.y + seat, z: p.z, yaw: p.yaw + Math.PI, model: mm.model, mesh: mm.mesh, scale: look().height || 1, hover: moving && !p.mount && !p.flying ? Math.abs(Math.sin(performance.now() / 110)) * 0.08 : 0, skyMul: 1, isMount: true };
+    an.attack = p.swingT > 0 ? Math.sin(Math.min(1, p.swingT / 0.25) * Math.PI) : 0; an.block = p.blocking ? 1 : 0;
+    if (p.mount || p.flying) { an.mv = 0; an.sit = 1; } else an.sit = 0;
+    return { x: p.x, y: p.y + seat, z: p.z, yaw: p.yaw + Math.PI, model: mm.model, mesh: mm.mesh, scale: look().height || 1, hover: 0, skyMul: 1, isMount: true, _an: an };
   }
   // a camera behind and a little above you, pulled in when something is in the way
   function thirdCam(cam, p, world, back = 4.2, lift = 0) {

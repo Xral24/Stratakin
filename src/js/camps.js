@@ -88,7 +88,7 @@ const Camps = (() => {
   function warriorSpecies(i, seedN) {
     const r = U.rng(U.combine(0x4A7, i, seedN));
     const skin = r.pick(['#c68642', '#8d5524', '#a0683a', '#6b4a2b']);
-    return { shape: 'biped', feat: { crest: false, ears: false, horns: false, spikes: false, tail: false, wings: false, bigEyes: false }, colors: { body: skin, belly: skin, accent: r.pick(['#e0302a', '#f0e0a0', '#2a6fc0']), dark: '#3a2a20', eye: '#222222' }, size: 1.05, gen: 0, names: ['warrior'] };
+    return { shape: 'human', feat: { crest: false, ears: false, horns: false, spikes: false, tail: false, wings: false, bigEyes: false }, colors: { body: skin, belly: skin, accent: r.pick(['#e0302a', '#f0e0a0', '#2a6fc0']), dark: '#3a2a20', eye: '#222222' }, size: 1.05, gen: 0, names: ['warrior'] };
   }
   function populate(c) {
     c.warriors = [];

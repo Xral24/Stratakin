@@ -1598,9 +1598,10 @@ const R = (() => {
     for (int i = 0; i < 8; i++) { float d = distance(vWorld, uLights[i]); torch = max(torch, clamp(1.0 - d / max(uLightR[i], 0.001), 0.0, 1.0)); }
     torch = torch * torch * (3.0 - 2.0 * torch);
     float lam = max(dot(n, uSun), 0.0) * uSunAmt;
-    float ramp = smoothstep(0.02, 0.3, lam) * 0.6 + smoothstep(0.45, 0.8, lam) * 0.4;
-    vec3 amb = vec3(0.78, 0.86, 1.05) * (0.4 + 0.26 * uDay) * (0.82 + 0.22 * n.y);
-    vec3 light = skyL * (amb + uSunCol * ramp * 0.82 * uDay);
+    float hl = (dot(n, uSun) * 0.5 + 0.5) * uSunAmt; // half-lambert: the shadow side still turns toward the light, the way toon shading does
+    float ramp = smoothstep(0.3, 0.52, hl) * 0.62 + smoothstep(0.68, 0.9, hl) * 0.38;
+    vec3 amb = vec3(0.86, 0.9, 1.02) * (0.42 + 0.24 * uDay) * (0.84 + 0.2 * n.y);
+    vec3 light = skyL * (amb + uSunCol * ramp * 0.78 * uDay);
     light = max(light, vec3(uAmbient)); light = max(light, vec3(1.0, 0.78, 0.52) * torch * 0.95);
     light = mix(light, vec3(1.0), emis);
     vec3 vc = vCol.rgb; float lum = dot(vc, vec3(0.3, 0.59, 0.11)); vc = mix(vec3(lum), vc, 0.84);
@@ -2125,9 +2126,18 @@ const R = (() => {
     gl.bindFramebuffer(gl.FRAMEBUFFER, pfb);
     if (psize !== S) { gl.bindTexture(gl.TEXTURE_2D, ptex); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, S, S, 0, gl.RGBA, gl.UNSIGNED_BYTE, null); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR); gl.bindRenderbuffer(gl.RENDERBUFFER, pdepth); gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, S, S); gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, ptex, 0); gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, pdepth); psize = S; }
     gl.viewport(0, 0, S, S); gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-    const h = Math.max(0.6, model ? model.height : 1.5), r = Math.max(0.4, model ? model.radius : 0.6); const ext = Math.max(h * 0.62, r * 0.9) * 1.25 * (opts.zoom || 1);
-    const yaw = opts.yaw == null ? Math.PI * 0.78 : opts.yaw, pitch = opts.pitch == null ? -0.28 : opts.pitch; const dist = ext / Math.tan(0.32) + r;
-    const fwd = U.forwardVec(yaw, pitch); const cx = -fwd[0] * dist, cy = h * 0.5 - fwd[1] * dist + (opts.lift || 0), cz = -fwd[2] * dist;
+    // frame the model's bounding box: look at its centre from the front-left, a little above
+    let x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9, z0 = 1e9, z1 = -1e9;
+    if (model && model.boxes) for (const b of model.boxes) { x0 = Math.min(x0, b.x); x1 = Math.max(x1, b.x + b.w); y0 = Math.min(y0, b.y); y1 = Math.max(y1, b.y + b.h); z0 = Math.min(z0, b.z); z1 = Math.max(z1, b.z + b.d); }
+    if (x0 > x1) { x0 = -0.5; x1 = 0.5; y0 = 0; y1 = model ? model.height : 1.5; z0 = -0.5; z1 = 0.5; }
+    const yaw = opts.yaw == null ? -0.62 : opts.yaw, pitch = opts.pitch == null ? -0.24 : opts.pitch;
+    const fwd = U.forwardVec(yaw, pitch);
+    // the box's extent across the view: project its half-sizes onto the camera's right and up axes (generous, so nothing is clipped)
+    const rx = Math.cos(yaw), rz = -Math.sin(yaw); const hw = Math.abs((x1 - x0) / 2 * rx) + Math.abs((z1 - z0) / 2 * rz), hh = (y1 - y0) / 2 * Math.cos(pitch) + (Math.abs((x1 - x0) / 2 * fwd[0]) + Math.abs((z1 - z0) / 2 * fwd[2])) * Math.abs(Math.sin(pitch));
+    const half = Math.max(hw, hh, 0.3) * 0.98 / (opts.zoom || 1); const depth = Math.hypot((x1 - x0) / 2, (z1 - z0) / 2, (y1 - y0) / 2);
+    const dist = half / Math.tan(0.32) + depth * 0.3;
+    const tx = (x0 + x1) / 2, ty = (y0 + y1) / 2 + (opts.lift || 0), tz = (z0 + z1) / 2;
+    const cx = tx - fwd[0] * dist, cy = ty - fwd[1] * dist, cz = tz - fwd[2] * dist;
     const pv = U.m4mul(U.m4perspective(0.64, 1, 0.1, 60), U.m4view(cx, cy, cz, yaw, pitch));
     const saved = { fog: state.fogColor, fn: state.fogNear, ff: state.fogFar, sun: state.sun, sc: state.sunCol, sa: state.sunAmt, day: state.dayLight, z: state.zenith, tint: state.tint, amb: state.ambient, sp: state.skyPass };
     state.fogColor = [0.5, 0.6, 0.7]; state.fogNear = 50; state.fogFar = 60; state.sun = [-0.45, 0.72, 0.53]; state.sunCol = [1.0, 0.95, 0.86]; state.sunAmt = 1; state.dayLight = 1; state.zenith = [0.5, 0.65, 0.95]; state.tint = [1, 1, 1]; state.ambient = 0.06; state.skyPass = true;
@@ -2294,6 +2304,226 @@ const R = (() => {
   }
 
   return { grassZone, init, resize, buildChunk, freeChunk, entityMesh, dropEntityMesh, renderPortrait, render, boxLines, ringLines, state, get gl() { return gl; } };
+})();
+
+</script>
+<script>
+'use strict';
+// Geometry for everything that moves: round bodies, tubes along a path, fins and plates, all with smooth normals and a bone
+// index per vertex, built on the MeshBuilder from render.js. Anim turns an entity's movement into a pose for those bones.
+(() => {
+  const P = MeshBuilder.prototype;
+  const col3 = (c) => typeof c === 'string' ? U.hexToRgb(c) : c;
+  const lerp = (a, b, t) => a + (b - a) * t;
+  // a triangle wound so its front faces outward (the outline pass culls front faces, so winding must be right)
+  P.triOut = function (a, b, c) {
+    if (!this.nrm) { this.tri(a, b, c); return; }
+    const p = this.pos, n = this.nrm;
+    const ax = p[a * 3], ay = p[a * 3 + 1], az = p[a * 3 + 2];
+    const ux = p[b * 3] - ax, uy = p[b * 3 + 1] - ay, uz = p[b * 3 + 2] - az, vx = p[c * 3] - ax, vy = p[c * 3 + 1] - ay, vz = p[c * 3 + 2] - az;
+    const cx = uy * vz - uz * vy, cy = uz * vx - ux * vz, cz = ux * vy - uy * vx;
+    const nx = n[a * 3] + n[b * 3] + n[c * 3], ny = n[a * 3 + 1] + n[b * 3 + 1] + n[c * 3 + 1], nz = n[a * 3 + 2] + n[b * 3 + 2] + n[c * 3 + 2];
+    if (cx * nx + cy * ny + cz * nz >= 0) this.tri(a, b, c); else this.tri(a, c, b);
+  };
+  // the six faces of the unit cube: normal axis and the two axes that span the face
+  const FACES6 = [
+    { n: [1, 0, 0], u: [0, 1, 0], v: [0, 0, 1] }, { n: [-1, 0, 0], u: [0, 1, 0], v: [0, 0, 1] },
+    { n: [0, 1, 0], u: [1, 0, 0], v: [0, 0, 1] }, { n: [0, -1, 0], u: [1, 0, 0], v: [0, 0, 1] },
+    { n: [0, 0, 1], u: [1, 0, 0], v: [0, 1, 0] }, { n: [0, 0, -1], u: [1, 0, 0], v: [0, 1, 0] },
+  ];
+  // blob: the box x0..x1, y0..y1, z0..z1 rounded toward the ellipsoid that fits it. round 0 is the box, 1 the ellipsoid.
+  // opts: n (grid per face edge), tap [bottom, top] scale of the x/z section along the height (eggs, pears), under (a second
+  // colour for the underside, blended by the surface normal), split/soft (where and how wide that blend is), sky, emis, squash
+  P.blob = function (x0, y0, z0, x1, y1, z1, round, color, opts = {}) {
+    const c = col3(color), under = opts.under ? col3(opts.under) : null; const sky = opts.sky == null ? 1 : opts.sky; const emis = !!opts.emis;
+    const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2, cz = (z0 + z1) / 2, hx = Math.max(1e-4, (x1 - x0) / 2), hy = Math.max(1e-4, (y1 - y0) / 2), hz = Math.max(1e-4, (z1 - z0) / 2);
+    const size = Math.max(hx, hy, hz); const smooth = round > 0.01;
+    const n = opts.n || (!smooth ? 1 : size >= 0.28 ? 6 : size >= 0.11 ? 4 : 3);
+    const tap = opts.tap || null; const split = opts.split == null ? -0.12 : opts.split, soft = opts.soft == null ? 0.3 : opts.soft;
+    const bulge = opts.bulge || 0; // >0 pushes the middle of the height outward (a chest), <0 pinches it (a waist)
+    const surf = (F, u, v, out) => {
+      let px = F.n[0] + F.u[0] * u + F.v[0] * v, py = F.n[1] + F.u[1] * u + F.v[1] * v, pz = F.n[2] + F.u[2] * u + F.v[2] * v;
+      if (smooth) { const l = Math.hypot(px, py, pz) || 1; px = lerp(px, px / l, round); py = lerp(py, py / l, round); pz = lerp(pz, pz / l, round); }
+      let X = px * hx, Y = py * hy, Z = pz * hz;
+      const t01 = (py + 1) / 2; let k = tap ? lerp(tap[0], tap[1], t01) : 1; if (bulge) k *= 1 + bulge * Math.sin(t01 * Math.PI);
+      X *= k; Z *= k;
+      out[0] = cx + X; out[1] = cy + Y; out[2] = cz + Z; return out;
+    };
+    const a = [0, 0, 0], b = [0, 0, 0], d = [0, 0, 0]; const eps = 1e-3;
+    for (let f = 0; f < 6; f++) {
+      const F = FACES6[f]; const idx = new Int32Array((n + 1) * (n + 1));
+      for (let i = 0; i <= n; i++) for (let j = 0; j <= n; j++) {
+        const u = i / n * 2 - 1, v = j / n * 2 - 1;
+        surf(F, u, v, a); surf(F, Math.min(1, u + eps), v, b); surf(F, u, Math.min(1, v + eps), d);
+        if (u + eps > 1) { surf(F, u - eps, v, b); b[0] = 2 * a[0] - b[0]; b[1] = 2 * a[1] - b[1]; b[2] = 2 * a[2] - b[2]; }
+        if (v + eps > 1) { surf(F, u, v - eps, d); d[0] = 2 * a[0] - d[0]; d[1] = 2 * a[1] - d[1]; d[2] = 2 * a[2] - d[2]; }
+        const ux = b[0] - a[0], uy = b[1] - a[1], uz = b[2] - a[2], vx = d[0] - a[0], vy = d[1] - a[1], vz = d[2] - a[2];
+        let nx = uy * vz - uz * vy, ny = uz * vx - ux * vz, nz = ux * vy - uy * vx; let l = Math.hypot(nx, ny, nz);
+        if (l < 1e-9) { nx = F.n[0]; ny = F.n[1]; nz = F.n[2]; l = 1; }
+        nx /= l; ny /= l; nz /= l;
+        const ox = a[0] - cx, oy = a[1] - cy, oz = a[2] - cz; if (nx * ox + ny * oy + nz * oz < 0) { nx = -nx; ny = -ny; nz = -nz; }
+        if (!smooth) { nx = F.n[0]; ny = F.n[1]; nz = F.n[2]; }
+        let cc = c;
+        if (under) { const k = U.clamp((split - ny) / soft + 0.5, 0, 1); cc = [lerp(c[0], under[0], k), lerp(c[1], under[1], k), lerp(c[2], under[2], k)]; }
+        if (opts.shade) { const k = opts.shade(a, nx, ny, nz); if (k) cc = k; }
+        idx[i * (n + 1) + j] = this.vert(a[0], a[1], a[2], nx, ny, nz, cc[0], cc[1], cc[2], sky, emis);
+      }
+      for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) { const q = idx[i * (n + 1) + j], r = idx[(i + 1) * (n + 1) + j], s = idx[(i + 1) * (n + 1) + j + 1], t = idx[i * (n + 1) + j + 1]; this.triOut(q, r, s); this.triOut(q, s, t); }
+    }
+  };
+  // tube: a surface of rings along a path. path: [[x,y,z],...]; radii: one number per point, or [rx, ry] for an oval section.
+  // opts: segs (around), cap0/cap1 ('round' | 'flat' | 'none'; a radius under 0.012 pinches to a point), sky, emis, boneAt(i), shade
+  P.tube = function (path, radii, color, opts = {}) {
+    const c = col3(color); const sky = opts.sky == null ? 1 : opts.sky; const emis = !!opts.emis; const segs = opts.segs || 8;
+    let pts = path.map(p => p.slice()); let rad = radii.map(r => Array.isArray(r) ? r.slice() : [r, r]);
+    const tangent = (i) => { const a = pts[Math.max(0, i - 1)], b = pts[Math.min(pts.length - 1, i + 1)]; const t = [b[0] - a[0], b[1] - a[1], b[2] - a[2]]; const l = Math.hypot(t[0], t[1], t[2]) || 1; return [t[0] / l, t[1] / l, t[2] / l]; };
+    // round caps: extra rings curling in toward the end point
+    const capRings = (end) => {
+      const i = end ? pts.length - 1 : 0; const r = rad[i]; if (Math.max(r[0], r[1]) < 0.012) return;
+      const t = tangent(i); const s = end ? 1 : -1; const extra = [], er = [];
+      for (const th of [0.42, 0.82, 1.18, 1.45]) { const k = Math.cos(th), m = Math.sin(th) * 0.92; extra.push([pts[i][0] + t[0] * s * r[0] * m, pts[i][1] + t[1] * s * r[1] * m, pts[i][2] + t[2] * s * Math.max(r[0], r[1]) * m]); er.push([r[0] * k, r[1] * k]); }
+      extra.push([pts[i][0] + t[0] * s * r[0] * 0.98, pts[i][1] + t[1] * s * r[1] * 0.98, pts[i][2] + t[2] * s * Math.max(r[0], r[1]) * 0.98]); er.push([0.001, 0.001]);
+      if (end) { pts = pts.concat(extra); rad = rad.concat(er); } else { pts = extra.reverse().concat(pts); rad = er.reverse().concat(rad); }
+    };
+    const cap0 = opts.cap0 || 'flat', cap1 = opts.cap1 || 'flat';
+    if (cap1 === 'round') capRings(true); if (cap0 === 'round') capRings(false);
+    const N = pts.length; const grid = []; const ctr = [];
+    // a frame that turns smoothly along the path
+    let prevN = null;
+    for (let i = 0; i < N; i++) {
+      const t = tangent(i); let nrm;
+      if (!prevN) { const up = Math.abs(t[1]) < 0.9 ? [0, 1, 0] : [1, 0, 0]; nrm = [up[1] * t[2] - up[2] * t[1], up[2] * t[0] - up[0] * t[2], up[0] * t[1] - up[1] * t[0]]; }
+      else { const d = prevN[0] * t[0] + prevN[1] * t[1] + prevN[2] * t[2]; nrm = [prevN[0] - t[0] * d, prevN[1] - t[1] * d, prevN[2] - t[2] * d]; }
+      let l = Math.hypot(nrm[0], nrm[1], nrm[2]); if (l < 1e-6) { nrm = [1, 0, 0]; l = 1; } nrm = [nrm[0] / l, nrm[1] / l, nrm[2] / l]; prevN = nrm;
+      const bn = [t[1] * nrm[2] - t[2] * nrm[1], t[2] * nrm[0] - t[0] * nrm[2], t[0] * nrm[1] - t[1] * nrm[0]];
+      // ry is measured along the frame's "up-ish" axis: pick whichever of nrm/bn is more vertical to carry ry
+      const vert = Math.abs(nrm[1]) >= Math.abs(bn[1]) ? 0 : 1;
+      const ring = []; const r = rad[i];
+      for (let j = 0; j < segs; j++) { const a = j / segs * Math.PI * 2; const ca = Math.cos(a), sa = Math.sin(a); const ra = vert === 0 ? r[1] : r[0], rb = vert === 0 ? r[0] : r[1]; ring.push([pts[i][0] + nrm[0] * ca * ra + bn[0] * sa * rb, pts[i][1] + nrm[1] * ca * ra + bn[1] * sa * rb, pts[i][2] + nrm[2] * ca * ra + bn[2] * sa * rb]); }
+      grid.push(ring); ctr.push(pts[i]);
+    }
+    const idx = []; const pin = (i) => Math.max(rad[i][0], rad[i][1]) < 0.012;
+    for (let i = 0; i < N; i++) {
+      if (opts.boneAt) this.setBone(opts.boneAt(Math.min(i, path.length - 1)));
+      const ring = grid[i]; const row = [];
+      if (pin(i)) { // a point: one vertex, normal along the path
+        const t = tangent(i); const s = i === 0 ? -1 : 1; const v = this.vert(ctr[i][0], ctr[i][1], ctr[i][2], t[0] * s, t[1] * s, t[2] * s, c[0], c[1], c[2], sky, emis); for (let j = 0; j < segs; j++) row.push(v);
+      } else for (let j = 0; j < segs; j++) {
+        const p = ring[j]; const pj = ring[(j + 1) % segs], pk = ring[(j + segs - 1) % segs];
+        const ni = Math.min(N - 1, i + 1), pi = Math.max(0, i - 1); const q1 = pin(ni) ? ctr[ni] : grid[ni][j], q0 = pin(pi) ? ctr[pi] : grid[pi][j];
+        const ux = pj[0] - pk[0], uy = pj[1] - pk[1], uz = pj[2] - pk[2], vx = q1[0] - q0[0], vy = q1[1] - q0[1], vz = q1[2] - q0[2];
+        let nx = uy * vz - uz * vy, ny = uz * vx - ux * vz, nz = ux * vy - uy * vx; let l = Math.hypot(nx, ny, nz);
+        if (l < 1e-9) { nx = p[0] - ctr[i][0]; ny = p[1] - ctr[i][1]; nz = p[2] - ctr[i][2]; l = Math.hypot(nx, ny, nz) || 1; }
+        nx /= l; ny /= l; nz /= l; const ox = p[0] - ctr[i][0], oy = p[1] - ctr[i][1], oz = p[2] - ctr[i][2]; if (nx * ox + ny * oy + nz * oz < 0) { nx = -nx; ny = -ny; nz = -nz; }
+        let cc = c; if (opts.shade) { const k = opts.shade(p, nx, ny, nz, i / (N - 1)); if (k) cc = k; }
+        row.push(this.vert(p[0], p[1], p[2], nx, ny, nz, cc[0], cc[1], cc[2], sky, emis));
+      }
+      idx.push(row);
+    }
+    for (let i = 0; i < N - 1; i++) for (let j = 0; j < segs; j++) { const a = idx[i][j], b = idx[i][(j + 1) % segs], d = idx[i + 1][(j + 1) % segs], e = idx[i + 1][j]; if (a !== b) this.triOut(a, b, d); if (d !== e) this.triOut(a, d, e); }
+    // flat caps
+    const flat = (i, end) => { if (pin(i)) return; const t = tangent(i); const s = end ? 1 : -1; const cv = this.vert(ctr[i][0], ctr[i][1], ctr[i][2], t[0] * s, t[1] * s, t[2] * s, c[0], c[1], c[2], sky, emis); const ring = grid[i]; const rv = ring.map(p => this.vert(p[0], p[1], p[2], t[0] * s, t[1] * s, t[2] * s, c[0], c[1], c[2], sky, emis)); for (let j = 0; j < segs; j++) this.triOut(cv, rv[j], rv[(j + 1) % segs]); };
+    if (cap0 === 'flat') flat(0, false); if (cap1 === 'flat') flat(N - 1, true);
+  };
+  // fin: a flat polygon (points [u,v] in the plane of frame.u/frame.v, origin frame.o) with thickness, flat-shaded
+  P.fin = function (pts2, frame, thick, color, opts = {}) {
+    const c = col3(color), ec = opts.edge ? col3(opts.edge) : c; const sky = opts.sky == null ? 1 : opts.sky; const emis = !!opts.emis;
+    const o = frame.o, u = frame.u, v = frame.v; const w = [u[1] * v[2] - u[2] * v[1], u[2] * v[0] - u[0] * v[2], u[0] * v[1] - u[1] * v[0]]; const wl = Math.hypot(w[0], w[1], w[2]) || 1; w[0] /= wl; w[1] /= wl; w[2] /= wl;
+    const at = (p, s) => [o[0] + u[0] * p[0] + v[0] * p[1] + w[0] * s, o[1] + u[1] * p[0] + v[1] * p[1] + w[1] * s, o[2] + u[2] * p[0] + v[2] * p[1] + w[2] * s];
+    const h = thick / 2; const n = pts2.length;
+    let cu = 0, cv = 0; for (const p of pts2) { cu += p[0]; cv += p[1]; } cu /= n; cv /= n;
+    for (const s of [h, -h]) {
+      const sg = s > 0 ? 1 : -1; const cen = at([cu, cv], s); const ci = this.vert(cen[0], cen[1], cen[2], w[0] * sg, w[1] * sg, w[2] * sg, c[0], c[1], c[2], sky, emis);
+      const ring = pts2.map(p => { const q = at(p, s); return this.vert(q[0], q[1], q[2], w[0] * sg, w[1] * sg, w[2] * sg, c[0], c[1], c[2], sky, emis); });
+      for (let i = 0; i < n; i++) this.triOut(ci, ring[i], ring[(i + 1) % n]);
+    }
+    for (let i = 0; i < n; i++) { // the edge band
+      const p0 = pts2[i], p1 = pts2[(i + 1) % n]; const du = p1[0] - p0[0], dv = p1[1] - p0[1]; const en = [u[0] * dv - v[0] * du, u[1] * dv - v[1] * du, u[2] * dv - v[2] * du]; const el = Math.hypot(en[0], en[1], en[2]) || 1;
+      let nx = en[0] / el, ny = en[1] / el, nz = en[2] / el; const mid = at([(p0[0] + p1[0]) / 2, (p0[1] + p1[1]) / 2], 0); const cen = at([cu, cv], 0); if (nx * (mid[0] - cen[0]) + ny * (mid[1] - cen[1]) + nz * (mid[2] - cen[2]) < 0) { nx = -nx; ny = -ny; nz = -nz; }
+      const a = at(p0, h), b = at(p1, h), d = at(p1, -h), e = at(p0, -h);
+      const ia = this.vert(a[0], a[1], a[2], nx, ny, nz, ec[0], ec[1], ec[2], sky, emis), ib = this.vert(b[0], b[1], b[2], nx, ny, nz, ec[0], ec[1], ec[2], sky, emis), id = this.vert(d[0], d[1], d[2], nx, ny, nz, ec[0], ec[1], ec[2], sky, emis), ie = this.vert(e[0], e[1], e[2], nx, ny, nz, ec[0], ec[1], ec[2], sky, emis);
+      this.triOut(ia, ib, id); this.triOut(ia, id, ie);
+    }
+  };
+  // plate: a flat polygon given in 3D (roughly planar), thickness along its own normal
+  P.plate = function (pts3, thick, color, opts) {
+    let nx = 0, ny = 0, nz = 0; const n = pts3.length;
+    for (let i = 0; i < n; i++) { const a = pts3[i], b = pts3[(i + 1) % n]; nx += (a[1] - b[1]) * (a[2] + b[2]); ny += (a[2] - b[2]) * (a[0] + b[0]); nz += (a[0] - b[0]) * (a[1] + b[1]); }
+    let l = Math.hypot(nx, ny, nz); if (l < 1e-9) { nx = 0; ny = 0; nz = 1; l = 1; } nx /= l; ny /= l; nz /= l;
+    const ref = Math.abs(ny) < 0.9 ? [0, 1, 0] : [1, 0, 0]; let u = [ref[1] * nz - ref[2] * ny, ref[2] * nx - ref[0] * nz, ref[0] * ny - ref[1] * nx]; const ul = Math.hypot(u[0], u[1], u[2]) || 1; u = [u[0] / ul, u[1] / ul, u[2] / ul];
+    const v = [ny * u[2] - nz * u[1], nz * u[0] - nx * u[2], nx * u[1] - ny * u[0]];
+    const o = pts3[0]; const pts2 = pts3.map(p => { const dx = p[0] - o[0], dy = p[1] - o[1], dz = p[2] - o[2]; return [dx * u[0] + dy * u[1] + dz * u[2], dx * v[0] + dy * v[1] + dz * v[2]]; });
+    this.fin(pts2, { o, u, v }, thick, color, opts);
+  };
+  // a box with softened corners (round 0.1..0.4) in one call
+  P.rbox = function (x0, y0, z0, x1, y1, z1, round, color, opts) { this.blob(x0, y0, z0, x1, y1, z1, round, color, Object.assign({ n: 2 }, opts || {})); };
+  // a sphere / egg
+  P.ball = function (x, y, z, r, color, opts) { this.blob(x - r, y - r, z - r, x + r, y + r, z + r, 1, color, opts || {}); };
+  // a cone from base (x,y,z) along dir for length h, base radius r
+  P.cone = function (x, y, z, dir, h, r, color, opts) { const l = Math.hypot(dir[0], dir[1], dir[2]) || 1; const e = [x + dir[0] / l * h, y + dir[1] / l * h, z + dir[2] / l * h]; this.tube([[x, y, z], [(x + e[0]) / 2, (y + e[1]) / 2, (z + e[2]) / 2], e], [r, r * 0.55, 0.001], color, Object.assign({ cap0: 'flat', cap1: 'none' }, opts || {})); };
+
+  // ---------- Anim: a pose for an entity's bones from how it is moving ----------
+  // Bones: 0 body, 1 head, 2 left arm / front-left leg, 3 right arm / front-right leg, 4 back-left leg, 5 back-right leg,
+  // 6 tail, 7 left wing, 8 right wing, 9 jaw. A model lists them as m.bones[i] = { piv: [x,y,z], kind, phase }.
+  const Anim = (() => {
+    const mats = new Float32Array(160), sway = new Float32Array(4);
+    // bone i: rotate (rx about x, ry about y, rz about z) around piv, then move by (tx,ty,tz); optional scale sy
+    function set(i, piv, rx, ry, rz, tx, ty, tz, sx, sy, sz) {
+      const cx = Math.cos(rx), sxx = Math.sin(rx), cy = Math.cos(ry), syy = Math.sin(ry), cz = Math.cos(rz), szz = Math.sin(rz);
+      // R = Ry * Rx * Rz (column-major)
+      const r00 = cy * cz + syy * sxx * szz, r01 = cx * szz, r02 = -syy * cz + cy * sxx * szz;
+      const r10 = -cy * szz + syy * sxx * cz, r11 = cx * cz, r12 = syy * szz + cy * sxx * cz;
+      const r20 = syy * cx, r21 = -sxx, r22 = cy * cx;
+      const o = i * 16; const px = piv ? piv[0] : 0, py = piv ? piv[1] : 0, pz = piv ? piv[2] : 0;
+      sx = sx == null ? 1 : sx; sy = sy == null ? 1 : sy; sz = sz == null ? 1 : sz;
+      mats[o] = r00 * sx; mats[o + 1] = r01 * sx; mats[o + 2] = r02 * sx; mats[o + 3] = 0;
+      mats[o + 4] = r10 * sy; mats[o + 5] = r11 * sy; mats[o + 6] = r12 * sy; mats[o + 7] = 0;
+      mats[o + 8] = r20 * sz; mats[o + 9] = r21 * sz; mats[o + 10] = r22 * sz; mats[o + 11] = 0;
+      mats[o + 12] = px + tx - (mats[o] * px + mats[o + 4] * py + mats[o + 8] * pz); mats[o + 13] = py + ty - (mats[o + 1] * px + mats[o + 5] * py + mats[o + 9] * pz); mats[o + 14] = pz + tz - (mats[o + 2] * px + mats[o + 6] * py + mats[o + 10] * pz); mats[o + 15] = 1;
+    }
+    function pose(e, now) {
+      const m = e.model; const bones = m.bones; if (!bones || !bones.length) return null;
+      let a = e.anim;
+      if (!a) { a = e._an; if (!a) a = e._an = { ph: Math.random() * 6.28, mv: 0, lx: e.x, lz: e.z, ly: e.y, lt: now, vy: 0, seed: Math.random() * 100, air: 0 };
+        const dt = Math.min(0.1, Math.max(0.001, (now - a.lt) / 1000)); a.lt = now;
+        const dx = e.x - a.lx, dz = e.z - a.lz, dy = e.y - a.ly; a.lx = e.x; a.lz = e.z; a.ly = e.y;
+        const d = Math.hypot(dx, dz); const jump = d > 2.5;
+        const stride = Math.max(0.3, (m.legLen || 0.45) * 2.6 * (e.scale || 1));
+        if (!jump) a.ph += d / stride * Math.PI * 2;
+        const want = jump ? a.mv : U.clamp(d / dt / 3.2, 0, 1); a.mv += (want - a.mv) * Math.min(1, dt * 9);
+        a.vy = jump ? 0 : a.vy + (dy / dt - a.vy) * Math.min(1, dt * 6);
+        const airWant = (e.flying || e.mountMode === 'air' || (m.flyer && (Math.abs(a.vy) > 0.4 || e.hover > 0.3))) ? 1 : 0; a.air += (airWant - a.air) * Math.min(1, dt * 4);
+      }
+      const t = now / 1000, ph = a.ph, mv = a.mv, air = a.air || 0, seed = a.seed || 0, sc = e.scale || 1;
+      const swim = e.swim || a.swim || 0;
+      const bob = (m.kind === 'blob' ? 0 : Math.abs(Math.sin(ph)) * 0.035 * mv * (m.height || 1)) + (air ? Math.sin(t * 3.1 + seed) * 0.05 : 0);
+      const idle = 1 - mv;
+      for (let i = 0; i < 10; i++) {
+        const b = bones[i]; if (!b) { set(i, null, 0, 0, 0, 0, bob, 0); continue; }
+        const k = b.kind, phs = b.phase || 0;
+        switch (k) {
+          case 'leg': { const sw = Math.sin(ph + phs); const amp = (b.amp || 0.55) * mv * (1 - air * 0.8); const sit = a.sit || 0; set(i, b.piv, (-sw * amp) * (1 - sit) - 1.25 * sit, 0, (b.phase ? -1 : 1) * 0.25 * sit, 0, bob + Math.max(0, -Math.cos(ph + phs)) * 0.03 * mv * sc * (b.len || 1), 0); break; }
+          case 'arm': { const sw = Math.sin(ph + phs + Math.PI); const amp = (b.amp || 0.4) * mv; const atk = a.attack || 0; const sit = a.sit || 0; const rx = (-sw * amp - atk * 1.9 + idle * Math.sin(t * 1.3 + seed + phs) * 0.03) * (1 - sit) - 0.55 * sit; set(i, b.piv, rx, 0, (b.side || 0) * (0.08 + air * 1.1 + (a.block || 0) * 0.5), 0, bob, 0); break; }
+          case 'head': { const look = a.look || 0; set(i, b.piv, Math.sin(ph * 2) * 0.05 * mv + idle * Math.sin(t * 0.9 + seed) * 0.03 + (a.nod || 0), idle * Math.sin(t * 0.55 + seed * 2) * 0.16 + look, 0, 0, bob, 0); break; }
+          case 'tail': { const sw = Math.sin(ph + 1.1) * 0.25 * mv + Math.sin(t * 1.6 + seed) * (0.09 + 0.1 * idle); set(i, b.piv, Math.sin(t * 1.1 + seed) * 0.04, sw * (b.amp || 1), 0, 0, bob, 0); break; }
+          case 'tailfin': { const sw = Math.sin(t * (5 + 3 * mv) + seed) * (0.3 + 0.2 * mv); set(i, b.piv, 0, sw, 0, 0, bob, 0); break; }
+          case 'wing': { const side = b.side || 1; const flap = air > 0.05 ? Math.sin(t * 9.5 + seed) * 0.55 * air + 0.12 * air : 0; const fold = (1 - air) * (b.fold || 0); set(i, b.piv, 0, 0, side * (flap + fold) + side * (1 - air) * Math.sin(t * 2.3 + seed) * 0.03, 0, bob, 0); break; }
+          case 'spin': { set(i, b.piv, 0, t * (b.speed || 1.5), 0, 0, bob, 0); break; }
+          case 'jaw': { set(i, b.piv, (a.jaw || e.jawOpen || 0) * 0.45, 0, 0, 0, bob, 0); break; }
+          case 'ear': { set(i, b.piv, 0, 0, (b.side || 1) * (Math.sin(t * 2.7 + seed + phs) * 0.06 + mv * 0.15), 0, bob, 0); break; }
+          case 'body': default: {
+            if (m.kind === 'blob') { const sq = 1 + Math.sin(ph) * 0.09 * mv + Math.sin(t * 2.2 + seed) * 0.025; set(i, b.piv || [0, 0, 0], 0, 0, 0, 0, Math.abs(Math.sin(ph)) * 0.12 * mv * sc, 0, 1 / Math.sqrt(sq), sq, 1 / Math.sqrt(sq)); }
+            else set(i, b.piv || [0, 0, 0], (a.lean || 0) + air * (b.airPitch || 0) + mv * (b.runPitch || 0), 0, swim ? Math.sin(t * 4) * 0.05 : 0, 0, bob, 0);
+          }
+        }
+      }
+      if (m.sway) { const S = m.sway; sway[0] = S.amp * (0.45 + 0.55 * Math.max(mv, swim, air)); sway[1] = S.freq; sway[2] = t * S.speed + seed; sway[3] = S.from; } // all in the model's own units: the shader sways aPos before uModel
+      else { sway[0] = 0; sway[1] = 0; sway[2] = 0; sway[3] = 0; }
+      return { mats, sway };
+    }
+    return { pose };
+  })();
+  window.Anim = Anim;
 })();
 
 </script>
@@ -3399,131 +3629,239 @@ const KIN = (() => {
     return k;
   }
 
-  // ---- 3D box model (list of boxes in local units, facing +Z) ----
+  // ---- 3D model: a list of parts in local units, facing +Z, feet at y 0 ----
+  // Parts are boxes {x,y,z,w,h,d} (kept for hats, tools and the like), blobs (box rounded toward its ellipsoid), tubes (rings along
+  // a path) and plates (flat polygons). Each carries a colour, an emissive flag and a bone index; buildMesh turns them into geometry.
   function model(sp, stage) {
     const s = (sp.size || 1) * (stage === 1 ? 0.78 : stage === 2 ? 1.05 : 1.4) * (1 + 0.04 * Math.min(6, sp.gen || 0));
-    const C = sp.colors; const f = sp.feat;
-    const bx = []; // {x,y,z,w,h,d,c,emis}
-    const add = (x, y, z, w, h, d, c, emis) => bx.push({ x: x * s, y: y * s, z: z * s, w: w * s, h: h * s, d: d * s, c, emis });
-    const eyeY = (hy, hz, hw, hh) => { const e = f.bigEyes ? 0.14 : 0.09; add(-hw / 2 + 0.08, hy + hh * 0.55, hz + 0.01, e, e, 0.05, C.eye, true); add(hw / 2 - 0.08 - e, hy + hh * 0.55, hz + 0.01, e, e, 0.05, C.eye, true); };
+    const C = sp.colors; const f = sp.feat || {}; const dm = sp.dims || { w: 1, l: 1, h: 1 };
+    const SX = s * dm.w, SY = s * dm.h, SZ = s * dm.l, SR = s * Math.sqrt(dm.w * dm.h); // SR: a scale for radii
+    const parts = []; let bone = 0; const bones = [];
+    const P3 = (p) => [p[0] * SX, p[1] * SY, p[2] * SZ];
+    const box = (x, y, z, w, h, d, c, emis) => parts.push({ x: x * SX, y: y * SY, z: z * SZ, w: w * SX, h: h * SY, d: d * SZ, c, emis, bone });
+    const blob = (x0, y0, z0, x1, y1, z1, round, c, o) => { const a = Math.min(x0, x1) * SX, b = Math.min(y0, y1) * SY, d = Math.min(z0, z1) * SZ; parts.push({ k: 'blob', x: a, y: b, z: d, w: Math.abs(x1 - x0) * SX, h: Math.abs(y1 - y0) * SY, d: Math.abs(z1 - z0) * SZ, round, c, emis: !!(o && o.emis), o: o || null, bone }); };
+    const ball = (x, y, z, r, c, o) => blob(x - r, y - r, z - r, x + r, y + r, z + r, 1, c, o);
+    const tube = (path, radii, c, o) => { const pp = path.map(P3); const rr = radii.map(r => Array.isArray(r) ? [r[0] * SR, r[1] * SR] : [r * SR, r * SR]); const mr = Math.max(...rr.map(r => Math.max(r[0], r[1]))); const xs = pp.map(p => p[0]), ys = pp.map(p => p[1]), zs = pp.map(p => p[2]); const x = Math.min(...xs) - mr, y = Math.min(...ys) - mr, z = Math.min(...zs) - mr; parts.push({ k: 'tube', path: pp, radii: rr, c, emis: !!(o && o.emis), o: o || null, bone, x, y, z, w: Math.max(...xs) + mr - x, h: Math.max(...ys) + mr - y, d: Math.max(...zs) + mr - z }); };
+    const plate = (pts, t, c, o) => { const pp = pts.map(P3); const xs = pp.map(p => p[0]), ys = pp.map(p => p[1]), zs = pp.map(p => p[2]); const x = Math.min(...xs) - t, y = Math.min(...ys) - t, z = Math.min(...zs) - t; parts.push({ k: 'plate', pts: pp, t: t * s, c, emis: !!(o && o.emis), o: o || null, bone, x, y, z, w: Math.max(...xs) + t - x, h: Math.max(...ys) + t - y, d: Math.max(...zs) + t - z }); };
+    const cone = (b, dir, len, r, c, o) => { const l = Math.hypot(dir[0], dir[1], dir[2]) || 1; const u = [dir[0] / l, dir[1] / l, dir[2] / l]; tube([b, [b[0] + u[0] * len * 0.5, b[1] + u[1] * len * 0.5, b[2] + u[2] * len * 0.5], [b[0] + u[0] * len, b[1] + u[1] * len, b[2] + u[2] * len]], [r, r * 0.55, 0.0005], c, Object.assign({ cap0: 'flat', cap1: 'none', segs: 6 }, o || {})); };
+    const curl = (b, dir, len, r, c, bend, o) => { // a horn or a tail: a tapering tube that curves as it goes (bend: [bx, by, bz] added to the direction along the length)
+      const l = Math.hypot(dir[0], dir[1], dir[2]) || 1; const u = [dir[0] / l, dir[1] / l, dir[2] / l]; const pts = [], rr = []; const n = 4;
+      for (let i = 0; i <= n; i++) { const t = i / n; pts.push([b[0] + (u[0] + bend[0] * t) * len * t, b[1] + (u[1] + bend[1] * t) * len * t, b[2] + (u[2] + bend[2] * t) * len * t]); rr.push(i === n ? 0.0005 : r * (1 - t * 0.85)); }
+      tube(pts, rr, c, Object.assign({ cap0: 'flat', cap1: 'none', segs: 6 }, o || {}));
+    };
+    const B = (i, kind, piv, extra) => { bones[i] = Object.assign({ kind, piv: P3(piv) }, extra || {}); bone = i; };
+    // eyes: a bright eye with a white glint, looking +z; r is the eye radius
+    const eyes = (x, y, z, r, o) => { const col = (o && o.col) || C.eye; const bright = (o && o.bright) != null ? o.bright : true; for (const sd of [-1, 1]) { ball(sd * x, y, z, r, col, { emis: bright, n: 3 }); ball(sd * x + sd * r * 0.25, y + r * 0.32, z + r * 0.78, r * 0.32, '#ffffff', { emis: true, n: 2 }); if (o && o.brow) blob(sd * x - r * 0.9, y + r * 0.95, z - r * 0.5, sd * x + r * 0.9, y + r * 1.25, z + r * 0.75, 0.5, o.brow, { n: 2 }); } };
+    // a ring of colour round an ellipsoid section (stripes, collars): centre (cx,cy,z), half-sizes hx,hy
+    const ring = (cx, cy, z, hx, hy, th, c, o) => { const pts = []; for (let i = 0; i <= 14; i++) { const a = i / 14 * Math.PI * 2; pts.push([cx + Math.cos(a) * hx, cy + Math.sin(a) * hy, z]); } const rr = pts.map(() => th); tube(pts, rr, c, Object.assign({ cap0: 'none', cap1: 'none', segs: 6 }, o || {})); };
+    // markings over a body ellipsoid given as its box
+    const markings = (x0, y0, z0, x1, y1, z1) => {
+      const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2, hx = (x1 - x0) / 2, hy = (y1 - y0) / 2, hz = (z1 - z0) / 2, cz = (z0 + z1) / 2;
+      if (f.stripes) for (let i = 0; i < 3; i++) { const u = -0.45 + i * 0.4; const k = Math.sqrt(Math.max(0.05, 1 - u * u)); ring(cx, cy, cz + u * hz, hx * k + 0.012, hy * k + 0.012, 0.028 + hx * 0.06, C.dark); }
+      if (f.spots) for (let i = 0; i < 5; i++) { const u = -0.55 + ((i * 37) % 10) / 10 * 1.1, a = 0.35 + ((i * 53) % 10) / 10 * 2.4 * (i % 2 ? 1 : -1); const k = Math.sqrt(Math.max(0.05, 1 - u * u)); const px = cx + Math.cos(a) * hx * k, py = cy + Math.sin(a) * hy * k, pz = cz + u * hz; const r = 0.06 + hx * 0.12; ball(px, py, pz, r, C.accent, { n: 2 }); }
+      if (f.armor) for (let i = 0; i < 3; i++) { const u = -0.5 + i * 0.42; const k = Math.sqrt(Math.max(0.1, 1 - u * u)); blob(cx - hx * 0.75 * k, y1 - 0.06, cz + u * hz - hz * 0.16, cx + hx * 0.75 * k, y1 + 0.05, cz + u * hz + hz * 0.16, 0.45, C.dark, { n: 2 }); }
+    };
+    const spine = (y, z0, z1, n, r) => { for (let i = 0; i < n; i++) { const z = z0 + (z1 - z0) * (i + 0.5) / n; cone([0, y, z], [0, 1, -0.25], r * 2.6, r, C.accent); } };
+    const wings = (sx, sy, sz, len, o) => { // a pair of wings from the shoulders at (±sx, sy, sz), spread sideways; bones 7/8 fold them
+      for (const sd of [-1, 1]) { B(sd < 0 ? 7 : 8, 'wing', [sd * sx, sy, sz], { side: sd, fold: (o && o.fold) != null ? o.fold : -1.25 });
+        const L = len; const pts = [[sd * sx, sy, sz + 0.1], [sd * (sx + L * 0.4), sy + L * 0.2, sz + 0.08], [sd * (sx + L * 0.78), sy + L * 0.26, sz], [sd * (sx + L), sy + L * 0.22, sz - 0.1], [sd * (sx + L * 0.92), sy + L * 0.04, sz - 0.28 * L], [sd * (sx + L * 0.7), sy - L * 0.04, sz - 0.3 * L], [sd * (sx + L * 0.45), sy - L * 0.08, sz - 0.25 * L], [sd * (sx + L * 0.2), sy - L * 0.1, sz - 0.18 * L]];
+        plate(pts, 0.035, (o && o.col) || C.accent, { edge: C.dark });
+        tube([[sd * sx, sy, sz + 0.08], [sd * (sx + L * 0.4), sy + L * 0.2, sz + 0.06], [sd * (sx + L * 0.78), sy + L * 0.26, sz]], [0.05, 0.04, 0.025], C.dark, { segs: 5, cap0: 'round', cap1: 'round' });
+      } bone = 0;
+    };
+    let hover = 0, legLen = 0.5, kind = sp.shape, flyer = false, sway = null;
     switch (sp.shape) {
       case 'quadruped': {
-        add(-0.4, 0.45, -0.6, 0.8, 0.55, 1.2, C.body); add(-0.3, 0.42, -0.5, 0.6, 0.12, 1.0, C.belly);
-        add(-0.3, 0.8, 0.5, 0.6, 0.5, 0.55, C.body); eyeY(0.8, 1.05, 0.6, 0.5);
-        for (const [lx, lz] of [[-0.35, -0.5], [0.15, -0.5], [-0.35, 0.3], [0.15, 0.3]]) add(lx, 0, lz, 0.2, 0.47, 0.22, C.dark);
-        if (f.tail) add(-0.06, 0.75, -0.95, 0.12, 0.12, 0.4, C.accent);
-        if (f.horns) { add(-0.26, 1.3, 0.75, 0.1, 0.25, 0.1, C.accent); add(0.16, 1.3, 0.75, 0.1, 0.25, 0.1, C.accent); }
-        if (f.ears) { add(-0.3, 1.25, 0.6, 0.14, 0.18, 0.1, C.body); add(0.16, 1.25, 0.6, 0.14, 0.18, 0.1, C.body); }
-        if (f.spikes) for (let i = 0; i < 3; i++) add(-0.06, 1.0, -0.45 + i * 0.35, 0.12, 0.2, 0.14, C.accent);
-        if (f.wings) { add(-1.0, 0.85, -0.3, 0.62, 0.06, 0.6, C.accent); add(0.38, 0.85, -0.3, 0.62, 0.06, 0.6, C.accent); }
+        blob(-0.35, 0.44, -0.62, 0.35, 1.0, 0.5, 0.85, C.body, { under: C.belly, bulge: 0.06 }); blob(-0.36, 0.42, 0.05, 0.36, 1.02, 0.6, 1, C.body, { under: C.belly });
+        markings(-0.35, 0.44, -0.62, 0.35, 1.0, 0.5);
+        tube([[0, 0.82, 0.42], [0, 0.98, 0.62], [0, 1.08, 0.76]], [0.21, 0.19, 0.17], C.body, { cap0: 'none', cap1: 'none' });
+        B(1, 'head', [0, 0.95, 0.55]);
+        blob(-0.27, 0.9, 0.62, 0.27, 1.38, 1.08, 0.9, C.body); blob(-0.17, 0.9, 1.0, 0.17, 1.14, 1.3, 0.7, C.belly); ball(0, 1.1, 1.3, 0.055, C.dark, { n: 2 });
+        eyes(0.18, 1.2, 1.02, f.bigEyes ? 0.1 : 0.075, { brow: f.armor || f.spikes ? C.dark : null });
+        if (f.ears) for (const sd of [-1, 1]) plate([[sd * 0.1, 1.3, 0.78], [sd * 0.24, 1.3, 0.74], [sd * 0.28, 1.56, 0.66], [sd * 0.14, 1.5, 0.7]], 0.035, C.body, { edge: C.belly });
+        if (f.horns) for (const sd of [-1, 1]) curl([sd * 0.14, 1.34, 0.84], [sd * 0.3, 1, -0.2], 0.42, 0.07, C.accent, [sd * 0.4, -0.3, -0.4]);
+        bone = 0;
+        legLen = 0.6;
+        const legs = [[-0.24, 0.38, 2, 0], [0.24, 0.38, 3, Math.PI], [-0.24, -0.42, 4, Math.PI], [0.24, -0.42, 5, 0]];
+        for (const [lx, lz, bi, ph] of legs) { B(bi, 'leg', [lx, 0.62, lz], { phase: ph, len: 0.6 }); tube([[lx, 0.66, lz], [lx, 0.35, lz], [lx, 0.09, lz + 0.02]], [0.11, 0.09, 0.08], C.body, { cap0: 'none', cap1: 'none' }); blob(lx - 0.1, 0, lz - 0.08, lx + 0.1, 0.12, lz + 0.14, 0.6, C.dark, { n: 2 }); }
+        bone = 0;
+        if (f.tail) { B(6, 'tail', [0, 0.85, -0.6]); if (f.bigTail) tube([[0, 0.8, -0.6], [0, 0.92, -0.9], [0, 1.12, -1.15], [0, 1.3, -1.25]], [0.1, 0.16, 0.13, 0.04], C.accent, { cap0: 'none', cap1: 'round' }); else tube([[0, 0.82, -0.6], [0, 0.95, -0.9], [0, 1.15, -1.12], [0, 1.28, -1.2]], [0.07, 0.055, 0.04, 0.0005], C.accent, { cap0: 'none', cap1: 'none' }); bone = 0; }
+        if (f.spikes) spine(1.0, -0.5, 0.35, 4, 0.06);
+        if (f.wings) wings(0.3, 0.95, -0.1, 0.95);
+        if (f.crest) plate([[0, 1.36, 0.7], [0, 1.6, 0.6], [0, 1.58, 0.84], [0, 1.4, 0.94]], 0.04, C.accent);
         break;
       }
       case 'biped': {
-        add(-0.3, 0.55, -0.22, 0.6, 0.75, 0.44, C.body); add(-0.2, 0.6, 0.2, 0.4, 0.5, 0.04, C.belly);
-        add(-0.3, 1.3, -0.25, 0.6, 0.55, 0.5, C.body); eyeY(1.3, 0.25, 0.6, 0.55);
-        add(-0.25, 0, -0.1, 0.2, 0.55, 0.26, C.dark); add(0.05, 0, -0.1, 0.2, 0.55, 0.26, C.dark);
-        add(-0.5, 0.65, -0.1, 0.18, 0.55, 0.22, C.body); add(0.32, 0.65, -0.1, 0.18, 0.55, 0.22, C.body);
-        if (f.horns) { add(-0.25, 1.85, -0.05, 0.1, 0.28, 0.1, C.accent); add(0.15, 1.85, -0.05, 0.1, 0.28, 0.1, C.accent); }
-        if (f.crest) add(-0.06, 1.85, -0.2, 0.12, 0.25, 0.4, C.accent);
-        if (f.tail) add(-0.06, 0.55, -0.6, 0.12, 0.12, 0.4, C.accent);
-        if (f.wings) { add(-0.9, 1.0, -0.3, 0.6, 0.06, 0.55, C.accent); add(0.3, 1.0, -0.3, 0.6, 0.06, 0.55, C.accent); }
-        if (f.spikes) for (let i = 0; i < 2; i++) add(-0.06, 1.1 + i * 0.2, -0.33, 0.12, 0.14, 0.12, C.accent);
+        blob(-0.3, 0.5, -0.26, 0.3, 1.27, 0.26, 1, C.body, { under: C.belly, tap: [1.02, 0.82], split: 0.05, soft: 0.35 });
+        markings(-0.3, 0.5, -0.26, 0.3, 1.27, 0.26);
+        B(1, 'head', [0, 1.25, 0]);
+        blob(-0.33, 1.22, -0.3, 0.33, 1.86, 0.3, 1, C.body); eyes(0.14, 1.55, 0.26, f.bigEyes ? 0.1 : 0.075);
+        plate([[-0.07, 1.42, 0.3], [0.07, 1.42, 0.3], [0.05, 1.38, 0.3], [-0.05, 1.38, 0.3]], 0.015, C.dark);
+        if (f.ears) for (const sd of [-1, 1]) plate([[sd * 0.2, 1.72, 0.0], [sd * 0.32, 1.7, -0.02], [sd * 0.3, 1.98, -0.08], [sd * 0.16, 1.9, -0.04]], 0.035, C.body, { edge: C.belly });
+        if (f.horns) for (const sd of [-1, 1]) curl([sd * 0.17, 1.82, -0.02], [sd * 0.25, 1, 0], 0.36, 0.065, C.accent, [sd * 0.3, -0.2, -0.3]);
+        if (f.crest) plate([[0, 1.84, -0.22], [0, 2.14, -0.3], [0, 2.1, 0.0], [0, 1.86, 0.1]], 0.04, C.accent);
+        bone = 0;
+        for (const sd of [-1, 1]) { B(sd < 0 ? 2 : 3, 'arm', [sd * 0.3, 1.1, 0], { phase: sd < 0 ? 0 : Math.PI, side: sd }); tube([[sd * 0.28, 1.12, 0], [sd * 0.4, 0.88, 0.04], [sd * 0.44, 0.64, 0.1]], [0.085, 0.07, 0.06], C.body, { cap0: 'none', cap1: 'round' }); }
+        legLen = 0.5;
+        for (const sd of [-1, 1]) { B(sd < 0 ? 4 : 5, 'leg', [sd * 0.14, 0.55, 0], { phase: sd < 0 ? 0 : Math.PI, len: 0.5 }); tube([[sd * 0.13, 0.58, 0], [sd * 0.15, 0.3, 0], [sd * 0.16, 0.1, 0.02]], [0.1, 0.09, 0.085], C.dark, { cap0: 'none', cap1: 'none' }); blob(sd * 0.16 - 0.11, 0, -0.08, sd * 0.16 + 0.11, 0.12, 0.2, 0.55, C.dark, { n: 2 }); }
+        bone = 0;
+        if (f.tail) { B(6, 'tail', [0, 0.6, -0.25]); tube([[0, 0.6, -0.25], [0, 0.55, -0.55], [0, 0.62, -0.8], [0, 0.72, -0.9]], [0.08, 0.07, 0.05, 0.0005], C.accent, { cap0: 'none', cap1: 'none' }); bone = 0; }
+        if (f.wings) wings(0.26, 1.05, -0.18, 0.85);
+        if (f.spikes) for (let i = 0; i < 3; i++) cone([0, 1.12 - i * 0.18, -0.28 + i * 0.03], [0, 0.3, -1], 0.16, 0.05, C.accent);
         break;
       }
       case 'serpent': {
-        for (let i = 0; i < 6; i++) { const w = 0.5 - i * 0.05; add(-w / 2, 0.15 + Math.sin(i * 1.1) * 0.12, 0.6 - i * 0.4, w, w, 0.42, i % 2 ? C.body : C.dark); }
-        add(-0.32, 0.3, 0.9, 0.64, 0.5, 0.6, C.body); eyeY(0.3, 1.5, 0.64, 0.5);
-        if (f.horns) { add(-0.28, 0.8, 1.1, 0.1, 0.25, 0.1, C.accent); add(0.18, 0.8, 1.1, 0.1, 0.25, 0.1, C.accent); }
-        if (f.spikes) for (let i = 0; i < 5; i++) add(-0.05, 0.55, 0.5 - i * 0.4, 0.1, 0.18, 0.12, C.accent);
-        if (f.crest) add(-0.06, 0.78, 0.9, 0.12, 0.22, 0.5, C.accent);
-        if (f.wings) { add(-0.9, 0.5, 0.1, 0.6, 0.06, 0.5, C.accent); add(0.3, 0.5, 0.1, 0.6, 0.06, 0.5, C.accent); }
-        break;
+        kind = 'serpent'; sway = { amp: 0.12 * s, freq: 2.4 / s, speed: 4.5, from: 0.5 * s };
+        const pts = [], rr = []; for (let i = 0; i <= 10; i++) { const t = i / 10; pts.push([Math.sin(t * 5.5) * 0.14 * t, 0.26 - t * 0.04 + Math.sin(t * 7) * 0.05 * t, 0.7 - t * 2.6]); rr.push(i === 10 ? 0.0005 : [0.27 * (1 - t * 0.75), 0.24 * (1 - t * 0.78)]); }
+        tube(pts, rr, C.body, { cap0: 'none', cap1: 'none', segs: 10, shade: (p, nx, ny, nz, t) => { const band = Math.floor(t * 11) % 2 === 1; const belly = ny < -0.35; const c0 = U.hexToRgb(belly ? C.belly : band ? C.dark : C.body); return c0; } });
+        B(1, 'head', [0, 0.3, 0.7]);
+        blob(-0.3, 0.06, 0.6, 0.3, 0.56, 1.25, 0.8, C.body, { under: C.belly, tap: [1, 0.9] });
+        eyes(0.19, 0.4, 1.05, f.bigEyes ? 0.09 : 0.07, { brow: C.dark });
+        plate([[-0.02, 0.2, 1.25], [0.02, 0.2, 1.25], [0.03, 0.17, 1.5], [0, 0.15, 1.58], [-0.03, 0.17, 1.5]], 0.012, '#d83a4a');
+        if (f.horns) for (const sd of [-1, 1]) curl([sd * 0.16, 0.54, 0.9], [sd * 0.3, 1, -0.4], 0.35, 0.06, C.accent, [sd * 0.3, -0.1, -0.5]);
+        if (f.crest) plate([[0, 0.55, 0.65], [0, 0.85, 0.5], [0, 0.95, 0.2], [0, 0.82, -0.1], [0, 0.6, -0.3], [0, 0.45, 0.0], [0, 0.5, 0.4]], 0.035, C.accent);
+        bone = 0;
+        if (f.spikes) for (let i = 0; i < 6; i++) { const t = i / 6; cone([Math.sin(t * 5.5) * 0.14 * t, 0.47 - t * 0.22, 0.4 - t * 2.2], [0, 1, -0.3], 0.18 * (1 - t * 0.5), 0.05, C.accent); }
+        if (f.wings) wings(0.2, 0.42, 0.25, 0.8, { fold: -0.6 });
+        legLen = 0.5; break;
       }
       case 'blob': {
-        add(-0.45, 0, -0.45, 0.9, 0.35, 0.9, C.dark); add(-0.55, 0.3, -0.55, 1.1, 0.5, 1.1, C.body); add(-0.4, 0.78, -0.4, 0.8, 0.3, 0.8, C.body);
-        add(-0.3, 0.35, 0.56, 0.6, 0.3, 0.04, C.belly); eyeY(0.55, 0.56, 0.9, 0.45);
-        if (f.horns) { add(-0.3, 1.05, 0.0, 0.12, 0.25, 0.12, C.accent); add(0.18, 1.05, 0.0, 0.12, 0.25, 0.12, C.accent); }
-        if (f.crest) add(-0.08, 1.05, -0.3, 0.16, 0.3, 0.5, C.accent);
-        if (f.spikes) for (let i = 0; i < 4; i++) add(-0.5 + i * 0.3, 1.05, -0.1, 0.12, 0.16, 0.12, C.accent);
-        if (f.wings) { add(-1.0, 0.6, -0.25, 0.5, 0.06, 0.5, C.accent); add(0.5, 0.6, -0.25, 0.5, 0.06, 0.5, C.accent); }
-        break;
+        kind = 'blob'; bones[0] = { kind: 'body', piv: [0, 0, 0] };
+        blob(-0.55, 0.0, -0.52, 0.55, 1.04, 0.52, 1, C.body, { under: C.dark, tap: [0.86, 0.74], split: -0.4, soft: 0.25, n: 7 });
+        markings(-0.55, 0.0, -0.52, 0.55, 1.04, 0.52);
+        eyes(0.2, 0.62, 0.42, f.bigEyes ? 0.12 : 0.09);
+        plate([[-0.1, 0.42, 0.5], [0.1, 0.42, 0.5], [0.06, 0.34, 0.5], [-0.06, 0.34, 0.5]], 0.012, C.dark);
+        for (const sd of [-1, 1]) blob(sd * 0.28 - 0.12, 0, -0.05, sd * 0.28 + 0.12, 0.1, 0.25, 0.6, C.dark, { n: 2 });
+        if (f.horns) for (const sd of [-1, 1]) curl([sd * 0.24, 0.98, 0.0], [sd * 0.3, 1, -0.1], 0.34, 0.07, C.accent, [sd * 0.3, -0.2, -0.3]);
+        if (f.crest) plate([[0, 1.0, -0.2], [0, 1.32, -0.3], [0, 1.3, 0.0], [0, 1.02, 0.15]], 0.04, C.accent);
+        if (f.spikes) for (let i = 0; i < 4; i++) cone([-0.38 + i * 0.25, 1.0 - Math.abs(i - 1.5) * 0.04, -0.1], [(i - 1.5) * 0.3, 1, -0.1], 0.2, 0.05, C.accent);
+        if (f.wings) wings(0.45, 0.65, -0.15, 0.7);
+        legLen = 0.35; break;
       }
       case 'bird': {
-        add(-0.25, 0.9, -0.35, 0.5, 0.45, 0.75, C.body); add(-0.2, 0.9, 0.0, 0.4, 0.2, 0.42, C.belly);
-        add(-0.22, 1.3, 0.25, 0.44, 0.4, 0.42, C.body); eyeY(1.3, 0.67, 0.44, 0.4);
-        add(-0.07, 1.4, 0.65, 0.14, 0.1, 0.22, C.accent); // beak
-        add(-1.05, 1.15, -0.3, 0.82, 0.07, 0.55, C.accent); add(0.23, 1.15, -0.3, 0.82, 0.07, 0.55, C.accent);
-        add(-0.1, 0.5, -0.12, 0.08, 0.42, 0.08, C.dark); add(0.02, 0.5, -0.12, 0.08, 0.42, 0.08, C.dark);
-        if (f.tail) add(-0.2, 1.0, -0.75, 0.4, 0.07, 0.42, C.accent);
-        if (f.crest) add(-0.05, 1.7, 0.2, 0.1, 0.22, 0.3, C.accent);
-        if (f.horns) { add(-0.2, 1.68, 0.4, 0.08, 0.2, 0.08, C.accent); add(0.12, 1.68, 0.4, 0.08, 0.2, 0.08, C.accent); }
-        break;
+        flyer = true; hover = 0.1;
+        blob(-0.24, 0.5, -0.45, 0.24, 1.0, 0.34, 1, C.body, { under: C.belly, tap: [0.9, 0.95], split: -0.1 });
+        markings(-0.24, 0.5, -0.45, 0.24, 1.0, 0.34);
+        B(1, 'head', [0, 0.95, 0.25]);
+        ball(0, 1.12, 0.36, 0.22, C.body); eyes(0.14, 1.18, 0.5, f.bigEyes ? 0.08 : 0.06);
+        cone([0, 1.08, 0.52], [0, -0.15, 1], 0.28, 0.07, C.accent); // beak
+        if (f.crest) plate([[0, 1.3, 0.3], [0, 1.58, 0.2], [0, 1.52, 0.4], [0, 1.34, 0.45]], 0.035, C.accent);
+        if (f.horns) for (const sd of [-1, 1]) curl([sd * 0.12, 1.3, 0.3], [sd * 0.2, 1, -0.3], 0.26, 0.045, C.accent, [sd * 0.2, 0, -0.4]);
+        bone = 0;
+        wings(0.22, 0.88, -0.05, 1.0, { col: C.accent });
+        B(6, 'tail', [0, 0.75, -0.42]); plate([[-0.06, 0.78, -0.42], [0.06, 0.78, -0.42], [0.22, 0.72, -0.9], [0.08, 0.7, -0.98], [-0.08, 0.7, -0.98], [-0.22, 0.72, -0.9]], 0.03, C.accent, { edge: C.dark }); bone = 0;
+        legLen = 0.3;
+        for (const sd of [-1, 1]) { B(sd < 0 ? 4 : 5, 'leg', [sd * 0.09, 0.55, -0.05], { phase: sd < 0 ? 0 : Math.PI, len: 0.3, amp: 0.35 }); tube([[sd * 0.09, 0.56, -0.05], [sd * 0.1, 0.28, -0.03], [sd * 0.1, 0.06, 0]], [0.04, 0.035, 0.03], C.dark, { cap0: 'none', cap1: 'none', segs: 5 }); for (const tz of [-0.6, 0, 0.6]) tube([[sd * 0.1, 0.05, 0], [sd * 0.1 + tz * 0.08, 0.02, 0.14 - Math.abs(tz) * 0.06]], [0.025, 0.012], C.dark, { segs: 4, cap0: 'none', cap1: 'none' }); }
+        bone = 0; break;
       }
       case 'fish': {
-        add(-0.3, 0.3, -0.55, 0.6, 0.5, 1.1, C.body); add(-0.22, 0.25, -0.4, 0.44, 0.14, 0.8, C.belly);
-        add(-0.2, 0.35, 0.55, 0.4, 0.4, 0.3, C.body); eyeY(0.35, 0.85, 0.4, 0.4);
-        add(-0.04, 0.2, -0.95, 0.08, 0.7, 0.4, C.accent); // tail fin
-        add(-0.04, 0.8, -0.3, 0.08, 0.3, 0.6, C.accent); // dorsal fin
-        add(-0.62, 0.4, 0.0, 0.34, 0.06, 0.3, C.accent); add(0.28, 0.4, 0.0, 0.34, 0.06, 0.3, C.accent); // side fins
-        if (f.horns) { add(-0.18, 0.75, 0.6, 0.08, 0.2, 0.08, C.accent); add(0.1, 0.75, 0.6, 0.08, 0.2, 0.08, C.accent); }
-        if (f.spikes) for (let i = 0; i < 3; i++) add(-0.05, 0.8, 0.2 - i * 0.3, 0.1, 0.14, 0.1, C.dark);
+        hover = 0.15; sway = { amp: 0.05 * s, freq: 4 / s, speed: 7, from: 0.35 * s };
+        blob(-0.21, 0.22, -0.52, 0.21, 0.78, 0.5, 1, C.body, { under: C.belly, tap: [1, 0.95], split: -0.2 });
+        markings(-0.21, 0.22, -0.52, 0.21, 0.78, 0.5);
+        eyes(0.17, 0.56, 0.32, f.bigEyes ? 0.09 : 0.07); plate([[-0.06, 0.4, 0.5], [0.06, 0.4, 0.5], [0.04, 0.35, 0.5], [-0.04, 0.35, 0.5]], 0.012, C.dark);
+        B(6, 'tailfin', [0, 0.5, -0.5]); plate([[0, 0.42, -0.5], [0, 0.58, -0.5], [0, 0.95, -0.95], [0, 0.6, -0.8], [0, 0.5, -0.78], [0, 0.4, -0.8], [0, 0.08, -0.95]], 0.03, C.accent, { edge: C.dark }); bone = 0;
+        plate([[0, 0.72, 0.15], [0, 1.05, -0.05], [0, 1.0, -0.35], [0, 0.78, -0.4]], 0.03, C.accent, { edge: C.dark }); // dorsal
+        for (const sd of [-1, 1]) plate([[sd * 0.18, 0.4, 0.1], [sd * 0.5, 0.36, -0.05], [sd * 0.52, 0.3, -0.25], [sd * 0.2, 0.36, -0.15]], 0.025, C.accent, { edge: C.dark });
+        if (f.horns) for (const sd of [-1, 1]) curl([sd * 0.12, 0.74, 0.38], [sd * 0.2, 1, 0.2], 0.24, 0.04, C.accent, [sd * 0.2, 0, -0.3]);
+        if (f.spikes) for (let i = 0; i < 3; i++) cone([0, 0.76, 0.3 - i * 0.28], [0, 1, 0], 0.17, 0.04, C.dark);
+        legLen = 0.5; break;
+      }
+      case 'raptor': { // a lean hunter: horizontal body, long balancing tail, big back legs, tiny arms, a jaw that opens
+        blob(-0.3, 0.72, -0.62, 0.3, 1.3, 0.5, 0.9, C.body, { under: C.belly, bulge: 0.05, split: -0.05 }); blob(-0.33, 0.68, -0.68, 0.33, 1.36, -0.12, 1, C.body, { under: C.belly });
+        markings(-0.3, 0.72, -0.62, 0.3, 1.3, 0.5);
+        tube([[0, 1.1, 0.4], [0, 1.28, 0.58], [0, 1.34, 0.72]], [0.2, 0.18, 0.16], C.body, { cap0: 'none', cap1: 'none' });
+        B(1, 'head', [0, 1.25, 0.6]);
+        blob(-0.25, 1.1, 0.6, 0.25, 1.55, 1.1, 0.72, C.body); blob(-0.2, 1.12, 1.05, 0.2, 1.42, 1.48, 0.55, C.body, { under: C.belly, split: -0.3 });
+        eyes(0.21, 1.4, 0.92, f.bigEyes ? 0.085 : 0.065, { brow: C.dark }); for (const sd of [-1, 1]) ball(sd * 0.09, 1.34, 1.46, 0.025, C.dark, { n: 2 });
+        for (let i = 0; i < 4; i++) for (const sd of [-1, 1]) cone([sd * 0.16, 1.13, 1.08 + i * 0.1], [sd * 0.05, -1, 0.05], 0.08, 0.024, '#f4f0e0', { segs: 4 });
+        B(9, 'jaw', [0, 1.14, 0.95]); blob(-0.18, 1.0, 0.92, 0.18, 1.14, 1.44, 0.5, C.belly, { n: 2 }); for (let i = 0; i < 3; i++) for (const sd of [-1, 1]) cone([sd * 0.13, 1.13, 1.1 + i * 0.11], [sd * 0.05, 1, 0.05], 0.07, 0.022, '#f4f0e0', { segs: 4 });
+        if (f.crest) plate([[0, 1.5, 0.7], [0, 1.8, 0.62], [0, 1.78, 0.9], [0, 1.54, 1.0]], 0.04, C.accent);
+        if (f.horns) for (const sd of [-1, 1]) curl([sd * 0.15, 1.5, 0.75], [sd * 0.3, 1, -0.3], 0.3, 0.05, C.accent, [sd * 0.3, -0.2, -0.4]);
+        bone = 0;
+        for (const sd of [-1, 1]) { B(sd < 0 ? 2 : 3, 'arm', [sd * 0.27, 1.0, 0.28], { phase: sd < 0 ? 0 : Math.PI, side: sd, amp: 0.2 }); tube([[sd * 0.26, 1.0, 0.28], [sd * 0.32, 0.86, 0.42], [sd * 0.36, 0.76, 0.52]], [0.05, 0.045, 0.035], C.body, { cap0: 'none', cap1: 'round', segs: 6 }); }
+        legLen = 0.85;
+        for (const sd of [-1, 1]) { B(sd < 0 ? 4 : 5, 'leg', [sd * 0.28, 0.95, -0.22], { phase: sd < 0 ? 0 : Math.PI, len: 0.9 }); blob(sd * 0.28 - 0.16, 0.52, -0.5, sd * 0.28 + 0.16, 1.05, -0.02, 1, C.body); tube([[sd * 0.3, 0.6, -0.25], [sd * 0.31, 0.32, -0.12], [sd * 0.31, 0.1, -0.02]], [0.12, 0.1, 0.09], C.dark, { cap0: 'none', cap1: 'none' }); blob(sd * 0.31 - 0.14, 0, -0.16, sd * 0.31 + 0.14, 0.12, 0.3, 0.5, C.dark, { n: 2 }); for (const tz of [-1, 0, 1]) cone([sd * 0.31 + tz * 0.09, 0.05, 0.28], [tz * 0.3, -0.1, 1], 0.14, 0.03, '#e8e4d8', { segs: 4 }); }
+        bone = 0;
+        B(6, 'tail', [0, 1.05, -0.62]); tube([[0, 1.05, -0.6], [0, 1.08, -1.1], [0, 1.08, -1.6], [0, 1.02, -2.05], [0, 0.98, -2.35]], [0.2, 0.16, 0.11, 0.06, 0.0005], C.body, { cap0: 'none', cap1: 'none', shade: (p, nx, ny, nz, t) => U.hexToRgb(ny < -0.4 ? C.belly : (f.stripes && Math.floor(t * 8) % 2) ? C.dark : C.body) }); bone = 0;
+        if (f.spikes) spine(1.32, -0.6, 0.4, 5, 0.06);
+        if (f.wings) wings(0.3, 1.15, -0.2, 1.0);
         break;
       }
-      case 'raptor': { // a lean hunter: long head, long balancing tail, big back legs, tiny arms
-        add(-0.3, 0.75, -0.55, 0.6, 0.5, 1.0, C.body); add(-0.22, 0.72, -0.4, 0.44, 0.1, 0.7, C.belly);
-        add(-0.24, 1.05, 0.45, 0.48, 0.42, 0.75, C.body); add(-0.2, 1.0, 1.1, 0.4, 0.26, 0.4, C.dark); eyeY(1.05, 1.2, 0.48, 0.42); // head and jaw
-        add(-0.28, 0, -0.35, 0.22, 0.75, 0.3, C.dark); add(0.06, 0, -0.35, 0.22, 0.75, 0.3, C.dark); // legs
-        add(-0.42, 0.95, 0.25, 0.12, 0.12, 0.3, C.accent); add(0.3, 0.95, 0.25, 0.12, 0.12, 0.3, C.accent); // little arms
-        add(-0.12, 0.9, -1.6, 0.24, 0.22, 1.1, C.body); add(-0.07, 0.95, -2.1, 0.14, 0.14, 0.55, C.accent); // tail
-        if (f.crest) add(-0.06, 1.45, 0.5, 0.12, 0.22, 0.5, C.accent);
-        if (f.spikes) for (let i = 0; i < 4; i++) add(-0.06, 1.22, -0.5 + i * 0.3, 0.12, 0.16, 0.14, C.accent);
-        add(-0.2, 0.0, 0.0, 0.05, 0.05, 0.05, C.dark); // claws (stub)
-        break;
-      }
-      case 'longneck': { // a tall browser: barrel body, four pillar legs, a long neck and a small head high up
-        add(-0.5, 0.7, -0.8, 1.0, 0.8, 1.6, C.body); add(-0.4, 0.66, -0.6, 0.8, 0.14, 1.3, C.belly);
-        for (const [lx, lz] of [[-0.42, -0.65], [0.18, -0.65], [-0.42, 0.35], [0.18, 0.35]]) add(lx, 0, lz, 0.26, 0.72, 0.3, C.dark);
-        add(-0.17, 1.3, 0.6, 0.34, 0.9, 0.4, C.body); add(-0.14, 2.1, 0.75, 0.28, 0.7, 0.3, C.body); // neck in two steps
-        add(-0.18, 2.7, 0.8, 0.36, 0.3, 0.5, C.body); eyeY(2.7, 1.3, 0.36, 0.3); // head
-        add(-0.12, 0.95, -1.5, 0.24, 0.25, 0.75, C.body); add(-0.07, 1.0, -2.1, 0.14, 0.14, 0.65, C.accent); // tail
-        if (f.spikes) for (let i = 0; i < 5; i++) add(-0.05, 1.48, -0.7 + i * 0.35, 0.1, 0.18, 0.12, C.accent);
-        if (f.crest) add(-0.06, 2.95, 0.9, 0.12, 0.2, 0.3, C.accent);
+      case 'longneck': { // a tall browser: barrel body, pillar legs, a long neck and a small head high up
+        blob(-0.5, 0.62, -0.85, 0.5, 1.52, 0.75, 0.9, C.body, { under: C.belly, bulge: 0.04 });
+        markings(-0.5, 0.62, -0.85, 0.5, 1.52, 0.75);
+        legLen = 0.7;
+        const legs = [[-0.3, 0.45, 2, 0], [0.3, 0.45, 3, Math.PI], [-0.3, -0.55, 4, Math.PI], [0.3, -0.55, 5, 0]];
+        for (const [lx, lz, bi, ph] of legs) { B(bi, 'leg', [lx, 0.75, lz], { phase: ph, len: 0.7, amp: 0.4 }); tube([[lx, 0.8, lz], [lx, 0.4, lz], [lx, 0.08, lz]], [0.16, 0.14, 0.14], C.body, { cap0: 'none', cap1: 'none' }); blob(lx - 0.17, 0, lz - 0.16, lx + 0.17, 0.1, lz + 0.18, 0.5, C.dark, { n: 2 }); }
+        bone = 0;
+        B(1, 'head', [0, 1.3, 0.6]);
+        tube([[0, 1.25, 0.55], [0, 1.75, 0.9], [0, 2.3, 1.08], [0, 2.75, 1.12]], [0.24, 0.19, 0.15, 0.13], C.body, { cap0: 'none', cap1: 'none', shade: (p, nx, ny, nz) => ny < -0.4 ? U.hexToRgb(C.belly) : null });
+        blob(-0.17, 2.66, 1.0, 0.17, 2.96, 1.5, 0.75, C.body, { under: C.belly, split: -0.3 }); eyes(0.14, 2.86, 1.22, 0.055);
+        if (f.crest) plate([[0, 2.95, 1.05], [0, 3.15, 0.95], [0, 3.12, 1.2], [0, 2.97, 1.28]], 0.035, C.accent);
+        bone = 0;
+        B(6, 'tail', [0, 1.15, -0.85]); tube([[0, 1.15, -0.8], [0, 1.2, -1.4], [0, 1.15, -2.0], [0, 1.05, -2.5], [0, 1.0, -2.75]], [0.22, 0.17, 0.11, 0.06, 0.0005], C.body, { cap0: 'none', cap1: 'none', shade: (p, nx, ny) => ny < -0.4 ? U.hexToRgb(C.belly) : null }); bone = 0;
+        if (f.spikes) spine(1.5, -0.8, 0.6, 7, 0.06);
+        if (f.wings) wings(0.45, 1.3, -0.1, 1.1);
         break;
       }
       case 'horned': { // a low tank: wide body, a bony frill behind the head and horns on the brow
-        add(-0.5, 0.45, -0.7, 1.0, 0.65, 1.3, C.body); add(-0.4, 0.42, -0.5, 0.8, 0.12, 1.0, C.belly);
-        for (const [lx, lz] of [[-0.45, -0.55], [0.2, -0.55], [-0.45, 0.25], [0.2, 0.25]]) add(lx, 0, lz, 0.25, 0.48, 0.3, C.dark);
-        add(-0.34, 0.6, 0.6, 0.68, 0.55, 0.6, C.body); add(-0.2, 0.55, 1.2, 0.4, 0.3, 0.3, C.dark); eyeY(0.6, 1.2, 0.68, 0.55); // head and beak
-        add(-0.55, 0.95, 0.35, 1.1, 0.6, 0.12, C.accent); // the frill
-        add(-0.3, 1.1, 0.9, 0.1, 0.35, 0.1, C.belly); add(0.2, 1.1, 0.9, 0.1, 0.35, 0.1, C.belly); add(-0.05, 0.85, 1.25, 0.1, 0.3, 0.1, C.belly); // horns
-        add(-0.1, 0.6, -1.1, 0.2, 0.2, 0.45, C.body);
-        if (f.spikes) for (let i = 0; i < 3; i++) add(-0.55 + i * 0.5, 1.1, -0.2, 0.12, 0.18, 0.14, C.accent);
+        blob(-0.5, 0.42, -0.75, 0.5, 1.12, 0.55, 0.85, C.body, { under: C.belly, bulge: 0.05 });
+        markings(-0.5, 0.42, -0.75, 0.5, 1.12, 0.55);
+        legLen = 0.5;
+        const legs = [[-0.33, 0.35, 2, 0], [0.33, 0.35, 3, Math.PI], [-0.33, -0.5, 4, Math.PI], [0.33, -0.5, 5, 0]];
+        for (const [lx, lz, bi, ph] of legs) { B(bi, 'leg', [lx, 0.6, lz], { phase: ph, len: 0.5, amp: 0.45 }); tube([[lx, 0.62, lz], [lx, 0.3, lz], [lx, 0.08, lz]], [0.14, 0.12, 0.12], C.body, { cap0: 'none', cap1: 'none' }); blob(lx - 0.15, 0, lz - 0.14, lx + 0.15, 0.1, lz + 0.16, 0.5, C.dark, { n: 2 }); }
+        bone = 0;
+        B(1, 'head', [0, 0.85, 0.5]);
+        blob(-0.34, 0.58, 0.5, 0.34, 1.16, 1.15, 0.7, C.body, { under: C.belly, split: -0.3 }); blob(-0.18, 0.62, 1.1, 0.18, 0.92, 1.42, 0.5, C.dark, { n: 3 });
+        eyes(0.3, 0.95, 0.95, 0.065, { brow: C.dark });
+        plate([[-0.6, 0.78, 0.4], [-0.66, 1.1, 0.36], [-0.55, 1.45, 0.3], [-0.3, 1.68, 0.26], [0, 1.74, 0.24], [0.3, 1.68, 0.26], [0.55, 1.45, 0.3], [0.66, 1.1, 0.36], [0.6, 0.78, 0.4]], 0.1, C.accent, { edge: C.dark }); // the frill
+        if (f.spikes) for (let i = 0; i < 5; i++) { const a = Math.PI * (0.15 + i * 0.175); cone([Math.cos(a) * 0.62, 0.78 + Math.sin(a) * 0.9, 0.3], [Math.cos(a), Math.sin(a), -0.1], 0.18, 0.05, C.belly); }
+        for (const sd of [-1, 1]) curl([sd * 0.22, 1.1, 0.95], [sd * 0.25, 0.7, 1], 0.45, 0.065, C.belly, [sd * 0.1, 0.3, 0]); curl([0, 0.98, 1.3], [0, 0.7, 1], 0.3, 0.06, C.belly, [0, 0.3, 0]);
+        bone = 0;
+        B(6, 'tail', [0, 0.7, -0.75]); tube([[0, 0.7, -0.7], [0, 0.72, -1.0], [0, 0.66, -1.25], [0, 0.6, -1.4]], [0.14, 0.1, 0.06, 0.0005], C.body, { cap0: 'none', cap1: 'none' }); bone = 0;
+        if (f.wings) wings(0.45, 1.0, -0.2, 1.0);
         break;
       }
-      default: { // floater
-        add(-0.35, 0.9, -0.35, 0.7, 0.7, 0.7, C.body); add(-0.25, 1.05, 0.32, 0.5, 0.4, 0.05, C.dark); eyeY(1.05, 0.37, 0.7, 0.4);
-        for (let i = 0; i < 5; i++) { const a = i / 5 * Math.PI * 2; add(Math.cos(a) * 0.65 - 0.1, 1.15 + Math.sin(a * 2) * 0.2, Math.sin(a) * 0.65 - 0.1, 0.2, 0.2, 0.2, C.accent, true); }
-        if (f.horns) { add(-0.3, 1.6, -0.05, 0.1, 0.25, 0.1, C.accent); add(0.2, 1.6, -0.05, 0.1, 0.25, 0.1, C.accent); }
-        if (f.crest) add(-0.07, 1.6, -0.25, 0.14, 0.3, 0.5, C.accent);
-        if (f.tail) add(-0.06, 0.6, -0.5, 0.12, 0.3, 0.3, C.dark);
+      case 'human': { // the folk of Stratakin: not humans. Big egg heads, long leaf ears that twitch, round noses, four thick fingers, stocky legs and big boots
+        kind = 'human';
+        const skin = C.belly, cloth = C.body, dark = C.dark, hair = sp.hair || hexMix(C.dark, '#2a1a10', 0.5), skin2 = hexMix(skin, '#c8604a', 0.22);
+        blob(-0.32, 0.6, -0.21, 0.32, 1.26, 0.21, 0.7, cloth, { tap: [1.0, 0.9], bulge: 0.05, n: 4 });
+        ring(0, 0.67, 0, 0.3, 0.19, 0.03, dark); blob(-0.12, 0.6, -0.2, 0.12, 0.74, 0.2, 0.5, hexMix(C.accent, '#000000', 0.15), { n: 2 }); // belt and buckle
+        tube([[0, 1.18, 0], [0, 1.36, 0]], [0.09, 0.09], skin, { cap0: 'none', cap1: 'none', segs: 6 });
+        B(1, 'head', [0, 1.3, 0]);
+        blob(-0.27, 1.28, -0.28, 0.27, 1.88, 0.28, 0.92, skin, { n: 5, tap: [0.86, 1.0] }); // egg head: narrower jaw, wide crown
+        if (!sp.bald) { blob(-0.29, 1.56, -0.31, 0.29, 1.92, 0.19, 0.9, hair, { n: 4, tap: [0.98, 0.92] }); blob(-0.12, 1.84, 0.02, 0.1, 2.02, 0.27, 0.9, hair, { n: 3 }); } // cap and a quiff
+        for (const sd of [-1, 1]) {
+          ball(sd * 0.105, 1.6, 0.22, 0.078, '#ffffff', { n: 3, emis: true }); ball(sd * 0.105, 1.6, 0.272, 0.042, C.eye === '#222222' ? '#3a5a8a' : C.eye, { n: 2 }); ball(sd * 0.105, 1.6, 0.3, 0.022, '#111111', { n: 2 }); ball(sd * 0.085, 1.63, 0.306, 0.012, '#ffffff', { n: 2, emis: true });
+          blob(sd * 0.105 - 0.075, 1.7, 0.2, sd * 0.105 + 0.075, 1.735, 0.27, 0.6, hair, { n: 2 }); // brow
+        }
+        ball(0, 1.5, 0.3, 0.065, skin2, { n: 3 }); // the nose
+        plate([[-0.06, 1.41, 0.265], [0.06, 1.41, 0.265], [0.04, 1.385, 0.268], [-0.04, 1.385, 0.268]], 0.012, hexMix(skin, '#5a1a1a', 0.55));
+        for (const sd of [-1, 1]) { B(sd < 0 ? 7 : 8, 'ear', [sd * 0.27, 1.6, 0], { side: sd, phase: sd }); plate([[sd * 0.25, 1.52, 0.02], [sd * 0.27, 1.66, 0.04], [sd * 0.5, 1.78, -0.02], [sd * 0.46, 1.7, -0.03], [sd * 0.3, 1.5, 0.0]], 0.035, skin, { edge: skin2 }); plate([[sd * 0.3, 1.56, 0.02], [sd * 0.31, 1.64, 0.03], [sd * 0.43, 1.72, 0.0], [sd * 0.4, 1.66, -0.01]], 0.01, skin2); }
+        B(1, 'head', [0, 1.3, 0]); bone = 0;
+        for (const sd of [-1, 1]) { B(sd < 0 ? 2 : 3, 'arm', [sd * 0.34, 1.18, 0], { phase: sd < 0 ? 0 : Math.PI, side: sd }); tube([[sd * 0.31, 1.2, 0], [sd * 0.41, 0.9, 0.0]], [0.095, 0.08], cloth, { cap0: 'round', cap1: 'none', segs: 6 }); tube([[sd * 0.41, 0.9, 0.0], [sd * 0.45, 0.62, 0.05]], [0.075, 0.07], skin, { cap0: 'none', cap1: 'none', segs: 6 }); ball(sd * 0.45, 0.55, 0.06, 0.095, skin, { n: 3 }); ball(sd * 0.39, 0.55, 0.12, 0.045, skin, { n: 2 }); }
+        legLen = 0.6;
+        for (const sd of [-1, 1]) { B(sd < 0 ? 4 : 5, 'leg', [sd * 0.15, 0.62, 0], { phase: sd < 0 ? 0 : Math.PI, len: 0.6, amp: 0.5 }); tube([[sd * 0.15, 0.64, 0], [sd * 0.16, 0.35, 0], [sd * 0.16, 0.12, 0.01]], [0.125, 0.105, 0.1], dark, { cap0: 'none', cap1: 'none', segs: 6 }); blob(sd * 0.16 - 0.12, 0, -0.1, sd * 0.16 + 0.12, 0.15, 0.24, 0.55, hexMix(dark, '#000000', 0.3), { n: 2 }); }
+        bone = 0; break;
+      }
+      default: { // floater: a sphere with a face, orbiting stones and a wisp of a tail
+        flyer = true; hover = 0.25;
+        blob(-0.36, 0.56, -0.36, 0.36, 1.28, 0.36, 1, C.body, { under: C.dark, split: -0.5, soft: 0.2 });
+        markings(-0.36, 0.56, -0.36, 0.36, 1.28, 0.36);
+        eyes(0.14, 0.98, 0.3, f.bigEyes ? 0.11 : 0.085); plate([[-0.09, 0.8, 0.36], [0.09, 0.8, 0.36], [0.06, 0.74, 0.36], [-0.06, 0.74, 0.36]], 0.012, C.dark);
+        B(6, 'spin', [0, 0.95, 0], { speed: 1.4 }); for (let i = 0; i < 5; i++) { const a = i / 5 * Math.PI * 2; ball(Math.cos(a) * 0.62, 1.0 + Math.sin(a * 2) * 0.15, Math.sin(a) * 0.62, 0.09, C.accent, { emis: true, n: 2 }); } bone = 0;
+        if (f.horns) for (const sd of [-1, 1]) curl([sd * 0.2, 1.22, 0.0], [sd * 0.3, 1, -0.1], 0.3, 0.06, C.accent, [sd * 0.3, -0.2, -0.3]);
+        if (f.crest) plate([[0, 1.26, -0.15], [0, 1.56, -0.25], [0, 1.52, 0.05], [0, 1.28, 0.18]], 0.04, C.accent);
+        if (f.tail) tube([[0, 0.6, -0.2], [0, 0.4, -0.45], [0, 0.3, -0.7]], [0.1, 0.06, 0.0005], C.dark, { cap0: 'none', cap1: 'none' });
+        if (f.wings) wings(0.3, 1.0, -0.1, 0.7);
+        legLen = 0.4;
       }
     }
-    // proportions: stocky, lanky, long; applied to the whole body
-    const dm = sp.dims || { w: 1, l: 1, h: 1 };
-    for (const b of bx) { b.x *= dm.w; b.w *= dm.w; b.z *= dm.l; b.d *= dm.l; b.y *= dm.h; b.h *= dm.h; }
-    // markings on the main body box
-    const body = bx[0];
-    if (body) {
-      if (f.stripes) for (let i = 0; i < 3; i++) { const z = body.z + body.d * (0.2 + i * 0.28); bx.push({ x: body.x - 0.01, y: body.y + body.h * 0.3, z, w: body.w + 0.02, h: body.h * 0.72, d: body.d * 0.09, c: C.dark }); }
-      if (f.spots) for (let i = 0; i < 4; i++) { const sx = body.x + body.w * (0.15 + 0.6 * ((i * 37) % 10) / 10), sz = body.z + body.d * (0.15 + 0.7 * ((i * 53) % 10) / 10); bx.push({ x: sx, y: body.y + body.h * 0.5, z: sz, w: body.w * 0.2, h: body.h * 0.3, d: body.d * 0.12, c: C.accent }); bx.push({ x: sx - 0.02, y: body.y + body.h * 1.0 - 0.02, z: sz, w: body.w * 0.22, h: 0.04, d: body.d * 0.14, c: C.accent }); }
-      if (f.armor) for (let i = 0; i < 3; i++) { const z = body.z + body.d * (0.1 + i * 0.3); bx.push({ x: body.x + body.w * 0.1, y: body.y + body.h - 0.02, z, w: body.w * 0.8, h: 0.08, d: body.d * 0.22, c: C.dark }); }
-      if (f.bigTail && sp.shape !== 'blob' && sp.shape !== 'floater') bx.push({ x: body.x + body.w * 0.4, y: body.y + body.h * 0.5, z: body.z - body.d * 0.55, w: body.w * 0.2, h: body.h * 0.25, d: body.d * 0.6, c: C.accent });
-    }
-    if (sp.mythic || sp.neon) for (const b of bx) if (b.c === C.accent || b.c === C.belly || b.c === C.eye) b.emis = true;
-    const hover = sp.shape === 'floater' ? 0.25 : sp.shape === 'bird' ? 0.1 : sp.shape === 'fish' ? 0.15 : 0;
-    const height = Math.max(...bx.map(b => b.y + b.h));
-    const radius = Math.max(...bx.map(b => Math.max(Math.abs(b.x), Math.abs(b.x + b.w), Math.abs(b.z), Math.abs(b.z + b.d))));
-    return { boxes: bx, scale: s, hover, height, radius };
+    if (sp.mythic || sp.neon) for (const b of parts) if (b.c === C.accent || b.c === C.belly || b.c === C.eye) b.emis = true;
+    if (!bones[0]) bones[0] = { kind: 'body', piv: [0, 0, 0], runPitch: sp.shape === 'raptor' ? 0.08 : 0 };
+    const height = Math.max(...parts.map(b => b.y + b.h));
+    const radius = Math.max(...parts.map(b => Math.max(Math.abs(b.x), Math.abs(b.x + b.w), Math.abs(b.z), Math.abs(b.z + b.d))));
+    return { boxes: parts, scale: s, hover, height, radius, bones, legLen: legLen * SY, kind, flyer, sway };
   }
   // A Kin turned into an object: material comes from the items, glow from anything burning. The Kin's level makes it bigger and brighter.
   const MATERIALS = [
@@ -3631,30 +3969,25 @@ const KIN = (() => {
     return m;
   }
   function buildMesh(mb, m) {
-    for (const b of m.boxes) mb.box(b.x, b.y, b.z, b.x + b.w, b.y + b.h, b.z + b.d, U.hexToRgb(b.c), 1, !!b.emis);
+    for (const b of m.boxes) {
+      mb.setBone(b.bone || 0); const col = U.hexToRgb(b.c); const o = Object.assign({ emis: !!b.emis }, b.o || {});
+      if (b.rot) { mb.push(); mb.rotate(b.rot.rx || 0, b.rot.ry || 0, b.rot.rz || 0, b.rot.piv); }
+      if (b.k === 'blob') mb.blob(b.x, b.y, b.z, b.x + b.w, b.y + b.h, b.z + b.d, b.round, col, o);
+      else if (b.k === 'tube') mb.tube(b.path, b.radii, col, o);
+      else if (b.k === 'plate') mb.plate(b.pts, b.t, col, o);
+      else mb.box(b.x, b.y, b.z, b.x + b.w, b.y + b.h, b.z + b.d, col, 1, !!b.emis);
+      if (b.rot) mb.pop();
+    }
+    mb.setBone(0);
   }
   function meshKey(sp, stage) { return sp.seed + ':' + stage + ':' + (sp.gen || 0) + ':' + sp.names[0]; }
 
-  // ---- 2D portrait on a canvas (isometric painter's sort) ----
-  function portrait(cv, sp, stage, size, mdl) {
-    const ctx = cv.getContext('2d'); const W = cv.width = size, H = cv.height = size;
-    ctx.clearRect(0, 0, W, H);
+  // ---- portrait: the real mesh, drawn by the renderer into a small canvas ----
+  function portrait(cv, sp, stage, size, mdl, key) {
     const m = mdl || model(sp, stage);
-    const sc = (size * 0.42) / Math.max(m.height, m.radius * 1.8, 1.2);
-    const cx = W / 2, cy = H * 0.78;
-    const yaw = Math.PI / 4 + 0.35; // show the face
-    const proj = (x, y, z) => { const rx = x * Math.cos(yaw) - z * Math.sin(yaw), rz = x * Math.sin(yaw) + z * Math.cos(yaw); return [cx + rx * sc, cy - y * sc + rz * sc * 0.5]; };
-    const boxes = m.boxes.slice().sort((a, b) => ((a.x + a.w / 2) * Math.sin(yaw) + (a.z + a.d / 2) * Math.cos(yaw) + a.y * 0.0) - ((b.x + b.w / 2) * Math.sin(yaw) + (b.z + b.d / 2) * Math.cos(yaw)));
-    const shade = (hex, f) => { const c = U.hexToRgb(hex); return U.rgbToHex([c[0] * f, c[1] * f, c[2] * f]); };
-    for (const b of boxes) {
-      const x0 = b.x, x1 = b.x + b.w, y0 = b.y, y1 = b.y + b.h, z0 = b.z, z1 = b.z + b.d;
-      const poly = (pts, col) => { ctx.beginPath(); pts.forEach((p, i) => i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])); ctx.closePath(); ctx.fillStyle = col; ctx.fill(); };
-      // top
-      poly([proj(x0, y1, z0), proj(x1, y1, z0), proj(x1, y1, z1), proj(x0, y1, z1)], shade(b.c, b.emis ? 1.15 : 1.0));
-      // front (+z) and right (+x) visible with this yaw
-      poly([proj(x0, y0, z1), proj(x1, y0, z1), proj(x1, y1, z1), proj(x0, y1, z1)], shade(b.c, b.emis ? 1.0 : 0.82));
-      poly([proj(x1, y0, z0), proj(x1, y0, z1), proj(x1, y1, z1), proj(x1, y1, z0)], shade(b.c, b.emis ? 0.95 : 0.66));
-    }
+    const k = key || (mdl ? 'pm:' + U.strHash(JSON.stringify(mdl.boxes.map(b => [b.k || 'b', b.x, b.y, b.z, b.w, b.h, b.d, b.c, b.emis ? 1 : 0, b.path ? b.path.length : 0]))) : meshKey(sp, stage));
+    const mesh = R.entityMesh(k, (mb) => buildMesh(mb, m));
+    if (!R.renderPortrait(cv, mesh, m, size)) { const ctx = cv.getContext('2d'); cv.width = cv.height = size; ctx.fillStyle = sp.colors.body; ctx.beginPath(); ctx.arc(size / 2, size / 2, size * 0.3, 0, Math.PI * 2); ctx.fill(); }
   }
 
   function serialize(k) { return { id: k.id, sp: k.sp, level: k.level, xp: k.xp, iv: k.iv, stage: k.stage, hp: k.hp, nick: k.nick, equip: k.equip || null, tech: k.tech || null, wear: k.wear || null, trust: k.trust || 0, tamed: k.tamed || false }; }
@@ -5199,7 +5532,7 @@ const Village = (() => {
     const plain = style && style !== 'frontier' && style !== 'land';
     const body = plain ? cloth : role === 'elder' ? '#f0d090' : role === 'voodoo' ? '#2c3e50' : role === 'fisher' ? '#5b7f95' : role === 'traveller' ? '#6b5a3e' : role === 'hermit' ? '#7a6f5a' : cloth;
     const accent = style === 'alien' ? r.pick(skins) : role === 'elder' ? '#e0b84a' : cloth;
-    return { shape: 'biped', feat: { crest: false, ears: false, horns: false, spikes: false, tail: false, wings: false, bigEyes: style === 'alien' }, colors: { body, belly: skin, accent, dark: style === 'alien' ? '#05050f' : style === 'atlantis' ? '#1a3a4a' : '#3a2a20', eye: style === 'alien' ? '#ffffff' : '#222222' }, size: role === 'elder' ? 1.15 : role === 'voodoo' ? 1.1 : 1, gen: 0, names: ['villager'], neon: style === 'alien' };
+    return { shape: 'human', feat: { crest: false, ears: false, horns: false, spikes: false, tail: false, wings: false, bigEyes: style === 'alien' }, colors: { body, belly: skin, accent, dark: style === 'alien' ? '#05050f' : style === 'atlantis' ? '#1a3a4a' : '#3a2a20', eye: style === 'alien' ? '#ffffff' : '#222222' }, size: role === 'elder' ? 1.15 : role === 'voodoo' ? 1.1 : 1, gen: 0, names: ['villager'], neon: style === 'alien' };
   }
   function makeNpc(i, role, x, z, name, shop, y, vid, style) {
     style = style || (vid === 'shore' ? 'land' : (world.preset.people || 'land'));
@@ -7148,7 +7481,7 @@ const Campaign = (() => {
 
   // ---------- people ----------
   function personModel(colors, decos) {
-    const sp = { shape: 'biped', feat: { crest: false, ears: false, horns: false, spikes: false, tail: false, wings: false, bigEyes: false }, colors: Object.assign({ accent: '#c94c4c', dark: '#3a2a20', eye: '#222222' }, colors), size: 1, gen: 0, names: ['person'] };
+    const sp = { shape: 'human', feat: { crest: false, ears: false, horns: false, spikes: false, tail: false, wings: false, bigEyes: false }, colors: Object.assign({ accent: '#c94c4c', dark: '#3a2a20', eye: '#222222' }, colors), size: 1, gen: 0, names: ['person'] };
     const m = KIN.model(sp, 2); for (const d of decos) KIN.decorate(m, d); return m;
   }
   function person(id, name, role, x, z, colors, decos, walk) {
@@ -7931,7 +8264,7 @@ const Camps = (() => {
   function warriorSpecies(i, seedN) {
     const r = U.rng(U.combine(0x4A7, i, seedN));
     const skin = r.pick(['#c68642', '#8d5524', '#a0683a', '#6b4a2b']);
-    return { shape: 'biped', feat: { crest: false, ears: false, horns: false, spikes: false, tail: false, wings: false, bigEyes: false }, colors: { body: skin, belly: skin, accent: r.pick(['#e0302a', '#f0e0a0', '#2a6fc0']), dark: '#3a2a20', eye: '#222222' }, size: 1.05, gen: 0, names: ['warrior'] };
+    return { shape: 'human', feat: { crest: false, ears: false, horns: false, spikes: false, tail: false, wings: false, bigEyes: false }, colors: { body: skin, belly: skin, accent: r.pick(['#e0302a', '#f0e0a0', '#2a6fc0']), dark: '#3a2a20', eye: '#222222' }, size: 1.05, gen: 0, names: ['warrior'] };
   }
   function populate(c) {
     c.warriors = [];
@@ -8362,7 +8695,7 @@ const Avatar = (() => {
   function init(game) { G = game; }
   function skin() { return SKINS.find(s => s.id === (G.skin || 'ranger')) || SKINS[0]; }
   function unlocked(s) { try { return !!s.unlock(G); } catch (e) { return false; } }
-  function species(s) { return { shape: 'biped', feat: { crest: false, ears: false, horns: false, spikes: false, tail: false, wings: false, bigEyes: s.id === 'neon' }, colors: s.colors, size: 1, gen: 0, names: [s.name], neon: !!s.neon }; }
+  function species(s) { return { shape: 'human', feat: { crest: false, ears: false, horns: false, spikes: false, tail: false, wings: false, bigEyes: s.id === 'neon' }, colors: s.colors, size: 1, gen: 0, names: [s.name], neon: !!s.neon }; }
   // your look: hair, skin tone, height, face paint, a cape, your own outfit colours (from the barber, the mirror hall and the designer)
   const look = () => (G && G.stats && G.stats.look) || {};
   const HAIR = {
@@ -8383,10 +8716,13 @@ const Avatar = (() => {
   }
   function mesh(s) { const key = s.id + ':' + JSON.stringify(look()); let m = meshes.get(key); if (!m) { const mdl = model(s); m = { model: mdl, mesh: R.entityMesh('avatar:' + key, (mb) => KIN.buildMesh(mb, mdl)) }; meshes.set(key, m); } return m; }
   // the entity for the render list: standing where you stand, facing where you face, bobbing when you walk, seated on a mount
+  const an = { ph: 0, mv: 0, lx: 0, lz: 0, ly: 0, lt: 0, vy: 0, seed: 3, air: 0 };
   function entity(p, moving) {
     const s = skin(); const mm = mesh(s);
     const seat = p.mount ? 0.75 : p.flying ? 0.35 : 0;
-    return { x: p.x, y: p.y + seat, z: p.z, yaw: p.yaw + Math.PI, model: mm.model, mesh: mm.mesh, scale: look().height || 1, hover: moving && !p.mount && !p.flying ? Math.abs(Math.sin(performance.now() / 110)) * 0.08 : 0, skyMul: 1, isMount: true };
+    an.attack = p.swingT > 0 ? Math.sin(Math.min(1, p.swingT / 0.25) * Math.PI) : 0; an.block = p.blocking ? 1 : 0;
+    if (p.mount || p.flying) { an.mv = 0; an.sit = 1; } else an.sit = 0;
+    return { x: p.x, y: p.y + seat, z: p.z, yaw: p.yaw + Math.PI, model: mm.model, mesh: mm.mesh, scale: look().height || 1, hover: 0, skyMul: 1, isMount: true, _an: an };
   }
   // a camera behind and a little above you, pulled in when something is in the way
   function thirdCam(cam, p, world, back = 4.2, lift = 0) {
@@ -9672,7 +10008,7 @@ const Combat = (() => {
     captain: { name: 'Bound Captain', hp: 90, dmg: 2, speed: 2.5, reach: 2.2, wind: 0.65, rest: 1.0, deco: 'captain', block: 0.5, cols: { body: '#241c30', belly: '#c9b48a', accent: '#b026ff' } },
   };
   function warriorModel(kind, freed) {
-    const K = KINDS[kind]; const sp = { shape: 'biped', feat: { crest: false, ears: false, horns: false, spikes: false, tail: false, wings: false, bigEyes: false }, colors: Object.assign({ dark: '#120818', eye: freed ? '#ffe08a' : '#c04cff' }, K.cols), size: 1, gen: 0, names: ['warrior'] };
+    const K = KINDS[kind]; const sp = { shape: 'human', feat: { crest: false, ears: false, horns: false, spikes: false, tail: false, wings: false, bigEyes: false }, colors: Object.assign({ dark: '#120818', eye: freed ? '#ffe08a' : '#c04cff' }, K.cols), size: 1, gen: 0, names: ['warrior'] };
     const m = KIN.model(sp, 2); const s = m.scale; const add = (x, y, z, w, h, d, c, emis) => m.boxes.push({ x: x * s, y: y * s, z: z * s, w: w * s, h: h * s, d: d * s, c, emis });
     add(-0.34, 1.72, -0.32, 0.68, 0.3, 0.64, '#2a2a34'); add(-0.36, 1.68, 0.28, 0.72, 0.06, 0.06, K.cols.accent); // helmet and band
     add(-0.42, 1.05, -0.26, 0.84, 0.5, 0.06, '#3a3a46'); // breastplate edge
@@ -11199,7 +11535,7 @@ G.loop = function (t) {
   if (p.flying) ents.push({ x: p.x, y: p.y - 0.85, z: p.z, yaw: p.yaw + Math.PI, model: { height: 1 }, mesh: R.entityMesh('ship', (mb) => { const c = [0.75, 0.9, 0.95], d = [0.35, 0.4, 0.5], g = [0.4, 0.95, 1.0]; mb.box(-0.8, 0, -1.3, 0.8, 0.5, 1.4, c); mb.box(-0.4, 0.5, -0.2, 0.4, 0.9, 0.7, d); mb.box(-2.2, 0.15, -0.9, -0.8, 0.25, 0.1, c); mb.box(0.8, 0.15, -0.9, 2.2, 0.25, 0.1, c); mb.box(-0.6, 0.1, -1.6, -0.2, 0.4, -1.3, g, 1, true); mb.box(0.2, 0.1, -1.6, 0.6, 0.4, -1.3, g, 1, true); mb.box(-0.15, 0.15, 1.4, 0.15, 0.35, 1.9, g, 1, true); }), scale: 1, hover: Math.sin(performance.now() / 300) * 0.05, skyMul: 1, isMount: true });
   const showMe = inBattle || this.thirdPerson || this.talkK > 0 || !!p.mount || this.grassCamOn;
   if (showMe) { const me = Avatar.entity(p, Math.hypot(p.vx, p.vz) > 0.6); if (p.mount) { const mm = KIN.model(p.mount.sp, p.mount.stage); me.y = p.y - 0.75 + mm.height * 0.62; } ents.push(me); }
-  if (p.mount) { const k = p.mount; const m = KIN.model(k.sp, k.stage); const fwd = U.forwardVec(p.yaw, 0); ents.push({ x: p.x + fwd[0] * 0.5, y: p.y - 0.75 + (p.inWater ? -0.2 : 0) + Math.sin(performance.now() / 160) * (Math.hypot(p.vx, p.vz) > 0.5 ? 0.06 : 0), z: p.z + fwd[2] * 0.5, yaw: p.yaw + Math.PI, model: m, mesh: R.entityMesh(KIN.meshKey(k.sp, k.stage), (mb) => KIN.buildMesh(mb, m)), scale: 1, hover: 0, skyMul: 1, isMount: true }); }
+  if (p.mount) { const k = p.mount; const m = KIN.model(k.sp, k.stage); const fwd = U.forwardVec(p.yaw, 0); if (!k._an) k._an = { ph: 0, mv: 0, lx: p.x, lz: p.z, ly: p.y, lt: performance.now(), vy: 0, seed: 5, air: 0 }; k._an.swim = p.mountMode === 'water' ? 1 : 0; ents.push({ x: p.x + fwd[0] * 0.5, y: p.y - 0.75 + (p.inWater ? -0.2 : 0), z: p.z + fwd[2] * 0.5, yaw: p.yaw + Math.PI, model: m, mesh: R.entityMesh(KIN.meshKey(k.sp, k.stage), (mb) => KIN.buildMesh(mb, m)), scale: 1, hover: 0, skyMul: 1, isMount: true, flying: p.mountMode === 'air' && !p.onGround, _an: k._an }); }
   ents.push(...Battle.fxEntities()); ents.push(...Wild.dropEntities()); ents.push(...Buddy.entities()); ents.push(...Combat.entities()); ents.push(...Hazards.entities()); ents.push(...Npcs.entities());
   for (const o of w.statues.values()) {
     if ((o.x - p.x) ** 2 + (o.z - p.z) ** 2 > 4000) continue;
