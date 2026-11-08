@@ -173,7 +173,7 @@ const Camps = (() => {
     if (nd > 60) { c.disguiseT = 0; c.stole = false; c.blown = false; c.cloakTold = false; }
     const sneaking = p.sneak, moving = Math.hypot(p.vx, p.vz) > 0.6;
     const noisy = !!p.mineTarget || p.vy > 3 || Math.hypot(p.vx, p.vz) > 5; // digging, jumping, galloping
-    const hidden = G.repelUntil > performance.now(); // the Amulet of Shadow
+    const hidden = G.repelUntil > performance.now() || (p.wingsOn && p.y - c.y > 3); // the Amulet of Shadow, or silent wings overhead
     for (const w of c.warriors) {
       w.bob += dt; w.hitCd -= dt;
       w.sleeping = night && w.i >= 2 && c.alarm <= 0 && !c.scared;

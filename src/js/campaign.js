@@ -14,7 +14,7 @@ const Campaign = (() => {
   const onEarth = () => world.preset.id === 'earth';
 
   // ---------- gear that only people give ----------
-  const QUEST_GEAR = { shovel: 'village', hatchet: 'village', axe_iron: 'pick', pick_stone: 'pick', pick_iron: 'pick', rod: 'rod', bulb: 'bulb', glider: 'glider', frostcloak: 'frost', lavasuit: 'lava', spacesuit: 'ship', wings: 'never' };
+  const QUEST_GEAR = { shovel: 'village', hatchet: 'village', axe_iron: 'pick', pick_stone: 'pick', pick_iron: 'pick', rod: 'rod', bulb: 'bulb', glider: 'glider', frostcloak: 'frost', lavasuit: 'lava', spacesuit: 'ship', wings: 'halojobs' };
   function locked(item) { const k = QUEST_GEAR[item]; if (!k) return false; if (k === 'never') return true; return !C()['got_' + item] && !G.player.has(item); }
   function give(item, n = 1) { G.player.add(item, n); C()['got_' + item] = true; UI.sfx('caught'); UI.openPanel('reveal', { kind: 'item', item, n }); }
 

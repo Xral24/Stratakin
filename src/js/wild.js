@@ -344,7 +344,7 @@ const Wild = (() => {
       if (e.cool > 0) continue;
       if (player.flying) { e.alert = Math.max(0, e.alert - dt); e.hunt = 0; continue; } // nothing reaches you in the Starship
       if (G.repelUntil > performance.now() && !e.isBoss && !e.lieutenant && !e.raider) { e.alert = 0; e.hunt = 0; continue; } // hushed: they do not notice you
-      const senseR = e.senseR * (sneaking ? (inTallGrass() ? 0.38 : 0.7) : 1) * (player.senseMul || 1);
+      const senseR = e.senseR * (sneaking ? (inTallGrass() ? 0.38 : 0.7) : 1) * (player.senseMul || 1) * (player.wingsOn && player.y - e.y > 2.5 ? 0.15 : 1); // silent wings overhead
       if (dist < senseR + 0.5) {
         const fx = Math.sin(e.yaw), fz = Math.cos(e.yaw);
         const dl = Math.hypot(dx, dz) || 1;

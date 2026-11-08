@@ -2205,7 +2205,7 @@ const ITEMS = {
   amber: { name: 'Amber', col: '#e8b85a', elem: 'Flame', desc: 'Warm golden resin-stone from under Halo\'s dunes. Flame ingredient.' },
   sulfur: { name: 'Sulfur', col: '#e8d84a', elem: 'Spark', desc: 'Yellow crust from Halo\'s salt flats. Burns. Spark ingredient.' },
   ringshard: { name: 'Ring Shard', col: '#fff0c0', elem: 'Light', desc: 'A piece of Halo\'s ring, fallen from the sky. Light that you can hold.' },
-  wings: { name: 'Halo Wings', col: '#fff0c0', gear: true, desc: 'Wings of ring shard and amber. Jump in the air to open them: hold ▲ to climb, hold ▼ to come down, let go to drift. You land softly.' },
+  wings: { name: 'Halo Wings', col: '#fff0c0', gear: true, keep: true, desc: 'Wings of ring shard and amber. Jump in the air to open them: hold ▲ to climb, hold ▼ to come down, let go and you hang still. They fly where nothing else does: in caves, over the lava of the Core, on the airless Moon and Halo. Silent: wild Kin, warriors and camps do not notice you overhead. About a minute of flight, then land and let them rest.' },
   amberheart: { name: 'Amber Heart', kinGear: 'charm', boost: { pow: 0.18, hp: 0.06 }, col: '#e8b85a', crafted: true, desc: 'Kin charm: Power +18%, Health +6%.' },
   sulfurfang: { name: 'Sulfur Fang', kinGear: 'weapon', boost: { atk: 0.18, pow: 0.12 }, col: '#e8d84a', crafted: true, desc: 'Kin weapon: Attack +18%, Power +12%.' },
   ringplate: { name: 'Ring Plate', kinGear: 'armor', boost: { hp: 0.3, atk: 0.1 }, col: '#fff0c0', crafted: true, desc: 'Kin armour of ring shard: Health +30%, Attack +10%.' },
@@ -2346,12 +2346,16 @@ class Player {
     this.gliding = false;
     const birdFly = mountShape === 'air' && (this.mount.level >= 20 || this.mount.tamed);
     // Halo Wings: a jump in the air opens them, and then you fly like a bird mount
-    if (this.has('wings') && !inFluid && !this.onGround && !mountShape && input.jumpPressed && !this.wingsOn && this.vy < 2) this.wingsOn = true;
+    // about a minute of flight, then they need to rest: they recharge on the ground, twice as fast as they drain
+    if (this.wingE == null) this.wingE = 60;
+    if (this.has('wings') && !inFluid && !this.onGround && !mountShape && input.jumpPressed && !this.wingsOn && this.vy < 2) { if (this.wingE > 3) this.wingsOn = true; else if (typeof UI !== 'undefined') UI.toast('Your wings are spent. Land and let them rest.'); }
+    if (this.wingsOn) { this.wingE -= dt; if (this.wingE <= 10 && this.wingE + dt > 10 && typeof UI !== 'undefined') UI.toast('Ten seconds of wing left. Find somewhere to land.', 'bad'); if (this.wingE <= 0) { this.wingE = 0; this.wingsOn = false; if (typeof UI !== 'undefined') UI.toast('Your wings fold. You drop.', 'bad'); } }
+    else if (this.onGround) this.wingE = Math.min(60, this.wingE + dt * 2);
     if (this.onGround || inFluid || mountShape) this.wingsOn = false;
     if (!inFluid && !this.onGround && (birdFly || this.wingsOn)) {
       // a flying mount: jump climbs, sneak descends, neither hovers; the stick steers in every direction and landing is soft
       this.gliding = true; this.fallStart = null;
-      const ty = input.jump ? 3.2 : input.sneak ? -3.6 : -0.5;
+      const ty = input.jump ? 3.2 : input.sneak ? -3.6 : this.wingsOn ? 0 : -0.5; // wings hang still in the air; a bird drifts down
       this.vy += (ty - this.vy) * Math.min(1, 6 * dt);
       const accel = 8; this.vx += (mx * speed - this.vx) * Math.min(1, accel * dt); this.vz += (mz * speed - this.vz) * Math.min(1, accel * dt);
     }
@@ -3909,7 +3913,7 @@ const Wild = (() => {
       if (e.cool > 0) continue;
       if (player.flying) { e.alert = Math.max(0, e.alert - dt); e.hunt = 0; continue; } // nothing reaches you in the Starship
       if (G.repelUntil > performance.now() && !e.isBoss && !e.lieutenant && !e.raider) { e.alert = 0; e.hunt = 0; continue; } // hushed: they do not notice you
-      const senseR = e.senseR * (sneaking ? (inTallGrass() ? 0.38 : 0.7) : 1) * (player.senseMul || 1);
+      const senseR = e.senseR * (sneaking ? (inTallGrass() ? 0.38 : 0.7) : 1) * (player.senseMul || 1) * (player.wingsOn && player.y - e.y > 2.5 ? 0.15 : 1); // silent wings overhead
       if (dist < senseR + 0.5) {
         const fx = Math.sin(e.yaw), fz = Math.cos(e.yaw);
         const dl = Math.hypot(dx, dz) || 1;
@@ -6319,7 +6323,7 @@ const QUESTS = [
   { id: 'halo', title: 'The Ringed World', desc: 'Fly the Starship above the clouds and choose Halo: amber dunes under a ring that fills the sky, brine that burns, stones that fall. Caravan towns to free, amber and sulfur to dig, and ring shards for wings.', hint: 'Fly to Halo', check: G => (G.stats.reached || {}).halo ? 1 : 0, reward: { xp: 600 } },
   { id: 'moonjobs', title: 'Moonfolk', desc: 'The Moon has its own people by its own fires, out on the grey between the domes. They do not trust you yet. Do three of their jobs before anyone tells you where the Selenaut sleeps.', hint: 'Do 3 jobs for people on the Moon', check: G => ((G.stats.jobsBy || {}).moon || 0) / 3, reward: { xp: 600, items: { snare2: 3 } } },
   { id: 'moonfree', title: 'Under the Dome', desc: 'Every alien town on the Moon has a tyrant in its square, the same as on Earth. Free one and its people will open the dome to you and keep your Kin fed.', hint: 'Free a village on the Moon', check: G => Object.values(G.villageState || {}).some(st => st.freed && st.meta && st.meta.world === 'moon') ? 1 : 0, reward: { xp: 800 } },
-  { id: 'halojobs', title: 'Caravan Work', desc: 'The caravan people on Halo pay well and talk even better. Three jobs for them and someone will mention the Ringwarden on the high mesa.', hint: 'Do 3 jobs for people on Halo', check: G => ((G.stats.jobsBy || {}).halo || 0) / 3, reward: { xp: 900, items: { snare2: 3 } } },
+  { id: 'halojobs', title: 'Caravan Work', desc: 'The caravan people on Halo pay well and talk even better. Three jobs for them and someone will mention the Ringwarden on the high mesa.', hint: 'Do 3 jobs for people on Halo', check: G => ((G.stats.jobsBy || {}).halo || 0) / 3, reward: { xp: 900, items: { snare2: 3, wings: 1 } } },
   { id: 'legend', title: 'Legend', desc: 'With the Tyrannorex in your bag, the old ones notice. Every world beyond Earth has one creature at a level even it does not reach: the Selenaut over the Moon, the Ringwarden on Halo. ✶ on the map. Beat or cage one and the portal arches reach across the sky.', hint: 'Beat or cage a world\'s legendary (✶ on the map)', check: G => Object.keys(G.stats.legends || {}).length ? 1 : 0, reward: { xp: 2000 } },
 ];
 
@@ -6927,7 +6931,7 @@ const Campaign = (() => {
   const onEarth = () => world.preset.id === 'earth';
 
   // ---------- gear that only people give ----------
-  const QUEST_GEAR = { shovel: 'village', hatchet: 'village', axe_iron: 'pick', pick_stone: 'pick', pick_iron: 'pick', rod: 'rod', bulb: 'bulb', glider: 'glider', frostcloak: 'frost', lavasuit: 'lava', spacesuit: 'ship', wings: 'never' };
+  const QUEST_GEAR = { shovel: 'village', hatchet: 'village', axe_iron: 'pick', pick_stone: 'pick', pick_iron: 'pick', rod: 'rod', bulb: 'bulb', glider: 'glider', frostcloak: 'frost', lavasuit: 'lava', spacesuit: 'ship', wings: 'halojobs' };
   function locked(item) { const k = QUEST_GEAR[item]; if (!k) return false; if (k === 'never') return true; return !C()['got_' + item] && !G.player.has(item); }
   function give(item, n = 1) { G.player.add(item, n); C()['got_' + item] = true; UI.sfx('caught'); UI.openPanel('reveal', { kind: 'item', item, n }); }
 
@@ -7839,7 +7843,7 @@ const Camps = (() => {
     if (nd > 60) { c.disguiseT = 0; c.stole = false; c.blown = false; c.cloakTold = false; }
     const sneaking = p.sneak, moving = Math.hypot(p.vx, p.vz) > 0.6;
     const noisy = !!p.mineTarget || p.vy > 3 || Math.hypot(p.vx, p.vz) > 5; // digging, jumping, galloping
-    const hidden = G.repelUntil > performance.now(); // the Amulet of Shadow
+    const hidden = G.repelUntil > performance.now() || (p.wingsOn && p.y - c.y > 3); // the Amulet of Shadow, or silent wings overhead
     for (const w of c.warriors) {
       w.bob += dt; w.hitCd -= dt;
       w.sleeping = night && w.i >= 2 && c.alarm <= 0 && !c.scared;
@@ -8469,6 +8473,7 @@ const UI = (() => {
   function renderHud(dt) {
     const p = G.player;
     el.hearts.innerHTML = Array.from({ length: p.maxHp }, (_, i) => `<i class="${i < p.hp ? 'on' : ''}"></i>`).join('');
+    if (p.wingsOn || (p.has('wings') && p.wingE != null && p.wingE < 59)) { el.breath.classList.remove('hidden'); el['breath-fill'].style.width = ((p.wingE || 0) / 60 * 100) + '%'; el.breath.classList.toggle('low', (p.wingE || 0) < 12); } else
     if (p.underwater) { el.breath.classList.remove('hidden'); el['breath-fill'].style.width = (p.breath * 100) + '%'; el.breath.classList.toggle('low', p.breath < 0.3); } else el.breath.classList.add('hidden');
     { const ap = Combat.armourPts ? Combat.armourPts() : 0; el['trainer-lvl'].textContent = 'Lv ' + G.trainerLevel + '  ◆ ' + G.shards + (ap ? '  ⛨ ' + ap : ''); }
     el['trainer-xp'].style.width = (100 * G.trainerProgress()) + '%';
@@ -9574,7 +9579,7 @@ const Combat = (() => {
       if (f.bleed > 0) { f.bleed -= dt; if (Math.random() < dt * 1.5) { f.hp -= 2; if (f.hp <= 0) { down(f); continue; } } }
       if (f.slowT > 0) f.slowT -= dt;
       const dx = p.x - f.x, dz = p.z - f.z, d = Math.hypot(dx, dz);
-      const sneakR = p.sneak ? 5 : 11; if (!f.aware && d < sneakR && Math.abs(p.y - f.y) < 4) f.aware = true;
+      const sneakR = p.wingsOn && p.y - f.y > 2.5 ? 1.5 : p.sneak ? 5 : 11; if (!f.aware && d < sneakR && Math.abs(p.y - f.y) < 4) f.aware = true;
       if (f.state === 'stun') { if (f.t <= 0) f.state = 'idle'; continue; }
       if (Battle.active) { continue; } // a Kin duel is on: his men stand back
       if (!f.aware || p.dead) { f.yaw += Math.sin(performance.now() / 2000 + f.hx) * dt * 0.3; continue; }
@@ -10420,9 +10425,12 @@ G.toggleRide = function () {
   const mode = this.rideMode(k);
   if (!k.tamed && !k.sp.tame) { if (mode === 'water' && !p.inWater) { UI.toast(`Break ${KIN.name(k)} in where it lives: get in the water first.`); return; } Taming.start(k, { onDone: (kk) => this.mountKin(kk) }); return; }
   if (mode === 'water' && !p.inWater) { UI.toast(`${KIN.name(k)} carries you in the water. Get in first.`); return; }
+  if (mode === 'air' && this.noKinFlight()) { UI.toast(this.world.preset.airless ? `There is no air here for ${KIN.name(k)} to fly in.` : `No room down here for ${KIN.name(k)} to spread its wings.`); return; }
   p.mount = k; p.mountMode = mode; UI.sfx('util');
   UI.toast(mode === 'air' ? (k.level >= 20 ? `You climb onto ${KIN.name(k)}. Jump, then hold ▲ to climb, hold ▼ to come down, let go to hover. It lands you softly.` : `You climb onto ${KIN.name(k)}. It glides; at Lv 20 it will fly.`) : mode === 'water' ? `You climb onto ${KIN.name(k)}. It floats you; hold ▼ to dive.` : `You climb onto ${KIN.name(k)}.`, 'good');
 };
+// flying Kin need open sky and air: not in the Mines, not in the Core, not on the airless worlds
+G.noKinFlight = function () { const p = this.player, w = this.world; if (w.preset.airless) return true; const L = w.layerAt(Math.floor(p.y), Math.floor(p.x), Math.floor(p.z)); return L === 'Mines' || L === 'Core'; };
 G.mountKin = function (k) { const p = this.player; const mode = this.rideMode(k); if (!mode) return; p.mount = k; p.mountMode = mode; UI.sfx('util'); UI.toast(`You climb onto ${KIN.name(k)}.`); };
 G.toast = function (m, c) { UI.toast(m, c); };
 G.toggleCamera = function () { this.thirdPerson = !this.thirdPerson; UI.toast(this.thirdPerson ? 'Third person. You can see yourself now; V or the menu switches back.' : 'First person.'); };
@@ -11031,6 +11039,7 @@ G.loop = function (t) {
     UI.setButtons({ snare: !!st && (p.has('snare') || p.has('snare2')), ride: !p.flying && (!!p.mount || !!(lead && this.rideRequirement(lead) != null)), riding: !!p.mount, ship: p.has('ship') && (p.flying || this.world.layerAt(Math.floor(p.y), Math.floor(p.x), Math.floor(p.z)) !== 'Mines'), flying: p.flying, canLand: p.flying && (p.autoLand || this.landHeight() <= G.LAND_REACH) });
     if (p.mount && !p.mount.borrowed && (p.mount.hp <= 0 || !this.kin.includes(p.mount))) { p.mount = null; UI.toast('Your mount is down.', 'bad'); }
     if (p.mount && p.mountMode === 'water' && !p.inWater && p.onGround) { p.mount = null; UI.toast('It cannot follow you onto land.'); }
+    if (p.mount && p.mountMode === 'air' && (this.frame & 15) === 0 && this.noKinFlight()) { p.mount = null; UI.toast('No room down here for wings that size. You climb off.'); }
   }
   if ((this.frame & 7) === 0 && !inBattle) { const npc = Village.pick(p); const rn = npc ? null : Npcs.pick(p); const we = (npc || rn) ? null : Wild.pick(p); const hit = (!npc && !we && !rn) ? p.raycast(5.5) : null; const campHit = hit && hit.id === B.CAMPFIRE;
     UI.lookLabel(rn ? Npcs.label(rn) + ' · tap' : npc ? `${npc.name}${npc.shop ? ' · ' + (npc.shopTitle || Village.SHOPS[npc.shop].title) : npc.role === 'voodoo' ? ' · healer' : npc.role === 'elder' ? ' · village ledger' : npc.role === 'traveller' ? ' · has something to trade' : npc.role === 'hermit' ? ' · hermit, has a job for you' : ''} · tap to talk` : we ? `${KIN.name(we.kin)} · Lv ${we.kin.level}${(we.kin.sp.rarity || 0) > 0 ? ' · ' + KIN.RARITY[we.kin.sp.rarity].name : ''}${we.raider ? ' · RAIDER' : we.isBoss ? ' · tyrant' : we.lieutenant ? " · the tyrant's guard" : ''}` : campHit ? 'Camp fire · tap to rest' : (hit && hit.id === B.STARMETAL) ? (this.worldId === 'moon' ? 'Return pad · tap to fly home' : 'Starmetal') : (hit && hit.id === B.FUSION) ? 'Fusion Table · tap' : (hit && hit.id === B.PORTAL) ? 'Portal · tap to travel' : (hit && hit.id === B.CHEST) ? 'Chest · tap to open' : (hit && hit.id === B.INCUBATOR) ? 'Incubator · tap' : (hit && (hit.id === B.DOOR || hit.id === B.DOOR_OPEN)) ? 'Door · tap' : (hit && hit.id === B.SNOW) ? 'Snow · hold to take (Frost Cloak needs 8)' : (hit && (hit.id === B.IRON || hit.id === B.COPPER || hit.id === B.EMBER || hit.id === B.VOID)) ? BLOCKS[hit.id].name + ' · hold to mine' : ''); }

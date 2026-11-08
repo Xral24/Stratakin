@@ -240,7 +240,7 @@ const Combat = (() => {
       if (f.bleed > 0) { f.bleed -= dt; if (Math.random() < dt * 1.5) { f.hp -= 2; if (f.hp <= 0) { down(f); continue; } } }
       if (f.slowT > 0) f.slowT -= dt;
       const dx = p.x - f.x, dz = p.z - f.z, d = Math.hypot(dx, dz);
-      const sneakR = p.sneak ? 5 : 11; if (!f.aware && d < sneakR && Math.abs(p.y - f.y) < 4) f.aware = true;
+      const sneakR = p.wingsOn && p.y - f.y > 2.5 ? 1.5 : p.sneak ? 5 : 11; if (!f.aware && d < sneakR && Math.abs(p.y - f.y) < 4) f.aware = true;
       if (f.state === 'stun') { if (f.t <= 0) f.state = 'idle'; continue; }
       if (Battle.active) { continue; } // a Kin duel is on: his men stand back
       if (!f.aware || p.dead) { f.yaw += Math.sin(performance.now() / 2000 + f.hx) * dt * 0.3; continue; }

@@ -69,7 +69,7 @@ const ITEMS = {
   amber: { name: 'Amber', col: '#e8b85a', elem: 'Flame', desc: 'Warm golden resin-stone from under Halo\'s dunes. Flame ingredient.' },
   sulfur: { name: 'Sulfur', col: '#e8d84a', elem: 'Spark', desc: 'Yellow crust from Halo\'s salt flats. Burns. Spark ingredient.' },
   ringshard: { name: 'Ring Shard', col: '#fff0c0', elem: 'Light', desc: 'A piece of Halo\'s ring, fallen from the sky. Light that you can hold.' },
-  wings: { name: 'Halo Wings', col: '#fff0c0', gear: true, desc: 'Wings of ring shard and amber. Jump in the air to open them: hold ▲ to climb, hold ▼ to come down, let go to drift. You land softly.' },
+  wings: { name: 'Halo Wings', col: '#fff0c0', gear: true, keep: true, desc: 'Wings of ring shard and amber. Jump in the air to open them: hold ▲ to climb, hold ▼ to come down, let go and you hang still. They fly where nothing else does: in caves, over the lava of the Core, on the airless Moon and Halo. Silent: wild Kin, warriors and camps do not notice you overhead. About a minute of flight, then land and let them rest.' },
   amberheart: { name: 'Amber Heart', kinGear: 'charm', boost: { pow: 0.18, hp: 0.06 }, col: '#e8b85a', crafted: true, desc: 'Kin charm: Power +18%, Health +6%.' },
   sulfurfang: { name: 'Sulfur Fang', kinGear: 'weapon', boost: { atk: 0.18, pow: 0.12 }, col: '#e8d84a', crafted: true, desc: 'Kin weapon: Attack +18%, Power +12%.' },
   ringplate: { name: 'Ring Plate', kinGear: 'armor', boost: { hp: 0.3, atk: 0.1 }, col: '#fff0c0', crafted: true, desc: 'Kin armour of ring shard: Health +30%, Attack +10%.' },
@@ -210,12 +210,16 @@ class Player {
     this.gliding = false;
     const birdFly = mountShape === 'air' && (this.mount.level >= 20 || this.mount.tamed);
     // Halo Wings: a jump in the air opens them, and then you fly like a bird mount
-    if (this.has('wings') && !inFluid && !this.onGround && !mountShape && input.jumpPressed && !this.wingsOn && this.vy < 2) this.wingsOn = true;
+    // about a minute of flight, then they need to rest: they recharge on the ground, twice as fast as they drain
+    if (this.wingE == null) this.wingE = 60;
+    if (this.has('wings') && !inFluid && !this.onGround && !mountShape && input.jumpPressed && !this.wingsOn && this.vy < 2) { if (this.wingE > 3) this.wingsOn = true; else if (typeof UI !== 'undefined') UI.toast('Your wings are spent. Land and let them rest.'); }
+    if (this.wingsOn) { this.wingE -= dt; if (this.wingE <= 10 && this.wingE + dt > 10 && typeof UI !== 'undefined') UI.toast('Ten seconds of wing left. Find somewhere to land.', 'bad'); if (this.wingE <= 0) { this.wingE = 0; this.wingsOn = false; if (typeof UI !== 'undefined') UI.toast('Your wings fold. You drop.', 'bad'); } }
+    else if (this.onGround) this.wingE = Math.min(60, this.wingE + dt * 2);
     if (this.onGround || inFluid || mountShape) this.wingsOn = false;
     if (!inFluid && !this.onGround && (birdFly || this.wingsOn)) {
       // a flying mount: jump climbs, sneak descends, neither hovers; the stick steers in every direction and landing is soft
       this.gliding = true; this.fallStart = null;
-      const ty = input.jump ? 3.2 : input.sneak ? -3.6 : -0.5;
+      const ty = input.jump ? 3.2 : input.sneak ? -3.6 : this.wingsOn ? 0 : -0.5; // wings hang still in the air; a bird drifts down
       this.vy += (ty - this.vy) * Math.min(1, 6 * dt);
       const accel = 8; this.vx += (mx * speed - this.vx) * Math.min(1, accel * dt); this.vz += (mz * speed - this.vz) * Math.min(1, accel * dt);
     }
