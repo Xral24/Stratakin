@@ -8641,6 +8641,89 @@ const UI = (() => {
 </script>
 <script>
 'use strict';
+// Your lead Kin walks with you, a step behind at your shoulder. Fliers keep up in the air, swimmers in the water.
+// Now and then, as you walk, it noses out something that suits its element and brings it to you.
+const Buddy = (() => {
+  let G = null, e = null, key = null, walked = 0, nextFind = 160, hopT = 0, gyT = 0, gy = 0, lastX = 0, lastZ = 0;
+  const FINDS = {
+    Stone: [['copper', 1], ['iron', 1], ['stone', 3]], Bloom: [['berry', 3], ['frond', 2]], Flame: [['ember', 1]], Tide: [['pearl', 1], ['bait_berry', 1]],
+    Gale: [['feather', 1]], Frost: [['snow', 3], ['broth', 1]], Spark: [['copper', 2]], Void: [['void', 1]], Light: [['glowworm', 2]],
+  };
+  const SAY = {
+    Stone: 'scrapes at the ground and turns up', Bloom: 'roots under a bush and comes back with', Flame: 'sniffs out something warm:', Tide: 'paddles back with',
+    Gale: 'snatches something out of the air:', Frost: 'digs in the cold and finds', Spark: 'crackles at a rock and knocks loose', Void: 'stares into a crack in the ground and pulls out', Light: 'glows brighter and leads you to',
+  };
+  function init(game) { G = game; e = null; key = null; walked = 0; }
+  function lead() { const k = G.kin && G.kin[G.activeIdx]; return k && k.hp > 0 ? k : null; }
+  function hidden(p) {
+    if (Battle.active || p.flying || p.mount || (G.stats && G.stats.buddyOff)) return true;
+    return false;
+  }
+  function make(k, p) {
+    const m = KIN.model(k.sp, k.stage);
+    const fly = k.sp.shape === 'bird' || k.sp.shape === 'floater';
+    const big = Math.max(m.height, m.radius * 1.6);
+    e = { kin: k, x: p.x, y: p.y, z: p.z, yaw: p.yaw, model: m, scale: big > 2.6 ? 2.6 / big : 1, hover: m.hover, bob: Math.random() * 6, flying: fly, aquatic: k.sp.shape === 'serpent' && KIN.dominant(k.sp.elem, 1)[0] === 'Tide', skyMul: 1, isBuddy: true,
+      mesh: R.entityMesh(KIN.meshKey(k.sp, k.stage), (mb) => KIN.buildMesh(mb, m)) };
+    key = k.id || k; place(p, true);
+  }
+  function spot(p) { const sy = Math.sin(p.yaw), cy = Math.cos(p.yaw); const back = -0.3, side = 1.6 + (e.model.radius || 0.6) * e.scale; return { x: p.x + sy * back + cy * side, z: p.z + cy * back - sy * side }; }
+  function ground(x, z, fromY) { const w = G.world; const y = w.groundY(Math.floor(x), Math.floor(z), Math.floor(fromY) + 3); return y == null ? fromY : y + 1; }
+  function place(p, snap) { const s = spot(p); e.x = s.x; e.z = s.z; e.y = e.flying ? p.y + 1.2 : ground(s.x, s.z, p.y); gy = e.y; }
+  function update(dt, p) {
+    const k = lead();
+    if (!k) { e = null; return; }
+    if (!e || e.kin !== k) make(k, p);
+    if (hidden(p)) { e.away = true; return; }
+    if (e.away) { e.away = false; place(p, true); }
+    e.bob += dt;
+    const s = spot(p); const dx = s.x - e.x, dz = s.z - e.z, d = Math.hypot(dx, dz);
+    const gliding = p.gliding;
+    if (d > 18 || Math.abs(p.y - e.y) > 8 || (gliding && !e.flying)) { if (gliding && !e.flying) { e.away = true; return; } place(p, true); return; }
+    const pv = Math.hypot(p.vx, p.vz);
+    if (d > 0.4) {
+      const sp = Math.min(d, Math.max(3.2, pv * 1.15) * (d > 4 ? 1.6 : 1) * dt);
+      e.x += dx / d * sp; e.z += dz / d * sp;
+      const ty = Math.atan2(dx, dz); let dy = ty - e.yaw; while (dy > Math.PI) dy -= Math.PI * 2; while (dy < -Math.PI) dy += Math.PI * 2; e.yaw += dy * Math.min(1, dt * 8);
+    } else { const ty = Math.atan2(p.x - e.x, p.z - e.z); let dy = ty - e.yaw; while (dy > Math.PI) dy -= Math.PI * 2; while (dy < -Math.PI) dy += Math.PI * 2; e.yaw += dy * Math.min(1, dt * 3); }
+    gyT -= dt; if (gyT <= 0) { gyT = 0.15; gy = e.flying ? p.y + 1.3 + Math.sin(e.bob * 1.4) * 0.25 : ground(e.x, e.z, Math.max(p.y, e.y)); }
+    e.y += (gy - e.y) * Math.min(1, dt * (e.flying ? 3 : 10));
+    if (hopT > 0) { hopT -= dt; e.hover = (e.model.hover || 0) + Math.abs(Math.sin(hopT * 9)) * 0.5; } else e.hover = (e.model.hover || 0) + (e.flying ? Math.sin(e.bob * 2) * 0.08 : 0);
+    // finds: walking together turns things up
+    const step = Math.hypot(p.x - lastX, p.z - lastZ); lastX = p.x; lastZ = p.z;
+    if (step < 3 && p.onGround) walked += step;
+    if (walked > nextFind) { walked = 0; nextFind = 170 + Math.random() * 140; find(k); }
+  }
+  function find(k) {
+    const el = KIN.dominant(k.sp.elem, 1)[0]; const pool = FINDS[el] || FINDS.Stone;
+    const lvl = k.level || 1; let item, n;
+    if (Math.random() < 0.35) { item = 'ess_' + el; n = 1; } // an essence of its own kind: the stuff fusion stones are made of
+    else { const pick = pool[Math.floor(Math.random() * pool.length)]; item = pick[0]; n = pick[1] + (lvl >= 30 && Math.random() < 0.4 ? 1 : 0); }
+    if (!ITEMS[item]) return;
+    G.player.add(item, n); hopT = 0.7; UI.sfx('caught'); UI.renderHotbar && UI.renderHotbar();
+    UI.toast(`${KIN.name(k)} ${SAY[el] || 'finds'} ${n > 1 ? n + ' ' : ''}${ITEMS[item].name}.`, 'good');
+    if (!G.stats.buddyTold) { G.stats.buddyTold = true; G.explain('Your Kin walks with you', `Your lead Kin follows you around the world. Walk together and it finds things that suit its element: a Stone Kin turns up ore, a Bloom Kin berries, a Gale Kin feathers, and any of them now and then an essence of their own kind for fusion stones. Change your lead Kin in the Kin panel to change what it finds. Tap it to see how it is doing.`); }
+  }
+  function entities() { return e && !e.away && !hidden(G.player) ? [e] : []; }
+  function pick(p) {
+    if (!e || e.away) return null;
+    const eye = p.eye(); const f = U.forwardVec(p.yaw, p.pitch); const h = e.model.height * e.scale;
+    const ox = eye.x - e.x, oy = eye.y - (e.y + h / 2), oz = eye.z - e.z; const r = Math.max(0.7, e.model.radius * e.scale);
+    const b = ox * f[0] + oy * f[1] + oz * f[2], c = ox * ox + oy * oy + oz * oz - r * r; const disc = b * b - c;
+    if (disc < 0) return null; const t = -b - Math.sqrt(disc); return t > 0 && t < 6 ? e : null;
+  }
+  function tap() {
+    if (!e) return; const k = e.kin; hopT = 0.7; UI.sfx('click');
+    const trust = k.trust || 0; const hp = Math.round(k.hp / KIN.stats(k).hp * 100);
+    const mood = hp < 35 ? 'is hurt and leans on you' : trust > 0.6 ? 'nuzzles your hand' : k.level >= KIN.capOf(k.sp) ? 'looks as strong as it will ever be' : 'bounces at your feet';
+    UI.toast(`${KIN.name(k)}, Lv ${k.level} · ${hp}% health. It ${mood}.`);
+  }
+  return { init, update, entities, pick, tap, get entity() { return e; } };
+})();
+
+</script>
+<script>
+'use strict';
 // Game state, main loop, chunk streaming, progression, save/load.
 const G = {
   world: null, player: null, kin: [], box: [], eggs: [], activeIdx: 0, MAX_KIN: 8, xp: 0, trainerLevel: 1,
@@ -8695,7 +8778,7 @@ G.setupWorld = function (seed, presetId) {
   this.world.findSpawn();
   Wild.init(this.world, this.mobile);
   Weather.init(this.world.seed);
-  Village.init(this); Hazards.init(this); Campaign.init(this); Npcs.init(this); Camps.init(this); Mer.init(this); Lab.init(this); Avatar.init(this);
+  Village.init(this); Hazards.init(this); Campaign.init(this); Npcs.init(this); Camps.init(this); Mer.init(this); Lab.init(this); Avatar.init(this); Buddy.init(this);
   Quests.init(this);
 };
 G.newWorld = function (seed, starterIdx, name) {
@@ -9306,6 +9389,7 @@ G.loop = function (t) {
       }
       if (w.regrow && w.regrow.length && (this.frame & 31) === 0) { const now = performance.now(); w.regrow = w.regrow.filter(r => { if (now < r.t) return true; const b = w.getBlock(r.x, r.y, r.z); if (r.id != null) { if (b === B.AIR && !(Math.abs(r.x + 0.5 - p.x) < 0.8 && Math.abs(r.z + 0.5 - p.z) < 0.8 && r.y >= Math.floor(p.y) - 1 && r.y <= Math.floor(p.y) + 2)) { if (r.id === B.GLOWWORM && !isSolid(w.getBlock(r.x, r.y - 1, r.z))) return false; w.setBlock(r.x, r.y, r.z, r.id); } else if (b === B.AIR) { r.t = now + 15000; return true; } } else if (r.leaf) { if (b === B.LEAVES) w.setBlock(r.x, r.y, r.z, B.BERRYLEAF); } else if (b === B.AIR) w.setBlock(r.x, r.y, r.z, B.BERRY); return false; }); }
       const trig = (Dialogue.active() || Village.walking) ? null : Wild.update(dt, p, performance.now() / 1000, false);
+      Buddy.update(dt, p);
       Wild.ensureHeart(p, this.trainerLevel, this.mythicCaught); Wild.ensureLegend(p); Wild.ensureApex(p);
       if (trig && !trig.e.cool && !Dialogue.active() && !p.flying && !(this.fightGrace > performance.now())) Battle.start(trig.e, trig.ambush);
       for (const e of Wild.list) if (e.cool > 0) e.cool -= dt;
@@ -9372,14 +9456,14 @@ G.loop = function (t) {
   const showMe = inBattle || this.thirdPerson || this.talkK > 0 || !!p.mount || this.grassCamOn;
   if (showMe) { const me = Avatar.entity(p, Math.hypot(p.vx, p.vz) > 0.6); if (p.mount) { const mm = KIN.model(p.mount.sp, p.mount.stage); me.y = p.y - 0.75 + mm.height * 0.62; } ents.push(me); }
   if (p.mount) { const k = p.mount; const m = KIN.model(k.sp, k.stage); const fwd = U.forwardVec(p.yaw, 0); ents.push({ x: p.x + fwd[0] * 0.5, y: p.y - 0.75 + (p.inWater ? -0.2 : 0) + Math.sin(performance.now() / 160) * (Math.hypot(p.vx, p.vz) > 0.5 ? 0.06 : 0), z: p.z + fwd[2] * 0.5, yaw: p.yaw + Math.PI, model: m, mesh: R.entityMesh(KIN.meshKey(k.sp, k.stage), (mb) => KIN.buildMesh(mb, m)), scale: 1, hover: 0, skyMul: 1, isMount: true }); }
-  ents.push(...Battle.fxEntities()); ents.push(...Wild.dropEntities()); ents.push(...Hazards.entities()); ents.push(...Npcs.entities());
+  ents.push(...Battle.fxEntities()); ents.push(...Wild.dropEntities()); ents.push(...Buddy.entities()); ents.push(...Hazards.entities()); ents.push(...Npcs.entities());
   for (const o of w.statues.values()) {
     if ((o.x - p.x) ** 2 + (o.z - p.z) ** 2 > 4000) continue;
     if (!o.model) { o.model = KIN.statueModel(o); o.mesh = R.entityMesh('statue:' + o.id, (mb) => KIN.buildMesh(mb, o.model)); }
     const top = w.topAt(o.x, o.z); const sky = o.y >= SKY_SPLIT ? 1 : (o.y >= top ? 1 : Math.max(0, 1 - (top - o.y) * 0.11));
     ents.push({ x: o.x + 0.5, y: o.y, z: o.z + 0.5, yaw: o.yaw || 0, model: o.model, mesh: o.mesh, scale: o.scale || 1, hover: 0, skyMul: sky, isStatue: true });
   }
-  for (const e of ents) if (e.isStatue || e.isFx || e.isMount || !e.model) { /* static */ } else if (e.hitT > 0) { e.hover = (e.model.hover || 0) + Math.sin(e.hitT * 60) * 0.08; } else if (e.breach == null) e.hover = e.model.hover + (e.flying ? Math.sin((e.bob || 0) * 2) * 0.08 : 0);
+  for (const e of ents) if (e.isStatue || e.isFx || e.isMount || e.isBuddy || !e.model) { /* static */ } else if (e.hitT > 0) { e.hover = (e.model.hover || 0) + Math.sin(e.hitT * 60) * 0.08; } else if (e.breach == null) e.hover = e.model.hover + (e.flying ? Math.sin((e.bob || 0) * 2) * 0.08 : 0);
   R.render(w, p, ents, cam, { lights, lines });
   if ((this.frame & 3) === 0) UI.renderHud(dt);
   if ((this.frame & 31) === 0 && !inBattle) UI.renderMinimap(p);
@@ -9404,6 +9488,7 @@ G.onTap = function () {
   if (npc) { Village.talk(npc); return; }
   const rn = Npcs.pick(p);
   if (rn) { Npcs.talk(rn); return; }
+  if (Buddy.pick(p) && !Wild.pick(p)) { Buddy.tap(); return; }
   const e = (p.selected() && (p.itemInfo(p.selected()) || {}).bow) ? null : Wild.pick(p);
   const hit = p.raycast(5.5);
   if (e && e.rogue) { const c = Campaign.C(); if (c.ranch !== 2) { UI.toast('Thunderhoof flattens his ears at you. Talk to Dusty Hale first.'); return; } const k = KIN.create(e.kin.sp, e.kin.level); Taming.start(k, { hard: true, onDone: (kk) => { kk.tamed = true; this.addKin(kk); Campaign.onRogueTamed(kk); UI.toast('Thunderhoof is yours, and you can ride now. Every Kin still has to be broken in once: press Ride and hold on.', 'good'); } }); return; }
