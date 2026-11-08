@@ -1108,6 +1108,7 @@ class World {
         }
       }
     }
+    if (this.overlay) this.overlay(chunk); // towns are drawn into the world like terrain
     // player edits
     for (let lx = 0; lx < CH; lx++) for (let lz = 0; lz < CH; lz++) {
       const wx = U.mod(ox + lx, WORLD_W), wz = U.mod(oz + lz, WORLD_W);
@@ -1127,6 +1128,17 @@ class World {
     chunk.generated = true;
   }
 
+  // after a town is drawn into chunks that were already loaded: put the player's own changes back on top, relight, remesh
+  reapplyEdits(chunk) {
+    const ox = chunk.cx * CH, oz = chunk.cz * CH, blocks = chunk.blocks;
+    for (let lx = 0; lx < CH; lx++) for (let lz = 0; lz < CH; lz++) {
+      const wx = U.mod(ox + lx, WORLD_W), wz = U.mod(oz + lz, WORLD_W); const col = this.edits.get(wx * 65536 + wz);
+      if (col) for (const [y, id] of col) blocks[(lx * CH + lz) * WH + y] = id;
+      const base = (lx * CH + lz) * WH; for (let y = 1; y < WH; y++) { const id = blocks[base + y]; const k = (ox + lx) + ',' + y + ',' + (oz + lz); if (LIGHT_R[id]) this.torches.set(k, [ox + lx + 0.5, y + 0.6, oz + lz + 0.5, LIGHT_R[id]]); else if (this.torches.has(k)) this.torches.delete(k); }
+      chunk.recomputeTop(lx, lz);
+    }
+    chunk.dirty = true; this.markDirty(chunk.cx - 1, chunk.cz); this.markDirty(chunk.cx + 1, chunk.cz); this.markDirty(chunk.cx, chunk.cz - 1); this.markDirty(chunk.cx, chunk.cz + 1);
+  }
   getChunk(cx, cz, create) {
     const k = this.key(cx, cz);
     let c = this.chunks.get(k);
@@ -2314,7 +2326,7 @@ class Player {
     let mx = fwd[0] * input.mz + right[0] * input.mx, mz = fwd[1] * input.mz + right[1] * input.mx;
     const ml = Math.hypot(mx, mz); if (ml > 1) { mx /= ml; mz /= ml; }
     this.sneak = !!input.sneak;
-    let speed = (this.sneak ? 1.7 : 4.4) * this.speedMul * (1 - 0.55 * (this.chill || 0));
+    let speed = (this.sneak ? 1.7 : 4.4) * this.speedMul * (typeof G !== 'undefined' && G.buffMul ? G.buffMul('speed') : 1) * (1 - 0.55 * (this.chill || 0));
     if (this.inLava) speed = 1.6 * (this.has('lavasuit') ? this.gearMul('lavasuit') * 1.5 : 1); else if (this.inWater) speed = 2.6 * (this.has('reeffins') ? 1.8 : 1);
     const mountShape = this.mount ? (this.mountMode || 'land') : null; // 'land' | 'water' | 'air'
     const ride = this.mount ? 1 + 0.3 * (this.mount.trust || 0) : 1; // trust: two hours under you to full stride; it fades if you leave it alone
@@ -2422,7 +2434,7 @@ class Player {
     if (this.mount) this.mount.trust = Math.min(1, (this.mount.trust || 0) + dt / 7200);
     // breath
     if (this.underwater) {
-      const max = (this.has('bulb') ? 120 * this.gearMul('bulb') : 20) * this.breathMul * (this.has('reeffins') ? 2 : 1);
+      const max = (this.has('bulb') ? 120 * this.gearMul('bulb') : 20) * this.breathMul * (this.has('reeffins') ? 2 : 1) * (typeof G !== 'undefined' && G.buffMul ? G.buffMul('breath') : 1);
       this.breath -= dt / max;
       if (this.breath <= 0) { this.breath = 0; this.lavaTick += dt; if (this.lavaTick > 1) { this.lavaTick = 0; this.damage(1, 'drown'); } }
     } else { this.breath = Math.min(1, this.breath + dt * 0.5); }
@@ -2543,7 +2555,7 @@ class Player {
     const tm = this.toolMul(hit.id);
     if (tm <= 0) { this.mineProgress = 0; this.cantMine = hit.id; return null; }
     this.cantMine = null;
-    this.mineProgress += dt * this.mineMul * tm / BLOCKS[hit.id].hard;
+    this.mineProgress += dt * this.mineMul * tm * (typeof G !== 'undefined' && G.buffMul ? G.buffMul('mine') : 1) / BLOCKS[hit.id].hard;
     if (this.mineProgress >= 1) {
       this.mineProgress = 0; this.mineTarget = null;
       const drop = BLOCKS[hit.id].drop;
@@ -4000,6 +4012,11 @@ const Village = (() => {
     armourer: { name: 'Armourer', marker: B.GOLD, level: 2, cost: { shards: 300, items: { planks: 24, iron: 6 } } },
     alchemist: { name: 'Alchemist', marker: B.GLOWWORM, level: 2, cost: { shards: 250, items: { planks: 20, glass: 6 } } },
     inn: { name: 'Inn', marker: B.LOG, level: 1, cost: { shards: 150, items: { planks: 30 } } },
+    restaurant: { name: 'Restaurant', marker: B.BERRY, level: 1, cost: { shards: 200, items: { planks: 24 } } },
+    sanctuary: { name: 'Kin Sanctuary', marker: B.MOONGLOW, level: 2, cost: { shards: 400, items: { planks: 24, glass: 8 } } },
+    stables: { name: 'Riding School', marker: B.LOG, level: 2, cost: { shards: 300, items: { planks: 30 } } },
+    aerie: { name: 'Flying School', marker: B.CLOUD, level: 2, cost: { shards: 300, items: { planks: 30 } } },
+    station: { name: 'Station', marker: B.IRON, level: 1, cost: { shards: 200, items: { planks: 30, iron: 8 } } },
   };
   const SLOTS = [[-11, -11], [11, -11], [-11, 11], [11, 11], [-15, -5], [-15, 5], [15, -5], [15, 5], [-5, -15], [5, -15], [-5, 15], [5, 15]]; // house sites in the expanded ring
   const VILLAGER_LINES = [
@@ -4019,6 +4036,11 @@ const Village = (() => {
     armoury: { title: 'Armoury', keeper: 'Bram', greet: 'Blades and axes. Nothing here is for show.', stock: [] },
     armourer: { title: 'Armourer', keeper: 'Hilde', greet: 'Helms, plate, shields. Stand still, I need your size.', stock: [] },
     alchemist: { title: 'Alchemist', keeper: 'Ottoline', greet: 'Tonics, baits, and arrows that do more than stick in things.', stock: [{ item: 'tonic_heal', price: 14 }, { item: 'tonic_revive', price: 28 }, { item: 'tonic_vigor', price: 45 }, { item: 'tonic_might', price: 45 }, { item: 'tonic_swift', price: 45 }, { item: 'bait_berry', price: 10 }, { item: 'bait_glow', price: 25 }] },
+    restaurant: { title: 'Restaurant', keeper: 'Chef Anselm', greet: 'Sit, eat. A proper meal stays with you: you will feel it for the next half hour.', stock: [{ service: 'meal', buff: 'hearts', amt: 2, mins: 30, name: 'Hearty Stew: two extra hearts for 30 minutes', price: 40 }, { service: 'meal', buff: 'mine', amt: 2, mins: 30, name: 'Miner\'s Breakfast: dig twice as fast for 30 minutes', price: 35 }, { service: 'meal', buff: 'speed', amt: 1.25, mins: 20, name: 'Swift Salad: quicker on your feet for 20 minutes', price: 30 }, { service: 'meal', buff: 'breath', amt: 2, mins: 30, name: 'Diver\'s Chowder: hold your breath twice as long for 30 minutes', price: 30 }] },
+    sanctuary: { title: 'Kin Sanctuary', keeper: 'Sister Imelda', greet: 'Bring me your lead Kin. Here they learn what their element can really do.', stock: [{ service: 'teach', name: 'Teach your lead Kin its element\'s technique', price: 0 }, { service: 'calm', name: 'A day of rest: your whole party healed and calmed', price: 25 }] },
+    stables: { title: 'Riding School', keeper: 'Wrangler Tess', greet: 'A Kin that trusts you runs faster under you. We can speed that up.', stock: [{ service: 'trust', name: 'A riding lesson: your lead Kin\'s trust goes up a good way', price: 120 }, { item: 'berry', price: 3, n: 6 }] },
+    aerie: { title: 'Flying School', keeper: 'Captain Merrow', greet: 'Gliders, flight snares, and a lesson in reading the wind.', stock: [{ service: 'tune', name: 'Tune your glider: it flies further and faster (once)', price: 400 }, { item: 'snare_sky', price: 60, n: 2 }, { item: 'feather', price: 12, n: 3 }] },
+    station: { title: 'Station', keeper: 'Stationmaster Pike', greet: 'All aboard, for the towns whose lines are open.', stock: [] },
     inn: { title: 'Inn', keeper: 'Marta', greet: 'A bed, a meal, and nobody asks where you have been.', stock: [{ service: 'rest', name: 'A bed for the night: your whole party back on its feet', price: 18 }, { item: 'bread', price: 9 }, { item: 'smoothie', price: 14 }, { item: 'broth', price: 12 }] },
   };
   // the same five shops wear different names and stock on other worlds and in the themed villages
@@ -4111,6 +4133,7 @@ const Village = (() => {
   function init(game) {
     G = game; world = game.world; villages.clear(); hermits.clear(); active = null; activeHermit = null; walkState = null; fisher = null;
     const vd = world.preset.villages || { nc: 64, prefix: '', style: 'land' }; NC = vd.nc; CELL = WORLD_W / NC; PREFIX = vd.prefix || ''; STYLE = vd.style || 'land';
+    PLAN = null; SPECIAL.clear(); towns.clear(); world.overlay = (c) => overlay(c);
   }
   function state(id) {
     if (!G.villageState) G.villageState = {};
@@ -4130,7 +4153,7 @@ const Village = (() => {
 
   // ---- sites: one candidate per cell, decided by the terrain there ----
   // Earth keeps a fixed map of named places, not a village in every cell: a few hamlets by home, towns further out, cities beyond them
-  let PLAN = null, planning = false;
+  let PLAN = null, planning = false; const SPECIAL = new Map();
   const QUOTA = { hamlet: [2, 140, 650], town: [8, 550, 1500], city: [4, 1300, 2300] };
   function plan() {
     if (PLAN) return PLAN; if (world.preset.id !== 'earth') return null;
@@ -4144,14 +4167,93 @@ const Village = (() => {
       for (const v of byD) { if (got >= n) break; if (v.dist < lo || v.dist > hi || PLAN.has(v.id) || !far(v, size === 'city' ? 500 : 300)) continue;
         if (size === 'hamlet' && v.type !== 'land') continue; if (v.type !== 'land') { if (sea >= (size === 'town' ? 2 : 1)) continue; sea++; }
         PLAN.set(v.id, size); taken.push(v); got++; } }
+    const specs = ['stables', 'aerie', 'sanctuary']; let si = 0; for (const v of byD) if (PLAN.get(v.id) === 'town' && v.type === 'land' && si < specs.length) SPECIAL.set(v.id, specs[si++]);
     return PLAN;
   }
   function siteFor(cx, cz) {
     if (!world.preset.villages) return null;
     cx = U.mod(cx, NC); cz = U.mod(cz, NC);
     const id = PREFIX + cx + ',' + cz;
-    if (!planning && world.preset.id === 'earth') { const P = plan(); const v0 = villages.has(id) ? villages.get(id) : rawSite(cx, cz, id); if (!v0 || !P.has(id)) return null; v0.size = P.get(id); if (v0.size === 'city' && !/^(Great|Old|High|Port) /.test(v0.name)) v0.name = (v0.type !== 'land' ? 'Port ' : 'Great ') + v0.name; if (v0.size === 'city') v0.tier = Math.max(v0.tier, 4); return v0; }
+    if (!planning && world.preset.id === 'earth') { const P = plan(); const v0 = villages.has(id) ? villages.get(id) : rawSite(cx, cz, id); if (!v0 || !P.has(id)) return null; v0.size = P.get(id); v0.special = SPECIAL.get(id) || null; if (v0.type === 'land') v0.R = TOWN_R[v0.size]; if (v0.size === 'city' && !/^(Great|Old|High|Port) /.test(v0.name)) v0.name = (v0.type !== 'land' ? 'Port ' : 'Great ') + v0.name; if (v0.size === 'city') v0.tier = Math.max(v0.tier, 4); return v0; }
     return rawSite(cx, cz, id);
+  }
+  // ================= towns as part of the world =================
+  // A town's streets, houses, shops and levelled ground are drawn into each chunk as it is generated, like terrain, so nothing
+  // the size of a city ever goes into the save. Only what you change yourself is saved.
+  const TOWN_R = { start: 34, hamlet: 24, town: 46, city: 66 };
+  const NCH = WORLD_W / CH;
+  const TOWN_SHOPS = {
+    start: ['elder', 'bakery', 'juice', 'trader', 'voodoo', 'inn', 'restaurant', 'station'],
+    hamlet: ['elder', 'bakery', 'trader', 'voodoo', 'station'],
+    town: ['elder', 'bakery', 'juice', 'trader', 'voodoo', 'inn', 'restaurant', 'armoury', 'alchemist', 'post', 'station'],
+    city: ['elder', 'bakery', 'juice', 'trader', 'voodoo', 'inn', 'restaurant', 'armoury', 'armourer', 'alchemist', 'post', 'sanctuary', 'restaurant', 'station', 'stables', 'aerie'],
+  };
+  const towns = new Map(); // id -> layout
+  function townList() { const out = []; const st = villages.get('start'); if (st && st.R) out.push(st); if (PLAN) for (const id of PLAN.keys()) { const v = villages.get(id); if (v && v.R) out.push(v); } return out; }
+  function layout(v) {
+    if (towns.has(v.id)) return towns.get(v.id);
+    const R = v.R, vx = v.x, vz = v.z, vy = v.y; const M = MATS[v.style] || MATS.land; MAT = M;
+    const buckets = new Map(); const push = (x, y, z, id) => { if (y < 1 || y >= WH) return; const cx = U.mod(Math.floor(x / CH), NCH), cz = U.mod(Math.floor(z / CH), NCH); const k = cx + ',' + cz; let b = buckets.get(k); if (!b) { b = []; buckets.set(k, b); } b.push(U.mod(x, CH), y, U.mod(z, CH), id); };
+    const city = v.size === 'city';
+    const streets = [0].concat(city ? [-40, -20, 20, 40] : v.size === 'town' ? [-24, 24] : []);
+    const onStreet = (dx, dz) => { if (Math.max(Math.abs(dx), Math.abs(dz)) >= R - 4 && Math.max(Math.abs(dx), Math.abs(dz)) <= R - 2) return true; for (const s0 of streets) { if (Math.abs(dx - s0) <= 1 && Math.abs(dz) <= R) return true; if (Math.abs(dz - s0) <= 1 && Math.abs(dx) <= R) return true; } return false; };
+    // the ground: levelled across the whole footprint
+    for (let dx = -R - 3; dx <= R + 3; dx++) for (let dz = -R - 3; dz <= R + 3; dz++) {
+      const x = vx + dx, z = vz + dz; const h = world.colInfo(U.mod(x, WORLD_W), U.mod(z, WORLD_W)).h;
+      for (let y = Math.min(h, vy - 2); y <= vy - 2; y++) push(x, y, z, M.under);
+      const plaza = Math.abs(dx) <= 6 && Math.abs(dz) <= 6;
+      push(x, vy - 1, z, plaza ? (Math.max(Math.abs(dx), Math.abs(dz)) === 6 ? M.plazaEdge : M.plaza) : onStreet(dx, dz) ? M.plaza : M.ground);
+      for (let y = vy; y <= Math.max(h, vy) + 10; y++) push(x, y, z, B.AIR);
+    }
+    // the square
+    push(vx, vy, vz, B.FUSION);
+    for (const [a, b] of [[-6, -6], [6, -6], [-6, 6], [6, 6]]) { push(vx + a, vy, vz + b, M.post); push(vx + a, vy + 1, vz + b, M.light); }
+    // lamps along the streets
+    for (const s0 of streets) for (let d = 9; d < R - 3; d += 8) for (const sg of [-1, 1]) { push(vx + s0 + 2 * sg, vy, vz + d * sg, M.post); push(vx + s0 + 2 * sg, vy + 1, vz + d * sg, M.light); push(vx + d * sg, vy, vz + s0 + 2 * sg, M.post); push(vx + d * sg, vy + 1, vz + s0 + 2 * sg, M.light); }
+    // lots: a house on every free plot, its door turned to the nearest street
+    const lots = [];
+    const axis = new Set(); for (const s0 of streets) for (const sg of [-1, 1]) for (let g = s0 + sg * 6; Math.abs(g) + 4 <= R - 5; g += sg * 9) axis.add(g);
+    const AX = [...axis].sort((a, b) => a - b);
+    for (const gx of AX) for (const gz of AX) {
+      if (Math.abs(gx) < 12 && Math.abs(gz) < 12) continue;
+      let ok = true; for (let a = -4; a <= 4 && ok; a++) for (let b = -4; b <= 4 && ok; b++) if (onStreet(gx + a, gz + b)) ok = false; if (!ok) continue;
+      if (lots.some(l => Math.abs(l.x - vx - gx) < 9 && Math.abs(l.z - vz - gz) < 9)) continue;
+      let best = null; for (const s0 of streets) { const dX = Math.abs(gx - s0), dZ = Math.abs(gz - s0); if (!best || dX < best.d) best = { d: dX, dir: [Math.sign(s0 - gx) || 1, 0] }; if (dZ < best.d) best = { d: dZ, dir: [0, Math.sign(s0 - gz) || 1] }; }
+      lots.push({ x: vx + gx, z: vz + gz, dirX: best.dir[0], dirZ: best.dir[1], dc: Math.hypot(gx, gz) });
+    }
+    lots.sort((a, b) => a.dc - b.dc);
+    const kinds = (TOWN_SHOPS[v.starter ? 'start' : v.size] || TOWN_SHOPS.hamlet).slice(); if (v.special && !kinds.includes(v.special)) kinds.push(v.special);
+    const shops = [];
+    // the station goes by the gate at the far end of the east street; everything else from the square outwards
+    const stI = lots.reduce((bi, l, i) => { const d = Math.hypot(l.x - (vx + R - 9), l.z - (vz + 6)); return d < bi[1] ? [i, d] : bi; }, [-1, 1e9])[0];
+    const free = lots.map((l, i) => i).filter(i => i !== stI);
+    for (const k of kinds) { const i = k === 'station' ? stI : free.shift(); if (i == null || i < 0) continue; shops.push(Object.assign({ kind: k }, lots[i])); lots[i].used = true; }
+    // draw the buildings into the overlay by borrowing the house builder
+    const sb = world.setBlock, gb = world.getBlock; world.setBlock = (x, y, z, id) => push(x, y, z, id); world.getBlock = () => B.AIR;
+    try {
+      const build = M.pod ? pod : house;
+      for (const sh of shops) build(sh.x, sh.z, vy, sh.dirX, sh.dirZ, sh.kind === 'elder' ? B.GOLD : (SHOP_BUILD[sh.kind] || {}).marker || B.LOG, FURNISH[sh.kind] || null);
+      const r = U.rng(U.combine(world.seed, U.strHash(v.id)));
+      for (const l of lots) if (!l.used) { if (r() < 0.12) { for (let a = -2; a <= 2; a++) for (let b = -2; b <= 2; b++) if (r() < 0.35 && M.bush) push(l.x + a, vy, l.z + b, M.bush); continue; } build(l.x, l.z, vy, l.dirX, l.dirZ, B.LOG, null); l.home = true; }
+    } finally { world.setBlock = sb; world.getBlock = gb; }
+    const L = { R, buckets, shops, homes: lots.filter(l => l.home), streets };
+    towns.set(v.id, L); return L;
+  }
+  // called by the world as each chunk is generated: draw any town that touches it
+  function overlay(chunk) {
+    if (!world || world.preset.id !== 'earth') return;
+    const key = U.mod(chunk.cx, NCH) + ',' + U.mod(chunk.cz, NCH);
+    for (const v of townList()) {
+      const R = v.R + 4; const ccx = Math.floor(U.mod(v.x, WORLD_W) / CH), ccz = Math.floor(U.mod(v.z, WORLD_W) / CH); const cr = Math.ceil(R / CH) + 1;
+      const kx = U.mod(chunk.cx, NCH), kz = U.mod(chunk.cz, NCH); const ddx = Math.abs(U.mod(kx - ccx + NCH / 2, NCH) - NCH / 2), ddz = Math.abs(U.mod(kz - ccz + NCH / 2, NCH) - NCH / 2); if (ddx > cr || ddz > cr) continue;
+      const ops = layout(v).buckets.get(key); if (!ops) continue;
+      const bl = chunk.blocks; for (let i = 0; i < ops.length; i += 4) bl[(ops[i] * CH + ops[i + 2]) * WH + ops[i + 1]] = ops[i + 3];
+    }
+  }
+  // a town first seen this session after its chunks were already loaded: draw it into them now, then put back what the player changed
+  function patchLoaded(v) {
+    if (v.patched) return; v.patched = true; const L = layout(v);
+    for (const c of world.chunks.values()) { const key = U.mod(c.cx, NCH) + ',' + U.mod(c.cz, NCH); const ops = L.buckets.get(key); if (!ops) continue; const bl = c.blocks; for (let i = 0; i < ops.length; i += 4) bl[(ops[i] * CH + ops[i + 2]) * WH + ops[i + 1]] = ops[i + 3]; world.reapplyEdits(c); }
   }
   function rawSite(cx, cz, id) {
     if (villages.has(id)) return villages.get(id);
@@ -4331,7 +4433,7 @@ const Village = (() => {
   function pickStartSite(spawn) {
     let best = null;
     for (let i = 0; i < 24; i++) {
-      const a = (i / 24) * Math.PI * 2, d = 34;
+      const a = (i / 24) * Math.PI * 2, d = world.preset.id === 'earth' ? 50 : 34;
       const cx = Math.round(spawn.x + Math.cos(a) * d), cz = Math.round(spawn.z + Math.sin(a) * d);
       let sum = 0, sum2 = 0, n = 0, water = false;
       for (let dx = -11; dx <= 11; dx += 2) for (let dz = -11; dz <= 11; dz += 2) { const info = world.colInfo(cx + dx, cz + dz); if (info.h <= SEA + 1) water = true; sum += info.h; sum2 += info.h * info.h; n++; }
@@ -4341,13 +4443,13 @@ const Village = (() => {
     }
     return best;
   }
-  function startRecord(x, y, z) { return { id: 'start', x, z, y, type: 'land', name: nameFor('start'), dist: 0, tier: 0, npcs: [], boss: null, elder: null, starter: true, amen: FULL, guardEnts: [] }; }
+  function startRecord(x, y, z) { const v = { id: 'start', x, z, y, type: 'land', name: nameFor('start'), dist: 0, tier: 0, npcs: [], boss: null, elder: null, starter: true, amen: FULL, guardEnts: [] }; if (world.preset.id === 'earth') { v.size = 'start'; v.R = TOWN_R.start; } return v; }
   function stamp(spawn) {
     const site = pickStartSite(spawn) || { x: Math.round(spawn.x + 34), z: Math.round(spawn.z), y: Math.round(spawn.y) };
     const v = startRecord(site.x, site.y, site.z);
     villages.set('start', v);
     const st = state('start');
-    stampLand(v); stampWall(v, st);
+    if (v.R) { st.R = v.R; patchLoaded(v); } else stampLand(v); stampWall(v, st);
     st.stamped = true;
     // a corridor from spawn to the village so it can be seen from camp
     const sx = Math.floor(spawn.x), sz = Math.floor(spawn.z);
@@ -4480,11 +4582,11 @@ const Village = (() => {
   function furnishElder(hx, hz, dx, dz, vy) { world.setBlock(hx - dx * 2 + (dz ? 1 : 0), vy, hz - dz * 2 + (dx ? 1 : 0), B.PLANKS); world.setBlock(hx - dx * 2 + (dz ? 1 : 0), vy + 1, hz - dz * 2 + (dx ? 1 : 0), B.SNOW); side(hx, hz, dx, dz, vy, -1, B.LOG, B.CLOUD); }
   function furnishVoodoo(hx, hz, dx, dz, vy) { counter(hx, hz, dx, dz, vy); side(hx, hz, dx, dz, vy, 1, B.BASALT, B.VOID); side(hx, hz, dx, dz, vy, -1, B.BASALT, B.EMBER); }
   function furnishPost(hx, hz, dx, dz, vy) { counter(hx, hz, dx, dz, vy); side(hx, hz, dx, dz, vy, 1, B.IRON, B.GLASS); side(hx, hz, dx, dz, vy, -1, B.PLANKS, B.CLOUD); }
-  const FURNISH = { bakery: furnishBakery, juice: furnishJuice, trader: furnishTrader, voodoo: furnishVoodoo, post: furnishPost, armoury: furnishTrader, armourer: furnishTrader, alchemist: furnishJuice, inn: furnishBakery };
+  const FURNISH = { bakery: furnishBakery, juice: furnishJuice, trader: furnishTrader, voodoo: furnishVoodoo, post: furnishPost, armoury: furnishTrader, armourer: furnishTrader, alchemist: furnishJuice, inn: furnishBakery, restaurant: furnishBakery, sanctuary: furnishVoodoo, stables: furnishJuice, aerie: furnishPost, station: furnishPost, elder: furnishElder };
 
   // ---- portals: every village has an arch; held villages' arches are dead, yours link up ----
   function portalBlock(v) { return v.type === 'land' ? { x: v.x + 5, y: v.y, z: v.z - 5 } : v.type === 'sea' ? { x: v.x - 3, y: v.y, z: v.z - 2 } : { x: v.x + 4, y: v.y, z: v.z - 4 }; }
-  function ensurePortal(v) { if (v.founded) return; const s = portalBlock(v); const x = s.x, z = s.z; if (world.getBlock(x, s.y, z) !== B.PORTAL) { world.setBlock(x, s.y, z, B.PORTAL); if (!isSolid(world.getBlock(x, s.y - 1, z))) world.setBlock(x, s.y - 1, z, B.STONE); for (let y = s.y + 1; y <= s.y + 2; y++) if (world.getBlock(x, y, z) !== B.AIR) world.setBlock(x, y, z, B.AIR); } }
+  function ensurePortal(v) { if (v.founded || v.R) return; const s = portalBlock(v); const x = s.x, z = s.z; if (world.getBlock(x, s.y, z) !== B.PORTAL) { world.setBlock(x, s.y, z, B.PORTAL); if (!isSolid(world.getBlock(x, s.y - 1, z))) world.setBlock(x, s.y - 1, z, B.STONE); for (let y = s.y + 1; y <= s.y + 2; y++) if (world.getBlock(x, y, z) !== B.AIR) world.setBlock(x, y, z, B.AIR); } }
   function portalSpot(v) { return v.type === 'land' ? { x: v.x + 5.5, y: v.y, z: v.z - 3.5 } : v.type === 'sea' ? { x: v.x - 2.5, y: v.y, z: v.z - 0.5 } : { x: v.x + 4.5, y: v.y, z: v.z - 2.5 }; }
   function portalList(fromId) {
     const out = [];
@@ -4537,7 +4639,7 @@ const Village = (() => {
     return null;
   }
   // the wall: a ring of blocks around the village with a gate on each side; height follows the ground
-  const wallRadius = (st) => st.expanded ? 18 : 12;
+  const wallRadius = (st) => st.R || (st.expanded ? 18 : 12);
   function isGateCol(dx, dz, wr) { return (Math.abs(dx) === wr && Math.abs(dz) <= 1) || (Math.abs(dz) === wr && Math.abs(dx) <= 1); }
   function ringCols(v, st) {
     const wr = wallRadius(st); const out = [];
@@ -4714,6 +4816,7 @@ const Village = (() => {
     const st = state(v.id);
     if (st.stamped) return;
     world.ensureAround(Math.floor(v.x / CH), Math.floor(v.z / CH), 2, 999);
+    if (v.type === 'land' && v.R) { st.R = v.R; patchLoaded(v); stampWall(v, st); stampRoad(v, st); st.stamped = true; remember(v, st); return; }
     if (v.type === 'land' && (v.size === 'town' || v.size === 'city') && !st.grown) { // a town, or a city: the outer ring built up from the start, with its own shops
       st.grown = true; st.expanded = true; if (v.size === 'city') st.wall = Math.max(st.wall || 0, 1);
       const kinds = v.size === 'city' ? ['armoury', 'armourer', 'alchemist', 'inn', 'post', 'house', 'house', 'house', 'house', 'house', 'house', 'house'] : ['armoury', 'inn', 'alchemist', 'house', 'house', 'house'];
@@ -4842,7 +4945,73 @@ const Village = (() => {
     const v = vid ? villages.get(vid) : null;
     return { id: i, role, name, shop, shopTitle: shop ? shopDef(shop, v).title : null, x: x + 0.5, y, z: z + 0.5, yaw: Math.random() * 6.28, tx: x + 0.5, tz: z + 0.5, wait: 2 + Math.random() * 4, model: m, scale: 1, hover: 0, mesh: R.entityMesh('npc:' + (vid || '') + ':' + i + ':' + role + ':' + style, (mb) => KIN.buildMesh(mb, m)), skyMul: 1, hidden: false, home: { x: x + 0.5, z: z + 0.5 } };
   }
+  // ---- inside a town: shops with their own troubles. Freeing the town opens the gates; some of the shops still need you ----
+  const PROBLEMS = {
+    bakery: { thief: true, say: ['Freed, yes, and thank you. But something keeps getting into the flour store. Small, fast, gone before I turn round.', 'Catch it, or beat it, and I will open the doors again. It runs round the back of the bakery, mostly. Creep up on it.'] },
+    juice: { need: { berry: 12 }, say: ['The presses ran dry while the tyrant sat in the square. Twelve berries and I can start them again.'] },
+    trader: { need: { copper: 4, iron: 2 }, say: ['They took my scales and my strongbox. Four copper and two iron and I can trade again.'] },
+    inn: { need: { planks: 16, glass: 4 }, say: ['His creatures used my rooms as a den. Sixteen planks and four panes of glass and I can put the beds back.'] },
+    restaurant: { need: { berry: 6, frond: 6 }, say: ['A kitchen with no herbs and no fruit is just a room. Six berries, six fronds, and I will feed the whole town.'] },
+    armoury: { need: { iron: 10 }, say: ['My forge has been cold for a year. Ten iron to get it going, and you will have the first pick of the rack.'] },
+    armourer: { need: { iron: 8, frond: 10 }, say: ['Plate needs iron and padding. Eight iron, ten fronds for the lining.'] },
+    alchemist: { need: { glowworm: 5 }, say: ['My lamps went out and my brews with them. Five glowworms, please. They light the stills.'] },
+    post: { need: { planks: 20, iron: 2 }, say: ['The traders stopped coming when the tyrant came. Fix my stalls: twenty planks, two iron for the hinges.'] },
+    station: { need: { iron: 16, planks: 24 }, say: ['The line has not run since the tyrant came. The rails here are rusted through.', 'Sixteen iron and twenty-four planks to relay our stretch of track. Then this town joins the line, and the train runs between every station that is open.'] },
+    sanctuary: { need: { berry: 10, glowworm: 3 }, say: ['The sanctuary garden died while we hid. Ten berries to replant, three glowworms to light the paths, and the Kin will come back to learn.'] },
+    stables: { need: { berry: 20 }, say: ['The horses-of-a-sort ran off when the tyrant came. Twenty berries and I can coax enough back to teach again.'] },
+    aerie: { need: { feather: 4 }, say: ['My training gliders are in rags. Four Sky Feathers to re-skin them.'] },
+  };
+  function closures(v, st) {
+    if (st.closed) return st.closed; st.closed = {};
+    const L = layout(v); const kinds = L.shops.map(s => s.kind).filter(k => PROBLEMS[k] && k !== 'voodoo');
+    let pick;
+    if (v.starter) pick = ['bakery', 'juice', 'station'];
+    else { const r = U.rng(U.strHash(v.id) ^ 0x51); const n = v.size === 'city' ? 4 : v.size === 'town' ? 3 : 2; pick = ['station']; const rest = kinds.filter(k => k !== 'station'); while (pick.length < n + 1 && rest.length) pick.push(rest.splice(r.int(rest.length), 1)[0]); }
+    for (const k of pick) if (kinds.includes(k)) st.closed[k] = true;
+    return st.closed;
+  }
+  function shopOf(v, kind) { return layout(v).shops.find(s => s.kind === kind); }
+  function populateTown(v) {
+    v.npcs = []; const st = state(v.id); const freed = st.freed; const vy = v.y; const L = layout(v); closures(v, st);
+    const r = U.rng(U.strHash(v.id) ^ 0x99); const people = peopleOf(v); const sty = styleOf(v) || 'land';
+    const pname = (i) => people[(i + r.int(people.length)) % people.length]; const title = headmanTitle(v);
+    let i = 0;
+    for (const sh of L.shops) {
+      const kx = sh.x - sh.dirX * 2, kz = sh.z - sh.dirZ * 2;
+      if (sh.kind === 'elder') { v.elder = Object.assign(makeNpc(20, 'elder', sh.x + sh.dirX * 4, sh.z + sh.dirZ * 4, v.starter ? 'Elder Hask' : title + ' ' + pname(7), null, vy, v.id, sty), { hidden: !freed, wander: false }); continue; }
+      if (sh.kind === 'voodoo') { v.npcs.push(Object.assign(makeNpc(13, 'voodoo', kx, kz, shopDef('voodoo', v).keeper, 'voodoo', vy, v.id, sty), { hidden: false, wander: false })); continue; }
+      v.npcs.push(Object.assign(makeNpc(30 + i++, 'keeper', kx, kz, shopDef(sh.kind, v).keeper, sh.kind, vy, v.id, sty), { hidden: !freed, wander: false, shopAt: sh }));
+    }
+    const nV = Math.min(24, Math.round(v.R / 2.2));
+    for (let j = 0; j < nV; j++) { const s0 = L.streets[r.int(L.streets.length)]; const d = (r() * 2 - 1) * (v.R - 8); const along = r() < 0.5; v.npcs.push(villager0(j, along ? s0 + (r() < 0.5 ? -1 : 1) : d, along ? d : s0 + (r() < 0.5 ? -1 : 1), pname(j), freed, vy, v, sty)); }
+    if (v.elder) v.npcs.push(v.elder);
+    for (const n of v.npcs) { const gy = standY(n.x, vy, n.z); n.y = gy != null ? gy : vy; n.home = { x: n.x, z: n.z }; }
+    v.wanderR = 6; makeTraveller(v); buildGuardEnts(v);
+  }
+  function villager0(i, dx, dz, nm, freed, vy, v, sty) { return Object.assign(makeNpc(i, 'villager', v.x + dx, v.z + dz, nm, null, vy, v.id, sty), { hidden: !freed }); }
+  // the thief that raids the bakery
+  function ensureThief(v, st, player) {
+    if (!v.R || !st.freed || !(st.closed || {}).bakery) return;
+    if (v.thief && Wild.list.includes(v.thief)) return; const sh = shopOf(v, 'bakery'); if (!sh || Math.hypot(player.x - sh.x, player.z - sh.z) > 50) return;
+    const pool = KIN.dex('earth').filter(sp => !sp.fusion && sp.home && sp.home.layer === 'Surface' && (sp.rarity || 0) === 1 && sp.shape !== 'serpent');
+    const sp = pool[U.strHash(v.id) % pool.length]; const lv = Math.max(3, Math.min(KIN.capOf(sp), (G.trainerLevel || 1) + 1));
+    const e = Wild.makeEntity(sp, lv, sh.x + 0.5, v.y, sh.z - sh.dirZ * 6 + 0.5, { senseR: 5.5 }); e.thief = v.id; e.speed = 3.4;
+    e.patrol = { ax: sh.x - 5.5, az: sh.z - 5.5, bx: sh.x + 5.5, bz: sh.z + 5.5, period: 7, phase: 0 };
+    Wild.list.push(e); v.thief = e;
+  }
+  function thiefCaught(vid) { const v = villages.get(vid); if (!v) return; const st = state(vid); if (st.closed) delete st.closed.bakery; v.thief = null; UI.sfx('quest'); UI.toast(`${v.name}: the flour thief is dealt with. The bakery is open.`, 'good'); }
+  function fixShop(n) {
+    const v = active; if (!v) return false; const st = state(v.id); const closed = closures(v, st); const k = n.shop; if (!closed[k] || !st.freed) return false;
+    const P = PROBLEMS[k]; const need = P.need || {}; const have = Object.keys(need).every(it => G.player.count(it) >= need[it]);
+    if (P.thief || !have) { Dialogue.show(n.name, P.say.concat(P.need ? ['You have ' + Object.keys(need).map(it => `${G.player.count(it)}/${need[it]} ${ITEMS[it].name}`).join(', ') + '.'] : [])); return true; }
+    Dialogue.show(n.name, ['That is everything. Give me a moment.', k === 'station' ? `There. ${v.name} is back on the line. Any open station, any time.` : 'Open for business. Thank you.'], () => {
+      for (const it in need) G.player.take(it, need[it]); delete closed[k]; UI.sfx('quest'); G.addTrainerXp(60);
+      if (k === 'station') { const sh = shopOf(v, 'station'); G.addRoost({ id: v.id, name: v.name, x: sh.x + sh.dirX * 5 + 0.5, y: v.y, z: sh.z + sh.dirZ * 5 + 0.5, world: world.preset.id }); }
+    });
+    return true;
+  }
   function populate(v) {
+    if (v.R && v.type === 'land') { populateTown(v); return; }
     v.npcs = []; const st = state(v.id); const freed = st.freed; const vy = v.y;
     const r = U.rng(U.strHash(v.id) ^ 0x99); const people = peopleOf(v); const sty = styleOf(v) || (v.type === 'land' ? 'land' : v.type);
     const pname = (i) => people[(i + r.int(people.length)) % people.length];
@@ -5283,10 +5452,11 @@ const Village = (() => {
       else if (!near.npcs.length) { populate(near); ensurePortal(near); }
       if (active && active !== near) { if (active.raid && active.raid.state === 'active') endRaid(active, state(active.id)); clearLieutenants(active); }
       active = near; remember(near, state(near.id));
-      Wild.noSpawn = { x: near.x, z: near.z, r: near.type === 'land' ? (state(near.id).expanded ? 21 : 15) : 16 };
+      Wild.noSpawn = { x: near.x, z: near.z, r: near.type === 'land' ? (near.R ? near.R + 3 : state(near.id).expanded ? 21 : 15) : 16 };
+      if (near.R && !near.patched) patchLoaded(near);
       if (nd < 14) {
         if (!G.lastVillage || G.lastVillage.id !== near.id) G.lastVillage = { id: near.id, x: near.x, y: near.y, z: near.z, name: near.name, world: world.preset.id };
-        if (state(near.id).freed) { G.respawnPoint = { x: near.x + 0.5, y: near.y, z: near.z + (near.type === 'deep' ? -4.5 : 4.5) }; if (near.type !== 'deep' && G.addRoost) G.addRoost({ id: near.id, name: near.name, x: near.x + 0.5, y: near.y, z: near.z + 4.5, world: world.preset.id }); }
+        if (state(near.id).freed) { G.respawnPoint = { x: near.x + 0.5, y: near.y, z: near.z + (near.type === 'deep' ? -4.5 : 4.5) }; if (!near.R && near.type !== 'deep' && G.addRoost) G.addRoost({ id: near.id, name: near.name, x: near.x + 0.5, y: near.y, z: near.z + 4.5, world: world.preset.id }); }
       }
       if (nd < 50) ensureBoss(near, G.trainerLevel);
       ensureLieutenants(near, state(near.id), player);
@@ -5298,6 +5468,7 @@ const Village = (() => {
     if (!active) { if (walkState && !inBattle) elderWalk(dt, player); return; }
     const v = active; const st = state(v.id);
     if (!inBattle) updateRaid(v, st, dt, player);
+    if (!inBattle) ensureThief(v, st, player);
     if (v.gatesClosed !== false && !isNight() && !(v.raid && v.raid.state === 'active')) setGates(v, st, false);
     // guards off duty: stand at their posts and watch you
     if (!(v.raid && v.raid.state === 'active')) for (const g of v.guardEnts) { g.bob += dt; const dx = player.x - g.x, dz = player.z - g.z; if (Math.hypot(dx, dz) < 7) g.yaw = Math.atan2(dx, dz); g.moving = false; g.leap = 0; }
@@ -5401,6 +5572,8 @@ const Village = (() => {
   }
   function talk(n) {
     G.talkNpc = n; // the camera turns to whoever is speaking
+    if (n.shop && active && active.R && fixShop(n)) return;
+    if (n.shop === 'station') { UI.openPanel('train', {}); return; }
     if (n.shop === 'post') { UI.openPanel('shop', postShop(active)); return; }
     if (n.shop) { UI.openPanel('shop', shopDef(n.shop, active)); return; }
     if (n.role === 'voodoo') { UI.openPanel('shop', shopDef('voodoo', active)); return; }
@@ -5458,6 +5631,11 @@ const Village = (() => {
       return true;
     }
     const price = entry.price; if (G.shards < price) { UI.toast('Not enough Shards.', 'bad'); return false; }
+    if (entry.service === 'meal') { if (G.shards < price) { UI.toast('Not enough Shards.', 'bad'); return false; } G.shards -= price; G.addBuff(entry.buff, entry.amt, entry.mins); UI.sfx('caught'); UI.toast(entry.name.split(':')[0] + '. ' + entry.name.split(':')[1].trim() + '.', 'good'); return true; }
+    if (entry.service === 'teach') { const k = G.kin[G.activeIdx]; if (!k) return false; if (k.tech) { UI.toast(`${KIN.name(k)} already knows ${k.tech}.`); return false; } const pr = 60 + k.level * 12; if (G.shards < pr) { UI.toast(`Teaching ${KIN.name(k)} costs ${pr} shards.`, 'bad'); return false; } G.shards -= pr; k.tech = KIN.techFor(k); UI.sfx('quest'); UI.toast(`${KIN.name(k)} learned ${k.tech}.`, 'good'); return true; }
+    if (entry.service === 'calm') { if (G.shards < price) return false; G.shards -= price; for (const k of G.kin) k.hp = KIN.stats(k).hp; UI.sfx('caught'); UI.toast('A day in the garden. Your whole party is whole again.', 'good'); return true; }
+    if (entry.service === 'trust') { const k = G.kin[G.activeIdx]; if (!k) return false; if ((k.trust || 0) >= 0.98) { UI.toast(`${KIN.name(k)} already trusts you completely.`); return false; } if (G.shards < price) return false; G.shards -= price; k.trust = Math.min(1, (k.trust || 0) + 0.4); UI.sfx('caught'); UI.toast(`A long morning in the ring. ${KIN.name(k)} trusts you more (${Math.round(k.trust * 100)}%).`, 'good'); return true; }
+    if (entry.service === 'tune') { const P = G.player; if (!P.has('glider')) { UI.toast('You need a glider first. Old Wren has one.', 'bad'); return false; } if ((P.gearPower.glider || {}).mark === 'Merrow') { UI.toast('Already tuned.'); return false; } if (G.shards < price) return false; G.shards -= price; P.gearPower.glider = { power: 1.3, mark: 'Merrow', shards: 0 }; UI.sfx('quest'); UI.toast('Captain Merrow re-rigs your glider. It flies further and faster now.', 'good'); return true; }
     if (entry.service === 'rest') { if (G.kin.every(k => k.hp >= KIN.stats(k).hp)) { UI.toast('Your party is already whole.'); return false; } G.shards -= price; for (const k of G.kin) k.hp = KIN.stats(k).hp; UI.sfx('caught'); UI.toast('Mama Oyé wakes and mends every Kin.', 'good'); return true; }
     G.shards -= price; G.player.add(entry.item, entry.n || 1); UI.sfx('place');
     if (shop.post && entry.postIdx != null) { const st = state(shop.post); if (st.postSold) st.postSold.idx.push(entry.postIdx); shop.stock.splice(shop.stock.indexOf(entry), 1); }
@@ -5480,7 +5658,7 @@ const Village = (() => {
     const WS = wallSet(v);
     const wall = v.type === 'land' ? (v.founded ? { name: ['Wood', 'Stone', 'Iron', 'Voidsteel'][v.wallTier || 0], bonus: wallBonus(v, st), founded: true } : { name: WS[st.wall || 0].name, bonus: wallBonus(v, st), holes: st.holeCols.length, next: WS[(st.wall || 0) + 1] || null, repair: 5 * st.holeCols.length }) : { name: v.type === 'sea' ? 'The sea' : 'The deep', bonus: wallBonus(v, st) };
     const nightsToTyrant = st.freedDay == null ? null : 7 - ((curNight() - st.freedDay) % 7);
-    return { st, lvl, next, guards, cap: guardCap(st), def, raid, need, wall, tyrant: bossLevelFor(v), nightsToTyrant, income: incomeFor(v, st), amen: amenCount(v, st), canExpand: v.type === 'land' && !v.founded && !st.expanded, canBuild: v.type === 'land' && !v.founded && st.expanded, slotsLeft: SLOTS.length - st.shops.length, EXPAND, SHOP_BUILD, costText, canPay, report: st.report, hasPost: hasAmen(v, st, 'post'), dome: !!st.dome, canDome: v.type === 'land' && !st.dome, hasDomeKit: G.player.has('kit_dome') };
+    return { st, lvl, next, guards, cap: guardCap(st), def, raid, need, wall, tyrant: bossLevelFor(v), nightsToTyrant, income: incomeFor(v, st), amen: amenCount(v, st), canExpand: v.type === 'land' && !v.founded && !st.expanded && !v.R, canBuild: v.type === 'land' && !v.founded && st.expanded && !v.R, slotsLeft: SLOTS.length - st.shops.length, EXPAND, SHOP_BUILD, costText, canPay, report: st.report, hasPost: hasAmen(v, st, 'post'), dome: !!st.dome, canDome: v.type === 'land' && !st.dome, hasDomeKit: G.player.has('kit_dome') };
   }
   // everything worth a dot on the minimap, near the player
   function markers(px, pz, cells = 1) {
@@ -5508,7 +5686,7 @@ const Village = (() => {
     if (G.stats && G.stats.villageFreed && !st.freed && !st.retakenOnce) { st.freed = true; st.income = incomeFor(villages.get('start'), st); if (st.freedDay == null) st.freedDay = curNight(); }
     if (!G.fisherSpot && !G.fisherTried) { G.fisherTried = true; placeFisher(villages.get('start')); }
   }
-  return { init, stamp, restoreStart, update, pick, talk, entities, buy, sell, sellValue, raiseDome, shopDef, freed, onBossGone, lieutenantDown, tableChallenge, placeKit, portalList, portalHere, markers, wakeDialogue, questTarget, dawn, pendingIncome, foundingInfo, foundVillage, summaryHtml, ledger, station, recall, upgradeWall, repairWall, expand, build, postShop, levelOf, SHOPS, WALLS,
+  return { thiefCaught, layout, townList, init, stamp, restoreStart, update, pick, talk, entities, buy, sell, sellValue, raiseDome, shopDef, freed, onBossGone, lieutenantDown, tableChallenge, placeKit, portalList, portalHere, markers, wakeDialogue, questTarget, dawn, pendingIncome, foundingInfo, foundVillage, summaryHtml, ledger, station, recall, upgradeWall, repairWall, expand, build, postShop, levelOf, SHOPS, WALLS,
     get def() { return active ? { x: active.x, y: active.y, z: active.z } : null; }, set def(v) { restoreStart(v); }, get active() { return active; }, get boss() { return active ? active.boss : null; }, get elder() { return active ? active.elder : null; }, get walking() { return !!walkState; }, get fisher() { return fisher; } };
 })();
 
@@ -8078,7 +8256,7 @@ const UI = (() => {
     const inDome = inV && va.type === 'deep' && Math.hypot(va.x - p.x, va.z - p.z) < 11 && p.y < SEA;
     const zl = Wild.zoneLevel ? Wild.zoneLevel(p.x, p.y, p.z, { layer }, G.trainerLevel) : null;
     el.where.textContent = `${inV ? va.name + ' · ' : ''}${inDome ? 'Dome' : layer} · ${layer === 'Surface' || layer === 'Water' ? biome + ' · ' : ''}y ${Math.floor(p.y)}${zl != null ? ' · wild Lv ~' + zl : ''}`;
-    const wl = Weather.label(); el.weather.textContent = ((p.chill || 0) > 0.05 ? (p.coldKind === 'space' ? 'FREEZING · no air · ' : 'FREEZING · ') : '') + (layer === 'Surface' || layer === 'Sky' || layer === 'Water' ? (wl === 'clear' ? ((R.state.day || 0) < 0.3 ? 'night' : 'clear') : wl + ((R.state.day || 0) < 0.3 ? ' · night' : '')) : '');
+    const bt = G.buffText ? G.buffText() : ''; const wl = Weather.label(); el.weather.textContent = (bt ? bt + ' · ' : '') + ((p.chill || 0) > 0.05 ? (p.coldKind === 'space' ? 'FREEZING · no air · ' : 'FREEZING · ') : '') + (layer === 'Surface' || layer === 'Sky' || layer === 'Water' ? (wl === 'clear' ? ((R.state.day || 0) < 0.3 ? 'night' : 'clear') : wl + ((R.state.day || 0) < 0.3 ? ' · night' : '')) : '');
     const pinTxt = (() => { if (!G.pin) return ''; const dx = U.mod(G.pin.x - p.x + WORLD_W / 2, WORLD_W) - WORLD_W / 2, dz = U.mod(G.pin.z - p.z + WORLD_W / 2, WORLD_W) - WORLD_W / 2; const d = Math.round(Math.hypot(dx, dz)); if (d < 6) { G.pin = null; toast('You are at your pin.'); return ''; } const dirs = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW']; const ang = Math.atan2(dx, -dz); return ` · ◎ pin ${d}m ${dirs[Math.round(((ang / (Math.PI * 2)) + 1) * 8) % 8]}`; })();
     const now = performance.now(); const fx = (G.repelUntil > now ? ` · hush ${Math.ceil((G.repelUntil - now) / 1000)}s` : G.lure && G.lure.until > now ? ` · ${G.lure.elem} lure ${Math.ceil((G.lure.until - now) / 1000)}s` : '') + Npcs.hudText();
     { const ft = Combat.focusText(); el['quest-hint'].textContent = ft ? '⚔ ' + ft : Quests.hintText() + pinTxt + fx; }
@@ -8119,6 +8297,7 @@ const UI = (() => {
     else if (name === 'fusion') renderFusion(data);
     else if (name === 'relics') renderRelics(data);
     else if (name === 'runeforge') renderForge(data);
+    else if (name === 'train') renderTrain(data);
     else if (name === 'detail') renderDetail(data);
     else if (name === 'shop') renderShop(data);
     else if (name === 'bag') renderBag();
@@ -8272,6 +8451,12 @@ const UI = (() => {
     const slots = [];
     for (let i = 0; i < 5; i++) { const k = keys[i]; slots.push(k ? `<span class="chip" data-unsec="${k}" style="background:${ITEMS[k].col}">${ITEMS[k].name} ×${Math.min(p.count(k), G.secure[k])} ✕</span>` : `<span class="chip empty" data-sec="${i}">+ secure</span>`); }
     return `<h4>Secure slots</h4><p class="note">If the wild beats you, your bag is lost except gear, rods and these five slots (up to 10 of an item each). Kin and Shards are always safe.</p><div class="ingr">${slots.join('')}</div>`;
+  }
+  function renderTrain() {
+    setTitle('Station');
+    const rs = (G.stats.roosts || []).filter(r => (r.world || 'earth') === G.worldId); const here = G.roostHere();
+    el['panel-body'].innerHTML = `<p class="note">${rs.length < 2 ? 'This is the only open station on the line so far. Free other towns and fix their stations, and the train will run to them.' : 'Where to? The fare goes up with the distance.'} You have ◆ ${G.shards}.</p><div class="roosts">${rs.map(r => { const me = here && here.id === r.id; const c = G.roostCost(r); return `<button class="btn ${me ? 'ghost' : ''}" data-roost="${r.id}" ${!here || me || G.shards < c ? 'disabled' : ''}>${r.name}${me ? ' (here)' : ` · ◆ ${c}`}</button>`; }).join('')}</div>`;
+    el['panel-body'].querySelectorAll('[data-roost]').forEach(b => b.addEventListener('click', () => G.flyTo(b.dataset.roost)));
   }
   function renderForge(d) {
     setTitle(d.who || 'Runeforge');
@@ -8465,7 +8650,7 @@ const UI = (() => {
     setTitle('Map');
     el['panel-body'].innerHTML = `<div class="maphead"><button class="btn ghost" id="map-out">−</button><span class="small">${Math.round(BIG.bpp * BIG.size)} blocks across · north up · you are the arrow</span><button class="btn ghost" id="map-in">+</button></div><canvas id="bigmap" width="480" height="480"></canvas><p class="small">Drag the map to look around; tap it to drop a pin, and the compass and the hint line guide you to it. <button class="btn ghost" id="map-centre">Back to me</button> ${G.pin ? '<button class="btn ghost" id="pin-clear">Clear pin</button>' : ''}</p><p class="small"><span style="color:#5ad66a">●</span> village you hold · <span style="color:#ff4040">●</span> held by a tyrant · <span style="color:#d9b36a">●</span> hermit · <span style="color:#ffd040">●</span> someone with a job · <span style="color:#5b9fd0">●</span> Brannock · <span style="color:#ff6a3a">△</span> Painted camp · ⚗ lab · ⌖ den · ✶ legendary · ▲ landing pad · ✦ camp fire · ★ quest · ⚑ fisherman's target · <span style="color:#ff6060">●</span> tyrant and guards · <span style="color:#ffb0a0">●</span> wild Kin</p>`;
     { const rs = (G.stats.roosts || []).filter(r => (r.world || 'earth') === G.worldId); if (rs.length) { const here = G.roostHere();
-      el['panel-body'].insertAdjacentHTML('beforeend', `<h4>Roosts</h4><p class="small">${here ? `You are at ${here.name}. The Skyhauler flies you to any village you hold and have stood in.` : 'Stand in a village you hold to fly from its roost.'}</p><div class="roosts">${rs.map(r => { const me = here && here.id === r.id; const c = G.roostCost(r); return `<button class="btn ${me ? 'ghost' : ''}" data-roost="${r.id}" ${!here || me || G.shards < c ? 'disabled' : ''}>${r.name}${me ? ' (here)' : ` · ◆ ${c}`}</button>`; }).join('')}</div>`);
+      el['panel-body'].insertAdjacentHTML('beforeend', `<h4>Train stations</h4><p class="small">${here ? `You are at ${here.name} station.` : 'Board at any station whose line you have fixed.'}</p><div class="roosts">${rs.map(r => { const me = here && here.id === r.id; const c = G.roostCost(r); return `<button class="btn ${me ? 'ghost' : ''}" data-roost="${r.id}" ${!here || me || G.shards < c ? 'disabled' : ''}>${r.name}${me ? ' (here)' : ` · ◆ ${c}`}</button>`; }).join('')}</div>`);
       el['panel-body'].querySelectorAll('[data-roost]').forEach(b => b.addEventListener('click', () => G.flyTo(b.dataset.roost))); } }
     BIG.cv = document.getElementById('bigmap'); BIG.ctx = BIG.cv.getContext('2d'); BIG.dirty = true; BIG.ox = 0; BIG.oz = 0;
     drawMap(BIG, G.player, true);
@@ -9093,7 +9278,7 @@ const Combat = (() => {
   function blocking() { return !!(G.player.blocking && shield()); }
   function update(dt, p, input) {
     swingCd = Math.max(0, swingCd - dt); if (p.swingT > 0) p.swingT -= dt;
-    armT -= dt; if (armT <= 0) { armT = 1; const mx = 10 + (wornPerk('heart', true) ? 2 : 0); if (p.maxHp !== mx) { p.maxHp = mx; if (p.hp > mx) p.hp = mx; } }
+    armT -= dt; if (armT <= 0) { armT = 1; const hb = G.buffOn ? G.buffOn('hearts') : null; const mx = 10 + (wornPerk('heart', true) ? 2 : 0) + (hb ? hb.amt : 0); if (p.maxHp !== mx) { p.maxHp = mx; if (p.hp > mx) p.hp = mx; } }
     // holding a weapon with a shield in the bag: hold means block, not dig
     const w = weapon(); const sh = shield();
     const wantBlock = !!(w && sh && input && input.mine);
@@ -10024,6 +10209,7 @@ G.onBattleEnd = function (result, wildE, wild, mine, ambush) {
     if (wildE.keepBoss) Keeps.onBattle(wildE.keepBoss, result);
     if (wildE.finalBoss) Keeps.onFinal(result);
     if (wildE.citadelFirst) Citadel.onBattle(wildE, result);
+    if (wildE.thief) Village.thiefCaught(wildE.thief);
     if (result === 'won') {
       const dom = KIN.dominant(wild.sp.elem, 1)[0];
       if (Math.random() < ((wild.sp.rarity || 0) >= 2 || wildE.elite ? 1 : 0.6)) { p.add('ess_' + dom, 1); UI.toast(`${dom} Essence collected.`); }
@@ -10180,7 +10366,7 @@ G.loop = function (t) {
     const nightNow = Math.cos(w.time * Math.PI * 2) > 0.17;
     if (this.wasNight === true && !nightNow) this.onDawn();
     this.wasNight = nightNow;
-    Weather.update(dt);
+    Weather.update(dt); this.stats.playT = (this.stats.playT || 0) + dt;
     if (!inBattle) {
       p.yaw -= input.lookDX; p.pitch = U.clamp(p.pitch - input.lookDY, -1.55, 1.55);
       if (input.hotbarDelta) { p.sel += input.hotbarDelta; UI.renderHotbar(); }
@@ -10381,25 +10567,26 @@ G.addRoost = function (r) {
   if (!this.stats.roosts) this.stats.roosts = [];
   if (this.stats.roosts.some(x => x.id === r.id)) return;
   this.stats.roosts.push(r);
-  if (this.stats.roosts.length === 2 && !this.stats.roostTold) { this.stats.roostTold = true; this.explain('Roosts', 'Every village you hold keeps a Skyhauler, a big carrier Kin, on a roost. Standing in one of your villages, open the Map and pick another village from the Roosts list: it flies you there for a few shards. You can only fly to villages you have already stood in.'); }
+  if (this.stats.roosts.length === 2 && !this.stats.roostTold) { this.stats.roostTold = true; this.explain('The train', 'Two stations open. The line runs between every town whose station you have fixed: talk to any stationmaster and pick where to go, for a few shards. Every town you free has a station; every station has its own repairs.'); }
 };
 G.roostHere = function () {
   const v = Village.active, p = this.player; if (!v || v.type === 'deep') return null;
-  const st = this.villageState[v.id]; if (!st || !st.freed || Math.hypot(v.x - p.x, v.z - p.z) > 30) return null;
-  return (this.stats.roosts || []).find(r => r.id === v.id) || null;
+  const st = this.villageState[v.id]; if (!st || !st.freed) return null;
+  const r = (this.stats.roosts || []).find(r => r.id === v.id); if (!r) return null;
+  return Math.hypot(r.x - p.x, r.z - p.z) < (v.R ? 16 : 30) ? r : null;
 };
 G.roostCost = function (r) { const p = this.player; const d = Math.hypot(U.mod(r.x - p.x + WORLD_W / 2, WORLD_W) - WORLD_W / 2, U.mod(r.z - p.z + WORLD_W / 2, WORLD_W) - WORLD_W / 2); return 4 + Math.round(d / 150); };
 G.flyTo = function (id) {
   const r = (this.stats.roosts || []).find(x => x.id === id); const here = this.roostHere();
   if (!r || !here || r.id === here.id || (r.world || 'earth') !== this.worldId) return;
-  const cost = this.roostCost(r); if (this.shards < cost) { UI.toast(`The Skyhauler wants ${cost} shards for that.`, 'bad'); return; }
+  const cost = this.roostCost(r); if (this.shards < cost) { UI.toast(`The fare is ${cost} shards.`, 'bad'); return; }
   this.shards -= cost; UI.closePanel();
   const f = document.getElementById('fade'); f.style.opacity = 1; this.paused = true; Controls.setEnabled(false); UI.sfx('quest');
   setTimeout(() => {
     const p = this.player, w = this.world; w.ensureAround(Math.floor(r.x / CH), Math.floor(r.z / CH), 3, 9999);
     p.x = r.x; p.z = r.z; const gy = w.groundY(Math.floor(r.x), Math.floor(r.z)); p.y = Math.max(Number.isFinite(gy) ? gy + 1 : -1, Number.isFinite(r.y) ? r.y : -1, SEA + 1) + 0.05; p.vx = p.vy = p.vz = 0; p.fallStart = null; p.gliding = false;
     this.meshPass(999); this.paused = false; Controls.setEnabled(true);
-    setTimeout(() => { f.style.opacity = 0; UI.toast(`The Skyhauler sets you down at ${r.name}.`, 'good'); }, 300);
+    setTimeout(() => { f.style.opacity = 0; UI.toast(`The train pulls into ${r.name}.`, 'good'); }, 300);
   }, 1100);
 };
 // ---------- save / load ----------
@@ -10518,6 +10705,11 @@ G.giveLostMap = function (from) {
   Dialogue.show(from, ['Here. An old map, older than me. There is a ring of cliffs on the far side of the world with a jungle inside, and things in it that walked here before anything else did.', 'There is one way in, a tunnel through the rock. I have marked it. It is a long road; take a mount and plenty of tonics.'], () => UI.toast('The Lost World is on your map and your compass now: 🦖.', 'good'));
   return true;
 };
+// meals and the like: a buff runs on play time, not the clock on the wall
+G.addBuff = function (k, amt, mins) { if (!this.stats.buffs) this.stats.buffs = {}; this.stats.buffs[k] = { amt, until: (this.stats.playT || 0) + mins * 60 }; };
+G.buffOn = function (k) { const b = (this.stats.buffs || {})[k]; return b && b.until > (this.stats.playT || 0) ? b : null; };
+G.buffMul = function (k) { const b = this.buffOn(k); return b ? b.amt : 1; };
+G.buffText = function () { const B0 = this.stats.buffs || {}; const now = this.stats.playT || 0; const ic = { hearts: '❤', mine: '⛏', speed: '»', breath: '◌' }; return Object.keys(B0).filter(k => B0[k].until > now).map(k => `${ic[k] || k} ${Math.ceil((B0[k].until - now) / 60)}m`).join(' '); };
 G.damageMul = function () { return (typeof Npcs !== 'undefined' && this.amulet && Npcs.active('skin')) ? 0.5 : 1; };
 G.chestKey = function (x, y, z) { return `${this.worldId}:${U.mod(x, WORLD_W)},${y},${U.mod(z, WORLD_W)}`; };
 G.chestAt = function (x, y, z, create) { if (!this.chests) this.chests = {}; const k = this.chestKey(x, y, z); if (!this.chests[k] && create) this.chests[k] = { items: {} }; return this.chests[k] || null; };
