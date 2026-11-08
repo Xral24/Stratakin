@@ -7644,9 +7644,20 @@ const Camps = (() => {
   const wd = (d) => U.mod(d + WORLD_W / 2, WORLD_W) - WORLD_W / 2;
   const dist2d = (ax, az, bx, bz) => Math.hypot(wd(ax - bx), wd(az - bz));
   const NAMES = ['the Red Hand', 'the Ashen', 'the Thornfolk', 'the Marsh Painted', 'the Dust Painted', 'the Bone Circle'];
-  function init(game) { G = game; world = game.world; camps.clear(); active = null; }
+  function init(game) { G = game; world = game.world; camps.clear(); active = null; chosen = null; }
   function poi(id) { if (!G.poiState) G.poiState = {}; if (!G.poiState[id]) G.poiState[id] = {}; return G.poiState[id]; }
-  function campFor(cx, cz) {
+  let chosen = null;
+  function plan() {
+    if (chosen) return chosen; chosen = new Set(); const sx = Math.floor(U.mod(world.spawn.x, WORLD_W) / CELL), sz = Math.floor(U.mod(world.spawn.z, WORLD_W) / CELL); const cands = [];
+    for (let dx = -10; dx <= 10; dx++) for (let dz = -10; dz <= 10; dz++) { const c = rawCamp(sx + dx, sz + dz); if (!c) continue; const d = dist2d(c.x, c.z, world.spawn.x, world.spawn.z); if (d < 400 || d > 2500) continue; cands.push([d, c]); }
+    cands.sort((a, b) => a[0] - b[0]); const picked = [];
+    for (const [, c] of cands) { if (picked.length >= 6) break; if (picked.some(o => dist2d(o.x, o.z, c.x, c.z) < 380)) continue;
+      if (Village.townList().some(t => dist2d(t.x, t.z, c.x, c.z) < (t.R || 20) + 60)) continue; if (Keeps.sites().some(k => dist2d(k.x, k.z, c.x, c.z) < 200)) continue; if (Farms.sites().some(f => dist2d(f.x, f.z, c.x, c.z) < 150)) continue;
+      picked.push(c); chosen.add(c.id); }
+    return chosen;
+  }
+  function campFor(cx, cz) { if (world.preset.id !== 'earth') return null; const c = rawCamp(cx, cz); return c && plan().has(c.id) ? c : null; }
+  function rawCamp(cx, cz) {
     if (world.preset.id !== 'earth') return null;
     cx = U.mod(cx, NC); cz = U.mod(cz, NC);
     const id = 'c' + cx + ',' + cz;
@@ -7656,13 +7667,13 @@ const Camps = (() => {
       const h1 = U.hash3(cx, 62, cz, 0x5EED), h2 = U.hash3(cx, 63, cz, 0x5EED);
       const x = Math.round(cx * CELL + 40 + h1 * (CELL - 80)), z = Math.round(cz * CELL + 40 + h2 * (CELL - 80));
       const info = world.colInfo(x, z);
-      const biomeOk = info.biome === BIOME.SWAMP || info.biome === BIOME.DESERT || info.biome === BIOME.PLAINS;
+      const biomeOk = info.biome === BIOME.SWAMP || info.biome === BIOME.DESERT || info.biome === BIOME.PLAINS || info.biome === BIOME.FOREST;
       if (biomeOk && info.h > SEA + 3 && info.h < 64 && !info.lost && !info.lostRim && dist2d(x, z, world.spawn.x, world.spawn.z) > 350) {
         let sum = 0, sum2 = 0, n = 0, wet = false;
         for (let dx = -10; dx <= 10; dx += 2) for (let dz = -10; dz <= 10; dz += 2) { const ci = world.colInfo(x + dx, z + dz); if (ci.h <= SEA + 1) wet = true; sum += ci.h; sum2 += ci.h * ci.h; n++; }
         const mean = sum / n, varc = sum2 / n - mean * mean;
         const villageNear = Village.markers(x, z, 1).some(m => m.kind === 'village' && dist2d(m.x, m.z, x, z) < 110);
-        if (!wet && varc < 14 && !villageNear) { const r = U.combine(0xCA4, cx, cz); c = { id, x, z, y: Math.round(mean), name: 'camp of ' + NAMES[r % NAMES.length], seedN: r, warriors: [], strider: null, alarm: 0, scaredUntil: 0, scared: false, lastSeen: 0 }; }
+        if (!wet && varc < 24 && !villageNear) { const r = U.combine(0xCA4, cx, cz); c = { id, x, z, y: Math.round(mean), name: 'camp of ' + NAMES[r % NAMES.length], seedN: r, warriors: [], strider: null, alarm: 0, scaredUntil: 0, scared: false, lastSeen: 0 }; }
       }
     }
     camps.set(id, c);
@@ -7671,7 +7682,7 @@ const Camps = (() => {
   // ---- the camp itself: a ring of hide tents round a fire, the chief's hut, the corral ----
   function stamp(c) {
     const set = (x, y, z, id) => world.setBlock(x, y, z, id); const vx = c.x, vz = c.z, vy = c.y;
-    for (let dx = -12; dx <= 12; dx++) for (let dz = -12; dz <= 12; dz++) for (let y = vy - 3; y <= vy + 7; y++) {
+    for (let dx = -19; dx <= 19; dx++) for (let dz = -19; dz <= 19; dz++) for (let y = vy - 3; y <= vy + 7; y++) {
       const b = world.getBlock(vx + dx, y, vz + dz);
       if (y < vy - 1) { if (!isSolid(b) || isLeaf(b) || b === B.LOG) set(vx + dx, y, vz + dz, B.DIRT); }
       else if (y === vy - 1) { if (!isSolid(b) || isLeaf(b) || b === B.LOG) set(vx + dx, y, vz + dz, B.GRASS); }
@@ -7681,23 +7692,23 @@ const Camps = (() => {
     for (let dx = -1; dx <= 1; dx++) for (let dz = -1; dz <= 1; dz++) set(vx + dx, vy - 1, vz + dz, B.STONE);
     set(vx, vy, vz, B.TORCH); set(vx, vy - 1, vz, B.EMBER);
     // six tents on a ring: hide walls (leaves), a log pole, an opening toward the fire
-    for (let i = 0; i < 6; i++) {
-      const a = i / 6 * Math.PI * 2 + 0.3; const tx = vx + Math.round(Math.cos(a) * 8), tz = vz + Math.round(Math.sin(a) * 8);
+    for (let i = 0; i < 10; i++) {
+      const a = i / 10 * Math.PI * 2 + 0.3; const tx = vx + Math.round(Math.cos(a) * 13), tz = vz + Math.round(Math.sin(a) * 13);
       const fx = Math.sign(vx - tx), fz = Math.sign(vz - tz);
       for (let dx = -1; dx <= 1; dx++) for (let dz = -1; dz <= 1; dz++) { const wall = Math.abs(dx) === 1 || Math.abs(dz) === 1; for (let y = vy; y <= vy + 1; y++) set(tx + dx, y, tz + dz, wall ? B.LEAVES : B.AIR); set(tx + dx, vy + 2, tz + dz, B.LEAVES); }
       set(tx, vy + 3, tz, B.LOG); set(tx + fx, vy, tz + fz, B.AIR); set(tx + fx, vy + 1, tz + fz, B.AIR);
       c['tent' + i] = { x: tx, z: tz };
     }
     // the chief's hut, north of the fire: plank walls, a totem at the door, the hoard at the back
-    const hx = vx, hz = vz - 7;
+    const hx = vx, hz = vz - 6;
     for (let dx = -2; dx <= 2; dx++) for (let dz = -2; dz <= 2; dz++) { set(hx + dx, vy - 1, hz + dz, B.PLANKS); const wall = Math.abs(dx) === 2 || Math.abs(dz) === 2; for (let y = vy; y <= vy + 2; y++) set(hx + dx, y, hz + dz, wall ? B.PLANKS : B.AIR); set(hx + dx, vy + 3, hz + dz, B.LOG); }
     set(hx, vy, hz + 2, B.AIR); set(hx, vy + 1, hz + 2, B.AIR); // door toward the fire
     set(hx - 3, vy, hz + 3, B.LOG); set(hx - 3, vy + 1, hz + 3, B.LOG); set(hx - 3, vy + 2, hz + 3, B.TORCH); set(hx + 3, vy, hz + 3, B.LOG); set(hx + 3, vy + 1, hz + 3, B.LOG); set(hx + 3, vy + 2, hz + 3, B.TORCH); // totems
     set(hx, vy, hz - 1, B.CHEST); c.chest = { x: hx, y: vy, z: hz - 1 };
     const st = poi(c.id);
-    if (!st.looted) { const ch = G.chestAt(hx, vy, hz - 1, true); const r = U.rng(c.seedN ^ 0x60); ch.items = { gold: 5 + r.int(5), diamond: 1 + r.int(3) }; ch.treasure = true; st.looted = true; }
+    if (!st.looted) { const ch = G.chestAt(hx, vy, hz - 1, true); const r = U.rng(c.seedN ^ 0x60); ch.items = { gold: 5 + r.int(4), diamond: r.int(2) }; ch.treasure = true; st.looted = true; st.refillDay = G.dayCount || 0; }
     // the corral, east: fence posts round a patch of gravel, the Duststrider inside
-    const kx = vx + 9, kz = vz + 7;
+    const kx = vx + 6, kz = vz + 7;
     for (let dx = -3; dx <= 3; dx++) for (let dz = -3; dz <= 3; dz++) { set(kx + dx, vy - 1, kz + dz, B.GRAVEL); if ((Math.abs(dx) === 3 || Math.abs(dz) === 3) && (dx + dz) % 2 === 0) set(kx + dx, vy, kz + dz, B.LOG); }
     c.corral = { x: kx, z: kz };
   }
@@ -7708,11 +7719,11 @@ const Camps = (() => {
   }
   function populate(c) {
     c.warriors = [];
-    for (let i = 0; i < 7; i++) {
+    for (let i = 0; i < 12; i++) {
       const sp = warriorSpecies(i, c.seedN); const m = KIN.model(sp, 2); KIN.decorate(m, 'warrior');
-      const t = c['tent' + (i % 6)]; const a = i / 7 * Math.PI * 2; const r0 = 9 + (i % 3) * 2;
+      const t = c['tent' + (i % 10)]; const a = i / 12 * Math.PI * 2; const r0 = 10 + (i % 4) * 3;
       const w = { i, role: 'warrior', name: 'Painted warrior', x: c.x + Math.cos(a) * r0, z: c.z + Math.sin(a) * r0, y: c.y, yaw: 0, model: m, mesh: R.entityMesh('warrior:' + (i % 4), (mb) => KIN.buildMesh(mb, m)), route: { r: r0, phase: a, period: 26 + i * 3 }, tent: t, alert: 0, hitCd: 0, sleeping: false, bob: Math.random() * 6, state: 'patrol' };
-      w.y = standY(w.x, c.y, w.z) ?? c.y;
+      w.y = standY(w.x, c.y, w.z) ?? c.y; w.rider = i < 4; if (w.rider) { w.name = 'Painted rider'; w.scale = 1.35; }
       c.warriors.push(w);
     }
     // the Duststrider: a fast, sandy quadruped that will not go in a table and never changes
@@ -7736,6 +7747,7 @@ const Camps = (() => {
     const st = poi(near.id);
     if (!st.stamped) { world.ensureAround(Math.floor(near.x / CH), Math.floor(near.z / CH), 2, 999); stamp(near); st.stamped = true; G.meshPass(99); UI.toast(`A ${near.name}. Spears on the totems. They do not take visitors.`, 'bad'); }
     if (!near.warriors.length) populate(near);
+    if (near.chest && isNight() && st.refillDay !== (G.dayCount || 0)) { const ch = G.chestAt(near.chest.x, near.chest.y, near.chest.z, true); const r = U.rng(near.seedN ^ (G.dayCount || 0) * 977); ch.items = ch.items || {}; ch.items.gold = Math.max(ch.items.gold || 0, 5 + r.int(4)); if (r() < 0.4) ch.items.diamond = Math.max(ch.items.diamond || 0, 1); ch.treasure = true; st.refillDay = G.dayCount || 0; }
     active = near;
     const c = near; const night = isNight(); const now = performance.now() / 1000;
     // a dinosaur in the saddle scares them off; on foot you get half a minute before they come back
@@ -7757,7 +7769,9 @@ const Camps = (() => {
       }
       if (c.alarm > 0 && !inBattle) { // the chase
         const far = dist2d(w.x, w.z, c.x, c.z) > 48 || d > 60;
-        if (!far && d > 1.4) { const sp = 3.95 * dt; move(w, w.x + dx / d * sp, w.z + dz / d * sp); w.yaw = Math.atan2(dx, dz); w.moving = true; }
+        const psp = Math.hypot(p.vx, p.vz);
+        if (w.rider && !far && d < 14 && w.hitCd <= 0) { w.hitCd = 1.6; const chance = psp > 16 ? 0 : psp > 12 ? 0.3 : psp > 7 ? 0.6 : 0.85; if (Math.random() < chance) { p.damage(2, 'spear'); p.hurtFlash = 0.5; UI.sfx('hit'); } else UI.sfx('miss'); }
+        if (!far && d > 1.4) { const sp = (w.rider ? (night ? 9 : 13.5) : 3.95) * dt; move(w, w.x + dx / d * sp, w.z + dz / d * sp); w.yaw = Math.atan2(dx, dz); w.moving = true; }
         else if (far) { c.alarm = Math.min(c.alarm, 2); }
         else w.moving = false;
         if (d < 1.7 && Math.abs(p.y - w.y) < 2.2 && w.hitCd <= 0) { w.hitCd = 1.15; p.damage(2, 'spear'); p.hurtFlash = 0.5; w.hitT = 0.3; UI.sfx('hit'); }
@@ -7786,7 +7800,7 @@ const Camps = (() => {
   function entities() {
     if (!active) return [];
     const out = [];
-    for (const w of active.warriors) { if (w.sleeping) continue; out.push({ x: w.x, y: w.y, z: w.z, yaw: w.yaw, model: w.model, mesh: w.mesh, scale: 1, hover: w.moving ? Math.abs(Math.sin(w.bob * 9)) * 0.08 : 0, skyMul: 1 }); }
+    for (const w of active.warriors) { if (w.sleeping) continue; out.push({ x: w.x, y: w.y, z: w.z, yaw: w.yaw, model: w.model, mesh: w.mesh, scale: w.scale || 1, hover: w.moving ? Math.abs(Math.sin(w.bob * 9)) * 0.08 : 0, skyMul: 1 }); }
     if (active.strider) { const s = active.strider; out.push({ x: s.x, y: s.y, z: s.z, yaw: s.yaw, model: s.model, mesh: s.mesh, scale: 1, hover: Math.sin(s.bob * 2) * 0.03, skyMul: 1 }); }
     return out;
   }
@@ -9303,7 +9317,7 @@ const Combat = (() => {
   function armourPts() { const w = worn(); return Object.values(w).reduce((s, a) => s + a.pts, 0); }
   function wornPerk(perk, all) { const w = Object.values(worn()); return all ? w.length === 4 && w.every(a => a.perk === perk) : w.filter(a => a.perk === perk).length; }
   function armourCut(n, cause) {
-    if (!['warrior', 'kin', 'fall', 'lava', 'cold'].includes(cause)) return n;
+    if (!['warrior', 'kin', 'fall', 'lava', 'cold', 'spear'].includes(cause)) return n;
     let pts = armourPts() + (G.buffOn && G.buffOn('ward') ? G.buffOn('ward').amt : 0); if (cause === 'warrior' && G.player.lastArrow && wornPerk('arrow')) pts += 4 * wornPerk('arrow');
     if (cause === 'lava') pts = wornPerk('fire') * 6; if (cause === 'cold') pts = wornPerk('cold') * 6;
     const keep = 20 / (20 + pts); const r = n * keep; return Math.floor(r) + (Math.random() < r - Math.floor(r) ? 1 : 0);
