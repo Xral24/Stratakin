@@ -1857,7 +1857,8 @@ const ITEMS = {
   spacesuit: { name: 'Space Suit', col: '#e8f0ff', gear: true, desc: 'Air and warmth beyond the sky. Without it the Moon freezes you in moments.' },
   ship: { name: 'Starship', col: '#c7fbff', gear: true, desc: 'Forged from Starmetal. Tap it on the surface to board; hold ▲ to climb, hold ▼ to go down. Climb above the clouds to leave the world.' },
 };
-for (const e of ELEMENTS) ITEMS['ess_' + e] = { name: e + ' Essence', col: ELEM_COLOR[e], elem: e, desc: 'Left behind by ' + e + ' Kin. Fusion ingredient.' };
+for (const e of ELEMENTS) ITEMS['ess_' + e] = { name: e + ' Essence', col: ELEM_COLOR[e], elem: e, desc: 'Left behind by ' + e + ' Kin. Three of them and an iron make a ' + e + ' Stone.' };
+for (const e of ELEMENTS) ITEMS['stone_' + e] = { name: e + ' Stone', col: ELEM_COLOR[e], crafted: true, desc: 'A fusion stone. A fusion recipe needs its two Kin and the right stone, together on the table.' };
 for (const e of ELEMENTS) ITEMS['lure_' + e] = { name: e + ' Lure', col: ELEM_COLOR[e], use: 'self', lure: e, crafted: true, desc: 'Drink it and ' + e + ' Kin come to you for four minutes, twice as often and far more of them.' };
 const HOTBAR_ORDER = ['torch', 'snare', 'snare2', 'bread', 'smoothie', 'tonic_revive', 'tonic_heal', 'tonic_vigor', 'tonic_might', 'tonic_swift', 'wood', 'planks', 'glass', 'door', 'ladder', 'chest', 'ironwall', 'voidwall', 'kit_house', 'kit_bakery', 'kit_juice', 'kit_trader', 'kit_voodoo', 'kit_post', 'kit_wall', 'kit_wall_stone', 'kit_wall_iron', 'kit_bridge', 'kit_portal', 'kit_dome', 'rod', 'rod_iron', 'rod_void', 'tonic_hush', 'moonlamp', 'selglass', 'stone', 'dirt', 'sand', 'gravel', 'snow', 'basalt', 'cloud', 'fusion', 'berry', 'glowworm', 'frond', 'copper', 'iron', 'ember', 'void', 'selenite', 'tycho', 'starsalt', 'amber', 'sulfur', 'ringshard', 'coral', 'pearl', 'gold', 'diamond', ...ELEMENTS.map(e => 'ess_' + e), 'bulb', 'glider', 'lavasuit'];
 
@@ -2480,7 +2481,54 @@ const KIN = (() => {
       }
     }
   }
-  function dex(body) { buildUniverse(); return DEX[body] || []; }
+  // ---- recipe fusions: 30 per planet, each a fixed pair plus an element stone, each with its own species ----
+  const RECIPES = {};
+  function recipes(body) {
+    buildUniverse();
+    if (RECIPES[body]) return RECIPES[body];
+    const list = []; RECIPES[body] = list;
+    const nat = DEX[body].filter(sp => !sp.fusion);
+    const pool = (rar) => nat.filter(sp => sp.rarity === rar && sp.home && sp.home.layer !== 'Core' && sp.home.biome !== 'Lost World');
+    const commons = pool(0), uncs = pool(1), rares = pool(2);
+    const homeCommons = commons.filter(sp => sp.home.layer === 'Surface' && ['Plains', 'Forest', 'Mare', 'Dunes'].includes(sp.home.biome)); // the first two are easy to find
+    const r = U.rng(U.combine(SPECIES_SEED[body] || 1, 0xF05E));
+    const usedPair = new Set();
+    for (let i = 0; i < 30; i++) {
+      let a, b;
+      for (let t = 0; t < 40; t++) {
+        if (i < 2) { a = homeCommons[r.int(homeCommons.length)]; b = homeCommons[r.int(homeCommons.length)]; }
+        else if (i < 10) { a = commons[r.int(commons.length)]; b = commons[r.int(commons.length)]; }
+        else if (i < 20) { a = (i % 2 ? uncs : commons)[r.int((i % 2 ? uncs : commons).length)]; b = (i % 3 ? uncs : rares)[r.int((i % 3 ? uncs : rares).length)]; }
+        else { a = list[i - 20].out; b = (i % 2 ? rares : uncs)[r.int((i % 2 ? rares : uncs).length)]; }
+        const key = [a.seed, b.seed].sort().join(':'); if (a !== b && a.home && (!b.home || a.home.biome !== b.home.biome || i >= 20 || i < 2) && !usedPair.has(key)) { usedPair.add(key); break; }
+      }
+      const elA = dominant(a.elem, 1)[0], elB = dominant(b.elem, 1)[0]; const stone = r.chance(0.5) ? elA : elB;
+      const elem = normalize(a.elem.map((v, k) => v * 0.45 + b.elem[k] * 0.35 + (EI[stone] === k ? 0.2 : 0)));
+      const tot = Math.max(...STAT_KEYS.map(() => 0), STAT_KEYS.reduce((s, k) => s + a.base[k], 0), STAT_KEYS.reduce((s, k) => s + b.base[k], 0)) + 70 + (i >= 20 ? 60 : i >= 10 ? 30 : 0);
+      const out = species(U.combine(a.seed, b.seed, 0xF0), [stone], 0, { primary: dominant(elem, 1)[0], shape: r.chance(0.6) ? a.shape : b.shape, rarity: 3, total: tot, neon: body !== 'earth' });
+      out.elem = elem;
+      const stem = a.names[0].slice(0, Math.min(3, a.names[0].length)); const tail = b.names[0].slice(-Math.min(4, b.names[0].length)).toLowerCase();
+      let nm = cap(stem + tail); if (DEX[body].some(x => x.names[0] === nm)) nm = cap(stem + r.pick(MID) + tail);
+      out.names = [nm, cap(nm + r.pick(['ra', 'on', 'ix', 'or'])), cap(nm + r.pick(SUFFIX))];
+      out.colors = { body: hexMix(a.colors.body, b.colors.body, 0.5), belly: b.colors.belly, accent: PALETTE[stone][1], dark: a.colors.dark, eye: PALETTE[stone][3] };
+      out.feat.crest = true; out.fusion = true; out.recipe = { body, i }; out.size = Math.max(a.size || 1, b.size || 1) * 1.1;
+      out.home = null; DEX[body].push(out); out.dex = DEX[body].length;
+      list.push({ i, body, a, b, stone, out });
+    }
+    return list;
+  }
+  function findRecipe(spA, spB) {
+    for (const body of ['earth', 'moon', 'halo']) for (const rc of recipes(body)) if ((rc.a.seed === spA.seed && rc.b.seed === spB.seed) || (rc.a.seed === spB.seed && rc.b.seed === spA.seed)) return rc;
+    return null;
+  }
+  function fuseRecipe(rc, ka, kb) {
+    const level = Math.min(MAX_LEVEL, Math.round((ka.level + kb.level) / 2) + 2);
+    const k = create(rc.out, level);
+    k.iv = {}; for (const key of STAT_KEYS) k.iv[key] = Math.max(ka.iv[key], kb.iv[key]);
+    k.hp = stats(k).hp;
+    return k;
+  }
+  function dex(body) { buildUniverse(); for (const b of ['earth', 'moon', 'halo']) recipes(b); return DEX[body] || []; }
   function bySeed(seed) { buildUniverse(); for (const b in DEX) { const sp = DEX[b].find(x => x.seed === seed); if (sp) return sp; } return null; }
   function mythicSpecies(worldSeed) {
     const sp = species(U.combine(SPECIES_SEED.earth, 777), ['Void'], 10, { primary: 'Void', shape: 'serpent', total: 760, evolveAt: [999, 999], mythic: true, size: 2.6 });
@@ -2908,7 +2956,7 @@ const KIN = (() => {
   function serialize(k) { return { id: k.id, sp: k.sp, level: k.level, xp: k.xp, iv: k.iv, stage: k.stage, hp: k.hp, nick: k.nick, equip: k.equip || null, tech: k.tech || null }; }
   function deserialize(d) { return Object.assign({ status: null }, d); }
 
-  return { E, EI, CHART, STAT_KEYS, STAT_NAMES, growth, xpToNext, dominant, species, speciesForContext, dex, bySeed, HABITATS, mythicSpecies, legendSpecies, apexSpecies, wardenSpecies, MAX_LEVEL, TECH, techFor, techByName, starters, create, stats, name, moves, effectiveness, gainXp, fuse, fusionLevel, TRAITS, RARITY, roster, buildUniverse, decorate, makeStatue, statueModel, shardsFor, model, buildMesh, meshKey, portrait, serialize, deserialize, UTIL_DESC };
+  return { E, EI, CHART, STAT_KEYS, STAT_NAMES, growth, xpToNext, dominant, species, speciesForContext, dex, bySeed, HABITATS, recipes, findRecipe, fuseRecipe, mythicSpecies, legendSpecies, apexSpecies, wardenSpecies, MAX_LEVEL, TECH, techFor, techByName, starters, create, stats, name, moves, effectiveness, gainXp, fuse, fusionLevel, TRAITS, RARITY, roster, buildUniverse, decorate, makeStatue, statueModel, shardsFor, model, buildMesh, meshKey, portrait, serialize, deserialize, UTIL_DESC };
 })();
 
 </script>
@@ -4902,7 +4950,7 @@ const Battle = (() => {
     if (!party.length) { G.toast('All your Kin are down. Revive them at the Voodoo Hut or with a tonic.'); e.alert = 0; e.wait = 4; if (!e.chase) e.cool = 6; return; }
     if (e.chase) { e.chase = null; e.cool = 0; if (Wild.chaser === e) Wild.chaser = null; }
     active = true; busy = true; wildE = e; wild = e.kin; ambush = isAmbush; turn = 0;
-    wild.buffs = buffs(); wild.hp = Math.min(wild.hp, KIN.stats(wild).hp);
+    wild.buffs = buffs(); wild.hp = Math.min(wild.hp, KIN.stats(wild).hp); if (G.seenDex) G.seenDex(wild.sp, "seen");
     mine = G.activeKin() || party[0]; mine.buffs = buffs();
     focusOn = typeof Npcs !== 'undefined' && Npcs.active('focus') && Npcs.useCharge('focus');
     G.onBattleStart(e);
@@ -5257,6 +5305,7 @@ const RECIPES = [
   { id: 'door', out: 'door', n: 1, needs: { planks: 4 }, cat: 'blocks' },
   { id: 'ladder', out: 'ladder', n: 4, needs: { planks: 3 }, cat: 'blocks' },
   { id: 'target', out: 'target', n: 2, needs: { planks: 2, frond: 2 }, cat: 'blocks' },
+  ...ELEMENTS.map(e => ({ id: 'stone_' + e, out: 'stone_' + e, n: 1, needs: { ['ess_' + e]: 3, iron: 1 } })),
   { id: 'arrow', out: 'arrow', n: 6, needs: { wood: 1, stone: 1, frond: 1 } },
   { id: 'arrow_ember', out: 'arrow_ember', n: 4, needs: { wood: 1, ember: 1, frond: 1 } },
   { id: 'chest', out: 'chest', n: 1, needs: { planks: 8, iron: 1 }, cat: 'blocks' },
@@ -5313,7 +5362,7 @@ const QUESTS = [
   { id: 'torch', title: 'Light the Dark', desc: 'Craft torches at the Craft menu (1 wood + 1 glowworm, or 1 wood + 1 ember). Hold one to see in caves, or place them.', hint: 'Craft torches', check: G => (G.stats.crafted.torch || 0) >= 1 ? 1 : 0, reward: { items: { snare: 1 }, xp: 15 } },
   { id: 'mines', title: 'Into the Mines', desc: 'Dig down well below the surface. The Mines begin a few blocks under the ground, where Stone, Spark and Void Kin roam. Ores show as speckled stone: copper brown, iron pale, ember orange, void purple (deep).', hint: 'Descend into the Mines', check: G => G.stats.reachedMines ? 1 : 0, reward: { xp: 30 } },
   { id: 'party', title: 'Company', desc: 'Catch Kin until you hold 4. Different layers and biomes have different Kin.', hint: 'Hold 4 Kin', check: G => G.kin.length / 4, reward: { items: { snare: 2 }, xp: 30 } },
-  { id: 'fuse', title: 'Fusion', desc: 'Tap the Fusion Table at the ruin by your camp. Put two or more Kin in the grid (ores and essences tilt the result) and fuse them. You can never hold more than 20.', hint: 'Fuse two Kin at the Fusion Table', check: G => G.stats.fused >= 1 ? 1 : 0, reward: { xp: 40 } },
+  { id: 'fuse', title: 'Fusion', desc: 'Fusion is not guesswork any more. Every fusion is a recipe: two particular Kin and an element stone. You already know two (see the Fusion Table). Catch the pair, craft the stone (3 essences and an iron), put all three on the table. Quest people teach you more.', hint: 'Fuse a recipe at the Fusion Table', check: G => G.stats.fused >= 1 ? 1 : 0, reward: { xp: 40 } },
   { id: 'void', title: 'Deep Crystal', desc: 'Void Crystal glows purple below y 22. Bring one back.', hint: 'Mine a Void Crystal (below y 22)', check: G => Math.min(1, G.stats.got.void), reward: { items: { snare2: 2 }, xp: 40 } },
   { id: 'suit', title: 'Suit Up', desc: 'The Core is a sea of lava. Craft the Lava Suit (5 iron, 3 void, 4 ember) before you break through the basalt ceiling. Iron Ore is the pale speckled stone below y 46; copper the brown; the trader sells both.', hint: 'Craft the Lava Suit', check: G => G.player.has('lavasuit') ? 1 : 0, reward: { xp: 60 } },
   { id: 'core', title: 'The Core', desc: 'Dig through the basalt ceiling beneath the Mines (below y 14). Expect lava and Flame and Void Kin far above your level.', hint: 'Reach the Core (y below 14)', check: G => G.stats.reachedCore ? 1 : 0, reward: { xp: 80 } },
@@ -6057,6 +6106,7 @@ const Npcs = (() => {
     st.done++; st.quest = null; q.done = true;
     if (world.preset.id === 'earth' && !G.stats.lostMap && (G.stats.questsDone || 0) >= 2) { setTimeout(() => G.giveLostMap(w.name), 900); }
     UI.toast(`${w.name}: +${rw.shards} Shards${rw.amulet ? ' and the ' + ITEMS[rw.amulet].name : Object.keys(rw.items).map(k => ', ' + ITEMS[k].name).join('')}.`, 'good');
+    { const known = ((G.stats.recipes || {})[world.preset.id] || []).length; if (Math.random() < (q.kind === 'build' || q.kind === 'night' ? 0.6 : 0.4) || known < 3) setTimeout(() => G.learnRecipe(world.preset.id, w.name), 1800); }
     G.stats.questsDone = (G.stats.questsDone || 0) + 1;
     if (!G.stats.jobsBy) G.stats.jobsBy = {}; G.stats.jobsBy[world.preset.id] = (G.stats.jobsBy[world.preset.id] || 0) + 1;
   }
@@ -7405,7 +7455,7 @@ const UI = (() => {
     const usedItem = (k) => itemsIn.filter(x => x === k).length;
     if (fs.picking != null) {
       const elemItems = Object.keys(ITEMS).filter(k => ITEMS[k].elem && p.count(k) - usedItem(k) > 0);
-      const craftItems = Object.keys(ITEMS).filter(k => !ITEMS[k].elem && !ITEMS[k].gear && !ITEMS[k].snare && !ITEMS[k].crafted && p.count(k) - usedItem(k) > 0);
+      const craftItems = Object.keys(ITEMS).filter(k => !ITEMS[k].elem && !ITEMS[k].gear && !ITEMS[k].snare && (!ITEMS[k].crafted || k.startsWith('stone_')) && p.count(k) - usedItem(k) > 0);
       body.innerHTML = `<p class="note">Fill slot ${fs.picking + 1}.</p>` +
         `<div class="ingr">${[...elemItems, ...craftItems].map(k => `<span class="chip" data-add="${k}" style="background:${ITEMS[k].col}">${ITEMS[k].name} ×${p.count(k) - usedItem(k)}${ITEMS[k].elem ? ' → ' + ITEMS[k].elem : ''}</span>`).join('') || '<span class="small">No items in your bag.</span>'}</div>` +
         `<h4>Kin</h4>` + G.kin.filter(k => !kinsIn.includes(k)).map(k => kinCard(k)).join('') + `<button class="btn ghost" id="f-cancel">Cancel</button>`;
@@ -7423,16 +7473,19 @@ const UI = (() => {
     const pv = fs.preview;
     let resultHtml = '';
     if (pv) {
-      if (pv.kind === 'fusion') resultHtml = `<h4>Result: fusion of ${pv.n} Kin${pv.items ? ' + ' + pv.items + ' ingredients' : ''}</h4>${kinCard(pv.kin)}<div class="stats">${statBars(pv.kin)}</div>${(pv.kin.sp.traits || []).map(t => `<div class="trait"><b>${t}</b> ${KIN.TRAITS[t]}</div>`).join('')}<p class="small">${pv.n < 6 ? 'Six or more Kin in one fusion grant a trait; twelve grant two. ' : ''}${pv.essNote || ''}</p>`;
+      if (pv.kind === 'fusion') resultHtml = `<h4>Result: ${pv.kin.sp.names[0]}, Kindex #${pv.kin.sp.dex}</h4>${kinCard(pv.kin)}<div class="stats">${statBars(pv.kin)}</div>${(pv.kin.sp.traits || []).map(t => `<div class="trait"><b>${t}</b> ${KIN.TRAITS[t]}</div>`).join('')}<p class="small">${pv.n < 6 ? 'Six or more Kin in one fusion grant a trait; twelve grant two. ' : ''}${pv.essNote || ''}</p>`;
       else if (pv.kind === 'statue') resultHtml = `<h4>Result: object</h4><div class="recipe can"><div class="ico big" style="background:${pv.obj.col}"></div><div class="rinfo"><b>${pv.obj.name}</b><div class="small">${pv.obj.desc} Place it anywhere. ${KIN.name(pv.kin)} is consumed.</div></div></div>`;
       else if (pv.kind === 'craft') resultHtml = `<h4>Result: craft</h4><div class="recipe can"><div class="ico big" style="background:${ITEMS[pv.out].col}"></div><div class="rinfo"><b>${ITEMS[pv.out].name}${pv.n > 1 ? ' ×' + pv.n : ''}${pv.mark ? ' · marked by ' + pv.mark : ''}</b><div class="small">${ITEMS[pv.out].desc}${pv.mark ? ` The Kin ${pv.kins.length > 1 ? 'are' : 'is'} consumed: ${ITEMS[pv.out].gear ? 'the gear works ' + Math.round((pv.power - 1) * 100) + '% better' : 'you get ' + Math.round((pv.power - 1) * 100) + '% more'}.` : ''}</div></div></div>${pv.leftover ? `<p class="small">Unused: ${pv.leftover}</p>` : ''}<p class="small">Anything the table makes cannot go back in. Only raw materials, essences and Kin.</p>`;
       else if (pv.kind === 'distill') resultHtml = `<h4>Result: distillation</h4><div class="recipe can"><div class="ico big" style="background:${ITEMS[pv.out].col}"></div><div class="rinfo"><b>${ITEMS[pv.out].name}</b><div class="small">No recipe matches, so the table distils the strongest element out of the mix.</div></div></div>`;
       else resultHtml = `<p class="small">${pv.msg}</p>`;
     }
-    body.innerHTML = foundingHtml(fs) + `<p class="note">Tap a slot to fill it with a Kin or an item. Two or more Kin fuse into one new species, a little above the median of what went in and stronger the more you commit; ores and plants tilt the result. Items alone craft gear, and essences with berries make tonics. Same inputs, same result, in any order.</p>
+    const recHtml = (() => { const body = G.worldId; const all = KIN.recipes(body); const known = ((G.stats.recipes || {})[body] || []); const have = (sp) => G.kin.some(k => k.sp.seed === sp.seed);
+      return `<h4>Fusion recipes on ${G.world.preset.name} (${known.length} of ${all.length} known)</h4>` + all.filter(rc => known.includes(rc.i)).map(rc => `<div class="recipe ${have(rc.a) && have(rc.b) && G.player.has('stone_' + rc.stone) ? 'can' : ''}"><div class="rinfo"><b>${rc.out.names[0]}</b> <span class="small">#${rc.out.dex}</span><div class="needs">${rc.a.names[0]}${have(rc.a) ? ' ✓' : ''} + ${rc.b.names[0]}${have(rc.b) ? ' ✓' : ''} + ${rc.stone} Stone${G.player.has('stone_' + rc.stone) ? ' ✓' : ''}</div></div></div>`).join('') + (known.length < all.length ? '<p class="note">Quest people teach the rest, one at a time, when you finish their jobs.</p>' : ''); })();
+    body.innerHTML = foundingHtml(fs) + `<p class="note">Tap a slot to fill it. A fusion is a recipe: the two Kin it names and the right element stone (stones are crafted from 3 essences and an iron). Items alone craft gear, and essences with berries make tonics.</p>
       <div class="fgrid">${fs.slots.map(cell).join('')}</div>
       ${resultHtml}
       <div class="row"><button class="btn big" id="f-go" ${pv && pv.kind !== 'none' ? '' : 'disabled'}>${pv && pv.kind === 'craft' ? 'Craft' : pv && pv.kind === 'statue' ? 'Make' : pv && pv.kind === 'distill' ? 'Distil' : 'Fuse'}</button><button class="btn ghost" id="f-clear">Clear</button></div>
+      ${recHtml}
       <h4>Dismantle</h4>
       <p class="note">Take apart anything the table made and get the raw materials back. A Kin that went into it comes back as Shards (◆ ${G.shards}).</p>
       ${(() => { const list = G.dismantleList(); return list.length ? list.map((d, i) => `<div class="recipe"><div class="ico big" style="background:${d.col}"></div><div class="rinfo"><b>${d.name}${d.n > 1 ? ' ×' + d.n : ''}${d.mark ? ' · marked by ' + d.mark : ''}</b><div class="needs">${Object.keys(d.gives).map(k => `<span class="ok">+${d.gives[k]} ${ITEMS[k].name}</span>`).join('')}${d.shards ? `<span class="ok">+${d.shards} ◆</span>` : ''}</div></div><button class="btn ghost" data-dis="${i}">Dismantle</button></div>`).join('') : '<p class="small">Nothing to dismantle. Placed statues must be picked up first (mine them).</p>'; })()}`;
@@ -7645,6 +7698,7 @@ G.newWorld = function (seed, starterIdx, name) {
     w.setBlock(Math.floor(s.x) + 1, Math.floor(s.y), Math.floor(s.z) + 1, B.CAMPFIRE); // the magic camp fire: light and resting spot
     this.camp = { x: Math.floor(s.x) + 1, y: Math.floor(s.y), z: Math.floor(s.z) + 1 };
     p.yaw = Math.atan2(-(this.village.x - s.x), -(this.village.z - s.z));
+    this.stats.recipes = { earth: [0, 1], moon: [0], halo: [0] };
     const starter = KIN.create(KIN.starters(seed)[starterIdx], 5);
     this.kin.push(starter);
     p.add('torch', 2); p.add('snare', 1); p.add('bread', 1);
@@ -7800,9 +7854,16 @@ G.previewGrid = function (slots) {
       return best;
     }
   }
-  // 2. two or more Kin fuse; loose items tilt the elements
+  // 2. fusion is a recipe: exactly two particular Kin and the right element stone
   if (kins.some(k => k.sp.noFuse)) return { kind: 'none', msg: `${KIN.name(kins.find(k => k.sp.noFuse))} will not go in a table. It is what it is.` };
-  if (kins.length >= 2) return { kind: 'fusion', kin: KIN.fuse(kins, elems), n: kins.length, items: nonEss.length, essNote: essences.length ? 'Essences do not fuse; they stay in the grid. Use them with berries for tonics.' : '' };
+  if (kins.length > 2) return { kind: 'none', msg: 'A fusion takes exactly two Kin and a stone.' };
+  if (kins.length === 2) {
+    const rc = KIN.findRecipe(kins[0].sp, kins[1].sp);
+    if (!rc) return { kind: 'none', msg: `${KIN.name(kins[0])} and ${KIN.name(kins[1])} do not fuse. Only certain pairs do: check the recipes you know.` };
+    if (!this.knowsRecipe(rc)) return { kind: 'none', msg: 'Something stirs between them, but you do not know this fusion yet. Someone out there does.' };
+    if (!items.includes('stone_' + rc.stone)) return { kind: 'none', msg: `Right pair. It needs a ${rc.stone} Stone on the table too (3 ${rc.stone} essence and an iron).` };
+    return { kind: 'fusion', kin: KIN.fuseRecipe(rc, kins[0], kins[1]), n: 2, items: 1, recipe: rc, essNote: '' };
+  }
   // 3. one Kin plus materials becomes an object in its shape
   if (kins.length === 1 && items.length) {
     if (this.kin.length === 1) return { kind: 'none', msg: 'You cannot turn your only Kin into an object.' };
@@ -7822,13 +7883,24 @@ G.previewGrid = function (slots) {
   }
   return null;
 };
+// recipes you know, per planet; you start with two on Earth and quest people teach the rest
+G.knowsRecipe = function (rc) { const k = (this.stats.recipes || {})[rc.body] || []; return k.includes(rc.i); };
+G.learnRecipe = function (body, from) {
+  if (!this.stats.recipes) this.stats.recipes = {}; const known = this.stats.recipes[body] || (this.stats.recipes[body] = []);
+  const all = KIN.recipes(body); const next = all.find(rc => !known.includes(rc.i) && (rc.i < 20 || known.includes(rc.i - 20)));
+  if (!next) return null; known.push(next.i);
+  if (from) UI.toast(`${from} teaches you a fusion: ${next.a.names[0]} + ${next.b.names[0]} + ${next.stone} Stone makes ${next.out.names[0]}.`, 'good');
+  return next;
+};
+G.seenDex = function (sp, how) { if (!sp || !sp.dex) return; if (!this.stats.dex) this.stats.dex = {}; const prev = this.stats.dex[sp.seed]; if (prev === 'caught') return; if (how === 'caught' || !prev) this.stats.dex[sp.seed] = how; };
 G.fuseGrid = function (slots) {
   const pv = this.previewGrid(slots);
   const p = this.player;
   const kins = slots.filter(s => s && s.kin).map(s => s.kin);
   const items = slots.filter(s => s && s.item).map(s => s.item);
   if (pv.kind === 'fusion') {
-    for (const it of items) if (!it.startsWith('ess_')) p.take(it, 1);
+    p.take('stone_' + pv.recipe.stone, 1); // only the stone is used up; anything else stays
+    this.seenDex(pv.kin.sp, 'caught');
     const res = pv.kin;
     const firstIdx = Math.min(...kins.map(k => this.kin.indexOf(k)));
     this.returnGear(kins); this.kin = this.kin.filter(k => !kins.includes(k));
@@ -7975,7 +8047,7 @@ G.onBattleEnd = function (result, wildE, wild, mine, ambush) {
       if (st) { this.stats.mythicDone = true; UI.toast('The Mantlewyrm sinks back into the Starmetal. Next time, bring Void Snares.', 'good'); }
     } else {
       wild.buffs = null; wild.hp = Math.max(1, wild.hp);
-      this.kin.push(wild); this.stats.caught++;
+      this.kin.push(wild); this.stats.caught++; this.seenDex(wild.sp, "caught");
       UI.toast(`${KIN.name(wild)} joined you (${this.kin.length}/${this.MAX_KIN}).`, 'good');
       if (st) { this.stats.mythicDone = true; this.mythicCaught = true; UI.toast('You hold the Mythic of the Core. The Starmetal hums: the sky beyond opens in the next version.', 'good'); }
     }
@@ -8349,7 +8421,7 @@ G.load = function () {
     this.kin = []; this.activeIdx = 0;
     for (const id in (this.villageState || {})) if (this.villageState[id].guards) this.villageState[id].guards = [];
     for (const id in (this.labState || {})) { this.labState[id].kin = []; this.labState[id].days = []; }
-    const st = KIN.create(KIN.starters(this.baseSeed)[0], 5); this.kin.push(st);
+    const st = KIN.create(KIN.starters(this.baseSeed)[0], 5); this.kin.push(st); this.stats.recipes = { earth: [0, 1], moon: [0], halo: [0] }; this.stats.dex = {};
     setTimeout(() => UI.toast(`The Kin have changed. Every Kin now belongs to a species you can find again, and your old ones have gone back to the wild. ${KIN.name(st)} is with you.`, 'good'), 1500);
   }
   Quests.init(this);
