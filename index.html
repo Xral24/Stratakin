@@ -1711,7 +1711,7 @@ const R = (() => {
   // ---------- chunk meshing ----------
   const scratchOpaque = new MeshBuilder(16384), scratchWater = new MeshBuilder(2048), scratchGlass = new MeshBuilder(512), scratchGrass = new MeshBuilder(8192);
   const SOIL = new Set([B.GRASS, B.DIRT, B.SAND, B.SNOW, B.GRAVEL, B.STONE, B.MOSS, B.GLOWGRASS, B.REGOLITH, B.DUNE, B.SALTCRUST]);
-  const surfTop = new Int16Array(18 * 18), cornerH = new Float32Array(17 * 17);
+  const surfTop = new Int16Array(18 * 18), surfWet = new Int16Array(18 * 18), cornerH = new Float32Array(17 * 17);
   const FLOWERS = [[0.95, 0.85, 0.25], [0.95, 0.95, 0.95], [0.85, 0.35, 0.55], [0.6, 0.5, 0.95], [0.95, 0.5, 0.25]];
   function buildChunk(world, chunk) {
     const cx = chunk.cx, cz = chunk.cz, ox = cx * CH, oz = cz * CH;
@@ -1735,13 +1735,16 @@ const R = (() => {
     // smooth land: every column's exposed soil top, then a height for each corner shared by four columns.
     // Steps of one or two blocks become slopes; anything steeper stays a sharp edge.
     for (let x = -1; x <= 16; x++) for (let z = -1; z <= 16; z++) {
-      let t = -1; for (let y = WH - 1; y > 0; y--) { const b = get(x, y, z); if (b === B.AIR || b === B.TORCH) continue; if (SOIL.has(b)) t = y; break; }
-      surfTop[(x + 1) * 18 + (z + 1)] = t;
+      let t = -1, wt = -1; for (let y = WH - 1; y > 0; y--) { const b = get(x, y, z); if (b === B.AIR || b === B.TORCH) continue; if (b === B.WATER || b === B.BRINE) { if (wt < 0) wt = y + 1; continue; } if (SOIL.has(b)) t = y; break; }
+      surfTop[(x + 1) * 18 + (z + 1)] = t; surfWet[(x + 1) * 18 + (z + 1)] = wt; // the seabed counts as land: shores slope in under the water
     }
     for (let cx = 0; cx <= 16; cx++) for (let cz = 0; cz <= 16; cz++) {
       let n = 0, sum = 0, lo = 999, hi = -999;
-      for (const [a, b] of [[-1, -1], [0, -1], [-1, 0], [0, 0]]) { const t = surfTop[(cx + a + 1) * 18 + (cz + b + 1)]; if (t < 0) { n = 0; break; } n++; sum += t; lo = Math.min(lo, t); hi = Math.max(hi, t); }
-      cornerH[cx * 17 + cz] = (n && hi - lo <= 2) ? sum / n + 1 : -1;
+      let dry = false, wl = -1;
+      for (const [a, b] of [[-1, -1], [0, -1], [-1, 0], [0, 0]]) { const i = (cx + a + 1) * 18 + (cz + b + 1); const t = surfTop[i]; if (t < 0) { n = 0; break; } n++; sum += t; lo = Math.min(lo, t); hi = Math.max(hi, t); const wt = surfWet[i]; if (wt < 0) dry = true; else wl = Math.max(wl, wt); }
+      let v = (n && hi - lo <= 2) ? sum / n + 1 : -1;
+      if (v >= 0 && dry && wl >= 0) v = Math.max(v, wl - 0.12); // where sand meets water the ground comes up to the waterline, never sinks below it in the open air
+      cornerH[cx * 17 + cz] = v;
     }
     const ST = (x, z) => surfTop[(x + 1) * 18 + (z + 1)];
     const CHt = (x, z) => cornerH[x * 17 + z];
@@ -6898,13 +6901,11 @@ const Campaign = (() => {
       return say(['Silas Pennywise, purveyor of solutions. Your problem, I see, is a canyon.', 'The bridge is out. Terrible shame. I could have it mended for, oh, 300 Shards. Or you could find your own way across, if you are the climbing sort.', G.shards >= 300 ? 'Shall we? (it takes your Shards)' : `You have ${G.shards}. Come back richer.`], () => { if (G.shards >= 300 && !c.bridgeFixed) { G.shards -= 300; c.bridgeFixed = true; fixBridge(sites().fort); G.meshPass(99); UI.sfx('caught'); UI.toast('The bridge is mended. Silas counts your Shards twice.', 'good'); } });
     }
     if (n.job === 'spellbound') return Keeps.talkWarrior(n, say);
-    if (n.job === 'runesmith' && n.id === 'sable' && Keeps.finalReady()) {
-      return say(['You have it. All of it. Give it here... no. You hold it. It has to be you.', 'Set it on his throne. The crystal was his, he bound himself to it when he bound the others. It will drag him back here, whatever hole in the Core he is hiding in.', 'And he will not come alone. Vexmaw will be with him, and stronger than you have ever seen it. Are you ready?'], () => {
-        const f = sites().fort; const sp = kinmasterSpecies(); const lv = Math.max(90, Math.min(180, (G.trainerLevel || 1) + 20));
-        const e = Wild.makeEntity(sp, lv, f.throne.x - 3 + 0.5, f.floorY + 1, f.throne.z + 0.5, { senseR: 12, elite: true }); e.finalBoss = true; e.kinmasterFinal = true; Wild.list.push(e);
-        setTimeout(() => Dialogue.show('The Kinmaster', ['NO. No, no, no. Who taught you to put it back together?', 'Fine. You want me, you have me. Vexmaw. Everything. Leave nothing of them.'], () => Battle.start(e, false)), 400);
-      });
+    if (n.job === 'kinmaster_final') return Citadel.talk(n, say);
+    if (n.job === 'runesmith' && n.id === 'sable' && Keeps.finalReady() && !Citadel.open()) {
+      return say(['You have it. All of it. Hold it up... there. Do you feel it pulling?', 'He bound himself to it when he bound the others. It knows where he is: not in the Core. He lied. He went to the Black Citadel, far out where nobody goes.', 'It will not be like the holds. He built that place to keep out exactly you. You will need everything: the glider, a Flame Kin, a Spark Kin, a Stone Kin, the bulb, your bow, your blade.', 'Go. End it.'], () => Citadel.begin());
     }
+    if (n.job === 'runesmith' && n.id === 'sable' && Citadel.open() && !G.stats.lightReturned) return say(['The Black Citadel. Follow the pin. Glider, Flame, Spark, Stone, bulb, bow, blade.']);
     if (n.job === 'runesmith') {
       const first = !c['met_' + n.id]; c['met_' + n.id] = true;
       const intro = n.id === 'orrin' ? 'Orrin hums over a forge that burns blue.' : 'Sable traces sigils on the Kinmaster\'s old anvil.';
@@ -6964,7 +6965,7 @@ const Campaign = (() => {
   function talkable() { return people; }
   function entities() { return people.map(n => ({ x: n.x, y: n.y, z: n.z, yaw: n.yaw, model: n.model, mesh: n.mesh, scale: 1, hover: 0, skyMul: 1 })); }
   function onRogueTamed(k) { C().rogueTamed = true; C().ranch = 3; if (rogue) { Wild.remove(rogue); rogue = null; } }
-  return { spawnPerson: (...a) => person(...a), hasPerson: (id) => people.some(n => n.id === id), init, update, talk, fisherHook, tryGate, onBoss, target, talkable, entities, locked, give, sites, mapMarks, onRogueTamed, stampPosts, get rogue() { return rogue; }, C };
+  return { kinmasterSp: () => kinmasterSpecies(), spawnPerson: (...a) => person(...a), hasPerson: (id) => people.some(n => n.id === id), init, update, talk, fisherHook, tryGate, onBoss, target, talkable, entities, locked, give, sites, mapMarks, onRogueTamed, stampPosts, get rogue() { return rogue; }, C };
 })();
 
 // ---------- taming: you press Ride on an unbroken Kin and it bucks; tap when it lands its weight ----------
@@ -9181,7 +9182,7 @@ const Keeps = (() => {
   }
   // the gloom: grey sky and dim light around every hold you have not taken, fading out over a wide ring
   function gloom(px, pz) {
-    if (!onEarth() || G.stats.lightReturned) return 0; let g = 0;
+    if (!onEarth() || G.stats.lightReturned) return 0; let g = typeof Citadel !== 'undefined' ? Citadel.gloom(px, pz) : 0;
     const f = (Campaign.sites() || {}).fort; if (f && !Campaign.C().kinmaster) { const d = Math.hypot(f.x + 40 - px, f.z - pz); if (d < 220) g = 1 - U.clamp((d - 90) / 130, 0, 1); }
     for (const k of sites()) { if (taken(k.id)) continue; const d = Math.hypot(k.x - px, k.z - pz); if (d < 190) g = Math.max(g, 1 - U.clamp((d - 70) / 120, 0, 1)); }
     return g;
@@ -9223,8 +9224,131 @@ const Keeps = (() => {
     const f = (Campaign.sites() || {}).fort; if (f && Math.hypot(f.x + 72 - x, f.z - z) < 40) return !!Campaign.C().kinmaster;
     return true;
   }
-  function mapMarks() { if (!onEarth()) return []; const p = G.player; return sites().filter(k => st()['seen_' + k.id] || taken(k.id)).map(k => ({ x: k.x, z: k.z, t: taken(k.id) ? '♜' : '☠', name: k.name + (taken(k.id) ? ' (yours)' : '') })); }
+  function mapMarks() { if (!onEarth()) return []; const p = G.player; return Citadel.mapMarks().concat(sites().filter(k => st()['seen_' + k.id] || taken(k.id)).map(k => ({ x: k.x, z: k.z, t: taken(k.id) ? '♜' : '☠', name: k.name + (taken(k.id) ? ' (yours)' : '') }))); }
   return { inHold, init, update, onBattle, tableOpen, near, mapMarks, keepFor, sites, gloom, talkWarrior, finalReady, onFinal, COUNT };
+})();
+
+</script>
+<script>
+'use strict';
+// The Black Citadel: where the whole Binding Crystal leads. It rises far out on Earth once all eight Holds are free.
+// A gauntlet that asks for everything you have learned, in order:
+//   a chasm you can only glide across, from a launch tower  ·  a thorn gate only a Flame Kin burns
+//   the outer court and his best warriors  ·  a dead gate only a Spark Kin wakes  ·  a long flooded hall (bring the bulb)
+//   a rubble wall only a Stone Kin breaks  ·  the archery hall: three targets high on the walls open the last gate
+//   the stair, and his captains  ·  the throne, where the Kinmaster fights with two Kin, one after the other
+const Citadel = (() => {
+  let G = null, tick = 0;
+  const L = 86; // length, west to east
+  function init(game) { G = game; }
+  const C = () => { if (!G.stats.citadel) G.stats.citadel = {}; return G.stats.citadel; };
+  function onEarth() { return G.world && G.world.preset.id === 'earth'; }
+  function site() {
+    if (!onEarth()) return null; const c = C(); if (c.site) return c.site;
+    const w = G.world; const base = U.hash3(3, 1, 4, w.seed + 0xC17) * Math.PI * 2;
+    for (let t = 0; t < 400; t++) {
+      const a = base + t * 0.37, r = 1500 + (t % 12) * 40;
+      const x = Math.round(w.spawn.x + Math.cos(a) * r), z = Math.round(w.spawn.z + Math.sin(a) * r);
+      let ok = true, sum = 0, n = 0;
+      for (let dx = -6; dx <= L + 6 && ok; dx += 6) for (let dz = -14; dz <= 14; dz += 7) { const ci = w.colInfo(x + dx, z + dz); if (ci.h <= SEA + 2 || ci.lost || ci.lostRim || ci.h > 76) ok = false; sum += ci.h; n++; }
+      if (!ok) continue;
+      if (Keeps.sites().some(k => Math.hypot(k.x - x, k.z - z) < 200)) continue;
+      c.site = { x, z, y: Math.max(SEA + 3, Math.round(sum / n)) }; return c.site;
+    }
+    c.site = { x: w.spawn.x + 1600, z: w.spawn.z, y: SEA + 6 }; return c.site;
+  }
+  function open() { return !!C().open; }
+  function begin() { C().open = true; const s = site(); G.pin = { x: s.x, z: s.z }; UI.toast('The crystal pulls east and west at once, then settles. A pin on your map: the Black Citadel.', 'bad'); }
+  // ---------------- the build ----------------
+  function stamp() {
+    const s = site(), w = G.world; const X = s.x, Z = s.z, y0 = s.y; const set = (x, y, z, b) => w.setBlock(X + x, y0 + y, Z + z, b);
+    const box = (x0, x1, z0, z1, ya, yb, b) => { for (let x = x0; x <= x1; x++) for (let z = z0; z <= z1; z++) for (let y = ya; y <= yb; y++) set(x, y, z, b); };
+    for (let cx = -1; cx <= Math.ceil(L / CH) + 1; cx++) w.ensureAround(Math.floor((X + cx * CH) / CH), Math.floor(Z / CH), 2, 99);
+    const F = B.FORTSTONE;
+    // ground: flatten the whole footprint, clear the sky above it
+    for (let x = -8; x <= L + 7; x++) for (let z = -19; z <= 19; z++) { for (let y = -5; y < 0; y++) if (!isSolid(w.getBlock(X + x, y0 + y, Z + z))) set(x, y, z, B.STONE); set(x, 0, z, Math.abs(z) <= 11 && x >= 17 ? B.BASALT : B.GRAVEL); for (let y = 1; y <= 22; y++) if (w.getBlock(X + x, y0 + y, Z + z) !== B.AIR) set(x, y, z, B.AIR); }
+    // 1. a chasm all the way round, nine wide at the front; the launch tower faces it
+    const pit = (x, z) => { for (let y = -14; y <= 0; y++) set(x, y, z, y <= -12 ? B.WATER : B.AIR); set(x, -15, z, B.STONE); };
+    for (let x = 5; x <= 13; x++) for (let z = -18; z <= 18; z++) pit(x, z);
+    for (let x = 5; x <= L + 6; x++) for (const zs of [[13, 18], [-18, -13]]) for (let z = zs[0]; z <= zs[1]; z++) pit(x, z);
+    for (let x = L + 2; x <= L + 6; x++) for (let z = -18; z <= 18; z++) pit(x, z);
+    // the whole keep is walled: twelve high all round, and the dead ground between halls filled solid
+    box(17, L, -12, -12, 1, 12, F); box(17, L, 12, 12, 1, 12, F); box(L, L + 1, -12, 12, 1, 12, F);
+    box(36, 59, -11, -4, 1, 12, F); box(36, 59, 4, 11, 1, 12, F); box(61, L, -11, -11, 1, 12, F); box(61, L, 11, 11, 1, 12, F);
+    box(0, 4, -2, 2, 1, 9, F); box(1, 3, -1, 1, 1, 9, B.AIR); for (let y = 1; y <= 10; y++) set(2, y, -1, B.LADDER); box(0, 5, -2, 2, 10, 10, B.PLANKS); set(5, 11, 0, B.TORCH);
+    // 2. the outer wall and the thorn gate
+    box(17, 18, -12, 12, 1, 11, F); box(17, 18, -1, 1, 1, 3, B.THORN); for (let z = -12; z <= 12; z += 2) set(17, 12, z, F);
+    for (const z of [-12, 12]) { box(16, 19, z - 1, z + 1, 1, 14, F); set(17, 15, z, B.VOID); set(17, 16, z, B.TORCH); }
+    // 3. the outer court: side walls, torches; his best stand here
+    box(17, 34, -12, -12, 1, 9, F); box(17, 34, 12, 12, 1, 9, F); for (let x = 20; x <= 32; x += 4) { set(x, 5, -11, B.TORCH); set(x, 5, 11, B.TORCH); }
+    // 4. the inner wall and the dead gate
+    box(34, 35, -12, 12, 1, 11, F); box(34, 35, -1, 1, 1, 3, B.DEADGATE);
+    // 5. the flooded hall: a low corridor full of water, twenty-four blocks of it
+    box(36, 59, -3, 3, 0, 6, F); box(36, 59, -2, 2, 1, 4, B.WATER); for (let x = 38; x <= 58; x += 5) set(x, 5, 0, B.MOONGLOW);
+    // 6. the rubble wall
+    box(60, 60, -3, 3, 1, 5, F); box(60, 60, -1, 1, 1, 3, B.RUBBLE);
+    // 7. the archery hall: high walls, three targets near the top, the gate stays shut until all three are hit
+    box(61, 72, -10, -10, 1, 12, F); box(61, 72, 10, 10, 1, 12, F); box(61, 61, -10, 10, 1, 12, F); box(61, 61, -1, 1, 1, 3, B.AIR);
+    box(72, 73, -10, 10, 1, 12, F); box(72, 73, -1, 1, 1, 3, F);
+    set(66, 9, -9, B.TARGET); set(66, 9, 9, B.TARGET); set(71, 10, 0, B.TARGET); for (const [x, z] of [[64, -9], [64, 9], [69, -9], [69, 9]]) set(x, 6, z, B.TORCH);
+    // 8. the stair and the throne room
+    box(74, L, -10, -10, 1, 14, F); box(74, L, 10, 10, 1, 14, F); box(L, L, -10, 10, 1, 14, F);
+    for (let i = 0; i < 4; i++) box(74 + i, 74 + i, -3, 3, 1, i + 1, F);
+    box(78, L - 1, -9, 9, 0, 4, F); for (let x = 78; x <= L - 1; x++) set(x, 5, 0, B.CORAL_R);
+    box(L - 3, L - 2, -1, 1, 5, 5, B.GOLD); box(L - 1, L - 1, -1, 1, 5, 9, B.GOLD); set(L - 2, 10, 0, B.VOID);
+    for (let x = 79; x <= L - 2; x += 4) for (const z of [-8, 8]) { box(x, x, z, z, 5, 13, F); set(x, 10, z + (z < 0 ? 1 : -1), B.TORCH); }
+    G.meshPass(99);
+    C().stamped = true;
+    c().throne = { x: X + L - 3, y: y0 + 6, z: Z }; c().court = { x: X + 26, y: y0 + 1, z: Z }; c().stair = { x: X + 82, y: y0 + 5, z: Z };
+  }
+  const c = C;
+  // ---------------- running it ----------------
+  let km = null;
+  function update(dt, p) {
+    if (!onEarth() || !open() || G.stats.lightReturned) return; tick += dt; if (tick < 0.5) return; tick = 0;
+    const s = site(); const d = Math.hypot(s.x + 40 - p.x, s.z - p.z);
+    if (!C().stamped && d < 170) stamp();
+    if (!C().stamped) return;
+    // the two waves of his warriors
+    if (d < 120) {
+      if (!C().wave1 && !Combat.forHold('cit1').length) spawnWave('cit1', C().court, [['captain', -4, -5], ['captain', 4, 5], ['shield', 0, -2], ['shield', 0, 2], ['axeman', 3, -6], ['archer', -6, 8], ['archer', 6, -8]]);
+      if (!C().wave2 && !Combat.forHold('cit2').length) spawnWave('cit2', C().stair, [['captain', 0, -4], ['captain', 0, 4], ['archer', 2, -7], ['archer', 2, 7], ['axeman', -2, 0]]);
+      if (!C().wave1 && Combat.forHold('cit1').length && Combat.standingIn('cit1') === 0) { C().wave1 = true; UI.toast('The outer court is quiet. On to the dead gate.', 'good'); }
+      if (!C().wave2 && Combat.forHold('cit2').length && Combat.standingIn('cit2') === 0) { C().wave2 = true; UI.toast('His captains are down. He is waiting at the throne.', 'good'); }
+      if (C().wave2 && !km && !Campaign.hasPerson('km_final')) { const t = C().throne; km = Campaign.spawnPerson('km_final', 'The Kinmaster', 'kinmaster_final', t.x - 2, t.z, { body: '#3a1a4a', belly: '#c9b48a', accent: '#b026ff', dark: '#120818', eye: '#ff3a3a' }, ['crown', 'mask']); km.y = t.y; km.yaw = -Math.PI / 2; }
+    } else if (d > 200) { Combat.clearHold('cit1'); Combat.clearHold('cit2'); }
+  }
+  function spawnWave(id, at, plan) { for (const [kind, ox, oz] of plan) Combat.spawn(kind, at.x + ox + 0.5, at.y, at.z + oz + 0.5, id, 7); }
+  // the targets in the archery hall
+  function onTarget(hit) {
+    if (!open() || !C().stamped) return false; const s = site(); if (Math.hypot(hit.x - s.x - 66, hit.z - s.z) > 16) return false;
+    const k = hit.x + ',' + hit.y + ',' + hit.z; const hits = C().targets || (C().targets = []); if (hits.includes(k)) { UI.toast('Already hit.'); return true; }
+    hits.push(k); G.world.setBlock(hit.x, hit.y, hit.z, B.FORTSTONE); UI.sfx('hit'); G.meshPass(99);
+    if (hits.length >= 3) { const X = s.x, Z = s.z, y0 = s.y; for (let x = 72; x <= 73; x++) for (let z = -1; z <= 1; z++) for (let y = 1; y <= 3; y++) G.world.setBlock(X + x, y0 + y, Z + z, B.AIR); G.meshPass(99); UI.sfx('quest'); UI.toast('Three for three. Somewhere in the wall a counterweight drops, and the last gate grinds open.', 'good'); }
+    else UI.toast(`Target ${hits.length} of 3.`);
+    return true;
+  }
+  // the end of it: two Kin, one after the other
+  function talk(n, say) {
+    return say(['So. You put my crystal back together. Do you know how long it took me to break it?', 'Eight holds. Eight. And every one of those fools I bound, free again, singing about you in their villages.', 'No more puzzles, no more warlords. Just me, and what I have left.'], () => {
+      const t = C().throne; const lv = Math.max(90, Math.min(180, (G.trainerLevel || 1) + 18));
+      const first = KIN.species(U.combine(0x0BAD, 2), ['Void'], 0, { primary: 'Flame', shape: 'quadruped', total: 680, rarity: 4 }); first.names = ['Gravemaw', 'Gravemaw', 'Gravemaw']; first.noFuse = true; first.colors = { body: '#2a0a10', belly: '#ff5a1f', accent: '#ff9f2a', dark: '#120408', eye: '#ffe08a' };
+      const e1 = Wild.makeEntity(first, lv - 10, t.x - 5 + 0.5, t.y, t.z + 0.5, { senseR: 12, elite: true }); e1.citadelFirst = true; e1.kinmaster = false; Wild.list.push(e1);
+      Battle.start(e1, false);
+    });
+  }
+  function onBattle(e, result) {
+    if (!e.citadelFirst || (result !== 'won' && result !== 'caught')) return;
+    const t = C().throne; const lv = Math.max(95, Math.min(190, (G.trainerLevel || 1) + 24));
+    setTimeout(() => Dialogue.show('The Kinmaster', ['Gravemaw... no matter. VEXMAW. Everything you have.'], () => {
+      const sp = Campaign.kinmasterSp(); const e2 = Wild.makeEntity(sp, lv, t.x - 5 + 0.5, t.y, t.z + 0.5, { senseR: 12, elite: true }); e2.finalBoss = true; Wild.list.push(e2);
+      Battle.start(e2, false);
+    }), 900);
+  }
+  function inside(p) { if (!open() || !C().stamped) return false; const s = site(); return p.x > s.x + 16 && p.x < s.x + L + 1 && Math.abs(p.z - s.z) < 13; }
+  function gloom(px, pz) { if (!open() || G.stats.lightReturned) return 0; const s = site(); const d = Math.hypot(s.x + 40 - px, s.z - pz); return 1 - U.clamp((d - 100) / 160, 0, 1); }
+  function mapMarks() { return open() && !G.stats.lightReturned ? [{ x: site().x + 40, z: site().z, t: '☠', name: 'The Black Citadel' }] : []; }
+  return { init, site, begin, open, update, onTarget, talk, onBattle, inside, gloom, mapMarks };
 })();
 
 </script>
@@ -9367,7 +9491,7 @@ G.setupWorld = function (seed, presetId) {
   this.world.findSpawn();
   Wild.init(this.world, this.mobile);
   Weather.init(this.world.seed);
-  Village.init(this); Hazards.init(this); Campaign.init(this); Npcs.init(this); Camps.init(this); Mer.init(this); Lab.init(this); Avatar.init(this); Combat.init(this); Buddy.init(this); Relics.init(this); Keeps.init(this);
+  Village.init(this); Hazards.init(this); Campaign.init(this); Npcs.init(this); Camps.init(this); Mer.init(this); Lab.init(this); Avatar.init(this); Combat.init(this); Buddy.init(this); Relics.init(this); Keeps.init(this); Citadel.init(this);
   Quests.init(this);
 };
 G.newWorld = function (seed, starterIdx, name) {
@@ -9713,6 +9837,7 @@ G.shoot = function (pick) {
   const eD = e ? Math.hypot(e.x - p.x, e.y - p.y, e.z - p.z) : Infinity;
   if (wall && wall.dist < eD) {
     if (wall.id === B.BALLOON) { this.world.setBlock(wall.x, wall.y, wall.z, B.AIR); this.meshPass(99); UI.sfx('caught'); Builds.onShot('balloon', wall, p); return; }
+    if (wall.id === B.TARGET && Citadel.onTarget(wall)) return;
     if (wall.id === B.TARGET) { UI.sfx('hit'); Builds.onShot('target', wall, p); return; }
     UI.toast('The arrow thunks into the ground.'); return;
   }
@@ -9789,6 +9914,7 @@ G.onBattleEnd = function (result, wildE, wild, mine, ambush) {
     if (wildE.kinmaster) Campaign.onBoss(result);
     if (wildE.keepBoss) Keeps.onBattle(wildE.keepBoss, result);
     if (wildE.finalBoss) Keeps.onFinal(result);
+    if (wildE.citadelFirst) Citadel.onBattle(wildE, result);
     if (result === 'won') {
       const dom = KIN.dominant(wild.sp.elem, 1)[0];
       if (Math.random() < ((wild.sp.rarity || 0) >= 2 || wildE.elite ? 1 : 0.6)) { p.add('ess_' + dom, 1); UI.toast(`${dom} Essence collected.`); }
@@ -9991,9 +10117,9 @@ G.loop = function (t) {
       }
       if (w.regrow && w.regrow.length && (this.frame & 31) === 0) { const now = performance.now(); w.regrow = w.regrow.filter(r => { if (now < r.t) return true; const b = w.getBlock(r.x, r.y, r.z); if (r.id != null) { if (b === B.AIR && !(Math.abs(r.x + 0.5 - p.x) < 0.8 && Math.abs(r.z + 0.5 - p.z) < 0.8 && r.y >= Math.floor(p.y) - 1 && r.y <= Math.floor(p.y) + 2)) { if (r.id === B.GLOWWORM && !isSolid(w.getBlock(r.x, r.y - 1, r.z))) return false; w.setBlock(r.x, r.y, r.z, r.id); } else if (b === B.AIR) { r.t = now + 15000; return true; } } else if (r.leaf) { if (b === B.LEAVES) w.setBlock(r.x, r.y, r.z, B.BERRYLEAF); } else if (b === B.AIR) w.setBlock(r.x, r.y, r.z, B.BERRY); return false; }); }
       const trig = (Dialogue.active() || Village.walking) ? null : Wild.update(dt, p, performance.now() / 1000, false);
-      Buddy.update(dt, p); Keeps.update(dt, p); Combat.update(dt, p, input);
+      Buddy.update(dt, p); Keeps.update(dt, p); Citadel.update(dt, p); Combat.update(dt, p, input);
       Wild.ensureHeart(p, this.trainerLevel, this.mythicCaught); Wild.ensureLegend(p); Wild.ensureApex(p);
-      if (trig && !trig.e.cool && !Dialogue.active() && !p.flying && !(this.fightGrace > performance.now()) && !(Keeps.inHold(p) && !trig.e.keepBoss)) Battle.start(trig.e, trig.ambush);
+      if (trig && !trig.e.cool && !Dialogue.active() && !p.flying && !(this.fightGrace > performance.now()) && !((Keeps.inHold(p) || Citadel.inside(p)) && !trig.e.keepBoss)) Battle.start(trig.e, trig.ambush);
       for (const e of Wild.list) if (e.cool > 0) e.cool -= dt;
       Hazards.update(dt, p, false); Npcs.update(dt, p, false); Campaign.update(dt, p, false); Taming.update(dt, p); if (p.gliding) { this.lastGlide = performance.now(); if (!this.stats.glideTold && !p.mount && !p.wingsOn) { this.stats.glideTold = true; G.explain('Gliding', 'Left stick: push sideways to bank and turn. Push forward to dive and pick up speed, pull back to brake. The arrow on the glide compass is the wind: with it behind you, you go far; into it, you barely move over the ground. Coming in to land, pull back a moment before the ground to flare and you touch down soft. Too fast and too steep, and it hurts. Let go of ▲ to drop, best done low.'); } }
       if (p.landMsg) { if (p.landMsg === 'hard') UI.toast('Hard landing. Pull back on the stick just before the ground to flare.', 'bad'); else if (p.landMsg === 'stall') UI.toast('You stalled her and dropped. Brake less: keep a little speed until the flare.', 'bad'); else if (p.landMsg === 'soft' && !this.stats.flareTold) { this.stats.flareTold = true; UI.toast('A clean flare. Feather-soft.', 'good'); } p.landMsg = null; }
@@ -10092,7 +10218,7 @@ G.onTap = function () {
   if (rn) { Npcs.talk(rn); return; }
   if (Buddy.pick(p) && !Wild.pick(p)) { Buddy.tap(); return; }
   { const sel0 = p.selected(); const ai = sel0 && ITEMS[sel0]; if (ai && ai.arrow && p.has('bow')) { this.shoot(sel0); return; } }
-  if (Combat.weapon() && (Keeps.inHold(p) || !Wild.pick(p))) { Combat.swing(); return; }
+  if (Combat.weapon() && (Keeps.inHold(p) || Citadel.inside(p) || !Wild.pick(p))) { Combat.swing(); return; }
   const e = (p.selected() && (p.itemInfo(p.selected()) || {}).bow) ? null : Wild.pick(p);
   const hit = p.raycast(5.5);
   if (e && e.rogue) { const c = Campaign.C(); if (c.ranch !== 2) { UI.toast('Thunderhoof flattens his ears at you. Talk to Dusty Hale first.'); return; } const k = KIN.create(e.kin.sp, e.kin.level); Taming.start(k, { hard: true, onDone: (kk) => { kk.tamed = true; this.addKin(kk); Campaign.onRogueTamed(kk); UI.toast('Thunderhoof is yours, and you can ride now. Every Kin still has to be broken in once: press Ride and hold on.', 'good'); } }); return; }
