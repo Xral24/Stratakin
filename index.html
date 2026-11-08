@@ -2195,6 +2195,8 @@ const ITEMS = {
   torch: { name: 'Torch', block: B.TORCH, col: '#ffd36a', light: true, crafted: true, desc: 'Hold it to see in the dark, or place it.' },
   fusion: { name: 'Fusion Table', block: B.FUSION, col: '#7ad7ff', crafted: true, desc: 'Place it, then tap it to fuse Kin.' },
   snare: { name: 'Snare Cube', col: '#7fe0c0', snare: 0.40, desc: 'Unfolds into a crystal cage. Weaken a Kin first.' },
+  snare_sky: { name: 'Flight Snare', col: '#9fd8ff', snare: 0.55, desc: 'A light cage on a long cord, for the birds that never come down. Only works thrown from the air: off the glider or the back of a flier. Tap the bird as you pass.' },
+  feather: { name: 'Sky Feather', col: '#e8f4ff', desc: 'Shed by the high flyers. Shoot one with the bow, or beat one, and feathers come down.' },
   snare2: { name: 'Void Snare', col: '#c07fe0', snare: 0.66, desc: 'A stronger snare laced with void crystal.' },
   bulb: { name: 'Breathing Bulb', col: '#9fd8ff', gear: true, desc: 'Breathe underwater for two minutes.' },
   glider: { name: 'Glider', col: '#f0d090', gear: true, desc: 'Hold ▲ while falling to glide. Stick sideways turns, forward dives, back brakes. Pull back just before the ground to flare and land soft.' },
@@ -2206,7 +2208,7 @@ const ITEMS = {
 for (const e of ELEMENTS) ITEMS['ess_' + e] = { name: e + ' Essence', col: ELEM_COLOR[e], elem: e, desc: 'Left behind by ' + e + ' Kin. Three of them and an iron make a ' + e + ' Stone.' };
 for (const e of ELEMENTS) ITEMS['stone_' + e] = { name: e + ' Stone', col: ELEM_COLOR[e], crafted: true, desc: 'A fusion stone. A fusion recipe needs its two Kin and the right stone, together on the table.' };
 for (const e of ELEMENTS) ITEMS['lure_' + e] = { name: e + ' Lure', col: ELEM_COLOR[e], use: 'self', lure: e, crafted: true, desc: 'Drink it and ' + e + ' Kin come to you for four minutes, twice as often and far more of them.' };
-const HOTBAR_ORDER = ['torch', 'snare', 'snare2', 'bread', 'smoothie', 'tonic_revive', 'tonic_heal', 'tonic_vigor', 'tonic_might', 'tonic_swift', 'wood', 'planks', 'glass', 'door', 'ladder', 'chest', 'ironwall', 'voidwall', 'kit_house', 'kit_bakery', 'kit_juice', 'kit_trader', 'kit_voodoo', 'kit_post', 'kit_wall', 'kit_wall_stone', 'kit_wall_iron', 'kit_bridge', 'kit_portal', 'kit_dome', 'rod', 'rod_iron', 'rod_void', 'tonic_hush', 'moonlamp', 'selglass', 'stone', 'dirt', 'sand', 'gravel', 'snow', 'basalt', 'cloud', 'fusion', 'berry', 'glowworm', 'frond', 'copper', 'iron', 'ember', 'void', 'selenite', 'tycho', 'starsalt', 'amber', 'sulfur', 'ringshard', 'coral', 'pearl', 'gold', 'diamond', ...ELEMENTS.map(e => 'ess_' + e), 'bulb', 'glider', 'lavasuit'];
+const HOTBAR_ORDER = ['torch', 'snare', 'snare2', 'snare_sky', 'bread', 'smoothie', 'tonic_revive', 'tonic_heal', 'tonic_vigor', 'tonic_might', 'tonic_swift', 'wood', 'planks', 'glass', 'door', 'ladder', 'chest', 'ironwall', 'voidwall', 'kit_house', 'kit_bakery', 'kit_juice', 'kit_trader', 'kit_voodoo', 'kit_post', 'kit_wall', 'kit_wall_stone', 'kit_wall_iron', 'kit_bridge', 'kit_portal', 'kit_dome', 'rod', 'rod_iron', 'rod_void', 'tonic_hush', 'moonlamp', 'selglass', 'stone', 'dirt', 'sand', 'gravel', 'snow', 'basalt', 'cloud', 'fusion', 'berry', 'glowworm', 'frond', 'copper', 'iron', 'ember', 'void', 'selenite', 'tycho', 'starsalt', 'amber', 'sulfur', 'ringshard', 'coral', 'pearl', 'gold', 'diamond', ...ELEMENTS.map(e => 'ess_' + e), 'bulb', 'glider', 'lavasuit'];
 
 class Player {
   constructor(world) {
@@ -3496,6 +3498,56 @@ const Wild = (() => {
     if (world.legend) { const dl = Math.hypot(wdd(x - world.legend.x), wdd(z - world.legend.z)); if (dl < world.legend.r) { lv += pr.legend.zone * (1 - dl / world.legend.r * 0.4); cap += pr.legend.zone; } }
     return U.clamp(Math.round(lv), 1, Math.min(cap, KIN.MAX_LEVEL));
   }
+  // ---- high flyers: the birds that never come down. They wheel twenty blocks up, drop stones on you, and only a Flight Snare thrown from the air holds them ----
+  function isHigh(sp) { return sp.shape === 'bird' && (sp.rarity || 0) >= 1 && sp.home && sp.home.layer === 'Surface'; }
+  const drops = []; let highTimer = 8, dropWarned = false;
+  function openSky(x, y, z) { return world.topAt(Math.floor(x), Math.floor(z)) <= Math.floor(y) + 1; }
+  function spawnHigh(player) {
+    const ctx = contextAt(player.x, player.y, player.z); if (ctx.layer !== 'Surface') return;
+    const rx = Math.floor(U.mod(player.x, WORLD_W) / REGION), rz = Math.floor(U.mod(player.z, WORLD_W) / REGION);
+    const all = KIN.dex(world.preset.id).filter(isHigh); let pool = all.filter(sp => sp.home.biome === ctx.biomeName); if (!pool.length) pool = all.filter(sp => sp.rarity <= 2); if (!pool.length) return;
+    const w = pool.map(sp => KIN.RARITY[sp.rarity].w); let r = Math.random() * w.reduce((a, b) => a + b, 0), i = 0; for (; i < w.length - 1; i++) { r -= w[i]; if (r <= 0) break; }
+    const sp = pool[i]; const a = Math.random() * Math.PI * 2, d = 22 + Math.random() * 16;
+    const cx = player.x + Math.cos(a) * d, cz = player.z + Math.sin(a) * d; const gy = world.groundY(Math.floor(cx), Math.floor(cz));
+    const zl = zoneLevel(cx, gy, cz, ctx, player.trainerLevel || G.trainerLevel || 1);
+    const level = Math.max(1, Math.min(zl + KIN.RARITY[sp.rarity].lvl + 2 + Math.floor(Math.random() * 3), KIN.capOf(sp)));
+    const alt = 17 + Math.random() * 9;
+    const e = makeEntity(sp, level, cx, Math.max(gy, SEA) + alt, cz, {}); e.high = true; e.elite = sp.rarity >= 2;
+    e.orbit = { cx, cz, r: 7 + Math.random() * 7, w: (0.35 + Math.random() * 0.25) * (Math.random() < 0.5 ? -1 : 1), ph: Math.random() * 6.28, alt, gy: Math.max(gy, SEA), gyT: 0 };
+    e.dropCd = 6 + Math.random() * 6; e.senseR = 3; list.push(e);
+  }
+  function updateHigh(e, dt, player) {
+    const o = e.orbit; o.ph += o.w * dt;
+    const hd = Math.hypot(player.x - o.cx, player.z - o.cz);
+    if (e.bored > 0) { e.bored -= dt; o.cx += Math.cos(o.ph * 0.1) * dt * 2; o.cz += Math.sin(o.ph * 0.1) * dt * 2; }
+    else if (hd < 40 && !(G.repelUntil > performance.now())) { const k = Math.min(1, dt * 0.25); o.cx += (player.x - o.cx) * k; o.cz += (player.z - o.cz) * k; } // it has seen you: it drifts over to you
+    const nx = o.cx + Math.cos(o.ph) * o.r, nz = o.cz + Math.sin(o.ph) * o.r;
+    o.gyT -= dt; if (o.gyT <= 0) { o.gyT = 0.5; o.gy = Math.max(SEA, world.groundY(Math.floor(nx), Math.floor(nz))); }
+    const ty = Math.max(o.gy + o.alt, player.gliding ? 0 : 0) + Math.sin(e.bob * 0.8) * 0.8;
+    e.yaw = Math.atan2(nx - e.x, nz - e.z); e.x = nx; e.z = nz; e.y += (ty - e.y) * Math.min(1, dt * 1.5);
+    // stones: when it is over you and you are under open sky
+    e.dropCd -= dt;
+    if (e.dropCd <= 0 && !((G.stats.camp || {}).glider)) e.dropCd = 5; // early on they just wheel up there; once you have taken to the air yourself, they take an interest
+    if (e.dropCd <= 0) {
+      e.dropCd = 11 + Math.random() * 8;
+      if (Math.hypot(player.x - o.cx, player.z - o.cz) < 7 && player.y < e.y - 4 && openSky(player.x, player.y + 2, player.z) && !player.flying && !(G.repelUntil > performance.now())) {
+        e.dropped = (e.dropped || 0) + 1; if (e.dropped >= 3) { e.dropped = 0; e.bored = 45; }
+        drops.push({ x: player.x + player.vx * 0.9 + (Math.random() - 0.5) * 1.2, y: e.y - 0.4, z: player.z + player.vz * 0.9 + (Math.random() - 0.5) * 1.2, vy: 0, t: 0 });
+        if (!dropWarned) { dropWarned = true; UI.toast(`${KIN.name(e.kin)} is dropping stones on you from up there. Keep moving, or get under a roof.`, 'bad'); }
+      }
+    }
+  }
+  function updateDrops(dt, player) {
+    for (let i = drops.length - 1; i >= 0; i--) {
+      const d = drops[i]; d.t += dt; d.vy -= 22 * dt; d.y += d.vy * dt;
+      const b = world.getBlock(Math.floor(d.x), Math.floor(d.y), Math.floor(d.z));
+      if (Math.abs(d.x - player.x) < 0.7 && Math.abs(d.z - player.z) < 0.7 && d.y > player.y && d.y < player.y + 2) { player.damage(1, 'kin'); drops.splice(i, 1); continue; }
+      if (isSolid(b) || b === B.WATER || d.t > 6) drops.splice(i, 1);
+    }
+  }
+  function dropEntities() {
+    return drops.map(d => ({ x: d.x, y: d.y, z: d.z, yaw: d.t * 5, scale: 1, hover: 0, skyMul: 1, isFx: true, mesh: R.entityMesh('fx:stone', (mb) => mb.box(-0.13, -0.13, -0.13, 0.13, 0.13, 0.13, [0.45, 0.43, 0.4], 1, false)) }));
+  }
   function calmHere(player) { const v = Village.active; if (!v) return false; const st = G.villageState && G.villageState[v.id]; return !!(st && st.freed) && Math.hypot(wdd(player.x - v.x), wdd(player.z - v.z)) < 60; }
   // choose species + level for a spawn at this position: tier by trainer level, then rarity and weather weigh the roster
   function roll(x, y, z, trainerLevel) {
@@ -3507,7 +3559,7 @@ const Wild = (() => {
     const deep = ctx.layer === 'Water' && (SEA - y) > 3;
     const elite = Math.random() < (off || deep ? 0.45 : 0.12);
     const useTier = elite ? tier : Math.floor(Math.random() * (tier + 1));
-    let list = KIN.roster(world.preset.id, rx, rz, ctx.layer, ctx.biomeName, useTier);
+    let list = KIN.roster(world.preset.id, rx, rz, ctx.layer, ctx.biomeName, useTier); if (ctx.layer === 'Surface') { const g = list.filter(sp => !isHigh(sp)); if (g.length) list = g; }
     if (G.lure && G.lure.until > performance.now() && ctx.layer === 'Surface') { // a lure draws its element in from the biomes that have it
       const home = { Flame: ['Surface', 'Desert'], Tide: ['Water', 'Ocean'], Bloom: ['Surface', 'Forest'], Stone: ['Surface', 'Mountains'], Gale: ['Surface', 'Plains'], Frost: ['Surface', 'Snowfield'], Spark: ['Surface', 'Plains'], Void: ['Mines', 'Plains'], Light: ['Sky', 'Plains'] }[G.lure.elem];
       if (home) list = list.concat(KIN.roster(world.preset.id, rx, rz, home[0], home[1], useTier).filter(sp => KIN.dominant(sp.elem, 1)[0] === G.lure.elem && (sp.rarity || 0) <= 3));
@@ -3693,12 +3745,13 @@ const Wild = (() => {
       const e = list[i];
       const dx = px - e.x, dz = pz - e.z, dy = (py + 0.9) - (e.y + 0.6);
       const dist = Math.hypot(dx, dz, dy * 0.8);
-      if (dist > 58 && !e.isMythic && !e.isWarden && !e.raider && !e.lieutenant && !e.isLegend && !e.isApex) { list.splice(i, 1); continue; }
+      if (dist > 58 && !e.high && !e.isMythic && !e.isWarden && !e.raider && !e.lieutenant && !e.isLegend && !e.isApex) { list.splice(i, 1); continue; }
       if ((e.isMythic || e.isWarden || e.isLegend || e.isApex) && dist > 100) { list.splice(i, 1); if (e.isMythic) mythicRef = null; if (e.isLegend) legendRef = null; if (e.isApex) apexRefs[e.isApex] = null; continue; }
       e.bob += dt;
       if (e.breach != null) { e.breach += dt; const c = e.breach % 11; e.hover = c < 2.2 ? Math.sin(c / 2.2 * Math.PI) * 3.0 : 0; }
       e.skyT -= dt; if (e.skyT <= 0) { e.skyT = 0.4; e.skyMul = skyExposure(e); }
       if (battleActive) continue;
+      if (e.high) { if (dist > 90) { list.splice(i, 1); continue; } updateHigh(e, dt, player); continue; } // never triggers a fight on its own: you go up to it
       // ---- chase: after it beat your last Kin it comes for you ----
       if (e.chase) {
         e.chase.t -= dt; e.chase.hitCd -= dt;
@@ -3769,12 +3822,19 @@ const Wild = (() => {
         if (dist < touch && !trigger) trigger = { e, ambush: e.alert < 0.6 };
       } else { e.alert = Math.max(0, e.alert - dt * 0.8); e.ringT = 0; }
     }
+    updateDrops(dt, player);
+    highTimer -= dt;
+    if (highTimer <= 0 && !battleActive) {
+      highTimer = 14 + Math.random() * 10;
+      const highs = list.filter(e => e.high).length;
+      if (highs < 2 && world.preset.id === 'earth' && !player.inWater && !(G.repelUntil > performance.now()) && Math.random() < 0.6) spawnHigh(player);
+    }
     // spawning
     spawnTimer -= dt;
     if (spawnTimer <= 0 && !battleActive) {
       const lured = G.lure && G.lure.until > performance.now(); const hushed = G.repelUntil > performance.now();
       spawnTimer = lured ? 1.2 : 3.5;
-      const near = list.filter(e => !e.isMythic && !e.isWarden && !e.lieutenant && !e.raider && !e.isBoss && !e.isLegend && !e.isApex).length;
+      const near = list.filter(e => !e.high && !e.isMythic && !e.isWarden && !e.lieutenant && !e.raider && !e.isBoss && !e.isLegend && !e.isApex).length;
       const inWater = player.inWater || player.underwater;
       const cap = inWater ? Math.min(maxCount, 4) : calmHere(player) ? Math.min(maxCount, 4) : Math.min(maxCount, 6);
       if (near < (lured ? cap + 3 : cap) && !hushed) trySpawn(player, player.trainerLevel || 1);
@@ -3791,20 +3851,23 @@ const Wild = (() => {
   function pick(player, reach = 7) {
     const eye = player.eye(); const f = U.forwardVec(player.yaw, player.pitch);
     let best = null, bt = reach;
+    const airborne = player.gliding || player.mountMode === 'air';
     for (const e of list) {
+      if (e.high && !airborne && reach < 20) continue;
       const r = Math.max(0.6, e.model.radius * e.model.scale * 0.9), h = e.model.height * e.model.scale;
       const cx = e.x, cy = e.y + h / 2 + (e.hover || 0), cz = e.z;
       // ray-sphere
       const ox = eye.x - cx, oy = eye.y - cy, oz = eye.z - cz;
-      const b = ox * f[0] + oy * f[1] + oz * f[2], c = ox * ox + oy * oy + oz * oz - Math.max(r, h / 2) ** 2;
+      const b = ox * f[0] + oy * f[1] + oz * f[2], c = ox * ox + oy * oy + oz * oz - (Math.max(r, h / 2) * (e.high && airborne ? 3 : 1)) ** 2;
       const disc = b * b - c; if (disc < 0) continue;
-      const t = -b - Math.sqrt(disc); if (t > 0 && t < bt) { bt = t; best = e; }
+      const t = -b - Math.sqrt(disc); if (t > 0 && t < (e.high && airborne ? Math.max(bt, 14) : bt) && (!best || t < bt)) { bt = t; best = e; }
     }
     return best;
   }
   function rings(player) {
     const out = [];
     for (const e of list) {
+      if (e.high) continue;
       const d = Math.hypot(e.x - player.x, e.z - player.z);
       if (d > (e.lieutenant || e.isBoss || e.isLegend || e.isApex ? 48 : 16)) continue;
       const a = e.alert;
@@ -3815,8 +3878,8 @@ const Wild = (() => {
     }
     return out;
   }
-  function clear() { list.length = 0; mythicRef = null; legendRef = null; apexRefs.rex = apexRefs.mosa = null; }
-  const api = { inTallGrass, init, update, list, remove, nearest, pick, rings, roll, ensureHeart, ensureLegend, ensureApex, apexSea, apexLevel: APEX_LV, clear, makeEntity, zoneLevel, noSpawn: null, chaser: null, get mythic() { return mythicRef; }, get legend() { return legendRef; } };
+  function clear() { drops.length = 0; list.length = 0; mythicRef = null; legendRef = null; apexRefs.rex = apexRefs.mosa = null; }
+  const api = { inTallGrass, isHigh, dropEntities, init, update, list, remove, nearest, pick, rings, roll, ensureHeart, ensureLegend, ensureApex, apexSea, apexLevel: APEX_LV, clear, makeEntity, zoneLevel, noSpawn: null, chaser: null, get mythic() { return mythicRef; }, get legend() { return legendRef; } };
   return api;
 })();
 
@@ -5441,9 +5504,16 @@ const Battle = (() => {
     while (el.log.children.length > 4) el.log.removeChild(el.log.firstChild);
     el.log.scrollTop = el.log.scrollHeight;
   }
+  // which snare this Kin takes: the high flyers only a Flight Snare thrown from the air, the water Kin none at all (that is the rod's job)
+  function snareRule() {
+    const p = G.player;
+    if (wildE && wildE.aquatic && !wildE.isApex) return { list: [], why: 'Water Kin slip any cage. Fish them with a rod.' };
+    if (wildE && wildE.high) { const air = p.gliding || p.mountMode === 'air'; if (!air) return { list: [], why: 'Only from the air' }; return { list: p.has('snare_sky') ? ['snare_sky'] : [], why: 'Needs a Flight Snare' }; }
+    return { list: ['snare2', 'snare'].filter(s => p.has(s)), why: 'No snares' };
+  }
   function renderActions() {
     const mv = KIN.moves(mine);
-    const snares = ['snare2', 'snare'].filter(s => G.player.has(s));
+    const rule = snareRule(); const snares = rule.list;
     const bagFull = false; // a full party sends new catches to storage
     let html = '';
     mv.forEach((m, i) => {
@@ -5452,7 +5522,7 @@ const Battle = (() => {
       const col = m.kind === 'util' ? '#8899aa' : ELEM_COLOR[m.elem];
       html += `<button class="act move ${m.tech ? 'tech' : ''}" data-i="${i}" style="--c:${col}"><b>${m.name}${m.tech ? ' ✦' : ''}</b><small>${m.kind === 'util' ? m.desc : m.kind + ' · ' + m.power + (m.desc ? ' · ' + m.desc : '')}</small>${tag}</button>`;
     });
-    const snareLabel = snares.length ? `${ITEMS[snares[0]].name} ×${G.player.count(snares[0])}` : 'No snares';
+    const snareLabel = snares.length ? `${ITEMS[snares[0]].name} ×${G.player.count(snares[0])}` : rule.why;
     html += `<button class="act snare" data-a="snare" ${(!snares.length || bagFull) ? 'disabled' : ''}><b>Snare</b><small>${bagFull ? 'Bag full (20). Fuse first.' : snareLabel}</small></button>`;
     const th = G.player.count('tonic_heal');
     html += `<button class="act" data-a="tonic" ${th ? '' : 'disabled'}><b>Tonic</b><small>${th ? 'Heal Tonic ×' + th + ' · costs the turn' : 'no Heal Tonic'}</small></button>`;
@@ -5583,7 +5653,7 @@ const Battle = (() => {
   let snareState = null;
   function catchChance() {
     const st = KIN.stats(wild); const frac = wild.hp / st.hp;
-    const item = G.player.has('snare2') ? 'snare2' : 'snare';
+    const item = snareRule().list[0] || 'snare';
     let c = stealth ? ITEMS[item].snare * (wildE && wildE.alert < 0.5 ? 0.6 : 0.45) : ITEMS[item].snare * (1 - frac * 0.8);
     if (wild.level > mine.level + 3) c *= 0.75;
     // the level gap: a little above you is fair, 20% above is a long shot, twice your level and nothing holds it
@@ -5600,6 +5670,7 @@ const Battle = (() => {
     return { chance: U.clamp(c, gap > 1.2 ? 0.002 : 0.04, 0.9), item, gap, grip };
   }
   function beginSnare() {
+    if (!snareRule().list.length) { log(snareRule().why + '.', 'bad'); renderActions(); busy = false; return; }
     const { chance, item, gap, grip, hopeless } = catchChance();
     if (!G.player.take(item, 1)) return;
     if (typeof Npcs !== 'undefined' && Npcs.active('hunter')) Npcs.useCharge('hunter');
@@ -5660,6 +5731,7 @@ const Battle = (() => {
     if (camState) { G.player.yaw = camState.yaw; G.player.pitch = Math.max(-0.3, Math.min(0.1, camState.pitch)); }
     active = false; busy = false; snareState = null; camState = null; fx.length = 0;
     el.root.classList.add('hidden'); el.root.classList.remove('snaring');
+    if (result === 'won' && wildE && wildE.high) { G.player.add('feather', 2); UI.toast('Two Sky Feathers drift down.', 'good'); }
     G.onBattleEnd(result, wildE, wild, mine, ambush);
     wildE = null; mineE = null;
   }
@@ -5724,6 +5796,7 @@ const RECIPES = [
   { id: 'torch_ember', out: 'torch', n: 4, needs: { wood: 1, ember: 1 } },
   { id: 'snare', out: 'snare', n: 2, needs: { wood: 2, stone: 2 } },
   { id: 'snare2', out: 'snare2', n: 2, needs: { iron: 1, void: 1 } },
+  { id: 'snare_sky', out: 'snare_sky', n: 2, needs: { snare: 2, feather: 3 }, when: G => !!(typeof Campaign !== 'undefined' && Campaign.C().flightSnare) },
   { id: 'fusion', out: 'fusion', n: 1, needs: { stone: 6, copper: 2, void: 1 } },
   { id: 'tonic_heal', out: 'tonic_heal', n: 1, needs: { berry: 3 } },
   { id: 'tonic_revive', out: 'tonic_revive', n: 1, needs: { berry: 6, ess_Bloom: 1, ess_Light: 1 } },
@@ -5996,10 +6069,10 @@ const Fishing = (() => {
     if (!ok) { end(`It got away.${state.bait ? ' The bait is gone.' : ''}`); return true; }
     const sp = state.sp; const r = sp.rarity || 0;
     const level = Math.max(1, (G.trainerLevel || 1) + (state.rod.tier - 1) * 2 + KIN.RARITY[r].lvl + Math.floor(Math.random() * 3) - 1);
-    const kin = KIN.create(sp, level);
+    const kin = KIN.create(sp, Math.min(level, KIN.capOf(sp)));
     G.addKin(kin); G.stats.caught++; G.stats.fished = (G.stats.fished || 0) + 1;
     end(null); UI.sfx('caught');
-    UI.openPanel('reveal', { kind: 'kin', kin, parents: [], n: 0, caught: `Pulled from the water at Lv ${level}${r > 0 ? ' · ' + KIN.RARITY[r].name : ''}.` });
+    UI.openPanel('reveal', { kind: 'kin', kin, parents: [], n: 0, caught: `Pulled from the water at Lv ${kin.level}${r > 0 ? ' · ' + KIN.RARITY[r].name : ''}.` });
     return true;
   }
   function end(msg) { state = null; el.classList.add('hidden'); G.player.frozen = false; if (msg) UI.toast(msg); }
@@ -6766,7 +6839,8 @@ const Campaign = (() => {
     if (n.job === 'hermit') {
       if (!c.glider) return say(['Up there, on the peak, a sky Kin keeps her nest on a pillar of rock. One egg every spring. Nobody has climbed the pillar: you cannot. You fall to it.', 'Take my glider. Climb the peak, jump, hold ▲ to glide, and come down on that pillar top. Walk the egg home and it will hatch into something that flies.', 'Listen, because the pillar is small. Read the wind first: the little compass shows where it blows. Start upwind of the pillar and let it carry you in.', 'The stick: sideways to turn, forward to dive and gather speed, back to brake. Hold back too long and she stalls and drops like a stone.', 'Coming down, keep your speed until the last moment, then pull back. That is the flare: the speed turns into lift and you touch down like a leaf. Let go of ▲ only when your feet are almost on it.', 'And no ladders, no digging. She knows.'], () => { c.glider = 1; give('glider'); });
       if (c.glider === 1) return say(['The pillar, from the peak. Start upwind, the compass shows it. Forward to dive, back to brake, and pull back just before you touch. Let go of ▲ only when you are almost down.']);
-      return say(['Walk it until it hatches. Then it will carry you, below the clouds at least. Higher than that is for ships.']);
+      if (!c.flightSnare) return say(['You brought it down whole. Good hands.', 'Now look up. Those birds wheeling high over the hills: they never land. They drop stones on walkers and laugh about it. A cage on the ground is no use to them.', 'This is a Flight Snare: a light cage on a long cord. It only works thrown from the air. Get above one on the glider, or on the back of a flier, pass close and tap it.', 'I will show you how to tie them. Two Snare Cubes and three Sky Feathers each pair. Feathers come down when you hit one of those birds with an arrow, or beat one. Here are three snares and some feathers to start.'], () => { c.flightSnare = true; give('snare_sky', 3); G.player.add('feather', 6); UI.toast('Flight Snare recipe learned. Throw them from the air only.', 'good'); });
+      return say(['Walk the egg until it hatches. Then it will carry you, below the clouds at least. Higher than that is for ships.', 'And the high birds: from the air, with the Flight Snare. Feathers from arrows.']);
     }
   }
   // the fisherman, from Village: the rod first, then the water egg after your first fish
@@ -8054,7 +8128,7 @@ const UI = (() => {
     }
     const CATS = [['gear', 'Tools and gear'], ['tonics', 'Tonics'], ['blocks', 'Blocks'], ['builds', 'Buildings'], ['kin', 'Kin gear']];
     const catOf = (r) => r.cat || (r.out.startsWith('tonic_') ? 'tonics' : ITEMS[r.out].block ? 'blocks' : 'gear');
-    el['panel-body'].innerHTML = secureHtml() + `<p class="note">No table needed for these. Ingredients come from mining, leaves, berries and essences. Kits raise a whole building where you tap; Kin gear is put on from a Kin's page.</p>` + CATS.map(([c, title]) => `<h4>${title}</h4>` + RECIPES.filter(r => catOf(r) === c).map(r => {
+    el['panel-body'].innerHTML = secureHtml() + `<p class="note">No table needed for these. Ingredients come from mining, leaves, berries and essences. Kits raise a whole building where you tap; Kin gear is put on from a Kin's page.</p>` + CATS.map(([c, title]) => `<h4>${title}</h4>` + RECIPES.filter(r => catOf(r) === c && !(r.when && !r.when(G))).map(r => {
       const owned = ITEMS[r.out].gear && p.has(r.out);
       const can = !owned && Object.keys(r.needs).every(k => p.count(k) >= r.needs[k]);
       return `<div class="recipe ${can ? 'can' : ''}"><div class="ico big" style="background:${ITEMS[r.out].col}"></div><div class="rinfo"><b>${ITEMS[r.out].name}${r.n > 1 ? ' ×' + r.n : ''}</b><div class="small">${ITEMS[r.out].desc}${p.gearPower[r.out] ? ' Marked by ' + p.gearPower[r.out].mark + ': +' + Math.round((p.gearPower[r.out].power - 1) * 100) + '%.' : ''}</div><div class="needs">${Object.keys(r.needs).map(k => `<span class="${p.count(k) >= r.needs[k] ? 'ok' : 'no'}">${ITEMS[k].name} ${p.count(k)}/${r.needs[k]}</span>`).join('')}</div></div><button class="btn" data-r="${r.id}" ${can ? '' : 'disabled'}>${owned ? 'Owned' : 'Craft'}</button></div>`;
@@ -8727,7 +8801,7 @@ G.addTrainerXp = function (n) {
   if (L > this.trainerLevel) { this.trainerLevel = L; UI.sfx('level'); UI.toast(`Trainer level ${L}.` + (L % 4 === 0 ? ' New, stronger Kin have appeared in the wilds.' : ''), 'good'); }
 };
 G.craft = function (id) {
-  const r = RECIPES.find(x => x.id === id); if (!r) return;
+  const r = RECIPES.find(x => x.id === id); if (!r || (r.when && !r.when(this))) return;
   const p = this.player;
   if (ITEMS[r.out].gear && p.has(r.out)) return;
   for (const k in r.needs) if (p.count(k) < r.needs[k]) return;
@@ -8756,6 +8830,7 @@ G.previewGrid = function (slots) {
     const counts = {}; for (const it of items) counts[it] = (counts[it] || 0) + 1;
     let best = null;
     for (const r of RECIPES) {
+      if (r.when && !r.when(this)) continue;
       if (ITEMS[r.out].gear && this.player.has(r.out)) continue;
       let ok = true, used = 0; for (const k in r.needs) { if ((counts[k] || 0) < r.needs[k]) { ok = false; break; } used += r.needs[k]; }
       if (!ok) continue;
@@ -8932,6 +9007,7 @@ G.shoot = function () {
   const dmg = Math.max(1, Math.round(st.hp * bite)); const before = e.kin.hp;
   e.kin.hp = Math.max(1, e.kin.hp - dmg); e.alert = 1; e.ringT = 3; e.cool = 0; if (e.sleep) e.sleep = false;
   this.stats.arrowHits = (this.stats.arrowHits || 0) + 1;
+  if (e.high && Math.random() < 0.6) { p.add('feather', 1); setTimeout(() => UI.toast('A Sky Feather spins down to you.', 'good'), 400); }
   const pct = Math.round(e.kin.hp / st.hp * 100);
   UI.sfx('hit'); UI.toast(`${unaware ? 'Clean shot! ' : 'Hit! '}${KIN.name(e.kin)} down to ${pct}% (${before - e.kin.hp} damage). ${e.kin.hp <= 1 ? 'It is barely standing.' : 'It is coming for you.'}`, 'good');
 };
@@ -9261,7 +9337,7 @@ G.loop = function (t) {
   const showMe = inBattle || this.thirdPerson || this.talkK > 0 || !!p.mount || this.grassCamOn;
   if (showMe) { const me = Avatar.entity(p, Math.hypot(p.vx, p.vz) > 0.6); if (p.mount) { const mm = KIN.model(p.mount.sp, p.mount.stage); me.y = p.y - 0.75 + mm.height * 0.62; } ents.push(me); }
   if (p.mount) { const k = p.mount; const m = KIN.model(k.sp, k.stage); const fwd = U.forwardVec(p.yaw, 0); ents.push({ x: p.x + fwd[0] * 0.5, y: p.y - 0.75 + (p.inWater ? -0.2 : 0) + Math.sin(performance.now() / 160) * (Math.hypot(p.vx, p.vz) > 0.5 ? 0.06 : 0), z: p.z + fwd[2] * 0.5, yaw: p.yaw + Math.PI, model: m, mesh: R.entityMesh(KIN.meshKey(k.sp, k.stage), (mb) => KIN.buildMesh(mb, m)), scale: 1, hover: 0, skyMul: 1, isMount: true }); }
-  ents.push(...Battle.fxEntities()); ents.push(...Hazards.entities()); ents.push(...Npcs.entities());
+  ents.push(...Battle.fxEntities()); ents.push(...Wild.dropEntities()); ents.push(...Hazards.entities()); ents.push(...Npcs.entities());
   for (const o of w.statues.values()) {
     if ((o.x - p.x) ** 2 + (o.z - p.z) ** 2 > 4000) continue;
     if (!o.model) { o.model = KIN.statueModel(o); o.mesh = R.entityMesh('statue:' + o.id, (mb) => KIN.buildMesh(mb, o.model)); }
