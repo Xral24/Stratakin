@@ -34,6 +34,13 @@ Ship flow that has worked: edit `src/`, `python3 tools/build.py`, run a test or 
 - Entities (Kin, people, the player, items) are box meshes cached by key via `R.entityMesh(key, buildFn)`.
 - `state.gloom` greys the sky, light and haze near untaken Holds (from `Keeps.gloom`).
 
+## Two characters Alexander cares about
+
+These are original characters and must stay that way: do not base them on any existing game character. Give each a silhouette you could recognise from across a square.
+
+- **Silas Pennywise**, the merchant (`campaign.js`, job `merchant`; also sells the bridge repair and the Sovereign's Crown relic). Not human, not an animal: his own species, a Glimmerkin. Lanky and stooped, long fingers, mossy-green skin with copper freckles, a tall stovepipe hat with a shard of crystal tucked in the band, a teal waistcoat hung with coin chains, a ledger under one arm and an abacus on his belt. He talks like a showman and he is the face of shards in this game.
+- **Professor Aldous Finch**, the scientist (`citadel.js`): wiry and tall, a singed coat with too many pockets, brass goggles on his forehead, a mechanical brace on one arm from five years building ships at knifepoint, white tufts of hair that stick out sideways.
+
 ## What to redesign (Alexander's wish list, roughly in his order)
 
 1. **Kin.** `kin.js` `model()` / `buildMesh()` / `decorate()`. Procedural species: shapes (biped, quadruped, bird, floater, serpent, raptor, blob...), feature flags (horns, wings, spikes, tail, crest...), colours. They must read at a distance ("ooh, look at that one"). Dinosaurs (Lost World, the T-Rex `apexSpecies('rex')`, the mosasaur) especially. Kin wear (scarf, coat, hat, crown, show rosettes) is drawn by `buddy.js` `WEAR`.

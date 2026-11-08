@@ -203,7 +203,10 @@ const Village = (() => {
   function nameFor(id, style) { const h = U.combine(0x7177, U.strHash(id)); const t = STYLE_NAMES[style]; if (t) return t.a[h % t.a.length] + t.b[(h >>> 8) % t.b.length]; return NAME_A[h % NAME_A.length] + NAME_B[(h >>> 8) % NAME_B.length]; }
   function levelOf(st) { let l = 1; for (let i = 1; i < LEVELS.length; i++) if ((st.earned || 0) >= LEVELS[i]) l = i + 1; return l; }
   function amenCount(v, st) { const base = v.founded ? (v.signCount || 0) : Object.keys(v.amen).filter(k => v.amen[k]).length; return base + (st.shops || []).length; }
-  function incomeFor(v, st) { return 8 + 5 * Math.min(12, amenCount(v, st)); }
+  function incomeFor(v, st) {
+    if (v.R) { const L = layout(v); const closed = st.closed || {}; const open = L.shops.filter(sh => sh.kind !== 'elder' && !closed[sh.kind]).length; const base = { start: 20, hamlet: 15, town: 45, city: 110 }[v.starter ? 'start' : v.size] || 15; return base + 8 * open; } // a town pays by its size, and more for every shop you get running
+    return 8 + 5 * Math.min(12, amenCount(v, st));
+  }
   function hasAmen(v, st, k) { return !!(v.amen && v.amen[k]) || (st.shops || []).some(s => s.kind === k); }
   const curNight = () => (G.dayCount || 0) + (world.time > 0.5 ? 1 : 0); // the night that is coming or just passed, named by the day it dawns into
   const isNight = () => Math.cos(world.time * Math.PI * 2) > 0.17;
@@ -1118,13 +1121,13 @@ const Village = (() => {
   const plotKey = (v, i) => v.id + ':' + i;
   function ownsPlotAt(v, x, z) { const own = G.stats.plots || {}; return plotsOf(v).some(pl => own[plotKey(v, pl.i)] && Math.abs(x - pl.x) <= 4 && Math.abs(z - pl.z) <= 4); }
   function buyPlot(v, i) { const own = G.stats.plots || (G.stats.plots = {}); const k = plotKey(v, i); if (own[k]) return false; const free = !G.stats.freeDeed && state(v.id).freed; const price = free ? 0 : plotPrice(v); if (G.shards < price) { UI.toast(`A deed here is ${price.toLocaleString()} shards.`, 'bad'); return false; } G.shards -= price; own[k] = true; if (free) G.stats.freeDeed = true; UI.sfx('quest'); UI.toast(free ? 'The deed is yours, a gift for what you did here. Build whatever you like on it: nobody will stop you.' : 'Signed and sealed. That plot is yours to build on.', 'good'); return true; }
-  function thiefCaught(vid) { const v = villages.get(vid); if (!v) return; const st = state(vid); if (st.closed) delete st.closed.bakery; v.thief = null; UI.sfx('quest'); UI.toast(`${v.name}: the flour thief is dealt with. The bakery is open.`, 'good'); }
+  function thiefCaught(vid) { const v = villages.get(vid); if (!v) return; const st = state(vid); if (st.closed) delete st.closed.bakery; if (st.freed) st.income = incomeFor(v, st); v.thief = null; UI.sfx('quest'); UI.toast(`${v.name}: the flour thief is dealt with. The bakery is open.`, 'good'); }
   function fixShop(n) {
     const v = active; if (!v) return false; const st = state(v.id); const closed = closures(v, st); const k = n.shop; if (!closed[k] || !st.freed) return false;
     const P = PROBLEMS[k]; const need = P.need || {}; const have = Object.keys(need).every(it => G.player.count(it) >= need[it]);
     if (P.thief || !have) { Dialogue.show(n.name, P.say.concat(P.need ? ['You have ' + Object.keys(need).map(it => `${G.player.count(it)}/${need[it]} ${ITEMS[it].name}`).join(', ') + '.'] : [])); return true; }
     Dialogue.show(n.name, ['That is everything. Give me a moment.', k === 'station' ? `There. ${v.name} is back on the line. Any open station, any time.` : 'Open for business. Thank you.'], () => {
-      for (const it in need) G.player.take(it, need[it]); delete closed[k]; UI.sfx('quest'); G.addTrainerXp(60);
+      for (const it in need) G.player.take(it, need[it]); delete closed[k]; st.income = incomeFor(v, st); UI.sfx('quest'); G.addTrainerXp(60); setTimeout(() => UI.toast(`${v.name} pays ◆ ${st.income} a day now.`, 'good'), 1500);
       if (k === 'station') { const sh = shopOf(v, 'station'); G.addRoost({ id: v.id, name: v.name, x: sh.x + sh.dirX * 5 + 0.5, y: v.y, z: sh.z + sh.dirZ * 5 + 0.5, world: world.preset.id }); }
     });
     return true;
