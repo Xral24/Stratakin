@@ -3459,7 +3459,7 @@ const KIN = (() => {
     }
   }
 
-  function serialize(k) { return { id: k.id, sp: k.sp, level: k.level, xp: k.xp, iv: k.iv, stage: k.stage, hp: k.hp, nick: k.nick, equip: k.equip || null, tech: k.tech || null }; }
+  function serialize(k) { return { id: k.id, sp: k.sp, level: k.level, xp: k.xp, iv: k.iv, stage: k.stage, hp: k.hp, nick: k.nick, equip: k.equip || null, tech: k.tech || null, wear: k.wear || null, trust: k.trust || 0, tamed: k.tamed || false }; }
   function deserialize(d) { return Object.assign({ status: null }, d); }
 
   return { E, EI, CHART, STAT_KEYS, STAT_NAMES, growth, xpToNext, dominant, species, speciesForContext, dex, bySeed, HABITATS, capOf, recipes, findRecipe, fuseRecipe, mythicSpecies, legendSpecies, apexSpecies, wardenSpecies, MAX_LEVEL, TECH, techFor, techByName, starters, create, stats, name, moves, effectiveness, gainXp, fuse, fusionLevel, TRAITS, RARITY, roster, buildUniverse, decorate, makeStatue, statueModel, shardsFor, model, buildMesh, meshKey, portrait, serialize, deserialize, UTIL_DESC };
@@ -4017,6 +4017,10 @@ const Village = (() => {
     stables: { name: 'Riding School', marker: B.LOG, level: 2, cost: { shards: 300, items: { planks: 30 } } },
     aerie: { name: 'Flying School', marker: B.CLOUD, level: 2, cost: { shards: 300, items: { planks: 30 } } },
     station: { name: 'Station', marker: B.IRON, level: 1, cost: { shards: 200, items: { planks: 30, iron: 8 } } },
+    barber: { name: 'Barber', marker: B.GOLD, level: 2, cost: { shards: 300, items: { planks: 20 } } },
+    mirror: { name: 'Mirror Hall', marker: B.GLASS, level: 2, cost: { shards: 300, items: { planks: 20, glass: 8 } } },
+    designer: { name: 'House of Zazu', marker: B.BERRYLEAF, level: 2, cost: { shards: 300, items: { planks: 20 } } },
+    kinwear: { name: 'Kin Outfitter', marker: B.CLOUD, level: 2, cost: { shards: 300, items: { planks: 20 } } },
     tailor: { name: 'Tailor', marker: B.BERRY, level: 2, cost: { shards: 400, items: { planks: 20 } } },
     enchanter: { name: 'Enchanter', marker: B.VOID, level: 2, cost: { shards: 500, items: { planks: 20, void: 2 } } },
     cartographer: { name: 'Cartographer', marker: B.GLASS, level: 2, cost: { shards: 300, items: { planks: 20 } } },
@@ -4048,6 +4052,10 @@ const Village = (() => {
     enchanter: { title: 'Enchanter', keeper: 'Magister Vael', greet: 'A word over your armour, a whisper on your blade. It wears off, they always do.', stock: [{ service: 'meal', buff: 'ward', amt: 15, mins: 60, name: 'Ward: fifteen extra armour points for an hour', price: 250 }, { service: 'meal', buff: 'blade', amt: 1.35, mins: 60, name: 'Keen Edge: your sword and axe hit a third harder for an hour', price: 220 }, { service: 'meal', buff: 'luck', amt: 1.3, mins: 30, name: 'Lucky Hand: snares hold better for 30 minutes', price: 300 }, { service: 'meal', buff: 'speed', amt: 1.35, mins: 30, name: 'Fleet Foot: run faster for 30 minutes', price: 120 }] },
     cartographer: { title: 'Cartographer', keeper: 'Pim the Mapper', greet: 'I sell what I have seen, and I have seen a great deal.', stock: [{ service: 'map', what: 'holds', name: 'Map of the Holds: every one of his fortresses, marked', price: 400 }, { service: 'map', what: 'towns', name: 'Map of the Realm: every town and city, named', price: 250 }] },
     daycare: { title: 'Kin Daycare', keeper: 'Nanny Bree', greet: 'Leave them with me while you go about your business. They will come back stronger.', stock: [{ service: 'meal', buff: 'train', amt: 1, mins: 60, name: 'An hour of training: your whole party gains experience every minute you play', price: 180 }, { service: 'calm', name: 'A nap and a snack: your whole party healed', price: 20 }] },
+    barber: { title: 'Barber', keeper: 'Fenwick the Barber', greet: 'Sit down. Something bold, or something sensible?', stock: [{ service: 'look', panel: 'barber', name: 'A new cut, a new colour', price: 0 }] },
+    mirror: { title: 'Mirror Hall', keeper: 'The Glass Lady', greet: 'Look into it. Now tell it who you would rather be.', stock: [{ service: 'look', panel: 'mirror', name: 'Change your skin tone and your height', price: 0 }] },
+    designer: { title: 'House of Zazu', keeper: 'Zazu', greet: 'Darling. DARLING. We must do something about all of this. Paint, capes, colour!', stock: [{ service: 'look', panel: 'designer', name: 'Face paint, a cape, your own colours', price: 0 }] },
+    kinwear: { title: 'Kin Outfitter', keeper: 'Pemberton', greet: 'Every Kin deserves to look its best. Scarves, coats, a little hat. Bring your lead Kin closer.', stock: [{ service: 'look', panel: 'kinwear', name: 'Dress your lead Kin', price: 0 }] },
     station: { title: 'Station', keeper: 'Stationmaster Pike', greet: 'All aboard, for the towns whose lines are open.', stock: [] },
     inn: { title: 'Inn', keeper: 'Marta', greet: 'A bed, a meal, and nobody asks where you have been.', stock: [{ service: 'rest', name: 'A bed for the night: your whole party back on its feet', price: 18 }, { item: 'bread', price: 9 }, { item: 'smoothie', price: 14 }, { item: 'broth', price: 12 }] },
   };
@@ -4141,7 +4149,7 @@ const Village = (() => {
   function init(game) {
     G = game; world = game.world; villages.clear(); hermits.clear(); active = null; activeHermit = null; walkState = null; fisher = null;
     const vd = world.preset.villages || { nc: 64, prefix: '', style: 'land' }; NC = vd.nc; CELL = WORLD_W / NC; PREFIX = vd.prefix || ''; STYLE = vd.style || 'land';
-    PLAN = null; SPECIAL.clear(); towns.clear(); world.overlay = (c) => overlay(c);
+    PLAN = null; SPECIAL.clear(); LOOK.clear(); towns.clear(); world.overlay = (c) => overlay(c);
   }
   function state(id) {
     if (!G.villageState) G.villageState = {};
@@ -4161,7 +4169,7 @@ const Village = (() => {
 
   // ---- sites: one candidate per cell, decided by the terrain there ----
   // Earth keeps a fixed map of named places, not a village in every cell: a few hamlets by home, towns further out, cities beyond them
-  let PLAN = null, planning = false; const SPECIAL = new Map();
+  let PLAN = null, planning = false; const SPECIAL = new Map(), LOOK = new Map();
   const QUOTA = { hamlet: [2, 140, 650], town: [8, 550, 1500], city: [4, 1300, 2300] };
   function plan() {
     if (PLAN) return PLAN; if (world.preset.id !== 'earth') return null;
@@ -4176,13 +4184,15 @@ const Village = (() => {
         if (size === 'hamlet' && v.type !== 'land') continue; if (v.type !== 'land') { if (sea >= (size === 'town' ? 2 : 1)) continue; sea++; }
         PLAN.set(v.id, size); taken.push(v); got++; } }
     const specs = ['stables', 'aerie', 'sanctuary']; let si = 0; for (const v of byD) if (PLAN.get(v.id) === 'town' && v.type === 'land' && si < specs.length) SPECIAL.set(v.id, specs[si++]);
+    const LOOKS = ['barber', 'mirror', 'designer', 'kinwear']; const hosts = byD.filter(v => PLAN.get(v.id) === 'city' && v.type === 'land').concat(byD.filter(v => PLAN.get(v.id) === 'town' && v.type === 'land').reverse());
+    LOOKS.forEach((k, i) => { const h = hosts[i % Math.max(1, hosts.length)]; if (h) LOOK.set(h.id, (LOOK.get(h.id) || []).concat(k)); });
     return PLAN;
   }
   function siteFor(cx, cz) {
     if (!world.preset.villages) return null;
     cx = U.mod(cx, NC); cz = U.mod(cz, NC);
     const id = PREFIX + cx + ',' + cz;
-    if (!planning && world.preset.id === 'earth') { const P = plan(); const v0 = villages.has(id) ? villages.get(id) : rawSite(cx, cz, id); if (!v0 || !P.has(id)) return null; v0.size = P.get(id); v0.special = SPECIAL.get(id) || null; if (v0.type === 'land') v0.R = TOWN_R[v0.size]; if (v0.size === 'city' && !/^(Great|Old|High|Port) /.test(v0.name)) v0.name = (v0.type !== 'land' ? 'Port ' : 'Great ') + v0.name; if (v0.size === 'city') v0.tier = Math.max(v0.tier, 4); return v0; }
+    if (!planning && world.preset.id === 'earth') { const P = plan(); const v0 = villages.has(id) ? villages.get(id) : rawSite(cx, cz, id); if (!v0 || !P.has(id)) return null; v0.size = P.get(id); v0.special = SPECIAL.get(id) || null; v0.looks = LOOK.get(id) || []; if (v0.type === 'land') v0.R = TOWN_R[v0.size]; if (v0.size === 'city' && !/^(Great|Old|High|Port) /.test(v0.name)) v0.name = (v0.type !== 'land' ? 'Port ' : 'Great ') + v0.name; if (v0.size === 'city') v0.tier = Math.max(v0.tier, 4); return v0; }
     return rawSite(cx, cz, id);
   }
   // ================= towns as part of the world =================
@@ -4251,7 +4261,7 @@ const Village = (() => {
       lots.push({ x: vx + gx, z: vz + gz, dirX: best.dir[0], dirZ: best.dir[1], dc: Math.hypot(gx, gz) });
     }
     lots.sort((a, b) => a.dc - b.dc);
-    const kinds = (TOWN_SHOPS[v.starter ? 'start' : v.size] || TOWN_SHOPS.hamlet).slice(); if (v.special && !kinds.includes(v.special)) kinds.push(v.special);
+    const kinds = (TOWN_SHOPS[v.starter ? 'start' : v.size] || TOWN_SHOPS.hamlet).slice(); if (v.special && !kinds.includes(v.special)) kinds.push(v.special); for (const k of (v.looks || [])) if (!kinds.includes(k)) kinds.splice(1, 0, k);
     const shops = [];
     // the station goes by the gate at the far end of the east street; everything else from the square outwards
     const stI = lots.reduce((bi, l, i) => { const d = Math.hypot(l.x - (vx + R - 9), l.z - (vz + 6)); return d < bi[1] ? [i, d] : bi; }, [-1, 1e9])[0];
@@ -4611,7 +4621,7 @@ const Village = (() => {
   function furnishElder(hx, hz, dx, dz, vy) { world.setBlock(hx - dx * 2 + (dz ? 1 : 0), vy, hz - dz * 2 + (dx ? 1 : 0), B.PLANKS); world.setBlock(hx - dx * 2 + (dz ? 1 : 0), vy + 1, hz - dz * 2 + (dx ? 1 : 0), B.SNOW); side(hx, hz, dx, dz, vy, -1, B.LOG, B.CLOUD); }
   function furnishVoodoo(hx, hz, dx, dz, vy) { counter(hx, hz, dx, dz, vy); side(hx, hz, dx, dz, vy, 1, B.BASALT, B.VOID); side(hx, hz, dx, dz, vy, -1, B.BASALT, B.EMBER); }
   function furnishPost(hx, hz, dx, dz, vy) { counter(hx, hz, dx, dz, vy); side(hx, hz, dx, dz, vy, 1, B.IRON, B.GLASS); side(hx, hz, dx, dz, vy, -1, B.PLANKS, B.CLOUD); }
-  const FURNISH = { bakery: furnishBakery, juice: furnishJuice, trader: furnishTrader, voodoo: furnishVoodoo, post: furnishPost, armoury: furnishTrader, armourer: furnishTrader, alchemist: furnishJuice, inn: furnishBakery, restaurant: furnishBakery, sanctuary: furnishVoodoo, stables: furnishJuice, aerie: furnishPost, station: furnishPost, elder: furnishElder, tailor: furnishJuice, enchanter: furnishVoodoo, cartographer: furnishPost, daycare: furnishBakery };
+  const FURNISH = { bakery: furnishBakery, juice: furnishJuice, trader: furnishTrader, voodoo: furnishVoodoo, post: furnishPost, armoury: furnishTrader, armourer: furnishTrader, alchemist: furnishJuice, inn: furnishBakery, restaurant: furnishBakery, sanctuary: furnishVoodoo, stables: furnishJuice, aerie: furnishPost, station: furnishPost, elder: furnishElder, tailor: furnishJuice, barber: furnishJuice, mirror: furnishPost, designer: furnishJuice, kinwear: furnishBakery, enchanter: furnishVoodoo, cartographer: furnishPost, daycare: furnishBakery };
 
   // ---- portals: every village has an arch; held villages' arches are dead, yours link up ----
   function portalBlock(v) { return v.type === 'land' ? { x: v.x + 5, y: v.y, z: v.z - 5 } : v.type === 'sea' ? { x: v.x - 3, y: v.y, z: v.z - 2 } : { x: v.x + 4, y: v.y, z: v.z - 4 }; }
@@ -5662,6 +5672,7 @@ const Village = (() => {
     const price = entry.price; if (G.shards < price) { UI.toast('Not enough Shards.', 'bad'); return false; }
     if (entry.service === 'meal') { if (G.shards < price) { UI.toast('Not enough Shards.', 'bad'); return false; } G.shards -= price; G.addBuff(entry.buff, entry.amt, entry.mins); UI.sfx('caught'); UI.toast(entry.name.split(':')[0] + '. ' + entry.name.split(':')[1].trim() + '.', 'good'); return true; }
     if (entry.service === 'teach') { const k = G.kin[G.activeIdx]; if (!k) return false; if (k.tech) { UI.toast(`${KIN.name(k)} already knows ${k.tech}.`); return false; } const pr = 60 + k.level * 12; if (G.shards < pr) { UI.toast(`Teaching ${KIN.name(k)} costs ${pr} shards.`, 'bad'); return false; } G.shards -= pr; k.tech = KIN.techFor(k); UI.sfx('quest'); UI.toast(`${KIN.name(k)} learned ${k.tech}.`, 'good'); return true; }
+    if (entry.service === 'look') { UI.openPanel('look', { kind: entry.panel }); return true; }
     if (entry.service === 'skin') { const b = G.stats.boughtSkins || (G.stats.boughtSkins = {}); if (b[entry.skin]) { G.skin = entry.skin; UI.toast('You change into it.'); return true; } if (G.shards < price) { UI.toast('Not enough Shards.', 'bad'); return false; } G.shards -= price; b[entry.skin] = true; G.skin = entry.skin; UI.sfx('caught'); UI.toast(`${entry.name.split(':')[0]}. Yours, and you are wearing it. Switch any time from the menu.`, 'good'); return true; }
     if (entry.service === 'map') { if (G.shards < price) { UI.toast('Not enough Shards.', 'bad'); return false; } G.shards -= price; if (entry.what === 'holds') { if (!G.stats.keeps) G.stats.keeps = {}; for (const k of Keeps.sites()) G.stats.keeps['seen_' + k.id] = true; } else { G.stats.mapTowns = true; } UI.sfx('caught'); UI.toast('Pim unrolls it and marks your map. Open the Map to see.', 'good'); return true; }
     if (entry.service === 'calm') { if (G.shards < price) return false; G.shards -= price; for (const k of G.kin) k.hp = KIN.stats(k).hp; UI.sfx('caught'); UI.toast('A day in the garden. Your whole party is whole again.', 'good'); return true; }
@@ -8019,13 +8030,28 @@ const Avatar = (() => {
   function skin() { return SKINS.find(s => s.id === (G.skin || 'ranger')) || SKINS[0]; }
   function unlocked(s) { try { return !!s.unlock(G); } catch (e) { return false; } }
   function species(s) { return { shape: 'biped', feat: { crest: false, ears: false, horns: false, spikes: false, tail: false, wings: false, bigEyes: s.id === 'neon' }, colors: s.colors, size: 1, gen: 0, names: [s.name], neon: !!s.neon }; }
-  function model(s) { const m = KIN.model(species(s), 2); for (const d of s.deco) KIN.decorate(m, d); return m; }
-  function mesh(s) { let m = meshes.get(s.id); if (!m) { const mdl = model(s); m = { model: mdl, mesh: R.entityMesh('avatar:' + s.id, (mb) => KIN.buildMesh(mb, mdl)) }; meshes.set(s.id, m); } return m; }
+  // your look: hair, skin tone, height, face paint, a cape, your own outfit colours (from the barber, the mirror hall and the designer)
+  const look = () => (G && G.stats && G.stats.look) || {};
+  const HAIR = {
+    short: [[-0.32, 1.78, -0.3, 0.64, 0.12, 0.6]], long: [[-0.33, 1.78, -0.31, 0.66, 0.12, 0.62], [-0.33, 1.05, -0.33, 0.66, 0.8, 0.1]], mohawk: [[-0.06, 1.8, -0.32, 0.12, 0.32, 0.64]],
+    bun: [[-0.32, 1.78, -0.3, 0.64, 0.1, 0.6], [-0.12, 1.88, -0.36, 0.24, 0.24, 0.22]], spiky: [[-0.3, 1.8, -0.28, 0.14, 0.24, 0.14], [-0.07, 1.8, -0.1, 0.14, 0.3, 0.14], [0.16, 1.8, -0.28, 0.14, 0.22, 0.14], [-0.2, 1.8, 0.1, 0.14, 0.26, 0.14], [0.1, 1.8, 0.12, 0.14, 0.2, 0.14]],
+    braids: [[-0.32, 1.78, -0.3, 0.64, 0.1, 0.6], [-0.42, 0.9, -0.05, 0.1, 0.9, 0.1], [0.32, 0.9, -0.05, 0.1, 0.9, 0.1]], curls: [[-0.36, 1.74, -0.34, 0.72, 0.2, 0.7], [-0.4, 1.4, -0.36, 0.1, 0.36, 0.5], [0.3, 1.4, -0.36, 0.1, 0.36, 0.5]],
+  };
+  const PAINT = { stripes: [[-0.3, 1.5, 0.24, 0.6, 0.05, 0.03], [-0.3, 1.38, 0.24, 0.6, 0.05, 0.03]], dots: [[-0.25, 1.45, 0.24, 0.08, 0.08, 0.03], [0.17, 1.45, 0.24, 0.08, 0.08, 0.03], [-0.04, 1.33, 0.24, 0.08, 0.08, 0.03]], mask: [[-0.32, 1.42, 0.24, 0.64, 0.14, 0.03]], tribal: [[-0.04, 1.3, 0.24, 0.08, 0.35, 0.03], [-0.28, 1.48, 0.24, 0.2, 0.05, 0.03], [0.08, 1.48, 0.24, 0.2, 0.05, 0.03]], star: [[0.1, 1.42, 0.24, 0.14, 0.14, 0.03], [0.13, 1.39, 0.24, 0.08, 0.2, 0.03]] };
+  function model(s) {
+    const L = look(); const sp = species(s); sp.colors = Object.assign({}, sp.colors); if (L.tone) sp.colors.belly = L.tone; if (L.outfit) sp.colors.body = L.outfit; if (L.trim) sp.colors.accent = L.trim;
+    const m = KIN.model(sp, 2); for (const d of s.deco) KIN.decorate(m, d); const sc = m.scale; const add = (b, c, emis) => m.boxes.push({ x: b[0] * sc, y: b[1] * sc, z: b[2] * sc, w: b[3] * sc, h: b[4] * sc, d: b[5] * sc, c, emis });
+    if (L.hair && HAIR[L.hair] && !s.deco.some(d => d === 'crown' || d === 'visor' || d === 'hat')) for (const b of HAIR[L.hair]) add(b, L.hairCol || '#3a2a1a');
+    if (L.paint && PAINT[L.paint]) for (const b of PAINT[L.paint]) add(b, L.paintCol || '#e0302a');
+    if (L.cape) add([-0.38, 0.35, -0.36, 0.76, 1.25, 0.05], L.cape);
+    return m;
+  }
+  function mesh(s) { const key = s.id + ':' + JSON.stringify(look()); let m = meshes.get(key); if (!m) { const mdl = model(s); m = { model: mdl, mesh: R.entityMesh('avatar:' + key, (mb) => KIN.buildMesh(mb, mdl)) }; meshes.set(key, m); } return m; }
   // the entity for the render list: standing where you stand, facing where you face, bobbing when you walk, seated on a mount
   function entity(p, moving) {
     const s = skin(); const mm = mesh(s);
     const seat = p.mount ? 0.75 : p.flying ? 0.35 : 0;
-    return { x: p.x, y: p.y + seat, z: p.z, yaw: p.yaw + Math.PI, model: mm.model, mesh: mm.mesh, scale: 1, hover: moving && !p.mount && !p.flying ? Math.abs(Math.sin(performance.now() / 110)) * 0.08 : 0, skyMul: 1, isMount: true };
+    return { x: p.x, y: p.y + seat, z: p.z, yaw: p.yaw + Math.PI, model: mm.model, mesh: mm.mesh, scale: look().height || 1, hover: moving && !p.mount && !p.flying ? Math.abs(Math.sin(performance.now() / 110)) * 0.08 : 0, skyMul: 1, isMount: true };
   }
   // a camera behind and a little above you, pulled in when something is in the way
   function thirdCam(cam, p, world, back = 4.2, lift = 0) {
@@ -8336,6 +8362,7 @@ const UI = (() => {
     else if (name === 'relics') renderRelics(data);
     else if (name === 'runeforge') renderForge(data);
     else if (name === 'train') renderTrain(data);
+    else if (name === 'look') renderLook(data);
     else if (name === 'detail') renderDetail(data);
     else if (name === 'shop') renderShop(data);
     else if (name === 'bag') renderBag();
@@ -8489,6 +8516,25 @@ const UI = (() => {
     const slots = [];
     for (let i = 0; i < 5; i++) { const k = keys[i]; slots.push(k ? `<span class="chip" data-unsec="${k}" style="background:${ITEMS[k].col}">${ITEMS[k].name} ×${Math.min(p.count(k), G.secure[k])} ✕</span>` : `<span class="chip empty" data-sec="${i}">+ secure</span>`); }
     return `<h4>Secure slots</h4><p class="note">If the wild beats you, your bag is lost except gear, rods and these five slots (up to 10 of an item each). Kin and Shards are always safe.</p><div class="ingr">${slots.join('')}</div>`;
+  }
+  const SW = { hair: ['#1a1410', '#3a2a1a', '#7a4a2a', '#c9955a', '#f0d890', '#e8e8e8', '#c94c4c', '#4a7ad0', '#7a2aa8', '#39ff14'], tone: ['#f6dcc4', '#f1d3b3', '#e0b08a', '#c68642', '#8d5524', '#5a3a22'], col: ['#c94c4c', '#e08a2a', '#ffd040', '#4f7a3a', '#2fb8c8', '#4a7ad0', '#7a2aa8', '#e0509a', '#f0f0f0', '#202028'] };
+  const LOOK_COST = { hair: 150, hairCol: 60, tone: 200, height: 300, paint: 250, paintCol: 60, cape: 400, outfit: 300, trim: 150, wear: 200, wearCol: 60 };
+  function renderLook(d) {
+    const L = G.stats.look || (G.stats.look = {}); const k = d.kind; const opt = (key, val, label, col) => `<button class="btn ${L[key] === val ? '' : 'ghost'} lookopt" data-k="${key}" data-v="${val}" ${col ? `style="background:${col};min-width:34px"` : ''}>${label || ''}</button>`;
+    const kin = G.kin[G.activeIdx]; let html = `<p class="note">You have ◆ ${G.shards.toLocaleString()}. Every change costs a little and shows at once (switch to third person in the menu to see yourself).</p><canvas id="look-cv" width="120" height="120" style="display:block;margin:0 auto 8px;background:rgba(0,0,0,.25);border-radius:10px"></canvas>`;
+    if (k === 'barber') html += `<h4>Cut · ◆ ${LOOK_COST.hair}</h4>${['short', 'long', 'mohawk', 'bun', 'spiky', 'braids', 'curls', 'bald'].map(h => opt('hair', h, h)).join(' ')}<h4>Colour · ◆ ${LOOK_COST.hairCol}</h4>${SW.hair.map(c => opt('hairCol', c, '', c)).join(' ')}`;
+    if (k === 'mirror') html += `<h4>Skin tone · ◆ ${LOOK_COST.tone}</h4>${SW.tone.map(c => opt('tone', c, '', c)).join(' ')}<h4>Height · ◆ ${LOOK_COST.height}</h4>${[[0.86, 'short'], [0.94, 'small'], [1, 'average'], [1.08, 'tall'], [1.16, 'very tall']].map(([v, n]) => opt('height', v, n)).join(' ')}`;
+    if (k === 'designer') html += `<h4>Face paint · ◆ ${LOOK_COST.paint}</h4>${['none', 'stripes', 'dots', 'mask', 'tribal', 'star'].map(h => opt('paint', h, h)).join(' ')}<h4>Paint colour · ◆ ${LOOK_COST.paintCol}</h4>${SW.col.map(c => opt('paintCol', c, '', c)).join(' ')}<h4>Cape · ◆ ${LOOK_COST.cape}</h4>${opt('cape', '', 'none')} ${SW.col.map(c => opt('cape', c, '', c)).join(' ')}<h4>Outfit colour · ◆ ${LOOK_COST.outfit}</h4>${SW.col.map(c => opt('outfit', c, '', c)).join(' ')}<h4>Trim · ◆ ${LOOK_COST.trim}</h4>${SW.col.map(c => opt('trim', c, '', c)).join(' ')}`;
+    if (k === 'kinwear') { if (!kin) html += '<p>No lead Kin.</p>'; else { const W = kin.wear || {}; const o2 = (key, val, label, col) => `<button class="btn ${W[key] === val ? '' : 'ghost'} lookopt" data-kin="1" data-k="${key}" data-v="${val}" ${col ? `style="background:${col};min-width:34px"` : ''}>${label || ''}</button>`;
+      html += `<h4>For ${KIN.name(kin)} · ◆ ${LOOK_COST.wear}</h4>${['none', 'scarf', 'coat', 'hat', 'bow', 'crown', 'collar'].map(h => o2('item', h, h)).join(' ')}<h4>Colour · ◆ ${LOOK_COST.wearCol}</h4>${SW.col.map(c => o2('col', c, '', c)).join(' ')}<p class="small">It wears it when it walks beside you.</p>`; } }
+    el['panel-body'].innerHTML = html;
+    try { Avatar.portrait(document.getElementById('look-cv'), Avatar.skin(), 120); } catch (e) {}
+    el['panel-body'].querySelectorAll('.lookopt').forEach(b => b.addEventListener('click', () => {
+      const key = b.dataset.k; let val = b.dataset.v; if (key === 'height') val = +val; if (val === 'none') val = '';
+      const forKin = !!b.dataset.kin; const cost = forKin ? (key === 'item' ? LOOK_COST.wear : LOOK_COST.wearCol) : LOOK_COST[key];
+      const tgt = forKin ? (kin.wear || (kin.wear = {})) : L; if (tgt[key] === val) return; if (G.shards < cost) { toast(`That is ${cost} shards.`, 'bad'); return; }
+      G.shards -= cost; tgt[key] = val; sfx('caught'); renderLook(d);
+    }));
   }
   function renderTrain() {
     setTitle('Station');
@@ -9750,7 +9796,22 @@ const Buddy = (() => {
     UI.toast(`${KIN.name(k)} ${SAY[el] || 'finds'} ${n > 1 ? n + ' ' : ''}${ITEMS[item].name}.`, 'good');
     if (!G.stats.buddyTold) { G.stats.buddyTold = true; G.explain('Your Kin walks with you', `Your lead Kin follows you around the world. Walk together and it finds things that suit its element: a Stone Kin turns up ore, a Bloom Kin berries, a Gale Kin feathers, and any of them now and then an essence of their own kind for fusion stones. Change your lead Kin in the Kin panel to change what it finds. Tap it to see how it is doing.`); }
   }
-  function entities() { return e && !e.away && !hidden(G.player) ? [e] : []; }
+  const WEAR = {
+    scarf: (h, r, c) => [[-r * 0.8, h * 0.62, -r * 0.8, r * 1.6, h * 0.1, r * 1.6, c], [r * 0.5, h * 0.4, r * 0.6, r * 0.25, h * 0.22, r * 0.12, c]],
+    coat: (h, r, c) => [[-r * 0.85, h * 0.3, -r * 0.85, r * 1.7, h * 0.36, r * 1.7, c]],
+    hat: (h, r, c) => [[-r * 0.45, h * 0.98, -r * 0.45, r * 0.9, h * 0.05, r * 0.9, c], [-r * 0.28, h * 1.02, -r * 0.28, r * 0.56, h * 0.22, r * 0.56, c]],
+    bow: (h, r, c) => [[-r * 0.35, h * 0.98, -r * 0.08, r * 0.7, h * 0.12, r * 0.16, c]],
+    crown: (h, r, c) => [[-r * 0.3, h * 0.98, -r * 0.3, r * 0.6, h * 0.1, r * 0.6, '#ffd040'], [-r * 0.3, h * 1.06, -r * 0.3, r * 0.12, h * 0.1, r * 0.12, c], [r * 0.18, h * 1.06, r * 0.18, r * 0.12, h * 0.1, r * 0.12, c]],
+    collar: (h, r, c) => [[-r * 0.7, h * 0.6, -r * 0.7, r * 1.4, h * 0.06, r * 1.4, c], [-r * 0.06, h * 0.52, r * 0.68, r * 0.12, h * 0.1, r * 0.06, '#ffd040']],
+  };
+  function wearEntity() {
+    const W = e && e.kin.wear; if (!W || !W.item || !WEAR[W.item]) return null;
+    const h = e.model.height * e.scale, r = Math.max(0.35, (e.model.radius || 0.6) * e.scale * 0.8); const col = W.col || '#c94c4c';
+    const key = `kinwear:${W.item}:${col}:${h.toFixed(2)}:${r.toFixed(2)}`;
+    const mesh = R.entityMesh(key, (mb) => { for (const b of WEAR[W.item](h, r, col)) { const c = U.hexToRgb(b[6]); mb.box(b[0], b[1], b[2], b[0] + b[3], b[1] + b[4], b[2] + b[5], c, 1, false); } });
+    return { x: e.x, y: e.y + (e.hover || 0), z: e.z, yaw: e.yaw, scale: 1, hover: 0, skyMul: 1, isFx: true, mesh };
+  }
+  function entities() { if (!e || e.away || hidden(G.player)) return []; const w = wearEntity(); return w ? [e, w] : [e]; }
   function pick(p) {
     if (!e || e.away) return null;
     const eye = p.eye(); const f = U.forwardVec(p.yaw, p.pitch); const h = e.model.height * e.scale;
