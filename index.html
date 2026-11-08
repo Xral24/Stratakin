@@ -324,6 +324,8 @@ body.desktop #joy, body.desktop #btn-jump, body.desktop #btn-sneak { display: no
 #glide-hud.flare #glide-flare { display: block; }
 @keyframes flarePulse { from { opacity: .65; } to { opacity: 1; } }
 
+.recipe .fork { margin-top: 4px; padding: 4px 6px; border-left: 3px solid #ffb040; background: rgba(255,176,64,.08); border-radius: 4px; }
+
 </style>
 </head>
 <body>
@@ -2912,16 +2914,36 @@ const KIN = (() => {
       if (i >= 27) out.size *= 1.15;
       list.push({ i, body, a, b, parts, stone, out });
     }
+    // forks: five recipes per planet take either of two stones, and the stone decides what comes out. Built after the rest so nothing else moves.
+    const OPP = { Flame: ['Tide', 'Frost'], Tide: ['Flame', 'Spark'], Bloom: ['Flame', 'Void'], Stone: ['Gale', 'Tide'], Gale: ['Stone', 'Spark'], Frost: ['Flame', 'Light'], Spark: ['Stone', 'Tide'], Void: ['Light', 'Bloom'], Light: ['Void', 'Frost'] };
+    const r2 = U.rng(U.combine(SPECIES_SEED[body] || 1, 0xF07C));
+    for (const fi of FORK_AT) {
+      const rc = list[fi]; const { a, b } = rc;
+      const alt = r2.pick(OPP[rc.stone] || E.filter(e => e !== rc.stone));
+      const elem = normalize(a.elem.map((v, k) => v * 0.3 + b.elem[k] * 0.3 + (EI[alt] === k ? 0.4 : 0)));
+      const base = rc.out;
+      const out = species(U.combine(a.seed, b.seed, 0xF1), [alt], 0, { primary: alt, shape: base.shape === a.shape ? b.shape : a.shape, rarity: 3, total: STAT_KEYS.reduce((t, k) => t + base.base[k], 0), neon: body !== 'earth' });
+      out.elem = elem;
+      const stem = b.names[0].slice(0, Math.min(3, b.names[0].length)); const tail = a.names[0].slice(-Math.min(4, a.names[0].length)).toLowerCase();
+      let nm = cap(stem + tail); if (DEX[body].some(x => x.names[0] === nm)) nm = cap(stem + r2.pick(MID) + tail);
+      out.names = [nm, cap(nm + r2.pick(['ra', 'on', 'ix', 'or'])), cap(nm + r2.pick(SUFFIX))];
+      out.colors = { body: hexMix(hexMix(a.colors.body, b.colors.body, 0.5), PALETTE[alt][0], 0.45), belly: a.colors.belly, accent: PALETTE[alt][1], dark: b.colors.dark, eye: PALETTE[alt][3] };
+      out.feat = Object.assign({}, base.feat, { crest: true, wings: alt === 'Gale' ? true : base.feat.wings, spikes: alt === 'Stone' || alt === 'Frost' ? true : base.feat.spikes });
+      out.fusion = true; out.recipe = { body, i: fi, fork: true }; out.size = base.size; out.home = null;
+      DEX[body].push(out); out.dex = DEX[body].length;
+      rc.alt = { stone: alt, out };
+    }
     return list;
   }
+  const FORK_AT = [3, 9, 15, 22, 28];
   function findRecipe(sps) {
     const key = sps.map(sp => sp.seed).sort().join(':');
     for (const body of ['earth', 'moon', 'halo']) for (const rc of recipes(body)) if (rc.parts.map(sp => sp.seed).sort().join(':') === key) return rc;
     return null;
   }
-  function fuseRecipe(rc, kins) {
+  function fuseRecipe(rc, kins, branch) {
     const level = Math.min(MAX_LEVEL, Math.round(kins.reduce((a, k) => a + k.level, 0) / kins.length) + 2 + (kins.length - 2) * 2);
-    const k = create(rc.out, level);
+    const k = create(branch === 'alt' && rc.alt ? rc.alt.out : rc.out, level);
     k.iv = {}; for (const key of STAT_KEYS) k.iv[key] = Math.max(...kins.map(x => x.iv[key]));
     k.hp = stats(k).hp;
     return k;
@@ -8471,8 +8493,10 @@ const UI = (() => {
       else if (pv.kind === 'distill') resultHtml = `<h4>Result: distillation</h4><div class="recipe can"><div class="ico big" style="background:${ITEMS[pv.out].col}"></div><div class="rinfo"><b>${ITEMS[pv.out].name}</b><div class="small">No recipe matches, so the table distils the strongest element out of the mix.</div></div></div>`;
       else resultHtml = `<p class="small">${pv.msg}</p>`;
     }
-    const recHtml = (() => { const body = G.worldId; const all = KIN.recipes(body); const known = ((G.stats.recipes || {})[body] || []); const have = (sp) => G.kin.some(k => k.sp.seed === sp.seed); const ok = (rc) => rc.parts.every(have) && G.player.has('stone_' + rc.stone);
-      return `<h4>Fusion recipes on ${G.world.preset.name} (${known.length} of ${all.length} known)</h4>` + all.filter(rc => known.includes(rc.i)).map(rc => `<div class="recipe ${ok(rc) ? 'can' : ''}"><div class="rinfo"><b>${rc.out.names[0]}</b> <span class="small">#${rc.out.dex}</span><div class="needs">${rc.parts.map(sp => `${sp.names[0]}${have(sp) ? ' ✓' : ''} <span style="opacity:.6">(${sp.home ? (sp.home.layer === 'Surface' ? sp.home.biome : sp.home.layer) : 'fusion #' + sp.dex})</span>`).join(' + ')} + ${rc.stone} Stone${G.player.has('stone_' + rc.stone) ? ' ✓' : ''}</div></div></div>`).join('') + (known.length < all.length ? '<p class="note">Quest people teach the rest, one at a time, when you finish their jobs.</p>' : ''); })();
+    const recHtml = (() => { const body = G.worldId; const all = KIN.recipes(body); const known = ((G.stats.recipes || {})[body] || []); const have = (sp) => G.kin.some(k => k.sp.seed === sp.seed); const fk = (rc) => rc.alt && ((G.stats.forks || {})[rc.body + ':' + rc.i]); const ok = (rc) => rc.parts.every(have) && (G.player.has('stone_' + rc.stone) || (rc.alt && G.player.has('stone_' + rc.alt.stone)));
+      const stoneTxt = (rc) => { const st = (e) => `${e} Stone${G.player.has('stone_' + e) ? ' ✓' : ''}`; if (!rc.alt) return ' + ' + st(rc.stone); const c = fk(rc); if (c) return ' + ' + st(c === 'alt' ? rc.alt.stone : rc.stone) + ' <i class="small">(your path)</i>'; return `<div class="fork">⑂ ${st(rc.stone)} → <b>${rc.out.names[0]}</b> &nbsp;or&nbsp; ${st(rc.alt.stone)} → <b>${rc.alt.out.names[0]}</b><br><span class="small">A fork: the first stone you use decides it, for good.</span></div>`; };
+      const outName = (rc) => { const c = fk(rc); return c === 'alt' ? rc.alt.out.names[0] + ' <span class="small">#' + rc.alt.out.dex + '</span>' : rc.out.names[0] + ' <span class="small">#' + rc.out.dex + '</span>' + (rc.alt && !c ? ' <span class="small">or ' + rc.alt.out.names[0] + '</span>' : ''); };
+      return `<h4>Fusion recipes on ${G.world.preset.name} (${known.length} of ${all.length} known)</h4>` + all.filter(rc => known.includes(rc.i)).map(rc => `<div class="recipe ${ok(rc) ? 'can' : ''}"><div class="rinfo"><b>${outName(rc)}</b><div class="needs">${rc.parts.map(sp => `${sp.names[0]}${have(sp) ? ' ✓' : ''} <span style="opacity:.6">(${sp.home ? (sp.home.layer === 'Surface' ? sp.home.biome : sp.home.layer) : 'fusion #' + sp.dex})</span>`).join(' + ')}${stoneTxt(rc)}</div></div></div>`).join('') + (known.length < all.length ? '<p class="note">Quest people teach the rest, one at a time, when you finish their jobs.</p>' : ''); })();
     body.innerHTML = foundingHtml(fs) + `<p class="note">Tap a slot to fill it. A fusion is a recipe: the Kin it names (two, or three or four for the great ones) and the right element stone (stones are crafted from 3 essences and an iron). Items alone craft gear, and essences with berries make tonics.</p>
       <div class="fgrid">${fs.slots.map(cell).join('')}</div>
       ${resultHtml}
@@ -8858,8 +8882,17 @@ G.previewGrid = function (slots) {
     const rc = KIN.findRecipe(kins.map(k => k.sp));
     if (!rc) return { kind: 'none', msg: `These ${kins.length} do not fuse. Only certain sets do: check the recipes you know.` };
     if (!this.knowsRecipe(rc)) return { kind: 'none', msg: 'Something stirs between them, but you do not know this fusion yet. Someone out there does.' };
+    if (rc.alt) { // a fork: either stone works, and whichever you use first is the one this recipe makes, for good
+      const key = rc.body + ':' + rc.i; const chosen = (this.stats.forks || {})[key];
+      const hasM = items.includes('stone_' + rc.stone), hasA = items.includes('stone_' + rc.alt.stone);
+      if (hasM && hasA) return { kind: 'none', msg: `Two stones, two different Kin. Put only one on: ${rc.stone} makes ${rc.out.names[0]}, ${rc.alt.stone} makes ${rc.alt.out.names[0]}.` };
+      if (!hasM && !hasA) return { kind: 'none', msg: chosen ? `Right set. It needs the ${chosen === 'alt' ? rc.alt.stone : rc.stone} Stone, the path you chose.` : `Right set. This one forks: a ${rc.stone} Stone makes ${rc.out.names[0]}, a ${rc.alt.stone} Stone makes ${rc.alt.out.names[0]}. You only get to choose once.` };
+      const branch = hasA ? 'alt' : 'main';
+      if (chosen && chosen !== branch) return { kind: 'none', msg: `You already chose the ${chosen === 'alt' ? rc.alt.stone : rc.stone} path for this fusion. That choice is made, and the table will not take the other stone.` };
+      return { kind: 'fusion', kin: KIN.fuseRecipe(rc, kins, branch), n: kins.length, items: 1, recipe: rc, branch, stone: branch === 'alt' ? rc.alt.stone : rc.stone, fork: !chosen, essNote: !chosen ? `This is a fork. Fuse with the ${branch === 'alt' ? rc.alt.stone : rc.stone} Stone and ${branch === 'alt' ? rc.out.names[0] : rc.alt.out.names[0]} is gone for good.` : '' };
+    }
     if (!items.includes('stone_' + rc.stone)) return { kind: 'none', msg: `Right pair. It needs a ${rc.stone} Stone on the table too (3 ${rc.stone} essence and an iron).` };
-    return { kind: 'fusion', kin: KIN.fuseRecipe(rc, kins), n: kins.length, items: 1, recipe: rc, essNote: '' };
+    return { kind: 'fusion', kin: KIN.fuseRecipe(rc, kins), n: kins.length, items: 1, recipe: rc, stone: rc.stone, essNote: '' };
   }
   // 3. one Kin plus materials becomes an object in its shape
   if (kins.length === 1 && items.length) {
@@ -8908,7 +8941,8 @@ G.learnRecipe = function (body, from) {
   if (!this.stats.recipes) this.stats.recipes = {}; const known = this.stats.recipes[body] || (this.stats.recipes[body] = []);
   const all = KIN.recipes(body); const next = all.find(rc => !known.includes(rc.i) && (rc.i < 20 || known.includes(rc.i - 20)));
   if (!next) return null; known.push(next.i);
-  if (from) UI.toast(`${from} teaches you a fusion: ${next.parts.map(sp => sp.names[0]).join(' + ')} + ${next.stone} Stone makes ${next.out.names[0]}.`, 'good');
+  if (from) UI.toast(next.alt ? `${from} teaches you a forked fusion: ${next.parts.map(sp => sp.names[0]).join(' + ')}. A ${next.stone} Stone makes ${next.out.names[0]}, a ${next.alt.stone} Stone makes ${next.alt.out.names[0]}.` : `${from} teaches you a fusion: ${next.parts.map(sp => sp.names[0]).join(' + ')} + ${next.stone} Stone makes ${next.out.names[0]}.`, 'good');
+  if (next.alt && !this.stats.forkTold) { this.stats.forkTold = true; this.explain('A forked fusion', `Some fusions can go two ways. Same Kin on the table, but the stone you add decides what comes out: ${next.stone} makes ${next.out.names[0]}, ${next.alt.stone} makes ${next.alt.out.names[0]}. Whichever stone you use first is the path that recipe takes for good. The other Kin is lost to you, so choose with care.`); }
   return next;
 };
 G.seenDex = function (sp, how) {
@@ -8924,7 +8958,8 @@ G.fuseGrid = function (slots) {
   const kins = slots.filter(s => s && s.kin).map(s => s.kin);
   const items = slots.filter(s => s && s.item).map(s => s.item);
   if (pv.kind === 'fusion') {
-    p.take('stone_' + pv.recipe.stone, 1); // only the stone is used up; anything else stays
+    p.take('stone_' + (pv.stone || pv.recipe.stone), 1); // only the stone is used up; anything else stays
+    if (pv.recipe.alt) { if (!this.stats.forks) this.stats.forks = {}; this.stats.forks[pv.recipe.body + ':' + pv.recipe.i] = pv.branch; }
     this.seenDex(pv.kin.sp, 'caught');
     const res = pv.kin;
     const firstIdx = Math.min(...kins.map(k => this.kin.indexOf(k)));
