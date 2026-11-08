@@ -2477,7 +2477,9 @@ const KIN = (() => {
     const [b, L, bn] = habitatKey(bodyId, layer, biomeName); const key = b + '|' + L + '|' + bn;
     let list = habitatCache.get(key); if (list) return list;
     const hs = HABITATS[b] || HABITATS.earth; const hi = hs.findIndex(h => h[0] === L && h[1] === bn); const n = Math.floor(PLANET_SIZE / hs.length) + (hi < PLANET_SIZE % hs.length ? 1 : 0);
-    const counts = [0, 0, 0, 0, 1]; counts[3] = Math.max(2, Math.round(n * 0.09)); counts[2] = Math.max(3, Math.round(n * 0.18)); counts[1] = Math.round(n * 0.3); counts[0] = n - counts[1] - counts[2] - counts[3] - counts[4];
+    // about half common, then fewer at each step; legendaries live only in the special places
+    const special = L === 'Core' || L === 'Sky' || bn === 'Lost World' || bn === 'Crater';
+    const counts = [0, 0, 0, 1, special ? 1 : 0]; counts[2] = Math.max(2, Math.round(n * 0.14)); counts[1] = Math.round(n * 0.3); counts[0] = n - counts[1] - counts[2] - counts[3] - counts[4];
     const bias = L === 'Surface' ? (BIAS.Surface[bn] || BIAS.Surface.Plains) : (BIAS[L] || BIAS.Mines);
     const Li = { Surface: 1, Mines: 2, Core: 3, Sky: 4, Water: 5 }[L] || 1;
     list = [];
