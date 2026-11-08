@@ -659,7 +659,7 @@ defBlock(B.GRASS, 'Grass', '#5fae3f', '#7e583a', { hard: 0.4, drop: 'dirt' });
 defBlock(B.SAND, 'Sand', '#e4d6a2', '#d8c892', { hard: 0.35, drop: 'sand' });
 defBlock(B.WATER, 'Water', '#2f6fd6', '#2f6fd6', { solid: false, fluid: true, transparent: true });
 defBlock(B.LOG, 'Log', '#a07a44', '#75522c', { hard: 0.6, drop: 'wood' });
-defBlock(B.LEAVES, 'Leaves', '#4f9c3f', '#479038', { hard: 0.2, drop: 'frond' });
+defBlock(B.LEAVES, 'Leaves', '#4f9c3f', '#479038', { hard: 0.2, drop: 'frond', transparent: true }); // leaves are drawn as soft puffs, not cubes, so nothing behind them may be culled
 defBlock(B.SNOW, 'Snow', '#eef3f8', '#dbe4ee', { hard: 0.3, drop: 'snow' });
 defBlock(B.COPPER, 'Copper Ore', '#9a7a55', '#8f7352', { hard: 1.3, drop: 'copper' });
 defBlock(B.IRON, 'Iron Ore', '#b5a79a', '#a89a8d', { hard: 1.4, drop: 'iron' });
@@ -670,20 +670,20 @@ defBlock(B.LAVA, 'Lava', '#ff7a1a', '#ff6a12', { solid: false, fluid: true, emis
 defBlock(B.CLOUD, 'Cloudstone', '#e9ecf6', '#d7dcea', { hard: 0.4, drop: 'cloud' });
 defBlock(B.GLOWGRASS, 'Glowgrass', '#d7f5a1', '#d7dcea', { hard: 0.4, drop: 'cloud', emissive: true });
 defBlock(B.TORCH, 'Torch', '#ffd36a', '#8a6a3c', { solid: false, hard: 0.05, drop: 'torch', emissive: true, partial: true, transparent: true });
-defBlock(B.FUSION, 'Fusion Table', '#7ad7ff', '#3b3f5c', { hard: 1.0, drop: 'fusion' });
-defBlock(B.DARKTABLE, 'Dark Fusion Table', '#4a1a6a', '#1a0a26', { hard: Infinity });
+defBlock(B.FUSION, 'Fusion Table', '#7ad7ff', '#3b3f5c', { hard: 1.0, drop: 'fusion', transparent: true }); // drawn as a pedestal, not a cube: whatever stands behind or under it keeps its faces
+defBlock(B.DARKTABLE, 'Dark Fusion Table', '#4a1a6a', '#1a0a26', { hard: Infinity, transparent: true });
 defBlock(B.GRAVEL, 'Gravel', '#7a766f', '#6f6b64', { hard: 0.4, drop: 'gravel' });
 defBlock(B.CACTUS, 'Cactus', '#4f9a3a', '#3f8a2f', { hard: 0.4, drop: 'frond' });
 defBlock(B.STARMETAL, 'Starmetal', '#c7fbff', '#7ee8f0', { hard: Infinity, emissive: true });
 defBlock(B.MOSS, 'Mossy Stone', '#6f8f58', '#7f8580', { hard: 0.9, drop: 'stone' });
 defBlock(B.PLANKS, 'Planks', '#b58d58', '#a67f4e', { hard: 0.6, drop: 'planks' });
-defBlock(B.BERRY, 'Berry Bush', '#3f8f3a', '#9a2f3f', { hard: 0.25, drop: 'berry' });
+defBlock(B.BERRY, 'Berry Bush', '#3f8f3a', '#9a2f3f', { hard: 0.25, drop: 'berry', transparent: true }); // a bush of blobs: the ground and walls round it stay drawn
 defBlock(B.GLASS, 'Glass', '#cfe9f5', '#c4e2f0', { hard: 0.3, drop: 'glass', transparent: true });
 defBlock(B.CAMPFIRE, 'Camp Fire', '#7af5ff', '#6a6a70', { solid: false, hard: Infinity, emissive: true, partial: true, transparent: true });
 defBlock(B.IRONWALL, 'Iron Wall', '#8f98a6', '#7d8694', { hard: 2.4, drop: 'ironwall' });
 defBlock(B.VOIDWALL, 'Voidsteel Wall', '#5a3f8a', '#44306b', { hard: 3.2, drop: 'voidwall', emissive: true });
 defBlock(B.GLOWWORM, 'Glowworm', '#d8ff6a', '#a8d040', { solid: false, hard: 0.05, drop: 'glowworm', emissive: true, partial: true, transparent: true });
-defBlock(B.BERRYLEAF, 'Berry Leaves', '#6a8f3a', '#8a4a3a', { hard: 0.2, drop: 'berry' });
+defBlock(B.BERRYLEAF, 'Berry Leaves', '#6a8f3a', '#8a4a3a', { hard: 0.2, drop: 'berry', transparent: true });
 defBlock(B.DOOR, 'Door', '#9a7646', '#8a6a3c', { hard: 0.8, drop: 'door', partial: true, transparent: true });
 defBlock(B.DOOR_OPEN, 'Open Door', '#9a7646', '#8a6a3c', { solid: false, hard: 0.8, drop: 'door', partial: true, transparent: true });
 defBlock(B.PORTAL, 'Portal', '#7ad7ff', '#3b3f5c', { hard: Infinity, emissive: true, partial: true, transparent: true });
@@ -721,7 +721,7 @@ defBlock(B.BALLOON, 'Balloon', '#e8323c', '#d42a34', { hard: 0.05, drop: null })
 defBlock(B.LADDER, 'Ladder', '#a07a44', '#8a6a3c', { solid: false, hard: 0.3, drop: 'ladder', partial: true, transparent: true });
 defBlock(B.INCUBATOR, 'Incubator', '#7ad7ff', '#2c3e50', { hard: Infinity, emissive: true });
 // the living world: conifer needles, palm fronds, birch bark, boulders, mushrooms, wildflowers, pebbles
-defBlock(B.NEEDLES, 'Needles', '#2f6a4a', '#2a5e42', { hard: 0.2, drop: 'frond' });
+defBlock(B.NEEDLES, 'Needles', '#2f6a4a', '#2a5e42', { hard: 0.2, drop: 'frond', transparent: true });
 defBlock(B.FROND, 'Palm Frond', '#4f9c3f', '#479038', { hard: 0.2, drop: 'frond', partial: true, transparent: true });
 defBlock(B.BIRCHLOG, 'Birch Log', '#e8e4d8', '#d8d4c8', { hard: 0.6, drop: 'wood' });
 defBlock(B.PALMLOG, 'Palm Trunk', '#a08858', '#8a6e46', { hard: 0.6, drop: 'wood' }); // the mesher draws a whole palm from the lowest trunk block: a curved trunk, a crown of fronds, coconuts
