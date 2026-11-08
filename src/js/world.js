@@ -23,7 +23,7 @@ function defBlock(id, name, top, side, opts = {}) {
 }
 defBlock(B.AIR, 'Air', '#000000', '#000000', { solid: false, transparent: true });
 defBlock(B.BEDROCK, 'Mantle Rock', '#2a2630', '#2a2630', { hard: Infinity });
-defBlock(B.STONE, 'Stone', '#979aa0', '#8e9197', { hard: 0.9, drop: 'stone' });
+defBlock(B.STONE, 'Stone', '#868a92', '#7c8088', { hard: 0.9, drop: 'stone' });
 defBlock(B.DIRT, 'Dirt', '#8a6240', '#7e583a', { hard: 0.35, drop: 'dirt' });
 defBlock(B.GRASS, 'Grass', '#5fae3f', '#7e583a', { hard: 0.4, drop: 'dirt' });
 defBlock(B.SAND, 'Sand', '#dccb8e', '#d1bf83', { hard: 0.35, drop: 'sand' });
@@ -42,7 +42,7 @@ defBlock(B.GLOWGRASS, 'Glowgrass', '#d7f5a1', '#d7dcea', { hard: 0.4, drop: 'clo
 defBlock(B.TORCH, 'Torch', '#ffd36a', '#8a6a3c', { solid: false, hard: 0.05, drop: 'torch', emissive: true, partial: true, transparent: true });
 defBlock(B.FUSION, 'Fusion Table', '#7ad7ff', '#3b3f5c', { hard: 1.0, drop: 'fusion' });
 defBlock(B.DARKTABLE, 'Dark Fusion Table', '#4a1a6a', '#1a0a26', { hard: Infinity });
-defBlock(B.GRAVEL, 'Gravel', '#7d7872', '#746f69', { hard: 0.4, drop: 'gravel' });
+defBlock(B.GRAVEL, 'Gravel', '#7a766f', '#6f6b64', { hard: 0.4, drop: 'gravel' });
 defBlock(B.CACTUS, 'Cactus', '#4f9a3a', '#3f8a2f', { hard: 0.4, drop: 'frond' });
 defBlock(B.STARMETAL, 'Starmetal', '#c7fbff', '#7ee8f0', { hard: Infinity, emissive: true });
 defBlock(B.MOSS, 'Mossy Stone', '#6f8f58', '#7f8580', { hard: 0.9, drop: 'stone' });

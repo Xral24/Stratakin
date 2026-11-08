@@ -2,10 +2,11 @@
 // Raw WebGL renderer: chunk meshing with baked AO + sky exposure, point lights (torches), fog, day/night, entity meshes, line overlays.
 class MeshBuilder {
   // withNormals: entity meshes carry a smooth normal and a bone index per vertex (chunks do not; their shader derives normals)
-  constructor(cap = 4096, withNormals = false) {
+  constructor(cap = 4096, withNormals = false, chunk = false) {
     this.pos = new Float32Array(cap * 3); this.col = new Uint8Array(cap * 4); this.idx = new Uint32Array(cap * 1.5 | 0);
-    this.nv = 0; this.ni = 0;
-    this.nrm = withNormals ? new Float32Array(cap * 3) : null; this.bone = withNormals ? new Float32Array(cap) : null;
+    this.nv = 0; this.ni = 0; this.chunk = chunk;
+    this.nrm = withNormals || chunk ? new Float32Array(cap * 3) : null; this.bone = withNormals && !chunk ? new Float32Array(cap) : null;
+    this.mat = new Uint8Array(cap); this.curMat = 0; // material class per vertex (chunk meshes): what the fragment shader paints
     this.curBone = 0; this.M = null; this.stack = []; // transform stack for entity parts (column-major 4x4, applied in vert())
   }
   ensure(nv, ni) {
@@ -13,7 +14,8 @@ class MeshBuilder {
       const cap = Math.max((this.pos.length / 3) * 2, this.nv + nv);
       const p = new Float32Array(cap * 3); p.set(this.pos); this.pos = p;
       const c = new Uint8Array(cap * 4); c.set(this.col); this.col = c;
-      if (this.nrm) { const n = new Float32Array(cap * 3); n.set(this.nrm); this.nrm = n; const bo = new Float32Array(cap); bo.set(this.bone); this.bone = bo; }
+      if (this.nrm) { const n = new Float32Array(cap * 3); n.set(this.nrm); this.nrm = n; } if (this.bone) { const bo = new Float32Array(cap); bo.set(this.bone); this.bone = bo; }
+      const mt = new Uint8Array(cap); mt.set(this.mat); this.mat = mt;
     }
     if (this.ni + ni > this.idx.length) {
       const cap = Math.max(this.idx.length * 2, this.ni + ni);
@@ -27,7 +29,8 @@ class MeshBuilder {
       const NX = M[0] * nx + M[4] * ny + M[8] * nz, NY = M[1] * nx + M[5] * ny + M[9] * nz, NZ = M[2] * nx + M[6] * ny + M[10] * nz; const l = Math.hypot(NX, NY, NZ) || 1; nx = NX / l; ny = NY / l; nz = NZ / l; }
     this.pos[i * 3] = x; this.pos[i * 3 + 1] = y; this.pos[i * 3 + 2] = z;
     const ci = i * 4; this.col[ci] = Math.min(255, r * 255) | 0; this.col[ci + 1] = Math.min(255, g * 255) | 0; this.col[ci + 2] = Math.min(255, b * 255) | 0; this.col[ci + 3] = emissive ? 255 : Math.min(250, sky * 250) | 0;
-    if (this.nrm) { this.nrm[i * 3] = nx; this.nrm[i * 3 + 1] = ny; this.nrm[i * 3 + 2] = nz; this.bone[i] = this.curBone; }
+    if (this.nrm) { this.nrm[i * 3] = nx; this.nrm[i * 3 + 1] = ny; this.nrm[i * 3 + 2] = nz; } if (this.bone) this.bone[i] = this.curBone;
+    this.mat[i] = this.curMat;
     this.nv++; return i;
   }
   tri(a, b, c) { this.ensure(0, 3); const k = this.ni; this.idx[k] = a; this.idx[k + 1] = b; this.idx[k + 2] = c; this.ni += 3; }
@@ -46,6 +49,7 @@ class MeshBuilder {
       const ci = (b + i) * 4;
       this.col[ci] = Math.min(255, c[i][0] * 255) | 0; this.col[ci + 1] = Math.min(255, c[i][1] * 255) | 0; this.col[ci + 2] = Math.min(255, c[i][2] * 255) | 0;
       this.col[ci + 3] = emissive ? 255 : Math.min(250, sky[i] * 250) | 0;
+      this.mat[b + i] = this.curMat;
     }
     const k = this.ni;
     this.idx[k] = b; this.idx[k + 1] = b + 1; this.idx[k + 2] = b + 2; this.idx[k + 3] = b; this.idx[k + 4] = b + 2; this.idx[k + 5] = b + 3;
@@ -138,32 +142,36 @@ const R = (() => {
 
   // ---- the look: sunlight with warm light and cool shade, painted block texture with a faint grid, haze, living water ----
   const VS = `
-  attribute vec3 aPos; attribute vec4 aCol;
+  attribute vec3 aPos; attribute vec4 aCol; attribute float aMat; attribute vec3 aNorm;
   uniform mat4 uPV; uniform mat4 uModel; uniform float uTime; uniform float uWave;
-  varying vec4 vCol; varying vec3 vWorld;
+  varying vec4 vCol; varying vec3 vWorld; varying float vMat; varying vec3 vN;
   void main(){
+    vMat = aMat; vN = mat3(uModel) * aNorm;
     vec4 w = uModel * vec4(aPos, 1.0);
     if (uWave > 1.5) { float k = fract(w.y + 0.0005); k = k * k * 3.0; float gust = sin(uTime * 0.7 + w.x * 0.05 + w.z * 0.03) * 0.5 + 0.5; w.x += (sin(uTime * 2.3 + w.x * 0.9 + w.z * 0.4) * 0.05 + gust * 0.07) * k; w.z += cos(uTime * 1.9 + w.z * 0.8 + w.x * 0.3) * 0.04 * k; }
     else if (uWave > 0.5) { w.y += sin(uTime * 1.3 + w.x * 0.55 + w.z * 0.35) * 0.045 + sin(uTime * 2.1 - w.x * 0.9 + w.z * 1.2) * 0.025 - 0.12; }
     vWorld = w.xyz; vCol = aCol;
     gl_Position = uPV * w;
   }`;
+  const TONE = `vec3 tonemap(vec3 c){ c = max(c, 0.0); c = mix(c, c * c * (3.0 - 2.0 * c), 0.22); vec3 hi = 0.82 + (1.0 - exp(-(c - 0.82) * 2.6)) * 0.18; c = mix(c, hi, step(0.82, c)); float l = dot(c, vec3(0.3, 0.59, 0.11)); return clamp(mix(vec3(l), c, 1.1), 0.0, 1.0); }`; // a gentle S for contrast, a soft shoulder above 0.82 so bright things do not clip flat, a touch more colour
   const FS = `
   #ifdef GL_FRAGMENT_PRECISION_HIGH
   precision highp float;
   #else
   precision mediump float;
   #endif
-  varying vec4 vCol; varying vec3 vWorld;
+  ${TONE}
+  /*SHADOW*/
+  varying vec4 vCol; varying vec3 vWorld; varying float vMat; varying vec3 vN;
   uniform vec3 uCam; uniform float uDay; uniform vec3 uFog; uniform float uFogNear; uniform float uFogFar; uniform float uAmbient;
   uniform vec3 uLights[8]; uniform float uLightR[8]; uniform float uAlpha; uniform vec3 uTint; uniform float uSkyMul;
-  uniform vec3 uSun; uniform vec3 uSunCol; uniform vec3 uZenith; uniform float uGrid; uniform float uWave; uniform float uTime; uniform float uSunAmt; uniform float uQuality; uniform vec3 uPlayer;
+  uniform vec3 uSun; uniform vec3 uSunCol; uniform vec3 uZenith; uniform float uGrid; uniform float uWave; uniform float uTime; uniform float uSunAmt; uniform float uQuality; uniform vec3 uPlayer; uniform float uBladeShade;
   float h21(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
   float vn(vec2 p){ vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f); return mix(mix(h21(i), h21(i + vec2(1.0, 0.0)), f.x), mix(h21(i + vec2(0.0, 1.0)), h21(i + vec2(1.0, 1.0)), f.x), f.y); }
   float hash3(vec3 p){ p = fract(p * vec3(0.1031, 0.1030, 0.0973)); p += dot(p, p.yxz + 33.33); return fract((p.x + p.y) * p.z); }
   void main(){
     vec3 toCam = uCam - vWorld; float dist = length(toCam); vec3 V = toCam / max(dist, 0.0001);
-    vec3 n = normalize(cross(dFdx(vWorld), dFdy(vWorld))); if (dot(n, V) < 0.0) n = -n;
+    vec3 n = dot(vN, vN) > 0.1 ? normalize(vN) : normalize(cross(dFdx(vWorld), dFdy(vWorld))); if (dot(n, V) < -0.2) n = -n;
     float sky = vCol.a; float emis = step(0.999, sky);
     float skyL = sky * uSkyMul;
     float torch = 0.0;
@@ -191,18 +199,36 @@ const R = (() => {
       col = max(col, base * torch * 0.9);
       alpha = top ? mix(0.5, 0.94, max(smoothstep(0.0, 0.7, depth), fres)) : 0.7;
     } else {
+      int mat0 = int(vMat + 0.5);
+      float nearB = 1.0 - smoothstep(24.0, 48.0, dist);
+      if (nearB > 0.01 && emis < 0.5 && (mat0 == 3 || mat0 == 4 || mat0 == 2 || mat0 == 5 || mat0 == 6)) { // relief: the normal leans with the bumps of the material
+        vec2 uvb = abs(n.x) > 0.5 ? vWorld.zy : (abs(n.y) > 0.5 ? vWorld.xz : vWorld.xy);
+        vec3 T = abs(n.x) > 0.5 ? vec3(0.0, 0.0, 1.0) : vec3(1.0, 0.0, 0.0), Bt = abs(n.y) > 0.5 ? vec3(0.0, 0.0, 1.0) : vec3(0.0, 1.0, 0.0);
+        float sc = mat0 == 3 ? 2.2 : mat0 == 4 ? 6.0 : mat0 == 2 ? 9.0 : mat0 == 5 ? 1.6 : 1.0; float amt = mat0 == 3 ? 0.22 : mat0 == 4 ? 0.09 : mat0 == 2 ? 0.03 : mat0 == 5 ? 0.06 : 0.03;
+        float ee = 0.07; float h0 = vn(uvb * sc), hx = vn((uvb + vec2(ee, 0.0)) * sc), hy = vn((uvb + vec2(0.0, ee)) * sc);
+        if (mat0 == 3) { float d0 = vn(uvb * 7.0 + 3.0), dx = vn((uvb + vec2(ee, 0.0)) * 7.0 + 3.0), dy = vn((uvb + vec2(0.0, ee)) * 7.0 + 3.0); h0 += d0 * 0.3; hx += dx * 0.3; hy += dy * 0.3; }
+        vec2 gr = vec2(hx - h0, hy - h0) / ee * amt * nearB;
+        n = normalize(n - T * gr.x - Bt * gr.y);
+      }
       float lam = max(dot(n, uSun), 0.0) * uSunAmt;
-      vec3 amb = vec3(0.78, 0.86, 1.05) * (0.36 + 0.26 * uDay);
-      vec3 light = skyL * (amb + uSunCol * lam * 0.72 * uDay);
+      float sh = lam > 0.001 ? shadowAt(vWorld, n) : 1.0;
+      vec3 amb = vec3(0.78, 0.86, 1.05) * (0.36 + 0.26 * uDay) * (0.86 + 0.14 * n.y);
+      vec3 light = skyL * (amb * (0.88 + 0.12 * sh) + uSunCol * lam * sh * 0.78 * uDay);
       light = max(light, vec3(uAmbient)); light = max(light, vec3(1.0, 0.78, 0.52) * torch * 0.95);
       light = mix(light, vec3(1.0), emis);
       vec3 vc = vCol.rgb; float lum = dot(vc, vec3(0.3, 0.59, 0.11)); vc = mix(vec3(lum), vc, 0.78); if (vc.g > vc.r * 1.1 && vc.g > vc.b * 1.2) vc *= vec3(1.04, 1.0, 0.86);
       col = vc * light;
+      if (mat0 == 8) { // lava: a dark crust drifting over a bright glow (emissive, so it skips the paint below)
+        vec2 q = vWorld.xz * 0.6; float flow = vn(q + vec2(uTime * 0.05, uTime * 0.03)) * 0.6 + vn(q * 2.3 - vec2(uTime * 0.04, 0.0)) * 0.4;
+        float crust = smoothstep(0.42, 0.62, flow); vec3 hot = vec3(1.0, 0.72, 0.18), cool = vec3(0.42, 0.1, 0.03);
+        col = mix(hot * (1.05 + 0.25 * sin(uTime * 2.0 + flow * 12.0)), cool, crust) * (0.5 + 0.5 * step(0.5, n.y)) + cool * 0.5 * (1.0 - step(0.5, n.y));
+      }
       if (uGrid > 0.5 && emis < 0.5) {
         vec2 uv = abs(n.x) > 0.5 ? vWorld.zy : (abs(n.y) > 0.5 ? vWorld.xz : vWorld.xy);
         vec3 bp = floor(vWorld - n * 0.5);
         float hb = hash3(bp); float speck = hash3(vec3(floor(uv * 8.0), bp.y)); float blot = hash3(vec3(floor(uv * 3.0), bp.x + bp.z));
-        col *= 0.9 + 0.1 * hb + (speck - 0.5) * 0.12 * uQuality + (blot - 0.5) * 0.07;
+        int matp = int(vMat + 0.5); float blocky = (matp == 7 || matp == 0) ? 0.0 : 1.0; // leaves and props are not blocks: no per-block paint on them
+        col *= 1.0 + blocky * (-0.1 + 0.1 * hb + (speck - 0.5) * 0.12 * uQuality + (blot - 0.5) * 0.07);
         // broad painted drift: warm and cool patches across the land
         vec2 wp = vWorld.xz * 0.045; vec2 wi = floor(wp), wf = fract(wp); wf = wf * wf * (3.0 - 2.0 * wf);
         float d0 = hash3(vec3(wi, 7.0)), d1 = hash3(vec3(wi + vec2(1.0, 0.0), 7.0)), d2 = hash3(vec3(wi + vec2(0.0, 1.0), 7.0)), d3 = hash3(vec3(wi + vec2(1.0, 1.0), 7.0));
@@ -211,20 +237,34 @@ const R = (() => {
         vec2 f = fract(uv); float e = min(min(f.x, 1.0 - f.x), min(f.y, 1.0 - f.y));
         float pd = length(vWorld.xz - uPlayer.xz) + abs(vWorld.y - uPlayer.y) * 0.5; float lw = 0.018; float g = 1.0 - smoothstep(lw, lw * 2.2, e); g *= 1.0 - smoothstep(2.5, 4.5, pd);
         col *= 1.0 - 0.28 * g;
-        if (n.y > 0.55 && vCol.r > 0.62 && vCol.g > vCol.r * 0.82 && vCol.g < vCol.r * 1.02 && vCol.b < vCol.r * 0.8 && vCol.b > vCol.r * 0.4) { // sand: wind ripples and grain
+        float near = 1.0 - smoothstep(30.0, 70.0, dist); int mat = int(vMat + 0.5);
+        if (mat == 2) { // sand: wind ripples and grain
           vec2 q = vWorld.xz; float warp = vn(q * 0.35) * 3.0;
           float rip = sin(dot(q, vec2(0.93, 0.37)) * 4.2 + warp) * 0.5 + 0.5; rip = smoothstep(0.15, 0.95, rip);
           float grain = vn(q * 48.0) * 0.6 + vn(q * 113.0 + 1.7) * 0.4;
-          float near = 1.0 - smoothstep(30.0, 70.0, dist);
           col *= 1.0 + ((rip - 0.5) * 0.13 + (grain - 0.5) * 0.08) * near;
           col *= 0.96 + 0.08 * vn(q * 0.12);
           col += uSunCol * step(0.992, hash3(vec3(floor(q * 14.0), 3.0))) * uSunAmt * 0.18 * near;
-        }
-        if (n.y > 0.55 && vCol.g > vCol.r * 1.12 && vCol.g > vCol.b * 1.25) { // grass: a carpet of fine blades, with wind rolling over it
+        } else if (mat == 1) { // grass: a carpet of fine blades, with wind rolling over it
           vec2 q = vWorld.xz; float fine = vn(q * 26.0) * 0.6 + vn(q * 61.0 + 3.1) * 0.4; float tuft = vn(q * 7.0 + 9.0);
           vec2 wd = normalize(vec2(0.8, 0.45)); float wave = sin(dot(q, wd) * 0.42 - uTime * 1.6 + vn(q * 0.15) * 4.0) * 0.5 + 0.5; wave *= wave * (0.5 + 0.5 * vn(q * 0.07 + uTime * 0.05));
           col *= 0.78 + 0.34 * fine + 0.1 * (tuft - 0.5);
           col = mix(col, col * vec3(1.18, 1.16, 1.0) + vec3(0.035, 0.04, 0.0), wave * 0.42 * (1.0 - smoothstep(60.0, 110.0, dist)));
+          col *= mix(mix(0.66, 1.0, smoothstep(12.0, 36.0, dist)), 1.0, 1.0 - uBladeShade); // the ground under standing blades is in their shade
+        } else if (mat == 3) { // rock: large blotches, thin cracks along a noise contour, a lighter dusting on the tops
+          float blot2 = vn(uv * 1.3 + 5.0); float c1 = vn(uv * 2.4 + 2.0); float crack = 1.0 - smoothstep(0.0, 0.012, abs(c1 - 0.5)); crack *= smoothstep(0.58, 0.72, vn(uv * 0.33 + 9.0));
+          col *= 0.86 + 0.28 * blot2; col *= 1.0 - 0.3 * crack * near; col *= 1.0 + 0.06 * n.y;
+          float grit = vn(uv * 17.0) ; col *= 0.95 + 0.1 * grit;
+          float strata = (1.0 - abs(n.y)) * (sin(vWorld.y * 2.6 + vn(vWorld.xz * 0.4) * 3.0) * 0.5 + 0.5); col *= 1.0 - 0.07 * strata;
+        } else if (mat == 4) { // earth: clods and the odd pale pebble
+          float clod = vn(uv * 5.0 + 1.0) * 0.6 + vn(uv * 13.0 + 4.0) * 0.4; col *= 0.82 + 0.34 * clod;
+          float peb = step(0.965, hash3(vec3(floor(uv * 9.0), bp.y + 3.0))); col = mix(col, col * 1.5 + 0.08, peb * near);
+        } else if (mat == 5) { // snow: soft drifts and glitter
+          col *= 0.95 + 0.08 * vn(uv * 2.0); col += uSunCol * step(0.988, hash3(vec3(floor(uv * 12.0), 5.0))) * uSunAmt * 0.3 * near;
+        } else if (mat == 6) { // wood: grain lines running along the boards
+          float grain = sin(uv.y * 38.0 + vn(uv * vec2(2.0, 0.4)) * 7.0) * 0.5 + 0.5; col *= 0.93 + 0.1 * smoothstep(0.3, 0.8, grain) * near;
+        } else if (mat == 7) { // leaves: dapple
+          col *= 0.9 + 0.2 * vn(vWorld.xz * 2.2 + vWorld.y * 0.7);
         }
       }
     }
@@ -233,7 +273,7 @@ const R = (() => {
     float toward = pow(max(dot(-V, uSun), 0.0), 6.0) * uSunAmt;
     vec3 haze = mix(uFog, uSunCol, toward * 0.45);
     col = mix(col * uTint, haze, f);
-    gl_FragColor = vec4(col, alpha);
+    gl_FragColor = vec4(tonemap(col), alpha);
   }`;
   // ---- entities: smooth normals, ten bones, a soft cel ramp with rim light; a second pass draws a thin dark outline (inverted hull) ----
   const EVS = `
@@ -257,6 +297,8 @@ const R = (() => {
   #else
   precision mediump float;
   #endif
+  ${TONE}
+  /*SHADOW*/
   varying vec4 vCol; varying vec3 vWorld; varying vec3 vNorm; varying vec3 vLocal;
   uniform vec3 uCam; uniform float uDay; uniform vec3 uFog; uniform float uFogNear; uniform float uFogFar; uniform float uAmbient;
   uniform vec3 uLights[8]; uniform float uLightR[8]; uniform float uAlpha; uniform vec3 uTint; uniform float uSkyMul;
@@ -265,7 +307,7 @@ const R = (() => {
   void main(){
     vec3 toCam = uCam - vWorld; float dist = length(toCam); vec3 V = toCam / max(dist, 0.0001);
     float f = clamp((dist - uFogNear) / (uFogFar - uFogNear), 0.0, 1.0); f = f * f * (3.0 - 2.0 * f);
-    if (uOutline > 0.0) { gl_FragColor = vec4(mix(vec3(0.07, 0.06, 0.09), uFog, f), uAlpha); return; }
+    if (uOutline > 0.0) { gl_FragColor = vec4(tonemap(mix(vec3(0.07, 0.06, 0.09), uFog, f)), uAlpha); return; }
     vec3 n = normalize(vNorm); if (dot(n, V) < -0.15) n = -n;
     float sky = vCol.a; float emis = step(0.999, sky); float skyL = sky * uSkyMul;
     float torch = 0.0;
@@ -274,8 +316,9 @@ const R = (() => {
     float lam = max(dot(n, uSun), 0.0) * uSunAmt;
     float hl = (dot(n, uSun) * 0.5 + 0.5) * uSunAmt; // half-lambert: the shadow side still turns toward the light, the way toon shading does
     float ramp = smoothstep(0.3, 0.52, hl) * 0.62 + smoothstep(0.68, 0.9, hl) * 0.38;
+    float sh = shadowAt(vWorld, n); ramp *= mix(0.25, 1.0, sh);
     vec3 amb = vec3(0.86, 0.9, 1.02) * (0.42 + 0.24 * uDay) * (0.84 + 0.2 * n.y);
-    vec3 light = skyL * (amb + uSunCol * ramp * 0.78 * uDay);
+    vec3 light = skyL * (amb * (0.88 + 0.12 * sh) + uSunCol * ramp * 0.78 * uDay);
     light = max(light, vec3(uAmbient)); light = max(light, vec3(1.0, 0.78, 0.52) * torch * 0.95);
     light = mix(light, vec3(1.0), emis);
     vec3 vc = vCol.rgb; float lum = dot(vc, vec3(0.3, 0.59, 0.11)); vc = mix(vec3(lum), vc, 0.84);
@@ -288,13 +331,86 @@ const R = (() => {
     float toward = pow(max(dot(-V, uSun), 0.0), 6.0) * uSunAmt;
     vec3 haze = mix(uFog, uSunCol, toward * 0.45);
     col = mix(col * uTint, haze, f);
-    gl_FragColor = vec4(col, uAlpha);
+    gl_FragColor = vec4(tonemap(col), uAlpha);
   }`;
+  // ---- sun shadows (WebGL2): a depth map rendered from the sun over the ground round the player, sampled with hardware 2x2 PCF ----
+  const SHADOW_GLSL = (on) => on ? `
+  uniform highp sampler2DShadow uShadow; uniform mat4 uLightPV; uniform float uShadowOn; uniform vec2 uShadowTexel;
+  float shadowAt(vec3 wp, vec3 n){
+    if (uShadowOn < 0.5) return 1.0;
+    vec4 lp = uLightPV * vec4(wp + n * 0.05, 1.0); vec3 sc = lp.xyz / lp.w * 0.5 + 0.5;
+    if (sc.x < 0.0 || sc.x > 1.0 || sc.y < 0.0 || sc.y > 1.0 || sc.z > 1.0) return 1.0;
+    float z = sc.z - 0.0009;
+    float s = texture(uShadow, vec3(sc.xy, z)) + texture(uShadow, vec3(sc.xy + vec2(uShadowTexel.x, 0.0), z)) + texture(uShadow, vec3(sc.xy + vec2(0.0, uShadowTexel.y), z)) + texture(uShadow, vec3(sc.xy + uShadowTexel, z));
+    s *= 0.25;
+    vec2 e = abs(sc.xy - 0.5) * 2.0; float edge = 1.0 - smoothstep(0.78, 1.0, max(e.x, e.y));
+    return mix(1.0, s, edge * uShadowOn);
+  }` : `float shadowAt(vec3 wp, vec3 n){ return 1.0; }`;
+  const SH_VS_C = `attribute vec3 aPos; uniform mat4 uLightPV; uniform mat4 uModel; void main(){ gl_Position = uLightPV * uModel * vec4(aPos, 1.0); }`;
+  const SH_VS_E = `attribute vec3 aPos; attribute float aBone; uniform mat4 uLightPV; uniform mat4 uModel; uniform mat4 uBones[10]; void main(){ int b = int(aBone + 0.5); gl_Position = uLightPV * uModel * uBones[b] * vec4(aPos, 1.0); }`;
+  const SH_FS = `precision mediump float; void main(){ }`;
+  let shProgC = null, shProgE = null, shFB = null, shTex = null, shSize = 0; const shlocC = {}, shlocE = {}; let lightPV = U.m4identity(); let shadowReady = false;
+  function isGL2() { return typeof WebGL2RenderingContext !== 'undefined' && gl instanceof WebGL2RenderingContext; }
+  function initShadows() {
+    if (!isGL2()) return;
+    try {
+      shProgC = compile(SH_VS_C, SH_FS); shlocC.aPos = gl.getAttribLocation(shProgC, 'aPos'); shlocC.uLightPV = gl.getUniformLocation(shProgC, 'uLightPV'); shlocC.uModel = gl.getUniformLocation(shProgC, 'uModel');
+      shProgE = compile(SH_VS_E, SH_FS); shlocE.aPos = gl.getAttribLocation(shProgE, 'aPos'); shlocE.aBone = gl.getAttribLocation(shProgE, 'aBone'); shlocE.uLightPV = gl.getUniformLocation(shProgE, 'uLightPV'); shlocE.uModel = gl.getUniformLocation(shProgE, 'uModel'); shlocE.uBones = gl.getUniformLocation(shProgE, 'uBones');
+      shSize = isMobile ? 1024 : 2048;
+      shTex = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, shTex);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.DEPTH_COMPONENT24, shSize, shSize, 0, gl.DEPTH_COMPONENT, gl.UNSIGNED_INT, null);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_COMPARE_MODE, gl.COMPARE_REF_TO_TEXTURE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_COMPARE_FUNC, gl.LEQUAL);
+      shFB = gl.createFramebuffer(); gl.bindFramebuffer(gl.FRAMEBUFFER, shFB); gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.TEXTURE_2D, shTex, 0);
+      gl.drawBuffers([gl.NONE]); gl.readBuffer(gl.NONE);
+      const ok = gl.checkFramebufferStatus(gl.FRAMEBUFFER) === gl.FRAMEBUFFER_COMPLETE; gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+      if (!ok) { console.warn('shadows off: framebuffer incomplete'); shProgC = null; return; }
+      shadowReady = true; if (state.shadows == null) state.shadows = true;
+    } catch (e) { console.warn('shadows off:', e.message); shProgC = null; }
+  }
+  const m4lookAt = (eye, c, up) => { let fx = c[0] - eye[0], fy = c[1] - eye[1], fz = c[2] - eye[2]; let l = Math.hypot(fx, fy, fz) || 1; fx /= l; fy /= l; fz /= l; let rx = fy * up[2] - fz * up[1], ry = fz * up[0] - fx * up[2], rz = fx * up[1] - fy * up[0]; l = Math.hypot(rx, ry, rz) || 1; rx /= l; ry /= l; rz /= l; const ux = ry * fz - rz * fy, uy = rz * fx - rx * fz, uz = rx * fy - ry * fx; const m = new Float32Array(16); m[0] = rx; m[4] = ry; m[8] = rz; m[1] = ux; m[5] = uy; m[9] = uz; m[2] = -fx; m[6] = -fy; m[10] = -fz; m[12] = -(rx * eye[0] + ry * eye[1] + rz * eye[2]); m[13] = -(ux * eye[0] + uy * eye[1] + uz * eye[2]); m[14] = (fx * eye[0] + fy * eye[1] + fz * eye[2]); m[15] = 1; return m; };
+  const m4ortho = (l, r, b, t, n, f) => { const m = new Float32Array(16); m[0] = 2 / (r - l); m[5] = 2 / (t - b); m[10] = -2 / (f - n); m[12] = -(r + l) / (r - l); m[13] = -(t + b) / (t - b); m[14] = -(f + n) / (f - n); m[15] = 1; return m; };
+  // the shadow pass: everything solid near the player, seen from the sun
+  function renderShadows(world, player, cam, entities, visible) {
+    const on = shadowReady && state.shadows !== false && state.skyPass && state.sunAmt > 0.02 && state.sun[1] > 0.04;
+    state.shadowOn = on ? Math.min(1, (state.sun[1] - 0.04) / 0.12) * state.sunAmt : 0;
+    if (!on) return;
+    const E = isMobile ? 30 : 44; const sun = state.sun;
+    const f = U.forwardVec(cam.yaw, 0); let cx = player.x + f[0] * E * 0.3, cy = player.y, cz = player.z + f[2] * E * 0.3;
+    const up = Math.abs(sun[1]) > 0.95 ? [1, 0, 0] : [0, 1, 0];
+    let view = m4lookAt([cx + sun[0] * 120, cy + sun[1] * 120, cz + sun[2] * 120], [cx, cy, cz], up);
+    // snap the centre to the shadow texel grid so the shadows do not swim when the camera turns
+    const texel = 2 * E / shSize; const vx = view[0] * cx + view[4] * cy + view[8] * cz + view[12], vy = view[1] * cx + view[5] * cy + view[9] * cz + view[13];
+    const dx = Math.round(vx / texel) * texel - vx, dy = Math.round(vy / texel) * texel - vy;
+    cx += view[0] * dx + view[1] * dy; cy += view[4] * dx + view[5] * dy; cz += view[8] * dx + view[9] * dy;
+    view = m4lookAt([cx + sun[0] * 120, cy + sun[1] * 120, cz + sun[2] * 120], [cx, cy, cz], up);
+    lightPV = U.m4mul(m4ortho(-E, E, -E, E, 1, 260), view);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, shFB); gl.viewport(0, 0, shSize, shSize); gl.clear(gl.DEPTH_BUFFER_BIT);
+    gl.enable(gl.CULL_FACE); gl.cullFace(gl.FRONT); gl.enable(gl.POLYGON_OFFSET_FILL); gl.polygonOffset(1.5, 2.0);
+    gl.useProgram(shProgC); gl.uniformMatrix4fv(shlocC.uLightPV, false, lightPV);
+    const ident = U.m4identity(); const R2 = (E + 20) * (E + 20);
+    for (const c of world.chunks.values()) { if (!c.mesh || !c.mesh.op) continue; const mx = c.cx * CH + 8, mz = c.cz * CH + 8; if ((mx - cx) ** 2 + (mz - cz) ** 2 > R2) continue; ident[12] = c.cx * CH; ident[14] = c.cz * CH; gl.uniformMatrix4fv(shlocC.uModel, false, ident); gl.bindBuffer(gl.ARRAY_BUFFER, c.mesh.op.vbo); gl.enableVertexAttribArray(shlocC.aPos); gl.vertexAttribPointer(shlocC.aPos, 3, gl.FLOAT, false, 0, 0); gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, c.mesh.op.ibo); gl.drawElements(gl.TRIANGLES, c.mesh.op.count, gl.UNSIGNED_INT, 0); }
+    gl.useProgram(shProgE); gl.uniformMatrix4fv(shlocE.uLightPV, false, lightPV); const now = performance.now();
+    for (const e of entities) { if (!e.mesh || !e.mesh.count || e.isFx || e.noShadow) continue; if ((e.x - cx) ** 2 + (e.z - cz) ** 2 > R2) continue;
+      gl.uniformMatrix4fv(shlocE.uModel, false, U.m4model(e.x, e.y + (e.hover || 0), e.z, e.yaw, e.scale || 1));
+      const pose = (typeof Anim !== 'undefined' && e.model && e.model.bones) ? Anim.pose(e, now) : null; gl.uniformMatrix4fv(shlocE.uBones, false, pose ? pose.mats : IDENT_BONES);
+      gl.bindBuffer(gl.ARRAY_BUFFER, e.mesh.vbo); gl.enableVertexAttribArray(shlocE.aPos); gl.vertexAttribPointer(shlocE.aPos, 3, gl.FLOAT, false, 0, 0);
+      if (e.mesh.bbo) { gl.bindBuffer(gl.ARRAY_BUFFER, e.mesh.bbo); gl.enableVertexAttribArray(shlocE.aBone); gl.vertexAttribPointer(shlocE.aBone, 1, gl.FLOAT, false, 0, 0); } else { gl.disableVertexAttribArray(shlocE.aBone); gl.vertexAttrib1f(shlocE.aBone, 0); }
+      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, e.mesh.ibo); gl.drawElements(gl.TRIANGLES, e.mesh.count, gl.UNSIGNED_INT, 0); }
+    gl.disable(gl.POLYGON_OFFSET_FILL); gl.disable(gl.CULL_FACE); gl.bindFramebuffer(gl.FRAMEBUFFER, null); gl.viewport(0, 0, canvas.width, canvas.height);
+  }
+  // bind the shadow map and its matrix for a program (its loc map must hold uShadow, uLightPV, uShadowOn, uShadowTexel)
+  function bindShadow(L, unit) {
+    if (!L.uLightPV) return;
+    gl.uniform1f(L.uShadowOn, state.shadowOn || 0); if (!shadowReady) return;
+    gl.activeTexture(gl.TEXTURE0 + unit); gl.bindTexture(gl.TEXTURE_2D, shTex); gl.uniform1i(L.uShadow, unit); gl.uniformMatrix4fv(L.uLightPV, false, lightPV); gl.uniform2f(L.uShadowTexel, 1 / shSize, 1 / shSize);
+  }
   let eprog = null; const eloc = {}; const IDENT_BONES = new Float32Array(160); for (let i = 0; i < 10; i++) { IDENT_BONES[i * 16] = IDENT_BONES[i * 16 + 5] = IDENT_BONES[i * 16 + 10] = IDENT_BONES[i * 16 + 15] = 1; }
   function initEntityProg() {
     eprog = compile(EVS, EFS);
     for (const n of ['aPos', 'aCol', 'aNorm', 'aBone']) eloc[n] = gl.getAttribLocation(eprog, n);
-    for (const n of ['uPV', 'uModel', 'uBones', 'uOutline', 'uSway', 'uTime', 'uCam', 'uDay', 'uFog', 'uFogNear', 'uFogFar', 'uAmbient', 'uLights', 'uLightR', 'uAlpha', 'uTint', 'uSkyMul', 'uSun', 'uSunCol', 'uZenith', 'uSunAmt', 'uFlash']) eloc[n] = gl.getUniformLocation(eprog, n);
+    for (const n of ['uPV', 'uModel', 'uBones', 'uOutline', 'uSway', 'uTime', 'uCam', 'uDay', 'uFog', 'uFogNear', 'uFogFar', 'uAmbient', 'uLights', 'uLightR', 'uAlpha', 'uTint', 'uSkyMul', 'uSun', 'uSunCol', 'uZenith', 'uSunAmt', 'uFlash', 'uShadow', 'uLightPV', 'uShadowOn', 'uShadowTexel']) eloc[n] = gl.getUniformLocation(eprog, n);
   }
   // ---- the meadow: one blade shape drawn tens of thousands of times around you (WebGL2 instancing) ----
   const GVS = `#version 300 es
@@ -320,22 +436,27 @@ const R = (() => {
     float grass = step(0.004, own.r + own.g) * (1.0 - step(2.5, hi - lo));
     float zone = own.b; float tall = smoothstep(0.6, 0.78, zone), lawn = 1.0 - smoothstep(0.22, 0.4, zone);
     float y = mix(mix(ha, hb, f.x), mix(hc, he, f.x), f.y);
-    float sc = fade * grass * (0.55 + h3 * 0.8);
+    // clumps: thick patches and thinner ones, so the meadow is not a uniform brush
+    vec2 cp = cell * 0.45; vec2 ci = floor(cp), cf = fract(cp); cf = cf * cf * (3.0 - 2.0 * cf);
+    float clump = mix(mix(hash(ci), hash(ci + vec2(1.0, 0.0)), cf.x), mix(hash(ci + vec2(0.0, 1.0)), hash(ci + vec2(1.0, 1.0)), cf.x), cf.y);
+    float sc = fade * grass * (0.6 + h3 * 0.7) * (0.62 + 0.76 * clump);
     if (sc < 0.03) { gl_Position = vec4(2.0, 2.0, 2.0, 1.0); vC = vec3(0.0); vW = vec3(0.0); vH = 0.0; return; }
     float ang = h1 * 6.2831; vec2 dir = vec2(cos(ang), sin(ang));
     float carpet = 1.0 - smoothstep(0.03, 0.08, zone);
-    float hm2 = mix(1.0, 0.32, lawn) * mix(1.0, 3.4, tall) * mix(1.0, 0.45, carpet);
-    float flowerP = smoothstep(0.55, 0.8, sin(p.x * 0.11 + 1.3) * sin(p.y * 0.13 + 0.7) * 0.5 + 0.5 + h3 * 0.2) * (1.0 - tall); bool flower = carpet < 0.5 && hash(cell + 5.13) < 0.035 + flowerP * 0.09;
-    if (flower) hm2 = max(hm2, 0.75);
-    float hgt = 0.34 * sc * uScale * hm2 * (1.0 + (h2 - 0.5) * 0.5 * tall); float wid = uWidth * (1.0 - aBlade.y * 0.85) * mix(1.0, 0.75, tall) * (flower ? 0.6 : 1.0);
+    float hm2 = mix(1.0, 0.38, lawn) * mix(1.0, 2.5, tall) * mix(1.0, 0.5, carpet) * (0.85 + 0.3 * clump);
+    float flowerP = smoothstep(0.55, 0.8, sin(p.x * 0.11 + 1.3) * sin(p.y * 0.13 + 0.7) * 0.5 + 0.5 + h3 * 0.2) * (1.0 - tall); bool flower = carpet < 0.5 && hash(cell + 5.13) < 0.03 + flowerP * 0.09;
+    if (flower) hm2 = max(hm2, 0.8);
+    float hgt = 0.44 * sc * uScale * hm2 * (1.0 + (h2 - 0.5) * 0.5 * tall); float wid = uWidth * (1.0 - aBlade.y * 0.8) * mix(1.0, 0.8, tall) * (flower ? 0.6 : 1.0);
     float gust = sin(dot(p, vec2(0.37, 0.2)) - uTime * 1.6) * 0.5 + 0.5; gust = gust * gust;
-    float bend = (sin(uTime * 2.6 + h2 * 6.2831 + p.x * 0.7) * 0.05 + gust * 0.2 + 0.04 + tall * (0.1 + gust * 0.25)) * aBlade.y * aBlade.y;
+    float bend = (sin(uTime * 2.6 + h2 * 6.2831 + p.x * 0.7) * 0.05 + gust * 0.2 + 0.06 + tall * (0.1 + gust * 0.25)) * aBlade.y * aBlade.y;
     vec3 w = vec3(p.x + dir.x * aBlade.x * wid, y + aBlade.y * hgt, p.y + dir.y * aBlade.x * wid);
     w.x += bend * 0.85 * (0.4 + hgt * 2.0); w.z += bend * 0.48 * (0.4 + hgt * 2.0); w.y -= bend * bend * 0.6;
     vec3 tint = vec3(own.r, own.g, own.g * 0.42);
-    vC = mix(tint * vec3(0.5, 0.58, 0.42), tint * vec3(1.06, 1.08, 0.74) + vec3(0.07, 0.06, 0.0), aBlade.y) * (0.82 + 0.34 * h3);
+    float k = pow(aBlade.y, 0.85);
+    vC = mix(tint * vec3(0.3, 0.42, 0.62), tint * vec3(1.02, 1.1, 0.74) + vec3(0.05, 0.05, 0.0), k) * (0.84 + 0.3 * h3);
     vC *= 1.0 + gust * 0.22 * aBlade.y;
-    float lum = dot(vC, vec3(0.3, 0.59, 0.11)); vC = mix(vec3(lum), vC, 0.72) * vec3(1.04, 1.0, 0.86); // softer, a little golden
+    vC *= vec3(1.0 + (h1 - 0.5) * 0.14, 1.0, 1.0 - (h1 - 0.5) * 0.1); // some blades warmer, some cooler
+    float lum = dot(vC, vec3(0.3, 0.59, 0.11)); vC = mix(vec3(lum), vC, 0.76) * vec3(1.04, 1.0, 0.86);
     vC = mix(vC, vC * vec3(1.12, 1.08, 0.82) + vec3(0.06, 0.05, 0.0), tall * aBlade.y * 0.6); // tall grass goes pale and golden at the tips
     if (flower && aBlade.y > 0.6) { float fk = hash(cell + 9.1); vC = fk < 0.45 ? vec3(0.96, 0.96, 0.92) : fk < 0.7 ? vec3(0.55, 0.65, 1.0) : fk < 0.88 ? vec3(1.0, 0.86, 0.3) : vec3(0.95, 0.55, 0.7); }
     vW = w; vH = aBlade.y;
@@ -343,24 +464,28 @@ const R = (() => {
   }`;
   const GFS = `#version 300 es
   precision highp float;
+  ${TONE}
+  /*SHADOW*/
   in vec3 vC; in vec3 vW; in float vH; out vec4 o;
   uniform vec3 uCam; uniform vec3 uFog; uniform float uFogNear; uniform float uFogFar; uniform vec3 uSun; uniform vec3 uSunCol; uniform float uSunAmt; uniform float uDay; uniform vec3 uTint;
   void main(){
     float dist = distance(vW, uCam); vec3 V = (uCam - vW) / max(dist, 0.001);
-    vec3 light = vec3(0.78, 0.86, 1.05) * (0.42 + 0.26 * uDay) + uSunCol * uSunAmt * uDay * (0.45 + 0.4 * vH);
-    float back = pow(max(dot(-V, uSun), 0.0), 3.0) * uSunAmt * vH; // sun through the blades
-    vec3 col = vC * light + vC * uSunCol * back * 0.5;
+    float sh = shadowAt(vW, vec3(0.0, 1.0, 0.0));
+    vec3 light = vec3(0.78, 0.86, 1.05) * (0.42 + 0.26 * uDay) * (0.7 + 0.3 * vH) * (0.85 + 0.15 * sh) + uSunCol * uSunAmt * uDay * (0.4 + 0.45 * vH) * sh;
+    float back = pow(max(dot(-V, uSun), 0.0), 3.0) * uSunAmt * vH * sh; // sun through the blades
+    float sheen = pow(max(dot(-V, uSun), 0.0), 14.0) * uSunAmt * vH * vH * sh; // the field shines toward the sun
+    vec3 col = vC * light + vC * uSunCol * back * 0.5 + uSunCol * sheen * 0.35;
     float f = clamp((dist - uFogNear) / (uFogFar - uFogNear), 0.0, 1.0); f = f * f * (3.0 - 2.0 * f);
-    o = vec4(mix(col * uTint, uFog, f), 1.0);
+    o = vec4(tonemap(mix(col * uTint, uFog, f)), 1.0);
   }`;
   let grassProg = null, gloc = {}, grassBuf = null, hmTex = null, hmData = null, hmCenter = null, hmT = 0;
   function initGrass() {
     if (!(typeof WebGL2RenderingContext !== 'undefined' && gl instanceof WebGL2RenderingContext)) return;
     try {
       const mk = (t, src) => { const s = gl.createShader(t); gl.shaderSource(s, src); gl.compileShader(s); if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s)); return s; };
-      const p = gl.createProgram(); gl.attachShader(p, mk(gl.VERTEX_SHADER, GVS)); gl.attachShader(p, mk(gl.FRAGMENT_SHADER, GFS)); gl.linkProgram(p); if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(p));
+      const p = gl.createProgram(); gl.attachShader(p, mk(gl.VERTEX_SHADER, GVS)); gl.attachShader(p, mk(gl.FRAGMENT_SHADER, GFS.replace('/*SHADOW*/', SHADOW_GLSL(true)))); gl.linkProgram(p); if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(p));
       grassProg = p; gloc.aBlade = gl.getAttribLocation(p, 'aBlade');
-      for (const n of ['uPV', 'uCam', 'uOrigin', 'uSpacing', 'uSide', 'uRIn', 'uROut', 'uScale', 'uWidth', 'uHM', 'uHMO', 'uTime', 'uFog', 'uFogNear', 'uFogFar', 'uSun', 'uSunCol', 'uSunAmt', 'uDay', 'uTint']) gloc[n] = gl.getUniformLocation(p, n);
+      for (const n of ['uPV', 'uCam', 'uOrigin', 'uSpacing', 'uSide', 'uRIn', 'uROut', 'uScale', 'uWidth', 'uHM', 'uHMO', 'uTime', 'uFog', 'uFogNear', 'uFogFar', 'uSun', 'uSunCol', 'uSunAmt', 'uDay', 'uTint', 'uShadow', 'uLightPV', 'uShadowOn', 'uShadowTexel']) gloc[n] = gl.getUniformLocation(p, n);
       // a blade: two quads tapering to a point (5 vertices, a strip)
       grassBuf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, grassBuf); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-0.5, 0, 0.5, 0, -0.42, 0.5, 0.42, 0.5, 0, 1]), gl.STATIC_DRAW);
       hmTex = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, hmTex); hmData = new Uint8Array(128 * 128 * 4);
@@ -406,9 +531,10 @@ const R = (() => {
     gl.useProgram(grassProg);
     gl.uniformMatrix4fv(gloc.uPV, false, pv); gl.uniform3f(gloc.uCam, cam.x, cam.y, cam.z); gl.uniform1f(gloc.uTime, now / 1000);
     gl.uniform3fv(gloc.uFog, state.fogColor); gl.uniform1f(gloc.uFogNear, state.fogNear); gl.uniform1f(gloc.uFogFar, state.fogFar); gl.uniform3fv(gloc.uSun, state.sun); gl.uniform3fv(gloc.uSunCol, state.sunCol); gl.uniform1f(gloc.uSunAmt, state.sunAmt); gl.uniform1f(gloc.uDay, state.dayLight); gl.uniform3fv(gloc.uTint, state.tint);
-    gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, hmTex); gl.uniform1i(gloc.uHM, 0); gl.uniform2f(gloc.uHMO, hmCenter.ox, hmCenter.oz);
+    gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, hmTex); gl.uniform1i(gloc.uHM, 0); gl.uniform2f(gloc.uHMO, hmCenter.ox, hmCenter.oz); bindShadow(gloc, 1);
     gl.bindBuffer(gl.ARRAY_BUFFER, grassBuf); gl.enableVertexAttribArray(gloc.aBlade); gl.vertexAttribPointer(gloc.aBlade, 2, gl.FLOAT, false, 0, 0);
-    const rings = isMobile ? [[0.17, 0, 11, 1, 0.05], [0.42, 11, 30, 1.5, 0.1]] : [[0.12, 0, 13, 1, 0.045], [0.34, 13, 38, 1.5, 0.09]];
+    const q = state.grassQuality || 1; // 1 full, 0.7 lighter
+    const rings = isMobile ? [[0.125 / q, 0, 9, 1, 0.07], [0.24 / q, 9, 19, 1.3, 0.1], [0.5, 19, 34, 1.6, 0.17]] : [[0.1 / q, 0, 11, 1, 0.065], [0.2 / q, 11, 24, 1.3, 0.1], [0.45, 24, 44, 1.6, 0.16]];
     for (const [sp, rin, rout, scl, wid] of rings) {
       const side = Math.ceil(rout * 2 / sp); const ox = Math.floor((player.x - rout) / sp) * sp, oz = Math.floor((player.z - rout) / sp) * sp;
       gl.uniform2f(gloc.uOrigin, ox, oz); gl.uniform1f(gloc.uSpacing, sp); gl.uniform1i(gloc.uSide, side); gl.uniform1f(gloc.uRIn, rin); gl.uniform1f(gloc.uROut, rout); gl.uniform1f(gloc.uScale, scl); gl.uniform1f(gloc.uWidth, wid);
@@ -425,6 +551,7 @@ const R = (() => {
   #else
   precision mediump float;
   #endif
+  ${TONE}
   varying vec2 vP;
   uniform vec3 uFwd; uniform vec3 uRight; uniform vec3 uUp; uniform float uTan; uniform float uAspect;
   uniform vec3 uHorizon; uniform vec3 uZenith; uniform vec3 uSun; uniform vec3 uSunCol; uniform float uSunAmt; uniform float uTime; uniform float uClouds; uniform float uNight;
@@ -445,7 +572,7 @@ const R = (() => {
       vec3 shade = mix(uHorizon, vec3(0.55, 0.6, 0.7), 0.5) * (0.45 + 0.55 * (1.0 - uNight));
       col = mix(col, mix(shade, lit, smoothstep(0.4, 0.95, c)), cov * 0.9);
     }
-    gl_FragColor = vec4(col, 1.0);
+    gl_FragColor = vec4(tonemap(col), 1.0);
   }`;
   const LVS = `attribute vec3 aPos; uniform mat4 uPV; void main(){ gl_Position = uPV * vec4(aPos,1.0); }`;
   const LFS = `precision mediump float; uniform vec4 uColor; void main(){ gl_FragColor = uColor; }`;
@@ -453,6 +580,7 @@ const R = (() => {
   function compile(vs, fs) {
     const p = gl.createProgram();
     const gl2 = typeof WebGL2RenderingContext !== 'undefined' && gl instanceof WebGL2RenderingContext;
+    fs = fs.replace('/*SHADOW*/', SHADOW_GLSL(gl2));
     if (gl2) { vs = '#version 300 es\n#define attribute in\n#define varying out\n' + vs; fs = '#version 300 es\n#define varying in\nout highp vec4 fragOut;\n#define gl_FragColor fragOut\n' + fs; }
     else { if (fs.indexOf('dFdx') >= 0) { gl.getExtension('OES_standard_derivatives'); fs = '#extension GL_OES_standard_derivatives : enable\n' + fs; } }
     const mk = (t, src) => { const s = gl.createShader(t); gl.shaderSource(s, src); gl.compileShader(s); if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s)); return s; };
@@ -463,14 +591,14 @@ const R = (() => {
 
   function init(cv, mobile) {
     canvas = cv; isMobile = mobile;
-    const opts = { antialias: false, alpha: false, depth: true, powerPreference: 'high-performance', preserveDrawingBuffer: false };
+    const opts = { antialias: true, alpha: false, depth: true, powerPreference: 'high-performance', preserveDrawingBuffer: false };
     gl = cv.getContext('webgl2', opts);
     if (!gl) { gl = cv.getContext('webgl', opts) || cv.getContext('experimental-webgl', opts); if (!gl) throw new Error('WebGL is not available'); if (!gl.getExtension('OES_element_index_uint')) throw new Error('32-bit indices unsupported'); }
     prog = compile(VS, FS);
-    for (const n of ['aPos', 'aCol']) loc[n] = gl.getAttribLocation(prog, n);
-    for (const n of ['uPV', 'uModel', 'uTime', 'uWave', 'uCam', 'uDay', 'uFog', 'uFogNear', 'uFogFar', 'uAmbient', 'uLights', 'uLightR', 'uAlpha', 'uTint', 'uSkyMul', 'uSun', 'uSunCol', 'uZenith', 'uGrid', 'uSunAmt', 'uQuality', 'uPlayer']) loc[n] = gl.getUniformLocation(prog, n);
+    for (const n of ['aPos', 'aCol', 'aMat', 'aNorm']) loc[n] = gl.getAttribLocation(prog, n);
+    for (const n of ['uPV', 'uModel', 'uTime', 'uWave', 'uCam', 'uDay', 'uFog', 'uFogNear', 'uFogFar', 'uAmbient', 'uLights', 'uLightR', 'uAlpha', 'uTint', 'uSkyMul', 'uSun', 'uSunCol', 'uZenith', 'uGrid', 'uSunAmt', 'uQuality', 'uPlayer', 'uBladeShade', 'uShadow', 'uLightPV', 'uShadowOn', 'uShadowTexel']) loc[n] = gl.getUniformLocation(prog, n);
     skyProg = compile(SVS, SFS); sloc.aPos = gl.getAttribLocation(skyProg, 'aPos'); for (const n of ['uFwd', 'uRight', 'uUp', 'uTan', 'uAspect', 'uHorizon', 'uZenith', 'uSun', 'uSunCol', 'uSunAmt', 'uTime', 'uClouds', 'uNight']) sloc[n] = gl.getUniformLocation(skyProg, n);
-    initGrass(); initEntityProg();
+    initGrass(); initEntityProg(); initShadows();
     skyBuf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, skyBuf); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
     lineProg = compile(LVS, LFS);
     lloc.aPos = gl.getAttribLocation(lineProg, 'aPos'); lloc.uPV = gl.getUniformLocation(lineProg, 'uPV'); lloc.uColor = gl.getUniformLocation(lineProg, 'uColor');
@@ -480,7 +608,7 @@ const R = (() => {
     resize();
   }
   function resize() {
-    const dpr = Math.min(window.devicePixelRatio || 1, isMobile ? 1.25 : 1.5);
+    const dpr = Math.min(window.devicePixelRatio || 1, state.dprCap || (isMobile ? 1.75 : 2));
     const w = Math.floor(canvas.clientWidth * dpr), h = Math.floor(canvas.clientHeight * dpr);
     if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
     gl.viewport(0, 0, canvas.width, canvas.height);
@@ -491,14 +619,18 @@ const R = (() => {
     const vbo = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, vbo); gl.bufferData(gl.ARRAY_BUFFER, mb.pos.subarray(0, mb.nv * 3), gl.STATIC_DRAW);
     const cbo = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, cbo); gl.bufferData(gl.ARRAY_BUFFER, mb.col.subarray(0, mb.nv * 4), gl.STATIC_DRAW);
     const ibo = gl.createBuffer(); gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ibo); gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, mb.idx.subarray(0, mb.ni), gl.STATIC_DRAW);
-    const out = { vbo, cbo, ibo, count: mb.ni, nbo: null, bbo: null, tris: mb.ni / 3 };
-    if (mb.nrm) { out.nbo = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, out.nbo); gl.bufferData(gl.ARRAY_BUFFER, mb.nrm.subarray(0, mb.nv * 3), gl.STATIC_DRAW); out.bbo = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, out.bbo); gl.bufferData(gl.ARRAY_BUFFER, mb.bone.subarray(0, mb.nv), gl.STATIC_DRAW); }
+    const out = { vbo, cbo, ibo, count: mb.ni, nbo: null, bbo: null, mbo: null, tris: mb.ni / 3, chunk: mb.chunk };
+    if (mb.chunk) { out.mbo = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, out.mbo); gl.bufferData(gl.ARRAY_BUFFER, mb.mat.subarray(0, mb.nv), gl.STATIC_DRAW);
+      const n8 = new Int8Array(mb.nv * 3); const nr = mb.nrm; for (let i = 0; i < mb.nv * 3; i++) n8[i] = Math.max(-127, Math.min(127, Math.round(nr[i] * 127))); out.nbo = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, out.nbo); gl.bufferData(gl.ARRAY_BUFFER, n8, gl.STATIC_DRAW); }
+    else if (mb.nrm) { out.nbo = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, out.nbo); gl.bufferData(gl.ARRAY_BUFFER, mb.nrm.subarray(0, mb.nv * 3), gl.STATIC_DRAW); out.bbo = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, out.bbo); gl.bufferData(gl.ARRAY_BUFFER, mb.bone.subarray(0, mb.nv), gl.STATIC_DRAW); }
     return out;
   }
-  function freeMesh(m) { if (!m) return; gl.deleteBuffer(m.vbo); gl.deleteBuffer(m.cbo); gl.deleteBuffer(m.ibo); if (m.nbo) { gl.deleteBuffer(m.nbo); gl.deleteBuffer(m.bbo); } }
+  function freeMesh(m) { if (!m) return; gl.deleteBuffer(m.vbo); gl.deleteBuffer(m.cbo); gl.deleteBuffer(m.ibo); if (m.nbo) gl.deleteBuffer(m.nbo); if (m.bbo) gl.deleteBuffer(m.bbo); if (m.mbo) gl.deleteBuffer(m.mbo); }
   function drawMesh(m) {
     gl.bindBuffer(gl.ARRAY_BUFFER, m.vbo); gl.enableVertexAttribArray(loc.aPos); gl.vertexAttribPointer(loc.aPos, 3, gl.FLOAT, false, 0, 0);
     gl.bindBuffer(gl.ARRAY_BUFFER, m.cbo); gl.enableVertexAttribArray(loc.aCol); gl.vertexAttribPointer(loc.aCol, 4, gl.UNSIGNED_BYTE, true, 0, 0);
+    if (m.mbo) { gl.bindBuffer(gl.ARRAY_BUFFER, m.mbo); gl.enableVertexAttribArray(loc.aMat); gl.vertexAttribPointer(loc.aMat, 1, gl.UNSIGNED_BYTE, false, 0, 0); } else { gl.disableVertexAttribArray(loc.aMat); gl.vertexAttrib1f(loc.aMat, 0); }
+    if (m.nbo && m.chunk) { gl.bindBuffer(gl.ARRAY_BUFFER, m.nbo); gl.enableVertexAttribArray(loc.aNorm); gl.vertexAttribPointer(loc.aNorm, 3, gl.BYTE, true, 0, 0); } else { gl.disableVertexAttribArray(loc.aNorm); gl.vertexAttrib3f(loc.aNorm, 0, 0, 0); }
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, m.ibo);
     gl.drawElements(gl.TRIANGLES, m.count, gl.UNSIGNED_INT, 0);
   }
@@ -513,7 +645,9 @@ const R = (() => {
   }
 
   // ---------- chunk meshing ----------
-  const scratchOpaque = new MeshBuilder(16384), scratchWater = new MeshBuilder(2048), scratchGlass = new MeshBuilder(512), scratchGrass = new MeshBuilder(8192);
+  // material classes for the fragment shader: 1 grass top, 2 sand, 3 rock, 4 earth, 5 snow, 6 wood, 7 leaves, 8 lava
+  const MAT_OF = {}; for (const [ids, m] of [[[B.SAND, B.DUNE, B.SALTCRUST], 2], [[B.STONE, B.GRAVEL, B.MOSS, B.COPPER, B.IRON, B.EMBER, B.GOLD, B.DIAMOND, B.BASALT, B.BEDROCK, B.FORTSTONE, B.RUBBLE, B.SELENITE, B.TYCHO, B.AMBER, B.REGOLITH, B.BOULDER], 3], [[B.DIRT], 4], [[B.SNOW], 5], [[B.PLANKS, B.LOG, B.BIRCHLOG, B.DOOR, B.DOOR_OPEN, B.LADDER, B.CHEST], 6], [[B.LEAVES, B.BERRYLEAF, B.NEEDLES, B.CACTUS], 7], [[B.LAVA], 8]]) for (const id of ids) MAT_OF[id] = m;
+  const scratchOpaque = new MeshBuilder(16384, false, true), scratchWater = new MeshBuilder(2048, false, true), scratchGlass = new MeshBuilder(512, false, true), scratchGrass = new MeshBuilder(8192, false, true);
   const SOIL = new Set([B.GRASS, B.DIRT, B.SAND, B.SNOW, B.GRAVEL, B.STONE, B.MOSS, B.GLOWGRASS, B.REGOLITH, B.DUNE, B.SALTCRUST]);
   const surfTop = new Int16Array(18 * 18), surfWet = new Int16Array(18 * 18), cornerH = new Float32Array(17 * 17);
   const FLOWERS = [[0.95, 0.85, 0.25], [0.95, 0.95, 0.95], [0.85, 0.35, 0.55], [0.6, 0.5, 0.95], [0.95, 0.5, 0.25]];
@@ -552,6 +686,8 @@ const R = (() => {
     }
     const ST = (x, z) => surfTop[(x + 1) * 18 + (z + 1)];
     const CHt = (x, z) => cornerH[x * 17 + z];
+    // a normal per corner from the slope of the smoothed height field
+    const cornerN = (x, z) => { const h = CHt(x, z); if (h < 0) return [0, 1, 0]; const g = (a, b) => { const v = (a >= 0 && a <= 16 && b >= 0 && b <= 16) ? CHt(a, b) : -1; return v >= 0 ? v : h; }; const dx = (g(x + 1, z) - g(x - 1, z)) * 0.5, dz = (g(x, z + 1) - g(x, z - 1)) * 0.5; const l = Math.hypot(dx, 1, dz); return [-dx / l, 1 / l, -dz / l]; };
     const blocks = chunk.blocks;
     const col0 = [0, 0, 0];
     for (let lx = 0; lx < CH; lx++) for (let lz = 0; lz < CH; lz++) {
@@ -581,6 +717,7 @@ const R = (() => {
             if (flower) { const fc = tipC; const s = 0.07; gr.quad([[tp[0] - s, tp[1], tp[2]], [tp[0], tp[1], tp[2] - s], [tp[0] + s, tp[1], tp[2]], [tp[0], tp[1], tp[2] + s]], [fc, fc, fc, fc], [sk, sk, sk, sk], false); }
           }
         }
+        op.curMat = MAT_OF[id] || 0;
         if (isLeaf(id)) { // leaves: soft puffs that overlap into a canopy. Leaf blocks are grouped in 2x2x2 cells: the cell's even corner draws one big puff for all of them; a leaf whose cell corner is not a leaf draws its own small one
           const exposedAt = (x, yy, z) => { for (let f = 0; f < 6; f++) { const F = FACES[f]; const nid = get(x + F.n[0], yy + F.n[1], z + F.n[2]); if (!(isLeaf(nid) || isOpaque(nid))) return true; } return false; };
           const ax = lx - (wx & 1), ay = y - (y & 1), az = lz - (wz & 1); // this block's 2x2x2 cell; the first leaf in the cell draws one puff for all
@@ -594,7 +731,7 @@ const R = (() => {
           const dark = 1 - 0.06 * Math.max(0, around - 2); // deeper in the crown, darker
           let c; if (id === B.NEEDLES) { const nv = 0.9 + h1 * 0.2; c = [0.19 * nv, 0.42 * nv, 0.3 * nv]; } else { const warm = id === B.BERRYLEAF ? 1 : 0; c = [tint[0] * (0.9 + warm * 0.25) * vr, tint[1] * 1.02 * vr, tint[2] * 0.72 * vr]; }
           const hue = (h2 - 0.5) * 0.16; c = [c[0] * dark * (1 + hue), c[1] * dark, c[2] * dark * (1 - hue)]; // some puffs yellower, some bluer
-          op.blob(cx - r, cy - r * 0.84, cz - r, cx + r, cy + r * 0.84, cz + r, 0.85, [c[0] * 1.08, c[1] * 1.06, c[2]], { sky: sk, n: 2, under: [c[0] * 0.5, c[1] * 0.56, c[2] * 0.62], split: 0.05, soft: 0.7 });
+          op.blob(cx - r, cy - r * 0.84, cz - r, cx + r, cy + r * 0.84, cz + r, 0.9, [c[0] * 1.08, c[1] * 1.06, c[2]], { sky: sk, n: nLeaf >= 4 ? 3 : 2, under: [c[0] * 0.5, c[1] * 0.56, c[2] * 0.62], split: 0.05, soft: 0.7 });
           if (id === B.BERRYLEAF) for (let k = 0; k < 3; k++) { const a = U.hash3(wx, y, wz, 64 + k) * 6.283, e = 0.2 + U.hash3(wx, y, wz, 67 + k) * 0.6; op.ball(cx + Math.cos(a) * r * 0.85, cy + r * 0.8 * (e - 0.4), cz + Math.sin(a) * r * 0.85, 0.08, [0.9, 0.15, 0.22], { sky: sk, n: 2 }); }
           continue;
         }
@@ -758,8 +895,10 @@ const R = (() => {
           continue;
         }
         const isWater = id === B.WATER || id === B.BRINE, isGlass = id === B.GLASS || id === B.SELGLASS;
+        const matSide = MAT_OF[id] || 0;
         for (let f = 0; f < 6; f++) {
           const F = FACES[f], n = F.n;
+          op.curMat = (id === B.GRASS || id === B.GLOWGRASS) ? (f === 2 ? 1 : 4) : matSide;
           const nx = lx + n[0], ny = y + n[1], nz = lz + n[2];
           const nid = get(nx, ny, nz);
           if (isWater) { if (nid !== B.AIR && nid !== B.TORCH && nid !== B.GLASS && nid !== B.SELGLASS && !(BLOCKS[nid].partial && !BLOCKS[nid].solid)) continue; }
@@ -812,7 +951,8 @@ const R = (() => {
           }
           const pat = PATTERNS[id]; const pf = pat ? ((f === 2 || f === 3) ? (pat.top || pat.all) : (pat.side || pat.all)) : null;
           if (isWater) { let d = 0; while (d < 10 && (get(lx, y - d - 1, lz) === id)) d++; const dc = [Math.min(1, (d + 1) / 9), id === B.BRINE ? 1 : 0, 0]; for (let i = 0; i < 4; i++) cols[i] = dc; }
-          if (!pf) { if (isWater) wa.quad(verts, cols, skys, false); else if (isGlass) gs.quad(verts, cols, skys, false); else op.quad(verts, cols, skys, emis); }
+          const nrms = sloped ? F.v.map(v => cornerN(lx + v[0], lz + v[2])) : null;
+          if (!pf) { if (isWater) wa.quad(verts, cols, skys, false); else if (isGlass) gs.quad(verts, cols, skys, false); else op.quad(verts, cols, skys, emis, nrms); }
           else {
             // patterned face: sub-rectangles in face coordinates, then studs raised off the plane
             const o = verts[0]; const Uv = [verts[1][0] - o[0], verts[1][1] - o[1], verts[1][2] - o[2]], Vv = [verts[3][0] - o[0], verts[3][1] - o[1], verts[3][2] - o[2]];
@@ -858,6 +998,7 @@ const R = (() => {
     gl.uniform1f(eloc.uFogNear, state.fogNear); gl.uniform1f(eloc.uFogFar, state.fogFar); gl.uniform1f(eloc.uAmbient, state.ambient); gl.uniform3fv(eloc.uTint, state.tint);
     gl.uniform3fv(eloc.uSun, state.sun || [0, 1, 0]); gl.uniform3fv(eloc.uSunCol, state.sunCol || [1, 1, 1]); gl.uniform3fv(eloc.uZenith, state.zenith || state.fogColor); gl.uniform1f(eloc.uSunAmt, state.skyPass ? state.sunAmt : 0);
     gl.uniform3fv(eloc.uLights, lightsL); gl.uniform1fv(eloc.uLightR, lightsR); gl.uniform1f(eloc.uAlpha, 1); gl.uniform1f(eloc.uSkyMul, 1); gl.uniform1f(eloc.uOutline, 0); gl.uniform4f(eloc.uSway, 0, 0, 0, 0); gl.uniform1f(eloc.uFlash, 0);
+    bindShadow(eloc, 1);
   }
   function drawEntities(entities, cam, now) {
     const outlineW = state.outlines === false ? 0 : (isMobile ? 0.022 : 0.026);
@@ -901,7 +1042,7 @@ const R = (() => {
     const tx = (x0 + x1) / 2, ty = (y0 + y1) / 2 + (opts.lift || 0), tz = (z0 + z1) / 2;
     const cx = tx - fwd[0] * dist, cy = ty - fwd[1] * dist, cz = tz - fwd[2] * dist;
     const pv = U.m4mul(U.m4perspective(0.64, 1, 0.1, 60), U.m4view(cx, cy, cz, yaw, pitch));
-    const saved = { fog: state.fogColor, fn: state.fogNear, ff: state.fogFar, sun: state.sun, sc: state.sunCol, sa: state.sunAmt, day: state.dayLight, z: state.zenith, tint: state.tint, amb: state.ambient, sp: state.skyPass };
+    const saved = { fog: state.fogColor, fn: state.fogNear, ff: state.fogFar, sun: state.sun, sc: state.sunCol, sa: state.sunAmt, day: state.dayLight, z: state.zenith, tint: state.tint, amb: state.ambient, sp: state.skyPass, sh: state.shadowOn }; state.shadowOn = 0;
     state.fogColor = [0.5, 0.6, 0.7]; state.fogNear = 50; state.fogFar = 60; state.sun = [-0.45, 0.72, 0.53]; state.sunCol = [1.0, 0.95, 0.86]; state.sunAmt = 1; state.dayLight = 1; state.zenith = [0.5, 0.65, 0.95]; state.tint = [1, 1, 1]; state.ambient = 0.06; state.skyPass = true;
     const L = new Float32Array(24), LR = new Float32Array(8); for (let i = 0; i < 8; i++) { L[i * 3 + 1] = -999; LR[i] = 0.001; }
     setEntityUniforms(pv, { x: cx, y: cy, z: cz }, L, LR);
@@ -909,7 +1050,7 @@ const R = (() => {
     gl.enable(gl.DEPTH_TEST); gl.disable(gl.BLEND);
     const ol = state.outlines; state.outlines = opts.outline === false ? false : true; const vd = state.viewDist; state.viewDist = 100;
     drawEntities([ent], { x: cx, y: cy, z: cz }, performance.now()); state.outlines = ol; state.viewDist = vd;
-    Object.assign(state, { fogColor: saved.fog, fogNear: saved.fn, fogFar: saved.ff, sun: saved.sun, sunCol: saved.sc, sunAmt: saved.sa, dayLight: saved.day, zenith: saved.z, tint: saved.tint, ambient: saved.amb, skyPass: saved.sp });
+    Object.assign(state, { fogColor: saved.fog, fogNear: saved.fn, fogFar: saved.ff, sun: saved.sun, sunCol: saved.sc, sunAmt: saved.sa, dayLight: saved.day, zenith: saved.z, tint: saved.tint, ambient: saved.amb, skyPass: saved.sp, shadowOn: saved.sh });
     const px = new Uint8Array(S * S * 4); gl.readPixels(0, 0, S, S, gl.RGBA, gl.UNSIGNED_BYTE, px);
     gl.bindFramebuffer(gl.FRAMEBUFFER, null); gl.viewport(0, 0, canvas.width, canvas.height);
     // flip rows (GL is bottom-up) and un-premultiply nothing: alpha is 0 or 1
@@ -996,7 +1137,7 @@ const R = (() => {
     gl.uniform1f(loc.uAmbient, state.ambient);
     gl.uniform3fv(loc.uTint, state.tint);
     gl.uniform1f(loc.uSkyMul, 1);
-    gl.uniform3fv(loc.uSun, state.sun || [0, 1, 0]); gl.uniform3fv(loc.uSunCol, state.sunCol || [1, 1, 1]); gl.uniform3fv(loc.uZenith, state.zenith || state.fogColor); gl.uniform1f(loc.uSunAmt, state.skyPass ? state.sunAmt : 0); gl.uniform1f(loc.uQuality, isMobile ? 0.6 : 1); gl.uniform1f(loc.uGrid, 1); gl.uniform3f(loc.uPlayer, player.x, player.y, player.z);
+    gl.uniform3fv(loc.uSun, state.sun || [0, 1, 0]); gl.uniform3fv(loc.uSunCol, state.sunCol || [1, 1, 1]); gl.uniform3fv(loc.uZenith, state.zenith || state.fogColor); gl.uniform1f(loc.uSunAmt, state.skyPass ? state.sunAmt : 0); gl.uniform1f(loc.uQuality, isMobile ? 0.6 : 1); gl.uniform1f(loc.uGrid, 1); gl.uniform3f(loc.uPlayer, player.x, player.y, player.z); gl.uniform1f(loc.uBladeShade, grassProg ? 1 : 0);
     // lights
     const L = new Float32Array(24), LR = new Float32Array(8);
     const lights = extras.lights || [];
@@ -1016,6 +1157,8 @@ const R = (() => {
       visible.push(c);
     }
     gl.depthMask(true); gl.disable(gl.BLEND);
+    renderShadows(world, player, cam, entities, visible);
+    gl.useProgram(prog); bindShadow(loc, 1);
     for (const c of visible) if (c.mesh.op) { ident[12] = c.cx * CH; ident[14] = c.cz * CH; gl.uniformMatrix4fv(loc.uModel, false, ident); drawMesh(c.mesh.op); }
     drawGrass(world, player, pv, cam);
     gl.useProgram(prog); gl.uniformMatrix4fv(loc.uPV, false, pv);
