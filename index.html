@@ -2314,6 +2314,7 @@ class Player {
     if (mountShape === 'land' && !inFluid) speed *= (this.mount.sp.fast ? 3.2 : 1.8) * ride;
     else if (mountShape === 'water' && this.inWater) speed = 6.5 * ride;
     else if (mountShape === 'air' && !inFluid) speed *= 1.3;
+    if (this.blocking && typeof Combat !== 'undefined') { const sh = Combat.shield(); if (sh) speed *= sh.slow; }
     // gliding
     const wasGliding = this.gliding && !this.wingsOn;
     this.gliding = false;
@@ -2513,7 +2514,7 @@ class Player {
     const kind = this.toolKind(id);
     if (kind === 'hand') return 1;
     if (kind === 'soil') return this.has('shovel') ? (tier === 3 ? 2 * this.gearMul('pick') : 1) : tier ? 0.35 : 0; // a pick scrapes soil, slowly; bare hands cannot
-    if (kind === 'wood') return this.has('axe_iron') ? 2 : this.has('hatchet') ? 1 : 0;
+    if (kind === 'wood') { const ct = typeof Combat !== 'undefined' ? Combat.chopTier() : 0; return Math.max(this.has('axe_iron') ? 2 : this.has('hatchet') ? 1 : 0, ct); }
     const need = [B.VOID, B.GOLD, B.DIAMOND, B.BASALT, B.TYCHO, B.RINGSHARD, B.PEARLCORAL].includes(id) ? 2 : [B.COPPER, B.IRON, B.EMBER, B.SELENITE, B.AMBER].includes(id) ? 1 : 0;
     const table = [[0, 0, 0], [0.5, 0.28, 0], [1.8, 1.4, 0.9], [3.6, 3, 2.5]];
     return table[tier][need] * (tier === 3 ? this.gearMul('pick') : 1);
@@ -3698,6 +3699,7 @@ const Wild = (() => {
       if (y == null) continue;
       if (Math.hypot(x - px, z - pz) < 10) continue;
       if (api.noSpawn && Math.hypot(x - api.noSpawn.x, z - api.noSpawn.z) < api.noSpawn.r) continue;
+      if (typeof Keeps !== 'undefined' && Keeps.near(x, z, 24).length) continue; // nothing wild walks into a hold
       const r = roll(x + 0.5, y, z + 0.5, trainerLevel);
       const e = makeEntity(r.sp, r.level, x + 0.5, y, z + 0.5, { aquatic, elite: r.elite });
       if (e.kin.sp.rarity >= 4) { e.speed *= 0.5; e.senseR = 3.5; e.legend = true; if (aquatic) { e.breach = Math.random() * 10; e.sleep = true; } }
@@ -4034,7 +4036,7 @@ const Village = (() => {
       post: { title: 'Wreck Market', keeper: 'Calyx', greet: 'What the wrecks give up. New stock every two days.', stock: [] },
     },
   };
-  function shopDef(kind, v) { const st = v && SHOP_STYLE[v.style]; return (st && st[kind]) || SHOPS[kind]; }
+  function shopDef(kind, v) { const st = v && SHOP_STYLE[v.style]; const d = (st && st[kind]) || SHOPS[kind]; if (kind === 'trader' && d && typeof Combat !== 'undefined' && world && world.preset.id === 'earth') return Object.assign({}, d, { stock: d.stock.concat(Combat.armoury(v)) }); return d; }
   const POST_POOL = [
     { item: 'iron', n: 4, price: 28 }, { item: 'copper', n: 4, price: 22 }, { item: 'void', n: 2, price: 50 }, { item: 'cloud', n: 4, price: 20 }, { item: 'ember', n: 4, price: 18 },
     { item: 'snare2', n: 1, price: 45 }, { item: 'tonic_vigor', n: 1, price: 40 }, { item: 'tonic_might', n: 1, price: 40 }, { item: 'tonic_swift', n: 1, price: 40 }, { item: 'glass', n: 8, price: 12 },
@@ -8018,7 +8020,7 @@ const UI = (() => {
     const wl = Weather.label(); el.weather.textContent = ((p.chill || 0) > 0.05 ? (p.coldKind === 'space' ? 'FREEZING · no air · ' : 'FREEZING · ') : '') + (layer === 'Surface' || layer === 'Sky' || layer === 'Water' ? (wl === 'clear' ? ((R.state.day || 0) < 0.3 ? 'night' : 'clear') : wl + ((R.state.day || 0) < 0.3 ? ' · night' : '')) : '');
     const pinTxt = (() => { if (!G.pin) return ''; const dx = U.mod(G.pin.x - p.x + WORLD_W / 2, WORLD_W) - WORLD_W / 2, dz = U.mod(G.pin.z - p.z + WORLD_W / 2, WORLD_W) - WORLD_W / 2; const d = Math.round(Math.hypot(dx, dz)); if (d < 6) { G.pin = null; toast('You are at your pin.'); return ''; } const dirs = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW']; const ang = Math.atan2(dx, -dz); return ` · ◎ pin ${d}m ${dirs[Math.round(((ang / (Math.PI * 2)) + 1) * 8) % 8]}`; })();
     const now = performance.now(); const fx = (G.repelUntil > now ? ` · hush ${Math.ceil((G.repelUntil - now) / 1000)}s` : G.lure && G.lure.until > now ? ` · ${G.lure.elem} lure ${Math.ceil((G.lure.until - now) / 1000)}s` : '') + Npcs.hudText();
-    el['quest-hint'].textContent = Quests.hintText() + pinTxt + fx;
+    { const ft = Combat.focusText(); el['quest-hint'].textContent = ft ? '⚔ ' + ft : Quests.hintText() + pinTxt + fx; }
     if (p.mineTarget) { el['mine-bar'].classList.remove('hidden'); el['mine-fill'].style.width = (p.mineProgress * 100) + '%'; } else el['mine-bar'].classList.add('hidden');
     el['kin-count'].textContent = `${G.kin.length + G.eggs.length}/${G.MAX_KIN}`;
     el.hurt.style.opacity = p.hurtFlash > 0 ? Math.min(0.6, p.hurtFlash * 1.5) : 0;
@@ -8231,7 +8233,7 @@ const UI = (() => {
       q('sec-cancel').addEventListener('click', () => { securePicking = false; renderCraft(); });
       return;
     }
-    const CATS = [['gear', 'Tools and gear'], ['tonics', 'Tonics'], ['blocks', 'Blocks'], ['builds', 'Buildings'], ['kin', 'Kin gear']];
+    const CATS = [['arms', 'Weapons and shields'], ['gear', 'Tools and gear'], ['tonics', 'Tonics'], ['blocks', 'Blocks'], ['builds', 'Buildings'], ['kin', 'Kin gear']];
     const catOf = (r) => r.cat || (r.out.startsWith('tonic_') ? 'tonics' : ITEMS[r.out].block ? 'blocks' : 'gear');
     el['panel-body'].innerHTML = secureHtml() + `<p class="note">No table needed for these. Ingredients come from mining, leaves, berries and essences. Kits raise a whole building where you tap; Kin gear is put on from a Kin's page.</p>` + CATS.map(([c, title]) => `<h4>${title}</h4>` + RECIPES.filter(r => catOf(r) === c && !(r.when && !r.when(G))).map(r => {
       const owned = ITEMS[r.out].gear && p.has(r.out);
@@ -8829,6 +8831,219 @@ const Relics = (() => {
 </script>
 <script>
 'use strict';
+// On-foot combat: people fight people, Kin fight Kin, never both at once.
+// The Kinmaster's warriors hold the courtyards of his Holds. You fight them in real time with a sword or an axe in your hand:
+// tap to swing, hold to raise your shield (a block just as the blow lands is a parry and staggers them). Your bow works on them too.
+// Downed, they kneel dazed; when the hold's warlord falls, the spell breaks and they are themselves again.
+// Inside a hold no wild Kin spawn, and while the warlord's Kin duels yours, his warriors stand back.
+const Combat = (() => {
+  let G = null;
+  const foes = [];
+  // ---------------- the armoury ----------------
+  // materials, weakest to strongest: what each adds and where it turns up
+  const MATS = [
+    { k: 'wood', name: 'Wooden', col: '#a07a44', t: 0, m: 1.0 }, { k: 'stone', name: 'Stone', col: '#9a9aa0', t: 1, m: 1.35 }, { k: 'copper', name: 'Copper', col: '#c07a4a', t: 2, m: 1.7 },
+    { k: 'iron', name: 'Iron', col: '#d8d0c0', t: 3, m: 2.2 }, { k: 'ember', name: 'Emberforged', col: '#ff7a3a', t: 4, m: 2.8, fx: 'burn' }, { k: 'frost', name: 'Rimesteel', col: '#9fe0ff', t: 4, m: 2.8, fx: 'slow' },
+    { k: 'gold', name: 'Gilded', col: '#ffd040', t: 5, m: 3.2, fx: 'loot' }, { k: 'void', name: 'Voidsteel', col: '#7a2aa8', t: 6, m: 3.9, fx: 'pierce' }, { k: 'diamond', name: 'Diamond', col: '#9ff6ff', t: 7, m: 4.8 },
+    { k: 'star', name: 'Starmetal', col: '#e8f4ff', t: 8, m: 6.0, fx: 'all' },
+  ];
+  const FX = { burn: 'burns: a little more damage after each hit', slow: 'chills: the struck foe slows', loot: 'gilded: foes drop more shards', pierce: 'voidsteel: half their shield is ignored', all: 'starmetal: burns, chills and pierces' };
+  const SWORD_FORMS = [
+    { k: 'short', name: 'Shortsword', dmg: 7, cd: 0.42, reach: 2.4 }, { k: 'long', name: 'Longsword', dmg: 10, cd: 0.6, reach: 2.9 },
+    { k: 'sabre', name: 'Sabre', dmg: 8, cd: 0.48, reach: 2.7, crit: 0.15 }, { k: 'great', name: 'Greatsword', dmg: 15, cd: 0.95, reach: 3.2 },
+  ];
+  const AXE_FORMS = [
+    { k: 'hand', name: 'Hand Axe', dmg: 9, cd: 0.6, reach: 2.2, arc: 1.3 }, { k: 'battle', name: 'Battleaxe', dmg: 13, cd: 0.85, reach: 2.6, arc: 1.7 },
+    { k: 'bearded', name: 'Bearded Axe', dmg: 11, cd: 0.7, reach: 2.5, arc: 1.5, crit: 0.1 }, { k: 'great', name: 'Greataxe', dmg: 19, cd: 1.15, reach: 2.9, arc: 2.0 },
+    { k: 'twin', name: 'Twinblade Axe', dmg: 12, cd: 0.65, reach: 2.4, arc: 2.4 },
+  ];
+  const SHIELD_FORMS = [
+    { k: 'buckler', name: 'Buckler', block: 0.45, parry: 0.32, slow: 0.9 }, { k: 'round', name: 'Round Shield', block: 0.6, parry: 0.25, slow: 0.8 },
+    { k: 'heater', name: 'Heater Shield', block: 0.68, parry: 0.22, slow: 0.75 }, { k: 'kite', name: 'Kite Shield', block: 0.76, parry: 0.18, slow: 0.65 },
+    { k: 'tower', name: 'Tower Shield', block: 0.86, parry: 0.12, slow: 0.5 },
+  ];
+  // 7 materials x 4 sword forms = 28 swords; 5 materials x 5 axe forms = 25 axes; 5 materials x 5 shield forms = 25 shields
+  const SWORD_MATS = ['wood', 'stone', 'copper', 'iron', 'ember', 'frost', 'diamond'], AXE_MATS = ['stone', 'iron', 'gold', 'void', 'star'], SHIELD_MATS = ['wood', 'copper', 'iron', 'void', 'diamond'];
+  const GEAR = {}; // id -> spec
+  const price = (base, m) => Math.round(base * Math.pow(m, 2.6) / 5) * 5;
+  function buildArmoury() {
+    const mat = (k) => MATS.find(x => x.k === k);
+    for (const mk of SWORD_MATS) for (const f of SWORD_FORMS) { const M = mat(mk); const id = `sw_${mk}_${f.k}`; GEAR[id] = { id, kind: 'sword', name: `${M.name} ${f.name}`, dmg: Math.round(f.dmg * M.m), cd: f.cd, reach: f.reach, arc: 0.9, crit: f.crit || 0.05, fx: M.fx, tier: M.t, col: M.col, price: price(60, M.m) + (f.k === 'great' ? 40 : 0) }; }
+    for (const mk of AXE_MATS) for (const f of AXE_FORMS) { const M = mat(mk); const id = `ax_${mk}_${f.k}`; GEAR[id] = { id, kind: 'axe', name: `${M.name} ${f.name}`, dmg: Math.round(f.dmg * M.m), cd: f.cd, reach: f.reach, arc: f.arc, crit: f.crit || 0.05, fx: M.fx, tier: M.t, col: M.col, price: price(75, M.m), chop: M.t >= 3 ? 2 : 1 }; }
+    for (const mk of SHIELD_MATS) for (const f of SHIELD_FORMS) { const M = mat(mk); const id = `sh_${mk}_${f.k}`; const b = Math.min(0.95, f.block + M.t * 0.025); GEAR[id] = { id, kind: 'shield', name: `${M.name} ${f.name}`, block: b, parry: f.parry + M.t * 0.01, slow: f.slow, fx: M.fx, tier: M.t, col: M.col, price: price(50, M.m) }; }
+    for (const g of Object.values(GEAR)) {
+      const fx = g.fx ? ' ' + FX[g.fx].charAt(0).toUpperCase() + FX[g.fx].slice(1) + '.' : '';
+      const desc = g.kind === 'shield' ? `Shield: hold to block ${Math.round(g.block * 100)}% of a blow; raise it just as the blow lands to parry. You move at ${Math.round(g.slow * 100)}% speed behind it.${fx}` : `${g.kind === 'axe' ? 'Axe' : 'Sword'}: ${g.dmg} damage, ${(1 / g.cd).toFixed(1)} swings a second, reach ${g.reach}${g.kind === 'axe' ? ', hits everything in a wide arc' + (g.chop ? ' and chops wood' + (g.chop > 1 ? ' fast' : '') : '') : ''}.${fx} Hold it and tap to swing.`;
+      ITEMS[g.id] = { name: g.name, col: g.col, melee: g.kind !== 'shield', shield: g.kind === 'shield', keep: true, tier: g.tier, desc };
+    }
+  }
+  // arrows: eight kinds, each with its own trick
+  const ARROWS = {
+    arrow: { dmg: 10, name: 'Arrow' },
+    arrow_ember: { dmg: 13, burn: 6, name: 'Ember Arrow' },
+    arrow_frost: { dmg: 10, slow: 4, name: 'Frost Arrow', col: '#9fe0ff', kin: 0.24, desc: 'Chills: a struck warrior slows for four seconds. On a wild Kin, a quarter of its health and it forgets you for a moment.', needs: { wood: 1, snow: 2, frond: 1 }, n: 4 },
+    arrow_spark: { dmg: 8, stun: 1.6, name: 'Spark Arrow', col: '#ffe94a', kin: 0.2, desc: 'Stuns a warrior for a second and a half. On a wild Kin, a fifth of its health.', needs: { wood: 1, copper: 1, frond: 1 }, n: 4 },
+    arrow_barbed: { dmg: 9, bleed: 8, name: 'Barbed Arrow', col: '#c04040', kin: 0.26, desc: 'Barbed: keeps hurting a warrior for a few seconds. On a wild Kin, a quarter of its health.', needs: { wood: 1, iron: 1, frond: 1 }, n: 5 },
+    arrow_heavy: { dmg: 18, knock: 2.5, shieldBreak: true, name: 'Heavy Arrow', col: '#6a6a72', kin: 0.3, desc: 'Heavy: knocks a warrior back and goes through a raised shield. On a wild Kin, nearly a third of its health.', needs: { wood: 1, iron: 2, stone: 1 }, n: 4 },
+    arrow_sleep: { dmg: 2, sleep: true, name: 'Sleep Dart', col: '#b0a0ff', kin: 0.05, desc: 'Drops a warrior who has not seen you straight to his knees. On a wild Kin, it does little harm but it forgets you were there.', needs: { wood: 1, berry: 3, glowworm: 1 }, n: 3 },
+    arrow_void: { dmg: 22, pierce: true, name: 'Void Arrow', col: '#7a2aa8', kin: 0.4, desc: 'Void-tipped: ignores shields entirely. On a wild Kin, two fifths of its health. Made only at a Dark Fusion Table.', needs: { wood: 1, void: 1, frond: 1 }, n: 3 },
+  };
+  function init(game) {
+    G = game; buildArmoury();
+    for (const k in ARROWS) { const a = ARROWS[k]; if (!ITEMS[k]) ITEMS[k] = { name: a.name, col: a.col, arrow: a.kin, crafted: true, desc: a.desc }; if (a.needs && !RECIPES.find(r => r.id === k)) RECIPES.push({ id: k, out: k, n: a.n, needs: a.needs }); }
+    // a few simple forge recipes so every early tier can be made, not only bought
+    const forge = [['sw_wood_short', { wood: 4 }], ['sh_wood_buckler', { planks: 4 }], ['sw_stone_short', { wood: 1, stone: 4 }], ['sh_wood_round', { planks: 6, iron: 1 }], ['sw_iron_long', { wood: 1, iron: 5 }], ['ax_iron_hand', { wood: 2, iron: 4 }], ['sh_iron_heater', { iron: 6, planks: 2 }]];
+    for (const [id, needs] of forge) if (!RECIPES.find(r => r.id === id)) RECIPES.push({ id, out: id, n: 1, needs, cat: 'arms' });
+    if (typeof HOTBAR_ORDER !== 'undefined') { const melee = Object.values(GEAR).filter(g => g.kind !== 'shield').map(g => g.id); const at = Math.max(1, HOTBAR_ORDER.indexOf('torch') + 1); for (const k of melee.reverse()) if (!HOTBAR_ORDER.includes(k)) HOTBAR_ORDER.splice(at, 0, k); if (!HOTBAR_ORDER.includes('bow')) HOTBAR_ORDER.splice(at, 0, 'bow'); }
+    if (typeof HOTBAR_ORDER !== 'undefined') for (const k of ['arrow_frost', 'arrow_spark', 'arrow_barbed', 'arrow_heavy', 'arrow_sleep', 'arrow_void']) if (!HOTBAR_ORDER.includes(k)) HOTBAR_ORDER.push(k);
+  }
+  // what a village trader keeps on the rack: a few pieces, never far above what that village could make
+  const pool0 = () => Object.keys(GEAR).length > 0;
+  function armoury(v) {
+    const tier = Math.min(8, 1 + (v ? v.tier || 0 : 0) * 2); const seed = v ? Math.abs(String(v.id).length * 31 + (v.x | 0)) + 1 : 1; if (!pool0()) return [];
+    const pool = Object.values(GEAR).filter(g => g.tier <= tier && g.tier >= tier - 3);
+    const out = []; for (let i = 0; i < Math.min(5, pool.length); i++) { const g = pool[U.mod(Math.abs(seed) * (i + 7) * 13, pool.length)]; if (!g) continue; if (!out.some(o => o.item === g.id)) out.push({ item: g.id, price: g.price }); }
+    const arrows = ['arrow_frost', 'arrow_spark', 'arrow_barbed', 'arrow_heavy'].slice(0, 1 + Math.min(3, (v && v.tier) || 0));
+    for (const a of arrows) out.push({ item: a, price: 6 + ARROWS[a].dmg, n: 4 });
+    return out;
+  }
+  // ---------------- what you hold ----------------
+  const weapon = () => { const k = G.player.selected(); return k && GEAR[k] && GEAR[k].kind !== 'shield' ? GEAR[k] : null; };
+  function shield() { let best = null; for (const k of G.player.inv.keys()) { const g = GEAR[k]; if (g && g.kind === 'shield' && (!best || g.block > best.block)) best = g; } return best; }
+  function chopTier() { let t = 0; for (const k of G.player.inv.keys()) { const g = GEAR[k]; if (g && g.chop) t = Math.max(t, g.chop); } return t; }
+  // ---------------- the warriors ----------------
+  const KINDS = {
+    guard: { name: 'Bound Guard', hp: 40, dmg: 1, speed: 2.6, reach: 1.9, wind: 0.6, rest: 1.1, deco: 'sword', cols: { body: '#3a3448', belly: '#c9b48a', accent: '#7a2aa8' } },
+    axeman: { name: 'Bound Axeman', hp: 55, dmg: 2, speed: 2.2, reach: 2.0, wind: 0.85, rest: 1.4, deco: 'axe', cols: { body: '#2e2a3a', belly: '#a8835a', accent: '#5a2a8a' } },
+    shield: { name: 'Bound Shieldbearer', hp: 50, dmg: 1, speed: 2.0, reach: 1.8, wind: 0.7, rest: 1.2, deco: 'shield', block: 0.7, cols: { body: '#40384a', belly: '#e0b08a', accent: '#8a3ab8' } },
+    archer: { name: 'Bound Archer', hp: 32, dmg: 1, speed: 2.4, reach: 13, wind: 1.0, rest: 1.8, deco: 'bow', archer: true, cols: { body: '#33303e', belly: '#d8b090', accent: '#6a2a9a' } },
+    captain: { name: 'Bound Captain', hp: 90, dmg: 2, speed: 2.5, reach: 2.2, wind: 0.65, rest: 1.0, deco: 'captain', block: 0.5, cols: { body: '#241c30', belly: '#c9b48a', accent: '#b026ff' } },
+  };
+  function warriorModel(kind, freed) {
+    const K = KINDS[kind]; const sp = { shape: 'biped', feat: { crest: false, ears: false, horns: false, spikes: false, tail: false, wings: false, bigEyes: false }, colors: Object.assign({ dark: '#120818', eye: freed ? '#ffe08a' : '#c04cff' }, K.cols), size: 1, gen: 0, names: ['warrior'] };
+    const m = KIN.model(sp, 2); const s = m.scale; const add = (x, y, z, w, h, d, c, emis) => m.boxes.push({ x: x * s, y: y * s, z: z * s, w: w * s, h: h * s, d: d * s, c, emis });
+    add(-0.34, 1.72, -0.32, 0.68, 0.3, 0.64, '#2a2a34'); add(-0.36, 1.68, 0.28, 0.72, 0.06, 0.06, K.cols.accent); // helmet and band
+    add(-0.42, 1.05, -0.26, 0.84, 0.5, 0.06, '#3a3a46'); // breastplate edge
+    if (K.deco === 'sword' || K.deco === 'captain') { add(0.46, 0.7, 0.18, 0.08, 1.1, 0.08, '#c8c8d0'); add(0.4, 0.68, 0.14, 0.2, 0.06, 0.16, '#6b4a2b'); }
+    if (K.deco === 'axe') { add(0.46, 0.4, 0.18, 0.07, 1.4, 0.07, '#6b4a2b'); add(0.38, 1.55, 0.12, 0.26, 0.34, 0.08, '#b8b8c4'); }
+    if (K.deco === 'shield' || K.deco === 'captain') add(-0.6, 0.55, -0.05, 0.1, 0.85, 0.65, K.cols.accent);
+    if (K.deco === 'bow') { add(0.44, 0.5, 0.15, 0.06, 1.3, 0.06, '#6b4a2b'); add(-0.3, 1.0, -0.42, 0.18, 0.7, 0.16, '#5a3f22'); }
+    if (K.deco === 'captain') { for (let i = 0; i < 3; i++) add(-0.2 + i * 0.15, 2.0, -0.05, 0.08, 0.3, 0.08, '#b026ff', true); add(-0.4, 0.4, -0.38, 0.8, 1.1, 0.05, '#3a1458'); }
+    return m;
+  }
+  function spawn(kind, x, y, z, holdId, level) {
+    const K = KINDS[kind]; const m = warriorModel(kind, false); const lv = level || 0;
+    const f = { kind, name: K.name, x, y, z, yaw: 0, hx: x, hz: z, model: m, mesh: R.entityMesh('foe:' + kind, (mb) => KIN.buildMesh(mb, m)), scale: 1, hover: 0, skyMul: 1,
+      hp: Math.round(K.hp * (1 + lv * 0.45)), max: Math.round(K.hp * (1 + lv * 0.45)), dmg: K.dmg + Math.floor(lv / 2), speed: K.speed, reach: K.reach, wind: K.wind, rest: K.rest, block: K.block || 0, archer: !!K.archer,
+      state: 'idle', t: 0, aware: false, holdId, lv, burn: 0, bleed: 0, slowT: 0, stun: 0, hitT: 0, isFoe: true };
+    foes.push(f); return f;
+  }
+  const shots = []; // the archers' arrows
+  function down(f, how) {
+    f.state = 'down'; f.hp = 0; f.t = 0; f.hover = -0.55; UI.sfx('win');
+    const P = G.player; const gold = weapon() && weapon().fx === 'loot' ? 2 : 1; const sh = Math.round((8 + f.lv * 6) * gold * (f.kind === 'captain' ? 3 : 1)); G.shards += sh;
+    let msg = `${f.name} drops to his knees, dazed. +${sh} shards.`;
+    if (Math.random() < 0.25 + (f.kind === 'captain' ? 0.5 : 0)) { const pool = Object.values(GEAR).filter(g => g.tier >= f.lv && g.tier <= f.lv + 2); const g = pool[Math.floor(Math.random() * pool.length)]; if (g && !P.has(g.id)) { P.add(g.id, 1); msg += ` He drops a ${g.name}.`; } }
+    if (Math.random() < 0.4) { const a = ['arrow', 'arrow_frost', 'arrow_spark', 'arrow_barbed', 'arrow_heavy'][Math.min(4, Math.floor(Math.random() * (2 + f.lv)))]; P.add(a, 3); }
+    UI.toast(msg, 'good'); UI.renderHotbar && UI.renderHotbar();
+  }
+  function hurt(f, dmg, opts = {}) {
+    if (f.state === 'down') return;
+    const sh = shield(); void sh;
+    let d = dmg; const facing = Math.cos(Math.atan2(G.player.x - f.x, G.player.z - f.z) - f.yaw) > 0.3;
+    if (f.block && facing && f.state !== 'stun' && !opts.pierce) { const half = opts.halfPierce ? 0.5 : 1; d = Math.round(d * (1 - f.block * half)); }
+    if (!f.aware) { d *= 2; f.aware = true; } // caught unawares: double
+    f.hp -= Math.max(1, d); f.hitT = 0.25; f.aware = true;
+    if (opts.burn) f.burn = Math.max(f.burn, opts.burn); if (opts.slow) f.slowT = Math.max(f.slowT, opts.slow); if (opts.bleed) f.bleed = Math.max(f.bleed, opts.bleed);
+    if (opts.stun) { f.state = 'stun'; f.t = opts.stun; }
+    if (opts.knock) { const a = Math.atan2(f.x - G.player.x, f.z - G.player.z); f.x += Math.sin(a) * opts.knock; f.z += Math.cos(a) * opts.knock; }
+    if (opts.sleep && f.hp > 0 && !f.wasAware) { f.hp = 0; }
+    if (f.hp <= 0) down(f);
+    G.foeFocus = f; G.foeFocusT = 4;
+  }
+  // tap with a weapon in hand: swing it
+  let swingCd = 0, blockT = 0;
+  function swing() {
+    const w = weapon(); if (!w || swingCd > 0) return false;
+    swingCd = w.cd; G.player.swingT = 0.25; UI.sfx('miss');
+    const p = G.player; const fx = -Math.sin(p.yaw), fz = -Math.cos(p.yaw); let hit = false;
+    for (const f of foes) {
+      if (f.state === 'down') continue; const dx = f.x - p.x, dz = f.z - p.z, d = Math.hypot(dx, dz); if (d > w.reach + 0.4 || Math.abs(f.y - p.y) > 2) continue;
+      const ang = Math.acos(U.clamp((dx * fx + dz * fz) / (d || 1), -1, 1)); if (ang > w.arc * 0.5 + 0.25) continue;
+      const crit = Math.random() < w.crit; const dmg = Math.round(w.dmg * (0.9 + Math.random() * 0.2) * (crit ? 1.8 : 1));
+      f.wasAware = f.aware;
+      hurt(f, dmg, { burn: w.fx === 'burn' || w.fx === 'all' ? 3 : 0, slow: w.fx === 'slow' || w.fx === 'all' ? 2.5 : 0, halfPierce: w.fx === 'pierce' || w.fx === 'all' });
+      if (crit) UI.toast('Critical!'); hit = true; if (w.kind !== 'axe') break; // a sword hits one, an axe cleaves through all in its arc
+    }
+    if (hit) UI.sfx('hit');
+    return true;
+  }
+  // an arrow from your bow: does it hit a warrior before anything else?
+  function arrowHit(ammo, maxDist) {
+    const p = G.player; const eye = p.eye(); const f0 = U.forwardVec(p.yaw, p.pitch); let best = null, bt = maxDist;
+    for (const f of foes) { if (f.state === 'down') continue; const cx = f.x, cy = f.y + 1, cz = f.z; const ox = eye.x - cx, oy = eye.y - cy, oz = eye.z - cz; const b = ox * f0[0] + oy * f0[1] + oz * f0[2], c = ox * ox + oy * oy + oz * oz - 0.8; const disc = b * b - c; if (disc < 0) continue; const t = -b - Math.sqrt(disc); if (t > 0 && t < bt) { bt = t; best = f; } }
+    if (!best) return null;
+    const A = ARROWS[ammo] || ARROWS.arrow; best.wasAware = best.aware;
+    hurt(best, A.dmg, { burn: A.burn || 0, slow: A.slow || 0, stun: A.stun || 0, bleed: A.bleed || 0, knock: A.knock || 0, pierce: !!(A.pierce || A.shieldBreak), sleep: !!A.sleep });
+    return { foe: best, dist: bt };
+  }
+  function blocking() { return !!(G.player.blocking && shield()); }
+  function update(dt, p, input) {
+    swingCd = Math.max(0, swingCd - dt); if (p.swingT > 0) p.swingT -= dt;
+    // holding a weapon with a shield in the bag: hold means block, not dig
+    const w = weapon(); const sh = shield();
+    const wantBlock = !!(w && sh && input && input.mine);
+    if (wantBlock && !p.blocking) blockT = 0; p.blocking = wantBlock; if (p.blocking) blockT += dt;
+    if (G.foeFocusT > 0) G.foeFocusT -= dt;
+    for (let i = shots.length - 1; i >= 0; i--) { const s = shots[i]; s.t += dt; s.x += s.vx * dt; s.y += s.vy * dt; s.z += s.vz * dt; s.vy -= 6 * dt;
+      if (Math.abs(s.x - p.x) < 0.5 && Math.abs(s.z - p.z) < 0.5 && s.y > p.y && s.y < p.y + 1.9) { const fac = Math.cos(Math.atan2(s.x - p.x, s.z - p.z) - (p.yaw + Math.PI)) > 0.2; if (blocking() && fac) { UI.sfx('place'); } else p.damage(s.dmg, 'warrior'); shots.splice(i, 1); continue; }
+      if (s.t > 3 || isSolid(G.world.getBlock(Math.floor(s.x), Math.floor(s.y), Math.floor(s.z)))) shots.splice(i, 1); }
+    for (const f of foes) {
+      f.t -= dt; if (f.hitT > 0) f.hitT -= dt;
+      if (f.state === 'down') continue;
+      if (f.burn > 0) { f.burn -= dt; if (Math.random() < dt * 1.2) { f.hp -= 2; if (f.hp <= 0) { down(f); continue; } } }
+      if (f.bleed > 0) { f.bleed -= dt; if (Math.random() < dt * 1.5) { f.hp -= 2; if (f.hp <= 0) { down(f); continue; } } }
+      if (f.slowT > 0) f.slowT -= dt;
+      const dx = p.x - f.x, dz = p.z - f.z, d = Math.hypot(dx, dz);
+      const sneakR = p.sneak ? 5 : 11; if (!f.aware && d < sneakR && Math.abs(p.y - f.y) < 4) f.aware = true;
+      if (f.state === 'stun') { if (f.t <= 0) f.state = 'idle'; continue; }
+      if (Battle.active) { continue; } // a Kin duel is on: his men stand back
+      if (!f.aware || p.dead) { f.yaw += Math.sin(performance.now() / 2000 + f.hx) * dt * 0.3; continue; }
+      const want = Math.atan2(dx, dz); let dy = want - f.yaw; while (dy > Math.PI) dy -= Math.PI * 2; while (dy < -Math.PI) dy += Math.PI * 2; f.yaw += dy * Math.min(1, dt * 6);
+      const spd = f.speed * (f.slowT > 0 ? 0.45 : 1);
+      if (f.state === 'idle' || f.state === 'chase') {
+        const keep = f.archer ? 8 : f.reach * 0.8;
+        if (d > keep + 0.3 && !(f.archer && d < 12)) { const nx = f.x + dx / d * spd * dt, nz = f.z + dz / d * spd * dt; const gy = G.world.groundY(Math.floor(nx), Math.floor(nz), Math.floor(f.y) + 2); if (gy != null && Math.abs(gy + 1 - f.y) < 1.2) { f.x = nx; f.z = nz; f.y += (gy + 1 - f.y) * Math.min(1, dt * 10); } }
+        else if (f.archer && d < 5) { const nx = f.x - dx / d * spd * dt, nz = f.z - dz / d * spd * dt; const gy = G.world.groundY(Math.floor(nx), Math.floor(nz), Math.floor(f.y) + 2); if (gy != null && Math.abs(gy + 1 - f.y) < 1.2) { f.x = nx; f.z = nz; } }
+        if (d <= f.reach && f.t <= 0) { f.state = 'wind'; f.t = f.wind; f.hover = 0.12; }
+      } else if (f.state === 'wind') {
+        if (f.t <= 0) {
+          f.hover = 0;
+          if (f.archer) { const tt = d / 16; shots.push({ x: f.x, y: f.y + 1.4, z: f.z, vx: dx / tt, vy: (p.y + 1.2 - f.y - 1.4) / tt + 3 * tt, vz: dz / tt, t: 0, dmg: f.dmg }); UI.sfx('miss'); }
+          else if (d <= f.reach + 0.5) {
+            const fac = Math.cos(Math.atan2(f.x - p.x, f.z - p.z) - (p.yaw + Math.PI)) > 0.2; const sh2 = shield();
+            if (p.blocking && sh2 && fac) {
+              if (blockT < sh2.parry + 0.08) { f.state = 'stun'; f.t = 1.2; UI.sfx('hit'); UI.toast('Parried!'); continue; }
+              const left = Math.round(f.dmg * (1 - sh2.block) * 10) / 10; if (left >= 1 || Math.random() < left) p.damage(Math.max(1, Math.round(left)), 'warrior'); UI.sfx('place');
+            } else p.damage(f.dmg, 'warrior');
+          }
+          f.state = 'chase'; f.t = f.rest;
+        }
+      }
+    }
+  }
+  function entities() { return foes.concat(shots.map(s => ({ x: s.x, y: s.y, z: s.z, yaw: Math.atan2(s.vx, s.vz), scale: 1, hover: 0, skyMul: 1, isFx: true, mesh: R.entityMesh('fx:foearrow', (mb) => mb.box(-0.03, -0.03, -0.35, 0.03, 0.03, 0.35, [0.5, 0.35, 0.2], 1, false)) }))); }
+  function forHold(id) { return foes.filter(f => f.holdId === id); }
+  function clearHold(id) { for (let i = foes.length - 1; i >= 0; i--) if (foes[i].holdId === id) foes.splice(i, 1); }
+  function standingIn(id) { return foes.filter(f => f.holdId === id && f.state !== 'down').length; }
+  function focusText() { const f = G.foeFocus; if (!f || !(G.foeFocusT > 0)) return null; return f.state === 'down' ? `${f.name}: down` : `${f.name}: ${Math.max(0, Math.round(f.hp / f.max * 100))}%`; }
+  function reset() { foes.length = 0; shots.length = 0; }
+  return { init, GEAR, ARROWS, armoury, weapon, shield, chopTier, spawn, swing, arrowHit, update, entities, forHold, clearHold, standingIn, focusText, reset, blocking, KINDS };
+})();
+
+</script>
+<script>
+'use strict';
 // Dark keeps: the Kinmaster's outposts across Earth, about one for every three villages. Each is a walled square of fortress stone
 // held by one of his warlords, with a Dark Fusion Table on a dais in the middle. Beat the warlord and the keep, and its table, are yours.
 const Keeps = (() => {
@@ -8842,7 +9057,7 @@ const Keeps = (() => {
   function onEarth() { return W() && W().preset.id === 'earth'; }
   function sites() {
     if (!onEarth()) return [];
-    if (G.stats.holds && G.stats.holdsV === 3) return G.stats.holds;
+    if (G.stats.holds && G.stats.holdsV === 4) return G.stats.holds;
     const w = W(), out = []; const base = U.hash3(7, 7, 7, w.seed + 0xD4) * Math.PI * 2;
     for (let i = 0; i < COUNT; i++) {
       const a0 = base + i * 2.399; let k = null; // golden-angle spread round the compass
@@ -8870,8 +9085,8 @@ const Keeps = (() => {
       out.push({ id: 'hold' + out.length + 'b', i: out.length, x, z, y: Math.max(SEA + 2, Math.round(sum / n)) });
     }
     out.sort((p, q) => Math.hypot(p.x - w.spawn.x, p.z - w.spawn.z) - Math.hypot(q.x - w.spawn.x, q.z - w.spawn.z));
-    const used = new Set(); out.forEach((k, j) => { let ni = Math.floor(U.hash3(j, 93, 1, w.seed) * NAMES.length); while (used.has(ni)) ni = (ni + 1) % NAMES.length; used.add(ni); k.name = NAMES[ni]; });
-    G.stats.holds = out; G.stats.holdsV = 3; return out;
+    const used = new Set(); out.forEach((k, j) => { k.i = j; let ni = Math.floor(U.hash3(j, 93, 1, w.seed) * NAMES.length); while (used.has(ni)) ni = (ni + 1) % NAMES.length; used.add(ni); k.name = NAMES[ni]; });
+    G.stats.holds = out; G.stats.holdsV = 4; return out;
   }
   function near(px, pz, r) { return sites().filter(k => Math.hypot(k.x - px, k.z - pz) <= r); }
   function keepFor() { return null; }
@@ -8909,7 +9124,10 @@ const Keeps = (() => {
       const s = st();
       if (!s['stamped_' + k.id] && Math.hypot(k.x - p.x, k.z - p.z) < 110) { s['stamped_' + k.id] = true; stamp(k); }
       const d = Math.hypot(k.x - p.x, k.z - p.z);
-      if (s['stamped_' + k.id] && d < 80) warriors(k);
+      if (s['stamped_' + k.id] && d < 80 && taken(k.id)) warriors(k);
+      if (!taken(k.id) && s['stamped_' + k.id] && d < 70 && !Combat.forHold(k.id).length) muster(k);
+      if (!taken(k.id) && d > 150 && Combat.forHold(k.id).length) Combat.clearHold(k.id);
+      if (!taken(k.id) && d < 50 && Combat.standingIn(k.id) > 0) continue; // his warriors first; the warlord waits on the dais
       if (!taken(k.id) && d < 50) {
         const b = bosses[k.id];
         if (!b || !Wild.list.includes(b)) {
@@ -8917,14 +9135,14 @@ const Keeps = (() => {
           const zl = Wild.zoneLevel(k.x, k.y + 1, k.z, { layer: 'Surface' }, G.trainerLevel || 1);
           const lv = Math.max(14, Math.min(KIN.capOf(sp) + 10, zl + 10));
           const e = Wild.makeEntity(sp, lv, k.x + 0.5, k.y + 1, k.z - 1 + 0.5, { senseR: 6 }); e.keepBoss = k.id; e.elite = true; e.speed = 0; e.patrol = { ax: k.x - 3.5, az: k.z - 1.5, bx: k.x + 4.5, bz: k.z - 1.5, period: 10, phase: 0 };
-          Wild.list.push(e); bosses[k.id] = e;
+          Wild.list.push(e); bosses[k.id] = e; if (Combat.forHold(k.id).length) UI.toast('His warriors are down. The warlord comes off the dais with his Kin.', 'bad');
           if (!s['seen_' + k.id]) { s['seen_' + k.id] = true; UI.toast(`${k.name}: one of the Kinmaster's keeps. His warlord holds the Dark Fusion Table inside.`, 'bad'); }
         }
       }
     }
   }
   function onBattle(id, result) {
-    if (result !== 'won' && result !== 'caught') return; st()[id] = 'taken'; delete bosses[id];
+    if (result !== 'won' && result !== 'caught') return; st()[id] = 'taken'; delete bosses[id]; Combat.clearHold(id);
     const k = sites().find(x => x.id === id); UI.sfx('quest');
     const n = sites().filter(x => taken(x.id)).length; G.stats.crystal = n; const NEED = sites().length;
     UI.toast(`${k ? k.name : 'The hold'} is yours. The spell on its warriors breaks, the clouds over it thin, and a shard of the Binding Crystal is left on the dais (${n} of ${NEED}).`, 'good');
@@ -8945,6 +9163,14 @@ const Keeps = (() => {
       const pos = [[-5, 2], [5, 2], [-4, -4]][j]; const cols = Object.assign({}, WARRIOR_COLS[j]); if (taken(k.id)) cols.eye = '#ffe08a';
       const n = Campaign.spawnPerson(id, ['Bound Guard', 'Bound Archer', 'Bound Captain'][j], 'spellbound', k.x + pos[0], k.z + pos[1], cols, ['warrior']); n.holdId = k.id; n.yaw = Math.PI; }
   }
+  function muster(k) {
+    const i = k.i || 0; const lv = Math.min(7, i);
+    const plan = [['guard', -3, -5], ['guard', 3, -5], ['shield', 0, -3], ['archer', -6, 5], ['archer', 6, 5], ['axeman', -4, 0], ['axeman', 4, 0], ['captain', 0, 1]];
+    const n = Math.min(plan.length, 4 + Math.floor(i * 0.6)); const use = plan.slice(0, n - 1).concat([plan[7]]);
+    for (const [kind, ox, oz] of use) { const x = k.x + ox + 0.5, z = k.z + oz + 0.5; Combat.spawn(kind, x, k.y + 1, z, k.id, lv); }
+    if (!G.stats.holdFightTold) { G.stats.holdFightTold = true; G.explain('His warriors', 'Inside a hold you fight on foot. Hold a sword or an axe and tap to swing: a sword hits one, an axe cleaves everything in its arc. With a shield in your bag, hold to block; raise it just as a blow lands to parry and stagger them. Your bow works too, and every arrow type has its trick. Catch one from behind and the first hit counts double. No wild Kin come inside these walls. Put them all on their knees and the warlord comes down from the dais with his Kin.'); }
+  }
+  function inHold(p) { return near(p.x, p.z, 12).some(k => !taken(k.id)); }
   function talkWarrior(n, say) {
     const freed = taken(n.holdId); const k = sites().find(x => x.id === n.holdId) || {};
     if (!freed) return say(['...', 'The crystal... it hums... we hold the gate... we hold the gate...', 'His eyes are glazed and violet. He does not see you at all.']);
@@ -8969,7 +9195,7 @@ const Keeps = (() => {
     return true;
   }
   function mapMarks() { if (!onEarth()) return []; const p = G.player; return sites().filter(k => st()['seen_' + k.id] || taken(k.id)).map(k => ({ x: k.x, z: k.z, t: taken(k.id) ? '♜' : '☠', name: k.name + (taken(k.id) ? ' (yours)' : '') })); }
-  return { init, update, onBattle, tableOpen, near, mapMarks, keepFor, sites, gloom, talkWarrior, finalReady, onFinal, COUNT };
+  return { inHold, init, update, onBattle, tableOpen, near, mapMarks, keepFor, sites, gloom, talkWarrior, finalReady, onFinal, COUNT };
 })();
 
 </script>
@@ -9112,7 +9338,7 @@ G.setupWorld = function (seed, presetId) {
   this.world.findSpawn();
   Wild.init(this.world, this.mobile);
   Weather.init(this.world.seed);
-  Village.init(this); Hazards.init(this); Campaign.init(this); Npcs.init(this); Camps.init(this); Mer.init(this); Lab.init(this); Avatar.init(this); Buddy.init(this); Relics.init(this); Keeps.init(this);
+  Village.init(this); Hazards.init(this); Campaign.init(this); Npcs.init(this); Camps.init(this); Mer.init(this); Lab.init(this); Avatar.init(this); Combat.init(this); Buddy.init(this); Relics.init(this); Keeps.init(this);
   Quests.init(this);
 };
 G.newWorld = function (seed, starterIdx, name) {
@@ -9447,12 +9673,13 @@ G.dismantle = function (entry) {
 };
 // the bow: tap a Kin a long way off. The arrow takes a chunk of its health, never the last of it, and it comes for you.
 // Balloons pop; targets count for archery jobs.
-G.shoot = function () {
+G.shoot = function (pick) {
   const p = this.player;
-  const ammo = p.has('arrow_ember') ? 'arrow_ember' : p.has('arrow') ? 'arrow' : null;
+  const ammo = pick && p.has(pick) ? pick : (this.stats.ammo && p.has(this.stats.ammo)) ? this.stats.ammo : ['arrow_ember', 'arrow', 'arrow_barbed', 'arrow_frost', 'arrow_spark', 'arrow_heavy', 'arrow_void', 'arrow_sleep'].find(a => p.has(a)) || null; if (pick) this.stats.ammo = pick;
   if (!ammo) { UI.toast('No arrows. Craft them: 1 wood, 1 stone, 1 frond makes 6.', 'bad'); return; }
   if (this.lastShot && performance.now() - this.lastShot < 600) return; this.lastShot = performance.now();
   p.take(ammo, 1); UI.sfx('place'); UI.renderHotbar();
+  { const fh = Combat.arrowHit(ammo, 40); const wall0 = fh && p.raycast(40, false, true); if (fh && (!wall0 || wall0.dist > fh.dist)) { UI.sfx('hit'); const ft = Combat.focusText(); if (ft) UI.toast(ft); return; } }
   const e = Wild.pick(p, 40); const wall = p.raycast(40, false, true); // arrows fly past torches, ladders and plants
   const eD = e ? Math.hypot(e.x - p.x, e.y - p.y, e.z - p.z) : Infinity;
   if (wall && wall.dist < eD) {
@@ -9466,6 +9693,7 @@ G.shoot = function () {
   if (e.isApex || e.isLegend || e.isBoss || e.isLabBoss || e.lieutenant) bite *= 0.35; // the big ones shrug most of it off
   const dmg = Math.max(1, Math.round(st.hp * bite)); const before = e.kin.hp;
   e.kin.hp = Math.max(1, e.kin.hp - dmg); e.alert = 1; e.ringT = 3; e.cool = 0; if (e.sleep) e.sleep = false;
+  if (ammo === 'arrow_sleep' || ammo === 'arrow_frost') { e.alert = 0; e.ringT = 0; e.hunt = 0; e.cool = ammo === 'arrow_sleep' ? 12 : 5; }
   this.stats.arrowHits = (this.stats.arrowHits || 0) + 1;
   if (e.high && Math.random() < 0.6) { p.add('feather', 1); setTimeout(() => UI.toast('A Sky Feather spins down to you.', 'good'), 400); }
   const pct = Math.round(e.kin.hp / st.hp * 100);
@@ -9721,8 +9949,8 @@ G.loop = function (t) {
         }
       }
       // mining / placing
-      if (input.mine && p.cantMine && (!this.cantToastT || performance.now() - this.cantToastT > 2500)) { this.cantToastT = performance.now(); UI.toast(p.toolNeed(p.cantMine), 'bad'); }
-      if (input.mine) { const ev = p.mineTick(dt); if (ev) { UI.sfx('break'); if (ev.broke === B.FUSION) UI.toast('Fusion Table picked up.'); if (ev.broke === B.CHEST) this.onChestBroken(ev.x, ev.y, ev.z); if (ev.drop) { if (!this.stats.dug) this.stats.dug = {}; this.stats.dug[ev.drop] = (this.stats.dug[ev.drop] || 0) + 1; } } else if (p.mineTarget && (this.frame % 12) === 0) UI.sfx('mine'); }
+      if (input.mine && !p.blocking && p.cantMine && (!this.cantToastT || performance.now() - this.cantToastT > 2500)) { this.cantToastT = performance.now(); UI.toast(p.toolNeed(p.cantMine), 'bad'); }
+      if (input.mine && !p.blocking) { const ev = p.mineTick(dt); if (ev) { UI.sfx('break'); if (ev.broke === B.FUSION) UI.toast('Fusion Table picked up.'); if (ev.broke === B.CHEST) this.onChestBroken(ev.x, ev.y, ev.z); if (ev.drop) { if (!this.stats.dug) this.stats.dug = {}; this.stats.dug[ev.drop] = (this.stats.dug[ev.drop] || 0) + 1; } } else if (p.mineTarget && (this.frame % 12) === 0) UI.sfx('mine'); }
       else { p.mineTarget = null; p.mineProgress = 0; }
       if (input.placePressed) this.onTap();
       // wild Kin
@@ -9734,9 +9962,9 @@ G.loop = function (t) {
       }
       if (w.regrow && w.regrow.length && (this.frame & 31) === 0) { const now = performance.now(); w.regrow = w.regrow.filter(r => { if (now < r.t) return true; const b = w.getBlock(r.x, r.y, r.z); if (r.id != null) { if (b === B.AIR && !(Math.abs(r.x + 0.5 - p.x) < 0.8 && Math.abs(r.z + 0.5 - p.z) < 0.8 && r.y >= Math.floor(p.y) - 1 && r.y <= Math.floor(p.y) + 2)) { if (r.id === B.GLOWWORM && !isSolid(w.getBlock(r.x, r.y - 1, r.z))) return false; w.setBlock(r.x, r.y, r.z, r.id); } else if (b === B.AIR) { r.t = now + 15000; return true; } } else if (r.leaf) { if (b === B.LEAVES) w.setBlock(r.x, r.y, r.z, B.BERRYLEAF); } else if (b === B.AIR) w.setBlock(r.x, r.y, r.z, B.BERRY); return false; }); }
       const trig = (Dialogue.active() || Village.walking) ? null : Wild.update(dt, p, performance.now() / 1000, false);
-      Buddy.update(dt, p); Keeps.update(dt, p);
+      Buddy.update(dt, p); Keeps.update(dt, p); Combat.update(dt, p, input);
       Wild.ensureHeart(p, this.trainerLevel, this.mythicCaught); Wild.ensureLegend(p); Wild.ensureApex(p);
-      if (trig && !trig.e.cool && !Dialogue.active() && !p.flying && !(this.fightGrace > performance.now())) Battle.start(trig.e, trig.ambush);
+      if (trig && !trig.e.cool && !Dialogue.active() && !p.flying && !(this.fightGrace > performance.now()) && !(Keeps.inHold(p) && !trig.e.keepBoss)) Battle.start(trig.e, trig.ambush);
       for (const e of Wild.list) if (e.cool > 0) e.cool -= dt;
       Hazards.update(dt, p, false); Npcs.update(dt, p, false); Campaign.update(dt, p, false); Taming.update(dt, p); if (p.gliding) { this.lastGlide = performance.now(); if (!this.stats.glideTold && !p.mount && !p.wingsOn) { this.stats.glideTold = true; G.explain('Gliding', 'Left stick: push sideways to bank and turn. Push forward to dive and pick up speed, pull back to brake. The arrow on the glide compass is the wind: with it behind you, you go far; into it, you barely move over the ground. Coming in to land, pull back a moment before the ground to flare and you touch down soft. Too fast and too steep, and it hurts. Let go of ▲ to drop, best done low.'); } }
       if (p.landMsg) { if (p.landMsg === 'hard') UI.toast('Hard landing. Pull back on the stick just before the ground to flare.', 'bad'); else if (p.landMsg === 'stall') UI.toast('You stalled her and dropped. Brake less: keep a little speed until the flare.', 'bad'); else if (p.landMsg === 'soft' && !this.stats.flareTold) { this.stats.flareTold = true; UI.toast('A clean flare. Feather-soft.', 'good'); } p.landMsg = null; }
@@ -9801,14 +10029,14 @@ G.loop = function (t) {
   const showMe = inBattle || this.thirdPerson || this.talkK > 0 || !!p.mount || this.grassCamOn;
   if (showMe) { const me = Avatar.entity(p, Math.hypot(p.vx, p.vz) > 0.6); if (p.mount) { const mm = KIN.model(p.mount.sp, p.mount.stage); me.y = p.y - 0.75 + mm.height * 0.62; } ents.push(me); }
   if (p.mount) { const k = p.mount; const m = KIN.model(k.sp, k.stage); const fwd = U.forwardVec(p.yaw, 0); ents.push({ x: p.x + fwd[0] * 0.5, y: p.y - 0.75 + (p.inWater ? -0.2 : 0) + Math.sin(performance.now() / 160) * (Math.hypot(p.vx, p.vz) > 0.5 ? 0.06 : 0), z: p.z + fwd[2] * 0.5, yaw: p.yaw + Math.PI, model: m, mesh: R.entityMesh(KIN.meshKey(k.sp, k.stage), (mb) => KIN.buildMesh(mb, m)), scale: 1, hover: 0, skyMul: 1, isMount: true }); }
-  ents.push(...Battle.fxEntities()); ents.push(...Wild.dropEntities()); ents.push(...Buddy.entities()); ents.push(...Hazards.entities()); ents.push(...Npcs.entities());
+  ents.push(...Battle.fxEntities()); ents.push(...Wild.dropEntities()); ents.push(...Buddy.entities()); ents.push(...Combat.entities()); ents.push(...Hazards.entities()); ents.push(...Npcs.entities());
   for (const o of w.statues.values()) {
     if ((o.x - p.x) ** 2 + (o.z - p.z) ** 2 > 4000) continue;
     if (!o.model) { o.model = KIN.statueModel(o); o.mesh = R.entityMesh('statue:' + o.id, (mb) => KIN.buildMesh(mb, o.model)); }
     const top = w.topAt(o.x, o.z); const sky = o.y >= SKY_SPLIT ? 1 : (o.y >= top ? 1 : Math.max(0, 1 - (top - o.y) * 0.11));
     ents.push({ x: o.x + 0.5, y: o.y, z: o.z + 0.5, yaw: o.yaw || 0, model: o.model, mesh: o.mesh, scale: o.scale || 1, hover: 0, skyMul: sky, isStatue: true });
   }
-  for (const e of ents) if (e.isStatue || e.isFx || e.isMount || e.isBuddy || !e.model) { /* static */ } else if (e.hitT > 0) { e.hover = (e.model.hover || 0) + Math.sin(e.hitT * 60) * 0.08; } else if (e.breach == null) e.hover = e.model.hover + (e.flying ? Math.sin((e.bob || 0) * 2) * 0.08 : 0);
+  for (const e of ents) if (e.isStatue || e.isFx || e.isMount || e.isBuddy || e.isFoe || !e.model) { /* static */ } else if (e.hitT > 0) { e.hover = (e.model.hover || 0) + Math.sin(e.hitT * 60) * 0.08; } else if (e.breach == null) e.hover = e.model.hover + (e.flying ? Math.sin((e.bob || 0) * 2) * 0.08 : 0);
   R.render(w, p, ents, cam, { lights, lines });
   if ((this.frame & 3) === 0) UI.renderHud(dt);
   if ((this.frame & 31) === 0 && !inBattle) UI.renderMinimap(p);
@@ -9834,6 +10062,8 @@ G.onTap = function () {
   const rn = Npcs.pick(p);
   if (rn) { Npcs.talk(rn); return; }
   if (Buddy.pick(p) && !Wild.pick(p)) { Buddy.tap(); return; }
+  { const sel0 = p.selected(); const ai = sel0 && ITEMS[sel0]; if (ai && ai.arrow && p.has('bow')) { this.shoot(sel0); return; } }
+  if (Combat.weapon() && (Keeps.inHold(p) || !Wild.pick(p))) { Combat.swing(); return; }
   const e = (p.selected() && (p.itemInfo(p.selected()) || {}).bow) ? null : Wild.pick(p);
   const hit = p.raycast(5.5);
   if (e && e.rogue) { const c = Campaign.C(); if (c.ranch !== 2) { UI.toast('Thunderhoof flattens his ears at you. Talk to Dusty Hale first.'); return; } const k = KIN.create(e.kin.sp, e.kin.level); Taming.start(k, { hard: true, onDone: (kk) => { kk.tamed = true; this.addKin(kk); Campaign.onRogueTamed(kk); UI.toast('Thunderhoof is yours, and you can ride now. Every Kin still has to be broken in once: press Ride and hold on.', 'good'); } }); return; }
