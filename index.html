@@ -2228,7 +2228,7 @@ const ITEMS = {
   lavasuit: { name: 'Lava Suit', col: '#ff9050', gear: true, desc: 'Swim in lava. Without it, lava kills on touch. Needed for the Core.' },
   frostcloak: { name: 'Frost Cloak', col: '#bfe3ff', gear: true, desc: 'Keeps the cold out. Without it, snowfields and mountain tops slow you, then freeze you.' },
   spacesuit: { name: 'Space Suit', col: '#e8f0ff', gear: true, desc: 'Air and warmth beyond the sky. Without it the Moon freezes you in moments.' },
-  ship: { name: 'Nightwing', col: '#7a2aa8', gear: true, desc: 'The Kinmaster\'s ship, built round the heart of the Core\'s Starmetal: dark hull, violet light in the seams. Tap it on the surface to board; hold ▲ to climb, hold ▼ to go down. Climb above the clouds to leave the world.' },
+  ship: { name: 'Starlark', col: '#c7fbff', gear: true, desc: 'Professor Finch\'s prototype, finished at Garrick\'s forge. Tap it on the surface to board; hold ▲ to climb, hold ▼ to go down. Climb above the clouds to leave the world.' },
 };
 for (const e of ELEMENTS) ITEMS['ess_' + e] = { name: e + ' Essence', col: ELEM_COLOR[e], elem: e, desc: 'Left behind by ' + e + ' Kin. Three of them and an iron make a ' + e + ' Stone.' };
 for (const e of ELEMENTS) ITEMS['stone_' + e] = { name: e + ' Stone', col: ELEM_COLOR[e], crafted: true, desc: 'A fusion stone. A fusion recipe needs its two Kin and the right stone, together on the table.' };
@@ -5541,7 +5541,7 @@ const Battle = (() => {
     if (wildE.isLegend) log(`${n}, the legend of this world. Lv ${wild.level}.`, 'bad');
     if (wildE.isApex) log(`${n}. Lv ${wild.level}. Run, or be very, very sure.`, 'bad');
     if (wildE.keepBoss) log(`${n}, the warlord of this hold. Lv ${wild.level}.`, 'bad');
-    if (wildE.finalBoss) log(`${n}, with everything the Kinmaster has left. Lv ${wild.level}.`, 'bad');
+    if (wildE.finalBoss) log(`${n}, left behind to hold you. Lv ${wild.level}. Beat it, or cage a legend.`, 'bad');
     camState = null;
     stealth = !!opts.stealth;
     if (stealth) { el.log.innerHTML = ''; log(`${n} has not seen you. Set the snare before it does.`, 'good'); renderActions(); busy = false; beginSnare(); return; }
@@ -5579,7 +5579,7 @@ const Battle = (() => {
   // which snare this Kin takes: the high flyers only a Flight Snare thrown from the air, the water Kin none at all (that is the rod's job)
   function snareRule() {
     const p = G.player;
-    if (wildE && (wildE.finalBoss || wildE.kinmaster || wildE.keepBoss)) return { list: [], why: 'His Kin will never sit in a cage' };
+    if (wildE && (wildE.kinmaster || wildE.keepBoss || wildE.citadelFirst)) return { list: [], why: 'His Kin will never sit in a cage' };
     if (wildE && wildE.aquatic && !wildE.isApex) return { list: [], why: 'Water Kin slip any cage. Fish them with a rod.' };
     if (wildE && wildE.high) { const air = p.gliding || p.mountMode === 'air'; if (!air) return { list: [], why: 'Only from the air' }; return { list: p.has('snare_sky') ? ['snare_sky'] : [], why: 'Needs a Flight Snare' }; }
     return { list: ['snare2', 'snare'].filter(s => p.has(s)), why: 'No snares' };
@@ -5965,7 +5965,8 @@ const QUESTS = [
   { id: 'rex', title: 'The Tyrant', desc: 'In the clearing at the middle of the Lost World stands Tyrannorex, level 170. Beating it is not enough: it limps off and comes back in about ten days. Cage it. Your snare strength is twice your trainer level, and nothing above twice that will stay caged: you need trainer level 43 to have any chance, and more like 70 for real odds.', hint: 'Cage Tyrannorex in the Lost World', check: G => (G.stats.apex || {}).rex === true ? 1 : 0, reward: { xp: 5000 } },
   { id: 'holds', title: 'The Twelve Holds', desc: 'The Kinmaster bound his warriors with a crystal and broke it into twelve shards, one in each of his Holds: eleven under grey skies out across Earth, one on the lava in the Core. Take every hold: fight his warriors on foot, then beat the warlord\'s Kin. Each one gives you a shard.', hint: 'Take the Holds (☠ on the map)', check: G => (G.stats.crystal || 0) / Math.max(1, Keeps.sites().length), reward: { xp: 3000 } },
   { id: 'citadel', title: 'The Black Citadel', desc: 'The whole crystal knows where he is. Sable at Thornhold will read it for you. Then the Citadel: glide the chasm, burn the thorns, wake the dead gate, swim the flooded hall, break the rubble, shoot the three targets, and end him.', hint: 'End the Kinmaster in the Black Citadel', check: G => G.stats.lightReturned ? 1 : 0, reward: { xp: 6000 } },
-  { id: 'ship', title: 'The Nightwing', desc: 'In the Citadel\'s throne room, under black sails, his ship: built round the heart he tore out of the Core\'s Starmetal. It is yours now, and a Space Suit with it.', hint: 'Claim the Nightwing', check: G => G.player.has('ship') ? 1 : 0, reward: { xp: 200 } },
+  { id: 'scientist', title: 'The Prisoner', desc: 'Someone was knocking on glass behind the throne in the Black Citadel. Go back and let them out.', hint: 'Free the prisoner in the Citadel', check: G => (G.stats.citadel || {}).profFree ? 1 : 0, reward: { xp: 400 } },
+  { id: 'ship', title: 'The Starlark', desc: 'Professor Finch built the Kinmaster\'s ships. He kept one back: the Starlark, a prototype. He is finishing it at Garrick\'s forge at the Mining Camp. Bring him 14 iron, 4 gold, 3 diamond, 4 void crystal, 6 ember ore and 8 glass, all at once.', hint: 'Bring Professor Finch his materials (Mining Camp)', check: G => G.player.has('ship') ? 1 : 0, reward: { xp: 600 } },
   { id: 'moon', title: 'Beyond', desc: 'Wear the Space Suit the Starmetal gave you: the Moon has no air. Board the Starship on the surface (select it, tap). Hold jump to climb. Above the clouds, the world lets go of you and asks where to. Mind what you fly into.', hint: 'Fly the Starship above the clouds', check: G => (G.stats.reachedMoon || (G.stats.reached || {}).moon) ? 1 : 0, reward: { xp: 400 } },
   { id: 'halo', title: 'The Ringed World', desc: 'Fly the Starship above the clouds and choose Halo: amber dunes under a ring that fills the sky, brine that burns, stones that fall. Caravan towns to free, amber and sulfur to dig, and ring shards for wings.', hint: 'Fly to Halo', check: G => (G.stats.reached || {}).halo ? 1 : 0, reward: { xp: 600 } },
   { id: 'moonjobs', title: 'Moonfolk', desc: 'The Moon has its own people by its own fires, out on the grey between the domes. They do not trust you yet. Do three of their jobs before anyone tells you where the Selenaut sleeps.', hint: 'Do 3 jobs for people on the Moon', check: G => ((G.stats.jobsBy || {}).moon || 0) / 3, reward: { xp: 600, items: { snare2: 3 } } },
@@ -6036,8 +6037,8 @@ const Quests = (() => {
   const NOTE = {
     catch: () => 'any wild Kin near you will do', party: () => 'any wild Kin near you will do', mines: () => 'dig straight down where you stand',
     suit: () => G.player.has('lavasuit') ? 'done' : `iron ${G.player.count('iron')}/5 · void ${G.player.count('void')}/3 · ember ${G.player.count('ember')}/4`,
-    moon: () => G.player.has('ship') ? (G.player.has('spacesuit') ? 'board the Nightwing (Ship button) and climb' : 'you need the Space Suit') : 'end the Kinmaster first',
-    halo: () => G.player.has('ship') ? 'Ship, climb above the clouds, choose Halo' : 'you need the Starship', ship: () => 'it waits in the Citadel throne room',
+    moon: () => G.player.has('ship') ? (G.player.has('spacesuit') ? 'board the Nightwing (Ship button) and climb' : 'you need the Space Suit') : 'Professor Finch has to finish the Starlark first',
+    halo: () => G.player.has('ship') ? 'Ship, climb above the clouds, choose Halo' : 'you need the Starship', ship: () => 'bring Professor Finch his materials at the Mining Camp',
     lost: () => 'do jobs for the people by the fires (yellow dots on the map)', legend: () => G.worldId === 'earth' ? 'take the Starship to the Moon or Halo; the ✶ shows on your radar there' : 'the ✶ is beaten for now; try the other world',
     moonjobs: () => G.worldId === 'moon' ? 'yellow dots on the radar' : 'fly the Starship to the Moon', halojobs: () => G.worldId === 'halo' ? 'yellow dots on the radar' : 'fly the Starship to Halo',
     moonfree: () => G.worldId === 'moon' ? 'red dots on the radar are held towns' : 'fly the Starship to the Moon', wings: () => `ring shard ${G.player.count('ringshard')}/3 · amber ${G.player.count('amber')}/6 · sulfur ${G.player.count('sulfur')}/4 · cloud ${G.player.count('cloud')}/4`,
@@ -6794,6 +6795,7 @@ const Campaign = (() => {
   }
   function spawnPeople(S, p) {
     const has = (id) => people.some(n => n.id === id);
+    if (near(S.mine, p, 80) && C().st_mine && (G.stats.citadel || {}).profFree && !has('prof_camp')) { const s = S.mine; person('prof_camp', 'Professor Aldous Finch', 'professor', s.x + 6, s.z - 3, { body: '#e8e8e0', belly: '#c9a87a', accent: '#4a8ad0', eye: '#222222' }, ['scientist']); }
     if (near(S.mine, p, 80) && C().st_mine && !has('foreman')) {
       const s = S.mine;
       person('foreman', 'Foreman Garrick', 'foreman', s.x + 4, s.z + 3, { body: '#5a4a3a', belly: '#c68642' }, ['miner']);
@@ -6904,6 +6906,7 @@ const Campaign = (() => {
     }
     if (n.job === 'spellbound') return Keeps.talkWarrior(n, say);
     if (n.job === 'kinmaster_final') return Citadel.talk(n, say);
+    if (n.job === 'professor') return Citadel.talkProf(n, say);
     if (n.job === 'runesmith' && n.id === 'sable' && Keeps.finalReady() && !Citadel.open()) {
       return say(['You have it. All of it. Hold it up... there. Do you feel it pulling?', 'He bound himself to it when he bound the others. It knows where he is: not in the Core. He lied. He went to the Black Citadel, far out where nobody goes.', 'It will not be like the holds. He built that place to keep out exactly you. You will need everything: the glider, a Flame Kin, a Spark Kin, a Stone Kin, the bulb, your bow, your blade.', 'Go. End it.'], () => Citadel.begin());
     }
@@ -6967,7 +6970,7 @@ const Campaign = (() => {
   function talkable() { return people; }
   function entities() { return people.map(n => ({ x: n.x, y: n.y, z: n.z, yaw: n.yaw, model: n.model, mesh: n.mesh, scale: 1, hover: 0, skyMul: 1 })); }
   function onRogueTamed(k) { C().rogueTamed = true; C().ranch = 3; if (rogue) { Wild.remove(rogue); rogue = null; } }
-  return { kinmasterSp: () => kinmasterSpecies(), spawnPerson: (...a) => person(...a), hasPerson: (id) => people.some(n => n.id === id), init, update, talk, fisherHook, tryGate, onBoss, target, talkable, entities, locked, give, sites, mapMarks, onRogueTamed, stampPosts, get rogue() { return rogue; }, C };
+  return { removePerson: (id) => { const i = people.findIndex(n => n.id === id); if (i >= 0) people.splice(i, 1); return i; }, kinmasterSp: () => kinmasterSpecies(), spawnPerson: (...a) => person(...a), hasPerson: (id) => people.some(n => n.id === id), init, update, talk, fisherHook, tryGate, onBoss, target, talkable, entities, locked, give, sites, mapMarks, onRogueTamed, stampPosts, get rogue() { return rogue; }, C };
 })();
 
 // ---------- taming: you press Ride on an unbroken Kin and it bucks; tap when it lands its weight ----------
@@ -9233,8 +9236,7 @@ const Keeps = (() => {
     const f = document.getElementById('flash'); f.style.transition = 'opacity 2.5s'; f.style.opacity = 1; setTimeout(() => { f.style.opacity = 0; setTimeout(() => { f.style.transition = ''; }, 2600); }, 900);
     UI.sfx('quest'); G.shards += 5000; G.addTrainerXp(3000);
     if (typeof Weather !== 'undefined') { Weather.state.kind = 'clear'; Weather.state.target = 0; Weather.state.next = 900; }
-    setTimeout(() => { if (!G.player.has('ship')) { G.player.add('ship', 1); if (!G.player.has('spacesuit')) G.player.add('spacesuit', 1); G.explain('The Nightwing', 'Behind the throne, under black sails: his ship. Built round the heart he tore out of the Core\'s Starmetal, dark hull, violet light in the seams. It is yours now, and a Space Suit with it. Select the ship and tap it under open sky. The Moon is up there, and Halo past it.'); } }, 9000);
-    setTimeout(() => G.explain('The light comes back', 'The Binding Crystal shatters into light. It sweeps out from Thornhold across the whole kingdom, and every grey sky over every hold burns away. Every bound warrior is free. The Kinmaster is finished. (+5000 shards)'), 1800);
+    setTimeout(() => G.explain('The light comes back', 'With Vexmaw down, the Binding Crystal shatters into light. It sweeps out across the whole kingdom, and every grey sky over every hold burns away. Every bound warrior is free. Earth is free. He is not: he is on his way to the Moon. And somebody is knocking on glass, behind the throne. (+5000 shards)'), 1800);
   }
   // is the dark table at this spot one you have earned?
   function tableOpen(x, z) {
@@ -9315,8 +9317,10 @@ const Citadel = (() => {
     box(78, L - 1, -9, 9, 0, 4, F); for (let x = 78; x <= L - 1; x++) set(x, 5, 0, B.CORAL_R);
     box(L - 3, L - 2, -1, 1, 5, 5, B.GOLD); box(L - 1, L - 1, -1, 1, 5, 9, B.GOLD); set(L - 2, 10, 0, B.VOID);
     for (let x = 79; x <= L - 2; x += 4) for (const z of [-8, 8]) { box(x, x, z, z, 5, 13, F); set(x, 10, z + (z < 0 ? 1 : -1), B.TORCH); }
+    // a glass-fronted cell beside the throne: someone is kept here
+    box(80, 84, 5, 9, 5, 9, F); box(81, 83, 6, 8, 5, 8, B.AIR); box(81, 83, 5, 5, 5, 7, B.GLASS); set(82, 8, 7, B.MOONGLOW);
     G.meshPass(99);
-    C().stamped = true;
+    C().stamped = true; C().cell = { x: X + 82, y: y0 + 5, z: Z + 7 };
     c().throne = { x: X + L - 3, y: y0 + 6, z: Z }; c().court = { x: X + 26, y: y0 + 1, z: Z }; c().stair = { x: X + 82, y: y0 + 5, z: Z };
   }
   const c = C;
@@ -9333,6 +9337,7 @@ const Citadel = (() => {
       if (!C().wave2 && !Combat.forHold('cit2').length) spawnWave('cit2', C().stair, [['captain', 0, -4], ['captain', 0, 4], ['archer', 2, -7], ['archer', 2, 7], ['axeman', -2, 0]]);
       if (!C().wave1 && Combat.forHold('cit1').length && Combat.standingIn('cit1') === 0) { C().wave1 = true; UI.toast('The outer court is quiet. On to the dead gate.', 'good'); }
       if (!C().wave2 && Combat.forHold('cit2').length && Combat.standingIn('cit2') === 0) { C().wave2 = true; UI.toast('His captains are down. He is waiting at the throne.', 'good'); }
+      if (C().cell && !C().profFree && !Campaign.hasPerson('prof_cell')) { const cl = C().cell; const n = Campaign.spawnPerson('prof_cell', 'Professor Aldous Finch', 'professor', cl.x, cl.z, { body: '#e8e8e0', belly: '#c9a87a', accent: '#4a8ad0', eye: '#222222' }, ['scientist']); n.y = cl.y; n.yaw = Math.PI; }
       if (C().wave2 && !km && !Campaign.hasPerson('km_final')) { const t = C().throne; km = Campaign.spawnPerson('km_final', 'The Kinmaster', 'kinmaster_final', t.x - 2, t.z, { body: '#3a1a4a', belly: '#c9b48a', accent: '#b026ff', dark: '#120818', eye: '#ff3a3a' }, ['crown', 'mask']); km.y = t.y; km.yaw = -Math.PI / 2; }
     } else if (d > 200) { Combat.clearHold('cit1'); Combat.clearHold('cit2'); }
   }
@@ -9358,15 +9363,32 @@ const Citadel = (() => {
   function onBattle(e, result) {
     if (!e.citadelFirst || (result !== 'won' && result !== 'caught')) return;
     const t = C().throne; const lv = Math.max(95, Math.min(190, (G.trainerLevel || 1) + 24));
-    setTimeout(() => Dialogue.show('The Kinmaster', ['Gravemaw... no matter. VEXMAW. Everything you have.'], () => {
+    setTimeout(() => Dialogue.show('The Kinmaster', ['Gravemaw... no matter. You want to end me? Earth is yours. Have it. It was always too small.', 'VEXMAW. Hold them here. I have a whole sky to take.'], () => {
+      { const i = Campaign.removePerson('km_final'); km = null; }
+      UI.toast('He runs for the back of the hall. Engines scream: a black ship tears out through the roof and is gone, up, toward the Moon. Vexmaw stays.', 'bad'); G.shake = 1.2;
       const sp = Campaign.kinmasterSp(); const e2 = Wild.makeEntity(sp, lv, t.x - 5 + 0.5, t.y, t.z + 0.5, { senseR: 12, elite: true }); e2.finalBoss = true; Wild.list.push(e2);
       Battle.start(e2, false);
     }), 900);
   }
+  // the professor: built the Kinmaster's ships at knifepoint. Freed, he goes to Garrick's forge and finishes his own.
+  const NEEDS = { iron: 14, gold: 4, diamond: 3, void: 4, ember: 6, glass: 8 };
+  function talkProf(n, say) {
+    const c = C(), P = G.player;
+    if (n.id === 'prof_cell') {
+      if (!G.stats.lightReturned) return say(['Behind you! Never mind me. Deal with him first, and then, please, the door.']);
+      return say(['You did it. You actually did it. And he got away in the Nightwing, the ship I built him. Of course he did.', 'Aldous Finch. I made ships, once, for the observatory. He took me five years ago and I have been making them for him ever since.', 'He means to rule the Moon, and from the Moon everything above it. He will not stop there.', 'But I kept something back. A prototype, the Starlark, half finished in pieces he never knew were mine. Get me out of here and to a real forge, Garrick\'s at the Mining Camp, and I will finish it. Then you can go after him.'], () => {
+        c.profFree = true; Campaign.removePerson('prof_cell'); UI.sfx('quest'); UI.toast('Professor Finch is free. He sets off for the Mining Camp.', 'good'); G.pin = null; });
+    }
+    if (P.has('ship')) return say(['The Starlark flies sweeter than anything I built for him. Bring her back in one piece.', 'He will be on the Moon. Find out what he is doing up there.']);
+    const miss = Object.keys(NEEDS).filter(k => P.count(k) < NEEDS[k]);
+    if (!c.profMet) { c.profMet = true; return say(['Garrick has let me have the back of his forge. Look: the Starlark. Not much yet, is she?', 'She needs a proper hull and a heart that will not melt. Here is what I need:', Object.keys(NEEDS).map(k => `${NEEDS[k]} ${ITEMS[k].name}`).join(', ') + '.', 'Bring it all at once and I will have her flying by nightfall, and a Space Suit cut to your size.']); }
+    if (miss.length) return say(['Still short: ' + miss.map(k => `${ITEMS[k].name} ${P.count(k)}/${NEEDS[k]}`).join(', ') + '.']);
+    return say(['That is all of it. Stand back.', 'There. The Starlark. And a suit, because the Moon has no air and I am not burying you.'], () => { for (const k in NEEDS) P.take(k, NEEDS[k]); P.add('ship', 1); if (!P.has('spacesuit')) P.add('spacesuit', 1); c.lark = true; UI.sfx('quest'); G.explain('The Starlark', 'Professor Finch\'s prototype, finished. Select the ship and tap it under open sky to board, hold ▲ to climb. Above the clouds, the world lets go of you and asks where to. The Kinmaster went to the Moon.'); });
+  }
   function inside(p) { if (!open() || !C().stamped) return false; const s = site(); return p.x > s.x + 16 && p.x < s.x + L + 1 && Math.abs(p.z - s.z) < 13; }
   function gloom(px, pz) { if (!open() || G.stats.lightReturned) return 0; const s = site(); const d = Math.hypot(s.x + 40 - px, s.z - pz); return 1 - U.clamp((d - 100) / 160, 0, 1); }
   function mapMarks() { return open() && !G.stats.lightReturned ? [{ x: site().x + 40, z: site().z, t: '☠', name: 'The Black Citadel' }] : []; }
-  return { init, site, begin, open, update, onTarget, talk, onBattle, inside, gloom, mapMarks };
+  return { init, site, begin, open, update, onTarget, talk, talkProf, onBattle, inside, gloom, mapMarks, NEEDS, C };
 })();
 
 </script>
@@ -10198,7 +10220,7 @@ G.loop = function (t) {
   const ents = Wild.list.slice();
   if (Battle.mineEntity) ents.push(Battle.mineEntity);
   ents.push(...Village.entities());
-  if (p.flying) ents.push({ x: p.x, y: p.y - 0.85, z: p.z, yaw: p.yaw + Math.PI, model: { height: 1 }, mesh: R.entityMesh('ship', (mb) => { const c = [0.16, 0.13, 0.22], d = [0.08, 0.06, 0.12], g = [0.75, 0.3, 1.0]; mb.box(-0.8, 0, -1.3, 0.8, 0.5, 1.4, c); mb.box(-0.4, 0.5, -0.2, 0.4, 0.9, 0.7, d); mb.box(-2.2, 0.15, -0.9, -0.8, 0.25, 0.1, c); mb.box(0.8, 0.15, -0.9, 2.2, 0.25, 0.1, c); mb.box(-0.6, 0.1, -1.6, -0.2, 0.4, -1.3, g, 1, true); mb.box(0.2, 0.1, -1.6, 0.6, 0.4, -1.3, g, 1, true); mb.box(-0.15, 0.15, 1.4, 0.15, 0.35, 1.9, g, 1, true); }), scale: 1, hover: Math.sin(performance.now() / 300) * 0.05, skyMul: 1, isMount: true });
+  if (p.flying) ents.push({ x: p.x, y: p.y - 0.85, z: p.z, yaw: p.yaw + Math.PI, model: { height: 1 }, mesh: R.entityMesh('ship', (mb) => { const c = [0.75, 0.9, 0.95], d = [0.35, 0.4, 0.5], g = [0.4, 0.95, 1.0]; mb.box(-0.8, 0, -1.3, 0.8, 0.5, 1.4, c); mb.box(-0.4, 0.5, -0.2, 0.4, 0.9, 0.7, d); mb.box(-2.2, 0.15, -0.9, -0.8, 0.25, 0.1, c); mb.box(0.8, 0.15, -0.9, 2.2, 0.25, 0.1, c); mb.box(-0.6, 0.1, -1.6, -0.2, 0.4, -1.3, g, 1, true); mb.box(0.2, 0.1, -1.6, 0.6, 0.4, -1.3, g, 1, true); mb.box(-0.15, 0.15, 1.4, 0.15, 0.35, 1.9, g, 1, true); }), scale: 1, hover: Math.sin(performance.now() / 300) * 0.05, skyMul: 1, isMount: true });
   const showMe = inBattle || this.thirdPerson || this.talkK > 0 || !!p.mount || this.grassCamOn;
   if (showMe) { const me = Avatar.entity(p, Math.hypot(p.vx, p.vz) > 0.6); if (p.mount) { const mm = KIN.model(p.mount.sp, p.mount.stage); me.y = p.y - 0.75 + mm.height * 0.62; } ents.push(me); }
   if (p.mount) { const k = p.mount; const m = KIN.model(k.sp, k.stage); const fwd = U.forwardVec(p.yaw, 0); ents.push({ x: p.x + fwd[0] * 0.5, y: p.y - 0.75 + (p.inWater ? -0.2 : 0) + Math.sin(performance.now() / 160) * (Math.hypot(p.vx, p.vz) > 0.5 ? 0.06 : 0), z: p.z + fwd[2] * 0.5, yaw: p.yaw + Math.PI, model: m, mesh: R.entityMesh(KIN.meshKey(k.sp, k.stage), (mb) => KIN.buildMesh(mb, m)), scale: 1, hover: 0, skyMul: 1, isMount: true }); }
@@ -10268,7 +10290,7 @@ G.onTap = function () {
   if (ev.interact === 'starmetal') {
     if (this.worldId !== 'earth') { this.fadeTravel('earth'); return; }
     if (p.has('ship')) { UI.toast('The Heart is quiet. Your ship waits on the surface: select it and tap.'); return; }
-    if (this.stats.mythicDone) { if (!this.stats.hollowTold) { this.stats.hollowTold = true; this.explain('The hollow Starmetal', 'The pedestal is hollow. Something was torn out of the middle of it: a heart of living metal, the kind that could drive a ship between worlds. Only one person was down here before you. The Kinmaster has it, and he has built something with it.'); } else UI.toast('Hollow. He took its heart for his ship.'); return; }
+    if (this.stats.mythicDone) { if (!this.stats.hollowTold) { this.stats.hollowTold = true; this.explain('The hollow Starmetal', 'The pedestal is hollow. Something was torn out of the middle of it: a heart of living metal, the kind that could drive a ship between worlds. Only one person was down here before you. The Kinmaster has it, and he has had someone build something with it.'); } else UI.toast('Hollow. He took its heart for his ship.'); return; }
     UI.toast('Starmetal. Too heavy to lift while the Mythic sleeps on it.'); return;
   }
   if (ev.placed != null) { UI.sfx('place'); UI.renderHotbar(); }
