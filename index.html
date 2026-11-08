@@ -326,6 +326,13 @@ body.desktop #joy, body.desktop #btn-jump, body.desktop #btn-sneak { display: no
 
 .recipe .fork { margin-top: 4px; padding: 4px 6px; border-left: 3px solid #ffb040; background: rgba(255,176,64,.08); border-radius: 4px; }
 
+.roosts { display: flex; flex-wrap: wrap; gap: 6px; }
+
+.darktag { font-size: 10px; padding: 1px 5px; border-radius: 6px; background: #3a1458; color: #e0a8ff; border: 1px solid #b026ff; white-space: nowrap; }
+
+.relictag { font-size: 10px; padding: 1px 6px; border-radius: 6px; background: linear-gradient(90deg,#ffd040,#ff8a3a); color: #2a1600; font-weight: bold; }
+.recipe.relic { border: 1px solid rgba(255,208,64,.45); }
+
 </style>
 </head>
 <body>
@@ -624,7 +631,7 @@ const B = {
   AIR: 0, BEDROCK: 1, STONE: 2, DIRT: 3, GRASS: 4, SAND: 5, WATER: 6, LOG: 7, LEAVES: 8, SNOW: 9,
   COPPER: 10, IRON: 11, EMBER: 12, VOID: 13, BASALT: 14, LAVA: 15, CLOUD: 16, GLOWGRASS: 17,
   TORCH: 18, FUSION: 19, GRAVEL: 20, CACTUS: 21, STARMETAL: 22, MOSS: 23, STATUE: 24, PLANKS: 25, BERRY: 26, GLASS: 27, CAMPFIRE: 28, IRONWALL: 29, VOIDWALL: 30, GLOWWORM: 31, BERRYLEAF: 32, DOOR: 33, DOOR_OPEN: 34, PORTAL: 35,
-  CHEST: 36, SELENITE: 37, TYCHO: 38, STARSALT: 39, MOONGLOW: 40, AMBER: 41, SULFUR: 42, RINGSHARD: 43, BRINE: 44, CORAL_R: 45, CORAL_B: 46, CORAL_Y: 47, PEARLCORAL: 48, GOLD: 49, DIAMOND: 50, FERN: 51, SELGLASS: 52, INCUBATOR: 53, REGOLITH: 54, DUNE: 55, SALTCRUST: 56, LADDER: 57, TARGET: 58, BALLOON: 59, FORTSTONE: 60, THORN: 61, DEADGATE: 62, RUBBLE: 63
+  CHEST: 36, SELENITE: 37, TYCHO: 38, STARSALT: 39, MOONGLOW: 40, AMBER: 41, SULFUR: 42, RINGSHARD: 43, BRINE: 44, CORAL_R: 45, CORAL_B: 46, CORAL_Y: 47, PEARLCORAL: 48, GOLD: 49, DIAMOND: 50, FERN: 51, SELGLASS: 52, INCUBATOR: 53, REGOLITH: 54, DUNE: 55, SALTCRUST: 56, LADDER: 57, TARGET: 58, BALLOON: 59, FORTSTONE: 60, THORN: 61, DEADGATE: 62, RUBBLE: 63, DARKTABLE: 64
 };
 
 // name, top colour, side colour, solid, hardness (seconds to mine), drop item id, emissive, fluid
@@ -652,6 +659,7 @@ defBlock(B.CLOUD, 'Cloudstone', '#e9ecf6', '#d7dcea', { hard: 0.4, drop: 'cloud'
 defBlock(B.GLOWGRASS, 'Glowgrass', '#d7f5a1', '#d7dcea', { hard: 0.4, drop: 'cloud', emissive: true });
 defBlock(B.TORCH, 'Torch', '#ffd36a', '#8a6a3c', { solid: false, hard: 0.05, drop: 'torch', emissive: true, partial: true, transparent: true });
 defBlock(B.FUSION, 'Fusion Table', '#7ad7ff', '#3b3f5c', { hard: 1.0, drop: 'fusion' });
+defBlock(B.DARKTABLE, 'Dark Fusion Table', '#4a1a6a', '#1a0a26', { hard: Infinity });
 defBlock(B.GRAVEL, 'Gravel', '#7d7872', '#746f69', { hard: 0.4, drop: 'gravel' });
 defBlock(B.CACTUS, 'Cactus', '#4f9a3a', '#3f8a2f', { hard: 0.4, drop: 'frond' });
 defBlock(B.STARMETAL, 'Starmetal', '#c7fbff', '#7ee8f0', { hard: Infinity, emissive: true });
@@ -1865,7 +1873,7 @@ const R = (() => {
           if (id === B.LEAVES) c = [tint[0] * 0.9, tint[1] * 0.98, tint[2] * 0.8];
           else if (id === B.BERRYLEAF) c = f === 2 ? [tint[0] * 0.7 + 0.3, tint[1] * 0.8, tint[2] * 0.6] : [0.62, 0.22, 0.26];
           const shade = FACE_SHADE[f] * vr;
-          const emis = info.emissive && !(id === B.FUSION);
+          const emis = info.emissive && !(id === B.FUSION || id === B.DARKTABLE);
           const sk = skyAt(nx, ny, nz);
           const surf = SOIL.has(id) && ST(lx, lz) >= 0 && y <= ST(lx, lz);
           if (surf && f !== 2 && f !== 3) { // a side face exposed only by a small step: the slope covers it now
@@ -1924,6 +1932,7 @@ const R = (() => {
             }
           }
         }
+        if (id === B.DARKTABLE) { op.box(lx + 0.28, y + 1, lz + 0.28, lx + 0.72, y + 1.45, lz + 0.72, [0.7, 0.2, 1.0], 1, true); op.box(lx + 0.42, y + 1.45, lz + 0.42, lx + 0.58, y + 1.75, lz + 0.58, [1.0, 0.3, 0.35], 1, true); }
         if (id === B.FUSION) {
           // glowing crystal on top of the table
           op.box(lx + 0.3, y + 1, lz + 0.3, lx + 0.7, y + 1.35, lz + 0.7, [0.55, 0.9, 1.0], 1, true);
@@ -2179,6 +2188,9 @@ const ITEMS = {
   diamondfang: { name: 'Diamond Fang', kinGear: 'weapon', boost: { atk: 0.3, spd: 0.05 }, col: '#9ff6ff', crafted: true, desc: 'Kin weapon: Attack +30%, Speed +5%.' },
   goldcharm: { name: 'Gold Charm', kinGear: 'charm', boost: { hp: 0.1, atk: 0.1, pow: 0.1, spd: 0.1, agi: 0.1 }, col: '#ffd040', crafted: true, desc: 'Kin charm: everything +10%.' },
   pick: { name: 'Diamond Pick', col: '#9ff6ff', gear: true, desc: 'You mine twice as fast, through anything.' },
+  shovel: { name: 'Shovel', col: '#b08850', gear: true, keep: true, desc: 'From the village you freed. Digs grass, dirt, sand, gravel and snow. Without it your hands can only pick plants, berries and leaves.' },
+  hatchet: { name: 'Hatchet', col: '#a07040', gear: true, keep: true, desc: 'From the village you freed. Chops logs and planks. An iron axe from Foreman Garrick cuts twice as fast.' },
+  axe_iron: { name: 'Iron Axe', col: '#d0c8b8', gear: true, keep: true, desc: 'From Foreman Garrick, with the iron pick. Logs and planks come down twice as fast as with the hatchet.' },
   pick_stone: { name: 'Stone Pick', col: '#9a9a9a', gear: true, keep: true, desc: 'From Foreman Garrick. Stone gives way to it; copper, iron and ember ore slowly. Void, gold and diamond barely at all.' },
   pick_iron: { name: 'Iron Pick', col: '#d8d0c0', gear: true, keep: true, desc: 'From Foreman Garrick. Breaks everything on Earth, void crystal, gold and diamond included.' },
   berry: { name: 'Berries', col: '#c8334a', desc: 'Sweet and red. Tonics come from them, and bushes grow back.' },
@@ -2480,20 +2492,41 @@ class Player {
   }
   // returns event when a block breaks
   // tools: hands are fine for soil and wood, slow on stone, hopeless on ore; picks come from the miners
+  // what each tool does: hands pick plants; the shovel digs soil; the axe cuts wood; picks break stone, and only the right pick breaks the deeper ores.
+  // Stone with the first pick is slow work (about five times a shovelful of dirt); each better pick is a lot quicker.
+  toolKind(id) {
+    if ([B.LEAVES, B.BERRY, B.BERRYLEAF, B.FERN, B.GLOWWORM, B.TORCH, B.MOONGLOW, B.BALLOON, B.CACTUS, B.CORAL_R, B.CORAL_B, B.CORAL_Y, B.GLASS, B.SELGLASS, B.DOOR, B.DOOR_OPEN, B.CHEST, B.LADDER, B.TARGET, B.STATUE, B.FUSION, B.DARKTABLE].includes(id)) return 'hand';
+    if ([B.DIRT, B.GRASS, B.SAND, B.SNOW, B.GRAVEL, B.CLOUD, B.GLOWGRASS, B.REGOLITH, B.DUNE, B.SALTCRUST].includes(id)) return 'soil';
+    if ([B.LOG, B.PLANKS].includes(id)) return 'wood';
+    return 'stone';
+  }
   toolMul(id) {
     const tier = this.has('pick') ? 3 : this.has('pick_iron') ? 2 : this.has('pick_stone') ? 1 : 0;
-    const soft = [B.DIRT, B.GRASS, B.SAND, B.LOG, B.LEAVES, B.SNOW, B.GRAVEL, B.CLOUD, B.GLOWGRASS, B.TORCH, B.CACTUS, B.PLANKS, B.BERRY, B.BERRYLEAF, B.GLASS, B.GLOWWORM, B.DOOR, B.DOOR_OPEN, B.CHEST, B.LADDER, B.FERN, B.CORAL_R, B.CORAL_B, B.CORAL_Y, B.MOONGLOW, B.STATUE, B.TARGET, B.BALLOON, B.REGOLITH, B.DUNE, B.FUSION];
-    if (soft.includes(id)) return tier === 3 ? 2 * this.gearMul('pick') : 1;
-    const need = [B.VOID, B.GOLD, B.DIAMOND, B.BASALT].includes(id) ? 2 : [B.COPPER, B.IRON, B.EMBER].includes(id) ? 1 : 0; // everything else is stone-hard
-    const table = [[0.18, 0.05, 0.02], [1, 0.4, 0.12], [1.3, 1.1, 0.9], [2, 2, 2]];
+    const kind = this.toolKind(id);
+    if (kind === 'hand') return 1;
+    if (kind === 'soil') return this.has('shovel') ? (tier === 3 ? 2 * this.gearMul('pick') : 1) : tier ? 0.35 : 0; // a pick scrapes soil, slowly; bare hands cannot
+    if (kind === 'wood') return this.has('axe_iron') ? 2 : this.has('hatchet') ? 1 : 0;
+    const need = [B.VOID, B.GOLD, B.DIAMOND, B.BASALT, B.TYCHO, B.RINGSHARD, B.PEARLCORAL].includes(id) ? 2 : [B.COPPER, B.IRON, B.EMBER, B.SELENITE, B.AMBER].includes(id) ? 1 : 0;
+    const table = [[0, 0, 0], [0.5, 0.28, 0], [1.8, 1.4, 0.9], [3.6, 3, 2.5]];
     return table[tier][need] * (tier === 3 ? this.gearMul('pick') : 1);
+  }
+  toolNeed(id) { // why it will not break, in a sentence
+    const kind = this.toolKind(id);
+    if (kind === 'soil') return 'Your hands cannot dig that. Free the village by your camp and its people will give you a shovel.';
+    if (kind === 'wood') return 'You need an axe to cut wood. Free the village by your camp: they will give you a hatchet.';
+    const tier = this.has('pick') ? 3 : this.has('pick_iron') ? 2 : this.has('pick_stone') ? 1 : 0;
+    if (!tier) return 'Stone needs a pick. Foreman Garrick at the Mining Camp (⛏ on the map) has one for you.';
+    return 'Too hard for this pick. Garrick makes an iron pick for six copper and four iron.';
   }
   mineTick(dt) {
     const hit = this.raycast(5.5);
     if (!hit || BLOCKS[hit.id].hard === Infinity) { this.mineTarget = null; this.mineProgress = 0; return null; }
     const key = hit.x + ',' + hit.y + ',' + hit.z;
     if (this.mineTarget !== key) { this.mineTarget = key; this.mineProgress = 0; }
-    this.mineProgress += dt * this.mineMul * this.toolMul(hit.id) / BLOCKS[hit.id].hard;
+    const tm = this.toolMul(hit.id);
+    if (tm <= 0) { this.mineProgress = 0; this.cantMine = hit.id; return null; }
+    this.cantMine = null;
+    this.mineProgress += dt * this.mineMul * tm / BLOCKS[hit.id].hard;
     if (this.mineProgress >= 1) {
       this.mineProgress = 0; this.mineTarget = null;
       const drop = BLOCKS[hit.id].drop;
@@ -2514,6 +2547,7 @@ class Player {
     const hit = this.raycast(5.5);
     if (!hit) return null;
     if (hit.id === B.FUSION) return { interact: 'fusion', x: hit.x, y: hit.y, z: hit.z };
+    if (hit.id === B.DARKTABLE) return { interact: 'fusion', dark: true, x: hit.x, y: hit.y, z: hit.z };
     if (hit.id === B.STARMETAL) return { interact: 'starmetal' };
     if (hit.id === B.CAMPFIRE) return { interact: 'camp' };
     if (hit.id === B.PORTAL) return { interact: 'portal', x: hit.x, y: hit.y, z: hit.z };
@@ -5199,7 +5233,7 @@ const Village = (() => {
       Wild.noSpawn = { x: near.x, z: near.z, r: near.type === 'land' ? (state(near.id).expanded ? 21 : 15) : 16 };
       if (nd < 14) {
         if (!G.lastVillage || G.lastVillage.id !== near.id) G.lastVillage = { id: near.id, x: near.x, y: near.y, z: near.z, name: near.name, world: world.preset.id };
-        if (state(near.id).freed) G.respawnPoint = { x: near.x + 0.5, y: near.y, z: near.z + (near.type === 'deep' ? -4.5 : 4.5) };
+        if (state(near.id).freed) { G.respawnPoint = { x: near.x + 0.5, y: near.y, z: near.z + (near.type === 'deep' ? -4.5 : 4.5) }; if (near.type !== 'deep' && G.addRoost) G.addRoost({ id: near.id, name: near.name, x: near.x + 0.5, y: near.y, z: near.z + 4.5, world: world.preset.id }); }
       }
       if (nd < 50) ensureBoss(near, G.trainerLevel);
       ensureLieutenants(near, state(near.id), player);
@@ -5819,7 +5853,7 @@ const RECIPES = [
   { id: 'snare', out: 'snare', n: 2, needs: { wood: 2, stone: 2 } },
   { id: 'snare2', out: 'snare2', n: 2, needs: { iron: 1, void: 1 } },
   { id: 'snare_sky', out: 'snare_sky', n: 2, needs: { snare: 2, feather: 3 }, when: G => !!(typeof Campaign !== 'undefined' && Campaign.C().flightSnare) },
-  { id: 'fusion', out: 'fusion', n: 1, needs: { stone: 6, copper: 2, void: 1 } },
+  { id: 'fusion', out: 'fusion', n: 1, needs: { stone: 6, copper: 2, ember: 1 } },
   { id: 'tonic_heal', out: 'tonic_heal', n: 1, needs: { berry: 3 } },
   { id: 'tonic_revive', out: 'tonic_revive', n: 1, needs: { berry: 6, ess_Bloom: 1, ess_Light: 1 } },
   { id: 'tonic_vigor', out: 'tonic_vigor', n: 1, needs: { berry: 4, ess_Bloom: 1 } },
@@ -5883,11 +5917,11 @@ const RECIPES = [
 ];
 
 const QUESTS = [
-  { id: 'village', title: 'Free the Village', desc: 'Grakor the Tyrant holds the village by your camp and keeps its people shut in their homes. A fresh starter can take it; a second Kin makes it safe. Tap the blue camp fire to revive and heal everyone if it goes wrong.', hint: 'Free the village: beat Grakor in the square', check: G => G.stats.villageFreed ? 1 : 0, reward: { items: { snare: 1 }, xp: 40 } },
-  { id: 'timber', title: 'Timber', desc: 'Hold your finger (or left mouse) on a tree trunk to chop it. Collect 6 wood.', hint: 'Chop a tree: hold on the trunk', check: G => G.stats.got.wood / 6, reward: { items: { snare: 1 }, xp: 10 } },
-  { id: 'snare', title: 'Snare Cube', desc: 'Dig two stone blocks with your hands (slow work without a pick) and craft a Snare Cube at the Fusion Table by your camp: every bit of crafting happens at a table now.', hint: 'Craft a Snare Cube at the table (2 wood, 2 stone)', check: G => (G.stats.crafted.snare || 0) >= 1 ? 1 : 0, reward: { xp: 15 } },
+  { id: 'village', title: 'Free the Village', desc: 'Grakor the Tyrant holds the village by your camp and keeps its people shut in their homes. A fresh starter can take it; a second Kin makes it safe. Tap the blue camp fire to revive and heal everyone if it goes wrong.', hint: 'Free the village: beat Grakor in the square', check: G => G.stats.villageFreed ? 1 : 0, reward: { items: { snare: 1, shovel: 1, hatchet: 1 }, xp: 40 } },
+  { id: 'timber', title: 'Timber', desc: 'The village gave you a hatchet and a shovel. Your hands only pick plants and berries; the hatchet cuts wood. Hold your finger (or left mouse) on a tree trunk to chop it. Collect 6 wood.', hint: 'Chop a tree with the hatchet: hold on the trunk', check: G => G.stats.got.wood / 6, reward: { items: { snare: 1 }, xp: 10 } },
+  { id: 'foreman', title: 'The Mining Camp', desc: 'A Snare Cube needs stone, and stone needs a pick: no shovel will bite it. There is a mining camp out past the village: a headframe over a shaft, and a crew. Find Foreman Garrick (⛏ on the map) and ask for a pick.', hint: 'Talk to Foreman Garrick at the Mining Camp', check: G => (G.stats.camp || {}).pick ? 1 : 0, reward: { xp: 25 } },
+  { id: 'snare', title: 'Snare Cube', desc: 'Dig two stone blocks with the stone pick (slow, hard work: stone takes about five times longer than dirt) and craft a Snare Cube at a Fusion Table. There is one in the foreman\'s hut.', hint: 'Craft a Snare Cube at a table (2 wood, 2 stone)', check: G => (G.stats.crafted.snare || 0) >= 1 ? 1 : 0, reward: { xp: 15 } },
   { id: 'catch', title: 'First Kin', desc: 'Find a wild Kin. Weaken it in battle, then set a snare. Sneak up from behind for a bonus.', hint: 'Catch a wild Kin', check: G => G.stats.caught >= 1 ? 1 : 0, reward: { items: { snare: 2 }, xp: 20 } },
-  { id: 'foreman', title: 'The Mining Camp', desc: 'Nobody gets far digging with their hands. There is a mining camp out past the village: a headframe over a shaft, and a crew. Find Foreman Garrick (⛏ on the map) and ask for a pick.', hint: 'Talk to Foreman Garrick at the Mining Camp', check: G => (G.stats.camp || {}).pick ? 1 : 0, reward: { xp: 25 } },
   { id: 'ember', title: 'A Warm Glow', desc: 'It is dark down a mine. Pick a Glowworm out of the grass (fat little lights in the plains, forests and swamps, brightest at night), or dig an Ember Ore.', hint: 'Pick 1 Glowworm (glowing in the grass)', check: G => Math.min(1, (G.stats.got.glowworm || 0) + (G.stats.got.ember || 0)), reward: { xp: 15 } },
   { id: 'torch', title: 'Light the Dark', desc: 'Craft torches at a Fusion Table (1 wood + 1 glowworm, or 1 wood + 1 ember). The mining camp has a table in the foreman\'s hut.', hint: 'Craft torches', check: G => (G.stats.crafted.torch || 0) >= 1 ? 1 : 0, reward: { items: { snare: 1 }, xp: 15 } },
   { id: 'mines', title: 'Into the Mines', desc: 'Climb down the shaft at the mining camp (the ladder is on the side) to the gallery at the bottom. Ore shows in the walls: copper brown-green, iron pale, ember orange, void purple.', hint: 'Go down the shaft into the Mines', check: G => G.stats.reachedMines ? 1 : 0, reward: { xp: 30 } },
@@ -6505,8 +6539,8 @@ const Campaign = (() => {
   const onEarth = () => world.preset.id === 'earth';
 
   // ---------- gear that only people give ----------
-  const QUEST_GEAR = { pick_stone: 'pick', pick_iron: 'pick', rod: 'rod', bulb: 'bulb', glider: 'glider', frostcloak: 'frost', lavasuit: 'lava', spacesuit: 'ship', wings: 'never' };
-  function locked(item) { const k = QUEST_GEAR[item]; if (!k) return false; if (k === 'never') return true; return !C()['got_' + item]; }
+  const QUEST_GEAR = { shovel: 'village', hatchet: 'village', axe_iron: 'pick', pick_stone: 'pick', pick_iron: 'pick', rod: 'rod', bulb: 'bulb', glider: 'glider', frostcloak: 'frost', lavasuit: 'lava', spacesuit: 'ship', wings: 'never' };
+  function locked(item) { const k = QUEST_GEAR[item]; if (!k) return false; if (k === 'never') return true; return !C()['got_' + item] && !G.player.has(item); }
   function give(item, n = 1) { G.player.add(item, n); C()['got_' + item] = true; UI.sfx('caught'); UI.openPanel('reveal', { kind: 'item', item, n }); }
 
   // ---------- finding the sites, once, and remembering them ----------
@@ -6696,6 +6730,7 @@ const Campaign = (() => {
     for (let x = 63; x <= 73; x += 5) for (const z of [-5, 5]) { box(x, x, z, z, y0 + 5, y0 + 13, F); set(X0 + x, y0 + 10, Z0 + z + (z < 0 ? 1 : -1), B.TORCH); }
     box(74, 74, -1, 1, y0 + 5, y0 + 5, B.GOLD); box(75, 75, -1, 1, y0 + 5, y0 + 8, B.GOLD); set(X0 + 74, y0 + 9, Z0, B.MOONGLOW);
     s.throne = { x: X0 + 72, z: Z0 }; s.floorY = y0 + 4;
+    set(X0 + 70, y0 + 5, Z0 + 3, B.DARKTABLE); // his own table: the only one that takes dark materials
     // the canyon in front, and the broken bridge over it
     for (let x = -16; x <= -9; x++) for (let z = -40; z <= 40; z++) { const X = X0 + x, Z = Z0 + z; const gy = world.groundY(X, Z, y0 + 30); for (let y = y0 - 12; y <= Math.max(gy, y0) + 4; y++) set(X, y, Z, y <= y0 - 10 ? B.WATER : B.AIR); set(X, y0 - 13, Z, B.STONE); }
     for (const x of [-16, -9]) for (const z of [-1, 0, 1]) set(X0 + x, y0, Z0 + z, B.PLANKS);
@@ -6724,6 +6759,7 @@ const Campaign = (() => {
       if (S.snow && S.snow.lost && c.frost === 1 && near(S.snow.lost, p, 70) && !c.st_shelter) { c.st_shelter = true; stampShelter(S.snow); G.meshPass(99); }
       if (S.peak && near(S.peak, p, 110) && !c.st_peak) { c.st_peak = true; stampPeak(S.peak); G.meshPass(99); }
       if (S.fort && near(S.fort, p, 120) && !c.st_fort) { c.st_fort = true; stampFort(S.fort); G.meshPass(99); }
+      if (S.fort && c.st_fort && S.fort.throne && near(S.fort, p, 110)) { const t = S.fort.throne, x = t.x - 2, y = S.fort.floorY + 1, z = t.z + 3; if (world.chunks.get(Math.floor(x / CH) + ',' + Math.floor(z / CH)) && world.getBlock(x, y, z) !== B.DARKTABLE) { world.setBlock(x, y, z, B.DARKTABLE); G.meshPass(99); } } // forts stamped before the table existed
       if (S.zoo && near(S.zoo, p, 90) && !c.st_zoo) { c.st_zoo = true; stampZoo(S.zoo); G.meshPass(99); }
       if (S.halfA && near(S.halfA, p, 80) && !c.st_halfA) { c.st_halfA = true; stampTent(S.halfA); G.meshPass(99); }
       if (S.halfB && near(S.halfB, p, 80) && !c.st_halfB) { c.st_halfB = true; stampTent(S.halfB); G.meshPass(99); }
@@ -6753,6 +6789,7 @@ const Campaign = (() => {
     if (S.fort && C().st_fort && near(S.fort, p, 130)) {
       const f = S.fort;
       if (!has('silas')) person('silas', 'Silas Pennywise', 'merchant', f.merchant.x, f.merchant.z, { body: '#2a2a3a', belly: '#d8a060', accent: '#e0b84a' }, ['hat', 'star']);
+      if (C().kinmaster && !has('turncoat') && f.throne) { const n = person('turncoat', 'Vesper the Turncoat', 'turncoat', f.throne.x - 5, f.throne.z - 3, { body: '#1e1a2a', belly: '#c9b48a', accent: '#7a2aa8', dark: '#0a0812', eye: '#b0f0ff' }, ['mask']); n.y = f.floorY + 1; }
       if (!C().kinmaster && !has('kinmaster') && f.throne) { const n = person('kinmaster', 'The Kinmaster', 'kinmaster', f.throne.x, f.throne.z, { body: '#3a1a4a', belly: '#c9b48a', accent: '#b026ff', dark: '#120818', eye: '#ff3a3a' }, ['crown', 'mask']); n.y = f.floorY + 1; }
     }
     if (S.halfA && near(S.halfA, p, 70) && C().st_halfA && !has('jo')) person('jo', 'Trapper Jo', 'halfA', S.halfA.x + 2, S.halfA.z + 1, { body: '#5a4a2a', belly: '#c68642' }, ['hat']);
@@ -6802,22 +6839,23 @@ const Campaign = (() => {
   // ---------- talking ----------
   function talk(n) {
     G.talkNpc = n; const c = C(); const P = G.player; const say = (lines, then) => Dialogue.show(n.name, lines, then);
+    const relic = (seller) => () => { if (!(seller === 'turncoat' || Relics.forSeller(seller).some(r => r.need(G, c)))) return; const no = Relics.gate(seller); if (no) { setTimeout(() => Dialogue.show(n.name, [no]), 50); return; } UI.openPanel('relics', { seller, who: n.name }); };
     if (n.job === 'foreman') {
       if (!c.pick) return say(['Another one who wants to dig with their fingernails. I can see it on you.', 'Here. A stone pick. Stone gives way to it, copper and iron will, slowly. Do not lose it.', 'Go down the shaft. Ladder\'s on the side. The gallery at the bottom has ore in every wall.'], () => { c.pick = 1; give('pick_stone'); });
-      if (c.pick === 1) { const ok = P.count('copper') >= 6 && P.count('iron') >= 4; if (!ok) return say(['Bring me six copper and four iron and I will make you a proper pick.', `You have ${P.count('copper')} copper and ${P.count('iron')} iron.`]); return say(['That is good ore. Give me a minute.', 'An iron pick. Void crystal, gold, diamond: all of it is yours to break now.'], () => { P.take('copper', 6); P.take('iron', 4); c.pick = 2; give('pick_iron'); }); }
+      if (c.pick === 1) { const ok = P.count('copper') >= 6 && P.count('iron') >= 4; if (!ok) return say(['Bring me six copper and four iron and I will make you a proper pick.', `You have ${P.count('copper')} copper and ${P.count('iron')} iron.`]); return say(['That is good ore. Give me a minute.', 'An iron pick. Void crystal, gold, diamond: all of it is yours to break now. And take this axe, it is wasted on me.'], () => { P.take('copper', 6); P.take('iron', 4); c.pick = 2; give('pick_iron'); G.player.add('axe_iron', 1); C().got_axe_iron = true; setTimeout(() => UI.toast('Garrick throws in an iron axe too: wood comes down twice as fast.', 'good'), 1500); }); }
       if (c.lava !== 2 && G.stats.reachedMines && (G.questState && Quests.current() && Quests.current().id === 'lavasuit' || c.lava === 1)) {
         if (!c.lava) return say(['You want to go under the basalt? Into the Core?', 'Then you want a Lava Suit, and I am the only one who knows how. Five iron, three void crystal, four ember ore. Bring them.'], () => { c.lava = 1; });
         const ok = P.count('iron') >= 5 && P.count('void') >= 3 && P.count('ember') >= 4; if (!ok) return say(['Five iron, three void, four ember.', `You have ${P.count('iron')}, ${P.count('void')} and ${P.count('ember')}.`]);
         return say(['Stand still. This is going to be hot.', 'There. It will hold in lava, for a while. Come back alive.'], () => { P.take('iron', 5); P.take('void', 3); P.take('ember', 4); c.lava = 2; give('lavasuit'); });
       }
-      return say(['Mind the shaft.', c.pick >= 2 ? 'Gold and diamond deeper down. Bring me something shiny one day.' : '']);
+      return say(['Mind the shaft.', c.pick >= 2 ? 'Gold and diamond deeper down. And if you ever get rich, I have something of my father\'s I might part with.' : ''], relic('foreman'));
     }
     if (n.job === 'miner') return say([['Tunnels go on forever down there. Take torches.', 'Copper is the green-flecked stone. Iron is the pale one.', 'Void crystal glows purple, way down. Garrick will want to see it.', 'If the ladder creaks, keep climbing.'][Math.floor(Math.random() * 4)]]);
     if (n.job === 'diver') {
       if (!c.bulb) { const ok = P.count('glass') >= 2 && P.count('iron') >= 2 && P.count('frond') >= 4; if (!c.diverMet) return say(['Nobody goes under without a bulb. Not even on the back of a fish: they come up, you do not.', 'Bring me two glass, two iron and four fronds and I will blow you a Breathing Bulb.'], () => { c.diverMet = true; }); if (!ok) return say(['Two glass, two iron, four fronds.', `You have ${P.count('glass')}, ${P.count('iron')} and ${P.count('frond')}.`]); return say(['Hold still while it seals.', 'A Breathing Bulb: two minutes under, and more with practice. Now, a favour.', 'My chest went over the side years ago, out past the end of the pier where it gets deep. Fetch what is in it. Keep half.'], () => { P.take('glass', 2); P.take('iron', 2); P.take('frond', 4); c.bulb = 1; c.bulbStep = 1; give('bulb'); }); }
       if (c.bulbStep === 1) return say(['Out past the pier, on the bottom. Look for the coral.']);
       if (c.bulbStep === 2) return say(['My mother\'s pearls. You kept your word.', 'Keep the gold. And the bulb is yours for good.'], () => { c.bulbStep = 3; c.bulbDone = true; G.shards += 80; UI.toast('+80 Shards.', 'good'); });
-      return say(['The sea is bigger than the land. Remember that.']);
+      return say(['The sea is bigger than the land. Remember that.', c.bulbDone ? 'And I keep one thing from down there I have never shown anyone. It is not cheap.' : ''], relic('diver'));
     }
     if (n.job === 'rancher') {
       if (!c.ranch) return say(['Ride? You? Nobody rides a Kin they have not been thrown off first.', 'I will teach you. But I need a paddock first, for the wild one they are bringing in. Build me a fence where my posts are: two high, a gap for a gate.'], () => { c.ranch = 1; });
@@ -6838,8 +6876,12 @@ const Campaign = (() => {
       return say(['Thank you.']);
     }
     if (n.job === 'merchant') {
-      if (c.bridgeFixed) return say(['A pleasure doing business. Mind the step.']);
+      if (c.bridgeFixed) return say(['A pleasure doing business. Mind the step.', 'Oh, and for a customer of means, I keep a certain crown under the counter.'], relic('merchant'));
       return say(['Silas Pennywise, purveyor of solutions. Your problem, I see, is a canyon.', 'The bridge is out. Terrible shame. I could have it mended for, oh, 300 Shards. Or you could find your own way across, if you are the climbing sort.', G.shards >= 300 ? 'Shall we? (it takes your Shards)' : `You have ${G.shards}. Come back richer.`], () => { if (G.shards >= 300 && !c.bridgeFixed) { G.shards -= 300; c.bridgeFixed = true; fixBridge(sites().fort); G.meshPass(99); UI.sfx('caught'); UI.toast('The bridge is mended. Silas counts your Shards twice.', 'good'); } });
+    }
+    if (n.job === 'turncoat') {
+      if (!c.turncoatMet) return say(['Wait. Do not call the guards, there are none left. I am not one of his.', 'Vesper. Eleven years in his service, and every one of them spent passing word to the villages when I could. Who do you think left the gate on the canyon side unbarred?', 'He ran for the Core with what he could carry. He could not carry the vault. I have been emptying it.', 'There are pieces in here no forge on Earth could make. Armour for a Kin, cut from the dark itself. I will not give them away: I need the shards to get out of this country alive.', 'But I will sell them to you. Only to you. Free enough villages that I know you mean it, and bring a fortune.'], () => { c.turncoatMet = true; relic('turncoat')(); });
+      return say(['Still here. Still selling. Nobody else is buying.'], relic('turncoat'));
     }
     if (n.job === 'kinmaster') {
       if (c.kinmaster) return;
@@ -6847,7 +6889,7 @@ const Campaign = (() => {
       return say(['So you are the one freeing my villages. Grakor wrote to me about you, before you sent him packing.', 'Every tyrant was mine. Every square, every wall. And under all of it, in the Core, something older than both of us is waking. I mean to be the one it obeys.', 'You came all this way through my little puzzles. Let us see if your Kin are as clever as you.'], () => { if (bossRef && Wild.list.includes(bossRef)) { Battle.start(bossRef, false); return; } const sp = kinmasterSpecies(); const e = Wild.makeEntity(sp, Math.max(45, Math.min(70, G.trainerLevel + 12)), f.throne.x - 3 + 0.5, f.floorY + 1, f.throne.z + 0.5, { senseR: 12, elite: true }); e.kinmaster = true; bossRef = e; Wild.list.push(e); Battle.start(e, false); });
     }
     if (n.job === 'keeper') {
-      if (G.stats.lostMap) return say(['You found it? The country they come from? Bring me back something with teeth.']);
+      if (G.stats.lostMap) return say([(G.stats.apex || {}).rex === true ? 'You caught it. The Tyrannorex. I took a tooth when it shed one in the cage, set it in amber. It is the only one there will ever be, and it is for sale, to you, at a price that will make you sit down.' : 'You found it? The country they come from? Bring me back something with teeth.'], relic('keeper'));
       if (!c.zoo) return say(['Welcome to Quill\'s Menagerie! Yes, that is a dinosaur. A real one. A Kin that should not exist.', 'I found it half-starved out past the far hills, wandering the trapper country. It came from somewhere. Nobody believes me.', 'Two people live out that way: Trapper Jo and Old Sela. If anyone knows where it came from, they do. Ask them.'], () => { c.zoo = 1; c.zooHeard = true; });
       return say(['Trapper Jo and Old Sela, out in the trapper country. Follow your compass.']);
     }
@@ -6862,7 +6904,7 @@ const Campaign = (() => {
       if (!c.glider) return say(['Up there, on the peak, a sky Kin keeps her nest on a pillar of rock. One egg every spring. Nobody has climbed the pillar: you cannot. You fall to it.', 'Take my glider. Climb the peak, jump, hold ▲ to glide, and come down on that pillar top. Walk the egg home and it will hatch into something that flies.', 'Listen, because the pillar is small. Read the wind first: the little compass shows where it blows. Start upwind of the pillar and let it carry you in.', 'The stick: sideways to turn, forward to dive and gather speed, back to brake. Hold back too long and she stalls and drops like a stone.', 'Coming down, keep your speed until the last moment, then pull back. That is the flare: the speed turns into lift and you touch down like a leaf. Let go of ▲ only when your feet are almost on it.', 'And no ladders, no digging. She knows.'], () => { c.glider = 1; give('glider'); });
       if (c.glider === 1) return say(['The pillar, from the peak. Start upwind, the compass shows it. Forward to dive, back to brake, and pull back just before you touch. Let go of ▲ only when you are almost down.']);
       if (!c.flightSnare) return say(['You brought it down whole. Good hands.', 'Now look up. Those birds wheeling high over the hills: they never land. They drop stones on walkers and laugh about it. A cage on the ground is no use to them.', 'This is a Flight Snare: a light cage on a long cord. It only works thrown from the air. Get above one on the glider, or on the back of a flier, pass close and tap it.', 'I will show you how to tie them. Two Snare Cubes and three Sky Feathers each pair. Feathers come down when you hit one of those birds with an arrow, or beat one. Here are three snares and some feathers to start.'], () => { c.flightSnare = true; give('snare_sky', 3); G.player.add('feather', 6); UI.toast('Flight Snare recipe learned. Throw them from the air only.', 'good'); });
-      return say(['Walk the egg until it hatches. Then it will carry you, below the clouds at least. Higher than that is for ships.', 'And the high birds: from the air, with the Flight Snare. Feathers from arrows.']);
+      return say(['Walk the egg until it hatches. Then it will carry you, below the clouds at least. Higher than that is for ships.', 'And the high birds: from the air, with the Flight Snare. Feathers from arrows.', 'One more thing. I have a talon from the old queen of the high birds. I would sell it, to the right person, for the right sum.'], relic('hermit'));
     }
   }
   // the fisherman, from Village: the rod first, then the water egg after your first fish
@@ -7984,6 +8026,7 @@ const UI = (() => {
     else if (name === 'quest') renderQuests();
     else if (name === 'menu') renderMenu();
     else if (name === 'fusion') renderFusion(data);
+    else if (name === 'relics') renderRelics(data);
     else if (name === 'detail') renderDetail(data);
     else if (name === 'shop') renderShop(data);
     else if (name === 'bag') renderBag();
@@ -8138,6 +8181,12 @@ const UI = (() => {
     for (let i = 0; i < 5; i++) { const k = keys[i]; slots.push(k ? `<span class="chip" data-unsec="${k}" style="background:${ITEMS[k].col}">${ITEMS[k].name} ×${Math.min(p.count(k), G.secure[k])} ✕</span>` : `<span class="chip empty" data-sec="${i}">+ secure</span>`); }
     return `<h4>Secure slots</h4><p class="note">If the wild beats you, your bag is lost except gear, rods and these five slots (up to 10 of an item each). Kin and Shards are always safe.</p><div class="ingr">${slots.join('')}</div>`;
   }
+  function renderRelics(d) {
+    setTitle(d.who || 'Relics');
+    const intro = { turncoat: 'From the Kinmaster\'s vault. One of each, and nobody else will ever sell them.', foreman: 'Garrick unwraps an oilcloth on the table.', hermit: 'Wren takes a long box down from the rafters.', diver: 'Marisol opens a sea chest that smells of salt and something older.', merchant: 'Silas lifts a velvet cloth with a showman\'s flourish.', keeper: 'Barnaby unlocks a cabinet behind the ticket booth.' }[d.seller] || '';
+    el['panel-body'].innerHTML = `<p class="note">${intro} Relics are Kin gear far beyond anything a table makes. Put one on from a Kin's page. You have ◆ ${G.shards.toLocaleString()}.</p>` + Relics.html(d.seller);
+    el['panel-body'].querySelectorAll('[data-relic]').forEach(b => b.addEventListener('click', () => { Relics.buy(b.dataset.relic); }));
+  }
   function renderCraft() {
     setTitle('Craft');
     const p = G.player;
@@ -8152,8 +8201,9 @@ const UI = (() => {
     const catOf = (r) => r.cat || (r.out.startsWith('tonic_') ? 'tonics' : ITEMS[r.out].block ? 'blocks' : 'gear');
     el['panel-body'].innerHTML = secureHtml() + `<p class="note">No table needed for these. Ingredients come from mining, leaves, berries and essences. Kits raise a whole building where you tap; Kin gear is put on from a Kin's page.</p>` + CATS.map(([c, title]) => `<h4>${title}</h4>` + RECIPES.filter(r => catOf(r) === c && !(r.when && !r.when(G))).map(r => {
       const owned = ITEMS[r.out].gear && p.has(r.out);
-      const can = !owned && Object.keys(r.needs).every(k => p.count(k) >= r.needs[k]);
-      return `<div class="recipe ${can ? 'can' : ''}"><div class="ico big" style="background:${ITEMS[r.out].col}"></div><div class="rinfo"><b>${ITEMS[r.out].name}${r.n > 1 ? ' ×' + r.n : ''}</b><div class="small">${ITEMS[r.out].desc}${p.gearPower[r.out] ? ' Marked by ' + p.gearPower[r.out].mark + ': +' + Math.round((p.gearPower[r.out].power - 1) * 100) + '%.' : ''}</div><div class="needs">${Object.keys(r.needs).map(k => `<span class="${p.count(k) >= r.needs[k] ? 'ok' : 'no'}">${ITEMS[k].name} ${p.count(k)}/${r.needs[k]}</span>`).join('')}</div></div><button class="btn" data-r="${r.id}" ${can ? '' : 'disabled'}>${owned ? 'Owned' : 'Craft'}</button></div>`;
+      const darkOff = G.darkRecipe(r) && !G.nearDarkTable();
+      const can = !owned && !darkOff && Object.keys(r.needs).every(k => p.count(k) >= r.needs[k]);
+      return `<div class="recipe ${can ? 'can' : ''}"><div class="ico big" style="background:${ITEMS[r.out].col}"></div><div class="rinfo"><b>${ITEMS[r.out].name}${r.n > 1 ? ' ×' + r.n : ''}</b>${G.darkRecipe(r) ? ' <span class="darktag">Dark Table</span>' : ''}<div class="small">${ITEMS[r.out].desc}${p.gearPower[r.out] ? ' Marked by ' + p.gearPower[r.out].mark + ': +' + Math.round((p.gearPower[r.out].power - 1) * 100) + '%.' : ''}</div><div class="needs">${Object.keys(r.needs).map(k => `<span class="${p.count(k) >= r.needs[k] ? 'ok' : 'no'}">${ITEMS[k].name} ${p.count(k)}/${r.needs[k]}</span>`).join('')}</div></div><button class="btn" data-r="${r.id}" ${can ? '' : 'disabled'}>${owned ? 'Owned' : 'Craft'}</button></div>`;
     }).join('')).join('');
     el['panel-body'].querySelectorAll('button[data-r]').forEach(b => b.addEventListener('click', () => { if (!G.craft(b.dataset.r)) renderCraft(); }));
     el['panel-body'].querySelectorAll('[data-sec]').forEach(c => c.addEventListener('click', () => { if (Object.keys(G.secure).length >= 5) return; securePicking = true; renderCraft(); }));
@@ -8312,6 +8362,9 @@ const UI = (() => {
   function renderMap() {
     setTitle('Map');
     el['panel-body'].innerHTML = `<div class="maphead"><button class="btn ghost" id="map-out">−</button><span class="small">${Math.round(BIG.bpp * BIG.size)} blocks across · north up · you are the arrow</span><button class="btn ghost" id="map-in">+</button></div><canvas id="bigmap" width="480" height="480"></canvas><p class="small">Drag the map to look around; tap it to drop a pin, and the compass and the hint line guide you to it. <button class="btn ghost" id="map-centre">Back to me</button> ${G.pin ? '<button class="btn ghost" id="pin-clear">Clear pin</button>' : ''}</p><p class="small"><span style="color:#5ad66a">●</span> village you hold · <span style="color:#ff4040">●</span> held by a tyrant · <span style="color:#d9b36a">●</span> hermit · <span style="color:#ffd040">●</span> someone with a job · <span style="color:#5b9fd0">●</span> Brannock · <span style="color:#ff6a3a">△</span> Painted camp · ⚗ lab · ⌖ den · ✶ legendary · ▲ landing pad · ✦ camp fire · ★ quest · ⚑ fisherman's target · <span style="color:#ff6060">●</span> tyrant and guards · <span style="color:#ffb0a0">●</span> wild Kin</p>`;
+    { const rs = (G.stats.roosts || []).filter(r => (r.world || 'earth') === G.worldId); if (rs.length) { const here = G.roostHere();
+      el['panel-body'].insertAdjacentHTML('beforeend', `<h4>Roosts</h4><p class="small">${here ? `You are at ${here.name}. The Skyhauler flies you to any village you hold and have stood in.` : 'Stand in a village you hold to fly from its roost.'}</p><div class="roosts">${rs.map(r => { const me = here && here.id === r.id; const c = G.roostCost(r); return `<button class="btn ${me ? 'ghost' : ''}" data-roost="${r.id}" ${!here || me || G.shards < c ? 'disabled' : ''}>${r.name}${me ? ' (here)' : ` · ◆ ${c}`}</button>`; }).join('')}</div>`);
+      el['panel-body'].querySelectorAll('[data-roost]').forEach(b => b.addEventListener('click', () => G.flyTo(b.dataset.roost))); } }
     BIG.cv = document.getElementById('bigmap'); BIG.ctx = BIG.cv.getContext('2d'); BIG.dirty = true; BIG.ox = 0; BIG.oz = 0;
     drawMap(BIG, G.player, true);
     // drag to scroll, tap to pin
@@ -8494,7 +8547,7 @@ const UI = (() => {
       else resultHtml = `<p class="small">${pv.msg}</p>`;
     }
     const recHtml = (() => { const body = G.worldId; const all = KIN.recipes(body); const known = ((G.stats.recipes || {})[body] || []); const have = (sp) => G.kin.some(k => k.sp.seed === sp.seed); const fk = (rc) => rc.alt && ((G.stats.forks || {})[rc.body + ':' + rc.i]); const ok = (rc) => rc.parts.every(have) && (G.player.has('stone_' + rc.stone) || (rc.alt && G.player.has('stone_' + rc.alt.stone)));
-      const stoneTxt = (rc) => { const st = (e) => `${e} Stone${G.player.has('stone_' + e) ? ' ✓' : ''}`; if (!rc.alt) return ' + ' + st(rc.stone); const c = fk(rc); if (c) return ' + ' + st(c === 'alt' ? rc.alt.stone : rc.stone) + ' <i class="small">(your path)</i>'; return `<div class="fork">⑂ ${st(rc.stone)} → <b>${rc.out.names[0]}</b> &nbsp;or&nbsp; ${st(rc.alt.stone)} → <b>${rc.alt.out.names[0]}</b><br><span class="small">A fork: the first stone you use decides it, for good.</span></div>`; };
+      const stoneTxt = (rc) => { const st = (e) => `${e} Stone${G.player.has('stone_' + e) ? ' ✓' : ''}${e === 'Void' ? ' <span class="darktag">Dark Table</span>' : ''}`; if (!rc.alt) return ' + ' + st(rc.stone); const c = fk(rc); if (c) return ' + ' + st(c === 'alt' ? rc.alt.stone : rc.stone) + ' <i class="small">(your path)</i>'; return `<div class="fork">⑂ ${st(rc.stone)} → <b>${rc.out.names[0]}</b> &nbsp;or&nbsp; ${st(rc.alt.stone)} → <b>${rc.alt.out.names[0]}</b><br><span class="small">A fork: the first stone you use decides it, for good.</span></div>`; };
       const outName = (rc) => { const c = fk(rc); return c === 'alt' ? rc.alt.out.names[0] + ' <span class="small">#' + rc.alt.out.dex + '</span>' : rc.out.names[0] + ' <span class="small">#' + rc.out.dex + '</span>' + (rc.alt && !c ? ' <span class="small">or ' + rc.alt.out.names[0] + '</span>' : ''); };
       return `<h4>Fusion recipes on ${G.world.preset.name} (${known.length} of ${all.length} known)</h4>` + all.filter(rc => known.includes(rc.i)).map(rc => `<div class="recipe ${ok(rc) ? 'can' : ''}"><div class="rinfo"><b>${outName(rc)}</b><div class="needs">${rc.parts.map(sp => `${sp.names[0]}${have(sp) ? ' ✓' : ''} <span style="opacity:.6">(${sp.home ? (sp.home.layer === 'Surface' ? sp.home.biome : sp.home.layer) : 'fusion #' + sp.dex})</span>`).join(' + ')}${stoneTxt(rc)}</div></div></div>`).join('') + (known.length < all.length ? '<p class="note">Quest people teach the rest, one at a time, when you finish their jobs.</p>' : ''); })();
     body.innerHTML = foundingHtml(fs) + `<p class="note">Tap a slot to fill it. A fusion is a recipe: the Kin it names (two, or three or four for the great ones) and the right element stone (stones are crafted from 3 essences and an iron). Items alone craft gear, and essences with berries make tonics.</p>
@@ -8641,6 +8694,71 @@ const UI = (() => {
 </script>
 <script>
 'use strict';
+// Relics: Kin gear far beyond anything a forge makes. One of each in the world, each sold by one person in one place, each priced for
+// someone who has freed a lot of villages and saved for it. The seller only brings it out once you have earned the right to ask.
+const Relics = (() => {
+  let G = null;
+  const LIST = [
+    { id: 'relic_core', lvl: 25, seller: 'foreman', name: 'Deepcore Band', slot: 'charm', boost: { hp: 0.2, atk: 0.15, pow: 0.2 }, price: 9000, col: '#ff8a3a',
+      lore: 'Garrick\'s father pulled the stone out of the deepest seam the camp ever dug. It is still warm.', need: (G, c) => (c.pick || 0) >= 2, needTxt: 'Get the iron pick from Garrick' },
+    { id: 'relic_talon', lvl: 35, seller: 'hermit', name: 'Stormcrest Talon', slot: 'weapon', boost: { atk: 0.35, spd: 0.3 }, price: 12000, col: '#9fd8ff',
+      lore: 'Shed by the old queen of the high birds, the year the peak lost its snow. Wren never sold it to anyone.', need: (G, c) => !!c.flightSnare, needTxt: 'Bring Old Wren the sky egg' },
+    { id: 'relic_scale', lvl: 40, seller: 'diver', name: 'Abyssal Scale', slot: 'armor', boost: { hp: 0.4, agi: 0.25 }, price: 15000, col: '#2fb8c8',
+      lore: 'A single scale off something that swims under the deep villages. Marisol will not say what.', need: (G, c) => !!c.bulbDone, needTxt: 'Bring Marisol her mother\'s pearls' },
+    { id: 'relic_fang', lvl: 55, seller: 'turncoat', name: 'Umbral Fang', slot: 'weapon', boost: { atk: 0.45, pow: 0.2 }, price: 20000, col: '#7a2aa8',
+      lore: 'Cut from the Kinmaster\'s own vault, the night before he ran for the Core.', need: (G) => freedEver(G) >= 6, needTxt: 'Free 6 villages', needN: 6 },
+    { id: 'relic_plate', lvl: 65, seller: 'turncoat', name: 'Nightfall Plate', slot: 'armor', boost: { hp: 0.55, pow: 0.25, spd: 0.1 }, price: 25000, col: '#3a1458',
+      lore: 'The armour his own Vexmaw wore. Black as the inside of a mine, and it drinks the light around it.', need: (G) => freedEver(G) >= 8, needTxt: 'Free 8 villages', needN: 8 },
+    { id: 'relic_crown', lvl: 70, seller: 'merchant', name: 'Sovereign\'s Crown', slot: 'charm', boost: { hp: 0.25, atk: 0.25, pow: 0.25, spd: 0.25, agi: 0.25 }, price: 30000, col: '#ffd040',
+      lore: 'Silas swears it belonged to the last king of the hills. Silas swears a great many things. This one is real.', need: (G, c) => !!c.bridgeFixed && freedEver(G) >= 5, needTxt: 'Pay for the bridge and free 5 villages' },
+    { id: 'relic_jaw', lvl: 90, seller: 'keeper', name: 'Tyrant\'s Jaw', slot: 'weapon', boost: { atk: 0.7, pow: 0.15, hp: 0.1 }, price: 60000, col: '#d8c8a0',
+      lore: 'One tooth from the Tyrannorex itself, set in Lost World amber. There is no second one. There never will be.', need: (G) => (G.stats.apex || {}).rex === true, needTxt: 'Catch the Tyrannorex' },
+  ];
+  function freedEver(G) { return Object.keys(G.villageState || {}).filter(id => { const s = G.villageState[id]; return s && (s.freed || s.freedDay != null); }).length; }
+  function init(game) {
+    G = game;
+    for (const r of LIST) {
+      const parts = Object.keys(r.boost).map(k => `${{ hp: 'Health', atk: 'Attack', pow: 'Power', spd: 'Speed', agi: 'Agility' }[k]} +${Math.round(r.boost[k] * 100)}%`).join(', ');
+      ITEMS[r.id] = { name: r.name, kinGear: r.slot, boost: r.boost, col: r.col, relic: true, desc: `Relic, Kin ${r.slot === 'armor' ? 'armour' : r.slot}: ${parts}. ${r.lore}` };
+    }
+  }
+  const owned = (r) => !!(G.stats.relics || {})[r.id];
+  function forSeller(seller) { return LIST.filter(r => r.seller === seller); }
+  function has(seller) { return forSeller(seller).some(r => !owned(r)); }
+  const REFUSE = {
+    foreman: (L) => `Not yet. I have something of my father's, but I am not handing it to someone who still digs like a beginner. Come back when you are trainer level ${L}.`,
+    hermit: (L) => `There is a thing I keep for the right person. You are not that person yet, young one. Level ${L}, and then we talk.`,
+    diver: (L) => `I have something from the deep. Not for you. Not yet. Come back at level ${L} and I might open the chest.`,
+    merchant: (L) => `My dear customer, the item I have in mind is for collectors of a certain standing. Trainer level ${L}, at the very least. Shards alone do not open this drawer.`,
+    keeper: (L) => `There is one more exhibit, but it is not for children. Level ${L}. Then come and see me.`,
+    turncoat: (L) => `You took his fortress. Good. But what I carry out of that vault I sell to someone who can hold it. You are still green. Trainer level ${L}, and I will show you.`,
+  };
+  // a seller with nothing you are ready for says so, and keeps the box shut
+  function gate(seller) { const open = forSeller(seller).filter(r => !owned(r)); if (!open.length) return null; const lo = Math.min(...open.map(r => r.lvl)); return (G.trainerLevel || 1) < lo ? REFUSE[seller](lo) : null; }
+  function buy(id) {
+    const r = LIST.find(x => x.id === id); if (!r || owned(r)) return;
+    if ((G.trainerLevel || 1) < r.lvl) { UI.toast(`Trainer level ${r.lvl} first.`, 'bad'); return; }
+    const c = Campaign.C(); if (!r.need(G, c)) { UI.toast(r.needTxt + ' first.', 'bad'); return; }
+    if (G.shards < r.price) { UI.toast(`${r.price.toLocaleString()} shards. You have ${G.shards.toLocaleString()}.`, 'bad'); return; }
+    G.shards -= r.price; if (!G.stats.relics) G.stats.relics = {}; G.stats.relics[r.id] = true;
+    G.player.add(r.id, 1); UI.sfx('quest'); UI.openPanel('reveal', { kind: 'item', item: r.id, n: 1 });
+  }
+  function html(seller) {
+    const c = Campaign.C();
+    return forSeller(seller).map(r => {
+      const mine = owned(r);
+      if (!mine && (G.trainerLevel || 1) < r.lvl) return `<div class="recipe relic"><div class="ico big" style="background:#222"></div><div class="rinfo"><b>Something wrapped in cloth</b> <span class="relictag">RELIC</span><div class="small">"Not for you yet. Come back when you are trainer level ${r.lvl}."</div></div><button class="btn" disabled>Lv ${r.lvl}</button></div>`;
+      const ok = r.need(G, c), afford = G.shards >= r.price;
+      const prog = r.needN ? ` (${freedEver(G)}/${r.needN})` : '';
+      return `<div class="recipe relic ${mine ? '' : ok && afford ? 'can' : ''}"><div class="ico big" style="background:${r.col}"></div><div class="rinfo"><b>${r.name}</b> <span class="relictag">RELIC</span><div class="small">${ITEMS[r.id].desc}</div><div class="needs"><span class="${afford ? 'ok' : 'no'}">◆ ${r.price.toLocaleString()}</span> <span class="${ok ? 'ok' : 'no'}">${ok ? 'You have earned the right to ask' : r.needTxt + prog}</span></div></div><button class="btn" data-relic="${r.id}" ${mine || !ok || !afford ? 'disabled' : ''}>${mine ? 'Yours' : 'Buy'}</button></div>`;
+    }).join('');
+  }
+  return { init, LIST, html, buy, has, forSeller, freedEver, gate };
+})();
+
+</script>
+<script>
+'use strict';
 // Your lead Kin walks with you, a step behind at your shoulder. Fliers keep up in the air, swimmers in the water.
 // Now and then, as you walk, it noses out something that suits its element and brings it to you.
 const Buddy = (() => {
@@ -8778,7 +8896,7 @@ G.setupWorld = function (seed, presetId) {
   this.world.findSpawn();
   Wild.init(this.world, this.mobile);
   Weather.init(this.world.seed);
-  Village.init(this); Hazards.init(this); Campaign.init(this); Npcs.init(this); Camps.init(this); Mer.init(this); Lab.init(this); Avatar.init(this); Buddy.init(this);
+  Village.init(this); Hazards.init(this); Campaign.init(this); Npcs.init(this); Camps.init(this); Mer.init(this); Lab.init(this); Avatar.init(this); Buddy.init(this); Relics.init(this);
   Quests.init(this);
 };
 G.newWorld = function (seed, starterIdx, name) {
@@ -8909,6 +9027,7 @@ G.addTrainerXp = function (n) {
 };
 G.craft = function (id) {
   const r = RECIPES.find(x => x.id === id); if (!r || (r.when && !r.when(this))) return;
+  if (this.darkRecipe(r) && !this.nearDarkTable()) { UI.toast(this.DARK_MSG, 'bad'); return; }
   const p = this.player;
   if (ITEMS[r.out].gear && p.has(r.out)) return;
   for (const k in r.needs) if (p.count(k) < r.needs[k]) return;
@@ -8938,6 +9057,7 @@ G.previewGrid = function (slots) {
     let best = null;
     for (const r of RECIPES) {
       if (r.when && !r.when(this)) continue;
+      if (this.darkRecipe(r) && !this.nearDarkTable()) continue;
       if (ITEMS[r.out].gear && this.player.has(r.out)) continue;
       let ok = true, used = 0; for (const k in r.needs) { if ((counts[k] || 0) < r.needs[k]) { ok = false; break; } used += r.needs[k]; }
       if (!ok) continue;
@@ -8962,6 +9082,7 @@ G.previewGrid = function (slots) {
   if (kins.some(k => k.sp.noFuse)) return { kind: 'none', msg: `${KIN.name(kins.find(k => k.sp.noFuse))} will not go in a table. It is what it is.` };
   if (kins.length > 4) return { kind: 'none', msg: 'No fusion takes more than four Kin.' };
   if (kins.length >= 2) {
+    if (items.some(it => this.DARK.includes(it)) && !this.nearDarkTable()) return { kind: 'none', msg: this.DARK_MSG };
     const rc = KIN.findRecipe(kins.map(k => k.sp));
     if (!rc) return { kind: 'none', msg: `These ${kins.length} do not fuse. Only certain sets do: check the recipes you know.` };
     if (!this.knowsRecipe(rc)) return { kind: 'none', msg: 'Something stirs between them, but you do not know this fusion yet. Someone out there does.' };
@@ -8998,7 +9119,12 @@ G.previewGrid = function (slots) {
 };
 // recipes you know, per planet; you start with two on Earth and quest people teach the rest
 // crafting needs a Fusion Table within a few steps
-G.nearTable = function () { const p = this.player, w = this.world; const x0 = Math.floor(p.x), y0 = Math.floor(p.y), z0 = Math.floor(p.z); for (let dx = -5; dx <= 5; dx++) for (let dz = -5; dz <= 5; dz++) for (let dy = -3; dy <= 3; dy++) if (w.getBlock(x0 + dx, y0 + dy, z0 + dz) === B.FUSION) return true; return false; };
+G.nearTable = function () { const p = this.player, w = this.world; const x0 = Math.floor(p.x), y0 = Math.floor(p.y), z0 = Math.floor(p.z); for (let dx = -5; dx <= 5; dx++) for (let dz = -5; dz <= 5; dz++) for (let dy = -3; dy <= 3; dy++) if (w.getBlock(x0 + dx, y0 + dy, z0 + dz) === B.FUSION || w.getBlock(x0 + dx, y0 + dy, z0 + dz) === B.DARKTABLE) return true; return false; };
+// the Kinmaster's own table, in the throne room at Thornhold: the only one that takes dark materials
+G.DARK = ['void', 'ess_Void', 'stone_Void'];
+G.nearDarkTable = function () { const p = this.player, w = this.world; const x0 = Math.floor(p.x), y0 = Math.floor(p.y), z0 = Math.floor(p.z); for (let dx = -5; dx <= 5; dx++) for (let dz = -5; dz <= 5; dz++) for (let dy = -3; dy <= 3; dy++) if (w.getBlock(x0 + dx, y0 + dy, z0 + dz) === B.DARKTABLE) return true; return false; };
+G.darkRecipe = function (r) { return Object.keys(r.needs).some(k => this.DARK.includes(k)) || this.DARK.includes(r.out); };
+G.DARK_MSG = 'Dark materials will not work on an ordinary table. Only the Kinmaster\'s Dark Fusion Table, in the throne room at Thornhold, takes Void.';
 // the party: eight slots, eggs take one each; anything more goes to storage, reached at any Fusion Table
 G.partyFull = function () { return this.kin.length + this.eggs.length >= this.MAX_KIN; };
 G.addKin = function (k) {
@@ -9377,6 +9503,7 @@ G.loop = function (t) {
         }
       }
       // mining / placing
+      if (input.mine && p.cantMine && (!this.cantToastT || performance.now() - this.cantToastT > 2500)) { this.cantToastT = performance.now(); UI.toast(p.toolNeed(p.cantMine), 'bad'); }
       if (input.mine) { const ev = p.mineTick(dt); if (ev) { UI.sfx('break'); if (ev.broke === B.FUSION) UI.toast('Fusion Table picked up.'); if (ev.broke === B.CHEST) this.onChestBroken(ev.x, ev.y, ev.z); if (ev.drop) { if (!this.stats.dug) this.stats.dug = {}; this.stats.dug[ev.drop] = (this.stats.dug[ev.drop] || 0) + 1; } } else if (p.mineTarget && (this.frame % 12) === 0) UI.sfx('mine'); }
       else { p.mineTarget = null; p.mineProgress = 0; }
       if (input.placePressed) this.onTap();
@@ -9499,13 +9626,13 @@ G.onTap = function () {
   const selInfo = p.selected() ? p.itemInfo(p.selected()) : null;
   if (selInfo && selInfo.bow) { this.shoot(); return; }
   if (hit && (hit.id === B.THORN || hit.id === B.DEADGATE || hit.id === B.RUBBLE) && Campaign.tryGate(hit)) return;
-  const interactable = hit && (hit.id === B.CAMPFIRE || hit.id === B.FUSION || hit.id === B.STARMETAL || hit.id === B.PORTAL || hit.id === B.DOOR || hit.id === B.DOOR_OPEN || hit.id === B.CHEST || hit.id === B.INCUBATOR);
+  const interactable = hit && (hit.id === B.CAMPFIRE || hit.id === B.FUSION || hit.id === B.DARKTABLE || hit.id === B.STARMETAL || hit.id === B.PORTAL || hit.id === B.DOOR || hit.id === B.DOOR_OPEN || hit.id === B.CHEST || hit.id === B.INCUBATOR);
   if (!interactable && selInfo && selInfo.rod) { Fishing.cast(); return; }
   if (!interactable && selInfo && selInfo.use) { this.useItem(p.selected()); return; }
   if (!interactable && selInfo && selInfo.snare) { if (this.stealthTarget()) { this.stealthSnare(); } else UI.toast('Snares work in a fight, or sneak up close behind an unaware Kin and press Set snare.'); return; }
   const ev = p.place();
   if (!ev) return;
-  if (ev.interact === 'fusion') { if (Village.tableChallenge()) return; UI.openPanel('fusion', { table: { x: ev.x, y: ev.y, z: ev.z } }); return; }
+  if (ev.interact === 'fusion') { if (!ev.dark && Village.tableChallenge()) return; if (ev.dark && !this.stats.darkTold) { this.stats.darkTold = true; this.explain('The Dark Fusion Table', 'The Kinmaster\'s own table. It is the only one that takes dark materials: Void Crystal, Void Essence and Void Stones. Every fusion that needs a Void Stone, the Void Snare, and anything else made with Void has to be made here.'); } UI.openPanel('fusion', { table: { x: ev.x, y: ev.y, z: ev.z }, dark: !!ev.dark }); return; }
   if (ev.interact === 'portal') { const r = Village.portalHere(ev.x, ev.z); if (r.err) { UI.toast(r.err, 'bad'); return; } UI.openPanel('portal', r.v); return; }
   if (ev.interact === 'chest') { UI.openPanel('chest', { x: ev.x, y: ev.y, z: ev.z }); return; }
   if (ev.interact === 'incubator') { if (!Lab.canUse()) { UI.toast('The incubator is dead until its maker is free.', 'bad'); return; } UI.openPanel('incubator'); return; }
@@ -9536,6 +9663,32 @@ G.chooseDestination = function (id) {
 G.fadeTravel = function (target) {
   const f = document.getElementById('fade'); f.style.opacity = 1; this.paused = true; Controls.setEnabled(false);
   setTimeout(() => { this.travel(target); this.paused = false; Controls.setEnabled(true); setTimeout(() => { f.style.opacity = 0; }, 300); }, 900);
+};
+// ---------- roosts: every village you hold keeps a big carrier Kin; from one, it flies you to any other you have stood in ----------
+G.addRoost = function (r) {
+  if (!this.stats.roosts) this.stats.roosts = [];
+  if (this.stats.roosts.some(x => x.id === r.id)) return;
+  this.stats.roosts.push(r);
+  if (this.stats.roosts.length === 2 && !this.stats.roostTold) { this.stats.roostTold = true; this.explain('Roosts', 'Every village you hold keeps a Skyhauler, a big carrier Kin, on a roost. Standing in one of your villages, open the Map and pick another village from the Roosts list: it flies you there for a few shards. You can only fly to villages you have already stood in.'); }
+};
+G.roostHere = function () {
+  const v = Village.active, p = this.player; if (!v || v.type === 'deep') return null;
+  const st = this.villageState[v.id]; if (!st || !st.freed || Math.hypot(v.x - p.x, v.z - p.z) > 30) return null;
+  return (this.stats.roosts || []).find(r => r.id === v.id) || null;
+};
+G.roostCost = function (r) { const p = this.player; const d = Math.hypot(U.mod(r.x - p.x + WORLD_W / 2, WORLD_W) - WORLD_W / 2, U.mod(r.z - p.z + WORLD_W / 2, WORLD_W) - WORLD_W / 2); return 4 + Math.round(d / 150); };
+G.flyTo = function (id) {
+  const r = (this.stats.roosts || []).find(x => x.id === id); const here = this.roostHere();
+  if (!r || !here || r.id === here.id || (r.world || 'earth') !== this.worldId) return;
+  const cost = this.roostCost(r); if (this.shards < cost) { UI.toast(`The Skyhauler wants ${cost} shards for that.`, 'bad'); return; }
+  this.shards -= cost; UI.closePanel();
+  const f = document.getElementById('fade'); f.style.opacity = 1; this.paused = true; Controls.setEnabled(false); UI.sfx('quest');
+  setTimeout(() => {
+    const p = this.player, w = this.world; w.ensureAround(Math.floor(r.x / CH), Math.floor(r.z / CH), 3, 9999);
+    p.x = r.x; p.z = r.z; const gy = w.groundY(Math.floor(r.x), Math.floor(r.z)); p.y = Math.max(Number.isFinite(gy) ? gy + 1 : -1, Number.isFinite(r.y) ? r.y : -1, SEA + 1) + 0.05; p.vx = p.vy = p.vz = 0; p.fallStart = null; p.gliding = false;
+    this.meshPass(999); this.paused = false; Controls.setEnabled(true);
+    setTimeout(() => { f.style.opacity = 0; UI.toast(`The Skyhauler sets you down at ${r.name}.`, 'good'); }, 300);
+  }, 1100);
 };
 // ---------- save / load ----------
 G.save = function () {
@@ -9576,6 +9729,7 @@ G.load = function () {
   this.kin = (data.kin || []).map(KIN.deserialize); this.activeIdx = data.activeIdx || 0; this.box = data.box || []; this.eggs = data.eggs || [];
   while (this.kin.length > this.MAX_KIN) this.box.push(KIN.serialize(this.kin.pop())); // the party is eight now
   this.player.load(data.player);
+  { const P = this.player, st = data.stats || {}; if (st.villageFreed && !P.has('shovel')) { P.add('shovel', 1); P.add('hatchet', 1); } if (((st.camp || {}).pick || 0) >= 2 && !P.has('axe_iron')) P.add('axe_iron', 1); } // tools arrived after this save was made
   if (data.kinV !== 2) { // the Kindex arrived: the old one-of-a-kind Kin are let go, everywhere; a fresh starter takes their place
     this.kin = []; this.activeIdx = 0; this.box = []; this.eggs = [];
     for (const id in (this.villageState || {})) if (this.villageState[id].guards) this.villageState[id].guards = [];
