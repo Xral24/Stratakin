@@ -2668,13 +2668,17 @@ const KIN = (() => {
     let eff = 0; for (let i = 0; i < 9; i++) eff += defender.sp.elem[i] * row[i];
     return eff;
   }
-  const CAP_BODY = { earth: 40, moon: 80, halo: 120 }, CAP_RAR = [0, 15, 30, 45, 60], CAP_HAB = { Core: 20, Sky: 15, Water: 5, Mines: 10 };
+  // how far each kind can grow: commons stay small, legendaries go big, and fusions sit above everything
+  const CAP_RANGE = [[15, 40], [30, 50], [40, 65], [50, 85], [110, 170]];
+  const CAP_BODY = { earth: 0, moon: 8, halo: 16 }, CAP_HAB = { Core: 5, Sky: 5 };
   function capOf(sp) {
     if (sp.cap) return sp.cap;
-    if (sp.recipe) { const b = CAP_BODY[sp.recipe.body] || 40; const i = sp.recipe.i; return Math.min(MAX_LEVEL, b + (i >= 27 ? 120 : i >= 20 ? 100 : i >= 10 ? 80 : 60)); }
+    if (sp.recipe) { const i = sp.recipe.i; const base = i >= 27 ? 180 : i >= 20 ? 160 : i >= 10 ? 140 : 120; return Math.min(MAX_LEVEL, base + (i % 10) * 2 + (CAP_BODY[sp.recipe.body] || 0)); }
     if (sp.legend || sp.apex || sp.mythic) return MAX_LEVEL;
-    if (!sp.home) return sp.noFuse ? 120 : 100; // starters and the odd ones: a long way to go
-    const h = sp.home; return Math.min(MAX_LEVEL, (CAP_BODY[h.body] || 40) + CAP_RAR[sp.rarity || 0] + (CAP_HAB[h.layer] || 0) + (h.biome === 'Lost World' ? 40 : 0) + ((sp.seed >>> 3) % 4) * 5);
+    if (!sp.home) return sp.noFuse ? 60 : 70; // starters and the odd ones
+    const [lo, hi] = CAP_RANGE[sp.rarity || 0]; const h = sp.home;
+    const t = ((sp.seed >>> 5) % 1000) / 1000; const skew = (sp.rarity || 0) === 0 ? t * t : t; // most commons sit low in their range
+    return Math.min(MAX_LEVEL, Math.round(lo + (hi - lo) * skew) + (CAP_BODY[h.body] || 0) + (CAP_HAB[h.layer] || 0) + (h.biome === 'Lost World' ? 15 : 0));
   }
   function gainXp(k, amount) {
     const events = [];
