@@ -643,7 +643,8 @@ const B = {
   COPPER: 10, IRON: 11, EMBER: 12, VOID: 13, BASALT: 14, LAVA: 15, CLOUD: 16, GLOWGRASS: 17,
   TORCH: 18, FUSION: 19, GRAVEL: 20, CACTUS: 21, STARMETAL: 22, MOSS: 23, STATUE: 24, PLANKS: 25, BERRY: 26, GLASS: 27, CAMPFIRE: 28, IRONWALL: 29, VOIDWALL: 30, GLOWWORM: 31, BERRYLEAF: 32, DOOR: 33, DOOR_OPEN: 34, PORTAL: 35,
   CHEST: 36, SELENITE: 37, TYCHO: 38, STARSALT: 39, MOONGLOW: 40, AMBER: 41, SULFUR: 42, RINGSHARD: 43, BRINE: 44, CORAL_R: 45, CORAL_B: 46, CORAL_Y: 47, PEARLCORAL: 48, GOLD: 49, DIAMOND: 50, FERN: 51, SELGLASS: 52, INCUBATOR: 53, REGOLITH: 54, DUNE: 55, SALTCRUST: 56, LADDER: 57, TARGET: 58, BALLOON: 59, FORTSTONE: 60, THORN: 61, DEADGATE: 62, RUBBLE: 63, DARKTABLE: 64,
-  NEEDLES: 65, FROND: 66, BIRCHLOG: 67, BOULDER: 68, MUSHROOM: 69, FLOWERS: 70, PEBBLES: 71, PALMLOG: 72
+  NEEDLES: 65, FROND: 66, BIRCHLOG: 67, BOULDER: 68, MUSHROOM: 69, FLOWERS: 70, PEBBLES: 71, PALMLOG: 72,
+  TILES: 73, SLATE: 74, THATCH: 75, PLASTER: 76, BEAM: 77, LAMP: 78, COBBLE: 79, FLOWERBOX: 80
 };
 
 // name, top colour, side colour, solid, hardness (seconds to mine), drop item id, emissive, fluid
@@ -724,16 +725,25 @@ defBlock(B.INCUBATOR, 'Incubator', '#7ad7ff', '#2c3e50', { hard: Infinity, emiss
 defBlock(B.NEEDLES, 'Needles', '#2f6a4a', '#2a5e42', { hard: 0.2, drop: 'frond', transparent: true });
 defBlock(B.FROND, 'Palm Frond', '#4f9c3f', '#479038', { hard: 0.2, drop: 'frond', partial: true, transparent: true });
 defBlock(B.BIRCHLOG, 'Birch Log', '#e8e4d8', '#d8d4c8', { hard: 0.6, drop: 'wood' });
-defBlock(B.PALMLOG, 'Palm Trunk', '#a08858', '#8a6e46', { hard: 0.6, drop: 'wood' }); // the mesher draws a whole palm from the lowest trunk block: a curved trunk, a crown of fronds, coconuts
+defBlock(B.PALMLOG, 'Palm Trunk', '#a08858', '#8a6e46', { hard: 0.6, drop: 'wood' });
+// the towns: pitched roofs (a wedge that leans toward the ridge), plastered and timbered walls, cobbles, lamp posts, flower boxes
+defBlock(B.TILES, 'Roof Tiles', '#b8583a', '#a44e34', { hard: 0.5, drop: 'planks', transparent: true });
+defBlock(B.SLATE, 'Slate Roof', '#55606e', '#4a5462', { hard: 0.5, drop: 'planks', transparent: true });
+defBlock(B.THATCH, 'Thatch', '#c8a858', '#b2924a', { hard: 0.3, drop: 'frond', transparent: true });
+defBlock(B.PLASTER, 'Plaster', '#ece2cc', '#e6dac2', { hard: 0.6, drop: 'planks' });
+defBlock(B.BEAM, 'Timber Beam', '#5e3f26', '#53371f', { hard: 0.6, drop: 'planks' });
+defBlock(B.LAMP, 'Lamp Post', '#ffd36a', '#3a3a40', { solid: false, hard: 0.3, drop: 'torch', emissive: true, partial: true, transparent: true });
+defBlock(B.COBBLE, 'Cobbles', '#8a8680', '#7e7a74', { hard: 0.9, drop: 'stone' });
+defBlock(B.FLOWERBOX, 'Flower Box', '#d04a5a', '#6a4a2c', { solid: false, hard: 0.2, drop: 'frond', partial: true, transparent: true }); // the mesher draws a whole palm from the lowest trunk block: a curved trunk, a crown of fronds, coconuts
 defBlock(B.BOULDER, 'Boulder', '#8e9197', '#86898f', { hard: 0.9, drop: 'stone', partial: true, transparent: true });
 defBlock(B.MUSHROOM, 'Mushroom', '#c84a3a', '#e8dcc8', { solid: false, hard: 0.1, drop: 'berry', partial: true, transparent: true });
 defBlock(B.FLOWERS, 'Wildflowers', '#e8d040', '#4f9c3f', { solid: false, hard: 0.1, drop: 'frond', partial: true, transparent: true });
 defBlock(B.PEBBLES, 'Pebbles', '#8e9197', '#86898f', { solid: false, hard: 0.2, drop: 'stone', partial: true, transparent: true });
 
 // blocks that light their surroundings, and how far
-const LIGHT_R = { [B.TORCH]: 10, [B.CAMPFIRE]: 14, [B.MOONGLOW]: 12, [B.RINGSHARD]: 10, [B.PEARLCORAL]: 8, [B.INCUBATOR]: 9 };
+const LIGHT_R = { [B.TORCH]: 10, [B.CAMPFIRE]: 14, [B.MOONGLOW]: 12, [B.RINGSHARD]: 10, [B.PEARLCORAL]: 8, [B.INCUBATOR]: 9, [B.LAMP]: 12 };
 // blocks the sky light passes through when working out how deep a column is
-const SKY_CLEAR = { [B.FROND]: 1, [B.MUSHROOM]: 1, [B.FLOWERS]: 1, [B.PEBBLES]: 1, [B.LADDER]: 1, [B.TORCH]: 1, [B.GLASS]: 1, [B.SELGLASS]: 1, [B.CAMPFIRE]: 1, [B.MOONGLOW]: 1, [B.GLOWWORM]: 1, [B.FERN]: 1, [B.PORTAL]: 1, [B.BERRY]: 1, [B.RINGSHARD]: 1 };
+const SKY_CLEAR = { [B.LAMP]: 1, [B.FLOWERBOX]: 1, [B.FROND]: 1, [B.MUSHROOM]: 1, [B.FLOWERS]: 1, [B.PEBBLES]: 1, [B.LADDER]: 1, [B.TORCH]: 1, [B.GLASS]: 1, [B.SELGLASS]: 1, [B.CAMPFIRE]: 1, [B.MOONGLOW]: 1, [B.GLOWWORM]: 1, [B.FERN]: 1, [B.PORTAL]: 1, [B.BERRY]: 1, [B.RINGSHARD]: 1 };
 const isSolid = (id) => BLOCKS[id].solid;
 const isLeaf = (id) => id === B.LEAVES || id === B.BERRYLEAF || id === B.NEEDLES;
 const isTrunk = (id) => id === B.LOG || id === B.BIRCHLOG || id === B.PALMLOG;
@@ -1590,7 +1600,7 @@ const R = (() => {
       }
       float lam = max(dot(n, uSun), 0.0) * uSunAmt;
       float sh = lam > 0.001 ? shadowAt(vWorld, n) : 1.0;
-      vec3 amb = vec3(0.78, 0.86, 1.05) * (0.36 + 0.26 * uDay) * (0.86 + 0.14 * n.y);
+      vec3 amb = vec3(0.78, 0.86, 1.05) * (0.4 + 0.3 * uDay) * (0.86 + 0.14 * n.y);
       vec3 light = skyL * (amb * (0.88 + 0.12 * sh) + uSunCol * lam * sh * 0.78 * uDay);
       light = max(light, vec3(uAmbient)); light = max(light, vec3(1.0, 0.78, 0.52) * torch * 0.95);
       light = mix(light, vec3(1.0), emis);
@@ -1605,7 +1615,7 @@ const R = (() => {
         vec2 uv = abs(n.x) > 0.5 ? vWorld.zy : (abs(n.y) > 0.5 ? vWorld.xz : vWorld.xy);
         vec3 bp = floor(vWorld - n * 0.5);
         float hb = hash3(bp); float speck = hash3(vec3(floor(uv * 8.0), bp.y)); float blot = hash3(vec3(floor(uv * 3.0), bp.x + bp.z));
-        int matp = int(vMat + 0.5); float soil = (matp == 1 || matp == 2 || matp == 4 || matp == 5) ? 1.0 : 0.0; float blocky = (matp == 7 || matp == 0 || soil > 0.5) ? 0.0 : 1.0; // leaves, props and the ground are not blocks: no per-block paint on them
+        int matp = int(vMat + 0.5); float soil = (matp == 1 || matp == 2 || matp == 4 || matp == 5) ? 1.0 : 0.0; float blocky = (matp == 7 || matp == 0 || matp >= 9 || soil > 0.5) ? 0.0 : 1.0; // leaves, props, the ground and the town's materials are not blocks: no per-block paint on them
         col *= 1.0 + blocky * (-0.1 + 0.1 * hb + (speck - 0.5) * 0.12 * uQuality + (blot - 0.5) * 0.07);
         col *= 1.0 + soil * ((vn(uv * 0.7 + 3.0) - 0.5) * 0.1 + (vn(uv * 2.3 + 8.0) - 0.5) * 0.05); // the ground: a soft drift of light and dark instead
         // broad painted drift: warm and cool patches across the land
@@ -1644,6 +1654,26 @@ const R = (() => {
           float grain = sin(uv.y * 38.0 + vn(uv * vec2(2.0, 0.4)) * 7.0) * 0.5 + 0.5; col *= 0.93 + 0.1 * smoothstep(0.3, 0.8, grain) * near;
         } else if (mat == 7) { // leaves: dapple
           col *= 0.9 + 0.2 * vn(vWorld.xz * 2.2 + vWorld.y * 0.7);
+        } else if (mat == 9 || mat == 13) { // tiles and slates: rows up the slope, each row offset half a tile, every tile its own shade, a dark seam between
+          float along = abs(n.x) > abs(n.z) ? vWorld.z : vWorld.x; float rows = mat == 9 ? 3.0 : 4.5, tw = mat == 9 ? 2.0 : 2.6;
+          float row = floor(vWorld.y * rows + 0.5); float ry = fract(vWorld.y * rows + 0.5);
+          float tc = along * tw + mod(row, 2.0) * 0.5; float ti = floor(tc), tf = fract(tc);
+          float seam = smoothstep(0.0, 0.07, tf) * smoothstep(1.0, 0.93, tf) * smoothstep(0.0, 0.1, ry);
+          float own = hash3(vec3(ti, row, 2.0));
+          col *= (0.72 + 0.28 * seam) * (0.9 + 0.2 * own) * (1.0 + (mat == 9 ? 0.1 : 0.03) * sin(tf * 3.1416)) * (0.92 + 0.08 * smoothstep(0.0, 0.5, ry));
+          col *= 0.94 + 0.12 * vn(vec2(along, vWorld.y) * 0.5 + 3.0); // weathering in patches
+        } else if (mat == 12) { // thatch: bundles of straw combed down the slope, in ragged rows
+          float along = abs(n.x) > abs(n.z) ? vWorld.z : vWorld.x;
+          float straw = vn(vec2(along * 42.0, vWorld.y * 5.0)) * 0.6 + vn(vec2(along * 90.0 + 2.0, vWorld.y * 9.0)) * 0.4;
+          float row = fract(vWorld.y * 1.8 + vn(vec2(along * 1.5, 1.0)) * 0.3); float lip = smoothstep(0.0, 0.18, row) * (0.85 + 0.15 * smoothstep(0.7, 1.0, row));
+          col *= (0.72 + 0.4 * straw) * (0.8 + 0.2 * lip) * (0.94 + 0.1 * vn(vec2(along, vWorld.y) * 0.4 + 7.0));
+        } else if (mat == 10) { // plaster: soft trowel marks, a little grime low down
+          col *= 0.95 + 0.07 * vn(uv * 3.0 + 1.0) + 0.03 * vn(uv * 11.0);
+        } else if (mat == 11) { // cobbles: rounded stones packed in a bed of dark mortar
+          vec2 q = uv * 3.2; vec2 ci = floor(q), cf = fract(q); float f1 = 9.0, f2 = 9.0, idc = 0.0;
+          for (int i = -1; i <= 1; i++) for (int j = -1; j <= 1; j++) { vec2 g = vec2(float(i), float(j)); vec2 o = vec2(hash3(vec3(ci + g, 1.0)), hash3(vec3(ci + g, 2.0))) * 0.7 + 0.15; float d = length(g + o - cf); if (d < f1) { f2 = f1; f1 = d; idc = hash3(vec3(ci + g, 3.0)); } else if (d < f2) f2 = d; }
+          float mortar = smoothstep(0.0, 0.16, f2 - f1); float dome = 1.0 - f1 * 0.35;
+          col *= mix(0.72, 1.0, mortar) * (0.88 + 0.24 * idc) * dome * (0.94 + 0.1 * vn(uv * 0.3 + 5.0));
         }
       }
     }
@@ -2032,12 +2062,15 @@ const R = (() => {
   }
 
   // ---------- chunk meshing ----------
-  // material classes for the fragment shader: 1 grass top, 2 sand, 3 rock, 4 earth, 5 snow, 6 wood, 7 leaves, 8 lava
-  const MAT_OF = {}; for (const [ids, m] of [[[B.SAND, B.DUNE, B.SALTCRUST], 2], [[B.STONE, B.GRAVEL, B.MOSS, B.COPPER, B.IRON, B.EMBER, B.GOLD, B.DIAMOND, B.BASALT, B.BEDROCK, B.FORTSTONE, B.RUBBLE, B.SELENITE, B.TYCHO, B.AMBER, B.REGOLITH, B.BOULDER], 3], [[B.DIRT], 4], [[B.SNOW], 5], [[B.PLANKS, B.LOG, B.BIRCHLOG, B.PALMLOG, B.DOOR, B.DOOR_OPEN, B.LADDER, B.CHEST], 6], [[B.LEAVES, B.BERRYLEAF, B.NEEDLES, B.CACTUS], 7], [[B.LAVA], 8]]) for (const id of ids) MAT_OF[id] = m;
+  // material classes for the fragment shader: 1 grass top, 2 sand, 3 rock, 4 earth, 5 snow, 6 wood, 7 leaves, 8 lava, 9 tiles, 10 plaster, 11 cobbles, 12 thatch, 13 slate
+  const MAT_OF = {}; for (const [ids, m] of [[[B.SAND, B.DUNE, B.SALTCRUST], 2], [[B.STONE, B.GRAVEL, B.MOSS, B.COPPER, B.IRON, B.EMBER, B.GOLD, B.DIAMOND, B.BASALT, B.BEDROCK, B.FORTSTONE, B.RUBBLE, B.SELENITE, B.TYCHO, B.AMBER, B.REGOLITH, B.BOULDER], 3], [[B.DIRT], 4], [[B.SNOW], 5], [[B.PLANKS, B.LOG, B.BIRCHLOG, B.PALMLOG, B.BEAM, B.DOOR, B.DOOR_OPEN, B.LADDER, B.CHEST], 6], [[B.LEAVES, B.BERRYLEAF, B.NEEDLES, B.CACTUS], 7], [[B.LAVA], 8], [[B.TILES], 9], [[B.PLASTER], 10], [[B.COBBLE], 11], [[B.THATCH], 12], [[B.SLATE], 13]]) for (const id of ids) MAT_OF[id] = m;
   const scratchOpaque = new MeshBuilder(16384, false, true), scratchWater = new MeshBuilder(2048, false, true), scratchGlass = new MeshBuilder(512, false, true), scratchGrass = new MeshBuilder(8192, false, true);
   const SOIL = new Set([B.GRASS, B.DIRT, B.SAND, B.SNOW, B.GRAVEL, B.STONE, B.MOSS, B.GLOWGRASS, B.REGOLITH, B.DUNE, B.SALTCRUST]);
   // things that stand on the ground without stopping it from sloping: air, leaves, trunks, bushes, flowers, pebbles, torches, chests...
   const DECOR = (b) => b === B.AIR || isLeaf(b) || isTrunk(b) || b === B.BERRY || BLOCKS[b].partial;
+  const ROOFB = (b) => b === B.TILES || b === B.SLATE || b === B.THATCH;
+  const SIGNABLE = new Set([B.EMBER, B.BERRY, B.COPPER, B.VOID, B.IRON, B.GOLD, B.GLOWWORM, B.LOG, B.MOONGLOW, B.CLOUD, B.SELENITE, B.BERRYLEAF, B.AMBER]);
+  const WALLY = (b) => b === B.PLANKS || b === B.PLASTER || b === B.BEAM || b === B.IRONWALL || b === B.VOIDWALL || b === B.SELGLASS;
   const surfTop = new Int16Array(18 * 18), surfWet = new Int16Array(18 * 18), cornerH = new Float32Array(17 * 17);
   const FLOWERS = [[0.95, 0.85, 0.25], [0.95, 0.95, 0.95], [0.85, 0.35, 0.55], [0.6, 0.5, 0.95], [0.95, 0.5, 0.25]];
   function buildChunk(world, chunk) {
@@ -2095,6 +2128,82 @@ const R = (() => {
         const wx = ox + lx, wz = oz + lz;
         const vr = SOIL.has(id) ? 0.98 + U.hash3(wx, y, wz, 5) * 0.03 : 0.92 + U.hash3(wx, y, wz, 5) * 0.12; // per-block variation (the ground keeps almost none: its shader paints it smoothly)
         if (id === B.STATUE) continue; // drawn as an entity
+        // a shop's marker block over its doorway: drawn as the wall it sits in, with a sign hanging out over the street in the marker's colour
+        if (SIGNABLE.has(id) && y >= 2 && get(lx, y - 1, lz) === B.AIR && get(lx, y - 2, lz) === B.AIR) {
+          const axis = (WALLY(get(lx + 1, y, lz)) && WALLY(get(lx - 1, y, lz))) ? 'x' : (WALLY(get(lx, y, lz + 1)) && WALLY(get(lx, y, lz - 1))) ? 'z' : null;
+          if (axis) {
+            const wb = axis === 'x' ? get(lx + 1, y, lz) : get(lx, y, lz + 1); const wi = BLOCKS[wb]; const sk = skyAt(lx, y + 1, lz);
+            op.curMat = MAT_OF[wb] || 0; const wpal = world.preset.paletteRgb && world.preset.paletteRgb[wb]; op.box(lx, y, lz, lx + 1, y + 1, lz + 1, wpal ? wpal[1] : wi.side, sk, false);
+            op.curMat = 0;
+            const out = axis === 'x' ? [0, skyAt(lx, y, lz + 1) >= skyAt(lx, y, lz - 1) ? 1 : -1] : [skyAt(lx + 1, y, lz) >= skyAt(lx - 1, y, lz) ? 1 : -1, 0];
+            const bx = lx + 0.5, bz = lz + 0.5, ox = out[0], oz = out[1]; const iron = [0.2, 0.2, 0.23], wood = [0.42, 0.29, 0.15], edge = [0.3, 0.2, 0.1];
+            op.tube([[bx + ox * 0.5, y + 0.86, bz + oz * 0.5], [bx + ox * 0.98, y + 0.86, bz + oz * 0.98]], [0.03, 0.03], iron, { sky: sk, segs: 4, cap0: 'none', cap1: 'round' }); // the bracket
+            op.tube([[bx + ox * 0.5, y + 0.62, bz + oz * 0.5], [bx + ox * 0.86, y + 0.84, bz + oz * 0.86]], [0.022, 0.022], iron, { sky: sk, segs: 4, cap0: 'none', cap1: 'none' }); // its stay
+            const px = ox ? 0 : 0.34, pz = oz ? 0 : 0.34; const sx = bx + ox * 0.78, sz = bz + oz * 0.78; // the board hangs under the bracket's end
+            for (const sgn of [-1, 1]) op.tube([[sx + px * sgn * 0.8, y + 0.85, sz + pz * sgn * 0.8], [sx + px * sgn * 0.8, y + 0.7, sz + pz * sgn * 0.8]], [0.012, 0.012], iron, { sky: sk, segs: 4, cap0: 'none', cap1: 'none' }); // chains
+            op.blob(sx - px - ox * 0.03, y + 0.22, sz - pz - oz * 0.03, sx + px + ox * 0.03, y + 0.7, sz + pz + oz * 0.03, 0.15, wood, { sky: sk, n: 2, under: edge, split: 0.0, soft: 0.5 });
+            const em = info.emissive; const ec = (world.preset.paletteRgb && world.preset.paletteRgb[id]) ? world.preset.paletteRgb[id][0] : info.top;
+            for (const sgn of [-1, 1]) op.blob(sx - px * 0.5 + ox * sgn * 0.035 - (oz ? 0.14 : 0.0), y + 0.32, sz - pz * 0.5 + oz * sgn * 0.035 - (ox ? 0.14 : 0.0), sx + px * 0.5 + ox * sgn * 0.035 + (oz ? 0.14 : 0.0), y + 0.6, sz + pz * 0.5 + oz * sgn * 0.035 + (ox ? 0.14 : 0.0), 0.9, ec, { sky: sk, n: 2, emis: em }); // the emblem, both faces
+            continue;
+          }
+        }
+        if (ROOFB(id)) { // a roof block is a wedge that leans toward the ridge: the slope faces the sky, the ridge block is a peak, the ends show a sawn rafter
+          const sk = skyAt(lx, y + 1, lz); const D4 = [[1, 0], [-1, 0], [0, 1], [0, -1]]; const CX = [0, 1, 1, 0], CZ = [0, 0, 1, 1];
+          const pal = world.preset.paletteRgb && world.preset.paletteRgb[id]; const topC = pal ? pal[0] : info.top; const rafter = [0.4, 0.27, 0.15], under = [0.36, 0.25, 0.15];
+          const ups = D4.filter(([a, b]) => ROOFB(get(lx + a, y + 1, lz + b))), dns = D4.filter(([a, b]) => ROOFB(get(lx + a, y - 1, lz + b)));
+          let H = null, ridge = null;
+          if (ups.length >= 1 && ups.length <= 2 && !(ups.length === 2 && ups[0][0] === -ups[1][0] && ups[0][1] === -ups[1][1])) { H = [0, 0, 0, 0]; for (const [a, b] of ups) for (let i = 0; i < 4; i++) H[i] += a > 0 ? CX[i] : a < 0 ? 1 - CX[i] : b > 0 ? CZ[i] : 1 - CZ[i]; H = H.map(v => Math.min(1, v)); }
+          else if (ups.length === 0) {
+            const diag = [[1, 1], [-1, 1], [1, -1], [-1, -1]].find(([a, b]) => ROOFB(get(lx + a, y + 1, lz + b)) && ROOFB(get(lx + a, y, lz)) && ROOFB(get(lx, y, lz + b)));
+            if (diag) H = CX.map((cx, i) => Math.max(0, (diag[0] > 0 ? cx : 1 - cx) + (diag[1] > 0 ? CZ[i] : 1 - CZ[i]) - 1)); // a hip corner
+            else if (dns.some(([a, b]) => dns.some(([c, d]) => a === -c && b === -d))) ridge = dns.find(([a]) => a !== 0) ? 'x' : 'z'; // slopes fall away to both sides
+            else if (dns.length === 1) { const [a, b] = dns[0]; H = CX.map((cx, i) => a > 0 ? 1 - cx : a < 0 ? cx : b > 0 ? 1 - CZ[i] : CZ[i]); }
+          }
+          const P = (i, h) => [lx + CX[i], y + h, lz + CZ[i]];
+          const face = (verts, col, mat, nrm) => { op.curMat = mat; const n = nrm || (() => { const [a, b, c] = verts; const ux = b[0] - a[0], uy = b[1] - a[1], uz = b[2] - a[2], vx = c[0] - a[0], vy = c[1] - a[1], vz = c[2] - a[2]; const nx = uy * vz - uz * vy, ny = uz * vx - ux * vz, nz = ux * vy - uy * vx; const l = Math.hypot(nx, ny, nz) || 1; return [nx / l, ny / l, nz / l]; })(); op.quad(verts, [col, col, col, col], [sk, sk, sk, sk], false, [n, n, n, n]); };
+          if (ridge) { // a peak along the ridge axis, half a block high, the two slopes meeting on it
+            const a0 = ridge === 'x' ? [lx + 0.5, y + 0.5, lz] : [lx, y + 0.5, lz + 0.5], a1 = ridge === 'x' ? [lx + 0.5, y + 0.5, lz + 1] : [lx + 1, y + 0.5, lz + 0.5];
+            if (ridge === 'x') { face([[lx, y, lz], [lx, y, lz + 1], a1, a0], topC, MAT_OF[id], [-0.707, 0.707, 0]); face([[lx + 1, y, lz + 1], [lx + 1, y, lz], a0, a1], topC, MAT_OF[id], [0.707, 0.707, 0]); if (!ROOFB(get(lx, y, lz - 1))) face([[lx, y, lz], a0, a0, [lx + 1, y, lz]], rafter, 6, [0, 0, -1]); if (!ROOFB(get(lx, y, lz + 1))) face([[lx + 1, y, lz + 1], a1, a1, [lx, y, lz + 1]], rafter, 6, [0, 0, 1]); }
+            else { face([[lx, y, lz], a0, a1, [lx + 1, y, lz]], topC, MAT_OF[id], [0, 0.707, -0.707]); face([[lx + 1, y, lz + 1], a1, a0, [lx, y, lz + 1]], topC, MAT_OF[id], [0, 0.707, 0.707]); if (!ROOFB(get(lx - 1, y, lz))) face([[lx, y, lz + 1], a0, a0, [lx, y, lz]], rafter, 6, [-1, 0, 0]); if (!ROOFB(get(lx + 1, y, lz))) face([[lx + 1, y, lz], a1, a1, [lx + 1, y, lz + 1]], rafter, 6, [1, 0, 0]); }
+            if (!isOpaque(get(lx, y - 1, lz))) face([[lx, y, lz], [lx + 1, y, lz], [lx + 1, y, lz + 1], [lx, y, lz + 1]], under, 6, [0, -1, 0]);
+            continue;
+          }
+          if (!H) H = [1, 1, 1, 1]; // a lone roof block: a flat cap
+          const flat = H.every(h => h === H[0]);
+          // the slope: one quad through the four corner heights
+          { const v = [P(0, H[0]), P(3, H[3]), P(2, H[2]), P(1, H[1])]; let nx = 0, ny = 0, nz = 0; for (let i = 0; i < 4; i++) { const a = v[i], b = v[(i + 1) % 4]; nx += (a[1] - b[1]) * (a[2] + b[2]); ny += (a[2] - b[2]) * (a[0] + b[0]); nz += (a[0] - b[0]) * (a[1] + b[1]); } const l = Math.hypot(nx, ny, nz) || 1; face(v, topC, MAT_OF[id], [nx / l, ny / l, nz / l]); }
+          // the sides: trapezoids where the surface is above the block floor, skipped against a neighbour that covers them
+          const sides = [[1, 0, [1, 2]], [-1, 0, [3, 0]], [0, 1, [2, 3]], [0, -1, [0, 1]]];
+          for (const [a, b, [i, j]] of sides) {
+            if (H[i] <= 0 && H[j] <= 0) continue; const nb = get(lx + a, y, lz + b); if (isOpaque(nb) || (ROOFB(nb) && !flat)) continue;
+            face([P(i, 0), P(j, 0), P(j, H[j]), P(i, H[i])], H[i] >= 0.999 && H[j] >= 0.999 ? under : rafter, 6, [a, 0, b]);
+          }
+          if (!isOpaque(get(lx, y - 1, lz))) face([[lx, y, lz], [lx + 1, y, lz], [lx + 1, y, lz + 1], [lx, y, lz + 1]], under, 6, [0, -1, 0]);
+          continue;
+        }
+        if (id === B.LAMP) { // a street lamp: an iron post with a caged lantern, or a lantern hung from a beam
+          const sk = skyAt(lx, y, lz); const iron = [0.16, 0.17, 0.2], glass = [1.0, 0.86, 0.5]; const cx = lx + 0.5, cz = lz + 0.5;
+          const hanging = isOpaque(get(lx, y + 1, lz)) && !isSolid(get(lx, y - 1, lz)); let ly;
+          if (hanging) { op.tube([[cx, y + 1, cz], [cx, y + 0.74, cz]], [0.02, 0.02], iron, { sky: sk, segs: 4, cap0: 'none', cap1: 'none' }); ly = y + 0.3; }
+          else { op.blob(cx - 0.2, y, cz - 0.2, cx + 0.2, y + 0.1, cz + 0.2, 0.5, iron, { sky: sk, n: 2 }); op.tube([[cx, y + 0.08, cz], [cx, y + 0.9, cz], [cx, y + 1.0, cz], [cx, y + 1.62, cz]], [0.065, 0.05, 0.07, 0.045], iron, { sky: sk, segs: 6, cap0: 'none', cap1: 'flat' }); ly = y + 1.62; }
+          const w = 0.16, hgt = 0.32;
+          op.blob(cx - w * 0.78, ly + 0.02, cz - w * 0.78, cx + w * 0.78, ly + hgt - 0.02, cz + w * 0.78, 0.2, glass, { emis: true, n: 1 });
+          for (const [a, b] of [[-1, -1], [1, -1], [1, 1], [-1, 1]]) op.box(cx + a * w - 0.018, ly, cz + b * w - 0.018, cx + a * w + 0.018, ly + hgt, cz + b * w + 0.018, iron, sk, false);
+          op.box(cx - w - 0.03, ly - 0.03, cz - w - 0.03, cx + w + 0.03, ly + 0.01, cz + w + 0.03, iron, sk, false);
+          op.blob(cx - w - 0.06, ly + hgt, cz - w - 0.06, cx + w + 0.06, ly + hgt + 0.17, cz + w + 0.06, 0.25, iron, { sky: sk, n: 2, tap: [1, 0.25] });
+          op.ball(cx, ly + hgt + 0.2, cz, 0.035, iron, { sky: sk, n: 1 });
+          continue;
+        }
+        if (id === B.FLOWERBOX) { // a window box against the wall behind it, spilling flowers
+          const sk = skyAt(lx, y + 1, lz); let d = null; for (const [a, b] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) if (isOpaque(get(lx + a, y, lz + b)) || isOpaque(get(lx + a, y - 1, lz + b))) { d = [a, b]; break; } if (!d) d = [0, -1];
+          const cx = lx + 0.5 + d[0] * 0.34, cz = lz + 0.5 + d[1] * 0.34; const hw = d[0] ? 0.16 : 0.44, hd = d[0] ? 0.44 : 0.16; const wood = [0.44, 0.3, 0.15], soil = [0.25, 0.17, 0.1];
+          op.box(cx - hw, y, cz - hd, cx + hw, y + 0.28, cz + hd, wood, sk, false); op.box(cx - hw + 0.04, y + 0.2, cz - hd + 0.04, cx + hw - 0.04, y + 0.29, cz + hd - 0.04, soil, sk, false);
+          op.box(cx - hw - 0.03, y + 0.26, cz - hd - 0.03, cx + hw + 0.03, y + 0.3, cz + hd + 0.03, wood, sk, false); // the lip
+          const h0 = U.hash3(wx, y, wz, 140); const cols = [[0.95, 0.3, 0.35], [0.98, 0.75, 0.2], [0.9, 0.9, 0.95], [0.75, 0.45, 0.9], [0.98, 0.55, 0.25]]; const c1 = cols[Math.floor(h0 * 5)], c2 = cols[(Math.floor(h0 * 5) + 2) % 5];
+          for (let k = 0; k < 6; k++) { const t = (k + 0.5) / 6 - 0.5; const px = cx + (d[0] ? (U.hash3(wx, y, wz, 141 + k) - 0.5) * 0.16 : t * 0.8), pz = cz + (d[1] ? (U.hash3(wx, y, wz, 141 + k) - 0.5) * 0.16 : t * 0.8); const hh = 0.12 + U.hash3(wx, y, wz, 147 + k) * 0.14;
+            op.blob(px - 0.09, y + 0.22, pz - 0.09, px + 0.09, y + 0.34 + hh * 0.3, pz + 0.09, 0.85, [0.28, 0.55, 0.22], { sky: sk, n: 1 }); op.ball(px + (U.hash3(wx, y, wz, 153 + k) - 0.5) * 0.06, y + 0.36 + hh, pz, 0.065, k % 2 ? c1 : c2, { sky: sk, n: 2 }); }
+          continue;
+        }
         // grass: a tuft of blades on every open grass top, and now and then a flower
         if ((id === B.GRASS || id === B.GLOWGRASS) && y + 1 < WH && blocks[base + y + 1] === B.AIR) {
           const sk = skyAt(lx, y + 1, lz); const top0 = y + 1.0; const c00 = CHt(lx, lz) >= 0 ? CHt(lx, lz) : top0, c10 = CHt(lx + 1, lz) >= 0 ? CHt(lx + 1, lz) : top0, c01 = CHt(lx, lz + 1) >= 0 ? CHt(lx, lz + 1) : top0, c11 = CHt(lx + 1, lz + 1) >= 0 ? CHt(lx + 1, lz + 1) : top0;
@@ -2321,6 +2430,19 @@ const R = (() => {
           continue;
         }
         const isWater = id === B.WATER || id === B.BRINE, isGlass = id === B.GLASS || id === B.SELGLASS;
+        if (isGlass) { // glass set in a wall is a window: a frame with a cross, the pane in the middle of the block
+          const wX = isOpaque(get(lx + 1, y, lz)) || isOpaque(get(lx - 1, y, lz)), wZ = isOpaque(get(lx, y, lz + 1)) || isOpaque(get(lx, y, lz - 1));
+          if (wX !== wZ) {
+            const sk = skyAt(lx, y + 1, lz); const wood = [0.36, 0.25, 0.14]; op.curMat = 6;
+            const bx = (x0, y0, z0, x1, y1, z1) => op.box(lx + x0, y + y0, lz + z0, lx + x1, y + y1, lz + z1, wood, sk, false);
+            if (wX) { bx(0, 0, 0.38, 1, 0.12, 0.62); bx(0, 0.88, 0.38, 1, 1, 0.62); bx(0, 0.12, 0.38, 0.12, 0.88, 0.62); bx(0.88, 0.12, 0.38, 1, 0.88, 0.62); bx(0.46, 0.12, 0.42, 0.54, 0.88, 0.58); bx(0.12, 0.46, 0.42, 0.88, 0.54, 0.58); }
+            else { bx(0.38, 0, 0, 0.62, 0.12, 1); bx(0.38, 0.88, 0, 0.62, 1, 1); bx(0.38, 0.12, 0, 0.62, 0.88, 0.12); bx(0.38, 0.12, 0.88, 0.62, 0.88, 1); bx(0.42, 0.12, 0.46, 0.58, 0.88, 0.54); bx(0.42, 0.46, 0.12, 0.58, 0.54, 0.88); }
+            op.curMat = 0; const gc = info.top; const gcol = [gc, gc, gc, gc], gsk = [sk, sk, sk, sk];
+            if (wX) { gs.quad([[lx, y, lz + 0.49], [lx + 1, y, lz + 0.49], [lx + 1, y + 1, lz + 0.49], [lx, y + 1, lz + 0.49]], gcol, gsk, false, [[0, 0, -1], [0, 0, -1], [0, 0, -1], [0, 0, -1]]); gs.quad([[lx + 1, y, lz + 0.51], [lx, y, lz + 0.51], [lx, y + 1, lz + 0.51], [lx + 1, y + 1, lz + 0.51]], gcol, gsk, false, [[0, 0, 1], [0, 0, 1], [0, 0, 1], [0, 0, 1]]); }
+            else { gs.quad([[lx + 0.49, y, lz + 1], [lx + 0.49, y, lz], [lx + 0.49, y + 1, lz], [lx + 0.49, y + 1, lz + 1]], gcol, gsk, false, [[-1, 0, 0], [-1, 0, 0], [-1, 0, 0], [-1, 0, 0]]); gs.quad([[lx + 0.51, y, lz], [lx + 0.51, y, lz + 1], [lx + 0.51, y + 1, lz + 1], [lx + 0.51, y + 1, lz]], gcol, gsk, false, [[1, 0, 0], [1, 0, 0], [1, 0, 0], [1, 0, 0]]); }
+            continue;
+          }
+        }
         const matSide = MAT_OF[id] || 0;
         for (let f = 0; f < 6; f++) {
           const F = FACES[f], n = F.n;
@@ -4955,12 +5077,12 @@ const Village = (() => {
     kinmarket: { name: 'Kin Sale Yard', marker: B.LOG, level: 2, cost: { shards: 400, items: { planks: 30 } } },
     kinshow: { name: 'Kin Show', marker: B.GOLD, level: 2, cost: { shards: 400, items: { planks: 30 } } },
     barber: { name: 'Barber', marker: B.GOLD, level: 2, cost: { shards: 300, items: { planks: 20 } } },
-    mirror: { name: 'Mirror Hall', marker: B.GLASS, level: 2, cost: { shards: 300, items: { planks: 20, glass: 8 } } },
+    mirror: { name: 'Mirror Hall', marker: B.SELENITE, level: 2, cost: { shards: 300, items: { planks: 20, glass: 8 } } },
     designer: { name: 'House of Zazu', marker: B.BERRYLEAF, level: 2, cost: { shards: 300, items: { planks: 20 } } },
     kinwear: { name: 'Kin Outfitter', marker: B.CLOUD, level: 2, cost: { shards: 300, items: { planks: 20 } } },
     tailor: { name: 'Tailor', marker: B.BERRY, level: 2, cost: { shards: 400, items: { planks: 20 } } },
     enchanter: { name: 'Enchanter', marker: B.VOID, level: 2, cost: { shards: 500, items: { planks: 20, void: 2 } } },
-    cartographer: { name: 'Cartographer', marker: B.GLASS, level: 2, cost: { shards: 300, items: { planks: 20 } } },
+    cartographer: { name: 'Cartographer', marker: B.SELENITE, level: 2, cost: { shards: 300, items: { planks: 20 } } },
     daycare: { name: 'Kin Daycare', marker: B.BERRY, level: 2, cost: { shards: 300, items: { planks: 24 } } },
   };
   const SLOTS = [[-11, -11], [11, -11], [-11, 11], [11, 11], [-15, -5], [-15, 5], [15, -5], [15, 5], [-5, -15], [5, -15], [-5, 15], [5, 15]]; // house sites in the expanded ring
@@ -5198,9 +5320,10 @@ const Village = (() => {
       const fx = vx + hr + 1; for (let y = vy; y <= K - 1; y++) for (let b = -1; b <= 1; b++) push(fx, y, cz0 + b, B.WATER);
       for (let a = 1; a <= 4; a++) for (let b = -2; b <= 2; b++) { push(fx + a, vy - 1, cz0 + b, B.STONE); push(fx + a, vy, cz0 + b, a === 4 || Math.abs(b) === 2 ? B.STONE : B.WATER); }
     }
-    for (const [a, b] of [[-6, -6], [6, -6], [-6, 6], [6, 6]]) { push(vx + a, vy, vz + b, M.post); push(vx + a, vy + 1, vz + b, M.light); }
+    const lamp = (x, z) => { if (M.lamp) push(x, vy, z, M.lamp); else { push(x, vy, z, M.post); push(x, vy + 1, z, M.light); } };
+    for (const [a, b] of [[-6, -6], [6, -6], [-6, 6], [6, 6]]) lamp(vx + a, vz + b);
     // lamps along the streets
-    for (const s0 of streets) for (let d = 9; d < R - 3; d += 8) for (const sg of [-1, 1]) { push(vx + s0 + 2 * sg, vy, vz + d * sg, M.post); push(vx + s0 + 2 * sg, vy + 1, vz + d * sg, M.light); push(vx + d * sg, vy, vz + s0 + 2 * sg, M.post); push(vx + d * sg, vy + 1, vz + s0 + 2 * sg, M.light); }
+    for (const s0 of streets) for (let d = 9; d < R - 3; d += 8) for (const sg of [-1, 1]) { lamp(vx + s0 + 2 * sg, vz + d * sg); lamp(vx + d * sg, vz + s0 + 2 * sg); }
     // lots: a house on every free plot, its door turned to the nearest street
     const lots = [];
     const axis = new Set(); for (const s0 of streets) for (const sg of [-1, 1]) for (let g = s0 + sg * 6; Math.abs(g) + 4 <= R - 5; g += sg * 9) axis.add(g);
@@ -5224,14 +5347,14 @@ const Village = (() => {
     const nPlots = { start: 1, hamlet: 1, town: 2, city: 3 }[v.starter ? 'start' : v.size] || 1; const plots = [];
     const spare = lots.filter(l => !l.used); for (let i = 0; i < nPlots && spare.length; i++) { const l = spare.splice(Math.floor(spare.length * (0.35 + 0.2 * i)) % spare.length, 1)[0]; l.used = true; l.plot = true; plots.push({ x: l.x, z: l.z, i });
       for (let a = -4; a <= 4; a++) for (let b = -4; b <= 4; b++) push(l.x + a, vy - 1, l.z + b, Math.max(Math.abs(a), Math.abs(b)) === 4 ? M.plazaEdge : M.ground);
-      for (const [a, b] of [[-4, -4], [4, -4], [-4, 4], [4, 4]]) { push(l.x + a, vy, l.z + b, M.post); push(l.x + a, vy + 1, l.z + b, M.light); } }
+      for (const [a, b] of [[-4, -4], [4, -4], [-4, 4], [4, 4]]) lamp(l.x + a, l.z + b); }
     // draw the buildings into the overlay by borrowing the house builder
     const sb = world.setBlock, gb = world.getBlock; world.setBlock = (x, y, z, id) => push(x, y, z, id); world.getBlock = () => B.AIR;
     try {
       const build = M.pod ? pod : house;
       for (const sh of shops) if (!sh.castle) build(sh.x, sh.z, vy, sh.dirX, sh.dirZ, sh.kind === 'elder' ? B.GOLD : (SHOP_BUILD[sh.kind] || {}).marker || B.LOG, FURNISH[sh.kind] || null);
       const r = U.rng(U.combine(world.seed, U.strHash(v.id)));
-      for (const l of lots) if (!l.used) { if (r() < 0.12) { for (let a = -2; a <= 2; a++) for (let b = -2; b <= 2; b++) if (r() < 0.35 && M.bush) push(l.x + a, vy, l.z + b, M.bush); continue; } build(l.x, l.z, vy, l.dirX, l.dirZ, B.LOG, null); l.home = true; }
+      for (const l of lots) if (!l.used) { if (r() < 0.12) { for (let a = -2; a <= 2; a++) for (let b = -2; b <= 2; b++) if (r() < 0.35 && M.bush) push(l.x + a, vy, l.z + b, M.bush); continue; } build(l.x, l.z, vy, l.dirX, l.dirZ, null, null); l.home = true; }
     } finally { world.setBlock = sb; world.getBlock = gb; }
     const L = { R, buckets, shops, homes: lots.filter(l => l.home), streets, plots };
     towns.set(v.id, L); return L;
@@ -5495,8 +5618,10 @@ const Village = (() => {
   // ---- stamps ----
   // what each style of village is built from: the ground it levels, the square, the posts and lamps, the houses
   const MATS = {
-    land: { ground: B.GRASS, under: B.DIRT, plaza: B.GRAVEL, plazaEdge: B.STONE, post: B.LOG, light: B.TORCH, floor: B.PLANKS, wall: B.PLANKS, window: B.GLASS, roof: B.LOG, eave: B.PLANKS, counter: B.PLANKS, bush: B.BERRY },
-    frontier: { ground: B.SAND, under: B.SAND, plaza: B.SAND, plazaEdge: B.PLANKS, post: B.LOG, light: B.TORCH, floor: B.PLANKS, wall: B.PLANKS, window: B.GLASS, roof: B.PLANKS, eave: B.LOG, counter: B.PLANKS, bush: B.CACTUS, boardwalk: true, saloon: true },
+    land: { ground: B.GRASS, under: B.DIRT, plaza: B.COBBLE, plazaEdge: B.STONE, post: B.LOG, light: B.TORCH, lamp: B.LAMP, floor: B.PLANKS, wall: B.PLASTER, window: B.GLASS, roof: B.TILES, eave: B.PLANKS, counter: B.PLANKS, bush: B.BERRY,
+      houses: [{ wall: B.PLASTER, base: B.STONE, beam: B.BEAM, roofs: [B.TILES, B.TILES, B.SLATE] }, { wall: B.PLASTER, base: B.STONE, beam: B.BEAM, roofs: [B.SLATE] }, { wall: B.STONE, base: B.STONE, beam: null, roofs: [B.SLATE, B.TILES] }, { wall: B.PLANKS, base: B.STONE, beam: B.BEAM, roofs: [B.THATCH, B.TILES] }] },
+    frontier: { ground: B.SAND, under: B.SAND, plaza: B.SAND, plazaEdge: B.PLANKS, post: B.LOG, light: B.TORCH, lamp: B.LAMP, floor: B.PLANKS, wall: B.PLANKS, window: B.GLASS, roof: B.THATCH, eave: B.LOG, counter: B.PLANKS, bush: B.CACTUS, boardwalk: true, saloon: true,
+      houses: [{ wall: B.PLANKS, base: B.PLANKS, beam: B.LOG, roofs: [B.THATCH, B.THATCH, B.PLANKS] }] },
     alien: { ground: B.REGOLITH, under: B.DIRT, plaza: B.STARSALT, plazaEdge: B.BASALT, post: B.BASALT, light: B.MOONGLOW, floor: B.REGOLITH, wall: B.SELGLASS, window: B.SELGLASS, roof: B.SELGLASS, eave: B.SELGLASS, counter: B.BASALT, bush: null, pod: true },
     halo: { ground: B.DUNE, under: B.DIRT, plaza: B.SALTCRUST, plazaEdge: B.STONE, post: B.STONE, light: B.RINGSHARD, floor: B.STONE, wall: B.STONE, window: B.GLASS, roof: B.SALTCRUST, eave: B.STONE, counter: B.STONE, bush: B.SULFUR },
   };
@@ -5516,7 +5641,8 @@ const Village = (() => {
     }
     for (let dx = -3; dx <= 3; dx++) for (let dz = -3; dz <= 3; dz++) set(vx + dx, vy - 1, vz + dz, (Math.abs(dx) === 3 || Math.abs(dz) === 3) ? M.plazaEdge : M.plaza);
     set(vx, vy, vz, B.FUSION);
-    for (const [dx, dz] of [[-3, -3], [3, -3], [-3, 3], [3, 3]]) { set(vx + dx, vy, vz + dz, M.post); set(vx + dx, vy + 1, vz + dz, M.light); }
+    const lamp = (x, z) => { if (M.lamp) set(x, vy, z, M.lamp); else { set(x, vy, z, M.post); set(x, vy + 1, z, M.light); } };
+    for (const [dx, dz] of [[-3, -3], [3, -3], [-3, 3], [3, 3]]) lamp(vx + dx, vz + dz);
     const build = M.pod ? pod : house;
     build(vx - 9, vz - 9, vy, 1, 0, B.EMBER, furnishBakery);
     build(vx + 9, vz - 9, vy, -1, 0, B.BERRY, furnishJuice);
@@ -5524,7 +5650,7 @@ const Village = (() => {
     build(vx + 9, vz + 9, vy, -1, 0, B.CLOUD, furnishElder);
     build(vx, vz + 10, vy, 0, -1, B.VOID, furnishVoodoo);
     if (M.saloon) { set(vx + 9 - 3, vy, vz - 9, B.DOOR); } // the saloon: swinging doors in the juice bar's doorway
-    for (const [dx, dz] of [[-9, -5], [9, -5], [-9, 5], [9, 5], [0, 6]]) { set(vx + dx, vy, vz + dz, M.post); set(vx + dx, vy + 1, vz + dz, M.light); }
+    for (const [dx, dz] of [[-9, -5], [9, -5], [-9, 5], [9, 5], [0, 6]]) lamp(vx + dx, vz + dz);
     if (M.boardwalk) { // plank walks along the fronts of the houses and a hitching rail by the square
       for (let d = -12; d <= 12; d++) { for (const [x, z] of [[vx - 5, vz + d], [vx + 5, vz + d], [vx + d, vz - 5], [vx + d, vz + 5]]) if (Math.abs(d) > 3 && world.getBlock(x, vy, z) === B.AIR) set(x, vy - 1, z, B.PLANKS); }
       for (let d = -2; d <= 2; d++) { set(vx + d, vy, vz - 4, d % 2 ? B.LOG : B.AIR); }
@@ -5536,23 +5662,51 @@ const Village = (() => {
       if (world.getBlock(x, vy - 1, z) === M.ground && world.getBlock(x, vy, z) === B.AIR) set(x, vy, z, M.bush);
     }
   }
-  // a 7x7 house: floor, walls with windows, a roof with eaves, a marker over the door and a lamp inside; materials from the style
+  // a town house, 7x7 and four walls high: a stone footing, plastered or planked walls with timber at the corners, a beam between the
+  // floors and round the door, framed windows on both floors with flower boxes under the lower ones, a pitched roof with its ridge along
+  // the door's axis and eaves all round, a gable at each end, a chimney on the back gable, a lamp hung from the ceiling, and the shop's
+  // marker over the door (drawn as a hanging sign). Each house picks its own style and roof from the town's list, so a street is not a row of copies.
   function house(hx, hz, vy, dirX, dirZ, marker, furnish) {
     const M = MAT; const set = (x, y, z, id) => world.setBlock(x, y, z, id);
-    for (let dx = -3; dx <= 3; dx++) for (let dz = -3; dz <= 3; dz++) {
-      set(hx + dx, vy - 1, hz + dz, M.floor);
-      const wall = Math.abs(dx) === 3 || Math.abs(dz) === 3;
-      for (let y = vy; y <= vy + 2; y++) {
-        let id = wall ? M.wall : B.AIR;
-        if (wall && y === vy + 1 && ((Math.abs(dx) === 3 && Math.abs(dz) === 1) || (Math.abs(dz) === 3 && Math.abs(dx) === 1))) id = M.window;
-        set(hx + dx, y, hz + dz, id);
+    const styles = M.houses || [{ wall: M.wall, base: M.wall, beam: null, roofs: [M.roof] }];
+    const h1 = U.hash3(hx, 11, hz, 0x4a), h2 = U.hash3(hx, 12, hz, 0x4b); const st = styles[Math.floor(h1 * styles.length)]; const roof = st.roofs[Math.floor(h2 * st.roofs.length)];
+    const beam = st.beam; const alongX = dirX !== 0; const sgn = alongX ? dirX : dirZ; // the ridge runs along the door's axis; the door is at a = 3 * sgn
+    const A = (dx, dz) => alongX ? dx : dz, Bc = (dx, dz) => alongX ? dz : dx;
+    const WT = 3; // the top wall row
+    const lvl = (b) => vy + WT + (4 - Math.abs(b)); // the roof block's height across the house: eaves at the wall top, the ridge four higher
+    for (let dx = -4; dx <= 4; dx++) for (let dz = -4; dz <= 4; dz++) {
+      const x = hx + dx, z = hz + dz; const a = A(dx, dz), b = Bc(dx, dz); const inside = Math.abs(dx) <= 3 && Math.abs(dz) <= 3;
+      for (let y = vy; y <= vy + 10; y++) if (world.getBlock(x, y, z) !== B.AIR) set(x, y, z, B.AIR);
+      if (inside) {
+        set(x, vy - 1, z, M.floor);
+        const wall = Math.abs(dx) === 3 || Math.abs(dz) === 3, corner = Math.abs(dx) === 3 && Math.abs(dz) === 3;
+        const lowWin = (Math.abs(dx) === 3 && Math.abs(dz) === 1) || (Math.abs(dz) === 3 && Math.abs(dx) === 1);
+        const highWin = (Math.abs(dx) === 3 && Math.abs(dz) === 2) || (Math.abs(dz) === 3 && Math.abs(dx) === 2);
+        const doorway = a === 3 * sgn && b === 0, doorPost = a === 3 * sgn && Math.abs(b) === 1;
+        for (let y = vy; y <= vy + WT; y++) {
+          let id = B.AIR;
+          if (wall) {
+            id = y === vy ? st.base : st.wall;
+            if (beam && (corner || y === vy + 2 || (doorPost && y <= vy + 1))) id = beam;
+            if ((lowWin && y === vy + 1) || (highWin && y === vy + 3)) id = M.window;
+            if (doorway) id = y === vy + 2 ? (marker || beam || st.wall) : y > vy + 2 ? st.wall : B.AIR;
+          }
+          set(x, y, z, id);
+        }
+        if (Math.abs(dx) <= 2 && Math.abs(dz) <= 2) set(x, vy + WT + 1, z, M.floor); // the ceiling: the attic is its own dark space under the roof
+        if (Math.abs(a) === 3 && Math.abs(b) <= 2) { // the gable: a triangle of wall under the roof, a beam along its foot and up its middle, a little window
+          for (let y = vy + WT + 1; y < lvl(b); y++) set(x, y, z, beam && (y === vy + WT + 1 || b === 0) ? beam : (b === 0 && y === vy + WT + 3) ? M.window : st.wall);
+          if (a === -3 * sgn && b === -2) for (let y = vy + WT + 1; y <= vy + WT + 5; y++) set(x, y, z, B.STONE); // the chimney, up through the back gable
+        }
       }
-      set(hx + dx, vy + 3, hz + dz, M.roof);
-      for (let y = vy + 4; y <= vy + 7; y++) if (world.getBlock(hx + dx, y, hz + dz) !== B.AIR) set(hx + dx, y, hz + dz, B.AIR);
+      if (!(a === -3 * sgn && b === -2)) set(x, lvl(b), z, roof); // the roof: a wedge at every spot but the chimney's
     }
-    for (let dx = -4; dx <= 4; dx++) for (let dz = -4; dz <= 4; dz++) if (Math.abs(dx) === 4 || Math.abs(dz) === 4) set(hx + dx, vy + 3, hz + dz, M.eave);
-    set(hx + dirX * 3, vy, hz + dirZ * 3, B.AIR); set(hx + dirX * 3, vy + 1, hz + dirZ * 3, B.AIR); set(hx + dirX * 3, vy + 2, hz + dirZ * 3, marker);
-    set(hx, vy + 2, hz, M.light);
+    // window boxes under the lower windows, outside the walls
+    for (const [wa, wb] of [[1, 4], [-1, 4], [1, -4], [-1, -4], [4, 1], [4, -1], [-4, 1], [-4, -1]]) {
+      const dx = alongX ? wa : wb, dz = alongX ? wb : wa; if (U.hash3(hx + dx, 13, hz + dz, 0x4c) < 0.4) continue;
+      if (world.getBlock(hx + dx, vy + 1, hz + dz) === B.AIR) set(hx + dx, vy + 1, hz + dz, B.FLOWERBOX);
+    }
+    if (M.lamp) set(hx, vy + WT, hz, M.lamp); else set(hx, vy + 2, hz, M.light);
     if (furnish) furnish(hx, hz, dirX, dirZ, vy);
   }
   // an alien pod: a hemisphere of selenite glass on a regolith floor, a doorway cut in the rim, a moonglow keystone

@@ -213,7 +213,7 @@ const R = (() => {
       }
       float lam = max(dot(n, uSun), 0.0) * uSunAmt;
       float sh = lam > 0.001 ? shadowAt(vWorld, n) : 1.0;
-      vec3 amb = vec3(0.78, 0.86, 1.05) * (0.36 + 0.26 * uDay) * (0.86 + 0.14 * n.y);
+      vec3 amb = vec3(0.78, 0.86, 1.05) * (0.4 + 0.3 * uDay) * (0.86 + 0.14 * n.y);
       vec3 light = skyL * (amb * (0.88 + 0.12 * sh) + uSunCol * lam * sh * 0.78 * uDay);
       light = max(light, vec3(uAmbient)); light = max(light, vec3(1.0, 0.78, 0.52) * torch * 0.95);
       light = mix(light, vec3(1.0), emis);
@@ -228,7 +228,7 @@ const R = (() => {
         vec2 uv = abs(n.x) > 0.5 ? vWorld.zy : (abs(n.y) > 0.5 ? vWorld.xz : vWorld.xy);
         vec3 bp = floor(vWorld - n * 0.5);
         float hb = hash3(bp); float speck = hash3(vec3(floor(uv * 8.0), bp.y)); float blot = hash3(vec3(floor(uv * 3.0), bp.x + bp.z));
-        int matp = int(vMat + 0.5); float soil = (matp == 1 || matp == 2 || matp == 4 || matp == 5) ? 1.0 : 0.0; float blocky = (matp == 7 || matp == 0 || soil > 0.5) ? 0.0 : 1.0; // leaves, props and the ground are not blocks: no per-block paint on them
+        int matp = int(vMat + 0.5); float soil = (matp == 1 || matp == 2 || matp == 4 || matp == 5) ? 1.0 : 0.0; float blocky = (matp == 7 || matp == 0 || matp >= 9 || soil > 0.5) ? 0.0 : 1.0; // leaves, props, the ground and the town's materials are not blocks: no per-block paint on them
         col *= 1.0 + blocky * (-0.1 + 0.1 * hb + (speck - 0.5) * 0.12 * uQuality + (blot - 0.5) * 0.07);
         col *= 1.0 + soil * ((vn(uv * 0.7 + 3.0) - 0.5) * 0.1 + (vn(uv * 2.3 + 8.0) - 0.5) * 0.05); // the ground: a soft drift of light and dark instead
         // broad painted drift: warm and cool patches across the land
@@ -267,6 +267,26 @@ const R = (() => {
           float grain = sin(uv.y * 38.0 + vn(uv * vec2(2.0, 0.4)) * 7.0) * 0.5 + 0.5; col *= 0.93 + 0.1 * smoothstep(0.3, 0.8, grain) * near;
         } else if (mat == 7) { // leaves: dapple
           col *= 0.9 + 0.2 * vn(vWorld.xz * 2.2 + vWorld.y * 0.7);
+        } else if (mat == 9 || mat == 13) { // tiles and slates: rows up the slope, each row offset half a tile, every tile its own shade, a dark seam between
+          float along = abs(n.x) > abs(n.z) ? vWorld.z : vWorld.x; float rows = mat == 9 ? 3.0 : 4.5, tw = mat == 9 ? 2.0 : 2.6;
+          float row = floor(vWorld.y * rows + 0.5); float ry = fract(vWorld.y * rows + 0.5);
+          float tc = along * tw + mod(row, 2.0) * 0.5; float ti = floor(tc), tf = fract(tc);
+          float seam = smoothstep(0.0, 0.07, tf) * smoothstep(1.0, 0.93, tf) * smoothstep(0.0, 0.1, ry);
+          float own = hash3(vec3(ti, row, 2.0));
+          col *= (0.72 + 0.28 * seam) * (0.9 + 0.2 * own) * (1.0 + (mat == 9 ? 0.1 : 0.03) * sin(tf * 3.1416)) * (0.92 + 0.08 * smoothstep(0.0, 0.5, ry));
+          col *= 0.94 + 0.12 * vn(vec2(along, vWorld.y) * 0.5 + 3.0); // weathering in patches
+        } else if (mat == 12) { // thatch: bundles of straw combed down the slope, in ragged rows
+          float along = abs(n.x) > abs(n.z) ? vWorld.z : vWorld.x;
+          float straw = vn(vec2(along * 42.0, vWorld.y * 5.0)) * 0.6 + vn(vec2(along * 90.0 + 2.0, vWorld.y * 9.0)) * 0.4;
+          float row = fract(vWorld.y * 1.8 + vn(vec2(along * 1.5, 1.0)) * 0.3); float lip = smoothstep(0.0, 0.18, row) * (0.85 + 0.15 * smoothstep(0.7, 1.0, row));
+          col *= (0.72 + 0.4 * straw) * (0.8 + 0.2 * lip) * (0.94 + 0.1 * vn(vec2(along, vWorld.y) * 0.4 + 7.0));
+        } else if (mat == 10) { // plaster: soft trowel marks, a little grime low down
+          col *= 0.95 + 0.07 * vn(uv * 3.0 + 1.0) + 0.03 * vn(uv * 11.0);
+        } else if (mat == 11) { // cobbles: rounded stones packed in a bed of dark mortar
+          vec2 q = uv * 3.2; vec2 ci = floor(q), cf = fract(q); float f1 = 9.0, f2 = 9.0, idc = 0.0;
+          for (int i = -1; i <= 1; i++) for (int j = -1; j <= 1; j++) { vec2 g = vec2(float(i), float(j)); vec2 o = vec2(hash3(vec3(ci + g, 1.0)), hash3(vec3(ci + g, 2.0))) * 0.7 + 0.15; float d = length(g + o - cf); if (d < f1) { f2 = f1; f1 = d; idc = hash3(vec3(ci + g, 3.0)); } else if (d < f2) f2 = d; }
+          float mortar = smoothstep(0.0, 0.16, f2 - f1); float dome = 1.0 - f1 * 0.35;
+          col *= mix(0.72, 1.0, mortar) * (0.88 + 0.24 * idc) * dome * (0.94 + 0.1 * vn(uv * 0.3 + 5.0));
         }
       }
     }
@@ -655,12 +675,15 @@ const R = (() => {
   }
 
   // ---------- chunk meshing ----------
-  // material classes for the fragment shader: 1 grass top, 2 sand, 3 rock, 4 earth, 5 snow, 6 wood, 7 leaves, 8 lava
-  const MAT_OF = {}; for (const [ids, m] of [[[B.SAND, B.DUNE, B.SALTCRUST], 2], [[B.STONE, B.GRAVEL, B.MOSS, B.COPPER, B.IRON, B.EMBER, B.GOLD, B.DIAMOND, B.BASALT, B.BEDROCK, B.FORTSTONE, B.RUBBLE, B.SELENITE, B.TYCHO, B.AMBER, B.REGOLITH, B.BOULDER], 3], [[B.DIRT], 4], [[B.SNOW], 5], [[B.PLANKS, B.LOG, B.BIRCHLOG, B.PALMLOG, B.DOOR, B.DOOR_OPEN, B.LADDER, B.CHEST], 6], [[B.LEAVES, B.BERRYLEAF, B.NEEDLES, B.CACTUS], 7], [[B.LAVA], 8]]) for (const id of ids) MAT_OF[id] = m;
+  // material classes for the fragment shader: 1 grass top, 2 sand, 3 rock, 4 earth, 5 snow, 6 wood, 7 leaves, 8 lava, 9 tiles, 10 plaster, 11 cobbles, 12 thatch, 13 slate
+  const MAT_OF = {}; for (const [ids, m] of [[[B.SAND, B.DUNE, B.SALTCRUST], 2], [[B.STONE, B.GRAVEL, B.MOSS, B.COPPER, B.IRON, B.EMBER, B.GOLD, B.DIAMOND, B.BASALT, B.BEDROCK, B.FORTSTONE, B.RUBBLE, B.SELENITE, B.TYCHO, B.AMBER, B.REGOLITH, B.BOULDER], 3], [[B.DIRT], 4], [[B.SNOW], 5], [[B.PLANKS, B.LOG, B.BIRCHLOG, B.PALMLOG, B.BEAM, B.DOOR, B.DOOR_OPEN, B.LADDER, B.CHEST], 6], [[B.LEAVES, B.BERRYLEAF, B.NEEDLES, B.CACTUS], 7], [[B.LAVA], 8], [[B.TILES], 9], [[B.PLASTER], 10], [[B.COBBLE], 11], [[B.THATCH], 12], [[B.SLATE], 13]]) for (const id of ids) MAT_OF[id] = m;
   const scratchOpaque = new MeshBuilder(16384, false, true), scratchWater = new MeshBuilder(2048, false, true), scratchGlass = new MeshBuilder(512, false, true), scratchGrass = new MeshBuilder(8192, false, true);
   const SOIL = new Set([B.GRASS, B.DIRT, B.SAND, B.SNOW, B.GRAVEL, B.STONE, B.MOSS, B.GLOWGRASS, B.REGOLITH, B.DUNE, B.SALTCRUST]);
   // things that stand on the ground without stopping it from sloping: air, leaves, trunks, bushes, flowers, pebbles, torches, chests...
   const DECOR = (b) => b === B.AIR || isLeaf(b) || isTrunk(b) || b === B.BERRY || BLOCKS[b].partial;
+  const ROOFB = (b) => b === B.TILES || b === B.SLATE || b === B.THATCH;
+  const SIGNABLE = new Set([B.EMBER, B.BERRY, B.COPPER, B.VOID, B.IRON, B.GOLD, B.GLOWWORM, B.LOG, B.MOONGLOW, B.CLOUD, B.SELENITE, B.BERRYLEAF, B.AMBER]);
+  const WALLY = (b) => b === B.PLANKS || b === B.PLASTER || b === B.BEAM || b === B.IRONWALL || b === B.VOIDWALL || b === B.SELGLASS;
   const surfTop = new Int16Array(18 * 18), surfWet = new Int16Array(18 * 18), cornerH = new Float32Array(17 * 17);
   const FLOWERS = [[0.95, 0.85, 0.25], [0.95, 0.95, 0.95], [0.85, 0.35, 0.55], [0.6, 0.5, 0.95], [0.95, 0.5, 0.25]];
   function buildChunk(world, chunk) {
@@ -718,6 +741,82 @@ const R = (() => {
         const wx = ox + lx, wz = oz + lz;
         const vr = SOIL.has(id) ? 0.98 + U.hash3(wx, y, wz, 5) * 0.03 : 0.92 + U.hash3(wx, y, wz, 5) * 0.12; // per-block variation (the ground keeps almost none: its shader paints it smoothly)
         if (id === B.STATUE) continue; // drawn as an entity
+        // a shop's marker block over its doorway: drawn as the wall it sits in, with a sign hanging out over the street in the marker's colour
+        if (SIGNABLE.has(id) && y >= 2 && get(lx, y - 1, lz) === B.AIR && get(lx, y - 2, lz) === B.AIR) {
+          const axis = (WALLY(get(lx + 1, y, lz)) && WALLY(get(lx - 1, y, lz))) ? 'x' : (WALLY(get(lx, y, lz + 1)) && WALLY(get(lx, y, lz - 1))) ? 'z' : null;
+          if (axis) {
+            const wb = axis === 'x' ? get(lx + 1, y, lz) : get(lx, y, lz + 1); const wi = BLOCKS[wb]; const sk = skyAt(lx, y + 1, lz);
+            op.curMat = MAT_OF[wb] || 0; const wpal = world.preset.paletteRgb && world.preset.paletteRgb[wb]; op.box(lx, y, lz, lx + 1, y + 1, lz + 1, wpal ? wpal[1] : wi.side, sk, false);
+            op.curMat = 0;
+            const out = axis === 'x' ? [0, skyAt(lx, y, lz + 1) >= skyAt(lx, y, lz - 1) ? 1 : -1] : [skyAt(lx + 1, y, lz) >= skyAt(lx - 1, y, lz) ? 1 : -1, 0];
+            const bx = lx + 0.5, bz = lz + 0.5, ox = out[0], oz = out[1]; const iron = [0.2, 0.2, 0.23], wood = [0.42, 0.29, 0.15], edge = [0.3, 0.2, 0.1];
+            op.tube([[bx + ox * 0.5, y + 0.86, bz + oz * 0.5], [bx + ox * 0.98, y + 0.86, bz + oz * 0.98]], [0.03, 0.03], iron, { sky: sk, segs: 4, cap0: 'none', cap1: 'round' }); // the bracket
+            op.tube([[bx + ox * 0.5, y + 0.62, bz + oz * 0.5], [bx + ox * 0.86, y + 0.84, bz + oz * 0.86]], [0.022, 0.022], iron, { sky: sk, segs: 4, cap0: 'none', cap1: 'none' }); // its stay
+            const px = ox ? 0 : 0.34, pz = oz ? 0 : 0.34; const sx = bx + ox * 0.78, sz = bz + oz * 0.78; // the board hangs under the bracket's end
+            for (const sgn of [-1, 1]) op.tube([[sx + px * sgn * 0.8, y + 0.85, sz + pz * sgn * 0.8], [sx + px * sgn * 0.8, y + 0.7, sz + pz * sgn * 0.8]], [0.012, 0.012], iron, { sky: sk, segs: 4, cap0: 'none', cap1: 'none' }); // chains
+            op.blob(sx - px - ox * 0.03, y + 0.22, sz - pz - oz * 0.03, sx + px + ox * 0.03, y + 0.7, sz + pz + oz * 0.03, 0.15, wood, { sky: sk, n: 2, under: edge, split: 0.0, soft: 0.5 });
+            const em = info.emissive; const ec = (world.preset.paletteRgb && world.preset.paletteRgb[id]) ? world.preset.paletteRgb[id][0] : info.top;
+            for (const sgn of [-1, 1]) op.blob(sx - px * 0.5 + ox * sgn * 0.035 - (oz ? 0.14 : 0.0), y + 0.32, sz - pz * 0.5 + oz * sgn * 0.035 - (ox ? 0.14 : 0.0), sx + px * 0.5 + ox * sgn * 0.035 + (oz ? 0.14 : 0.0), y + 0.6, sz + pz * 0.5 + oz * sgn * 0.035 + (ox ? 0.14 : 0.0), 0.9, ec, { sky: sk, n: 2, emis: em }); // the emblem, both faces
+            continue;
+          }
+        }
+        if (ROOFB(id)) { // a roof block is a wedge that leans toward the ridge: the slope faces the sky, the ridge block is a peak, the ends show a sawn rafter
+          const sk = skyAt(lx, y + 1, lz); const D4 = [[1, 0], [-1, 0], [0, 1], [0, -1]]; const CX = [0, 1, 1, 0], CZ = [0, 0, 1, 1];
+          const pal = world.preset.paletteRgb && world.preset.paletteRgb[id]; const topC = pal ? pal[0] : info.top; const rafter = [0.4, 0.27, 0.15], under = [0.36, 0.25, 0.15];
+          const ups = D4.filter(([a, b]) => ROOFB(get(lx + a, y + 1, lz + b))), dns = D4.filter(([a, b]) => ROOFB(get(lx + a, y - 1, lz + b)));
+          let H = null, ridge = null;
+          if (ups.length >= 1 && ups.length <= 2 && !(ups.length === 2 && ups[0][0] === -ups[1][0] && ups[0][1] === -ups[1][1])) { H = [0, 0, 0, 0]; for (const [a, b] of ups) for (let i = 0; i < 4; i++) H[i] += a > 0 ? CX[i] : a < 0 ? 1 - CX[i] : b > 0 ? CZ[i] : 1 - CZ[i]; H = H.map(v => Math.min(1, v)); }
+          else if (ups.length === 0) {
+            const diag = [[1, 1], [-1, 1], [1, -1], [-1, -1]].find(([a, b]) => ROOFB(get(lx + a, y + 1, lz + b)) && ROOFB(get(lx + a, y, lz)) && ROOFB(get(lx, y, lz + b)));
+            if (diag) H = CX.map((cx, i) => Math.max(0, (diag[0] > 0 ? cx : 1 - cx) + (diag[1] > 0 ? CZ[i] : 1 - CZ[i]) - 1)); // a hip corner
+            else if (dns.some(([a, b]) => dns.some(([c, d]) => a === -c && b === -d))) ridge = dns.find(([a]) => a !== 0) ? 'x' : 'z'; // slopes fall away to both sides
+            else if (dns.length === 1) { const [a, b] = dns[0]; H = CX.map((cx, i) => a > 0 ? 1 - cx : a < 0 ? cx : b > 0 ? 1 - CZ[i] : CZ[i]); }
+          }
+          const P = (i, h) => [lx + CX[i], y + h, lz + CZ[i]];
+          const face = (verts, col, mat, nrm) => { op.curMat = mat; const n = nrm || (() => { const [a, b, c] = verts; const ux = b[0] - a[0], uy = b[1] - a[1], uz = b[2] - a[2], vx = c[0] - a[0], vy = c[1] - a[1], vz = c[2] - a[2]; const nx = uy * vz - uz * vy, ny = uz * vx - ux * vz, nz = ux * vy - uy * vx; const l = Math.hypot(nx, ny, nz) || 1; return [nx / l, ny / l, nz / l]; })(); op.quad(verts, [col, col, col, col], [sk, sk, sk, sk], false, [n, n, n, n]); };
+          if (ridge) { // a peak along the ridge axis, half a block high, the two slopes meeting on it
+            const a0 = ridge === 'x' ? [lx + 0.5, y + 0.5, lz] : [lx, y + 0.5, lz + 0.5], a1 = ridge === 'x' ? [lx + 0.5, y + 0.5, lz + 1] : [lx + 1, y + 0.5, lz + 0.5];
+            if (ridge === 'x') { face([[lx, y, lz], [lx, y, lz + 1], a1, a0], topC, MAT_OF[id], [-0.707, 0.707, 0]); face([[lx + 1, y, lz + 1], [lx + 1, y, lz], a0, a1], topC, MAT_OF[id], [0.707, 0.707, 0]); if (!ROOFB(get(lx, y, lz - 1))) face([[lx, y, lz], a0, a0, [lx + 1, y, lz]], rafter, 6, [0, 0, -1]); if (!ROOFB(get(lx, y, lz + 1))) face([[lx + 1, y, lz + 1], a1, a1, [lx, y, lz + 1]], rafter, 6, [0, 0, 1]); }
+            else { face([[lx, y, lz], a0, a1, [lx + 1, y, lz]], topC, MAT_OF[id], [0, 0.707, -0.707]); face([[lx + 1, y, lz + 1], a1, a0, [lx, y, lz + 1]], topC, MAT_OF[id], [0, 0.707, 0.707]); if (!ROOFB(get(lx - 1, y, lz))) face([[lx, y, lz + 1], a0, a0, [lx, y, lz]], rafter, 6, [-1, 0, 0]); if (!ROOFB(get(lx + 1, y, lz))) face([[lx + 1, y, lz], a1, a1, [lx + 1, y, lz + 1]], rafter, 6, [1, 0, 0]); }
+            if (!isOpaque(get(lx, y - 1, lz))) face([[lx, y, lz], [lx + 1, y, lz], [lx + 1, y, lz + 1], [lx, y, lz + 1]], under, 6, [0, -1, 0]);
+            continue;
+          }
+          if (!H) H = [1, 1, 1, 1]; // a lone roof block: a flat cap
+          const flat = H.every(h => h === H[0]);
+          // the slope: one quad through the four corner heights
+          { const v = [P(0, H[0]), P(3, H[3]), P(2, H[2]), P(1, H[1])]; let nx = 0, ny = 0, nz = 0; for (let i = 0; i < 4; i++) { const a = v[i], b = v[(i + 1) % 4]; nx += (a[1] - b[1]) * (a[2] + b[2]); ny += (a[2] - b[2]) * (a[0] + b[0]); nz += (a[0] - b[0]) * (a[1] + b[1]); } const l = Math.hypot(nx, ny, nz) || 1; face(v, topC, MAT_OF[id], [nx / l, ny / l, nz / l]); }
+          // the sides: trapezoids where the surface is above the block floor, skipped against a neighbour that covers them
+          const sides = [[1, 0, [1, 2]], [-1, 0, [3, 0]], [0, 1, [2, 3]], [0, -1, [0, 1]]];
+          for (const [a, b, [i, j]] of sides) {
+            if (H[i] <= 0 && H[j] <= 0) continue; const nb = get(lx + a, y, lz + b); if (isOpaque(nb) || (ROOFB(nb) && !flat)) continue;
+            face([P(i, 0), P(j, 0), P(j, H[j]), P(i, H[i])], H[i] >= 0.999 && H[j] >= 0.999 ? under : rafter, 6, [a, 0, b]);
+          }
+          if (!isOpaque(get(lx, y - 1, lz))) face([[lx, y, lz], [lx + 1, y, lz], [lx + 1, y, lz + 1], [lx, y, lz + 1]], under, 6, [0, -1, 0]);
+          continue;
+        }
+        if (id === B.LAMP) { // a street lamp: an iron post with a caged lantern, or a lantern hung from a beam
+          const sk = skyAt(lx, y, lz); const iron = [0.16, 0.17, 0.2], glass = [1.0, 0.86, 0.5]; const cx = lx + 0.5, cz = lz + 0.5;
+          const hanging = isOpaque(get(lx, y + 1, lz)) && !isSolid(get(lx, y - 1, lz)); let ly;
+          if (hanging) { op.tube([[cx, y + 1, cz], [cx, y + 0.74, cz]], [0.02, 0.02], iron, { sky: sk, segs: 4, cap0: 'none', cap1: 'none' }); ly = y + 0.3; }
+          else { op.blob(cx - 0.2, y, cz - 0.2, cx + 0.2, y + 0.1, cz + 0.2, 0.5, iron, { sky: sk, n: 2 }); op.tube([[cx, y + 0.08, cz], [cx, y + 0.9, cz], [cx, y + 1.0, cz], [cx, y + 1.62, cz]], [0.065, 0.05, 0.07, 0.045], iron, { sky: sk, segs: 6, cap0: 'none', cap1: 'flat' }); ly = y + 1.62; }
+          const w = 0.16, hgt = 0.32;
+          op.blob(cx - w * 0.78, ly + 0.02, cz - w * 0.78, cx + w * 0.78, ly + hgt - 0.02, cz + w * 0.78, 0.2, glass, { emis: true, n: 1 });
+          for (const [a, b] of [[-1, -1], [1, -1], [1, 1], [-1, 1]]) op.box(cx + a * w - 0.018, ly, cz + b * w - 0.018, cx + a * w + 0.018, ly + hgt, cz + b * w + 0.018, iron, sk, false);
+          op.box(cx - w - 0.03, ly - 0.03, cz - w - 0.03, cx + w + 0.03, ly + 0.01, cz + w + 0.03, iron, sk, false);
+          op.blob(cx - w - 0.06, ly + hgt, cz - w - 0.06, cx + w + 0.06, ly + hgt + 0.17, cz + w + 0.06, 0.25, iron, { sky: sk, n: 2, tap: [1, 0.25] });
+          op.ball(cx, ly + hgt + 0.2, cz, 0.035, iron, { sky: sk, n: 1 });
+          continue;
+        }
+        if (id === B.FLOWERBOX) { // a window box against the wall behind it, spilling flowers
+          const sk = skyAt(lx, y + 1, lz); let d = null; for (const [a, b] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) if (isOpaque(get(lx + a, y, lz + b)) || isOpaque(get(lx + a, y - 1, lz + b))) { d = [a, b]; break; } if (!d) d = [0, -1];
+          const cx = lx + 0.5 + d[0] * 0.34, cz = lz + 0.5 + d[1] * 0.34; const hw = d[0] ? 0.16 : 0.44, hd = d[0] ? 0.44 : 0.16; const wood = [0.44, 0.3, 0.15], soil = [0.25, 0.17, 0.1];
+          op.box(cx - hw, y, cz - hd, cx + hw, y + 0.28, cz + hd, wood, sk, false); op.box(cx - hw + 0.04, y + 0.2, cz - hd + 0.04, cx + hw - 0.04, y + 0.29, cz + hd - 0.04, soil, sk, false);
+          op.box(cx - hw - 0.03, y + 0.26, cz - hd - 0.03, cx + hw + 0.03, y + 0.3, cz + hd + 0.03, wood, sk, false); // the lip
+          const h0 = U.hash3(wx, y, wz, 140); const cols = [[0.95, 0.3, 0.35], [0.98, 0.75, 0.2], [0.9, 0.9, 0.95], [0.75, 0.45, 0.9], [0.98, 0.55, 0.25]]; const c1 = cols[Math.floor(h0 * 5)], c2 = cols[(Math.floor(h0 * 5) + 2) % 5];
+          for (let k = 0; k < 6; k++) { const t = (k + 0.5) / 6 - 0.5; const px = cx + (d[0] ? (U.hash3(wx, y, wz, 141 + k) - 0.5) * 0.16 : t * 0.8), pz = cz + (d[1] ? (U.hash3(wx, y, wz, 141 + k) - 0.5) * 0.16 : t * 0.8); const hh = 0.12 + U.hash3(wx, y, wz, 147 + k) * 0.14;
+            op.blob(px - 0.09, y + 0.22, pz - 0.09, px + 0.09, y + 0.34 + hh * 0.3, pz + 0.09, 0.85, [0.28, 0.55, 0.22], { sky: sk, n: 1 }); op.ball(px + (U.hash3(wx, y, wz, 153 + k) - 0.5) * 0.06, y + 0.36 + hh, pz, 0.065, k % 2 ? c1 : c2, { sky: sk, n: 2 }); }
+          continue;
+        }
         // grass: a tuft of blades on every open grass top, and now and then a flower
         if ((id === B.GRASS || id === B.GLOWGRASS) && y + 1 < WH && blocks[base + y + 1] === B.AIR) {
           const sk = skyAt(lx, y + 1, lz); const top0 = y + 1.0; const c00 = CHt(lx, lz) >= 0 ? CHt(lx, lz) : top0, c10 = CHt(lx + 1, lz) >= 0 ? CHt(lx + 1, lz) : top0, c01 = CHt(lx, lz + 1) >= 0 ? CHt(lx, lz + 1) : top0, c11 = CHt(lx + 1, lz + 1) >= 0 ? CHt(lx + 1, lz + 1) : top0;
@@ -944,6 +1043,19 @@ const R = (() => {
           continue;
         }
         const isWater = id === B.WATER || id === B.BRINE, isGlass = id === B.GLASS || id === B.SELGLASS;
+        if (isGlass) { // glass set in a wall is a window: a frame with a cross, the pane in the middle of the block
+          const wX = isOpaque(get(lx + 1, y, lz)) || isOpaque(get(lx - 1, y, lz)), wZ = isOpaque(get(lx, y, lz + 1)) || isOpaque(get(lx, y, lz - 1));
+          if (wX !== wZ) {
+            const sk = skyAt(lx, y + 1, lz); const wood = [0.36, 0.25, 0.14]; op.curMat = 6;
+            const bx = (x0, y0, z0, x1, y1, z1) => op.box(lx + x0, y + y0, lz + z0, lx + x1, y + y1, lz + z1, wood, sk, false);
+            if (wX) { bx(0, 0, 0.38, 1, 0.12, 0.62); bx(0, 0.88, 0.38, 1, 1, 0.62); bx(0, 0.12, 0.38, 0.12, 0.88, 0.62); bx(0.88, 0.12, 0.38, 1, 0.88, 0.62); bx(0.46, 0.12, 0.42, 0.54, 0.88, 0.58); bx(0.12, 0.46, 0.42, 0.88, 0.54, 0.58); }
+            else { bx(0.38, 0, 0, 0.62, 0.12, 1); bx(0.38, 0.88, 0, 0.62, 1, 1); bx(0.38, 0.12, 0, 0.62, 0.88, 0.12); bx(0.38, 0.12, 0.88, 0.62, 0.88, 1); bx(0.42, 0.12, 0.46, 0.58, 0.88, 0.54); bx(0.42, 0.46, 0.12, 0.58, 0.54, 0.88); }
+            op.curMat = 0; const gc = info.top; const gcol = [gc, gc, gc, gc], gsk = [sk, sk, sk, sk];
+            if (wX) { gs.quad([[lx, y, lz + 0.49], [lx + 1, y, lz + 0.49], [lx + 1, y + 1, lz + 0.49], [lx, y + 1, lz + 0.49]], gcol, gsk, false, [[0, 0, -1], [0, 0, -1], [0, 0, -1], [0, 0, -1]]); gs.quad([[lx + 1, y, lz + 0.51], [lx, y, lz + 0.51], [lx, y + 1, lz + 0.51], [lx + 1, y + 1, lz + 0.51]], gcol, gsk, false, [[0, 0, 1], [0, 0, 1], [0, 0, 1], [0, 0, 1]]); }
+            else { gs.quad([[lx + 0.49, y, lz + 1], [lx + 0.49, y, lz], [lx + 0.49, y + 1, lz], [lx + 0.49, y + 1, lz + 1]], gcol, gsk, false, [[-1, 0, 0], [-1, 0, 0], [-1, 0, 0], [-1, 0, 0]]); gs.quad([[lx + 0.51, y, lz], [lx + 0.51, y, lz + 1], [lx + 0.51, y + 1, lz + 1], [lx + 0.51, y + 1, lz]], gcol, gsk, false, [[1, 0, 0], [1, 0, 0], [1, 0, 0], [1, 0, 0]]); }
+            continue;
+          }
+        }
         const matSide = MAT_OF[id] || 0;
         for (let f = 0; f < 6; f++) {
           const F = FACES[f], n = F.n;

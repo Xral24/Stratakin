@@ -47,12 +47,12 @@ const Village = (() => {
     kinmarket: { name: 'Kin Sale Yard', marker: B.LOG, level: 2, cost: { shards: 400, items: { planks: 30 } } },
     kinshow: { name: 'Kin Show', marker: B.GOLD, level: 2, cost: { shards: 400, items: { planks: 30 } } },
     barber: { name: 'Barber', marker: B.GOLD, level: 2, cost: { shards: 300, items: { planks: 20 } } },
-    mirror: { name: 'Mirror Hall', marker: B.GLASS, level: 2, cost: { shards: 300, items: { planks: 20, glass: 8 } } },
+    mirror: { name: 'Mirror Hall', marker: B.SELENITE, level: 2, cost: { shards: 300, items: { planks: 20, glass: 8 } } },
     designer: { name: 'House of Zazu', marker: B.BERRYLEAF, level: 2, cost: { shards: 300, items: { planks: 20 } } },
     kinwear: { name: 'Kin Outfitter', marker: B.CLOUD, level: 2, cost: { shards: 300, items: { planks: 20 } } },
     tailor: { name: 'Tailor', marker: B.BERRY, level: 2, cost: { shards: 400, items: { planks: 20 } } },
     enchanter: { name: 'Enchanter', marker: B.VOID, level: 2, cost: { shards: 500, items: { planks: 20, void: 2 } } },
-    cartographer: { name: 'Cartographer', marker: B.GLASS, level: 2, cost: { shards: 300, items: { planks: 20 } } },
+    cartographer: { name: 'Cartographer', marker: B.SELENITE, level: 2, cost: { shards: 300, items: { planks: 20 } } },
     daycare: { name: 'Kin Daycare', marker: B.BERRY, level: 2, cost: { shards: 300, items: { planks: 24 } } },
   };
   const SLOTS = [[-11, -11], [11, -11], [-11, 11], [11, 11], [-15, -5], [-15, 5], [15, -5], [15, 5], [-5, -15], [5, -15], [-5, 15], [5, 15]]; // house sites in the expanded ring
@@ -290,9 +290,10 @@ const Village = (() => {
       const fx = vx + hr + 1; for (let y = vy; y <= K - 1; y++) for (let b = -1; b <= 1; b++) push(fx, y, cz0 + b, B.WATER);
       for (let a = 1; a <= 4; a++) for (let b = -2; b <= 2; b++) { push(fx + a, vy - 1, cz0 + b, B.STONE); push(fx + a, vy, cz0 + b, a === 4 || Math.abs(b) === 2 ? B.STONE : B.WATER); }
     }
-    for (const [a, b] of [[-6, -6], [6, -6], [-6, 6], [6, 6]]) { push(vx + a, vy, vz + b, M.post); push(vx + a, vy + 1, vz + b, M.light); }
+    const lamp = (x, z) => { if (M.lamp) push(x, vy, z, M.lamp); else { push(x, vy, z, M.post); push(x, vy + 1, z, M.light); } };
+    for (const [a, b] of [[-6, -6], [6, -6], [-6, 6], [6, 6]]) lamp(vx + a, vz + b);
     // lamps along the streets
-    for (const s0 of streets) for (let d = 9; d < R - 3; d += 8) for (const sg of [-1, 1]) { push(vx + s0 + 2 * sg, vy, vz + d * sg, M.post); push(vx + s0 + 2 * sg, vy + 1, vz + d * sg, M.light); push(vx + d * sg, vy, vz + s0 + 2 * sg, M.post); push(vx + d * sg, vy + 1, vz + s0 + 2 * sg, M.light); }
+    for (const s0 of streets) for (let d = 9; d < R - 3; d += 8) for (const sg of [-1, 1]) { lamp(vx + s0 + 2 * sg, vz + d * sg); lamp(vx + d * sg, vz + s0 + 2 * sg); }
     // lots: a house on every free plot, its door turned to the nearest street
     const lots = [];
     const axis = new Set(); for (const s0 of streets) for (const sg of [-1, 1]) for (let g = s0 + sg * 6; Math.abs(g) + 4 <= R - 5; g += sg * 9) axis.add(g);
@@ -316,14 +317,14 @@ const Village = (() => {
     const nPlots = { start: 1, hamlet: 1, town: 2, city: 3 }[v.starter ? 'start' : v.size] || 1; const plots = [];
     const spare = lots.filter(l => !l.used); for (let i = 0; i < nPlots && spare.length; i++) { const l = spare.splice(Math.floor(spare.length * (0.35 + 0.2 * i)) % spare.length, 1)[0]; l.used = true; l.plot = true; plots.push({ x: l.x, z: l.z, i });
       for (let a = -4; a <= 4; a++) for (let b = -4; b <= 4; b++) push(l.x + a, vy - 1, l.z + b, Math.max(Math.abs(a), Math.abs(b)) === 4 ? M.plazaEdge : M.ground);
-      for (const [a, b] of [[-4, -4], [4, -4], [-4, 4], [4, 4]]) { push(l.x + a, vy, l.z + b, M.post); push(l.x + a, vy + 1, l.z + b, M.light); } }
+      for (const [a, b] of [[-4, -4], [4, -4], [-4, 4], [4, 4]]) lamp(l.x + a, l.z + b); }
     // draw the buildings into the overlay by borrowing the house builder
     const sb = world.setBlock, gb = world.getBlock; world.setBlock = (x, y, z, id) => push(x, y, z, id); world.getBlock = () => B.AIR;
     try {
       const build = M.pod ? pod : house;
       for (const sh of shops) if (!sh.castle) build(sh.x, sh.z, vy, sh.dirX, sh.dirZ, sh.kind === 'elder' ? B.GOLD : (SHOP_BUILD[sh.kind] || {}).marker || B.LOG, FURNISH[sh.kind] || null);
       const r = U.rng(U.combine(world.seed, U.strHash(v.id)));
-      for (const l of lots) if (!l.used) { if (r() < 0.12) { for (let a = -2; a <= 2; a++) for (let b = -2; b <= 2; b++) if (r() < 0.35 && M.bush) push(l.x + a, vy, l.z + b, M.bush); continue; } build(l.x, l.z, vy, l.dirX, l.dirZ, B.LOG, null); l.home = true; }
+      for (const l of lots) if (!l.used) { if (r() < 0.12) { for (let a = -2; a <= 2; a++) for (let b = -2; b <= 2; b++) if (r() < 0.35 && M.bush) push(l.x + a, vy, l.z + b, M.bush); continue; } build(l.x, l.z, vy, l.dirX, l.dirZ, null, null); l.home = true; }
     } finally { world.setBlock = sb; world.getBlock = gb; }
     const L = { R, buckets, shops, homes: lots.filter(l => l.home), streets, plots };
     towns.set(v.id, L); return L;
@@ -587,8 +588,10 @@ const Village = (() => {
   // ---- stamps ----
   // what each style of village is built from: the ground it levels, the square, the posts and lamps, the houses
   const MATS = {
-    land: { ground: B.GRASS, under: B.DIRT, plaza: B.GRAVEL, plazaEdge: B.STONE, post: B.LOG, light: B.TORCH, floor: B.PLANKS, wall: B.PLANKS, window: B.GLASS, roof: B.LOG, eave: B.PLANKS, counter: B.PLANKS, bush: B.BERRY },
-    frontier: { ground: B.SAND, under: B.SAND, plaza: B.SAND, plazaEdge: B.PLANKS, post: B.LOG, light: B.TORCH, floor: B.PLANKS, wall: B.PLANKS, window: B.GLASS, roof: B.PLANKS, eave: B.LOG, counter: B.PLANKS, bush: B.CACTUS, boardwalk: true, saloon: true },
+    land: { ground: B.GRASS, under: B.DIRT, plaza: B.COBBLE, plazaEdge: B.STONE, post: B.LOG, light: B.TORCH, lamp: B.LAMP, floor: B.PLANKS, wall: B.PLASTER, window: B.GLASS, roof: B.TILES, eave: B.PLANKS, counter: B.PLANKS, bush: B.BERRY,
+      houses: [{ wall: B.PLASTER, base: B.STONE, beam: B.BEAM, roofs: [B.TILES, B.TILES, B.SLATE] }, { wall: B.PLASTER, base: B.STONE, beam: B.BEAM, roofs: [B.SLATE] }, { wall: B.STONE, base: B.STONE, beam: null, roofs: [B.SLATE, B.TILES] }, { wall: B.PLANKS, base: B.STONE, beam: B.BEAM, roofs: [B.THATCH, B.TILES] }] },
+    frontier: { ground: B.SAND, under: B.SAND, plaza: B.SAND, plazaEdge: B.PLANKS, post: B.LOG, light: B.TORCH, lamp: B.LAMP, floor: B.PLANKS, wall: B.PLANKS, window: B.GLASS, roof: B.THATCH, eave: B.LOG, counter: B.PLANKS, bush: B.CACTUS, boardwalk: true, saloon: true,
+      houses: [{ wall: B.PLANKS, base: B.PLANKS, beam: B.LOG, roofs: [B.THATCH, B.THATCH, B.PLANKS] }] },
     alien: { ground: B.REGOLITH, under: B.DIRT, plaza: B.STARSALT, plazaEdge: B.BASALT, post: B.BASALT, light: B.MOONGLOW, floor: B.REGOLITH, wall: B.SELGLASS, window: B.SELGLASS, roof: B.SELGLASS, eave: B.SELGLASS, counter: B.BASALT, bush: null, pod: true },
     halo: { ground: B.DUNE, under: B.DIRT, plaza: B.SALTCRUST, plazaEdge: B.STONE, post: B.STONE, light: B.RINGSHARD, floor: B.STONE, wall: B.STONE, window: B.GLASS, roof: B.SALTCRUST, eave: B.STONE, counter: B.STONE, bush: B.SULFUR },
   };
@@ -608,7 +611,8 @@ const Village = (() => {
     }
     for (let dx = -3; dx <= 3; dx++) for (let dz = -3; dz <= 3; dz++) set(vx + dx, vy - 1, vz + dz, (Math.abs(dx) === 3 || Math.abs(dz) === 3) ? M.plazaEdge : M.plaza);
     set(vx, vy, vz, B.FUSION);
-    for (const [dx, dz] of [[-3, -3], [3, -3], [-3, 3], [3, 3]]) { set(vx + dx, vy, vz + dz, M.post); set(vx + dx, vy + 1, vz + dz, M.light); }
+    const lamp = (x, z) => { if (M.lamp) set(x, vy, z, M.lamp); else { set(x, vy, z, M.post); set(x, vy + 1, z, M.light); } };
+    for (const [dx, dz] of [[-3, -3], [3, -3], [-3, 3], [3, 3]]) lamp(vx + dx, vz + dz);
     const build = M.pod ? pod : house;
     build(vx - 9, vz - 9, vy, 1, 0, B.EMBER, furnishBakery);
     build(vx + 9, vz - 9, vy, -1, 0, B.BERRY, furnishJuice);
@@ -616,7 +620,7 @@ const Village = (() => {
     build(vx + 9, vz + 9, vy, -1, 0, B.CLOUD, furnishElder);
     build(vx, vz + 10, vy, 0, -1, B.VOID, furnishVoodoo);
     if (M.saloon) { set(vx + 9 - 3, vy, vz - 9, B.DOOR); } // the saloon: swinging doors in the juice bar's doorway
-    for (const [dx, dz] of [[-9, -5], [9, -5], [-9, 5], [9, 5], [0, 6]]) { set(vx + dx, vy, vz + dz, M.post); set(vx + dx, vy + 1, vz + dz, M.light); }
+    for (const [dx, dz] of [[-9, -5], [9, -5], [-9, 5], [9, 5], [0, 6]]) lamp(vx + dx, vz + dz);
     if (M.boardwalk) { // plank walks along the fronts of the houses and a hitching rail by the square
       for (let d = -12; d <= 12; d++) { for (const [x, z] of [[vx - 5, vz + d], [vx + 5, vz + d], [vx + d, vz - 5], [vx + d, vz + 5]]) if (Math.abs(d) > 3 && world.getBlock(x, vy, z) === B.AIR) set(x, vy - 1, z, B.PLANKS); }
       for (let d = -2; d <= 2; d++) { set(vx + d, vy, vz - 4, d % 2 ? B.LOG : B.AIR); }
@@ -628,23 +632,51 @@ const Village = (() => {
       if (world.getBlock(x, vy - 1, z) === M.ground && world.getBlock(x, vy, z) === B.AIR) set(x, vy, z, M.bush);
     }
   }
-  // a 7x7 house: floor, walls with windows, a roof with eaves, a marker over the door and a lamp inside; materials from the style
+  // a town house, 7x7 and four walls high: a stone footing, plastered or planked walls with timber at the corners, a beam between the
+  // floors and round the door, framed windows on both floors with flower boxes under the lower ones, a pitched roof with its ridge along
+  // the door's axis and eaves all round, a gable at each end, a chimney on the back gable, a lamp hung from the ceiling, and the shop's
+  // marker over the door (drawn as a hanging sign). Each house picks its own style and roof from the town's list, so a street is not a row of copies.
   function house(hx, hz, vy, dirX, dirZ, marker, furnish) {
     const M = MAT; const set = (x, y, z, id) => world.setBlock(x, y, z, id);
-    for (let dx = -3; dx <= 3; dx++) for (let dz = -3; dz <= 3; dz++) {
-      set(hx + dx, vy - 1, hz + dz, M.floor);
-      const wall = Math.abs(dx) === 3 || Math.abs(dz) === 3;
-      for (let y = vy; y <= vy + 2; y++) {
-        let id = wall ? M.wall : B.AIR;
-        if (wall && y === vy + 1 && ((Math.abs(dx) === 3 && Math.abs(dz) === 1) || (Math.abs(dz) === 3 && Math.abs(dx) === 1))) id = M.window;
-        set(hx + dx, y, hz + dz, id);
+    const styles = M.houses || [{ wall: M.wall, base: M.wall, beam: null, roofs: [M.roof] }];
+    const h1 = U.hash3(hx, 11, hz, 0x4a), h2 = U.hash3(hx, 12, hz, 0x4b); const st = styles[Math.floor(h1 * styles.length)]; const roof = st.roofs[Math.floor(h2 * st.roofs.length)];
+    const beam = st.beam; const alongX = dirX !== 0; const sgn = alongX ? dirX : dirZ; // the ridge runs along the door's axis; the door is at a = 3 * sgn
+    const A = (dx, dz) => alongX ? dx : dz, Bc = (dx, dz) => alongX ? dz : dx;
+    const WT = 3; // the top wall row
+    const lvl = (b) => vy + WT + (4 - Math.abs(b)); // the roof block's height across the house: eaves at the wall top, the ridge four higher
+    for (let dx = -4; dx <= 4; dx++) for (let dz = -4; dz <= 4; dz++) {
+      const x = hx + dx, z = hz + dz; const a = A(dx, dz), b = Bc(dx, dz); const inside = Math.abs(dx) <= 3 && Math.abs(dz) <= 3;
+      for (let y = vy; y <= vy + 10; y++) if (world.getBlock(x, y, z) !== B.AIR) set(x, y, z, B.AIR);
+      if (inside) {
+        set(x, vy - 1, z, M.floor);
+        const wall = Math.abs(dx) === 3 || Math.abs(dz) === 3, corner = Math.abs(dx) === 3 && Math.abs(dz) === 3;
+        const lowWin = (Math.abs(dx) === 3 && Math.abs(dz) === 1) || (Math.abs(dz) === 3 && Math.abs(dx) === 1);
+        const highWin = (Math.abs(dx) === 3 && Math.abs(dz) === 2) || (Math.abs(dz) === 3 && Math.abs(dx) === 2);
+        const doorway = a === 3 * sgn && b === 0, doorPost = a === 3 * sgn && Math.abs(b) === 1;
+        for (let y = vy; y <= vy + WT; y++) {
+          let id = B.AIR;
+          if (wall) {
+            id = y === vy ? st.base : st.wall;
+            if (beam && (corner || y === vy + 2 || (doorPost && y <= vy + 1))) id = beam;
+            if ((lowWin && y === vy + 1) || (highWin && y === vy + 3)) id = M.window;
+            if (doorway) id = y === vy + 2 ? (marker || beam || st.wall) : y > vy + 2 ? st.wall : B.AIR;
+          }
+          set(x, y, z, id);
+        }
+        if (Math.abs(dx) <= 2 && Math.abs(dz) <= 2) set(x, vy + WT + 1, z, M.floor); // the ceiling: the attic is its own dark space under the roof
+        if (Math.abs(a) === 3 && Math.abs(b) <= 2) { // the gable: a triangle of wall under the roof, a beam along its foot and up its middle, a little window
+          for (let y = vy + WT + 1; y < lvl(b); y++) set(x, y, z, beam && (y === vy + WT + 1 || b === 0) ? beam : (b === 0 && y === vy + WT + 3) ? M.window : st.wall);
+          if (a === -3 * sgn && b === -2) for (let y = vy + WT + 1; y <= vy + WT + 5; y++) set(x, y, z, B.STONE); // the chimney, up through the back gable
+        }
       }
-      set(hx + dx, vy + 3, hz + dz, M.roof);
-      for (let y = vy + 4; y <= vy + 7; y++) if (world.getBlock(hx + dx, y, hz + dz) !== B.AIR) set(hx + dx, y, hz + dz, B.AIR);
+      if (!(a === -3 * sgn && b === -2)) set(x, lvl(b), z, roof); // the roof: a wedge at every spot but the chimney's
     }
-    for (let dx = -4; dx <= 4; dx++) for (let dz = -4; dz <= 4; dz++) if (Math.abs(dx) === 4 || Math.abs(dz) === 4) set(hx + dx, vy + 3, hz + dz, M.eave);
-    set(hx + dirX * 3, vy, hz + dirZ * 3, B.AIR); set(hx + dirX * 3, vy + 1, hz + dirZ * 3, B.AIR); set(hx + dirX * 3, vy + 2, hz + dirZ * 3, marker);
-    set(hx, vy + 2, hz, M.light);
+    // window boxes under the lower windows, outside the walls
+    for (const [wa, wb] of [[1, 4], [-1, 4], [1, -4], [-1, -4], [4, 1], [4, -1], [-4, 1], [-4, -1]]) {
+      const dx = alongX ? wa : wb, dz = alongX ? wb : wa; if (U.hash3(hx + dx, 13, hz + dz, 0x4c) < 0.4) continue;
+      if (world.getBlock(hx + dx, vy + 1, hz + dz) === B.AIR) set(hx + dx, vy + 1, hz + dz, B.FLOWERBOX);
+    }
+    if (M.lamp) set(hx, vy + WT, hz, M.lamp); else set(hx, vy + 2, hz, M.light);
     if (furnish) furnish(hx, hz, dirX, dirZ, vy);
   }
   // an alien pod: a hemisphere of selenite glass on a regolith floor, a doorway cut in the rim, a moonglow keystone
