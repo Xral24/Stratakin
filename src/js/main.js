@@ -746,7 +746,7 @@ G.loop = function (t) {
   if (w.heart && p.y < 20 && Math.hypot(w.heart.x - p.x, w.heart.z - p.z) < 48) lights.push([w.heart.x + 0.5, 7, w.heart.z + 0.5, 18]);
   for (let i = 0; i < torches.length && lights.length < 8; i++) lights.push([torches[i][0], torches[i][1], torches[i][2], torches[i][4] || 10]);
   const lines = [];
-  if (!inBattle && !this.paused) { const hit = p.raycast(5.5); if (hit && BLOCKS[hit.id].hard !== Infinity) lines.push({ data: R.boxLines(hit.x, hit.y, hit.z), color: [0, 0, 0, 0.75] }); }
+  if (!inBattle && !this.paused) { const hit = p.raycast(5.5); if (hit && BLOCKS[hit.id].hard !== Infinity) lines.push({ data: R.targetLines(w, hit.x, hit.y, hit.z), color: [0, 0, 0, 0.75] }); }
   lines.push(...Wild.rings(p)); lines.push(...Hazards.lines());
   if (!R.state.underwater && !R.state.inCore && p.y >= w.topAt(Math.floor(p.x), Math.floor(p.z)) - 1) { const rl = Weather.rainLines(w, cam, performance.now() / 1000); if (rl) lines.push(rl); }
   document.getElementById('flash').style.opacity = Weather.state.flash > 0.6 ? 0.7 : 0;

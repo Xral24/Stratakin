@@ -145,6 +145,31 @@
     const o = pts3[0]; const pts2 = pts3.map(p => { const dx = p[0] - o[0], dy = p[1] - o[1], dz = p[2] - o[2]; return [dx * u[0] + dy * u[1] + dz * u[2], dx * v[0] + dy * v[1] + dz * v[2]]; });
     this.fin(pts2, { o, u, v }, thick, color, opts);
   };
+  // ribbon: a leaf or strap along a spine, widths[i] out to each side at spine point i, two-sided. opts: droop (0 flat, 1 a steep V fold
+  // along the midrib), tip (a second colour blended toward the far end), rib (the midrib's colour), sky, emis. Alternating widths give a jagged, leafleted edge.
+  P.ribbon = function (spine, widths, color, opts = {}) {
+    const c = col3(color), ct = opts.tip ? col3(opts.tip) : c; const sky = opts.sky == null ? 1 : opts.sky; const emis = !!opts.emis; const droop = opts.droop || 0;
+    const N = spine.length; if (N < 2) return;
+    const norm = (v) => { const l = Math.hypot(v[0], v[1], v[2]) || 1; return [v[0] / l, v[1] / l, v[2] / l]; };
+    const cross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+    const top = [], bot = [];
+    for (let i = 0; i < N; i++) {
+      const a = spine[Math.max(0, i - 1)], b = spine[Math.min(N - 1, i + 1)]; const t = norm([b[0] - a[0], b[1] - a[1], b[2] - a[2]]);
+      let s = [t[2], 0, -t[0]]; const sl = Math.hypot(s[0], s[2]); s = sl < 1e-4 ? [1, 0, 0] : [s[0] / sl, 0, s[2] / sl];
+      const p = spine[i], w = widths[Math.min(i, widths.length - 1)], dn = droop * w;
+      const L = [p[0] - s[0] * w, p[1] - dn, p[2] - s[2] * w], R = [p[0] + s[0] * w, p[1] - dn, p[2] + s[2] * w];
+      let nl = norm(cross(t, [L[0] - p[0], L[1] - p[1], L[2] - p[2]])); if (nl[1] < 0) nl = [-nl[0], -nl[1], -nl[2]];
+      let nr = norm(cross(t, [R[0] - p[0], R[1] - p[1], R[2] - p[2]])); if (nr[1] < 0) nr = [-nr[0], -nr[1], -nr[2]];
+      const nm = norm([nl[0] + nr[0], nl[1] + nr[1], nl[2] + nr[2]]);
+      const k = i / (N - 1); const cc = [lerp(c[0], ct[0], k), lerp(c[1], ct[1], k), lerp(c[2], ct[2], k)]; const cm = opts.rib ? col3(opts.rib) : cc;
+      const mk = (q, n, f, col) => this.vert(q[0], q[1], q[2], n[0] * f, n[1] * f, n[2] * f, col[0], col[1], col[2], sky, emis);
+      top.push([mk(L, nl, 1, cc), mk(p, nm, 1, cm), mk(R, nr, 1, cc)]); bot.push([mk(L, nl, -1, cc), mk(p, nm, -1, cm), mk(R, nr, -1, cc)]);
+    }
+    for (const side of [top, bot]) for (let i = 0; i < N - 1; i++) {
+      const [l0, m0, r0] = side[i], [l1, m1, r1] = side[i + 1];
+      this.triOut(l0, l1, m1); this.triOut(l0, m1, m0); this.triOut(m0, m1, r1); this.triOut(m0, r1, r0);
+    }
+  };
   // a box with softened corners (round 0.1..0.4) in one call
   P.rbox = function (x0, y0, z0, x1, y1, z1, round, color, opts) { this.blob(x0, y0, z0, x1, y1, z1, round, color, Object.assign({ n: 2 }, opts || {})); };
   // a sphere / egg

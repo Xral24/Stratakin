@@ -13,7 +13,7 @@ const B = {
   COPPER: 10, IRON: 11, EMBER: 12, VOID: 13, BASALT: 14, LAVA: 15, CLOUD: 16, GLOWGRASS: 17,
   TORCH: 18, FUSION: 19, GRAVEL: 20, CACTUS: 21, STARMETAL: 22, MOSS: 23, STATUE: 24, PLANKS: 25, BERRY: 26, GLASS: 27, CAMPFIRE: 28, IRONWALL: 29, VOIDWALL: 30, GLOWWORM: 31, BERRYLEAF: 32, DOOR: 33, DOOR_OPEN: 34, PORTAL: 35,
   CHEST: 36, SELENITE: 37, TYCHO: 38, STARSALT: 39, MOONGLOW: 40, AMBER: 41, SULFUR: 42, RINGSHARD: 43, BRINE: 44, CORAL_R: 45, CORAL_B: 46, CORAL_Y: 47, PEARLCORAL: 48, GOLD: 49, DIAMOND: 50, FERN: 51, SELGLASS: 52, INCUBATOR: 53, REGOLITH: 54, DUNE: 55, SALTCRUST: 56, LADDER: 57, TARGET: 58, BALLOON: 59, FORTSTONE: 60, THORN: 61, DEADGATE: 62, RUBBLE: 63, DARKTABLE: 64,
-  NEEDLES: 65, FROND: 66, BIRCHLOG: 67, BOULDER: 68, MUSHROOM: 69, FLOWERS: 70, PEBBLES: 71
+  NEEDLES: 65, FROND: 66, BIRCHLOG: 67, BOULDER: 68, MUSHROOM: 69, FLOWERS: 70, PEBBLES: 71, PALMLOG: 72
 };
 
 // name, top colour, side colour, solid, hardness (seconds to mine), drop item id, emissive, fluid
@@ -26,7 +26,7 @@ defBlock(B.BEDROCK, 'Mantle Rock', '#2a2630', '#2a2630', { hard: Infinity });
 defBlock(B.STONE, 'Stone', '#868a92', '#7c8088', { hard: 0.9, drop: 'stone' });
 defBlock(B.DIRT, 'Dirt', '#8a6240', '#7e583a', { hard: 0.35, drop: 'dirt' });
 defBlock(B.GRASS, 'Grass', '#5fae3f', '#7e583a', { hard: 0.4, drop: 'dirt' });
-defBlock(B.SAND, 'Sand', '#dccb8e', '#d1bf83', { hard: 0.35, drop: 'sand' });
+defBlock(B.SAND, 'Sand', '#e4d6a2', '#d8c892', { hard: 0.35, drop: 'sand' });
 defBlock(B.WATER, 'Water', '#2f6fd6', '#2f6fd6', { solid: false, fluid: true, transparent: true });
 defBlock(B.LOG, 'Log', '#a07a44', '#75522c', { hard: 0.6, drop: 'wood' });
 defBlock(B.LEAVES, 'Leaves', '#4f9c3f', '#479038', { hard: 0.2, drop: 'frond' });
@@ -94,6 +94,7 @@ defBlock(B.INCUBATOR, 'Incubator', '#7ad7ff', '#2c3e50', { hard: Infinity, emiss
 defBlock(B.NEEDLES, 'Needles', '#2f6a4a', '#2a5e42', { hard: 0.2, drop: 'frond' });
 defBlock(B.FROND, 'Palm Frond', '#4f9c3f', '#479038', { hard: 0.2, drop: 'frond', partial: true, transparent: true });
 defBlock(B.BIRCHLOG, 'Birch Log', '#e8e4d8', '#d8d4c8', { hard: 0.6, drop: 'wood' });
+defBlock(B.PALMLOG, 'Palm Trunk', '#a08858', '#8a6e46', { hard: 0.6, drop: 'wood' }); // the mesher draws a whole palm from the lowest trunk block: a curved trunk, a crown of fronds, coconuts
 defBlock(B.BOULDER, 'Boulder', '#8e9197', '#86898f', { hard: 0.9, drop: 'stone', partial: true, transparent: true });
 defBlock(B.MUSHROOM, 'Mushroom', '#c84a3a', '#e8dcc8', { solid: false, hard: 0.1, drop: 'berry', partial: true, transparent: true });
 defBlock(B.FLOWERS, 'Wildflowers', '#e8d040', '#4f9c3f', { solid: false, hard: 0.1, drop: 'frond', partial: true, transparent: true });
@@ -105,6 +106,7 @@ const LIGHT_R = { [B.TORCH]: 10, [B.CAMPFIRE]: 14, [B.MOONGLOW]: 12, [B.RINGSHAR
 const SKY_CLEAR = { [B.FROND]: 1, [B.MUSHROOM]: 1, [B.FLOWERS]: 1, [B.PEBBLES]: 1, [B.LADDER]: 1, [B.TORCH]: 1, [B.GLASS]: 1, [B.SELGLASS]: 1, [B.CAMPFIRE]: 1, [B.MOONGLOW]: 1, [B.GLOWWORM]: 1, [B.FERN]: 1, [B.PORTAL]: 1, [B.BERRY]: 1, [B.RINGSHARD]: 1 };
 const isSolid = (id) => BLOCKS[id].solid;
 const isLeaf = (id) => id === B.LEAVES || id === B.BERRYLEAF || id === B.NEEDLES;
+const isTrunk = (id) => id === B.LOG || id === B.BIRCHLOG || id === B.PALMLOG;
 const isOpaque = (id) => BLOCKS[id].solid && !BLOCKS[id].partial && !BLOCKS[id].transparent;
 
 const BIOME = { PLAINS: 0, FOREST: 1, DESERT: 2, SNOW: 3, SWAMP: 4, MOUNTAIN: 5, OCEAN: 6, MARE: 7, HIGHLANDS: 8, CRATER: 9, DUNES: 10, FLATS: 11, MESA: 12, LOSTWORLD: 13 };
@@ -307,11 +309,10 @@ class World {
       for (let ly = 3; ly <= th + 2; ly++) { const t = (ly - 3) / (th - 1); const r = Math.max(0, Math.round((1 - t) * 2.6 + ((ly % 2) ? 0.4 : -0.3))); for (let ax = -r; ax <= r; ax++) for (let az = -r; az <= r; az++) { if (Math.hypot(ax, az) > r + 0.3) continue; put(x + ax, h + ly, z + az, B.NEEDLES, true); } }
       put(x, h + th + 2, z, B.NEEDLES, true); return;
     }
-    if (type === 'palm') { // a leaning trunk that curves up, a crown of fronds, coconuts
-      const lean = [[1, 0], [-1, 0], [0, 1], [0, -1]][tree.lean]; let px = x, pz = z;
-      for (let y = 1; y <= th; y++) { if (y === Math.floor(th * 0.45) || y === Math.floor(th * 0.75)) { px += lean[0]; pz += lean[1]; } put(px, h + y, pz, B.LOG, false); }
-      for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, -1], [1, -1], [-1, 1]]) { put(px + dx, h + th + 1, pz + dz, B.FROND, true); put(px + dx * 2, h + th, pz + dz * 2, B.FROND, true); if (Math.abs(dx) + Math.abs(dz) === 1) put(px + dx * 3, h + th - 1, pz + dz * 3, B.FROND, true); }
-      put(px, h + th + 1, pz, B.LEAVES, true); return;
+    if (type === 'palm') { // a trunk that leans two blocks over as it rises (each step one to the side, so the mesher can follow it), the crown block on top
+      const lean = [[1, 0], [-1, 0], [0, 1], [0, -1]][tree.lean];
+      for (let y = 1; y <= th; y++) { const off = Math.round(2 * Math.pow((y - 1) / (th - 1), 1.5)); put(x + lean[0] * off, h + y, z + lean[1] * off, B.PALMLOG, false); }
+      put(x + lean[0] * 2, h + th + 1, z + lean[1] * 2, B.FROND, true); return;
     }
     if (type === 'birch') { // slim white trunk, a small airy crown
       for (let y = 1; y <= th; y++) put(x, h + y, z, B.BIRCHLOG, false);

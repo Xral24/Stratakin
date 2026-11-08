@@ -50,8 +50,8 @@ const Camps = (() => {
     const set = (x, y, z, id) => world.setBlock(x, y, z, id); const vx = c.x, vz = c.z, vy = c.y;
     for (let dx = -19; dx <= 19; dx++) for (let dz = -19; dz <= 19; dz++) for (let y = vy - 3; y <= vy + 7; y++) {
       const b = world.getBlock(vx + dx, y, vz + dz);
-      if (y < vy - 1) { if (!isSolid(b) || isLeaf(b) || b === B.LOG) set(vx + dx, y, vz + dz, B.DIRT); }
-      else if (y === vy - 1) { if (!isSolid(b) || isLeaf(b) || b === B.LOG) set(vx + dx, y, vz + dz, B.GRASS); }
+      if (y < vy - 1) { if (!isSolid(b) || isLeaf(b) || isTrunk(b)) set(vx + dx, y, vz + dz, B.DIRT); }
+      else if (y === vy - 1) { if (!isSolid(b) || isLeaf(b) || isTrunk(b)) set(vx + dx, y, vz + dz, B.GRASS); }
       else if (b !== B.AIR) set(vx + dx, y, vz + dz, B.AIR);
     }
     // the fire

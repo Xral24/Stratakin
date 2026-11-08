@@ -601,9 +601,9 @@ const Village = (() => {
       const edge = Math.max(Math.abs(dx), Math.abs(dz)) > 10;
       for (let y = vy - 4; y <= vy + 10; y++) {
         const b = world.getBlock(x, y, z);
-        if (y < vy - 1) { if (!isSolid(b) || isLeaf(b) || b === B.LOG) set(x, y, z, M.under); }
-        else if (y === vy - 1) { if (b !== M.ground && !edge) set(x, y, z, M.ground); else if (!isSolid(b) || isLeaf(b) || b === B.LOG) set(x, y, z, M.ground); }
-        else if (!edge || isLeaf(b) || b === B.LOG) { if (b !== B.AIR) set(x, y, z, B.AIR); }
+        if (y < vy - 1) { if (!isSolid(b) || isLeaf(b) || isTrunk(b)) set(x, y, z, M.under); }
+        else if (y === vy - 1) { if (b !== M.ground && !edge) set(x, y, z, M.ground); else if (!isSolid(b) || isLeaf(b) || isTrunk(b)) set(x, y, z, M.ground); }
+        else if (!edge || isLeaf(b) || isTrunk(b)) { if (b !== B.AIR) set(x, y, z, B.AIR); }
       }
     }
     for (let dx = -3; dx <= 3; dx++) for (let dz = -3; dz <= 3; dz++) set(vx + dx, vy - 1, vz + dz, (Math.abs(dx) === 3 || Math.abs(dz) === 3) ? M.plazaEdge : M.plaza);
@@ -768,7 +768,7 @@ const Village = (() => {
       const x = v.x + dx, z = v.z + dz;
       for (let y = vy - 4; y <= vy + 8; y++) {
         const b = world.getBlock(x, y, z);
-        if (y < vy - 1) { if (!isSolid(b) || isLeaf(b) || b === B.LOG) set(x, y, z, M.under); }
+        if (y < vy - 1) { if (!isSolid(b) || isLeaf(b) || isTrunk(b)) set(x, y, z, M.under); }
         else if (y === vy - 1) { if (b !== M.ground) set(x, y, z, M.ground); }
         else if (b !== B.AIR && b !== M.bush) set(x, y, z, B.AIR);
       }
@@ -892,7 +892,7 @@ const Village = (() => {
         const y = vy + dy; if (y >= WH) continue;
         if (gate && dy <= 2) continue;
         const b = world.getBlock(vx + dx, y, vz + dz);
-        if (b === B.AIR || isLeaf(b) || b === B.LOG) world.setBlock(vx + dx, y, vz + dz, B.SELGLASS);
+        if (b === B.AIR || isLeaf(b) || isTrunk(b)) world.setBlock(vx + dx, y, vz + dz, B.SELGLASS);
       }
     }
     for (const [dx, dz] of [[0, 0], [R - 2, 0], [-R + 2, 0], [0, R - 2], [0, -R + 2]]) { const y = vy + Math.round(Math.sqrt(Math.max(0, R * R - dx * dx - dz * dz))) - 1; if (world.getBlock(vx + dx, y, vz + dz) === B.AIR) world.setBlock(vx + dx, y, vz + dz, B.MOONGLOW); }

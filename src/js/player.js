@@ -401,9 +401,9 @@ class Player {
   // what each tool does: hands pick plants; the shovel digs soil; the axe cuts wood; picks break stone, and only the right pick breaks the deeper ores.
   // Stone with the first pick is slow work (about five times a shovelful of dirt); each better pick is a lot quicker.
   toolKind(id) {
-    if ([B.LEAVES, B.BERRY, B.BERRYLEAF, B.FERN, B.GLOWWORM, B.TORCH, B.MOONGLOW, B.BALLOON, B.CACTUS, B.CORAL_R, B.CORAL_B, B.CORAL_Y, B.GLASS, B.SELGLASS, B.DOOR, B.DOOR_OPEN, B.CHEST, B.LADDER, B.TARGET, B.STATUE, B.FUSION, B.DARKTABLE].includes(id)) return 'hand';
+    if ([B.LEAVES, B.BERRY, B.BERRYLEAF, B.FERN, B.GLOWWORM, B.TORCH, B.MOONGLOW, B.BALLOON, B.CACTUS, B.CORAL_R, B.CORAL_B, B.CORAL_Y, B.GLASS, B.SELGLASS, B.DOOR, B.DOOR_OPEN, B.CHEST, B.LADDER, B.TARGET, B.STATUE, B.FUSION, B.DARKTABLE, B.NEEDLES, B.FROND, B.MUSHROOM, B.FLOWERS, B.PEBBLES].includes(id)) return 'hand';
     if ([B.DIRT, B.GRASS, B.SAND, B.SNOW, B.GRAVEL, B.CLOUD, B.GLOWGRASS, B.REGOLITH, B.DUNE, B.SALTCRUST].includes(id)) return 'soil';
-    if ([B.LOG, B.PLANKS].includes(id)) return 'wood';
+    if ([B.LOG, B.BIRCHLOG, B.PALMLOG, B.PLANKS].includes(id)) return 'wood';
     return 'stone';
   }
   // a tool you own that is not broken (the first stone pick and the rods never wear)
@@ -458,7 +458,7 @@ class Player {
       this.world.setBlock(hit.x, hit.y, hit.z, B.AIR);
       if (drop) this.add(drop, 1);
       // everything that grows, grows back: logs, leaves, cactus, glowworms
-      const regrowAfter = { [B.LOG]: 240000, [B.LEAVES]: 180000, [B.CACTUS]: 240000, [B.GLOWWORM]: 300000 }[hit.id];
+      const regrowAfter = { [B.LOG]: 240000, [B.BIRCHLOG]: 240000, [B.PALMLOG]: 240000, [B.LEAVES]: 180000, [B.CACTUS]: 240000, [B.GLOWWORM]: 300000 }[hit.id];
       if (regrowAfter) (this.world.regrow = this.world.regrow || []).push({ x: hit.x, y: hit.y, z: hit.z, t: performance.now() + regrowAfter, id: hit.id });
       return { broke: hit.id, drop, x: hit.x, y: hit.y, z: hit.z };
     }

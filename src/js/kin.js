@@ -722,72 +722,97 @@ const KIN = (() => {
     m.hover = 0;
     return m;
   }
-  // outfit extras for important villagers: the elder's hat, chain and genie pants; the voodoo healer's mask, feathers and staff
+  // outfits and gear for the folk: hats, beards, masks, packs, tools. Built with the same primitives as the bodies.
+  // Landmarks of the folk model: head centre (0, 1.58, 0), radius 0.27 (0.3 tall), crown at 1.88; shoulders at (±0.33, 1.2); hands at (±0.45, 0.55, 0.06); hips 0.62.
+  // part helpers bound to a model: everything is in the model's local units (scaled by m.scale); H.bone picks the bone of the next parts
+  function partHelpers(m) {
+    const s = m.scale; const P = m.boxes; const H = { bone: 0 };
+    const S3 = (p) => [p[0] * s, p[1] * s, p[2] * s];
+    H.box = (x, y, z, w, h, d, c, emis) => P.push({ x: x * s, y: y * s, z: z * s, w: w * s, h: h * s, d: d * s, c, emis, bone: H.bone });
+    H.blob = (x0, y0, z0, x1, y1, z1, round, c, o) => P.push({ k: 'blob', x: Math.min(x0, x1) * s, y: Math.min(y0, y1) * s, z: Math.min(z0, z1) * s, w: Math.abs(x1 - x0) * s, h: Math.abs(y1 - y0) * s, d: Math.abs(z1 - z0) * s, round, c, emis: !!(o && o.emis), o: o || null, bone: H.bone });
+    H.ball = (x, y, z, r, c, o) => H.blob(x - r, y - r, z - r, x + r, y + r, z + r, 1, c, o);
+    H.tube = (path, radii, c, o) => { const pp = path.map(S3); const rr = radii.map(r => Array.isArray(r) ? [r[0] * s, r[1] * s] : [r * s, r * s]); const mr = Math.max(...rr.map(r => Math.max(r[0], r[1]))); const xs = pp.map(p => p[0]), ys = pp.map(p => p[1]), zs = pp.map(p => p[2]); const x = Math.min(...xs) - mr, y = Math.min(...ys) - mr, z = Math.min(...zs) - mr; P.push({ k: 'tube', path: pp, radii: rr, c, emis: !!(o && o.emis), o: o || null, bone: H.bone, x, y, z, w: Math.max(...xs) + mr - x, h: Math.max(...ys) + mr - y, d: Math.max(...zs) + mr - z }); };
+    H.plate = (pts, t, c, o) => { const pp = pts.map(S3); const xs = pp.map(p => p[0]), ys = pp.map(p => p[1]), zs = pp.map(p => p[2]); const x = Math.min(...xs) - t, y = Math.min(...ys) - t, z = Math.min(...zs) - t; P.push({ k: 'plate', pts: pp, t: t * s, c, emis: !!(o && o.emis), o: o || null, bone: H.bone, x, y, z, w: Math.max(...xs) + t - x, h: Math.max(...ys) + t - y, d: Math.max(...zs) + t - z }); };
+    H.ring = (cx, cy, cz, hx, hz, th, c, o, ax) => { const pts = []; for (let i = 0; i <= 14; i++) { const a = i / 14 * Math.PI * 2; pts.push(ax === 'z' ? [cx + Math.cos(a) * hx, cy + Math.sin(a) * hz, cz] : [cx + Math.cos(a) * hx, cy, cz + Math.sin(a) * hz]); } H.tube(pts, pts.map(() => th), c, Object.assign({ cap0: 'none', cap1: 'none', segs: 6 }, o || {})); };
+    H.cone = (b, dir, len, r, c, o) => { const l = Math.hypot(dir[0], dir[1], dir[2]) || 1; const u = [dir[0] / l, dir[1] / l, dir[2] / l]; H.tube([b, [b[0] + u[0] * len * 0.5, b[1] + u[1] * len * 0.5, b[2] + u[2] * len * 0.5], [b[0] + u[0] * len, b[1] + u[1] * len, b[2] + u[2] * len]], [r, r * 0.55, 0.0005], c, Object.assign({ cap0: 'flat', cap1: 'none', segs: 6 }, o || {})); };
+    H.disc = (x, y, z, r, th, c, o) => H.blob(x - r, y - th / 2, z - r, x + r, y + th / 2, z + r, 1, c, Object.assign({ n: 4 }, o || {}));
+    H.faceZ = (x, y) => 0.28 * Math.sqrt(Math.max(0, 1 - (x / 0.27) ** 2 - ((y - 1.58) / 0.3) ** 2)); // the folk face is an ellipsoid: where its surface is at (x, y)
+    H.feather = (x, y, z, len, c, lean) => H.plate([[x, y, z], [x + 0.03 + lean * 0.3, y + len * 0.5, z - 0.02], [x + lean * 0.5, y + len, z - 0.06], [x - 0.03 + lean * 0.5, y + len * 0.5, z - 0.02]], 0.02, c);
+    H.done = () => { m.height = Math.max(m.height, ...m.boxes.map(b => b.y + b.h)); return m; };
+    return H;
+  }
+  // outfits and gear for the folk: hats, beards, masks, packs, tools. Built with the same primitives as the bodies.
+  // Landmarks of the folk model: head centre (0, 1.58, 0), radius 0.27 (0.3 tall), crown at 1.88; shoulders at (±0.33, 1.2); hands at (±0.45, 0.55, 0.06); hips 0.62.
   function decorate(m, kind) {
-    const s = m.scale; const add = (x, y, z, w, h, d, c, emis) => m.boxes.push({ x: x * s, y: y * s, z: z * s, w: w * s, h: h * s, d: d * s, c, emis });
+    const H = partHelpers(m); const { box, blob, ball, tube, plate, ring, cone, disc, faceZ, feather } = H;
+    const setB = (b) => { H.bone = b; };
+    const brimHat = (c, band, crownH, crownR, brimR) => { setB(1); disc(0, 1.86, 0, brimR, 0.05, c); blob(-crownR, 1.86, -crownR, crownR, 1.86 + crownH, crownR, 0.55, c, { tap: [1, 0.85] }); if (band) ring(0, 1.93, 0, crownR + 0.01, crownR + 0.01, 0.025, band); setB(0); };
     if (kind === 'elder') {
-      add(-0.5, 1.85, -0.45, 1.0, 0.08, 0.9, '#3b2a4a'); add(-0.3, 1.9, -0.28, 0.6, 0.42, 0.56, '#3b2a4a'); add(-0.32, 2.05, -0.3, 0.64, 0.08, 0.6, '#e0b84a', true); // hat with a gold band
-      add(-0.32, 1.1, 0.2, 0.64, 0.07, 0.07, '#ffd75a', true); add(-0.06, 0.95, 0.2, 0.12, 0.16, 0.08, '#7ad7ff', true); // chain and gem
-      add(-0.42, 0.0, -0.25, 0.34, 0.6, 0.5, '#8a3fd0'); add(0.08, 0.0, -0.25, 0.34, 0.6, 0.5, '#8a3fd0'); // genie pants
+      setB(1); disc(0, 1.86, 0, 0.5, 0.05, '#3b2a4a'); blob(-0.3, 1.86, -0.3, 0.3, 2.34, 0.3, 0.5, '#3b2a4a', { tap: [1, 0.72] }); ring(0, 1.96, 0, 0.31, 0.31, 0.03, '#e0b84a', { emis: true });
+      blob(-0.17, 0.98, 0.18, 0.17, 1.44, 0.34, 0.7, '#e8e4dc', { tap: [0.55, 1.0] }); setB(0); // a long white beard
+      ring(0, 1.14, 0.02, 0.28, 0.24, 0.025, '#ffd75a', { emis: true }); ball(0, 1.0, 0.25, 0.07, '#7ad7ff', { emis: true }); // chain and gem
+      blob(-0.42, 0.08, -0.3, 0.42, 0.66, 0.3, 0.6, '#8a3fd0', { tap: [0.75, 1.0] }); // genie pants
     } else if (kind === 'voodoo') {
-      add(-0.36, 1.25, 0.2, 0.72, 0.7, 0.14, '#f1e3c0'); add(-0.22, 1.6, 0.33, 0.14, 0.14, 0.04, '#111111'); add(0.08, 1.6, 0.33, 0.14, 0.14, 0.04, '#111111'); // mask and eye holes
-      add(-0.06, 1.35, 0.33, 0.12, 0.2, 0.03, '#c0392b'); add(-0.3, 1.45, 0.33, 0.6, 0.05, 0.03, '#2b6cc0'); // mask paint
-      for (let i = 0; i < 5; i++) add(-0.3 + i * 0.15, 1.9, -0.1, 0.06, 0.5 + (i % 2) * 0.2, 0.06, i % 2 ? '#e74c3c' : '#f1c40f'); // feathers
-      add(0.42, 0.0, 0.1, 0.08, 2.1, 0.08, '#6b4a2b'); add(0.36, 2.05, 0.04, 0.2, 0.2, 0.2, '#a65cff', true); // staff
+      setB(1); plate([[-0.3, 1.33, 0.22], [-0.34, 1.6, 0.2], [-0.22, 1.86, 0.18], [0.22, 1.86, 0.18], [0.34, 1.6, 0.2], [0.3, 1.33, 0.22], [0.1, 1.24, 0.24], [-0.1, 1.24, 0.24]], 0.09, '#f1e3c0'); // the mask
+      ball(-0.12, 1.62, 0.31, 0.06, '#111111', { n: 2 }); ball(0.12, 1.62, 0.31, 0.06, '#111111', { n: 2 }); plate([[-0.04, 1.3, 0.3], [0.04, 1.3, 0.3], [0.03, 1.48, 0.3], [-0.03, 1.48, 0.3]], 0.015, '#c0392b'); plate([[-0.3, 1.5, 0.3], [0.3, 1.5, 0.3], [0.3, 1.46, 0.3], [-0.3, 1.46, 0.3]], 0.015, '#2b6cc0');
+      for (let i = 0; i < 5; i++) feather(-0.26 + i * 0.13, 1.86, -0.08, 0.5 + (i % 2) * 0.2, i % 2 ? '#e74c3c' : '#f1c40f', (i - 2) * 0.2); setB(0);
+      setB(3); tube([[0.46, 0.2, 0.1], [0.5, 2.05, 0.06]], [0.035, 0.03], '#6b4a2b', { segs: 6 }); ball(0.5, 2.14, 0.06, 0.1, '#a65cff', { emis: true }); setB(0);
     } else if (kind === 'fisher') {
-      add(-0.55, 1.85, -0.5, 1.1, 0.06, 1.0, '#c9b36a'); add(-0.28, 1.9, -0.26, 0.56, 0.3, 0.52, '#c9b36a'); // wide straw hat
-      add(0.4, 0.2, 0.3, 0.06, 2.6, 0.06, '#5a3f22'); add(0.43, 2.6, 0.3, 0.02, 0.3, 1.2, '#e8e8e8'); // rod and line
-      add(-0.7, 0.0, -0.2, 0.3, 0.35, 0.3, '#4c6f8a'); // bucket
-    } else if (kind === 'miner') { // a hard hat with a lamp, braces, and a pick over the shoulder
-      add(-0.34, 1.86, -0.34, 0.68, 0.22, 0.68, '#e8b830'); add(-0.4, 1.84, -0.4, 0.8, 0.05, 0.8, '#d0a020'); add(-0.08, 1.9, 0.33, 0.16, 0.12, 0.08, '#fff6c0', true);
-      add(-0.3, 0.9, 0.24, 0.08, 0.8, 0.04, '#5a3a22'); add(0.22, 0.9, 0.24, 0.08, 0.8, 0.04, '#5a3a22');
-      add(0.36, 0.6, -0.3, 0.07, 1.2, 0.07, '#7a5a3a'); add(0.12, 1.72, -0.34, 0.52, 0.12, 0.12, '#a0a0a8'); add(0.6, 1.62, -0.34, 0.08, 0.2, 0.12, '#a0a0a8');
+      setB(1); disc(0, 1.86, 0, 0.6, 0.05, '#c9b36a'); tube([[0, 1.86, 0], [0, 2.18, 0]], [0.3, 0.12], '#c9b36a', { segs: 8, cap0: 'none', cap1: 'flat' }); setB(0);
+      setB(3); tube([[0.46, 0.4, 0.1], [0.55, 2.6, 0.5]], [0.025, 0.018], '#5a3f22', { segs: 5 }); tube([[0.55, 2.6, 0.5], [0.6, 1.6, 1.2]], [0.006, 0.006], '#e8e8e8', { segs: 3 }); setB(0);
+      tube([[-0.68, 0.0, 0.0], [-0.68, 0.34, 0.0]], [0.14, 0.17], '#4c6f8a', { segs: 8, cap0: 'flat', cap1: 'flat' }); // bucket
+    } else if (kind === 'miner') { // a hard hat with a lamp, braces, a pick over the shoulder
+      setB(1); blob(-0.32, 1.78, -0.32, 0.32, 2.08, 0.32, 0.9, '#e8b830', { tap: [1, 0.8] }); disc(0, 1.84, 0.02, 0.38, 0.04, '#d0a020'); ball(0, 1.92, 0.3, 0.07, '#fff6c0', { emis: true }); setB(0);
+      plate([[-0.22, 0.66, 0.2], [-0.14, 0.66, 0.2], [-0.2, 1.22, 0.16], [-0.28, 1.2, 0.16]], 0.03, '#5a3a22'); plate([[0.14, 0.66, 0.2], [0.22, 0.66, 0.2], [0.28, 1.2, 0.16], [0.2, 1.22, 0.16]], 0.03, '#5a3a22');
+      setB(3); tube([[0.42, 0.5, -0.3], [0.42, 1.75, -0.32]], [0.035, 0.03], '#7a5a3a', { segs: 6 }); blob(0.14, 1.68, -0.4, 0.72, 1.82, -0.26, 0.4, '#a0a0a8', { n: 2 }); setB(0);
     } else if (kind === 'diver') { // goggles, a tank on the back, fins
-      add(-0.3, 1.5, 0.3, 0.6, 0.14, 0.08, '#2a2a30'); add(-0.24, 1.52, 0.36, 0.18, 0.1, 0.04, '#7ad7ff', true); add(0.06, 1.52, 0.36, 0.18, 0.1, 0.04, '#7ad7ff', true);
-      add(-0.16, 0.8, -0.38, 0.32, 0.7, 0.18, '#e8b830'); add(-0.06, 1.5, -0.36, 0.12, 0.14, 0.12, '#a0a0a8');
-      add(-0.36, 0.0, 0.1, 0.26, 0.05, 0.5, '#2f8a8a'); add(0.1, 0.0, 0.1, 0.26, 0.05, 0.5, '#2f8a8a');
+      setB(1); ring(-0.11, 1.6, 0.27, 0.09, 0.08, 0.02, '#2a2a30', null, 'z'); ring(0.11, 1.6, 0.27, 0.09, 0.08, 0.02, '#2a2a30', null, 'z'); ring(0, 1.62, 0, 0.29, 0.3, 0.018, '#2a2a30'); setB(0);
+      tube([[0, 0.72, -0.32], [0, 1.3, -0.32]], [0.14, 0.14], '#e8b830', { segs: 8, cap0: 'round', cap1: 'round' }); tube([[0, 1.42, -0.32], [0, 1.5, -0.32]], [0.05, 0.05], '#a0a0a8', { segs: 6 });
+      plate([[-0.28, 0.02, 0.1], [-0.04, 0.02, 0.1], [-0.02, 0.02, 0.62], [-0.3, 0.02, 0.62]], 0.025, '#2f8a8a'); plate([[0.04, 0.02, 0.1], [0.28, 0.02, 0.1], [0.3, 0.02, 0.62], [0.02, 0.02, 0.62]], 0.025, '#2f8a8a');
     } else if (kind === 'hermit') {
-      add(-0.34, 1.05, 0.2, 0.68, 0.5, 0.1, '#d9d4c7'); add(-0.1, 0.7, 0.22, 0.2, 0.4, 0.08, '#d9d4c7'); // a long grey beard
-      add(-0.5, 1.5, -0.5, 1.0, 0.5, 1.0, '#5a4a3a'); // a deep hood
-      add(0.42, 0.0, 0.2, 0.07, 1.6, 0.07, '#8a6a3c'); // a stick
+      setB(1); blob(-0.17, 0.95, 0.16, 0.17, 1.44, 0.34, 0.7, '#d9d4c7', { tap: [0.5, 1.0] }); blob(-0.34, 1.3, -0.4, 0.34, 2.02, 0.2, 0.85, '#5a4a3a', { tap: [1, 0.8] }); setB(0); // beard and a deep hood
+      setB(3); tube([[0.46, 0.0, 0.14], [0.5, 1.6, 0.1]], [0.03, 0.035], '#8a6a3c', { segs: 5 }); setB(0);
     } else if (kind === 'traveller') {
-      add(-0.34, 0.75, -0.5, 0.68, 0.8, 0.3, '#6b4a2b'); add(-0.25, 1.4, -0.45, 0.5, 0.25, 0.22, '#a8894f'); // pack and bedroll
-      add(0.42, 0.0, 0.2, 0.07, 2.0, 0.07, '#8a6a3c'); // walking stick
-      add(-0.4, 1.85, -0.4, 0.8, 0.07, 0.8, '#4a3a2a'); add(-0.26, 1.9, -0.26, 0.52, 0.22, 0.52, '#4a3a2a'); // travelling hat
+      blob(-0.3, 0.6, -0.56, 0.3, 1.3, -0.2, 0.45, '#6b4a2b'); tube([[-0.3, 1.38, -0.4], [0.3, 1.38, -0.4]], [0.11, 0.11], '#a8894f', { segs: 8, cap0: 'flat', cap1: 'flat' }); // pack and bedroll
+      setB(3); tube([[0.46, 0.0, 0.14], [0.5, 2.0, 0.1]], [0.03, 0.035], '#8a6a3c', { segs: 5 }); setB(0);
+      brimHat('#4a3a2a', '#2a1a10', 0.26, 0.28, 0.46);
     } else if (kind === 'alien') { // two antennae with glowing tips, a glowing collar
-      add(-0.22, 1.85, -0.05, 0.05, 0.4, 0.05, '#101828'); add(0.17, 1.85, -0.05, 0.05, 0.4, 0.05, '#101828'); add(-0.27, 2.22, -0.1, 0.15, 0.15, 0.15, '#39ff14', true); add(0.12, 2.22, -0.1, 0.15, 0.15, 0.15, '#ff2bd6', true);
-      add(-0.34, 1.26, -0.3, 0.68, 0.08, 0.6, '#00f5ff', true);
+      setB(1); tube([[-0.14, 1.86, -0.02], [-0.2, 2.26, -0.08]], [0.025, 0.02], '#101828', { segs: 5 }); tube([[0.14, 1.86, -0.02], [0.2, 2.26, -0.08]], [0.025, 0.02], '#101828', { segs: 5 }); ball(-0.21, 2.3, -0.09, 0.075, '#39ff14', { emis: true }); ball(0.21, 2.3, -0.09, 0.075, '#ff2bd6', { emis: true }); setB(0);
+      ring(0, 1.26, 0, 0.3, 0.26, 0.035, '#00f5ff', { emis: true });
     } else if (kind === 'veil') { // Halo folk: a long head veil against the dust and a sash
-      add(-0.36, 1.8, -0.35, 0.72, 0.1, 0.7, '#f0e0c0'); add(-0.36, 1.1, -0.36, 0.1, 0.75, 0.72, '#f0e0c0'); add(0.26, 1.1, -0.36, 0.1, 0.75, 0.72, '#f0e0c0'); add(-0.3, 1.1, -0.4, 0.6, 0.75, 0.1, '#f0e0c0');
-      add(-0.32, 0.95, 0.2, 0.64, 0.1, 0.08, '#c9a45a');
+      setB(1); blob(-0.36, 1.05, -0.4, 0.36, 1.92, 0.2, 0.8, '#f0e0c0', { tap: [0.9, 1.0] }); ring(0, 1.8, -0.04, 0.37, 0.33, 0.03, '#c9a45a'); setB(0);
+      ring(0, 0.98, 0.02, 0.34, 0.24, 0.035, '#c9a45a');
     } else if (kind === 'merfolk') { // sea people: a fin crest, webbed fins on the arms, scales down the back
-      add(-0.05, 1.8, -0.3, 0.1, 0.35, 0.55, '#6fd0c8', true); add(-0.6, 0.8, -0.05, 0.12, 0.4, 0.3, '#4aa8b8'); add(0.48, 0.8, -0.05, 0.12, 0.4, 0.3, '#4aa8b8');
-      for (let i = 0; i < 3; i++) add(-0.06, 0.6 + i * 0.22, -0.3, 0.12, 0.12, 0.1, '#8fe0d0');
-    } else if (kind === 'hat') { // a wide-brimmed hat
-      add(-0.55, 1.84, -0.55, 1.1, 0.06, 1.1, '#5a3a22'); add(-0.28, 1.88, -0.3, 0.56, 0.3, 0.58, '#5a3a22'); add(-0.3, 1.9, -0.32, 0.6, 0.06, 0.62, '#2a1a10');
-    } else if (kind === 'star') { // the sheriff's star
-      add(-0.26, 1.0, 0.21, 0.14, 0.14, 0.05, '#ffd75a', true);
-    } else if (kind === 'warrior') { // war paint, a feathered band and a spear
-      add(-0.3, 1.5, 0.24, 0.6, 0.05, 0.03, '#e0302a'); add(-0.3, 1.38, 0.24, 0.6, 0.05, 0.03, '#f0e0a0'); add(-0.32, 1.75, -0.28, 0.64, 0.08, 0.56, '#8a2a1a');
-      for (let i = 0; i < 3; i++) add(-0.2 + i * 0.15, 1.83, -0.3, 0.06, 0.45 + (i % 2) * 0.15, 0.06, i % 2 ? '#f0e0a0' : '#e0302a');
-      add(0.42, 0.0, 0.1, 0.06, 2.5, 0.06, '#6b4a2b'); add(0.38, 2.5, 0.06, 0.14, 0.3, 0.14, '#c8c8d0'); // spear
+      setB(1); plate([[0, 1.84, 0.16], [0, 2.14, 0.0], [0, 2.1, -0.24], [0, 1.82, -0.32]], 0.035, '#6fd0c8', { emis: true }); setB(0);
+      setB(2); plate([[-0.42, 1.1, 0], [-0.68, 0.95, -0.05], [-0.66, 0.7, -0.05], [-0.44, 0.75, 0]], 0.025, '#4aa8b8'); setB(3); plate([[0.42, 1.1, 0], [0.68, 0.95, -0.05], [0.66, 0.7, -0.05], [0.44, 0.75, 0]], 0.025, '#4aa8b8'); setB(0);
+      for (let i = 0; i < 4; i++) plate([[-0.06, 0.62 + i * 0.16, -0.21], [0.06, 0.62 + i * 0.16, -0.21], [0, 0.74 + i * 0.16, -0.25]], 0.02, '#8fe0d0');
+    } else if (kind === 'hat') { brimHat('#5a3a22', '#2a1a10', 0.3, 0.28, 0.55);
+    } else if (kind === 'star') { ball(-0.2, 1.05, 0.2, 0.06, '#ffd75a', { emis: true });
+    } else if (kind === 'warrior') { // war paint, a feathered band, a bead necklace, a spear
+      setB(1); for (const sd of [-1, 1]) { const x = sd * 0.16; for (const yy of [1.5, 1.44]) plate([[x - 0.08, yy, faceZ(x - 0.08, yy) + 0.006], [x + 0.08, yy, faceZ(x + 0.08, yy) + 0.006], [x + 0.08, yy - 0.03, faceZ(x + 0.08, yy - 0.03) + 0.006], [x - 0.08, yy - 0.03, faceZ(x - 0.08, yy - 0.03) + 0.006]], 0.01, yy > 1.47 ? '#e0302a' : '#f0e0a0'); }
+      ring(0, 1.74, -0.02, 0.3, 0.31, 0.035, '#8a2a1a'); for (let i = 0; i < 3; i++) feather(-0.12 + i * 0.12, 1.78, -0.26, 0.5 + (i % 2) * 0.15, i % 2 ? '#f0e0a0' : '#e0302a', (i - 1) * 0.25); setB(0);
+      for (let i = 0; i < 7; i++) { const a = -1.2 + i * 0.4; ball(Math.sin(a) * 0.24, 1.12 - Math.cos(a) * 0.1, Math.cos(a) * 0.22, 0.03, i % 2 ? '#f0e0a0' : '#2a6fc0', { n: 1 }); }
+      setB(3); tube([[0.46, 0.0, 0.14], [0.5, 2.3, 0.08]], [0.028, 0.025], '#6b4a2b', { segs: 6 }); plate([[0.5, 2.3, 0.08], [0.56, 2.42, 0.08], [0.5, 2.68, 0.08], [0.44, 2.42, 0.08]], 0.02, '#c8c8d0'); setB(0);
     } else if (kind === 'scientist') { // a long coat, goggles pushed up, a clipboard
-      add(-0.34, 0.3, -0.3, 0.68, 1.0, 0.6, '#e8e8f0'); add(-0.3, 1.75, -0.3, 0.6, 0.12, 0.6, '#3a3a4a'); add(-0.22, 1.76, 0.26, 0.14, 0.12, 0.06, '#7ad7ff', true); add(0.08, 1.76, 0.26, 0.14, 0.12, 0.06, '#7ad7ff', true);
-      add(0.4, 0.9, 0.1, 0.06, 0.4, 0.3, '#c9a45a');
+      blob(-0.36, 0.26, -0.26, 0.36, 1.3, 0.26, 0.45, '#e8e8f0', { tap: [1.05, 0.9] }); plate([[-0.04, 0.3, 0.27], [0.04, 0.3, 0.27], [0.04, 1.2, 0.26], [-0.04, 1.2, 0.26]], 0.012, '#c8c8d8');
+      setB(1); ring(-0.11, 1.8, 0.2, 0.08, 0.07, 0.02, '#3a3a4a', null, 'z'); ring(0.11, 1.8, 0.2, 0.08, 0.07, 0.02, '#3a3a4a', null, 'z'); ball(-0.11, 1.8, 0.2, 0.065, '#7ad7ff', { emis: true, n: 2 }); ball(0.11, 1.8, 0.2, 0.065, '#7ad7ff', { emis: true, n: 2 }); setB(0);
+      setB(2); plate([[-0.5, 0.56, 0.12], [-0.3, 0.56, 0.16], [-0.3, 0.9, 0.16], [-0.5, 0.9, 0.12]], 0.02, '#c9a45a'); setB(0);
     } else if (kind === 'lamp') { // a miner's helmet with a lamp
-      add(-0.34, 1.84, -0.32, 0.68, 0.14, 0.64, '#c9b36a'); add(-0.1, 1.88, 0.3, 0.2, 0.14, 0.1, '#fff2a0', true);
+      setB(1); blob(-0.32, 1.78, -0.32, 0.32, 2.06, 0.32, 0.9, '#c9b36a', { tap: [1, 0.8] }); ball(0, 1.9, 0.3, 0.07, '#fff2a0', { emis: true }); setB(0);
     } else if (kind === 'mask') { // a diver's mask and a tank
-      add(-0.3, 1.45, 0.24, 0.6, 0.26, 0.06, '#9fd8ff', true); add(-0.2, 0.8, -0.42, 0.4, 0.7, 0.2, '#b8bcc4');
-    } else if (kind === 'visor') { // a round helmet with a glowing visor
-      add(-0.36, 1.26, -0.32, 0.72, 0.66, 0.64, '#e8f0ff'); add(-0.28, 1.4, 0.3, 0.56, 0.3, 0.05, '#7ad7ff', true); add(-0.2, 0.75, -0.42, 0.4, 0.6, 0.18, '#b8c4d8');
+      setB(1); plate([[-0.22, 1.5, 0.27], [0.22, 1.5, 0.27], [0.24, 1.7, 0.25], [-0.24, 1.7, 0.25]], 0.03, '#9fd8ff', { emis: true }); ring(0, 1.6, 0, 0.29, 0.3, 0.018, '#2a2a30'); setB(0);
+      tube([[0, 0.72, -0.32], [0, 1.32, -0.32]], [0.14, 0.14], '#b8bcc4', { segs: 8, cap0: 'round', cap1: 'round' });
+    } else if (kind === 'visor') { // a round helmet with a glowing visor, a pack
+      setB(1); blob(-0.34, 1.26, -0.34, 0.34, 1.98, 0.34, 0.95, '#e8f0ff'); plate([[-0.24, 1.46, 0.33], [0.24, 1.46, 0.33], [0.26, 1.7, 0.3], [-0.26, 1.7, 0.3]], 0.03, '#7ad7ff', { emis: true }); setB(0);
+      blob(-0.22, 0.7, -0.5, 0.22, 1.3, -0.3, 0.4, '#b8c4d8');
     } else if (kind === 'crown') { // a crown and a cape
-      add(-0.3, 1.85, -0.28, 0.6, 0.12, 0.56, '#ffd25a', true); for (let i = 0; i < 4; i++) add(-0.28 + i * 0.17, 1.97, -0.28, 0.1, 0.16, 0.1, '#ffe08a', true);
-      add(-0.36, 0.3, -0.36, 0.72, 1.1, 0.1, '#5a1a8a');
-    } else if (kind === 'wanderer') { // a satchel, a scarf
-      add(-0.42, 0.7, -0.42, 0.3, 0.35, 0.2, '#6b4a2b'); add(-0.34, 1.22, -0.32, 0.68, 0.12, 0.64, '#c94c4c');
+      setB(1); ring(0, 1.9, -0.02, 0.27, 0.28, 0.05, '#ffd25a', { emis: true }); for (let i = 0; i < 6; i++) { const a = i / 6 * Math.PI * 2; cone([Math.cos(a) * 0.26, 1.92, -0.02 + Math.sin(a) * 0.27], [Math.cos(a) * 0.15, 1, Math.sin(a) * 0.15], 0.2, 0.045, '#ffe08a', { emis: true }); } setB(0);
+      plate([[-0.36, 1.22, -0.3], [0.36, 1.22, -0.3], [0.42, 0.25, -0.42], [-0.42, 0.25, -0.42]], 0.03, '#5a1a8a');
+    } else if (kind === 'wanderer') { // a satchel on a strap, a scarf
+      blob(-0.5, 0.6, -0.14, -0.2, 0.92, 0.2, 0.35, '#6b4a2b'); tube([[0.3, 1.26, 0.1], [-0.32, 0.9, 0.2]], [0.025, 0.025], '#4a3018', { segs: 4 });
+      ring(0, 1.25, 0, 0.26, 0.24, 0.06, '#c94c4c'); plate([[-0.12, 1.2, -0.26], [0.0, 1.2, -0.3], [0.04, 0.8, -0.36], [-0.1, 0.8, -0.34]], 0.03, '#c94c4c');
     }
-    m.height = Math.max(m.height, ...m.boxes.map(b => b.y + b.h));
-    return m;
+    return H.done();
   }
   function buildMesh(mb, m) {
     for (const b of m.boxes) {
@@ -814,5 +839,5 @@ const KIN = (() => {
   function serialize(k) { return { id: k.id, sp: k.sp, level: k.level, xp: k.xp, iv: k.iv, stage: k.stage, hp: k.hp, nick: k.nick, equip: k.equip || null, tech: k.tech || null, wear: k.wear || null, trust: k.trust || 0, tamed: k.tamed || false }; }
   function deserialize(d) { return Object.assign({ status: null }, d); }
 
-  return { E, EI, CHART, STAT_KEYS, STAT_NAMES, growth, xpToNext, dominant, species, speciesForContext, dex, bySeed, HABITATS, capOf, recipes, findRecipe, fuseRecipe, mythicSpecies, legendSpecies, apexSpecies, wardenSpecies, MAX_LEVEL, TECH, techFor, techByName, starters, create, stats, name, moves, effectiveness, gainXp, fuse, fusionLevel, TRAITS, RARITY, roster, buildUniverse, decorate, makeStatue, statueModel, shardsFor, model, buildMesh, meshKey, portrait, serialize, deserialize, UTIL_DESC };
+  return { partHelpers, E, EI, CHART, STAT_KEYS, STAT_NAMES, growth, xpToNext, dominant, species, speciesForContext, dex, bySeed, HABITATS, capOf, recipes, findRecipe, fuseRecipe, mythicSpecies, legendSpecies, apexSpecies, wardenSpecies, MAX_LEVEL, TECH, techFor, techByName, starters, create, stats, name, moves, effectiveness, gainXp, fuse, fusionLevel, TRAITS, RARITY, roster, buildUniverse, decorate, makeStatue, statueModel, shardsFor, model, buildMesh, meshKey, portrait, serialize, deserialize, UTIL_DESC };
 })();

@@ -163,12 +163,13 @@ const R = (() => {
   ${TONE}
   /*SHADOW*/
   varying vec4 vCol; varying vec3 vWorld; varying float vMat; varying vec3 vN;
-  uniform vec3 uCam; uniform float uDay; uniform vec3 uFog; uniform float uFogNear; uniform float uFogFar; uniform float uAmbient;
+  uniform vec3 uCam; uniform float uDay; uniform vec3 uFog; uniform float uFogNear; uniform float uFogFar; uniform float uAmbient; uniform float uFogSky;
   uniform vec3 uLights[8]; uniform float uLightR[8]; uniform float uAlpha; uniform vec3 uTint; uniform float uSkyMul;
   uniform vec3 uSun; uniform vec3 uSunCol; uniform vec3 uZenith; uniform float uGrid; uniform float uWave; uniform float uTime; uniform float uSunAmt; uniform float uQuality; uniform vec3 uPlayer; uniform float uBladeShade;
   float h21(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
   float vn(vec2 p){ vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f); return mix(mix(h21(i), h21(i + vec2(1.0, 0.0)), f.x), mix(h21(i + vec2(0.0, 1.0)), h21(i + vec2(1.0, 1.0)), f.x), f.y); }
   float hash3(vec3 p){ p = fract(p * vec3(0.1031, 0.1030, 0.0973)); p += dot(p, p.yxz + 33.33); return fract((p.x + p.y) * p.z); }
+  vec3 skyFog(vec3 d){ float h = d.y; vec3 c = mix(uFog, uZenith, pow(clamp(h, 0.0, 1.0), 0.55)); if (h < 0.0) c = mix(uFog, uFog * 0.82, clamp(-h * 4.0, 0.0, 1.0)); return mix(uFog, c, uFogSky); }
   void main(){
     vec3 toCam = uCam - vWorld; float dist = length(toCam); vec3 V = toCam / max(dist, 0.0001);
     vec3 n = dot(vN, vN) > 0.1 ? normalize(vN) : normalize(cross(dFdx(vWorld), dFdy(vWorld))); if (dot(n, V) < -0.2) n = -n;
@@ -204,7 +205,7 @@ const R = (() => {
       if (nearB > 0.01 && emis < 0.5 && (mat0 == 3 || mat0 == 4 || mat0 == 2 || mat0 == 5 || mat0 == 6)) { // relief: the normal leans with the bumps of the material
         vec2 uvb = abs(n.x) > 0.5 ? vWorld.zy : (abs(n.y) > 0.5 ? vWorld.xz : vWorld.xy);
         vec3 T = abs(n.x) > 0.5 ? vec3(0.0, 0.0, 1.0) : vec3(1.0, 0.0, 0.0), Bt = abs(n.y) > 0.5 ? vec3(0.0, 0.0, 1.0) : vec3(0.0, 1.0, 0.0);
-        float sc = mat0 == 3 ? 2.2 : mat0 == 4 ? 6.0 : mat0 == 2 ? 9.0 : mat0 == 5 ? 1.6 : 1.0; float amt = mat0 == 3 ? 0.22 : mat0 == 4 ? 0.09 : mat0 == 2 ? 0.03 : mat0 == 5 ? 0.06 : 0.03;
+        float sc = mat0 == 3 ? 2.2 : mat0 == 4 ? 6.0 : mat0 == 2 ? 2.6 : mat0 == 5 ? 1.6 : 1.0; float amt = mat0 == 3 ? 0.22 : mat0 == 4 ? 0.09 : mat0 == 2 ? 0.045 : mat0 == 5 ? 0.06 : 0.03;
         float ee = 0.07; float h0 = vn(uvb * sc), hx = vn((uvb + vec2(ee, 0.0)) * sc), hy = vn((uvb + vec2(0.0, ee)) * sc);
         if (mat0 == 3) { float d0 = vn(uvb * 7.0 + 3.0), dx = vn((uvb + vec2(ee, 0.0)) * 7.0 + 3.0), dy = vn((uvb + vec2(0.0, ee)) * 7.0 + 3.0); h0 += d0 * 0.3; hx += dx * 0.3; hy += dy * 0.3; }
         vec2 gr = vec2(hx - h0, hy - h0) / ee * amt * nearB;
@@ -227,8 +228,9 @@ const R = (() => {
         vec2 uv = abs(n.x) > 0.5 ? vWorld.zy : (abs(n.y) > 0.5 ? vWorld.xz : vWorld.xy);
         vec3 bp = floor(vWorld - n * 0.5);
         float hb = hash3(bp); float speck = hash3(vec3(floor(uv * 8.0), bp.y)); float blot = hash3(vec3(floor(uv * 3.0), bp.x + bp.z));
-        int matp = int(vMat + 0.5); float blocky = (matp == 7 || matp == 0) ? 0.0 : 1.0; // leaves and props are not blocks: no per-block paint on them
+        int matp = int(vMat + 0.5); float soil = (matp == 1 || matp == 2 || matp == 4 || matp == 5) ? 1.0 : 0.0; float blocky = (matp == 7 || matp == 0 || soil > 0.5) ? 0.0 : 1.0; // leaves, props and the ground are not blocks: no per-block paint on them
         col *= 1.0 + blocky * (-0.1 + 0.1 * hb + (speck - 0.5) * 0.12 * uQuality + (blot - 0.5) * 0.07);
+        col *= 1.0 + soil * ((vn(uv * 0.7 + 3.0) - 0.5) * 0.1 + (vn(uv * 2.3 + 8.0) - 0.5) * 0.05); // the ground: a soft drift of light and dark instead
         // broad painted drift: warm and cool patches across the land
         vec2 wp = vWorld.xz * 0.045; vec2 wi = floor(wp), wf = fract(wp); wf = wf * wf * (3.0 - 2.0 * wf);
         float d0 = hash3(vec3(wi, 7.0)), d1 = hash3(vec3(wi + vec2(1.0, 0.0), 7.0)), d2 = hash3(vec3(wi + vec2(0.0, 1.0), 7.0)), d3 = hash3(vec3(wi + vec2(1.0, 1.0), 7.0));
@@ -238,13 +240,13 @@ const R = (() => {
         float pd = length(vWorld.xz - uPlayer.xz) + abs(vWorld.y - uPlayer.y) * 0.5; float lw = 0.018; float g = 1.0 - smoothstep(lw, lw * 2.2, e); g *= 1.0 - smoothstep(2.5, 4.5, pd);
         col *= 1.0 - 0.28 * g;
         float near = 1.0 - smoothstep(30.0, 70.0, dist); int mat = int(vMat + 0.5);
-        if (mat == 2) { // sand: wind ripples and grain
-          vec2 q = vWorld.xz; float warp = vn(q * 0.35) * 3.0;
-          float rip = sin(dot(q, vec2(0.93, 0.37)) * 4.2 + warp) * 0.5 + 0.5; rip = smoothstep(0.15, 0.95, rip);
-          float grain = vn(q * 48.0) * 0.6 + vn(q * 113.0 + 1.7) * 0.4;
-          col *= 1.0 + ((rip - 0.5) * 0.13 + (grain - 0.5) * 0.08) * near;
+        if (mat == 2) { // sand: soft wind ripples wandering over it, a fine grain, a glint here and there
+          vec2 q = vWorld.xz; float warp = vn(q * 0.3) * 4.0 + vn(q * 1.4 + 2.0) * 1.3;
+          float rip = sin(dot(q, vec2(0.93, 0.37)) * 3.4 + warp) * 0.5 + 0.5; rip = smoothstep(0.2, 0.9, rip);
+          float grain = vn(q * 40.0) * 0.5 + vn(q * 97.0 + 1.7) * 0.5;
+          col *= 1.0 + ((rip - 0.5) * 0.08 + (grain - 0.5) * 0.045) * near;
           col *= 0.96 + 0.08 * vn(q * 0.12);
-          col += uSunCol * step(0.992, hash3(vec3(floor(q * 14.0), 3.0))) * uSunAmt * 0.18 * near;
+          col += uSunCol * step(0.996, hash3(vec3(floor(q * 20.0), 3.0))) * uSunAmt * 0.1 * near * (0.4 + 0.6 * rip);
         } else if (mat == 1) { // grass: a carpet of fine blades, with wind rolling over it
           vec2 q = vWorld.xz; float fine = vn(q * 26.0) * 0.6 + vn(q * 61.0 + 3.1) * 0.4; float tuft = vn(q * 7.0 + 9.0);
           vec2 wd = normalize(vec2(0.8, 0.45)); float wave = sin(dot(q, wd) * 0.42 - uTime * 1.6 + vn(q * 0.15) * 4.0) * 0.5 + 0.5; wave *= wave * (0.5 + 0.5 * vn(q * 0.07 + uTime * 0.05));
@@ -271,7 +273,7 @@ const R = (() => {
     // haze: blue with distance, warm toward the sun
     float f = clamp((dist - uFogNear) / (uFogFar - uFogNear), 0.0, 1.0); f = f * f * (3.0 - 2.0 * f);
     float toward = pow(max(dot(-V, uSun), 0.0), 6.0) * uSunAmt;
-    vec3 haze = mix(uFog, uSunCol, toward * 0.45);
+    vec3 haze = mix(skyFog(-V), uSunCol, toward * 0.45); // far things fade into the sky behind them, whatever its colour up there
     col = mix(col * uTint, haze, f);
     gl_FragColor = vec4(tonemap(col), alpha);
   }`;
@@ -300,14 +302,15 @@ const R = (() => {
   ${TONE}
   /*SHADOW*/
   varying vec4 vCol; varying vec3 vWorld; varying vec3 vNorm; varying vec3 vLocal;
-  uniform vec3 uCam; uniform float uDay; uniform vec3 uFog; uniform float uFogNear; uniform float uFogFar; uniform float uAmbient;
+  uniform vec3 uCam; uniform float uDay; uniform vec3 uFog; uniform float uFogNear; uniform float uFogFar; uniform float uAmbient; uniform float uFogSky;
   uniform vec3 uLights[8]; uniform float uLightR[8]; uniform float uAlpha; uniform vec3 uTint; uniform float uSkyMul;
   uniform vec3 uSun; uniform vec3 uSunCol; uniform vec3 uZenith; uniform float uSunAmt; uniform float uOutline; uniform float uFlash;
   float hash3(vec3 p){ p = fract(p * vec3(0.1031, 0.1030, 0.0973)); p += dot(p, p.yxz + 33.33); return fract((p.x + p.y) * p.z); }
+  vec3 skyFog(vec3 d){ float h = d.y; vec3 c = mix(uFog, uZenith, pow(clamp(h, 0.0, 1.0), 0.55)); if (h < 0.0) c = mix(uFog, uFog * 0.82, clamp(-h * 4.0, 0.0, 1.0)); return mix(uFog, c, uFogSky); }
   void main(){
     vec3 toCam = uCam - vWorld; float dist = length(toCam); vec3 V = toCam / max(dist, 0.0001);
     float f = clamp((dist - uFogNear) / (uFogFar - uFogNear), 0.0, 1.0); f = f * f * (3.0 - 2.0 * f);
-    if (uOutline > 0.0) { gl_FragColor = vec4(tonemap(mix(vec3(0.07, 0.06, 0.09), uFog, f)), uAlpha); return; }
+    if (uOutline > 0.0) { gl_FragColor = vec4(tonemap(mix(vec3(0.07, 0.06, 0.09), skyFog(-V), f)), uAlpha); return; }
     vec3 n = normalize(vNorm); if (dot(n, V) < -0.15) n = -n;
     float sky = vCol.a; float emis = step(0.999, sky); float skyL = sky * uSkyMul;
     float torch = 0.0;
@@ -329,7 +332,7 @@ const R = (() => {
     vec3 H = normalize(uSun + V); float spec = pow(max(dot(n, H), 0.0), 36.0) * uSunAmt * uDay * 0.22 * skyL * (1.0 - emis); col += uSunCol * spec;
     col = mix(col, vec3(1.0, 0.95, 0.9), uFlash);
     float toward = pow(max(dot(-V, uSun), 0.0), 6.0) * uSunAmt;
-    vec3 haze = mix(uFog, uSunCol, toward * 0.45);
+    vec3 haze = mix(skyFog(-V), uSunCol, toward * 0.45); // far things fade into the sky behind them, whatever its colour up there
     col = mix(col * uTint, haze, f);
     gl_FragColor = vec4(tonemap(col), uAlpha);
   }`;
@@ -410,7 +413,7 @@ const R = (() => {
   function initEntityProg() {
     eprog = compile(EVS, EFS);
     for (const n of ['aPos', 'aCol', 'aNorm', 'aBone']) eloc[n] = gl.getAttribLocation(eprog, n);
-    for (const n of ['uPV', 'uModel', 'uBones', 'uOutline', 'uSway', 'uTime', 'uCam', 'uDay', 'uFog', 'uFogNear', 'uFogFar', 'uAmbient', 'uLights', 'uLightR', 'uAlpha', 'uTint', 'uSkyMul', 'uSun', 'uSunCol', 'uZenith', 'uSunAmt', 'uFlash', 'uShadow', 'uLightPV', 'uShadowOn', 'uShadowTexel']) eloc[n] = gl.getUniformLocation(eprog, n);
+    for (const n of ['uPV', 'uModel', 'uBones', 'uOutline', 'uSway', 'uTime', 'uCam', 'uDay', 'uFog', 'uFogNear', 'uFogFar', 'uAmbient', 'uLights', 'uLightR', 'uAlpha', 'uTint', 'uSkyMul', 'uSun', 'uSunCol', 'uZenith', 'uSunAmt', 'uFlash', 'uShadow', 'uLightPV', 'uShadowOn', 'uShadowTexel', 'uFogSky']) eloc[n] = gl.getUniformLocation(eprog, n);
   }
   // ---- the meadow: one blade shape drawn tens of thousands of times around you (WebGL2 instancing) ----
   const GVS = `#version 300 es
@@ -420,6 +423,7 @@ const R = (() => {
   out vec3 vC; out vec3 vW; out float vH;
   float hash(vec2 p){ return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
   vec4 hm(ivec2 t){ return texelFetch(uHM, clamp(t, ivec2(0), ivec2(127)), 0); }
+  float soilH(vec4 t, float h0){ float h = t.a * 255.0; bool soil = (t.r + t.g > 0.004) || t.b > 0.998; return (soil && abs(h - h0) <= 2.5) ? h : h0; }
   void main(){
     int ix = gl_InstanceID % uSide, iz = gl_InstanceID / uSide;
     vec2 cell = uOrigin + vec2(float(ix), float(iz)) * uSpacing;
@@ -429,11 +433,12 @@ const R = (() => {
     float fade = 1.0 - smoothstep(uROut * 0.72, uROut, d);
     if (uRIn > 0.0) fade *= smoothstep(uRIn - 2.5, uRIn + 0.5, d);
     vec2 t = p - uHMO - 0.5; ivec2 i0 = ivec2(floor(t)); vec2 f = fract(t);
-    vec4 a = hm(i0), b = hm(i0 + ivec2(1, 0)), c = hm(i0 + ivec2(0, 1)), e = hm(i0 + ivec2(1, 1));
-    float ha = a.a * 255.0, hb = b.a * 255.0, hc = c.a * 255.0, he = e.a * 255.0;
-    float lo = min(min(ha, hb), min(hc, he)), hi = max(max(ha, hb), max(hc, he));
     vec4 own = hm(ivec2(floor(p - uHMO)));
-    float grass = step(0.004, own.r + own.g) * (1.0 - step(2.5, hi - lo));
+    float h0 = own.a * 255.0;
+    // the ground height, blended from the four soil texels around the blade; a wall, trunk or cliff among them counts as the blade's own ground
+    vec4 a = hm(i0), b = hm(i0 + ivec2(1, 0)), c = hm(i0 + ivec2(0, 1)), e = hm(i0 + ivec2(1, 1));
+    float ha = soilH(a, h0), hb = soilH(b, h0), hc = soilH(c, h0), he = soilH(e, h0);
+    float grass = step(0.004, own.r + own.g);
     float zone = own.b; float tall = smoothstep(0.6, 0.78, zone), lawn = 1.0 - smoothstep(0.22, 0.4, zone);
     float y = mix(mix(ha, hb, f.x), mix(hc, he, f.x), f.y);
     // clumps: thick patches and thinner ones, so the meadow is not a uniform brush
@@ -467,7 +472,8 @@ const R = (() => {
   ${TONE}
   /*SHADOW*/
   in vec3 vC; in vec3 vW; in float vH; out vec4 o;
-  uniform vec3 uCam; uniform vec3 uFog; uniform float uFogNear; uniform float uFogFar; uniform vec3 uSun; uniform vec3 uSunCol; uniform float uSunAmt; uniform float uDay; uniform vec3 uTint;
+  uniform vec3 uCam; uniform vec3 uFog; uniform float uFogNear; uniform float uFogFar; uniform vec3 uSun; uniform vec3 uSunCol; uniform float uSunAmt; uniform float uDay; uniform vec3 uTint; uniform vec3 uZenith; uniform float uFogSky;
+  vec3 skyFog(vec3 d){ float h = d.y; vec3 c = mix(uFog, uZenith, pow(clamp(h, 0.0, 1.0), 0.55)); if (h < 0.0) c = mix(uFog, uFog * 0.82, clamp(-h * 4.0, 0.0, 1.0)); return mix(uFog, c, uFogSky); }
   void main(){
     float dist = distance(vW, uCam); vec3 V = (uCam - vW) / max(dist, 0.001);
     float sh = shadowAt(vW, vec3(0.0, 1.0, 0.0));
@@ -476,7 +482,7 @@ const R = (() => {
     float sheen = pow(max(dot(-V, uSun), 0.0), 14.0) * uSunAmt * vH * vH * sh; // the field shines toward the sun
     vec3 col = vC * light + vC * uSunCol * back * 0.5 + uSunCol * sheen * 0.35;
     float f = clamp((dist - uFogNear) / (uFogFar - uFogNear), 0.0, 1.0); f = f * f * (3.0 - 2.0 * f);
-    o = vec4(tonemap(mix(col * uTint, uFog, f)), 1.0);
+    o = vec4(tonemap(mix(col * uTint, skyFog(-V), f)), 1.0);
   }`;
   let grassProg = null, gloc = {}, grassBuf = null, hmTex = null, hmData = null, hmCenter = null, hmT = 0;
   function initGrass() {
@@ -485,7 +491,7 @@ const R = (() => {
       const mk = (t, src) => { const s = gl.createShader(t); gl.shaderSource(s, src); gl.compileShader(s); if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s)); return s; };
       const p = gl.createProgram(); gl.attachShader(p, mk(gl.VERTEX_SHADER, GVS)); gl.attachShader(p, mk(gl.FRAGMENT_SHADER, GFS.replace('/*SHADOW*/', SHADOW_GLSL(true)))); gl.linkProgram(p); if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(p));
       grassProg = p; gloc.aBlade = gl.getAttribLocation(p, 'aBlade');
-      for (const n of ['uPV', 'uCam', 'uOrigin', 'uSpacing', 'uSide', 'uRIn', 'uROut', 'uScale', 'uWidth', 'uHM', 'uHMO', 'uTime', 'uFog', 'uFogNear', 'uFogFar', 'uSun', 'uSunCol', 'uSunAmt', 'uDay', 'uTint', 'uShadow', 'uLightPV', 'uShadowOn', 'uShadowTexel']) gloc[n] = gl.getUniformLocation(p, n);
+      for (const n of ['uPV', 'uCam', 'uOrigin', 'uSpacing', 'uSide', 'uRIn', 'uROut', 'uScale', 'uWidth', 'uHM', 'uHMO', 'uTime', 'uFog', 'uFogNear', 'uFogFar', 'uSun', 'uSunCol', 'uSunAmt', 'uDay', 'uTint', 'uShadow', 'uLightPV', 'uShadowOn', 'uShadowTexel', 'uZenith', 'uFogSky']) gloc[n] = gl.getUniformLocation(p, n);
       // a blade: two quads tapering to a point (5 vertices, a strip)
       grassBuf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, grassBuf); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-0.5, 0, 0.5, 0, -0.42, 0.5, 0.42, 0.5, 0, 1]), gl.STATIC_DRAW);
       hmTex = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, hmTex); hmData = new Uint8Array(128 * 128 * 4);
@@ -516,10 +522,14 @@ const R = (() => {
       const x = ox + i, z = oz + j; const ch = world.chunks.get(Math.floor(x / CH) + ',' + Math.floor(z / CH)); const k = (j * 128 + i) * 4;
       if (!ch) { d[k] = d[k + 1] = d[k + 2] = 0; d[k + 3] = 0; continue; }
       const lx = x - Math.floor(x / CH) * CH, lz = z - Math.floor(z / CH) * CH;
-      let y = ch.tops[lx * CH + lz]; let id = ch.blocks[(lx * CH + lz) * WH + y]; while (y > 0 && (id === B.AIR || id === B.TORCH)) { y--; id = ch.blocks[(lx * CH + lz) * WH + y]; }
-      const grass = (id === B.GRASS || id === B.GLOWGRASS) && ch.blocks[(lx * CH + lz) * WH + y + 1] === B.AIR;
+      // down through the canopy, bushes and flowers to the ground itself
+      let y = ch.tops[lx * CH + lz]; let id = ch.blocks[(lx * CH + lz) * WH + y]; while (y > 0 && (id === B.AIR || isLeaf(id) || id === B.BERRY || (BLOCKS[id].partial && !BLOCKS[id].solid))) { y--; id = ch.blocks[(lx * CH + lz) * WH + y]; }
+      const above = ch.blocks[(lx * CH + lz) * WH + y + 1];
+      const grass = (id === B.GRASS || id === B.GLOWGRASS) && (above === B.AIR || (BLOCKS[above].partial && !BLOCKS[above].solid)); // blades grow through flowers and pebbles, not through a bush or a boulder
       const ti = (lx * CH + lz) * 3;
-      d[k] = grass ? Math.max(1, Math.min(255, ch.tint[ti] * 255)) : 0; d[k + 1] = grass ? Math.max(1, Math.min(255, ch.tint[ti + 1] * 255)) : 0; d[k + 2] = grass ? Math.max(1, Math.round(grassZone(world, x, z, world.colInfo(x, z).biome) * 254)) : 0; d[k + 3] = Math.min(255, y + 1); // blue holds the kind of grass
+      // red, green: the grass colour (0 where no grass grows); blue: the kind of grass, or 255 for bare soil; alpha: the height of the top.
+      // Blades read their height from the four texels around them, and only from soil ones: a wall or a trunk is not ground they should climb
+      d[k] = grass ? Math.max(1, Math.min(255, ch.tint[ti] * 255)) : 0; d[k + 1] = grass ? Math.max(1, Math.min(255, ch.tint[ti + 1] * 255)) : 0; d[k + 2] = grass ? Math.max(1, Math.min(253, Math.round(grassZone(world, x, z, world.colInfo(x, z).biome) * 253))) : SOIL.has(id) ? 255 : 0; d[k + 3] = Math.min(255, y + 1);
     }
     gl.bindTexture(gl.TEXTURE_2D, hmTex); gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, 128, 128, gl.RGBA, gl.UNSIGNED_BYTE, d);
     hmCenter = { x: cx, z: cz, ox, oz };
@@ -530,7 +540,7 @@ const R = (() => {
     if (!hmCenter || Math.abs(cx - hmCenter.x) > 6 || Math.abs(cz - hmCenter.z) > 6 || now - hmT > 1500) { refreshHeightmap(world, cx, cz); hmT = now; }
     gl.useProgram(grassProg);
     gl.uniformMatrix4fv(gloc.uPV, false, pv); gl.uniform3f(gloc.uCam, cam.x, cam.y, cam.z); gl.uniform1f(gloc.uTime, now / 1000);
-    gl.uniform3fv(gloc.uFog, state.fogColor); gl.uniform1f(gloc.uFogNear, state.fogNear); gl.uniform1f(gloc.uFogFar, state.fogFar); gl.uniform3fv(gloc.uSun, state.sun); gl.uniform3fv(gloc.uSunCol, state.sunCol); gl.uniform1f(gloc.uSunAmt, state.sunAmt); gl.uniform1f(gloc.uDay, state.dayLight); gl.uniform3fv(gloc.uTint, state.tint);
+    gl.uniform3fv(gloc.uFog, state.fogColor); gl.uniform3fv(gloc.uZenith, state.zenith || state.fogColor); gl.uniform1f(gloc.uFogSky, state.fogSky ? 1 : 0); gl.uniform1f(gloc.uFogNear, state.fogNear); gl.uniform1f(gloc.uFogFar, state.fogFar); gl.uniform3fv(gloc.uSun, state.sun); gl.uniform3fv(gloc.uSunCol, state.sunCol); gl.uniform1f(gloc.uSunAmt, state.sunAmt); gl.uniform1f(gloc.uDay, state.dayLight); gl.uniform3fv(gloc.uTint, state.tint);
     gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, hmTex); gl.uniform1i(gloc.uHM, 0); gl.uniform2f(gloc.uHMO, hmCenter.ox, hmCenter.oz); bindShadow(gloc, 1);
     gl.bindBuffer(gl.ARRAY_BUFFER, grassBuf); gl.enableVertexAttribArray(gloc.aBlade); gl.vertexAttribPointer(gloc.aBlade, 2, gl.FLOAT, false, 0, 0);
     const q = state.grassQuality || 1; // 1 full, 0.7 lighter
@@ -596,7 +606,7 @@ const R = (() => {
     if (!gl) { gl = cv.getContext('webgl', opts) || cv.getContext('experimental-webgl', opts); if (!gl) throw new Error('WebGL is not available'); if (!gl.getExtension('OES_element_index_uint')) throw new Error('32-bit indices unsupported'); }
     prog = compile(VS, FS);
     for (const n of ['aPos', 'aCol', 'aMat', 'aNorm']) loc[n] = gl.getAttribLocation(prog, n);
-    for (const n of ['uPV', 'uModel', 'uTime', 'uWave', 'uCam', 'uDay', 'uFog', 'uFogNear', 'uFogFar', 'uAmbient', 'uLights', 'uLightR', 'uAlpha', 'uTint', 'uSkyMul', 'uSun', 'uSunCol', 'uZenith', 'uGrid', 'uSunAmt', 'uQuality', 'uPlayer', 'uBladeShade', 'uShadow', 'uLightPV', 'uShadowOn', 'uShadowTexel']) loc[n] = gl.getUniformLocation(prog, n);
+    for (const n of ['uPV', 'uModel', 'uTime', 'uWave', 'uCam', 'uDay', 'uFog', 'uFogNear', 'uFogFar', 'uAmbient', 'uLights', 'uLightR', 'uAlpha', 'uTint', 'uSkyMul', 'uSun', 'uSunCol', 'uZenith', 'uGrid', 'uSunAmt', 'uQuality', 'uPlayer', 'uBladeShade', 'uShadow', 'uLightPV', 'uShadowOn', 'uShadowTexel', 'uFogSky']) loc[n] = gl.getUniformLocation(prog, n);
     skyProg = compile(SVS, SFS); sloc.aPos = gl.getAttribLocation(skyProg, 'aPos'); for (const n of ['uFwd', 'uRight', 'uUp', 'uTan', 'uAspect', 'uHorizon', 'uZenith', 'uSun', 'uSunCol', 'uSunAmt', 'uTime', 'uClouds', 'uNight']) sloc[n] = gl.getUniformLocation(skyProg, n);
     initGrass(); initEntityProg(); initShadows();
     skyBuf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, skyBuf); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
@@ -646,9 +656,11 @@ const R = (() => {
 
   // ---------- chunk meshing ----------
   // material classes for the fragment shader: 1 grass top, 2 sand, 3 rock, 4 earth, 5 snow, 6 wood, 7 leaves, 8 lava
-  const MAT_OF = {}; for (const [ids, m] of [[[B.SAND, B.DUNE, B.SALTCRUST], 2], [[B.STONE, B.GRAVEL, B.MOSS, B.COPPER, B.IRON, B.EMBER, B.GOLD, B.DIAMOND, B.BASALT, B.BEDROCK, B.FORTSTONE, B.RUBBLE, B.SELENITE, B.TYCHO, B.AMBER, B.REGOLITH, B.BOULDER], 3], [[B.DIRT], 4], [[B.SNOW], 5], [[B.PLANKS, B.LOG, B.BIRCHLOG, B.DOOR, B.DOOR_OPEN, B.LADDER, B.CHEST], 6], [[B.LEAVES, B.BERRYLEAF, B.NEEDLES, B.CACTUS], 7], [[B.LAVA], 8]]) for (const id of ids) MAT_OF[id] = m;
+  const MAT_OF = {}; for (const [ids, m] of [[[B.SAND, B.DUNE, B.SALTCRUST], 2], [[B.STONE, B.GRAVEL, B.MOSS, B.COPPER, B.IRON, B.EMBER, B.GOLD, B.DIAMOND, B.BASALT, B.BEDROCK, B.FORTSTONE, B.RUBBLE, B.SELENITE, B.TYCHO, B.AMBER, B.REGOLITH, B.BOULDER], 3], [[B.DIRT], 4], [[B.SNOW], 5], [[B.PLANKS, B.LOG, B.BIRCHLOG, B.PALMLOG, B.DOOR, B.DOOR_OPEN, B.LADDER, B.CHEST], 6], [[B.LEAVES, B.BERRYLEAF, B.NEEDLES, B.CACTUS], 7], [[B.LAVA], 8]]) for (const id of ids) MAT_OF[id] = m;
   const scratchOpaque = new MeshBuilder(16384, false, true), scratchWater = new MeshBuilder(2048, false, true), scratchGlass = new MeshBuilder(512, false, true), scratchGrass = new MeshBuilder(8192, false, true);
   const SOIL = new Set([B.GRASS, B.DIRT, B.SAND, B.SNOW, B.GRAVEL, B.STONE, B.MOSS, B.GLOWGRASS, B.REGOLITH, B.DUNE, B.SALTCRUST]);
+  // things that stand on the ground without stopping it from sloping: air, leaves, trunks, bushes, flowers, pebbles, torches, chests...
+  const DECOR = (b) => b === B.AIR || isLeaf(b) || isTrunk(b) || b === B.BERRY || BLOCKS[b].partial;
   const surfTop = new Int16Array(18 * 18), surfWet = new Int16Array(18 * 18), cornerH = new Float32Array(17 * 17);
   const FLOWERS = [[0.95, 0.85, 0.25], [0.95, 0.95, 0.95], [0.85, 0.35, 0.55], [0.6, 0.5, 0.95], [0.95, 0.5, 0.25]];
   function buildChunk(world, chunk) {
@@ -673,7 +685,7 @@ const R = (() => {
     // smooth land: every column's exposed soil top, then a height for each corner shared by four columns.
     // Steps of one or two blocks become slopes; anything steeper stays a sharp edge.
     for (let x = -1; x <= 16; x++) for (let z = -1; z <= 16; z++) {
-      let t = -1, wt = -1; for (let y = WH - 1; y > 0; y--) { const b = get(x, y, z); if (b === B.AIR || b === B.TORCH) continue; if (b === B.WATER || b === B.BRINE) { if (wt < 0) wt = y + 1; continue; } if (SOIL.has(b)) t = y; break; }
+      let t = -1, wt = -1; for (let y = WH - 1; y > 0; y--) { const b = get(x, y, z); if (DECOR(b)) continue; if (b === B.WATER || b === B.BRINE) { if (wt < 0) wt = y + 1; continue; } if (SOIL.has(b)) t = y; break; }
       surfTop[(x + 1) * 18 + (z + 1)] = t; surfWet[(x + 1) * 18 + (z + 1)] = wt; // the seabed counts as land: shores slope in under the water
     }
     for (let cx = 0; cx <= 16; cx++) for (let cz = 0; cz <= 16; cz++) {
@@ -686,6 +698,12 @@ const R = (() => {
     }
     const ST = (x, z) => surfTop[(x + 1) * 18 + (z + 1)];
     const CHt = (x, z) => cornerH[x * 17 + z];
+    // where a prop standing at (lx, y, lz) meets the ground: the smoothed surface under it, or the block top when the ground there is not smoothed
+    const gnd = (lx, y, lz) => {
+      if (ST(lx, lz) !== y - 1) return y;
+      const a = CHt(lx, lz), b = CHt(lx + 1, lz), c = CHt(lx, lz + 1), d = CHt(lx + 1, lz + 1);
+      return ((a >= 0 ? a : y) + (b >= 0 ? b : y) + (c >= 0 ? c : y) + (d >= 0 ? d : y)) * 0.25;
+    };
     // a normal per corner from the slope of the smoothed height field
     const cornerN = (x, z) => { const h = CHt(x, z); if (h < 0) return [0, 1, 0]; const g = (a, b) => { const v = (a >= 0 && a <= 16 && b >= 0 && b <= 16) ? CHt(a, b) : -1; return v >= 0 ? v : h; }; const dx = (g(x + 1, z) - g(x - 1, z)) * 0.5, dz = (g(x, z + 1) - g(x, z - 1)) * 0.5; const l = Math.hypot(dx, 1, dz); return [-dx / l, 1 / l, -dz / l]; };
     const blocks = chunk.blocks;
@@ -698,7 +716,7 @@ const R = (() => {
         if (id === B.AIR) continue;
         const info = BLOCKS[id];
         const wx = ox + lx, wz = oz + lz;
-        const vr = 0.92 + U.hash3(wx, y, wz, 5) * 0.12; // per-block variation
+        const vr = SOIL.has(id) ? 0.98 + U.hash3(wx, y, wz, 5) * 0.03 : 0.92 + U.hash3(wx, y, wz, 5) * 0.12; // per-block variation (the ground keeps almost none: its shader paints it smoothly)
         if (id === B.STATUE) continue; // drawn as an entity
         // grass: a tuft of blades on every open grass top, and now and then a flower
         if ((id === B.GRASS || id === B.GLOWGRASS) && y + 1 < WH && blocks[base + y + 1] === B.AIR) {
@@ -721,18 +739,48 @@ const R = (() => {
         if (isLeaf(id)) { // leaves: soft puffs that overlap into a canopy. Leaf blocks are grouped in 2x2x2 cells: the cell's even corner draws one big puff for all of them; a leaf whose cell corner is not a leaf draws its own small one
           const exposedAt = (x, yy, z) => { for (let f = 0; f < 6; f++) { const F = FACES[f]; const nid = get(x + F.n[0], yy + F.n[1], z + F.n[2]); if (!(isLeaf(nid) || isOpaque(nid))) return true; } return false; };
           const ax = lx - (wx & 1), ay = y - (y & 1), az = lz - (wz & 1); // this block's 2x2x2 cell; the first leaf in the cell draws one puff for all
-          let first = true, any = false, nLeaf = 0; for (let i = 0; i < 2; i++) for (let j = 0; j < 2; j++) for (let k = 0; k < 2; k++) { const bx = ax + i, by = ay + j, bz = az + k; const b = get(bx, by, bz); if (!isLeaf(b)) continue; nLeaf++; if (first && (bx !== lx || by !== y || bz !== lz)) { if (bx < lx || (bx === lx && (by < y || (by === y && bz < lz)))) first = false; } if (!any && exposedAt(bx, by, bz)) any = true; }
+          let first = true, any = false, nLeaf = 0, sx = 0, sy = 0, sz = 0, x0 = 9, x1 = -9, y0 = 9, y1 = -9, z0 = 9, z1 = -9;
+          for (let i = 0; i < 2; i++) for (let j = 0; j < 2; j++) for (let k = 0; k < 2; k++) { const bx = ax + i, by = ay + j, bz = az + k; const b = get(bx, by, bz); if (!isLeaf(b)) continue; nLeaf++; sx += bx; sy += by; sz += bz; x0 = Math.min(x0, i); x1 = Math.max(x1, i); y0 = Math.min(y0, j); y1 = Math.max(y1, j); z0 = Math.min(z0, k); z1 = Math.max(z1, k); if (first && (bx !== lx || by !== y || bz !== lz)) { if (bx < lx || (bx === lx && (by < y || (by === y && bz < lz)))) first = false; } if (!any && exposedAt(bx, by, bz)) any = true; }
           if (!first || !any) continue;
-          let r = nLeaf >= 4 ? 1.1 : nLeaf >= 2 ? 0.92 : 0.68, cx = ax + 1, cy = ay + 1, cz = az + 1;
-          if (nLeaf === 1) { cx = lx + 0.5; cy = y + 0.5; cz = lz + 0.5; }
+          // the puff sits on the leaves it stands for: centred on them, stretched along whichever way they run (a hanging strand stays a strand)
+          let cx = sx / nLeaf + 0.5, cy = sy / nLeaf + 0.5, cz = sz / nLeaf + 0.5;
           const sk = skyAt(lx, y + 1, lz); const h0 = U.hash3(wx, y, wz, 61), h1 = U.hash3(wx, y, wz, 62), h2 = U.hash3(wx, y, wz, 63);
-          r *= 0.94 + h0 * 0.14; cx += (h1 - 0.5) * 0.2; cz += (h2 - 0.5) * 0.2; cy += (h0 - 0.5) * 0.12;
+          const rs = 0.94 + h0 * 0.14; const rx = (0.66 + (x1 - x0) * 0.5) * rs, ry = (0.56 + (y1 - y0) * 0.44) * rs, rz = (0.66 + (z1 - z0) * 0.5) * rs; const r = Math.max(rx, rz);
+          cx += (h1 - 0.5) * 0.2; cz += (h2 - 0.5) * 0.2; cy += (h0 - 0.5) * 0.12;
           let around = 0; for (let f = 0; f < 6; f++) { const F = FACES[f]; const nid = get(lx + F.n[0], y + F.n[1], lz + F.n[2]); if (isLeaf(nid) || isOpaque(nid)) around++; }
           const dark = 1 - 0.06 * Math.max(0, around - 2); // deeper in the crown, darker
           let c; if (id === B.NEEDLES) { const nv = 0.9 + h1 * 0.2; c = [0.19 * nv, 0.42 * nv, 0.3 * nv]; } else { const warm = id === B.BERRYLEAF ? 1 : 0; c = [tint[0] * (0.9 + warm * 0.25) * vr, tint[1] * 1.02 * vr, tint[2] * 0.72 * vr]; }
           const hue = (h2 - 0.5) * 0.16; c = [c[0] * dark * (1 + hue), c[1] * dark, c[2] * dark * (1 - hue)]; // some puffs yellower, some bluer
-          op.blob(cx - r, cy - r * 0.84, cz - r, cx + r, cy + r * 0.84, cz + r, 0.9, [c[0] * 1.08, c[1] * 1.06, c[2]], { sky: sk, n: nLeaf >= 4 ? 3 : 2, under: [c[0] * 0.5, c[1] * 0.56, c[2] * 0.62], split: 0.05, soft: 0.7 });
+          op.blob(cx - rx, cy - ry, cz - rz, cx + rx, cy + ry, cz + rz, 0.9, [c[0] * 1.08, c[1] * 1.06, c[2]], { sky: sk, n: nLeaf >= 4 ? 3 : 2, under: [c[0] * 0.5, c[1] * 0.56, c[2] * 0.62], split: 0.05, soft: 0.7 });
           if (id === B.BERRYLEAF) for (let k = 0; k < 3; k++) { const a = U.hash3(wx, y, wz, 64 + k) * 6.283, e = 0.2 + U.hash3(wx, y, wz, 67 + k) * 0.6; op.ball(cx + Math.cos(a) * r * 0.85, cy + r * 0.8 * (e - 0.4), cz + Math.sin(a) * r * 0.85, 0.08, [0.9, 0.15, 0.22], { sky: sk, n: 2 }); }
+          continue;
+        }
+        if (id === B.PALMLOG) { // the lowest trunk block draws the whole palm: a curved trunk, a crown of arching fronds, coconuts. The trunk blocks above it draw nothing
+          const isPalm = (b) => b === B.PALMLOG; const STEPS = [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1]];
+          if (STEPS.some(([a, b]) => isPalm(get(lx + a, y - 1, lz + b)))) continue;
+          const dn = get(lx, y - 1, lz); const path = [[lx + 0.5, SOIL.has(dn) ? y - 0.6 : y, lz + 0.5]]; let px = lx, py = y, pz = lz;
+          for (let k = 0; k < 16; k++) { path.push([px + 0.5, py + 0.5, pz + 0.5]); const st = STEPS.find(([a, b]) => isPalm(get(px + a, py + 1, pz + b))); if (!st) break; px += st[0]; pz += st[1]; py++; }
+          const crownId = get(px, py + 1, pz); const crown = crownId === B.FROND || isLeaf(crownId);
+          { const n0 = path.length, last = path[n0 - 1], prev = path[Math.max(0, n0 - 2)]; path.push([last[0] + (last[0] - prev[0]) * 0.5, last[1] + 0.5, last[2] + (last[2] - prev[2]) * 0.5]); } // the trunk top, carried on along its curve
+          const sm = path.map((p, i) => (i === 0 || i === path.length - 1) ? p : [(path[i - 1][0] + 2 * p[0] + path[i + 1][0]) / 4, (path[i - 1][1] + 2 * p[1] + path[i + 1][1]) / 4, (path[i - 1][2] + 2 * p[2] + path[i + 1][2]) / 4]);
+          const fine = []; for (let i = 0; i < sm.length; i++) { fine.push(sm[i]); if (i < sm.length - 1) fine.push([(sm[i][0] + sm[i + 1][0]) / 2, (sm[i][1] + sm[i + 1][1]) / 2, (sm[i][2] + sm[i + 1][2]) / 2]); }
+          const N = fine.length; const hp = (k) => U.hash3(wx, y, wz, 130 + k);
+          const sk = skyAt(lx, y + 1, lz), skc = skyAt(px, py + 2, pz);
+          const bark = [0.58, 0.47, 0.31];
+          op.tube(fine, fine.map((p, i) => { const t = i / (N - 1); return (0.4 - 0.13 * t) * (i % 2 ? 1 : 0.93) * (i === 0 ? 1.25 : 1); }), bark, { sky: sk, segs: 8, cap0: 'flat', cap1: crown ? 'none' : 'flat', shade: (p, nx, ny, nz, t) => { const ring = Math.round(t * (N - 1)); const k = U.hash3(ring, wx, wz, 7); const m = (ring % 2 ? 0.8 : 1.0) * (0.9 + k * 0.2); return [bark[0] * m, bark[1] * m, bark[2] * m]; } });
+          if (crown) {
+            const T = fine[N - 1]; const green = [0.2, 0.5, 0.19], tipc = [0.5, 0.64, 0.2], rib = [0.62, 0.66, 0.3], dead = [0.58, 0.45, 0.22];
+            const frond = (a, L, lift, droopEnd, wmax, col, tcol, M) => { // one leaf: out along angle a, rising by lift then drooping droopEnd below the crown
+              const dx = Math.cos(a), dz = Math.sin(a); const spine = [], ws = [];
+              for (let i = 0; i <= M; i++) { const t = i / M; const yy = lift * Math.sin(Math.PI * t) * (1 - 0.3 * t) - droopEnd * t * t; spine.push([T[0] + dx * t * L, T[1] + yy, T[2] + dz * t * L]); ws.push((wmax * Math.sqrt(Math.sin(Math.PI * Math.min(0.999, t * 0.92 + 0.04))) * (1 - 0.3 * t) + 0.02) * (i % 2 ? 0.72 : 1)); }
+              op.ribbon(spine, ws, col, { sky: skc, tip: tcol, rib, droop: 0.55 });
+            };
+            const nF = 9, a0 = hp(1) * 6.283;
+            for (let k = 0; k < nF; k++) frond(a0 + k / nF * 6.283 + (hp(2 + k) - 0.5) * 0.45, 2.2 + hp(12 + k) * 0.9, 0.55 + hp(22 + k) * 0.5, 1.2 + hp(32 + k) * 0.5, 0.5, green, tipc, 10);
+            for (let k = 0; k < 3; k++) frond(a0 + 0.7 + k / 3 * 6.283, 0.9 + hp(42 + k) * 0.4, 1.3, -0.1, 0.26, [0.3, 0.6, 0.24], [0.6, 0.72, 0.3], 6); // young fronds standing up from the heart
+            for (let k = 0; k < 2; k++) { const a = a0 + 1.9 + k * 2.6; const dx = Math.cos(a), dz = Math.sin(a); const spine = [], ws = []; for (let i = 0; i <= 6; i++) { const t = i / 6; spine.push([T[0] + dx * (0.35 + 0.25 * t), T[1] - 0.1 - 1.7 * t * t, T[2] + dz * (0.35 + 0.25 * t)]); ws.push((0.3 * Math.sin(Math.PI * Math.min(0.999, t * 0.9 + 0.05)) + 0.02) * (i % 2 ? 0.72 : 1)); } op.ribbon(spine, ws, dead, { sky: skc, tip: [0.42, 0.32, 0.16], droop: 0.6 }); } // dead fronds hanging under the crown
+            for (let k = 0; k < 4; k++) { const a = a0 + 0.4 + k * 1.5; op.ball(T[0] + Math.cos(a) * 0.24, T[1] - 0.18 - (k % 2) * 0.1, T[2] + Math.sin(a) * 0.24, 0.15, k % 2 ? [0.42, 0.29, 0.11] : [0.36, 0.34, 0.14], { sky: skc, n: 2 }); } // coconuts
+          }
           continue;
         }
         if (id === B.LOG || id === B.BIRCHLOG) { // a free-standing log is round (a trunk, a post, a beam); one built into a wall stays square
@@ -744,13 +792,14 @@ const R = (() => {
           if (perp.every(free) && !((vx || vz) && vy)) {
             const sk = skyAt(lx, y + 1, lz); const birch = id === B.BIRCHLOG; const base = birch ? [0.9, 0.88, 0.84] : [0.5, 0.36, 0.2];
             const a0 = [lx + 0.5, y + 0.5, lz + 0.5], a1 = [lx + 0.5, y + 0.5, lz + 0.5]; const n0 = axis === 'y' ? dn : axis === 'x' ? xm : zm, n1 = axis === 'y' ? up : axis === 'x' ? xp : zp;
-            if (axis === 'y') { a0[1] = y; a1[1] = y + 1; } else if (axis === 'x') { a0[0] = lx; a1[0] = lx + 1; } else { a0[2] = lz; a1[2] = lz + 1; }
+            if (axis === 'y') { a0[1] = (!isLog(dn) && SOIL.has(dn)) ? y - 0.5 : y; a1[1] = y + 1; } else if (axis === 'x') { a0[0] = lx; a1[0] = lx + 1; } else { a0[2] = lz; a1[2] = lz + 1; }
             const rr = birch ? 0.4 : 0.5; const seed = wx * 7 + wz * 13 + y;
             op.tube([a0, a1], [rr, rr], base, { sky: sk, segs: 8, cap0: isLog(n0) ? 'none' : 'flat', cap1: isLog(n1) || isLeaf(n1) ? 'none' : 'flat', shade: (p, nx, ny, nz, t) => { const seg = Math.floor(Math.atan2(nx, nz) * 1.27 + 8) ; const k = U.hash3(seg, seed, 3, 5); if (birch) return k < 0.22 ? [0.25, 0.22, 0.2] : [0.9 * (0.94 + k * 0.1), 0.88 * (0.94 + k * 0.1), 0.84]; const m = 0.78 + k * 0.4; return [0.5 * m, 0.36 * m, 0.2 * m]; } });
             continue;
           }
         }
-        if (id === B.FROND) { // a palm frond: a long drooping leaf pointing away from the trunk
+        if (id === B.FROND) { // a palm frond: a long drooping leaf pointing away from the trunk. The crown of a standing palm is drawn by its trunk
+          if (get(lx, y - 1, lz) === B.PALMLOG) continue;
           const sk = skyAt(lx, y + 1, lz); let dir = null;
           for (let d = 1; d <= 3 && !dir; d++) for (const [ax, az] of [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, -1], [1, -1], [-1, 1]]) { for (const dy of [0, -1, 1, -2]) { const b = get(lx + ax * d, y + dy, lz + az * d); if (b === B.LOG) { const l = Math.hypot(ax, az); dir = [-ax / l, -az / l]; break; } } if (dir) break; }
           if (!dir) { const a = U.hash3(wx, y, wz, 83) * 6.283; dir = [Math.cos(a), Math.sin(a)]; }
@@ -761,50 +810,50 @@ const R = (() => {
           continue;
         }
         if (id === B.BOULDER) { // a rounded rock, bigger than its block, sitting in the ground
-          const sk = skyAt(lx, y + 1, lz); const h0 = U.hash3(wx, y, wz, 84), h1 = U.hash3(wx, y, wz, 85);
+          const sk = skyAt(lx, y + 1, lz); const h0 = U.hash3(wx, y, wz, 84), h1 = U.hash3(wx, y, wz, 85); const gy = gnd(lx, y, lz);
           const stonePal = world.preset.paletteRgb && world.preset.paletteRgb[B.STONE]; const sc = stonePal ? stonePal[1] : BLOCKS[B.STONE].side; const c = [sc[0] * (0.85 + h0 * 0.2), sc[1] * (0.85 + h0 * 0.2), sc[2] * (0.88 + h0 * 0.2)];
-          op.push(); op.rotate(0.15, h1 * 6.283, 0.1, [lx + 0.5, y + 0.3, lz + 0.5]);
-          op.blob(lx - 0.25 - h1 * 0.2, y - 0.35, lz - 0.2, lx + 1.25 + h0 * 0.2, y + 0.75 + h0 * 0.3, lz + 1.2, 0.75, c, { sky: sk, n: 3, tap: [1.08, 0.78] });
+          op.push(); op.rotate(0.15, h1 * 6.283, 0.1, [lx + 0.5, gy + 0.3, lz + 0.5]);
+          op.blob(lx - 0.25 - h1 * 0.2, gy - 0.35, lz - 0.2, lx + 1.25 + h0 * 0.2, gy + 0.75 + h0 * 0.3, lz + 1.2, 0.75, c, { sky: sk, n: 3, tap: [1.08, 0.78] });
           op.pop();
-          if (h0 > 0.5) op.blob(lx + 0.2, y + 0.55 + h0 * 0.3, lz + 0.15, lx + 0.9, y + 0.8 + h0 * 0.3, lz + 0.85, 0.9, [0.4, 0.55, 0.28], { sky: sk, n: 2 }); // a cushion of moss
+          if (h0 > 0.5) op.blob(lx + 0.2, gy + 0.55 + h0 * 0.3, lz + 0.15, lx + 0.9, gy + 0.8 + h0 * 0.3, lz + 0.85, 0.9, [0.4, 0.55, 0.28], { sky: sk, n: 2 }); // a cushion of moss
           continue;
         }
         if (id === B.MUSHROOM) { // one big or a few small: a pale stem and a red or brown cap
-          const sk = skyAt(lx, y + 1, lz); const h0 = U.hash3(wx, y, wz, 86); const red = h0 < 0.55; const cap = red ? [0.8, 0.22, 0.2] : [0.62, 0.45, 0.28], stem = [0.92, 0.88, 0.78];
+          const sk = skyAt(lx, y + 1, lz); const h0 = U.hash3(wx, y, wz, 86); const red = h0 < 0.55; const cap = red ? [0.8, 0.22, 0.2] : [0.62, 0.45, 0.28], stem = [0.92, 0.88, 0.78]; const gy = gnd(lx, y, lz);
           const n = h0 < 0.35 ? 1 : 3;
           for (let k = 0; k < n; k++) { const a = U.hash3(wx, y, wz, 87 + k) * 6.283; const cx = lx + 0.5 + (n > 1 ? Math.cos(a) * 0.26 : 0), cz = lz + 0.5 + (n > 1 ? Math.sin(a) * 0.26 : 0); const hgt = n > 1 ? 0.22 + U.hash3(wx, y, wz, 90 + k) * 0.16 : 0.45; const rc = n > 1 ? 0.14 : 0.32;
-            op.tube([[cx, y, cz], [cx, y + hgt, cz]], [rc * 0.4, rc * 0.32], stem, { sky: sk, segs: 6, cap0: 'none', cap1: 'none' });
-            op.blob(cx - rc, y + hgt - rc * 0.5, cz - rc, cx + rc, y + hgt + rc * 0.75, cz + rc, 0.9, cap, { sky: sk, n: 3, tap: [1, 0.7] });
-            if (red) for (let d = 0; d < 3; d++) { const b = U.hash3(wx, y, wz, 93 + d + k * 3) * 6.283; op.ball(cx + Math.cos(b) * rc * 0.55, y + hgt + rc * 0.5, cz + Math.sin(b) * rc * 0.55, rc * 0.18, [0.98, 0.95, 0.9], { sky: sk, n: 1 }); } }
+            op.tube([[cx, gy, cz], [cx, gy + hgt, cz]], [rc * 0.4, rc * 0.32], stem, { sky: sk, segs: 6, cap0: 'none', cap1: 'none' });
+            op.blob(cx - rc, gy + hgt - rc * 0.5, cz - rc, cx + rc, gy + hgt + rc * 0.75, cz + rc, 0.9, cap, { sky: sk, n: 3, tap: [1, 0.7] });
+            if (red) for (let d = 0; d < 3; d++) { const b = U.hash3(wx, y, wz, 93 + d + k * 3) * 6.283; op.ball(cx + Math.cos(b) * rc * 0.55, gy + hgt + rc * 0.5, cz + Math.sin(b) * rc * 0.55, rc * 0.18, [0.98, 0.95, 0.9], { sky: sk, n: 1 }); } }
           continue;
         }
         if (id === B.FLOWERS) { // a clump of wildflowers: stems, round heads, a couple of leaves
-          const sk = skyAt(lx, y + 1, lz); const h0 = U.hash3(wx, y, wz, 96);
+          const sk = skyAt(lx, y + 1, lz); const h0 = U.hash3(wx, y, wz, 96); const gy = gnd(lx, y, lz);
           const cols = [[0.98, 0.85, 0.2], [0.95, 0.95, 0.95], [0.9, 0.35, 0.55], [0.55, 0.5, 0.98], [0.98, 0.5, 0.25]]; const c = cols[Math.floor(h0 * cols.length)];
           for (let k = 0; k < 5; k++) { const a = U.hash3(wx, y, wz, 97 + k) * 6.283, d = 0.1 + U.hash3(wx, y, wz, 102 + k) * 0.3; const cx = lx + 0.5 + Math.cos(a) * d, cz = lz + 0.5 + Math.sin(a) * d; const hgt = 0.3 + U.hash3(wx, y, wz, 107 + k) * 0.3;
-            op.tube([[cx, y, cz], [cx + 0.03, y + hgt, cz]], [0.02, 0.015], [0.3, 0.55, 0.22], { sky: sk, segs: 4, cap0: 'none', cap1: 'none' }); op.ball(cx + 0.03, y + hgt + 0.03, cz, 0.065, k % 3 === 2 ? cols[(Math.floor(h0 * 5) + 1) % 5] : c, { sky: sk, n: 2 }); }
-          op.plate([[lx + 0.3, y + 0.01, lz + 0.4], [lx + 0.1, y + 0.12, lz + 0.15], [lx + 0.35, y + 0.08, lz + 0.2]], 0.01, [0.3, 0.58, 0.24], { sky: sk }); op.plate([[lx + 0.6, y + 0.01, lz + 0.6], [lx + 0.9, y + 0.14, lz + 0.8], [lx + 0.65, y + 0.1, lz + 0.85]], 0.01, [0.32, 0.6, 0.25], { sky: sk });
+            op.tube([[cx, gy, cz], [cx + 0.03, gy + hgt, cz]], [0.02, 0.015], [0.3, 0.55, 0.22], { sky: sk, segs: 4, cap0: 'none', cap1: 'none' }); op.ball(cx + 0.03, gy + hgt + 0.03, cz, 0.065, k % 3 === 2 ? cols[(Math.floor(h0 * 5) + 1) % 5] : c, { sky: sk, n: 2 }); }
+          op.plate([[lx + 0.3, gy + 0.01, lz + 0.4], [lx + 0.1, gy + 0.12, lz + 0.15], [lx + 0.35, gy + 0.08, lz + 0.2]], 0.01, [0.3, 0.58, 0.24], { sky: sk }); op.plate([[lx + 0.6, gy + 0.01, lz + 0.6], [lx + 0.9, gy + 0.14, lz + 0.8], [lx + 0.65, gy + 0.1, lz + 0.85]], 0.01, [0.32, 0.6, 0.25], { sky: sk });
           continue;
         }
         if (id === B.PEBBLES) { // a few small stones
-          const sk = skyAt(lx, y + 1, lz); const stonePal = world.preset.paletteRgb && world.preset.paletteRgb[B.STONE]; const sc = stonePal ? stonePal[1] : BLOCKS[B.STONE].side;
-          for (let k = 0; k < 4; k++) { const a = U.hash3(wx, y, wz, 110 + k) * 6.283, d = U.hash3(wx, y, wz, 114 + k) * 0.32; const r = 0.07 + U.hash3(wx, y, wz, 118 + k) * 0.09; const cx = lx + 0.5 + Math.cos(a) * d, cz = lz + 0.5 + Math.sin(a) * d; const m = 0.8 + U.hash3(wx, y, wz, 122 + k) * 0.35; op.blob(cx - r, y - r * 0.4, cz - r, cx + r, y + r * 0.7, cz + r, 0.8, [sc[0] * m, sc[1] * m, sc[2] * m], { sky: sk, n: 2 }); }
+          const sk = skyAt(lx, y + 1, lz); const stonePal = world.preset.paletteRgb && world.preset.paletteRgb[B.STONE]; const sc = stonePal ? stonePal[1] : BLOCKS[B.STONE].side; const gy = gnd(lx, y, lz);
+          for (let k = 0; k < 4; k++) { const a = U.hash3(wx, y, wz, 110 + k) * 6.283, d = U.hash3(wx, y, wz, 114 + k) * 0.32; const r = 0.07 + U.hash3(wx, y, wz, 118 + k) * 0.09; const cx = lx + 0.5 + Math.cos(a) * d, cz = lz + 0.5 + Math.sin(a) * d; const m = 0.8 + U.hash3(wx, y, wz, 122 + k) * 0.35; op.blob(cx - r, gy - r * 0.4, cz - r, cx + r, gy + r * 0.7, cz + r, 0.8, [sc[0] * m, sc[1] * m, sc[2] * m], { sky: sk, n: 2 }); }
           continue;
         }
         if (id === B.BERRY) { // a bush: three leafy mounds and a scatter of red berries
-          const sk = skyAt(lx, y + 1, lz); const g1 = [0.27, 0.55, 0.24], g2 = [0.34, 0.64, 0.27];
+          const sk = skyAt(lx, y + 1, lz); const g1 = [0.27, 0.55, 0.24], g2 = [0.34, 0.64, 0.27]; const gy = gnd(lx, y, lz);
           const h0 = U.hash3(wx, y, wz, 40);
-          op.blob(lx + 0.1, y, lz + 0.12, lx + 0.68, y + 0.62, lz + 0.7, 0.85, g1, { sky: sk, n: 3 }); op.blob(lx + 0.35, y, lz + 0.3, lx + 0.92, y + 0.7 + h0 * 0.1, lz + 0.9, 0.85, g2, { sky: sk, n: 3 }); op.blob(lx + 0.22, y + 0.2, lz + 0.05, lx + 0.8, y + 0.78, lz + 0.6, 0.85, g1, { sky: sk, n: 3 });
-          for (let k = 0; k < 7; k++) { const a = U.hash3(wx, y, wz, 50 + k) * 6.283, e = 0.3 + U.hash3(wx, y, wz, 60 + k) * 0.5; const bx = lx + 0.5 + Math.cos(a) * 0.36, bz = lz + 0.5 + Math.sin(a) * 0.36, by = y + 0.25 + e * 0.5; op.ball(bx, by, bz, 0.07, [0.88, 0.14, 0.22], { sky: sk, n: 2 }); }
+          op.blob(lx + 0.1, gy, lz + 0.12, lx + 0.68, gy + 0.62, lz + 0.7, 0.85, g1, { sky: sk, n: 3 }); op.blob(lx + 0.35, gy, lz + 0.3, lx + 0.92, gy + 0.7 + h0 * 0.1, lz + 0.9, 0.85, g2, { sky: sk, n: 3 }); op.blob(lx + 0.22, gy + 0.2, lz + 0.05, lx + 0.8, gy + 0.78, lz + 0.6, 0.85, g1, { sky: sk, n: 3 });
+          for (let k = 0; k < 7; k++) { const a = U.hash3(wx, y, wz, 50 + k) * 6.283, e = 0.3 + U.hash3(wx, y, wz, 60 + k) * 0.5; const bx = lx + 0.5 + Math.cos(a) * 0.36, bz = lz + 0.5 + Math.sin(a) * 0.36, by = gy + 0.25 + e * 0.5; op.ball(bx, by, bz, 0.07, [0.88, 0.14, 0.22], { sky: sk, n: 2 }); }
           continue;
         }
         if (id === B.CAMPFIRE) { // a ring of stones, crossed logs, a tall blue flame (this fire is a camp's heart, not an ordinary fire)
-          const sk = skyAt(lx, y + 1, lz);
-          for (let k = 0; k < 8; k++) { const a = k / 8 * 6.283 + 0.3; const r = 0.42; const st = 0.1 + U.hash3(wx, y, wz, 30 + k) * 0.05; op.blob(lx + 0.5 + Math.cos(a) * r - st, y, lz + 0.5 + Math.sin(a) * r - st, lx + 0.5 + Math.cos(a) * r + st, y + st * 1.6, lz + 0.5 + Math.sin(a) * r + st, 0.6, [0.44, 0.43, 0.47], { sky: sk, n: 2 }); }
-          op.tube([[lx + 0.18, y + 0.14, lz + 0.3], [lx + 0.82, y + 0.14, lz + 0.7]], [0.07, 0.07], [0.36, 0.25, 0.14], { sky: sk, segs: 6 }); op.tube([[lx + 0.2, y + 0.26, lz + 0.72], [lx + 0.8, y + 0.26, lz + 0.28]], [0.07, 0.07], [0.33, 0.23, 0.12], { sky: sk, segs: 6 });
+          const sk = skyAt(lx, y + 1, lz); const gy = gnd(lx, y, lz);
+          for (let k = 0; k < 8; k++) { const a = k / 8 * 6.283 + 0.3; const r = 0.42; const st = 0.1 + U.hash3(wx, y, wz, 30 + k) * 0.05; op.blob(lx + 0.5 + Math.cos(a) * r - st, gy, lz + 0.5 + Math.sin(a) * r - st, lx + 0.5 + Math.cos(a) * r + st, gy + st * 1.6, lz + 0.5 + Math.sin(a) * r + st, 0.6, [0.44, 0.43, 0.47], { sky: sk, n: 2 }); }
+          op.tube([[lx + 0.18, gy + 0.14, lz + 0.3], [lx + 0.82, gy + 0.14, lz + 0.7]], [0.07, 0.07], [0.36, 0.25, 0.14], { sky: sk, segs: 6 }); op.tube([[lx + 0.2, gy + 0.26, lz + 0.72], [lx + 0.8, gy + 0.26, lz + 0.28]], [0.07, 0.07], [0.33, 0.23, 0.12], { sky: sk, segs: 6 });
           const fl = 0.08 * Math.sin(U.hash3(wx, y, wz, 9) * 6);
-          op.blob(lx + 0.28, y + 0.2, lz + 0.28, lx + 0.72, y + 0.85 + fl, lz + 0.72, 1, [0.45, 0.9, 1.0], { emis: true, n: 3, tap: [1, 0.25] });
-          op.blob(lx + 0.38, y + 0.32, lz + 0.38, lx + 0.62, y + 1.0 + fl, lz + 0.62, 1, [0.88, 1.0, 1.0], { emis: true, n: 2, tap: [1, 0.2] });
+          op.blob(lx + 0.28, gy + 0.2, lz + 0.28, lx + 0.72, gy + 0.85 + fl, lz + 0.72, 1, [0.45, 0.9, 1.0], { emis: true, n: 3, tap: [1, 0.25] });
+          op.blob(lx + 0.38, gy + 0.32, lz + 0.38, lx + 0.62, gy + 1.0 + fl, lz + 0.62, 1, [0.88, 1.0, 1.0], { emis: true, n: 2, tap: [1, 0.2] });
           continue;
         }
         if (id === B.PORTAL) {
@@ -822,10 +871,10 @@ const R = (() => {
           continue;
         }
         if (id === B.GLOWWORM) { // a fat little segmented worm, its back glowing, curled in the grass
-          const sk = skyAt(lx, y, lz); const g = [0.85, 1.0, 0.42], gd = [0.5, 0.78, 0.26];
+          const sk = skyAt(lx, y, lz); const g = [0.85, 1.0, 0.42], gd = [0.5, 0.78, 0.26]; const gy = gnd(lx, y, lz);
           const h0 = U.hash3(wx, y, wz, 71), h1 = U.hash3(wx, y, wz, 72), a0 = U.hash3(wx, y, wz, 73) * 6.283;
           const cx = lx + 0.3 + h0 * 0.4, cz = lz + 0.3 + h1 * 0.4; const path = [], rr = [];
-          for (let k = 0; k <= 5; k++) { const t = k / 5; const a = a0 + t * 1.6; path.push([cx + Math.cos(a) * 0.2 * t, y + 0.06 + Math.sin(t * 3.14) * 0.03, cz + Math.sin(a) * 0.2 * t]); rr.push(k === 5 ? 0.03 : 0.065 - t * 0.02); }
+          for (let k = 0; k <= 5; k++) { const t = k / 5; const a = a0 + t * 1.6; path.push([cx + Math.cos(a) * 0.2 * t, gy + 0.06 + Math.sin(t * 3.14) * 0.03, cz + Math.sin(a) * 0.2 * t]); rr.push(k === 5 ? 0.03 : 0.065 - t * 0.02); }
           op.tube(path, rr, gd, { sky: sk, segs: 6, cap0: 'round', cap1: 'round' });
           for (let k = 1; k <= 4; k++) { const p0 = path[k]; op.ball(p0[0], p0[1] + 0.035, p0[2], 0.03, g, { emis: true, n: 2 }); }
           op.ball(path[0][0], path[0][1] + 0.01, path[0][2], 0.05, g, { emis: true, n: 2 }); // the lit head
@@ -859,11 +908,11 @@ const R = (() => {
           continue;
         }
         if (id === B.FERN) { // six fronds arching out from a crown, each a notched leaf
-          const sk = skyAt(lx, y + 1, lz); const g = [0.25, 0.55, 0.21], g2 = [0.36, 0.7, 0.28];
+          const sk = skyAt(lx, y + 1, lz); const g = [0.25, 0.55, 0.21], g2 = [0.36, 0.7, 0.28]; const gy = gnd(lx, y, lz);
           const a0 = U.hash3(wx, y, wz, 74) * 6.283; const cx = lx + 0.5, cz = lz + 0.5;
           for (let k = 0; k < 6; k++) { const a = a0 + k / 6 * 6.283; const ux = Math.cos(a), uz = Math.sin(a); const L = 0.5 + U.hash3(wx, y, wz, 75 + k) * 0.25; const pts = [];
-            const n = 5; for (let i = 0; i <= n; i++) { const t = i / n; const w = 0.09 * Math.sin(t * 3.14) * (i % 2 ? 1.3 : 0.7); const h = 0.08 + Math.sin(t * 2.4) * 0.42 * L; pts.push([cx + ux * t * L - uz * w, y + h, cz + uz * t * L + ux * w]); }
-            for (let i = n - 1; i >= 1; i--) { const t = i / n; const w = 0.09 * Math.sin(t * 3.14) * (i % 2 ? 1.3 : 0.7); const h = 0.08 + Math.sin(t * 2.4) * 0.42 * L; pts.push([cx + ux * t * L + uz * w, y + h, cz + uz * t * L - ux * w]); }
+            const n = 5; for (let i = 0; i <= n; i++) { const t = i / n; const w = 0.09 * Math.sin(t * 3.14) * (i % 2 ? 1.3 : 0.7); const h = 0.08 + Math.sin(t * 2.4) * 0.42 * L; pts.push([cx + ux * t * L - uz * w, gy + h, cz + uz * t * L + ux * w]); }
+            for (let i = n - 1; i >= 1; i--) { const t = i / n; const w = 0.09 * Math.sin(t * 3.14) * (i % 2 ? 1.3 : 0.7); const h = 0.08 + Math.sin(t * 2.4) * 0.42 * L; pts.push([cx + ux * t * L + uz * w, gy + h, cz + uz * t * L - ux * w]); }
             op.plate(pts, 0.012, k % 2 ? g : g2, { sky: sk, edge: g }); }
           continue;
         }
@@ -874,11 +923,11 @@ const R = (() => {
           continue;
         }
         if (info.partial) { // torch: a stick, a bound head, a teardrop flame
-          const sk = skyAt(lx, y, lz);
-          op.tube([[lx + 0.5, y, lz + 0.5], [lx + 0.5, y + 0.58, lz + 0.5]], [0.05, 0.045], [0.45, 0.32, 0.17], { sky: sk, segs: 6, cap0: 'none' });
-          op.blob(lx + 0.4, y + 0.5, lz + 0.4, lx + 0.6, y + 0.68, lz + 0.6, 0.4, [0.3, 0.22, 0.14], { sky: sk, n: 2 });
-          op.blob(lx + 0.37, y + 0.62, lz + 0.37, lx + 0.63, y + 1.02, lz + 0.63, 1, [1.0, 0.72, 0.25], { emis: true, n: 3, tap: [1, 0.2] });
-          op.blob(lx + 0.44, y + 0.66, lz + 0.44, lx + 0.56, y + 0.9, lz + 0.56, 1, [1.0, 0.95, 0.7], { emis: true, n: 2, tap: [1, 0.2] });
+          const sk = skyAt(lx, y, lz); const gy = gnd(lx, y, lz);
+          op.tube([[lx + 0.5, gy, lz + 0.5], [lx + 0.5, gy + 0.58, lz + 0.5]], [0.05, 0.045], [0.45, 0.32, 0.17], { sky: sk, segs: 6, cap0: 'none' });
+          op.blob(lx + 0.4, gy + 0.5, lz + 0.4, lx + 0.6, gy + 0.68, lz + 0.6, 0.4, [0.3, 0.22, 0.14], { sky: sk, n: 2 });
+          op.blob(lx + 0.37, gy + 0.62, lz + 0.37, lx + 0.63, gy + 1.02, lz + 0.63, 1, [1.0, 0.72, 0.25], { emis: true, n: 3, tap: [1, 0.2] });
+          op.blob(lx + 0.44, gy + 0.66, lz + 0.44, lx + 0.56, gy + 0.9, lz + 0.56, 1, [1.0, 0.95, 0.7], { emis: true, n: 2, tap: [1, 0.2] });
           continue;
         }
         if (id === B.FUSION || id === B.DARKTABLE) { // the fusion table: a flared stone pedestal with a rune ring and a crystal floating over it
@@ -904,7 +953,7 @@ const R = (() => {
           if (isWater) { if (nid !== B.AIR && nid !== B.TORCH && nid !== B.GLASS && nid !== B.SELGLASS && !(BLOCKS[nid].partial && !BLOCKS[nid].solid)) continue; }
           else if (isGlass) { if (nid === id || isOpaque(nid)) continue; }
           else if (id === B.LAVA) { if (nid !== B.AIR && nid !== B.TORCH && nid !== B.WATER) continue; }
-          else if (isOpaque(nid)) continue;
+          else if (isOpaque(nid)) { if (!(f === 2 && isTrunk(nid) && SOIL.has(id))) continue; }
           else if (isLeaf(id) && isLeaf(nid)) continue;
           // colour
           let c;
@@ -928,9 +977,10 @@ const R = (() => {
           const verts = [], cols = [], skys = [], aos = [];
           const a = (n[0] !== 0) ? 0 : (n[1] !== 0) ? 1 : 2; // normal axis
           const sloped = surf && f === 2 && y === ST(lx, lz);
+          const sink = (f !== 2 && f !== 3 && isTrunk(id) && ST(lx, lz) === y - 1) ? 0.5 : 0; // a square trunk standing on sloping ground reaches down into it
           for (let i = 0; i < 4; i++) {
             const v = F.v[i];
-            verts.push([lx + v[0], sloped && CHt(lx + v[0], lz + v[2]) >= 0 ? CHt(lx + v[0], lz + v[2]) : y + v[1], lz + v[2]]);
+            verts.push([lx + v[0], sloped && CHt(lx + v[0], lz + v[2]) >= 0 ? CHt(lx + v[0], lz + v[2]) : y + v[1] - (v[1] === 0 ? sink : 0), lz + v[2]]);
             // ambient occlusion
             let ao = 1;
             if (!isWater && id !== B.LAVA) {
@@ -940,7 +990,9 @@ const R = (() => {
               const p1 = [nx, ny, nz]; p1[bAxis] += db;
               const p2 = [nx, ny, nz]; p2[cAxis] += dc;
               const p3 = [nx, ny, nz]; p3[bAxis] += db; p3[cAxis] += dc;
-              const s1 = isOpaque(get(p1[0], p1[1], p1[2])) ? 1 : 0, s2 = isOpaque(get(p2[0], p2[1], p2[2])) ? 1 : 0, s3 = isOpaque(get(p3[0], p3[1], p3[2])) ? 1 : 0;
+              // a neighbour that is part of the same smoothed slope is not an occluder: the slope runs through it, so no corner darkens against it
+              const occ = (q) => { const b = get(q[0], q[1], q[2]); if (!isOpaque(b)) return 0; if (sloped && SOIL.has(b)) { const tn = ST(q[0], q[2]); if (tn >= 0 && q[1] <= tn && Math.abs(tn - ST(lx, lz)) <= 2) return 0; } return 1; };
+              const s1 = occ(p1), s2 = occ(p2), s3 = occ(p3);
               const lvl = (s1 && s2) ? 0 : 3 - (s1 + s2 + s3);
               ao = 0.64 + 0.12 * lvl;
             }
@@ -950,7 +1002,11 @@ const R = (() => {
             skys.push(sk);
           }
           const pat = PATTERNS[id]; const pf = pat ? ((f === 2 || f === 3) ? (pat.top || pat.all) : (pat.side || pat.all)) : null;
-          if (isWater) { let d = 0; while (d < 10 && (get(lx, y - d - 1, lz) === id)) d++; const dc = [Math.min(1, (d + 1) / 9), id === B.BRINE ? 1 : 0, 0]; for (let i = 0; i < 4; i++) cols[i] = dc; }
+          if (isWater) { // the depth under each corner, blended over the four columns that share it, so shallows shade into the deep without steps
+            const dAt = (x, z) => { if (get(x, y, z) !== id) return 0; let d = 0; while (d < 10 && get(x, y - d - 1, z) === id) d++; return d + 1; }; const br = id === B.BRINE ? 1 : 0;
+            if (f === 2) for (let i = 0; i < 4; i++) { const v = F.v[i]; const cx = lx + v[0], cz = lz + v[2]; let sum = 0; for (const [a, b] of [[-1, -1], [0, -1], [-1, 0], [0, 0]]) sum += dAt(cx + a, cz + b); cols[i] = [Math.min(1, sum / 36), br, 0]; }
+            else { const dc = [Math.min(1, dAt(lx, lz) / 9), br, 0]; for (let i = 0; i < 4; i++) cols[i] = dc; }
+          }
           const nrms = sloped ? F.v.map(v => cornerN(lx + v[0], lz + v[2])) : null;
           if (!pf) { if (isWater) wa.quad(verts, cols, skys, false); else if (isGlass) gs.quad(verts, cols, skys, false); else op.quad(verts, cols, skys, emis, nrms); }
           else {
@@ -994,7 +1050,7 @@ const R = (() => {
   function setEntityUniforms(pv, cam, lightsL, lightsR) {
     gl.useProgram(eprog);
     gl.uniformMatrix4fv(eloc.uPV, false, pv); gl.uniform1f(eloc.uTime, performance.now() / 1000);
-    gl.uniform3f(eloc.uCam, cam.x, cam.y, cam.z); gl.uniform1f(eloc.uDay, state.dayLight); gl.uniform3fv(eloc.uFog, state.fogColor);
+    gl.uniform3f(eloc.uCam, cam.x, cam.y, cam.z); gl.uniform1f(eloc.uDay, state.dayLight); gl.uniform3fv(eloc.uFog, state.fogColor); gl.uniform1f(eloc.uFogSky, state.fogSky ? 1 : 0);
     gl.uniform1f(eloc.uFogNear, state.fogNear); gl.uniform1f(eloc.uFogFar, state.fogFar); gl.uniform1f(eloc.uAmbient, state.ambient); gl.uniform3fv(eloc.uTint, state.tint);
     gl.uniform3fv(eloc.uSun, state.sun || [0, 1, 0]); gl.uniform3fv(eloc.uSunCol, state.sunCol || [1, 1, 1]); gl.uniform3fv(eloc.uZenith, state.zenith || state.fogColor); gl.uniform1f(eloc.uSunAmt, state.skyPass ? state.sunAmt : 0);
     gl.uniform3fv(eloc.uLights, lightsL); gl.uniform1fv(eloc.uLightR, lightsR); gl.uniform1f(eloc.uAlpha, 1); gl.uniform1f(eloc.uSkyMul, 1); gl.uniform1f(eloc.uOutline, 0); gl.uniform4f(eloc.uSway, 0, 0, 0, 0); gl.uniform1f(eloc.uFlash, 0);
@@ -1094,7 +1150,7 @@ const R = (() => {
     if (gl0 > 0.01) { state.zenith = U.mixColor(state.zenith, [0.28, 0.27, 0.32], gl0 * 0.85); state.clouds = Math.min(1, state.clouds + 0.45 * gl0); state.sunAmt *= 1 - 0.65 * gl0; state.sunCol = U.mixColor(state.sunCol, [0.75, 0.72, 0.8], gl0 * 0.6); }
     state.skyPass = true; state.night = 1 - day;
     sky = horizon;
-    state.skyColor = sky; state.fogColor = sky; state.ambient = 0.06;
+    state.skyColor = sky; state.fogColor = sky; state.ambient = 0.06; state.fogSky = true;
     state.fogNear = state.viewDist * 0.55 * (world.preset.fogMul || 1); state.fogFar = state.viewDist * 0.98 * (world.preset.fogMul || 1);
     if (wi > 0.02 && wk === 'fog') { state.fogNear = U.lerp(state.fogNear, 4, wi); state.fogFar = U.lerp(state.fogFar, 26, wi); }
     if (gl0 > 0.01) { state.fogNear = U.lerp(state.fogNear, state.viewDist * 0.32, gl0); state.fogFar = U.lerp(state.fogFar, state.viewDist * 0.88, gl0); }
@@ -1102,11 +1158,11 @@ const R = (() => {
     state.tint = [1, 1, 1]; state.underwater = false; state.inCore = false;
     const eyeBlock = world.getBlock(Math.floor(player.x), Math.floor(player.y + 1.62), Math.floor(player.z));
     if (eyeBlock === B.WATER || eyeBlock === B.BRINE || eyeBlock === B.LAVA || player.y < CORE_TOP || player.y < world.topAt(Math.floor(player.x), Math.floor(player.z)) - 2) state.skyPass = false;
-    if (eyeBlock === B.WATER) { state.underwater = true; state.fogColor = [0.05, 0.2, 0.45]; state.skyColor = state.fogColor; state.fogNear = 2; state.fogFar = 18; state.tint = [0.6, 0.8, 1.0]; }
-    else if (eyeBlock === B.BRINE) { state.underwater = true; state.fogColor = [0.35, 0.42, 0.08]; state.skyColor = state.fogColor; state.fogNear = 1; state.fogFar = 9; state.tint = [0.9, 1.0, 0.5]; }
-    else if (eyeBlock === B.LAVA) { state.fogColor = [0.9, 0.3, 0.05]; state.skyColor = state.fogColor; state.fogNear = 0.5; state.fogFar = 4; state.tint = [1.2, 0.6, 0.3]; }
-    else if (player.y < CORE_TOP) { state.inCore = true; state.fogColor = [0.16, 0.04, 0.01]; state.skyColor = state.fogColor; state.fogNear = 8; state.fogFar = 46; state.ambient = 0.46; state.tint = [1.1, 0.88, 0.8]; }
-    else if (player.y < world.topAt(Math.floor(player.x), Math.floor(player.z)) - 2) { state.fogColor = [0.0, 0.0, 0.0]; state.skyColor = state.fogColor; state.fogNear = 10; state.fogFar = 48; }
+    if (eyeBlock === B.WATER) { state.underwater = true; state.fogSky = false; state.fogColor = [0.05, 0.2, 0.45]; state.skyColor = state.fogColor; state.fogNear = 2; state.fogFar = 18; state.tint = [0.6, 0.8, 1.0]; }
+    else if (eyeBlock === B.BRINE) { state.underwater = true; state.fogSky = false; state.fogColor = [0.35, 0.42, 0.08]; state.skyColor = state.fogColor; state.fogNear = 1; state.fogFar = 9; state.tint = [0.9, 1.0, 0.5]; }
+    else if (eyeBlock === B.LAVA) { state.fogSky = false; state.fogColor = [0.9, 0.3, 0.05]; state.skyColor = state.fogColor; state.fogNear = 0.5; state.fogFar = 4; state.tint = [1.2, 0.6, 0.3]; }
+    else if (player.y < CORE_TOP) { state.inCore = true; state.fogSky = false; state.fogColor = [0.16, 0.04, 0.01]; state.skyColor = state.fogColor; state.fogNear = 8; state.fogFar = 46; state.ambient = 0.46; state.tint = [1.1, 0.88, 0.8]; }
+    else if (player.y < world.topAt(Math.floor(player.x), Math.floor(player.z)) - 2) { state.fogSky = false; state.fogColor = [0.0, 0.0, 0.0]; state.skyColor = state.fogColor; state.fogNear = 10; state.fogFar = 48; }
   }
 
   function render(world, player, entities, cam, extras) {
@@ -1132,7 +1188,7 @@ const R = (() => {
     gl.uniform1f(loc.uTime, performance.now() / 1000);
     gl.uniform3f(loc.uCam, cam.x, cam.y, cam.z);
     gl.uniform1f(loc.uDay, state.dayLight);
-    gl.uniform3fv(loc.uFog, state.fogColor);
+    gl.uniform3fv(loc.uFog, state.fogColor); gl.uniform1f(loc.uFogSky, state.fogSky ? 1 : 0);
     gl.uniform1f(loc.uFogNear, state.fogNear); gl.uniform1f(loc.uFogFar, state.fogFar);
     gl.uniform1f(loc.uAmbient, state.ambient);
     gl.uniform3fv(loc.uTint, state.tint);
@@ -1198,6 +1254,22 @@ const R = (() => {
     const a = x - pad, b = y - pad, c = z - pad, d = x + 1 + pad, e = y + 1 + pad, f = z + 1 + pad;
     return new Float32Array([a, b, c, d, b, c, d, b, c, d, b, f, d, b, f, a, b, f, a, b, f, a, b, c, a, e, c, d, e, c, d, e, c, d, e, f, d, e, f, a, e, f, a, e, f, a, e, c, a, b, c, a, e, c, d, b, c, d, e, c, d, b, f, d, e, f, a, b, f, a, e, f]);
   }
+  // the block outline under the crosshair. Soil on smoothed ground gets a box whose top follows the slope, by the same rule the mesher uses
+  function soilTopAt(world, x, z) { let t = -1, wt = -1; for (let y = WH - 1; y > 0; y--) { const b = world.getBlock(x, y, z); if (DECOR(b)) continue; if (b === B.WATER || b === B.BRINE) { if (wt < 0) wt = y + 1; continue; } if (SOIL.has(b)) t = y; break; } return [t, wt]; }
+  function cornerHeight(world, cx, cz) {
+    let n = 0, sum = 0, lo = 999, hi = -999, dry = false, wl = -1;
+    for (const [a, b] of [[-1, -1], [0, -1], [-1, 0], [0, 0]]) { const [t, wt] = soilTopAt(world, cx + a, cz + b); if (t < 0) return -1; n++; sum += t; lo = Math.min(lo, t); hi = Math.max(hi, t); if (wt < 0) dry = true; else wl = Math.max(wl, wt); }
+    let v = hi - lo <= 2 ? sum / n + 1 : -1; if (v >= 0 && dry && wl >= 0) v = Math.max(v, wl - 0.12); return v;
+  }
+  function targetLines(world, x, y, z, pad = 0.003) {
+    const id = world.getBlock(x, y, z); const [t] = soilTopAt(world, x, z);
+    if (!SOIL.has(id) || t !== y) return boxLines(x, y, z, pad);
+    const h = [[x, z], [x + 1, z], [x + 1, z + 1], [x, z + 1]].map(([cx, cz]) => { const v = cornerHeight(world, cx, cz); return (v >= 0 ? v : y + 1) + pad; });
+    const a = x - pad, c = z - pad, d = x + 1 + pad, f = z + 1 + pad, b = y - pad;
+    const P = [[a, c], [d, c], [d, f], [a, f]]; const out = [];
+    for (let i = 0; i < 4; i++) { const [px, pz] = P[i], [qx, qz] = P[(i + 1) % 4]; out.push(px, b, pz, qx, b, qz, px, h[i], pz, qx, h[(i + 1) % 4], qz, px, b, pz, px, h[i], pz); }
+    return new Float32Array(out);
+  }
   function ringLines(x, y, z, r, segs = 28) {
     const out = new Float32Array(segs * 6);
     for (let i = 0; i < segs; i++) {
@@ -1208,5 +1280,5 @@ const R = (() => {
     return out;
   }
 
-  return { grassZone, init, resize, buildChunk, freeChunk, entityMesh, dropEntityMesh, renderPortrait, render, boxLines, ringLines, state, get gl() { return gl; } };
+  return { grassZone, init, resize, buildChunk, freeChunk, entityMesh, dropEntityMesh, renderPortrait, render, boxLines, targetLines, ringLines, state, get gl() { return gl; } };
 })();
