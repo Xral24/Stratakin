@@ -581,19 +581,93 @@ const R = (() => {
             if (flower) { const fc = tipC; const s = 0.07; gr.quad([[tp[0] - s, tp[1], tp[2]], [tp[0], tp[1], tp[2] - s], [tp[0] + s, tp[1], tp[2]], [tp[0], tp[1], tp[2] + s]], [fc, fc, fc, fc], [sk, sk, sk, sk], false); }
           }
         }
-        if (id === B.BERRY) {
-          const sk = skyAt(lx, y + 1, lz);
-          op.box(lx + 0.12, y, lz + 0.12, lx + 0.88, y + 0.75, lz + 0.88, [0.28, 0.58, 0.25], sk, false);
-          for (let k = 0; k < 5; k++) { const h = U.hash3(wx, y, wz, 40 + k); const bx = lx + 0.15 + (h * 0.6), bz = lz + 0.15 + (U.hash3(wx, y, wz, 50 + k) * 0.6), by = y + 0.25 + U.hash3(wx, y, wz, 60 + k) * 0.45; op.box(bx, by, bz, bx + 0.14, by + 0.14, bz + 0.14, [0.85, 0.15, 0.25], sk, false); }
+        if (isLeaf(id)) { // leaves: soft puffs that overlap into a canopy. Leaf blocks are grouped in 2x2x2 cells: the cell's even corner draws one big puff for all of them; a leaf whose cell corner is not a leaf draws its own small one
+          const exposedAt = (x, yy, z) => { for (let f = 0; f < 6; f++) { const F = FACES[f]; const nid = get(x + F.n[0], yy + F.n[1], z + F.n[2]); if (!(isLeaf(nid) || isOpaque(nid))) return true; } return false; };
+          const ax = lx - (wx & 1), ay = y - (y & 1), az = lz - (wz & 1); // this block's 2x2x2 cell; the first leaf in the cell draws one puff for all
+          let first = true, any = false, nLeaf = 0; for (let i = 0; i < 2; i++) for (let j = 0; j < 2; j++) for (let k = 0; k < 2; k++) { const bx = ax + i, by = ay + j, bz = az + k; const b = get(bx, by, bz); if (!isLeaf(b)) continue; nLeaf++; if (first && (bx !== lx || by !== y || bz !== lz)) { if (bx < lx || (bx === lx && (by < y || (by === y && bz < lz)))) first = false; } if (!any && exposedAt(bx, by, bz)) any = true; }
+          if (!first || !any) continue;
+          let r = nLeaf >= 4 ? 1.1 : nLeaf >= 2 ? 0.92 : 0.68, cx = ax + 1, cy = ay + 1, cz = az + 1;
+          if (nLeaf === 1) { cx = lx + 0.5; cy = y + 0.5; cz = lz + 0.5; }
+          const sk = skyAt(lx, y + 1, lz); const h0 = U.hash3(wx, y, wz, 61), h1 = U.hash3(wx, y, wz, 62), h2 = U.hash3(wx, y, wz, 63);
+          r *= 0.94 + h0 * 0.14; cx += (h1 - 0.5) * 0.2; cz += (h2 - 0.5) * 0.2; cy += (h0 - 0.5) * 0.12;
+          let around = 0; for (let f = 0; f < 6; f++) { const F = FACES[f]; const nid = get(lx + F.n[0], y + F.n[1], lz + F.n[2]); if (isLeaf(nid) || isOpaque(nid)) around++; }
+          const dark = 1 - 0.06 * Math.max(0, around - 2); // deeper in the crown, darker
+          let c; if (id === B.NEEDLES) { const nv = 0.9 + h1 * 0.2; c = [0.19 * nv, 0.42 * nv, 0.3 * nv]; } else { const warm = id === B.BERRYLEAF ? 1 : 0; c = [tint[0] * (0.9 + warm * 0.25) * vr, tint[1] * 1.02 * vr, tint[2] * 0.72 * vr]; }
+          const hue = (h2 - 0.5) * 0.16; c = [c[0] * dark * (1 + hue), c[1] * dark, c[2] * dark * (1 - hue)]; // some puffs yellower, some bluer
+          op.blob(cx - r, cy - r * 0.84, cz - r, cx + r, cy + r * 0.84, cz + r, 0.85, [c[0] * 1.08, c[1] * 1.06, c[2]], { sky: sk, n: 2, under: [c[0] * 0.5, c[1] * 0.56, c[2] * 0.62], split: 0.05, soft: 0.7 });
+          if (id === B.BERRYLEAF) for (let k = 0; k < 3; k++) { const a = U.hash3(wx, y, wz, 64 + k) * 6.283, e = 0.2 + U.hash3(wx, y, wz, 67 + k) * 0.6; op.ball(cx + Math.cos(a) * r * 0.85, cy + r * 0.8 * (e - 0.4), cz + Math.sin(a) * r * 0.85, 0.08, [0.9, 0.15, 0.22], { sky: sk, n: 2 }); }
           continue;
         }
-        if (id === B.CAMPFIRE) {
+        if (id === B.LOG || id === B.BIRCHLOG) { // a free-standing log is round (a trunk, a post, a beam); one built into a wall stays square
+          const isLog = (b) => b === B.LOG || b === B.BIRCHLOG; const free = (b) => !isOpaque(b) || isLog(b);
+          const up = get(lx, y + 1, lz), dn = get(lx, y - 1, lz), xp = get(lx + 1, y, lz), xm = get(lx - 1, y, lz), zp = get(lx, y, lz + 1), zm = get(lx, y, lz - 1);
+          const vy = isLog(up) || isLog(dn) || isLeaf(up), vx = isLog(xp) || isLog(xm), vz = isLog(zp) || isLog(zm);
+          let axis = 'y'; if (!vy && (vx || vz)) axis = vx ? 'x' : 'z';
+          const perp = axis === 'y' ? [xp, xm, zp, zm] : axis === 'x' ? [up, dn, zp, zm] : [up, dn, xp, xm];
+          if (perp.every(free) && !((vx || vz) && vy)) {
+            const sk = skyAt(lx, y + 1, lz); const birch = id === B.BIRCHLOG; const base = birch ? [0.9, 0.88, 0.84] : [0.5, 0.36, 0.2];
+            const a0 = [lx + 0.5, y + 0.5, lz + 0.5], a1 = [lx + 0.5, y + 0.5, lz + 0.5]; const n0 = axis === 'y' ? dn : axis === 'x' ? xm : zm, n1 = axis === 'y' ? up : axis === 'x' ? xp : zp;
+            if (axis === 'y') { a0[1] = y; a1[1] = y + 1; } else if (axis === 'x') { a0[0] = lx; a1[0] = lx + 1; } else { a0[2] = lz; a1[2] = lz + 1; }
+            const rr = birch ? 0.4 : 0.5; const seed = wx * 7 + wz * 13 + y;
+            op.tube([a0, a1], [rr, rr], base, { sky: sk, segs: 8, cap0: isLog(n0) ? 'none' : 'flat', cap1: isLog(n1) || isLeaf(n1) ? 'none' : 'flat', shade: (p, nx, ny, nz, t) => { const seg = Math.floor(Math.atan2(nx, nz) * 1.27 + 8) ; const k = U.hash3(seg, seed, 3, 5); if (birch) return k < 0.22 ? [0.25, 0.22, 0.2] : [0.9 * (0.94 + k * 0.1), 0.88 * (0.94 + k * 0.1), 0.84]; const m = 0.78 + k * 0.4; return [0.5 * m, 0.36 * m, 0.2 * m]; } });
+            continue;
+          }
+        }
+        if (id === B.FROND) { // a palm frond: a long drooping leaf pointing away from the trunk
+          const sk = skyAt(lx, y + 1, lz); let dir = null;
+          for (let d = 1; d <= 3 && !dir; d++) for (const [ax, az] of [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, -1], [1, -1], [-1, 1]]) { for (const dy of [0, -1, 1, -2]) { const b = get(lx + ax * d, y + dy, lz + az * d); if (b === B.LOG) { const l = Math.hypot(ax, az); dir = [-ax / l, -az / l]; break; } } if (dir) break; }
+          if (!dir) { const a = U.hash3(wx, y, wz, 83) * 6.283; dir = [Math.cos(a), Math.sin(a)]; }
+          const L = 1.9, pts = [], n = 6; const ox0 = lx + 0.5 - dir[0] * 0.6, oz0 = lz + 0.5 - dir[1] * 0.6;
+          for (let i = 0; i <= n; i++) { const t = i / n; const w = 0.3 * Math.sin(Math.min(1, t * 1.3) * 3.14) * (i % 2 ? 1 : 0.6); const hgt = 0.5 + 0.6 * Math.sin(t * 2.2) - t * t * 1.3; pts.push([ox0 + dir[0] * t * L - dir[1] * w, y + hgt, oz0 + dir[1] * t * L + dir[0] * w]); }
+          for (let i = n - 1; i >= 1; i--) { const t = i / n; const w = 0.3 * Math.sin(Math.min(1, t * 1.3) * 3.14) * (i % 2 ? 1 : 0.6); const hgt = 0.5 + 0.6 * Math.sin(t * 2.2) - t * t * 1.3; pts.push([ox0 + dir[0] * t * L + dir[1] * w, y + hgt, oz0 + dir[1] * t * L - dir[0] * w]); }
+          op.plate(pts, 0.03, [tint[0] * 0.85, tint[1] * 1.02, tint[2] * 0.7], { sky: sk, edge: [tint[0] * 0.6, tint[1] * 0.75, tint[2] * 0.5] });
+          continue;
+        }
+        if (id === B.BOULDER) { // a rounded rock, bigger than its block, sitting in the ground
+          const sk = skyAt(lx, y + 1, lz); const h0 = U.hash3(wx, y, wz, 84), h1 = U.hash3(wx, y, wz, 85);
+          const stonePal = world.preset.paletteRgb && world.preset.paletteRgb[B.STONE]; const sc = stonePal ? stonePal[1] : BLOCKS[B.STONE].side; const c = [sc[0] * (0.85 + h0 * 0.2), sc[1] * (0.85 + h0 * 0.2), sc[2] * (0.88 + h0 * 0.2)];
+          op.push(); op.rotate(0.15, h1 * 6.283, 0.1, [lx + 0.5, y + 0.3, lz + 0.5]);
+          op.blob(lx - 0.25 - h1 * 0.2, y - 0.35, lz - 0.2, lx + 1.25 + h0 * 0.2, y + 0.75 + h0 * 0.3, lz + 1.2, 0.75, c, { sky: sk, n: 3, tap: [1.08, 0.78] });
+          op.pop();
+          if (h0 > 0.5) op.blob(lx + 0.2, y + 0.55 + h0 * 0.3, lz + 0.15, lx + 0.9, y + 0.8 + h0 * 0.3, lz + 0.85, 0.9, [0.4, 0.55, 0.28], { sky: sk, n: 2 }); // a cushion of moss
+          continue;
+        }
+        if (id === B.MUSHROOM) { // one big or a few small: a pale stem and a red or brown cap
+          const sk = skyAt(lx, y + 1, lz); const h0 = U.hash3(wx, y, wz, 86); const red = h0 < 0.55; const cap = red ? [0.8, 0.22, 0.2] : [0.62, 0.45, 0.28], stem = [0.92, 0.88, 0.78];
+          const n = h0 < 0.35 ? 1 : 3;
+          for (let k = 0; k < n; k++) { const a = U.hash3(wx, y, wz, 87 + k) * 6.283; const cx = lx + 0.5 + (n > 1 ? Math.cos(a) * 0.26 : 0), cz = lz + 0.5 + (n > 1 ? Math.sin(a) * 0.26 : 0); const hgt = n > 1 ? 0.22 + U.hash3(wx, y, wz, 90 + k) * 0.16 : 0.45; const rc = n > 1 ? 0.14 : 0.32;
+            op.tube([[cx, y, cz], [cx, y + hgt, cz]], [rc * 0.4, rc * 0.32], stem, { sky: sk, segs: 6, cap0: 'none', cap1: 'none' });
+            op.blob(cx - rc, y + hgt - rc * 0.5, cz - rc, cx + rc, y + hgt + rc * 0.75, cz + rc, 0.9, cap, { sky: sk, n: 3, tap: [1, 0.7] });
+            if (red) for (let d = 0; d < 3; d++) { const b = U.hash3(wx, y, wz, 93 + d + k * 3) * 6.283; op.ball(cx + Math.cos(b) * rc * 0.55, y + hgt + rc * 0.5, cz + Math.sin(b) * rc * 0.55, rc * 0.18, [0.98, 0.95, 0.9], { sky: sk, n: 1 }); } }
+          continue;
+        }
+        if (id === B.FLOWERS) { // a clump of wildflowers: stems, round heads, a couple of leaves
+          const sk = skyAt(lx, y + 1, lz); const h0 = U.hash3(wx, y, wz, 96);
+          const cols = [[0.98, 0.85, 0.2], [0.95, 0.95, 0.95], [0.9, 0.35, 0.55], [0.55, 0.5, 0.98], [0.98, 0.5, 0.25]]; const c = cols[Math.floor(h0 * cols.length)];
+          for (let k = 0; k < 5; k++) { const a = U.hash3(wx, y, wz, 97 + k) * 6.283, d = 0.1 + U.hash3(wx, y, wz, 102 + k) * 0.3; const cx = lx + 0.5 + Math.cos(a) * d, cz = lz + 0.5 + Math.sin(a) * d; const hgt = 0.3 + U.hash3(wx, y, wz, 107 + k) * 0.3;
+            op.tube([[cx, y, cz], [cx + 0.03, y + hgt, cz]], [0.02, 0.015], [0.3, 0.55, 0.22], { sky: sk, segs: 4, cap0: 'none', cap1: 'none' }); op.ball(cx + 0.03, y + hgt + 0.03, cz, 0.065, k % 3 === 2 ? cols[(Math.floor(h0 * 5) + 1) % 5] : c, { sky: sk, n: 2 }); }
+          op.plate([[lx + 0.3, y + 0.01, lz + 0.4], [lx + 0.1, y + 0.12, lz + 0.15], [lx + 0.35, y + 0.08, lz + 0.2]], 0.01, [0.3, 0.58, 0.24], { sky: sk }); op.plate([[lx + 0.6, y + 0.01, lz + 0.6], [lx + 0.9, y + 0.14, lz + 0.8], [lx + 0.65, y + 0.1, lz + 0.85]], 0.01, [0.32, 0.6, 0.25], { sky: sk });
+          continue;
+        }
+        if (id === B.PEBBLES) { // a few small stones
+          const sk = skyAt(lx, y + 1, lz); const stonePal = world.preset.paletteRgb && world.preset.paletteRgb[B.STONE]; const sc = stonePal ? stonePal[1] : BLOCKS[B.STONE].side;
+          for (let k = 0; k < 4; k++) { const a = U.hash3(wx, y, wz, 110 + k) * 6.283, d = U.hash3(wx, y, wz, 114 + k) * 0.32; const r = 0.07 + U.hash3(wx, y, wz, 118 + k) * 0.09; const cx = lx + 0.5 + Math.cos(a) * d, cz = lz + 0.5 + Math.sin(a) * d; const m = 0.8 + U.hash3(wx, y, wz, 122 + k) * 0.35; op.blob(cx - r, y - r * 0.4, cz - r, cx + r, y + r * 0.7, cz + r, 0.8, [sc[0] * m, sc[1] * m, sc[2] * m], { sky: sk, n: 2 }); }
+          continue;
+        }
+        if (id === B.BERRY) { // a bush: three leafy mounds and a scatter of red berries
+          const sk = skyAt(lx, y + 1, lz); const g1 = [0.27, 0.55, 0.24], g2 = [0.34, 0.64, 0.27];
+          const h0 = U.hash3(wx, y, wz, 40);
+          op.blob(lx + 0.1, y, lz + 0.12, lx + 0.68, y + 0.62, lz + 0.7, 0.85, g1, { sky: sk, n: 3 }); op.blob(lx + 0.35, y, lz + 0.3, lx + 0.92, y + 0.7 + h0 * 0.1, lz + 0.9, 0.85, g2, { sky: sk, n: 3 }); op.blob(lx + 0.22, y + 0.2, lz + 0.05, lx + 0.8, y + 0.78, lz + 0.6, 0.85, g1, { sky: sk, n: 3 });
+          for (let k = 0; k < 7; k++) { const a = U.hash3(wx, y, wz, 50 + k) * 6.283, e = 0.3 + U.hash3(wx, y, wz, 60 + k) * 0.5; const bx = lx + 0.5 + Math.cos(a) * 0.36, bz = lz + 0.5 + Math.sin(a) * 0.36, by = y + 0.25 + e * 0.5; op.ball(bx, by, bz, 0.07, [0.88, 0.14, 0.22], { sky: sk, n: 2 }); }
+          continue;
+        }
+        if (id === B.CAMPFIRE) { // a ring of stones, crossed logs, a tall blue flame (this fire is a camp's heart, not an ordinary fire)
           const sk = skyAt(lx, y + 1, lz);
-          for (const [ax, az] of [[0.05, 0.05], [0.65, 0.05], [0.05, 0.65], [0.65, 0.65], [0.35, 0.0], [0.35, 0.7], [0.0, 0.35], [0.7, 0.35]]) op.box(lx + ax, y, lz + az, lx + ax + 0.3, y + 0.22, lz + az + 0.3, [0.42, 0.42, 0.46], sk, false);
-          op.box(lx + 0.2, y + 0.1, lz + 0.42, lx + 0.8, y + 0.26, lz + 0.58, [0.35, 0.25, 0.14], sk, false); op.box(lx + 0.42, y + 0.1, lz + 0.2, lx + 0.58, y + 0.26, lz + 0.8, [0.35, 0.25, 0.14], sk, false);
-          const fl = 0.25 + 0.08 * Math.sin(U.hash3(wx, y, wz, 9) * 6);
-          op.box(lx + 0.3, y + 0.2, lz + 0.3, lx + 0.7, y + 0.6 + fl, lz + 0.7, [0.45, 0.95, 1.0], 1, true);
-          op.box(lx + 0.4, y + 0.55 + fl, lz + 0.4, lx + 0.6, y + 0.95 + fl, lz + 0.6, [0.85, 1.0, 1.0], 1, true);
+          for (let k = 0; k < 8; k++) { const a = k / 8 * 6.283 + 0.3; const r = 0.42; const st = 0.1 + U.hash3(wx, y, wz, 30 + k) * 0.05; op.blob(lx + 0.5 + Math.cos(a) * r - st, y, lz + 0.5 + Math.sin(a) * r - st, lx + 0.5 + Math.cos(a) * r + st, y + st * 1.6, lz + 0.5 + Math.sin(a) * r + st, 0.6, [0.44, 0.43, 0.47], { sky: sk, n: 2 }); }
+          op.tube([[lx + 0.18, y + 0.14, lz + 0.3], [lx + 0.82, y + 0.14, lz + 0.7]], [0.07, 0.07], [0.36, 0.25, 0.14], { sky: sk, segs: 6 }); op.tube([[lx + 0.2, y + 0.26, lz + 0.72], [lx + 0.8, y + 0.26, lz + 0.28]], [0.07, 0.07], [0.33, 0.23, 0.12], { sky: sk, segs: 6 });
+          const fl = 0.08 * Math.sin(U.hash3(wx, y, wz, 9) * 6);
+          op.blob(lx + 0.28, y + 0.2, lz + 0.28, lx + 0.72, y + 0.85 + fl, lz + 0.72, 1, [0.45, 0.9, 1.0], { emis: true, n: 3, tap: [1, 0.25] });
+          op.blob(lx + 0.38, y + 0.32, lz + 0.38, lx + 0.62, y + 1.0 + fl, lz + 0.62, 1, [0.88, 1.0, 1.0], { emis: true, n: 2, tap: [1, 0.2] });
           continue;
         }
         if (id === B.PORTAL) {
@@ -610,18 +684,22 @@ const R = (() => {
           op.box(lx + 0.45, y + 0.9, lz + 0.45, lx + 0.55, y + 1.0, lz + 0.55, dark, sk, false); // the handle
           continue;
         }
-        if (id === B.GLOWWORM) {
-          const sk = skyAt(lx, y, lz); const g = [0.85, 1.0, 0.42];
-          const h0 = U.hash3(wx, y, wz, 71), h1 = U.hash3(wx, y, wz, 72);
-          const cx = lx + 0.25 + h0 * 0.4, cz = lz + 0.25 + h1 * 0.4;
-          op.box(cx, y, cz, cx + 0.3, y + 0.16, cz + 0.16, g, 1, true); op.box(cx + 0.22, y, cz + 0.1, cx + 0.42, y + 0.14, cz + 0.26, [0.6, 0.9, 0.3], sk, false); // body and tail
-          op.box(cx - 0.1, y + 0.05, cz + 0.02, cx, y + 0.1, cz + 0.12, g, 1, true); // head glow
+        if (id === B.GLOWWORM) { // a fat little segmented worm, its back glowing, curled in the grass
+          const sk = skyAt(lx, y, lz); const g = [0.85, 1.0, 0.42], gd = [0.5, 0.78, 0.26];
+          const h0 = U.hash3(wx, y, wz, 71), h1 = U.hash3(wx, y, wz, 72), a0 = U.hash3(wx, y, wz, 73) * 6.283;
+          const cx = lx + 0.3 + h0 * 0.4, cz = lz + 0.3 + h1 * 0.4; const path = [], rr = [];
+          for (let k = 0; k <= 5; k++) { const t = k / 5; const a = a0 + t * 1.6; path.push([cx + Math.cos(a) * 0.2 * t, y + 0.06 + Math.sin(t * 3.14) * 0.03, cz + Math.sin(a) * 0.2 * t]); rr.push(k === 5 ? 0.03 : 0.065 - t * 0.02); }
+          op.tube(path, rr, gd, { sky: sk, segs: 6, cap0: 'round', cap1: 'round' });
+          for (let k = 1; k <= 4; k++) { const p0 = path[k]; op.ball(p0[0], p0[1] + 0.035, p0[2], 0.03, g, { emis: true, n: 2 }); }
+          op.ball(path[0][0], path[0][1] + 0.01, path[0][2], 0.05, g, { emis: true, n: 2 }); // the lit head
           continue;
         }
-        if (id === B.CHEST) {
-          const sk = skyAt(lx, y + 1, lz); const wood = [0.63, 0.47, 0.24], dark = [0.4, 0.29, 0.14], iron = [0.55, 0.57, 0.62];
-          op.box(lx + 0.08, y, lz + 0.1, lx + 0.92, y + 0.6, lz + 0.9, wood, sk, false); op.box(lx + 0.06, y + 0.6, lz + 0.08, lx + 0.94, y + 0.78, lz + 0.92, dark, sk, false);
-          op.box(lx + 0.06, y + 0.3, lz + 0.09, lx + 0.94, y + 0.36, lz + 0.91, iron, sk, false); op.box(lx + 0.44, y + 0.5, lz + 0.04, lx + 0.56, y + 0.68, lz + 0.1, iron, sk, false); // band and latch
+        if (id === B.CHEST) { // a strongbox: planked body, a domed lid, iron bands and a brass lock
+          const sk = skyAt(lx, y + 1, lz); const wood = [0.6, 0.44, 0.22], dark = [0.42, 0.3, 0.14], iron = [0.5, 0.52, 0.58], brass = [0.9, 0.72, 0.3];
+          op.blob(lx + 0.08, y, lz + 0.12, lx + 0.92, y + 0.56, lz + 0.88, 0.12, wood, { sky: sk, n: 2 });
+          op.blob(lx + 0.06, y + 0.5, lz + 0.1, lx + 0.94, y + 0.84, lz + 0.9, 0.55, dark, { sky: sk, n: 3, tap: [1, 0.86] });
+          for (const bz of [0.3, 0.7]) { op.box(lx + 0.05, y + 0.02, lz + bz - 0.05, lx + 0.95, y + 0.56, lz + bz + 0.05, iron, sk, false); op.blob(lx + 0.05, y + 0.5, lz + bz - 0.05, lx + 0.95, y + 0.86, lz + bz + 0.05, 0.5, iron, { sky: sk, n: 2, tap: [1, 0.86] }); }
+          op.blob(lx + 0.42, y + 0.42, lz + 0.04, lx + 0.58, y + 0.66, lz + 0.14, 0.3, brass, { sky: sk, n: 2 }); op.box(lx + 0.47, y + 0.48, lz + 0.02, lx + 0.53, y + 0.56, lz + 0.06, [0.2, 0.15, 0.08], sk, false);
           continue;
         }
         if (id === B.CORAL_R || id === B.CORAL_B || id === B.CORAL_Y || id === B.PEARLCORAL) {
@@ -643,12 +721,13 @@ const R = (() => {
           else { op.box(lx + 0.12, y, lz + at, lx + 0.22, y + 1, lz + at + 0.12, dark, sk, false); op.box(lx + 0.78, y, lz + at, lx + 0.88, y + 1, lz + at + 0.12, dark, sk, false); for (const r of [0.15, 0.4, 0.65, 0.9]) op.box(lx + 0.22, y + r - 0.04, lz + at, lx + 0.78, y + r + 0.04, lz + at + 0.1, wood, sk, false); }
           continue;
         }
-        if (id === B.FERN) {
-          const sk = skyAt(lx, y + 1, lz); const g = [0.26, 0.56, 0.22], g2 = [0.36, 0.7, 0.28];
-          op.box(lx + 0.46, y, lz + 0.46, lx + 0.54, y + 0.5, lz + 0.54, [0.3, 0.45, 0.2], sk, false);
-          op.box(lx + 0.05, y + 0.25, lz + 0.42, lx + 0.5, y + 0.33, lz + 0.58, g, sk, false); op.box(lx + 0.5, y + 0.3, lz + 0.42, lx + 0.95, y + 0.38, lz + 0.58, g2, sk, false);
-          op.box(lx + 0.42, y + 0.35, lz + 0.05, lx + 0.58, y + 0.43, lz + 0.5, g2, sk, false); op.box(lx + 0.42, y + 0.4, lz + 0.5, lx + 0.58, y + 0.48, lz + 0.95, g, sk, false);
-          op.box(lx + 0.2, y + 0.5, lz + 0.2, lx + 0.8, y + 0.56, lz + 0.8, g2, sk, false);
+        if (id === B.FERN) { // six fronds arching out from a crown, each a notched leaf
+          const sk = skyAt(lx, y + 1, lz); const g = [0.25, 0.55, 0.21], g2 = [0.36, 0.7, 0.28];
+          const a0 = U.hash3(wx, y, wz, 74) * 6.283; const cx = lx + 0.5, cz = lz + 0.5;
+          for (let k = 0; k < 6; k++) { const a = a0 + k / 6 * 6.283; const ux = Math.cos(a), uz = Math.sin(a); const L = 0.5 + U.hash3(wx, y, wz, 75 + k) * 0.25; const pts = [];
+            const n = 5; for (let i = 0; i <= n; i++) { const t = i / n; const w = 0.09 * Math.sin(t * 3.14) * (i % 2 ? 1.3 : 0.7); const h = 0.08 + Math.sin(t * 2.4) * 0.42 * L; pts.push([cx + ux * t * L - uz * w, y + h, cz + uz * t * L + ux * w]); }
+            for (let i = n - 1; i >= 1; i--) { const t = i / n; const w = 0.09 * Math.sin(t * 3.14) * (i % 2 ? 1.3 : 0.7); const h = 0.08 + Math.sin(t * 2.4) * 0.42 * L; pts.push([cx + ux * t * L + uz * w, y + h, cz + uz * t * L - ux * w]); }
+            op.plate(pts, 0.012, k % 2 ? g : g2, { sky: sk, edge: g }); }
           continue;
         }
         if (id === B.MOONGLOW) {
@@ -657,11 +736,25 @@ const R = (() => {
           op.box(lx + 0.5 - pulse, y + 0.28, lz + 0.5 - pulse, lx + 0.5 + pulse, y + 0.28 + pulse * 2, lz + 0.5 + pulse, [0.75, 1.0, 0.45], 1, true);
           continue;
         }
-        if (info.partial) {
-          // torch: small post + glowing head
+        if (info.partial) { // torch: a stick, a bound head, a teardrop flame
           const sk = skyAt(lx, y, lz);
-          op.box(lx + 0.42, y, lz + 0.42, lx + 0.58, y + 0.62, lz + 0.58, [0.45, 0.33, 0.18], sk, false);
-          op.box(lx + 0.38, y + 0.55, lz + 0.38, lx + 0.62, y + 0.78, lz + 0.62, [1.0, 0.82, 0.35], 1, true);
+          op.tube([[lx + 0.5, y, lz + 0.5], [lx + 0.5, y + 0.58, lz + 0.5]], [0.05, 0.045], [0.45, 0.32, 0.17], { sky: sk, segs: 6, cap0: 'none' });
+          op.blob(lx + 0.4, y + 0.5, lz + 0.4, lx + 0.6, y + 0.68, lz + 0.6, 0.4, [0.3, 0.22, 0.14], { sky: sk, n: 2 });
+          op.blob(lx + 0.37, y + 0.62, lz + 0.37, lx + 0.63, y + 1.02, lz + 0.63, 1, [1.0, 0.72, 0.25], { emis: true, n: 3, tap: [1, 0.2] });
+          op.blob(lx + 0.44, y + 0.66, lz + 0.44, lx + 0.56, y + 0.9, lz + 0.56, 1, [1.0, 0.95, 0.7], { emis: true, n: 2, tap: [1, 0.2] });
+          continue;
+        }
+        if (id === B.FUSION || id === B.DARKTABLE) { // the fusion table: a flared stone pedestal with a rune ring and a crystal floating over it
+          const dark = id === B.DARKTABLE; const sk = skyAt(lx, y + 1, lz);
+          const stone = dark ? [0.12, 0.08, 0.16] : [0.36, 0.38, 0.5], rim = dark ? [0.22, 0.12, 0.3] : [0.5, 0.54, 0.68], glow = dark ? [0.75, 0.3, 1.0] : [0.5, 0.9, 1.0], glow2 = dark ? [1.0, 0.35, 0.4] : [0.85, 1.0, 1.0];
+          op.tube([[lx + 0.5, y, lz + 0.5], [lx + 0.5, y + 0.12, lz + 0.5], [lx + 0.5, y + 0.5, lz + 0.5], [lx + 0.5, y + 0.82, lz + 0.5], [lx + 0.5, y + 0.95, lz + 0.5]], [0.47, 0.42, 0.26, 0.4, 0.46], stone, { sky: sk, segs: 10, cap0: 'none', cap1: 'flat' });
+          op.tube([[lx + 0.5, y + 0.95, lz + 0.5], [lx + 0.5, y + 1.0, lz + 0.5]], [0.47, 0.47], rim, { sky: sk, segs: 10, cap0: 'none', cap1: 'flat' });
+          for (let k = 0; k < 6; k++) { const a = k / 6 * 6.283; op.ball(lx + 0.5 + Math.cos(a) * 0.36, y + 1.01, lz + 0.5 + Math.sin(a) * 0.36, 0.035, glow, { emis: true, n: 2 }); }
+          op.push(); op.rotate(0.35, U.hash3(wx, y, wz, 11) * 6.283, 0.25, [lx + 0.5, y + 1.42, lz + 0.5]);
+          op.blob(lx + 0.34, y + 1.1, lz + 0.34, lx + 0.66, y + 1.8, lz + 0.66, 0.25, glow, { emis: true, n: 2, tap: [0.45, 0.25], bulge: 0.9 });
+          op.blob(lx + 0.46, y + 1.2, lz + 0.46, lx + 0.54, y + 1.68, lz + 0.54, 0.2, glow2, { emis: true, n: 1, tap: [0.4, 0.3], bulge: 1.0 });
+          op.pop();
+          for (let k = 0; k < 3; k++) { const a = k / 3 * 6.283 + 0.4; op.push(); op.rotate(0.5, a, 0.3, [lx + 0.5 + Math.cos(a) * 0.3, y + 1.3, lz + 0.5 + Math.sin(a) * 0.3]); op.blob(lx + 0.5 + Math.cos(a) * 0.3 - 0.05, y + 1.18, lz + 0.5 + Math.sin(a) * 0.3 - 0.05, lx + 0.5 + Math.cos(a) * 0.3 + 0.05, y + 1.44, lz + 0.5 + Math.sin(a) * 0.3 + 0.05, 0.2, glow, { emis: true, n: 1, tap: [0.4, 0.2], bulge: 1.0 }); op.pop(); }
           continue;
         }
         const isWater = id === B.WATER || id === B.BRINE, isGlass = id === B.GLASS || id === B.SELGLASS;
@@ -741,11 +834,6 @@ const R = (() => {
               op.box(Math.min(x0, x0 + ex), Math.min(y0, y0 + ey), Math.min(z0, z0 + ez), Math.max(x1, x1 + ex), Math.max(y1, y1 + ey), Math.max(z1, z1 + ez), [sc[0] * m, sc[1] * m, sc[2] * m], sk, !!s.emis);
             }
           }
-        }
-        if (id === B.DARKTABLE) { op.box(lx + 0.28, y + 1, lz + 0.28, lx + 0.72, y + 1.45, lz + 0.72, [0.7, 0.2, 1.0], 1, true); op.box(lx + 0.42, y + 1.45, lz + 0.42, lx + 0.58, y + 1.75, lz + 0.58, [1.0, 0.3, 0.35], 1, true); }
-        if (id === B.FUSION) {
-          // glowing crystal on top of the table
-          op.box(lx + 0.3, y + 1, lz + 0.3, lx + 0.7, y + 1.35, lz + 0.7, [0.55, 0.9, 1.0], 1, true);
         }
       }
     }

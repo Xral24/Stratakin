@@ -12,7 +12,8 @@ const B = {
   AIR: 0, BEDROCK: 1, STONE: 2, DIRT: 3, GRASS: 4, SAND: 5, WATER: 6, LOG: 7, LEAVES: 8, SNOW: 9,
   COPPER: 10, IRON: 11, EMBER: 12, VOID: 13, BASALT: 14, LAVA: 15, CLOUD: 16, GLOWGRASS: 17,
   TORCH: 18, FUSION: 19, GRAVEL: 20, CACTUS: 21, STARMETAL: 22, MOSS: 23, STATUE: 24, PLANKS: 25, BERRY: 26, GLASS: 27, CAMPFIRE: 28, IRONWALL: 29, VOIDWALL: 30, GLOWWORM: 31, BERRYLEAF: 32, DOOR: 33, DOOR_OPEN: 34, PORTAL: 35,
-  CHEST: 36, SELENITE: 37, TYCHO: 38, STARSALT: 39, MOONGLOW: 40, AMBER: 41, SULFUR: 42, RINGSHARD: 43, BRINE: 44, CORAL_R: 45, CORAL_B: 46, CORAL_Y: 47, PEARLCORAL: 48, GOLD: 49, DIAMOND: 50, FERN: 51, SELGLASS: 52, INCUBATOR: 53, REGOLITH: 54, DUNE: 55, SALTCRUST: 56, LADDER: 57, TARGET: 58, BALLOON: 59, FORTSTONE: 60, THORN: 61, DEADGATE: 62, RUBBLE: 63, DARKTABLE: 64
+  CHEST: 36, SELENITE: 37, TYCHO: 38, STARSALT: 39, MOONGLOW: 40, AMBER: 41, SULFUR: 42, RINGSHARD: 43, BRINE: 44, CORAL_R: 45, CORAL_B: 46, CORAL_Y: 47, PEARLCORAL: 48, GOLD: 49, DIAMOND: 50, FERN: 51, SELGLASS: 52, INCUBATOR: 53, REGOLITH: 54, DUNE: 55, SALTCRUST: 56, LADDER: 57, TARGET: 58, BALLOON: 59, FORTSTONE: 60, THORN: 61, DEADGATE: 62, RUBBLE: 63, DARKTABLE: 64,
+  NEEDLES: 65, FROND: 66, BIRCHLOG: 67, BOULDER: 68, MUSHROOM: 69, FLOWERS: 70, PEBBLES: 71
 };
 
 // name, top colour, side colour, solid, hardness (seconds to mine), drop item id, emissive, fluid
@@ -89,13 +90,21 @@ defBlock(B.TARGET, 'Target', '#f2ede0', '#f2ede0', { hard: 0.5, drop: 'target' }
 defBlock(B.BALLOON, 'Balloon', '#e8323c', '#d42a34', { hard: 0.05, drop: null });
 defBlock(B.LADDER, 'Ladder', '#a07a44', '#8a6a3c', { solid: false, hard: 0.3, drop: 'ladder', partial: true, transparent: true });
 defBlock(B.INCUBATOR, 'Incubator', '#7ad7ff', '#2c3e50', { hard: Infinity, emissive: true });
+// the living world: conifer needles, palm fronds, birch bark, boulders, mushrooms, wildflowers, pebbles
+defBlock(B.NEEDLES, 'Needles', '#2f6a4a', '#2a5e42', { hard: 0.2, drop: 'frond' });
+defBlock(B.FROND, 'Palm Frond', '#4f9c3f', '#479038', { hard: 0.2, drop: 'frond', partial: true, transparent: true });
+defBlock(B.BIRCHLOG, 'Birch Log', '#e8e4d8', '#d8d4c8', { hard: 0.6, drop: 'wood' });
+defBlock(B.BOULDER, 'Boulder', '#8e9197', '#86898f', { hard: 0.9, drop: 'stone', partial: true, transparent: true });
+defBlock(B.MUSHROOM, 'Mushroom', '#c84a3a', '#e8dcc8', { solid: false, hard: 0.1, drop: 'berry', partial: true, transparent: true });
+defBlock(B.FLOWERS, 'Wildflowers', '#e8d040', '#4f9c3f', { solid: false, hard: 0.1, drop: 'frond', partial: true, transparent: true });
+defBlock(B.PEBBLES, 'Pebbles', '#8e9197', '#86898f', { solid: false, hard: 0.2, drop: 'stone', partial: true, transparent: true });
 
 // blocks that light their surroundings, and how far
 const LIGHT_R = { [B.TORCH]: 10, [B.CAMPFIRE]: 14, [B.MOONGLOW]: 12, [B.RINGSHARD]: 10, [B.PEARLCORAL]: 8, [B.INCUBATOR]: 9 };
 // blocks the sky light passes through when working out how deep a column is
-const SKY_CLEAR = { [B.LADDER]: 1, [B.TORCH]: 1, [B.GLASS]: 1, [B.SELGLASS]: 1, [B.CAMPFIRE]: 1, [B.MOONGLOW]: 1, [B.GLOWWORM]: 1, [B.FERN]: 1, [B.PORTAL]: 1, [B.BERRY]: 1, [B.RINGSHARD]: 1 };
+const SKY_CLEAR = { [B.FROND]: 1, [B.MUSHROOM]: 1, [B.FLOWERS]: 1, [B.PEBBLES]: 1, [B.LADDER]: 1, [B.TORCH]: 1, [B.GLASS]: 1, [B.SELGLASS]: 1, [B.CAMPFIRE]: 1, [B.MOONGLOW]: 1, [B.GLOWWORM]: 1, [B.FERN]: 1, [B.PORTAL]: 1, [B.BERRY]: 1, [B.RINGSHARD]: 1 };
 const isSolid = (id) => BLOCKS[id].solid;
-const isLeaf = (id) => id === B.LEAVES || id === B.BERRYLEAF;
+const isLeaf = (id) => id === B.LEAVES || id === B.BERRYLEAF || id === B.NEEDLES;
 const isOpaque = (id) => BLOCKS[id].solid && !BLOCKS[id].partial && !BLOCKS[id].transparent;
 
 const BIOME = { PLAINS: 0, FOREST: 1, DESERT: 2, SNOW: 3, SWAMP: 4, MOUNTAIN: 5, OCEAN: 6, MARE: 7, HIGHLANDS: 8, CRATER: 9, DUNES: 10, FLATS: 11, MESA: 12, LOSTWORLD: 13 };
@@ -257,27 +266,79 @@ class World {
   }
   treeAt(x, z, info) {
     if (!this.preset.trees) return null;
-    if (info.h <= SEA || info.h > 72 || info.beach) return null;
+    if (info.h <= SEA || info.h > 72) return null;
     if (info.lost && this.lost && Math.hypot(x - this.lost.x, z - this.lost.z) < 26) return null; // the tyrant's clearing
-    const r = U.hash3(x, 99, z, this.seed + 303);
+    const r = U.hash3(x, 99, z, this.seed + 303); const kind = U.hash3(x, 98, z, this.seed);
     let p = 0, type = 'oak';
-    switch (info.biome) {
-      case BIOME.FOREST: p = 0.008 + 0.03 * U.vnoise2(x, z, 48, WORLD_W, this.seed + 371); // thick in patches, open glades between type = U.hash3(x, 98, z, this.seed) < 0.25 ? 'pine' : 'oak'; break;
-      case BIOME.PLAINS: p = 0.004; break;
+    if (info.beach) { if (info.h < SEA + 2 || info.h > SEA + 6) return null; p = 0.014; type = 'palm'; }
+    else switch (info.biome) {
+      case BIOME.FOREST: p = 0.006 + 0.022 * U.vnoise2(x, z, 48, WORLD_W, this.seed + 371); type = kind < 0.18 ? 'pine' : kind < 0.3 ? 'birch' : 'oak'; break; // thick in patches, open glades between
+      case BIOME.PLAINS: p = 0.004; type = kind < 0.4 ? 'birch' : 'oak'; break;
       case BIOME.SNOW: p = 0.02; type = 'pine'; break;
-      case BIOME.SWAMP: p = 0.006 + 0.024 * U.vnoise2(x, z, 48, WORLD_W, this.seed + 373); type = 'swamp'; break;
+      case BIOME.SWAMP: p = 0.004 + 0.014 * U.vnoise2(x, z, 48, WORLD_W, this.seed + 373); type = 'swamp'; break;
       case BIOME.MOUNTAIN: p = 0.006; type = 'pine'; break;
       case BIOME.DESERT: p = 0.01; type = 'cactus'; break;
-      case BIOME.LOSTWORLD: p = 0.01 + 0.03 * U.vnoise2(x, z, 40, WORLD_W, this.seed + 375); type = 'jungle'; break;
+      case BIOME.LOSTWORLD: p = 0.007 + 0.02 * U.vnoise2(x, z, 40, WORLD_W, this.seed + 375); type = 'jungle'; break;
       default: return null;
     }
     if (r >= p) return null;
     const hr = U.hash3(x, 97, z, this.seed);
-    const height = type === 'pine' ? 6 + Math.floor(hr * 4) : type === 'cactus' ? 1 + Math.floor(hr * 3) : type === 'jungle' ? 7 + Math.floor(hr * 5) : 4 + Math.floor(hr * 3);
+    const height = type === 'pine' ? 7 + Math.floor(hr * 5) : type === 'cactus' ? 1 + Math.floor(hr * 3) : type === 'jungle' ? 8 + Math.floor(hr * 5) : type === 'palm' ? 5 + Math.floor(hr * 3) : type === 'birch' ? 5 + Math.floor(hr * 3) : 4 + Math.floor(hr * 3);
     const berries = (type === 'oak' || type === 'swamp' || type === 'jungle') && U.hash3(x, 96, z, this.seed + 17) < 0.45; // nearly half the broadleaf trees carry berries
-    return { type, height, berries };
+    return { type, height, berries, big: type === 'jungle' && hr > 0.6, lean: Math.floor(U.hash3(x, 95, z, this.seed) * 4) };
   }
 
+  // one tree of a given kind: trunk, branches, a canopy of leaf blocks the mesher draws as soft puffs
+  plantTree(put, x, h, z, tree, s) {
+    const th = tree.height; const type = tree.type;
+    const hs = (a, b, c) => U.hash3(x + a, b, z + c, s + 977);
+    if (type === 'cactus') { for (let y = 1; y <= th; y++) put(x, h + y, z, B.CACTUS, true); if (th >= 2) { const sd = hs(1, 1, 1) < 0.5 ? 1 : -1; put(x + sd, h + th - 1, z, B.CACTUS, true); put(x + sd, h + th, z, B.CACTUS, true); } return; }
+    // canopy: an ellipsoid of leaves with a noisy edge; r horizontal radius, ry vertical, at centre height cy
+    const canopy = (cx, cy, cz, r, ry, leaf, berries) => {
+      for (let ax = -r - 1; ax <= r + 1; ax++) for (let ay = -ry - 1; ay <= ry + 1; ay++) for (let az = -r - 1; az <= r + 1; az++) {
+        const d = Math.hypot(ax / (r + 0.5), ay / (ry + 0.5), az / (r + 0.5)); const n = hs(ax * 3 + 11, ay * 5 + 7, az * 3 + 13);
+        if (d > 0.72 + n * 0.42) continue;
+        const outer = d > 0.62 && berries && hs(ax + 21, ay + 19, az + 23) < 0.28;
+        put(cx + ax, cy + ay, cz + az, outer ? B.BERRYLEAF : leaf, true);
+      }
+    };
+    if (type === 'pine') { // a tall trunk and tiers of needles that narrow to a point
+      for (let y = 1; y <= th; y++) put(x, h + y, z, B.LOG, false);
+      for (let ly = 3; ly <= th + 2; ly++) { const t = (ly - 3) / (th - 1); const r = Math.max(0, Math.round((1 - t) * 2.6 + ((ly % 2) ? 0.4 : -0.3))); for (let ax = -r; ax <= r; ax++) for (let az = -r; az <= r; az++) { if (Math.hypot(ax, az) > r + 0.3) continue; put(x + ax, h + ly, z + az, B.NEEDLES, true); } }
+      put(x, h + th + 2, z, B.NEEDLES, true); return;
+    }
+    if (type === 'palm') { // a leaning trunk that curves up, a crown of fronds, coconuts
+      const lean = [[1, 0], [-1, 0], [0, 1], [0, -1]][tree.lean]; let px = x, pz = z;
+      for (let y = 1; y <= th; y++) { if (y === Math.floor(th * 0.45) || y === Math.floor(th * 0.75)) { px += lean[0]; pz += lean[1]; } put(px, h + y, pz, B.LOG, false); }
+      for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, -1], [1, -1], [-1, 1]]) { put(px + dx, h + th + 1, pz + dz, B.FROND, true); put(px + dx * 2, h + th, pz + dz * 2, B.FROND, true); if (Math.abs(dx) + Math.abs(dz) === 1) put(px + dx * 3, h + th - 1, pz + dz * 3, B.FROND, true); }
+      put(px, h + th + 1, pz, B.LEAVES, true); return;
+    }
+    if (type === 'birch') { // slim white trunk, a small airy crown
+      for (let y = 1; y <= th; y++) put(x, h + y, z, B.BIRCHLOG, false);
+      canopy(x, h + th, z, 2, 2, B.LEAVES, false); canopy(x, h + th - 2, z, 1, 1, B.LEAVES, false); return;
+    }
+    if (type === 'swamp') { // low and wide, a forked trunk, trailing leaf strands
+      for (let y = 1; y <= th; y++) put(x, h + y, z, B.LOG, false);
+      const fx = hs(1, 2, 3) < 0.5 ? 1 : -1; for (let y = th - 1; y <= th + 1; y++) put(x + fx, h + y, z + (hs(3, 2, 1) < 0.5 ? 1 : 0), B.LOG, false);
+      canopy(x, h + th + 1, z, 4, 1, B.LEAVES, tree.berries);
+      for (let k = 0; k < 6; k++) { const a = k / 6 * 6.283 + hs(k, 1, k); const sx = x + Math.round(Math.cos(a) * 3.5), sz = z + Math.round(Math.sin(a) * 3.5); const len = 2 + Math.floor(hs(k, 9, k) * 3); for (let y = 0; y < len; y++) put(sx, h + th - y, sz, B.LEAVES, true); }
+      return;
+    }
+    if (type === 'jungle') { // giants: a thick trunk, buttress roots, a broad crown, hanging vines
+      const big = tree.big; const tw = big ? 2 : 1;
+      for (let ax = 0; ax < tw; ax++) for (let az = 0; az < tw; az++) for (let y = 1; y <= th; y++) put(x + ax, h + y, z + az, B.LOG, false);
+      for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { put(x + dx * tw, h + 1, z + dz * tw, B.LOG, true); if (big) put(x + dx * tw, h + 2, z + dz * tw, B.LOG, true); }
+      canopy(x, h + th + 1, z, big ? 5 : 3, 2, B.LEAVES, tree.berries);
+      if (big) { canopy(x + 3, h + th - 2, z - 2, 2, 1, B.LEAVES, false); for (let y = th - 4; y <= th - 2; y++) put(x + 3, h + y, z - 2, B.LOG, true); }
+      for (let k = 0; k < (big ? 6 : 3); k++) { const a = k / 6 * 6.283 + hs(k, 5, k); const r = (big ? 4 : 2.5); const sx = x + Math.round(Math.cos(a) * r), sz = z + Math.round(Math.sin(a) * r); const len = 3 + Math.floor(hs(k, 8, k) * 4); for (let y = 0; y < len; y++) put(sx, h + th - 1 - y, sz, B.LEAVES, true); }
+      return;
+    }
+    // oak: a trunk with one or two branches, a round crown
+    for (let y = 1; y <= th; y++) put(x, h + y, z, B.LOG, false);
+    const br = [[1, 0], [-1, 0], [0, 1], [0, -1]][tree.lean]; put(x + br[0], h + th - 1, z + br[1], B.LOG, true); put(x + br[0] * 2, h + th, z + br[1] * 2, B.LOG, true);
+    if (hs(2, 2, 2) < 0.5) put(x - br[0], h + th, z - br[1], B.LOG, true);
+    canopy(x, h + th + 1, z, th >= 6 ? 3 : 2, 2, B.LEAVES, tree.berries);
+  }
   // ----- generation -----
   generate(chunk) {
     const cx = chunk.cx, cz = chunk.cz, ox = cx * CH, oz = cz * CH;
@@ -446,43 +507,32 @@ class World {
         }
       }
     }
-    // trees / cacti (may come from neighbouring columns)
-    for (let dx = -2; dx < 18; dx++) for (let dz = -2; dz < 18; dz++) {
-      const info = infos[(dx + 2) * 20 + (dz + 2)];
+    // trees (may come from neighbouring columns: the border is as wide as the biggest canopy), then the small things on the ground
+    const put = (wx, wy, wz, id, onlyAir) => {
+      const lx = wx - ox, lz = wz - oz;
+      if (lx < 0 || lx >= CH || lz < 0 || lz >= CH || wy < 0 || wy >= WH) return;
+      const i = (lx * CH + lz) * WH + wy;
+      if (onlyAir && blocks[i] !== B.AIR) return;
+      blocks[i] = id;
+    };
+    for (let dx = -5; dx < 21; dx++) for (let dz = -5; dz < 21; dz++) {
       const x = ox + dx, z = oz + dz;
+      const info = (dx >= -2 && dx < 18 && dz >= -2 && dz < 18) ? infos[(dx + 2) * 20 + (dz + 2)] : this.colInfo(x, z);
       const tree = this.treeAt(x, z, info);
-      if (!tree) continue;
-      // require solid ground (no cave mouth)
-      const put = (wx, wy, wz, id, onlyAir) => {
-        const lx = wx - ox, lz = wz - oz;
-        if (lx < 0 || lx >= CH || lz < 0 || lz >= CH || wy < 0 || wy >= WH) return;
-        const i = (lx * CH + lz) * WH + wy;
-        if (onlyAir && blocks[i] !== B.AIR) return;
-        blocks[i] = id;
-      };
-      const h = info.h;
-      if (tree.type === 'cactus') { for (let y = 1; y <= tree.height; y++) put(x, h + y, z, B.CACTUS, true); continue; }
-      const th = tree.height;
-      for (let y = 1; y <= th; y++) put(x, h + y, z, B.LOG, false);
-      if (tree.type === 'pine') {
-        for (let ly = 2; ly <= th + 1; ly++) {
-          const r = ly >= th ? 0 : ((th - ly) % 2 === 0 ? 1 : 2);
-          for (let ax = -r; ax <= r; ax++) for (let az = -r; az <= r; az++) {
-            if (Math.abs(ax) === r && Math.abs(az) === r && r === 2) continue;
-            put(x + ax, h + ly, z + az, B.LEAVES, true);
-          }
-        }
-      } else {
-        const big = tree.type === 'swamp' || tree.type === 'jungle';
-        for (let ly = th - 2; ly <= th + 1; ly++) {
-          const r = ly < th ? (big ? 3 : 2) : 1;
-          for (let ax = -r; ax <= r; ax++) for (let az = -r; az <= r; az++) {
-            if (Math.abs(ax) === r && Math.abs(az) === r && (r > 1 || U.hash3(x + ax, ly, z + az, s) < 0.5)) continue;
-            const outer = ly < th && (Math.abs(ax) === r || Math.abs(az) === r) && tree.berries && U.hash3(x + ax, ly + 3, z + az, s + 913) < 0.3;
-            put(x + ax, h + ly, z + az, outer ? B.BERRYLEAF : B.LEAVES, true);
-          }
-        }
-      }
+      if (tree) this.plantTree(put, x, info.h, z, tree, s);
+    }
+    for (let lx = 0; lx < CH; lx++) for (let lz = 0; lz < CH; lz++) {
+      const info = infos[(lx + 2) * 20 + (lz + 2)]; const x = ox + lx, z = oz + lz; const h = info.h; const base = (lx * CH + lz) * WH;
+      if (h <= SEA || h >= WH - 3 || blocks[base + h + 1] !== B.AIR) continue;
+      const top = blocks[base + h]; const r = U.hash3(x, 26, z, s + 951);
+      if (top === B.GRASS) {
+        const bio = info.biome;
+        if (r < 0.0025 && bio !== BIOME.SWAMP) blocks[base + h + 1] = B.BOULDER;
+        else if (r < 0.006 && (bio === BIOME.FOREST || bio === BIOME.SWAMP || bio === BIOME.LOSTWORLD)) blocks[base + h + 1] = B.MUSHROOM;
+        else if (r < 0.02 && (bio === BIOME.PLAINS || bio === BIOME.FOREST) && U.vnoise2(x, z, 28, P, s + 953) > 0.6) blocks[base + h + 1] = B.FLOWERS;
+        else if (r < 0.024 && bio === BIOME.FOREST && U.hash3(x, 27, z, s + 955) < 0.5) { blocks[base + h + 1] = B.LEAVES; if (U.hash3(x, 28, z, s) < 0.4) blocks[base + h + 2] = B.LEAVES; } // a bush
+      } else if ((top === B.STONE || top === B.GRAVEL) && r < 0.012) blocks[base + h + 1] = r < 0.004 ? B.BOULDER : B.PEBBLES;
+      else if (top === B.SAND && r < 0.004) blocks[base + h + 1] = B.PEBBLES;
     }
     if (this.overlay) this.overlay(chunk); // towns are drawn into the world like terrain
     // player edits
