@@ -2437,7 +2437,7 @@ const KIN = (() => {
   function habitat(bodyId, layer, biomeName) {
     const [b, L, bn] = habitatKey(bodyId, layer, biomeName); const key = b + '|' + L + '|' + bn;
     let list = habitatCache.get(key); if (list) return list;
-    const hs = HABITATS[b] || HABITATS.earth; const n = Math.round(PLANET_SIZE / hs.length);
+    const hs = HABITATS[b] || HABITATS.earth; const hi = hs.findIndex(h => h[0] === L && h[1] === bn); const n = Math.floor(PLANET_SIZE / hs.length) + (hi < PLANET_SIZE % hs.length ? 1 : 0);
     const counts = [0, 0, 0, 0, 1]; counts[3] = Math.max(2, Math.round(n * 0.09)); counts[2] = Math.max(3, Math.round(n * 0.18)); counts[1] = Math.round(n * 0.3); counts[0] = n - counts[1] - counts[2] - counts[3] - counts[4];
     const bias = L === 'Surface' ? (BIAS.Surface[bn] || BIAS.Surface.Plains) : (BIAS[L] || BIAS.Mines);
     const Li = { Surface: 1, Mines: 2, Core: 3, Sky: 4, Water: 5 }[L] || 1;
@@ -2502,9 +2502,12 @@ const KIN = (() => {
         else { a = list[i - 20].out; b = (i % 2 ? rares : uncs)[r.int((i % 2 ? rares : uncs).length)]; }
         const key = [a.seed, b.seed].sort().join(':'); if (a !== b && a.home && (!b.home || a.home.biome !== b.home.biome || i >= 20 || i < 2) && !usedPair.has(key)) { usedPair.add(key); break; }
       }
+      const parts = [a, b];
+      if (i >= 20) { let c; for (let t = 0; t < 20; t++) { c = uncs[r.int(uncs.length)]; if (!parts.includes(c)) break; } parts.push(c); }
+      if (i >= 27) { let d; for (let t = 0; t < 20; t++) { d = rares[r.int(rares.length)]; if (!parts.includes(d)) break; } parts.push(d); }
       const elA = dominant(a.elem, 1)[0], elB = dominant(b.elem, 1)[0]; const stone = r.chance(0.5) ? elA : elB;
       const elem = normalize(a.elem.map((v, k) => v * 0.45 + b.elem[k] * 0.35 + (EI[stone] === k ? 0.2 : 0)));
-      const tot = Math.max(...STAT_KEYS.map(() => 0), STAT_KEYS.reduce((s, k) => s + a.base[k], 0), STAT_KEYS.reduce((s, k) => s + b.base[k], 0)) + 70 + (i >= 20 ? 60 : i >= 10 ? 30 : 0);
+      const tot = Math.max(...STAT_KEYS.map(() => 0), STAT_KEYS.reduce((s, k) => s + a.base[k], 0), STAT_KEYS.reduce((s, k) => s + b.base[k], 0)) + 70 + (i >= 27 ? 130 : i >= 20 ? 70 : i >= 10 ? 30 : 0);
       const out = species(U.combine(a.seed, b.seed, 0xF0), [stone], 0, { primary: dominant(elem, 1)[0], shape: r.chance(0.6) ? a.shape : b.shape, rarity: 3, total: tot, neon: body !== 'earth' });
       out.elem = elem;
       const stem = a.names[0].slice(0, Math.min(3, a.names[0].length)); const tail = b.names[0].slice(-Math.min(4, b.names[0].length)).toLowerCase();
@@ -2513,18 +2516,20 @@ const KIN = (() => {
       out.colors = { body: hexMix(a.colors.body, b.colors.body, 0.5), belly: b.colors.belly, accent: PALETTE[stone][1], dark: a.colors.dark, eye: PALETTE[stone][3] };
       out.feat.crest = true; out.fusion = true; out.recipe = { body, i }; out.size = Math.max(a.size || 1, b.size || 1) * 1.1;
       out.home = null; DEX[body].push(out); out.dex = DEX[body].length;
-      list.push({ i, body, a, b, stone, out });
+      if (i >= 27) out.size *= 1.15;
+      list.push({ i, body, a, b, parts, stone, out });
     }
     return list;
   }
-  function findRecipe(spA, spB) {
-    for (const body of ['earth', 'moon', 'halo']) for (const rc of recipes(body)) if ((rc.a.seed === spA.seed && rc.b.seed === spB.seed) || (rc.a.seed === spB.seed && rc.b.seed === spA.seed)) return rc;
+  function findRecipe(sps) {
+    const key = sps.map(sp => sp.seed).sort().join(':');
+    for (const body of ['earth', 'moon', 'halo']) for (const rc of recipes(body)) if (rc.parts.map(sp => sp.seed).sort().join(':') === key) return rc;
     return null;
   }
-  function fuseRecipe(rc, ka, kb) {
-    const level = Math.min(MAX_LEVEL, Math.round((ka.level + kb.level) / 2) + 2);
+  function fuseRecipe(rc, kins) {
+    const level = Math.min(MAX_LEVEL, Math.round(kins.reduce((a, k) => a + k.level, 0) / kins.length) + 2 + (kins.length - 2) * 2);
     const k = create(rc.out, level);
-    k.iv = {}; for (const key of STAT_KEYS) k.iv[key] = Math.max(ka.iv[key], kb.iv[key]);
+    k.iv = {}; for (const key of STAT_KEYS) k.iv[key] = Math.max(...kins.map(x => x.iv[key]));
     k.hp = stats(k).hp;
     return k;
   }
@@ -6990,6 +6995,7 @@ const UI = (() => {
   }
   // ---------- panels ----------
   function openPanel(name, data) {
+    if (name === 'craft' && !G.nearTable()) { toast('Crafting happens at a Fusion Table. There is one at the ruin by your camp, one in every village, and you can set down your own.', 'bad'); return; }
     if (Battle.active) return;
     panelOpen = name; el.panel.classList.remove('hidden'); G.setPaused(true);
     el['panel-body'].scrollTop = 0;
@@ -7479,9 +7485,9 @@ const UI = (() => {
       else if (pv.kind === 'distill') resultHtml = `<h4>Result: distillation</h4><div class="recipe can"><div class="ico big" style="background:${ITEMS[pv.out].col}"></div><div class="rinfo"><b>${ITEMS[pv.out].name}</b><div class="small">No recipe matches, so the table distils the strongest element out of the mix.</div></div></div>`;
       else resultHtml = `<p class="small">${pv.msg}</p>`;
     }
-    const recHtml = (() => { const body = G.worldId; const all = KIN.recipes(body); const known = ((G.stats.recipes || {})[body] || []); const have = (sp) => G.kin.some(k => k.sp.seed === sp.seed);
-      return `<h4>Fusion recipes on ${G.world.preset.name} (${known.length} of ${all.length} known)</h4>` + all.filter(rc => known.includes(rc.i)).map(rc => `<div class="recipe ${have(rc.a) && have(rc.b) && G.player.has('stone_' + rc.stone) ? 'can' : ''}"><div class="rinfo"><b>${rc.out.names[0]}</b> <span class="small">#${rc.out.dex}</span><div class="needs">${rc.a.names[0]}${have(rc.a) ? ' ✓' : ''} + ${rc.b.names[0]}${have(rc.b) ? ' ✓' : ''} + ${rc.stone} Stone${G.player.has('stone_' + rc.stone) ? ' ✓' : ''}</div></div></div>`).join('') + (known.length < all.length ? '<p class="note">Quest people teach the rest, one at a time, when you finish their jobs.</p>' : ''); })();
-    body.innerHTML = foundingHtml(fs) + `<p class="note">Tap a slot to fill it. A fusion is a recipe: the two Kin it names and the right element stone (stones are crafted from 3 essences and an iron). Items alone craft gear, and essences with berries make tonics.</p>
+    const recHtml = (() => { const body = G.worldId; const all = KIN.recipes(body); const known = ((G.stats.recipes || {})[body] || []); const have = (sp) => G.kin.some(k => k.sp.seed === sp.seed); const ok = (rc) => rc.parts.every(have) && G.player.has('stone_' + rc.stone);
+      return `<h4>Fusion recipes on ${G.world.preset.name} (${known.length} of ${all.length} known)</h4>` + all.filter(rc => known.includes(rc.i)).map(rc => `<div class="recipe ${ok(rc) ? 'can' : ''}"><div class="rinfo"><b>${rc.out.names[0]}</b> <span class="small">#${rc.out.dex}</span><div class="needs">${rc.parts.map(sp => `${sp.names[0]}${have(sp) ? ' ✓' : ''} <span style="opacity:.6">(${sp.home ? (sp.home.layer === 'Surface' ? sp.home.biome : sp.home.layer) : 'fusion #' + sp.dex})</span>`).join(' + ')} + ${rc.stone} Stone${G.player.has('stone_' + rc.stone) ? ' ✓' : ''}</div></div></div>`).join('') + (known.length < all.length ? '<p class="note">Quest people teach the rest, one at a time, when you finish their jobs.</p>' : ''); })();
+    body.innerHTML = foundingHtml(fs) + `<p class="note">Tap a slot to fill it. A fusion is a recipe: the Kin it names (two, or three or four for the great ones) and the right element stone (stones are crafted from 3 essences and an iron). Items alone craft gear, and essences with berries make tonics.</p>
       <div class="fgrid">${fs.slots.map(cell).join('')}</div>
       ${resultHtml}
       <div class="row"><button class="btn big" id="f-go" ${pv && pv.kind !== 'none' ? '' : 'disabled'}>${pv && pv.kind === 'craft' ? 'Craft' : pv && pv.kind === 'statue' ? 'Make' : pv && pv.kind === 'distill' ? 'Distil' : 'Fuse'}</button><button class="btn ghost" id="f-clear">Clear</button></div>
@@ -7697,6 +7703,7 @@ G.newWorld = function (seed, starterIdx, name) {
     for (let dx = -1; dx <= 1; dx++) for (let dz = -1; dz <= 1; dz++) for (let y = Math.floor(s.y); y < s.y + 3; y++) { const b = w.getBlock(Math.floor(s.x) + dx, y, Math.floor(s.z) + dz); if (isLeaf(b) || (b === B.LOG && !dx && !dz)) w.setBlock(Math.floor(s.x) + dx, y, Math.floor(s.z) + dz, B.AIR); }
     w.setBlock(Math.floor(s.x) + 1, Math.floor(s.y), Math.floor(s.z) + 1, B.CAMPFIRE); // the magic camp fire: light and resting spot
     this.camp = { x: Math.floor(s.x) + 1, y: Math.floor(s.y), z: Math.floor(s.z) + 1 };
+    w.placeSpawnRuin(); this.stats.ruinPlaced = true;
     p.yaw = Math.atan2(-(this.village.x - s.x), -(this.village.z - s.z));
     this.stats.recipes = { earth: [0, 1], moon: [0], halo: [0] };
     const starter = KIN.create(KIN.starters(seed)[starterIdx], 5);
@@ -7856,13 +7863,13 @@ G.previewGrid = function (slots) {
   }
   // 2. fusion is a recipe: exactly two particular Kin and the right element stone
   if (kins.some(k => k.sp.noFuse)) return { kind: 'none', msg: `${KIN.name(kins.find(k => k.sp.noFuse))} will not go in a table. It is what it is.` };
-  if (kins.length > 2) return { kind: 'none', msg: 'A fusion takes exactly two Kin and a stone.' };
-  if (kins.length === 2) {
-    const rc = KIN.findRecipe(kins[0].sp, kins[1].sp);
-    if (!rc) return { kind: 'none', msg: `${KIN.name(kins[0])} and ${KIN.name(kins[1])} do not fuse. Only certain pairs do: check the recipes you know.` };
+  if (kins.length > 4) return { kind: 'none', msg: 'No fusion takes more than four Kin.' };
+  if (kins.length >= 2) {
+    const rc = KIN.findRecipe(kins.map(k => k.sp));
+    if (!rc) return { kind: 'none', msg: `These ${kins.length} do not fuse. Only certain sets do: check the recipes you know.` };
     if (!this.knowsRecipe(rc)) return { kind: 'none', msg: 'Something stirs between them, but you do not know this fusion yet. Someone out there does.' };
     if (!items.includes('stone_' + rc.stone)) return { kind: 'none', msg: `Right pair. It needs a ${rc.stone} Stone on the table too (3 ${rc.stone} essence and an iron).` };
-    return { kind: 'fusion', kin: KIN.fuseRecipe(rc, kins[0], kins[1]), n: 2, items: 1, recipe: rc, essNote: '' };
+    return { kind: 'fusion', kin: KIN.fuseRecipe(rc, kins), n: kins.length, items: 1, recipe: rc, essNote: '' };
   }
   // 3. one Kin plus materials becomes an object in its shape
   if (kins.length === 1 && items.length) {
@@ -7884,12 +7891,14 @@ G.previewGrid = function (slots) {
   return null;
 };
 // recipes you know, per planet; you start with two on Earth and quest people teach the rest
+// crafting needs a Fusion Table within a few steps
+G.nearTable = function () { const p = this.player, w = this.world; const x0 = Math.floor(p.x), y0 = Math.floor(p.y), z0 = Math.floor(p.z); for (let dx = -5; dx <= 5; dx++) for (let dz = -5; dz <= 5; dz++) for (let dy = -3; dy <= 3; dy++) if (w.getBlock(x0 + dx, y0 + dy, z0 + dz) === B.FUSION) return true; return false; };
 G.knowsRecipe = function (rc) { const k = (this.stats.recipes || {})[rc.body] || []; return k.includes(rc.i); };
 G.learnRecipe = function (body, from) {
   if (!this.stats.recipes) this.stats.recipes = {}; const known = this.stats.recipes[body] || (this.stats.recipes[body] = []);
   const all = KIN.recipes(body); const next = all.find(rc => !known.includes(rc.i) && (rc.i < 20 || known.includes(rc.i - 20)));
   if (!next) return null; known.push(next.i);
-  if (from) UI.toast(`${from} teaches you a fusion: ${next.a.names[0]} + ${next.b.names[0]} + ${next.stone} Stone makes ${next.out.names[0]}.`, 'good');
+  if (from) UI.toast(`${from} teaches you a fusion: ${next.parts.map(sp => sp.names[0]).join(' + ')} + ${next.stone} Stone makes ${next.out.names[0]}.`, 'good');
   return next;
 };
 G.seenDex = function (sp, how) { if (!sp || !sp.dex) return; if (!this.stats.dex) this.stats.dex = {}; const prev = this.stats.dex[sp.seed]; if (prev === 'caught') return; if (how === 'caught' || !prev) this.stats.dex[sp.seed] = how; };
@@ -8415,6 +8424,7 @@ G.load = function () {
     this.world.setBlock(this.camp.x, this.camp.y, this.camp.z, B.CAMPFIRE);
   }
   Weather.load(data.weather);
+  if (this.worldId === 'earth' && !(data.stats || {}).ruinPlaced && this.world.spawn) { this.world.placeSpawnRuin(); setTimeout(() => { this.stats.ruinPlaced = true; }, 0); }
   this.kin = (data.kin || []).map(KIN.deserialize); this.activeIdx = data.activeIdx || 0;
   this.player.load(data.player);
   if (data.kinV !== 2) { // the Kindex arrived: the old one-of-a-kind Kin are let go, everywhere; a fresh starter takes their place
