@@ -1974,6 +1974,9 @@ const R = (() => {
       else if (wk === 'fog') { sky = U.mixColor(sky, [0.72, 0.75, 0.78], wi * 0.8); state.dayLight *= 1 - 0.1 * wi; }
       else if (wk === 'storm') { sky = U.mixColor(sky, storm, wi * 0.8); state.dayLight *= 1 - 0.45 * wi; }
     }
+    // the gloom round a hold you have not taken: a low grey sky, dull light, close haze
+    const gl0 = (typeof Keeps !== 'undefined' && world.preset.id === 'earth') ? Keeps.gloom(player.x, player.z) : 0; state.gloom = gl0;
+    if (gl0 > 0.01) { sky = U.mixColor(sky, [0.36, 0.35, 0.4], gl0 * 0.85); state.dayLight *= 1 - 0.35 * gl0; }
     // the sun: where it is, how warm, and the sky it paints
     const ang = t * Math.PI * 2; let sd = [Math.sin(ang) * 0.75, -Math.cos(ang), 0.42]; const sl = Math.hypot(sd[0], sd[1], sd[2]); sd = sd.map(v => v / sl);
     if (world.preset.flatDay) sd = [0.35, 0.8, 0.45].map(v => v / Math.hypot(0.35, 0.8, 0.45));
@@ -1983,11 +1986,13 @@ const R = (() => {
     const horizon = U.mixColor(sky, [0.93, 0.95, 1.0], 0.32 * dayK * (1 - duskAmt));
     state.zenith = world.preset.airless ? sky.map(v => v * 0.6) : U.mixColor(sky.map(v => v * 0.75), [0.16, 0.38, 0.82], 0.45 * dayK * (world.preset.id === 'earth' ? 1 : 0.4));
     state.clouds = world.preset.airless ? 0 : (world.preset.id === 'earth' ? 0.55 : 0.3) + (wi > 0.02 && (wk === 'rain' || wk === 'storm') ? 0.45 * wi : 0);
+    if (gl0 > 0.01) { state.zenith = U.mixColor(state.zenith, [0.28, 0.27, 0.32], gl0 * 0.85); state.clouds = Math.min(1, state.clouds + 0.45 * gl0); state.sunAmt *= 1 - 0.65 * gl0; state.sunCol = U.mixColor(state.sunCol, [0.75, 0.72, 0.8], gl0 * 0.6); }
     state.skyPass = true; state.night = 1 - day;
     sky = horizon;
     state.skyColor = sky; state.fogColor = sky; state.ambient = 0.06;
     state.fogNear = state.viewDist * 0.55 * (world.preset.fogMul || 1); state.fogFar = state.viewDist * 0.98 * (world.preset.fogMul || 1);
     if (wi > 0.02 && wk === 'fog') { state.fogNear = U.lerp(state.fogNear, 4, wi); state.fogFar = U.lerp(state.fogFar, 26, wi); }
+    if (gl0 > 0.01) { state.fogNear = U.lerp(state.fogNear, state.viewDist * 0.32, gl0); state.fogFar = U.lerp(state.fogFar, state.viewDist * 0.88, gl0); }
     else if (wi > 0.02 && (wk === 'rain' || wk === 'storm')) { state.fogNear = U.lerp(state.fogNear, state.viewDist * 0.3, wi); state.fogFar = U.lerp(state.fogFar, state.viewDist * 0.75, wi); }
     state.tint = [1, 1, 1]; state.underwater = false; state.inCore = false;
     const eyeBlock = world.getBlock(Math.floor(player.x), Math.floor(player.y + 1.62), Math.floor(player.z));
@@ -3804,7 +3809,7 @@ const Wild = (() => {
       const e = list[i];
       const dx = px - e.x, dz = pz - e.z, dy = (py + 0.9) - (e.y + 0.6);
       const dist = Math.hypot(dx, dz, dy * 0.8);
-      if (dist > 58 && !e.high && !e.isMythic && !e.isWarden && !e.raider && !e.lieutenant && !e.isLegend && !e.isApex) { list.splice(i, 1); continue; }
+      if (dist > 58 && !e.high && !e.finalBoss && !e.isMythic && !e.isWarden && !e.raider && !e.lieutenant && !e.isLegend && !e.isApex) { list.splice(i, 1); continue; }
       if ((e.isMythic || e.isWarden || e.isLegend || e.isApex) && dist > 100) { list.splice(i, 1); if (e.isMythic) mythicRef = null; if (e.isLegend) legendRef = null; if (e.isApex) apexRefs[e.isApex] = null; continue; }
       e.bob += dt;
       if (e.breach != null) { e.breach += dt; const c = e.breach % 11; e.hover = c < 2.2 ? Math.sin(c / 2.2 * Math.PI) * 3.0 : 0; }
@@ -3872,7 +3877,7 @@ const Wild = (() => {
         else rate = -0.6;
         e.alert = U.clamp(e.alert + rate * dt * (dist < senseR * 0.5 && !sneaking ? 1.5 : 1), 0, 1);
         // only the real threats force a fight: tyrants, their guards, legends, the lab's splice and the truly rare; everything else follows you and gives up
-        const strong = (e.kin.sp.rarity || 0) >= 3 || e.lieutenant || e.isBoss || e.isLegend || e.isApex || e.isLabBoss || e.lairQuest || e.nightQuest || e.kinmaster;
+        const strong = (e.kin.sp.rarity || 0) >= 3 || e.lieutenant || e.isBoss || e.isLegend || e.isApex || e.isLabBoss || e.lairQuest || e.nightQuest || e.kinmaster || e.keepBoss || e.finalBoss;
         // once it has seen you, stay in its ring for three seconds and it attacks; walk out in time and it lets you go
         if (e.alert >= 1) { e.ringT = (e.ringT || 0) + dt; if (!strong) e.hunt = 4; } else e.ringT = Math.max(0, (e.ringT || 0) - dt);
         if (e.alert >= 1 && !trigger && (strong || e.ringT >= 3)) trigger = { e, ambush: false };
@@ -5529,6 +5534,8 @@ const Battle = (() => {
     if (wildE.isBoss) log(`${n} blocks the square.`, 'bad');
     if (wildE.isLegend) log(`${n}, the legend of this world. Lv ${wild.level}.`, 'bad');
     if (wildE.isApex) log(`${n}. Lv ${wild.level}. Run, or be very, very sure.`, 'bad');
+    if (wildE.keepBoss) log(`${n}, the warlord of this hold. Lv ${wild.level}.`, 'bad');
+    if (wildE.finalBoss) log(`${n}, with everything the Kinmaster has left. Lv ${wild.level}.`, 'bad');
     camState = null;
     stealth = !!opts.stealth;
     if (stealth) { el.log.innerHTML = ''; log(`${n} has not seen you. Set the snare before it does.`, 'good'); renderActions(); busy = false; beginSnare(); return; }
@@ -5566,6 +5573,7 @@ const Battle = (() => {
   // which snare this Kin takes: the high flyers only a Flight Snare thrown from the air, the water Kin none at all (that is the rod's job)
   function snareRule() {
     const p = G.player;
+    if (wildE && (wildE.finalBoss || wildE.kinmaster || wildE.keepBoss)) return { list: [], why: 'His Kin will never sit in a cage' };
     if (wildE && wildE.aquatic && !wildE.isApex) return { list: [], why: 'Water Kin slip any cage. Fish them with a rod.' };
     if (wildE && wildE.high) { const air = p.gliding || p.mountMode === 'air'; if (!air) return { list: [], why: 'Only from the air' }; return { list: p.has('snare_sky') ? ['snare_sky'] : [], why: 'Needs a Flight Snare' }; }
     return { list: ['snare2', 'snare'].filter(s => p.has(s)), why: 'No snares' };
@@ -6886,6 +6894,14 @@ const Campaign = (() => {
       if (c.bridgeFixed) return say(['A pleasure doing business. Mind the step.', 'Oh, and for a customer of means, I keep a certain crown under the counter.'], relic('merchant'));
       return say(['Silas Pennywise, purveyor of solutions. Your problem, I see, is a canyon.', 'The bridge is out. Terrible shame. I could have it mended for, oh, 300 Shards. Or you could find your own way across, if you are the climbing sort.', G.shards >= 300 ? 'Shall we? (it takes your Shards)' : `You have ${G.shards}. Come back richer.`], () => { if (G.shards >= 300 && !c.bridgeFixed) { G.shards -= 300; c.bridgeFixed = true; fixBridge(sites().fort); G.meshPass(99); UI.sfx('caught'); UI.toast('The bridge is mended. Silas counts your Shards twice.', 'good'); } });
     }
+    if (n.job === 'spellbound') return Keeps.talkWarrior(n, say);
+    if (n.job === 'runesmith' && n.id === 'sable' && Keeps.finalReady()) {
+      return say(['You have it. All of it. Give it here... no. You hold it. It has to be you.', 'Set it on his throne. The crystal was his, he bound himself to it when he bound the others. It will drag him back here, whatever hole in the Core he is hiding in.', 'And he will not come alone. Vexmaw will be with him, and stronger than you have ever seen it. Are you ready?'], () => {
+        const f = sites().fort; const sp = kinmasterSpecies(); const lv = Math.max(90, Math.min(180, (G.trainerLevel || 1) + 20));
+        const e = Wild.makeEntity(sp, lv, f.throne.x - 3 + 0.5, f.floorY + 1, f.throne.z + 0.5, { senseR: 12, elite: true }); e.finalBoss = true; e.kinmasterFinal = true; Wild.list.push(e);
+        setTimeout(() => Dialogue.show('The Kinmaster', ['NO. No, no, no. Who taught you to put it back together?', 'Fine. You want me, you have me. Vexmaw. Everything. Leave nothing of them.'], () => Battle.start(e, false)), 400);
+      });
+    }
     if (n.job === 'runesmith') {
       const first = !c['met_' + n.id]; c['met_' + n.id] = true;
       const intro = n.id === 'orrin' ? 'Orrin hums over a forge that burns blue.' : 'Sable traces sigils on the Kinmaster\'s old anvil.';
@@ -6945,7 +6961,7 @@ const Campaign = (() => {
   function talkable() { return people; }
   function entities() { return people.map(n => ({ x: n.x, y: n.y, z: n.z, yaw: n.yaw, model: n.model, mesh: n.mesh, scale: 1, hover: 0, skyMul: 1 })); }
   function onRogueTamed(k) { C().rogueTamed = true; C().ranch = 3; if (rogue) { Wild.remove(rogue); rogue = null; } }
-  return { init, update, talk, fisherHook, tryGate, onBoss, target, talkable, entities, locked, give, sites, mapMarks, onRogueTamed, stampPosts, get rogue() { return rogue; }, C };
+  return { spawnPerson: (...a) => person(...a), hasPerson: (id) => people.some(n => n.id === id), init, update, talk, fisherHook, tryGate, onBoss, target, talkable, entities, locked, give, sites, mapMarks, onRogueTamed, stampPosts, get rogue() { return rogue; }, C };
 })();
 
 // ---------- taming: you press Ride on an unbroken Kin and it bucks; tap when it lands its weight ----------
@@ -8359,6 +8375,7 @@ const UI = (() => {
       else if (m.kind === 'lab') { glyph(m.x, m.z, '⚗', '#7ad7ff'); label(m.x, m.z, m.name, '#cfe9ff'); }
     }
     for (const m of Campaign.mapMarks()) { glyph(m.x, m.z, m.t, '#ffe08a'); label(m.x, m.z, m.name, '#fff0c0'); }
+    for (const m of Keeps.mapMarks()) { glyph(m.x, m.z, m.t, m.t === '♜' ? '#c9a0ff' : '#ff6a6a'); label(m.x, m.z, m.name, '#e8d8ff'); }
     for (const m of Npcs.marks(p)) if (m.t === '⌖') { glyph(m.x, m.z, '⌖', m.col || '#ff8040'); label(m.x, m.z, m.name, m.col || '#ffd0b0'); edge(m.x, m.z, '⌖', m.col || '#ff8040'); }
     if (G.world.lost && G.stats.lostMap) { const L = G.world.lost; glyph(L.x, L.z, '🦖', '#ffffff'); label(L.x, L.z, 'Lost World', '#c0ffc0', true); const T = G.world.lostTunnel(); if (T) { glyph(T.ax, T.az, '◠', '#ffffff'); if (bpp <= 8) label(T.ax, T.az, 'tunnel', '#e0e0e0'); } }
     if (G.world.lost && G.stats.lostMap) { const ap0 = G.stats.apex || {}, ap = {}; for (const k in ap0) ap[k] = ap0[k] === true || (ap0[k] && (G.dayCount || 0) < ap0[k].back); if (!ap.rex) { glyph(G.world.lost.x, G.world.lost.z + 22, '✶', '#ff5a2a'); label(G.world.lost.x, G.world.lost.z + 22, 'Tyrannorex', '#ffb090'); } const sea = Wild.apexSea(); if (sea && !ap.mosa) { glyph(sea.x, sea.z, '✶', '#3fd1c4'); label(sea.x, sea.z, 'Abyssaurus', '#a8f0ea'); } }
@@ -8812,6 +8829,152 @@ const Relics = (() => {
 </script>
 <script>
 'use strict';
+// Dark keeps: the Kinmaster's outposts across Earth, about one for every three villages. Each is a walled square of fortress stone
+// held by one of his warlords, with a Dark Fusion Table on a dais in the middle. Beat the warlord and the keep, and its table, are yours.
+const Keeps = (() => {
+  let G = null, worldRef = null, tick = 0;
+  const cache = new Map();
+  const NAMES = ['Gloomhold', 'Blackspire', 'Ashkeep', 'Duskwatch', 'Nightrest', 'Grimward', 'Shadeholt', 'Ravenmoor', 'Cinderkeep', 'Hollowfang', 'Mournwall', 'Thornreach', 'Vilegate', 'Soothmark', 'Briarhelm', 'Cragmourn'];
+  // the Eight Holds: a fixed ring of them, nearer ones first, so you meet them as you push out
+  const RADII = [380, 520, 660, 800, 950, 1100, 1250, 1400], COUNT = 8;
+  function init(game) { G = game; cache.clear(); worldRef = null; }
+  const W = () => G.world;
+  function onEarth() { return W() && W().preset.id === 'earth'; }
+  function sites() {
+    if (!onEarth()) return [];
+    if (G.stats.holds && G.stats.holdsV === 3) return G.stats.holds;
+    const w = W(), out = []; const base = U.hash3(7, 7, 7, w.seed + 0xD4) * Math.PI * 2;
+    for (let i = 0; i < COUNT; i++) {
+      const a0 = base + i * 2.399; let k = null; // golden-angle spread round the compass
+      for (let t = 0; t < 200 && !k; t++) {
+        const a = a0 + ((t % 10) - 4.5) * 0.14, r = RADII[i] + Math.floor(t / 10) * 22;
+        const x = Math.round(w.spawn.x + Math.cos(a) * r), z = Math.round(w.spawn.z + Math.sin(a) * r);
+        const info = w.colInfo(x, z); if (info.lost || info.lostRim || info.h <= SEA + 2 || info.h > 74) continue;
+        let sum = 0, sum2 = 0, n = 0, wet = 0;
+        for (let dx = -10; dx <= 10; dx += 2) for (let dz = -10; dz <= 10; dz += 2) { const ci = w.colInfo(x + dx, z + dz); if (ci.h <= SEA + 1 || ci.lost) wet++; sum += ci.h; sum2 += ci.h * ci.h; n++; }
+        if (wet > (t < 100 ? 0 : 12)) continue; const mean = sum / n; if (sum2 / n - mean * mean > (t < 80 ? 20 : 60)) continue;
+        if (t < 140 && Village.markers(x, z, 1).some(m => m.kind === 'village' && Math.hypot(m.x - x, m.z - z) < 70)) continue;
+        const f = (Campaign.sites() || {}).fort; if (f && Math.hypot(f.x - x, f.z - z) < 160) continue;
+        if (out.some(o => Math.hypot(o.x - x, o.z - z) < 220)) continue;
+        k = { id: 'hold' + i, i, x, z, y: Math.max(SEA + 2, Math.round(mean)), name: NAMES[(i * 5 + Math.floor(U.hash3(i, 93, 1, w.seed) * 16)) % NAMES.length] };
+      }
+      if (k) out.push(k);
+    }
+    // anything that found no ground on its bearing: sweep the whole compass for the nearest good spot past the others
+    for (let i = 0; out.length < COUNT && i < 400; i++) {
+      const a = U.hash3(i, 95, 3, w.seed) * Math.PI * 2, r = 400 + U.hash3(i, 96, 3, w.seed) * 1200;
+      const x = Math.round(w.spawn.x + Math.cos(a) * r), z = Math.round(w.spawn.z + Math.sin(a) * r);
+      const info = w.colInfo(x, z); if (info.lost || info.lostRim || info.h <= SEA + 2 || info.h > 74) continue;
+      let sum = 0, n = 0, wet = 0; for (let dx = -10; dx <= 10; dx += 4) for (let dz = -10; dz <= 10; dz += 4) { const ci = w.colInfo(x + dx, z + dz); if (ci.h <= SEA + 1) wet++; sum += ci.h; n++; }
+      if (wet) continue; const f = (Campaign.sites() || {}).fort; if (f && Math.hypot(f.x - x, f.z - z) < 160) continue; if (out.some(o => Math.hypot(o.x - x, o.z - z) < 220)) continue;
+      out.push({ id: 'hold' + out.length + 'b', i: out.length, x, z, y: Math.max(SEA + 2, Math.round(sum / n)) });
+    }
+    out.sort((p, q) => Math.hypot(p.x - w.spawn.x, p.z - w.spawn.z) - Math.hypot(q.x - w.spawn.x, q.z - w.spawn.z));
+    const used = new Set(); out.forEach((k, j) => { let ni = Math.floor(U.hash3(j, 93, 1, w.seed) * NAMES.length); while (used.has(ni)) ni = (ni + 1) % NAMES.length; used.add(ni); k.name = NAMES[ni]; });
+    G.stats.holds = out; G.stats.holdsV = 3; return out;
+  }
+  function near(px, pz, r) { return sites().filter(k => Math.hypot(k.x - px, k.z - pz) <= r); }
+  function keepFor() { return null; }
+  const st = () => { if (!G.stats.keeps) G.stats.keeps = {}; return G.stats.keeps; };
+  const taken = (id) => st()[id] === 'taken';
+  function stamp(k) {
+    const w = W(), set = (x, y, z, b) => w.setBlock(x, y, z, b); const y0 = k.y, X = k.x, Z = k.z;
+    w.ensureAround(Math.floor(X / CH), Math.floor(Z / CH), 1, 99);
+    for (let dx = -11; dx <= 11; dx++) for (let dz = -11; dz <= 11; dz++) {
+      for (let y = y0 - 4; y < y0; y++) if (!isSolid(w.getBlock(X + dx, y, Z + dz))) set(X + dx, y, Z + dz, B.STONE);
+      const edge = Math.max(Math.abs(dx), Math.abs(dz)); set(X + dx, y0, Z + dz, edge <= 8 ? B.BASALT : B.GRAVEL);
+      for (let y = y0 + 1; y <= y0 + 14; y++) if (w.getBlock(X + dx, y, Z + dz) !== B.AIR) set(X + dx, y, Z + dz, B.AIR);
+    }
+    const F = B.FORTSTONE;
+    for (let d = -8; d <= 8; d++) for (let y = y0 + 1; y <= y0 + 6; y++) { set(X + d, y, Z - 8, F); set(X + d, y, Z + 8, F); set(X - 8, y, Z + d, F); set(X + 8, y, Z + d, F); }
+    for (let d = -8; d <= 8; d += 2) { set(X + d, y0 + 7, Z - 8, F); set(X + d, y0 + 7, Z + 8, F); set(X - 8, y0 + 7, Z + d, F); set(X + 8, y0 + 7, Z + d, F); } // battlements
+    for (const [a, b] of [[-8, -8], [8, -8], [-8, 8], [8, 8]]) { for (let i = -1; i <= 1; i++) for (let j = -1; j <= 1; j++) for (let y = y0 + 1; y <= y0 + 9; y++) set(X + a + i, y, Z + b + j, F); set(X + a, y0 + 10, Z + b, B.VOID); set(X + a, y0 + 11, Z + b, B.TORCH); }
+    for (let d = -1; d <= 1; d++) for (let y = y0 + 1; y <= y0 + 3; y++) set(X + d, y, Z - 8, B.AIR); // the gate, open: he wants you to come in
+    for (const [a, b] of [[-7, -4], [-7, 4], [7, -4], [7, 4], [-4, 7], [4, 7]]) set(X + a, y0 + 4, Z + b, B.TORCH);
+    for (let i = -1; i <= 1; i++) for (let j = -1; j <= 1; j++) set(X + i, y0 + 1, Z + 3 + j, F); // the dais
+    set(X, y0 + 2, Z + 3, B.DARKTABLE);
+    for (let d = -7; d <= 7; d++) set(X, y0, Z - 8 + 1 + (d + 7) % 1, B.BASALT);
+    for (let z = Z - 7; z <= Z + 1; z++) set(X, y0, z, B.CORAL_R); // a red carpet up to the dais
+    G.meshPass(99);
+  }
+  function warlordSpecies(k) {
+    const pool = KIN.dex('earth').filter(sp => !sp.fusion && sp.home && (sp.rarity || 0) >= 2 && (sp.rarity || 0) <= 3 && KIN.dominant(sp.elem, 1)[0] === 'Void');
+    const any = pool.length ? pool : KIN.dex('earth').filter(sp => !sp.fusion && sp.home && (sp.rarity || 0) === 2);
+    return any[Math.floor(U.hash3(k.x, 94, k.z, 0xD4) * any.length)];
+  }
+  const bosses = {};
+  function update(dt, p) {
+    if (!onEarth()) return; tick += dt; if (tick < 0.5) return; tick = 0;
+    for (const k of near(p.x, p.z, 130)) {
+      const s = st();
+      if (!s['stamped_' + k.id] && Math.hypot(k.x - p.x, k.z - p.z) < 110) { s['stamped_' + k.id] = true; stamp(k); }
+      const d = Math.hypot(k.x - p.x, k.z - p.z);
+      if (s['stamped_' + k.id] && d < 80) warriors(k);
+      if (!taken(k.id) && d < 50) {
+        const b = bosses[k.id];
+        if (!b || !Wild.list.includes(b)) {
+          const sp = warlordSpecies(k); if (!sp) continue;
+          const zl = Wild.zoneLevel(k.x, k.y + 1, k.z, { layer: 'Surface' }, G.trainerLevel || 1);
+          const lv = Math.max(14, Math.min(KIN.capOf(sp) + 10, zl + 10));
+          const e = Wild.makeEntity(sp, lv, k.x + 0.5, k.y + 1, k.z - 1 + 0.5, { senseR: 6 }); e.keepBoss = k.id; e.elite = true; e.speed = 0; e.patrol = { ax: k.x - 3.5, az: k.z - 1.5, bx: k.x + 4.5, bz: k.z - 1.5, period: 10, phase: 0 };
+          Wild.list.push(e); bosses[k.id] = e;
+          if (!s['seen_' + k.id]) { s['seen_' + k.id] = true; UI.toast(`${k.name}: one of the Kinmaster's keeps. His warlord holds the Dark Fusion Table inside.`, 'bad'); }
+        }
+      }
+    }
+  }
+  function onBattle(id, result) {
+    if (result !== 'won' && result !== 'caught') return; st()[id] = 'taken'; delete bosses[id];
+    const k = sites().find(x => x.id === id); UI.sfx('quest');
+    const n = sites().filter(x => taken(x.id)).length; G.stats.crystal = n; const NEED = sites().length;
+    UI.toast(`${k ? k.name : 'The hold'} is yours. The spell on its warriors breaks, the clouds over it thin, and a shard of the Binding Crystal is left on the dais (${n} of ${NEED}).`, 'good');
+    if (n >= NEED) setTimeout(() => G.explain('The Binding Crystal', 'All eight shards. The crystal the Kinmaster used to bind his warriors is whole again in your hands, and it pulls toward him. Take it to the throne room at Thornhold. Sable will know what to do.'), 1500);
+    G.addTrainerXp(120); G.shards += 400;
+    if (!G.stats.keepTold) { G.stats.keepTold = true; G.explain('A hold taken', 'There are eight Holds, the Kinmaster\'s fortresses, spread out from home. Each one you take frees the warriors he bound with his crystal, clears the grey sky over it, opens its Dark Fusion Table (the only tables that take Void), and gives you one shard of the Binding Crystal. With all eight, the crystal is whole, and it will lead you to him.'); }
+  }
+  // the gloom: grey sky and dim light around every hold you have not taken, fading out over a wide ring
+  function gloom(px, pz) {
+    if (!onEarth() || G.stats.lightReturned) return 0; let g = 0;
+    const f = (Campaign.sites() || {}).fort; if (f && !Campaign.C().kinmaster) { const d = Math.hypot(f.x + 40 - px, f.z - pz); if (d < 220) g = 1 - U.clamp((d - 90) / 130, 0, 1); }
+    for (const k of sites()) { if (taken(k.id)) continue; const d = Math.hypot(k.x - px, k.z - pz); if (d < 190) g = Math.max(g, 1 - U.clamp((d - 70) / 120, 0, 1)); }
+    return g;
+  }
+  const WARRIOR_COLS = [{ body: '#3a3448', belly: '#c9b48a', accent: '#7a2aa8', eye: '#c04cff' }, { body: '#2e2a3a', belly: '#a8835a', accent: '#5a2a8a', eye: '#c04cff' }, { body: '#40384a', belly: '#e0b08a', accent: '#8a3ab8', eye: '#c04cff' }];
+  function warriors(k) {
+    for (let j = 0; j < 3; j++) { const id = 'sb_' + k.id + '_' + j; if (Campaign.hasPerson(id)) continue;
+      const pos = [[-5, 2], [5, 2], [-4, -4]][j]; const cols = Object.assign({}, WARRIOR_COLS[j]); if (taken(k.id)) cols.eye = '#ffe08a';
+      const n = Campaign.spawnPerson(id, ['Bound Guard', 'Bound Archer', 'Bound Captain'][j], 'spellbound', k.x + pos[0], k.z + pos[1], cols, ['warrior']); n.holdId = k.id; n.yaw = Math.PI; }
+  }
+  function talkWarrior(n, say) {
+    const freed = taken(n.holdId); const k = sites().find(x => x.id === n.holdId) || {};
+    if (!freed) return say(['...', 'The crystal... it hums... we hold the gate... we hold the gate...', 'His eyes are glazed and violet. He does not see you at all.']);
+    const c = Campaign.C(); const key = 'thanked_' + n.id; const first = !c[key]; c[key] = true;
+    if (first) { G.shards += 150; UI.toast('+150 Shards.', 'good'); return say([`I can see. I can SEE. How long was I standing here?`, `He put a shard of that cursed crystal over ${k.name} and we were his. You broke it. Take this, it is all I have on me.`, 'There are other holds. Others like us. Free them.']); }
+    return say([`${k.name} is ours again because of you.`, (G.stats.crystal || 0) >= sites().length ? 'The crystal is whole? Then go. End him.' : `${G.stats.crystal || 0} shards of ${sites().length}. Keep going.`]);
+  }
+  // the end: the whole crystal drags him back to his throne, and he fights with everything he has
+  function finalReady() { return sites().length > 0 && (G.stats.crystal || 0) >= sites().length && !G.stats.lightReturned; }
+  function onFinal(result) {
+    if (result !== 'won' && result !== 'caught') return;
+    G.stats.lightReturned = true; Campaign.C().finalDone = true;
+    const f = document.getElementById('flash'); f.style.transition = 'opacity 2.5s'; f.style.opacity = 1; setTimeout(() => { f.style.opacity = 0; setTimeout(() => { f.style.transition = ''; }, 2600); }, 900);
+    UI.sfx('quest'); G.shards += 5000; G.addTrainerXp(3000);
+    if (typeof Weather !== 'undefined') { Weather.state.kind = 'clear'; Weather.state.target = 0; Weather.state.next = 900; }
+    setTimeout(() => G.explain('The light comes back', 'The Binding Crystal shatters into light. It sweeps out from Thornhold across the whole kingdom, and every grey sky over every hold burns away. Every bound warrior is free. The Kinmaster is finished. (+5000 shards)'), 1800);
+  }
+  // is the dark table at this spot one you have earned?
+  function tableOpen(x, z) {
+    for (const k of near(x, z, 20)) if (Math.hypot(k.x - x, k.z - z) < 12) return taken(k.id);
+    const f = (Campaign.sites() || {}).fort; if (f && Math.hypot(f.x + 72 - x, f.z - z) < 40) return !!Campaign.C().kinmaster;
+    return true;
+  }
+  function mapMarks() { if (!onEarth()) return []; const p = G.player; return sites().filter(k => st()['seen_' + k.id] || taken(k.id)).map(k => ({ x: k.x, z: k.z, t: taken(k.id) ? '♜' : '☠', name: k.name + (taken(k.id) ? ' (yours)' : '') })); }
+  return { init, update, onBattle, tableOpen, near, mapMarks, keepFor, sites, gloom, talkWarrior, finalReady, onFinal, COUNT };
+})();
+
+</script>
+<script>
+'use strict';
 // Your lead Kin walks with you, a step behind at your shoulder. Fliers keep up in the air, swimmers in the water.
 // Now and then, as you walk, it noses out something that suits its element and brings it to you.
 const Buddy = (() => {
@@ -8949,7 +9112,7 @@ G.setupWorld = function (seed, presetId) {
   this.world.findSpawn();
   Wild.init(this.world, this.mobile);
   Weather.init(this.world.seed);
-  Village.init(this); Hazards.init(this); Campaign.init(this); Npcs.init(this); Camps.init(this); Mer.init(this); Lab.init(this); Avatar.init(this); Buddy.init(this); Relics.init(this);
+  Village.init(this); Hazards.init(this); Campaign.init(this); Npcs.init(this); Camps.init(this); Mer.init(this); Lab.init(this); Avatar.init(this); Buddy.init(this); Relics.init(this); Keeps.init(this);
   Quests.init(this);
 };
 G.newWorld = function (seed, starterIdx, name) {
@@ -9175,7 +9338,7 @@ G.previewGrid = function (slots) {
 G.nearTable = function () { const p = this.player, w = this.world; const x0 = Math.floor(p.x), y0 = Math.floor(p.y), z0 = Math.floor(p.z); for (let dx = -5; dx <= 5; dx++) for (let dz = -5; dz <= 5; dz++) for (let dy = -3; dy <= 3; dy++) if (w.getBlock(x0 + dx, y0 + dy, z0 + dz) === B.FUSION || w.getBlock(x0 + dx, y0 + dy, z0 + dz) === B.DARKTABLE) return true; return false; };
 // the Kinmaster's own table, in the throne room at Thornhold: the only one that takes dark materials
 G.DARK = ['void', 'ess_Void', 'stone_Void'];
-G.nearDarkTable = function () { const p = this.player, w = this.world; const x0 = Math.floor(p.x), y0 = Math.floor(p.y), z0 = Math.floor(p.z); for (let dx = -5; dx <= 5; dx++) for (let dz = -5; dz <= 5; dz++) for (let dy = -3; dy <= 3; dy++) if (w.getBlock(x0 + dx, y0 + dy, z0 + dz) === B.DARKTABLE) return true; return false; };
+G.nearDarkTable = function () { const p = this.player, w = this.world; const x0 = Math.floor(p.x), y0 = Math.floor(p.y), z0 = Math.floor(p.z); for (let dx = -5; dx <= 5; dx++) for (let dz = -5; dz <= 5; dz++) for (let dy = -3; dy <= 3; dy++) if (w.getBlock(x0 + dx, y0 + dy, z0 + dz) === B.DARKTABLE && Keeps.tableOpen(x0 + dx, z0 + dz)) return true; return false; };
 G.darkRecipe = function (r) { return Object.keys(r.needs).some(k => this.DARK.includes(k)) || this.DARK.includes(r.out); };
 G.DARK_MSG = 'Dark materials will not work on an ordinary table. Only the Kinmaster\'s Dark Fusion Table, in the throne room at Thornhold, takes Void.';
 // the party: eight slots, eggs take one each; anything more goes to storage, reached at any Fusion Table
@@ -9367,6 +9530,8 @@ G.onBattleEnd = function (result, wildE, wild, mine, ambush) {
     if (wildE.lairQuest) Npcs.onLairBeaten(wildE.lairQuest);
     if (wildE.nightQuest) Builds.onBattle(wildE.nightQuest, result);
     if (wildE.kinmaster) Campaign.onBoss(result);
+    if (wildE.keepBoss) Keeps.onBattle(wildE.keepBoss, result);
+    if (wildE.finalBoss) Keeps.onFinal(result);
     if (result === 'won') {
       const dom = KIN.dominant(wild.sp.elem, 1)[0];
       if (Math.random() < ((wild.sp.rarity || 0) >= 2 || wildE.elite ? 1 : 0.6)) { p.add('ess_' + dom, 1); UI.toast(`${dom} Essence collected.`); }
@@ -9569,7 +9734,7 @@ G.loop = function (t) {
       }
       if (w.regrow && w.regrow.length && (this.frame & 31) === 0) { const now = performance.now(); w.regrow = w.regrow.filter(r => { if (now < r.t) return true; const b = w.getBlock(r.x, r.y, r.z); if (r.id != null) { if (b === B.AIR && !(Math.abs(r.x + 0.5 - p.x) < 0.8 && Math.abs(r.z + 0.5 - p.z) < 0.8 && r.y >= Math.floor(p.y) - 1 && r.y <= Math.floor(p.y) + 2)) { if (r.id === B.GLOWWORM && !isSolid(w.getBlock(r.x, r.y - 1, r.z))) return false; w.setBlock(r.x, r.y, r.z, r.id); } else if (b === B.AIR) { r.t = now + 15000; return true; } } else if (r.leaf) { if (b === B.LEAVES) w.setBlock(r.x, r.y, r.z, B.BERRYLEAF); } else if (b === B.AIR) w.setBlock(r.x, r.y, r.z, B.BERRY); return false; }); }
       const trig = (Dialogue.active() || Village.walking) ? null : Wild.update(dt, p, performance.now() / 1000, false);
-      Buddy.update(dt, p);
+      Buddy.update(dt, p); Keeps.update(dt, p);
       Wild.ensureHeart(p, this.trainerLevel, this.mythicCaught); Wild.ensureLegend(p); Wild.ensureApex(p);
       if (trig && !trig.e.cool && !Dialogue.active() && !p.flying && !(this.fightGrace > performance.now())) Battle.start(trig.e, trig.ambush);
       for (const e of Wild.list) if (e.cool > 0) e.cool -= dt;
@@ -9685,7 +9850,7 @@ G.onTap = function () {
   if (!interactable && selInfo && selInfo.snare) { if (this.stealthTarget()) { this.stealthSnare(); } else UI.toast('Snares work in a fight, or sneak up close behind an unaware Kin and press Set snare.'); return; }
   const ev = p.place();
   if (!ev) return;
-  if (ev.interact === 'fusion') { if (!ev.dark && Village.tableChallenge()) return; if (ev.dark && !this.stats.darkTold) { this.stats.darkTold = true; this.explain('The Dark Fusion Table', 'The Kinmaster\'s own table. It is the only one that takes dark materials: Void Crystal, Void Essence and Void Stones. Every fusion that needs a Void Stone, the Void Snare, and anything else made with Void has to be made here.'); } UI.openPanel('fusion', { table: { x: ev.x, y: ev.y, z: ev.z }, dark: !!ev.dark }); return; }
+  if (ev.interact === 'fusion') { if (ev.dark && !Keeps.tableOpen(ev.x, ev.z)) { UI.toast('The warlord\'s table. It will not answer you until this place is yours.', 'bad'); return; } if (!ev.dark && Village.tableChallenge()) return; if (ev.dark && !this.stats.darkTold) { this.stats.darkTold = true; this.explain('The Dark Fusion Table', 'The Kinmaster\'s own table. It is the only one that takes dark materials: Void Crystal, Void Essence and Void Stones. Every fusion that needs a Void Stone, the Void Snare, and anything else made with Void has to be made here.'); } UI.openPanel('fusion', { table: { x: ev.x, y: ev.y, z: ev.z }, dark: !!ev.dark }); return; }
   if (ev.interact === 'portal') { const r = Village.portalHere(ev.x, ev.z); if (r.err) { UI.toast(r.err, 'bad'); return; } UI.openPanel('portal', r.v); return; }
   if (ev.interact === 'chest') { UI.openPanel('chest', { x: ev.x, y: ev.y, z: ev.z }); return; }
   if (ev.interact === 'incubator') { if (!Lab.canUse()) { UI.toast('The incubator is dead until its maker is free.', 'bad'); return; } UI.openPanel('incubator'); return; }
