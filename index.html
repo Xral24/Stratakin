@@ -1727,7 +1727,7 @@ const R = (() => {
     }
     for (let cx = 0; cx <= 16; cx++) for (let cz = 0; cz <= 16; cz++) {
       let n = 0, sum = 0, lo = 999, hi = -999;
-      for (const [a, b] of [[-1, -1], [0, -1], [-1, 0], [0, 0]]) { const t = surfTop[(cx + a + 1) * 18 + (cz + b + 1)]; if (t < 0) continue; n++; sum += t; lo = Math.min(lo, t); hi = Math.max(hi, t); }
+      for (const [a, b] of [[-1, -1], [0, -1], [-1, 0], [0, 0]]) { const t = surfTop[(cx + a + 1) * 18 + (cz + b + 1)]; if (t < 0) { n = 0; break; } n++; sum += t; lo = Math.min(lo, t); hi = Math.max(hi, t); }
       cornerH[cx * 17 + cz] = (n && hi - lo <= 2) ? sum / n + 1 : -1;
     }
     const ST = (x, z) => surfTop[(x + 1) * 18 + (z + 1)];
