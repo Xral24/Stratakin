@@ -924,7 +924,7 @@ class World {
       const tint = this.grassTint(biome, info.temp, info.moist);
       const ti = (lx * CH + lz) * 3; chunk.tint[ti] = tint[0]; chunk.tint[ti + 1] = tint[1]; chunk.tint[ti + 2] = tint[2];
       const base = (lx * CH + lz) * WH;
-      const inHeart = heart && (x - heart.x) * (x - heart.x) + (z - heart.z) * (z - heart.z) < 121;
+      const hd2 = heart ? (x - heart.x) * (x - heart.x) + (z - heart.z) * (z - heart.z) : 1e9; const inHeart = hd2 < 121; const inMoat = !inHeart && hd2 < 34 * 34; // a lava sea all round the Heart
       const islandN = U.vnoise2(x, z, 32, P, s + 501);
       const ceilN = U.vnoise2(x, z, 16, P, s + 503);
       // core
@@ -934,6 +934,8 @@ class World {
         if (inHeart) {
           if (y <= 4) b = B.BASALT; else if (y >= 12) b = B.BASALT; else b = B.AIR;
           if (y === 5 && x === heart.x && z === heart.z) b = B.STARMETAL;
+        } else if (inMoat) {
+          b = y <= 6 ? B.LAVA : y >= 12 + Math.floor(ceilN * 2.5) ? B.BASALT : B.AIR;
         } else {
           const island = islandN > 0.6;
           const islandH = island ? 3 + (islandN - 0.6) * 28 : 0;
@@ -2248,7 +2250,7 @@ const ITEMS = {
   snare2: { name: 'Void Snare', col: '#c07fe0', snare: 0.66, desc: 'A stronger snare laced with void crystal.' },
   bulb: { name: 'Breathing Bulb', col: '#9fd8ff', gear: true, desc: 'Breathe underwater for two minutes.' },
   glider: { name: 'Glider', col: '#f0d090', gear: true, desc: 'Hold ▲ while falling to glide. Stick sideways turns, forward dives, back brakes. Pull back just before the ground to flare and land soft.' },
-  lavasuit: { name: 'Lava Suit', col: '#ff9050', gear: true, desc: 'Swim in lava. Without it, lava kills on touch. Needed for the Core.' },
+  lavasuit: { name: 'Lava Suit', col: '#ff9050', gear: true, desc: 'Keeps the heat of the Core off you. Without it the heat down there wears you down, the way the cold does on the peaks. It does not make lava safe: nothing does. Stay out of it.' },
   frostcloak: { name: 'Frost Cloak', col: '#bfe3ff', gear: true, desc: 'Keeps the cold out. Without it, snowfields and mountain tops slow you, then freeze you.' },
   spacesuit: { name: 'Space Suit', col: '#e8f0ff', gear: true, desc: 'Air and warmth beyond the sky. Without it the Moon freezes you in moments.' },
   ship: { name: 'Starlark', col: '#c7fbff', gear: true, desc: 'Professor Finch\'s prototype, finished at Garrick\'s forge. Tap it on the surface to board; hold ▲ to climb, hold ▼ to go down. Climb above the clouds to leave the world.' },
@@ -2334,7 +2336,7 @@ class Player {
     const ml = Math.hypot(mx, mz); if (ml > 1) { mx /= ml; mz /= ml; }
     this.sneak = !!input.sneak;
     let speed = (this.sneak ? 1.7 : 4.4) * this.speedMul * (typeof G !== 'undefined' && G.buffMul ? G.buffMul('speed') : 1) * (1 - 0.55 * (this.chill || 0));
-    if (this.inLava) speed = 1.6 * (this.has('lavasuit') ? this.gearMul('lavasuit') * 1.5 : 1); else if (this.inWater) speed = 2.6 * (this.has('reeffins') ? 1.8 : 1);
+    if (this.inLava) speed = 1.2; else if (this.inWater) speed = 2.6 * (this.has('reeffins') ? 1.8 : 1);
     const mountShape = this.mount ? (this.mountMode || 'land') : null; // 'land' | 'water' | 'air'
     const ride = this.mount ? 1 + 0.3 * (this.mount.trust || 0) : 1; // trust: two hours under you to full stride; it fades if you leave it alone
     if (mountShape === 'land' && !inFluid) speed *= (this.mount.sp.fast ? 3.2 : 1.8) * ride;
@@ -2449,7 +2451,7 @@ class Player {
       this.breath -= dt / max;
       if (this.breath <= 0) { this.breath = 0; this.lavaTick += dt; if (this.lavaTick > 1) { this.lavaTick = 0; this.damage(1, 'drown'); } }
     } else { this.breath = Math.min(1, this.breath + dt * 0.5); }
-    if (this.inLava && !this.has('lavasuit')) { if (!this.lavaTouch) { this.lavaTouch = true; this.damage(Math.ceil(6 * this.lavaMul), 'lava'); } this.lavaTick += dt; if (this.lavaTick > 0.2 / this.lavaMul) { this.lavaTick = 0; this.damage(3, 'lava'); } } else this.lavaTouch = false;
+    if (this.inLava) { if (!this.lavaTouch) { this.lavaTouch = true; this.damage(Math.ceil(6 * this.lavaMul), 'lava'); } this.lavaTick += dt; if (this.lavaTick > 0.2 / this.lavaMul) { this.lavaTick = 0; this.damage(3, 'lava'); } } else this.lavaTouch = false;
     if (this.inBrine && !this.has('lavasuit')) { this.brineTick = (this.brineTick || 0) + dt; if (this.brineTick > 0.7) { this.brineTick = 0; this.damage(1, 'brine'); } } else this.brineTick = 0;
     this.updateChill(dt);
     if (this.y < -2) { this.y = 3; }
@@ -2485,6 +2487,7 @@ class Player {
     if (typeof G !== 'undefined' && G.warmUntil > performance.now() && !w.preset.airless) return null; // warm broth
     if (!w.preset.airless) { const bx0 = Math.floor(this.x), by0 = Math.floor(this.y), bz0 = Math.floor(this.z); for (let dx = -4; dx <= 4; dx++) for (let dz = -4; dz <= 4; dz++) for (let dy = -2; dy <= 1; dy++) if (w.getBlock(bx0 + dx, by0 + dy, bz0 + dz) === B.CAMPFIRE) return null; }
     if (w.preset.airless) return this.has('spacesuit') ? null : 'space';
+    if (w.preset.id === 'earth' && this.y < CORE_TOP + 1) return this.has('lavasuit') ? null : 'heat'; // the Core: heat, not cold
     if (this.has('frostcloak')) return null;
     const bx = Math.floor(this.x), bz = Math.floor(this.z);
     if (this.y < w.topAt(bx, bz) - 4) return null; // underground is out of the wind
@@ -2494,9 +2497,9 @@ class Player {
   }
   updateChill(dt) {
     const kind = this.coldHere();
-    const rate = kind === 'space' ? 1 / 3 : kind === 'cold' ? 1 / 8 : 0;
+    const rate = kind === 'space' ? 1 / 3 : kind === 'cold' ? 1 / 8 : kind === 'heat' ? 1 / 6 : 0;
     const shelter = this.mount && this.mount.sp.climber ? 0.5 : 1;
-    this.chill = U.clamp((this.chill || 0) + (kind ? rate * shelter * this.lavaMul : -1 / 4) * dt, 0, 1);
+    this.chill = U.clamp((this.chill || 0) + (kind ? rate * (kind === 'heat' ? 1 : shelter * this.lavaMul) : -1 / 4) * dt, 0, 1);
     this.coldKind = kind;
     if (this.chill >= 1) { this.chillTick = (this.chillTick || 0) + dt; const every = kind === 'space' ? 1.5 : 3 / this.lavaMul; if (this.chillTick > every) { this.chillTick = 0; this.damage(1, kind); } }
     else this.chillTick = 0;
@@ -2615,6 +2618,7 @@ class Player {
     if (info && info.kit) return { kit: info.kit, item, hit };
     if (!item || !info.block) return { nothing: true };
     const px = hit.x + hit.face[0], py = hit.y + hit.face[1], pz = hit.z + hit.face[2];
+    { const hh = this.world.heart; if (hh && py < 12 && this.world.preset.id === 'earth') { const d2 = (px - hh.x) ** 2 + (pz - hh.z) ** 2; if (d2 >= 121 && d2 < 34 * 34) { if (typeof UI !== 'undefined') UI.toast('The heat off the lava sea warps anything you set down here. Only wings will get you across.', 'bad'); return null; } } }
     if (py < 1 || py >= WH) return null;
     const cur = this.world.getBlock(px, py, pz);
     if (cur !== B.AIR && cur !== B.WATER) return null;
@@ -6302,15 +6306,13 @@ const QUESTS = [
   { id: 'ranch', title: 'Hale\'s Ranch', desc: 'You cannot ride a Kin you have not broken in, and nobody will teach you but Dusty Hale (♞ on the map). He needs a paddock built first, and there is a wild one nobody can stay on.', hint: 'Build Hale\'s paddock and ride out Thunderhoof', check: G => (G.stats.camp || {}).rogueTamed ? 1 : 0, reward: { xp: 120 } },
   { id: 'frost', title: 'Lost in the Snow', desc: 'Up in the snowfields a woman called Ysolde has a camp, and a brother who has not come home. The cold up there kills. Find her, then find him.', hint: 'Find Ysolde\'s camp in the snow, and her brother', check: G => ((G.stats.camp || {}).frost || 0) >= 4 ? 1 : 0, reward: { xp: 150 } },
   { id: 'glider', title: 'The Nest', desc: 'Old Wren the hermit lives under the tallest peak around, and a sky Kin nests on a pillar of rock beside it. You can only reach the pillar one way: from the peak, on a glider. Bring the egg down and walk it until it hatches.', hint: 'Get Old Wren\'s glider and glide to the nest', check: G => (G.stats.camp || {}).skyEgg ? 1 : 0, reward: { xp: 200 } },
-  { id: 'sky', title: 'Highmere', desc: 'Captain Merrow at the Flying School says there is a city above the clouds, Highmere, and no glider and no train will get you there. Only wings. Raise a flying Kin to level 20 (you need trainer level 18 to ride one), then fly it up to the city (☁ on the map).', hint: 'Fly a level 20 Kin up to Highmere', check: G => (G.stats.sky || {}).seen_highmere ? 1 : 0, reward: { xp: 150 } },
   { id: 'kinmaster', title: 'The Kinmaster', desc: 'Grakor had a letter on him, sealed in purple: every tyrant answers to someone. The Kinmaster, in his fortress Thornhold, out past the hills (♜). Getting in will take everything you have learned: a Flame Kin to burn his thorns, the glider, the bulb, a Spark Kin and a Stone Kin. His walls cannot be broken.', hint: 'Get through Thornhold and face the Kinmaster', check: G => (G.stats.camp || {}).kinmaster ? 1 : 0, reward: { xp: 400, items: { snare2: 3 } } },
   { id: 'void', title: 'Deep Crystal', desc: 'Void Crystal glows purple below y 22. You need the iron pick for it. Bring one back.', hint: 'Mine a Void Crystal (below y 22)', check: G => Math.min(1, G.stats.got.void || 0), reward: { items: { snare2: 2 }, xp: 40 } },
-  { id: 'lavasuit', title: 'Suit Up', desc: 'The Core is a sea of lava under the basalt ceiling. Only Garrick knows how to make a Lava Suit. Ask him.', hint: 'Get a Lava Suit from Garrick', check: G => G.player.has('lavasuit') ? 1 : 0, reward: { xp: 60 } },
+  { id: 'lavasuit', title: 'Suit Up', desc: 'Under the basalt the Core is so hot it cooks you where you stand. Only Garrick knows how to make a Lava Suit that keeps the heat off. Ask him.', hint: 'Get a Lava Suit from Garrick', check: G => G.player.has('lavasuit') ? 1 : 0, reward: { xp: 60 } },
   { id: 'core', title: 'The Core', desc: 'Dig through the basalt ceiling beneath the Mines (below y 14), anywhere you like. Where you come out is luck: a lava lake, a cave, a seam of ore. Expect Flame and Void Kin far above your level.', hint: 'Reach the Core (y below 14)', check: G => G.stats.reachedCore ? 1 : 0, reward: { xp: 80 } },
-  { id: 'heart', title: 'The Heart', desc: 'The Deep Chart marks a chamber far out in the Core with a pedestal of Starmetal. Two Wardens patrol it in step. Dig down where the chart says, then find the gap.', hint: 'Find the Heart chamber', check: G => G.stats.heartFound ? 1 : 0, reward: { xp: 100 } },
-  { id: 'mythic', title: 'Mantlewyrm', desc: 'The Kinmaster ran for the Core to wake the Mythic that sleeps on the Starmetal. Get there first. The hardest thing on Earth: catch it (bring Void Snares and a strong, evolved team) or defeat it, before he does.', hint: 'Catch or defeat the Mantlewyrm', check: G => G.stats.mythicDone ? 1 : 0, reward: { xp: 500 } },
   { id: 'job', title: 'Odd Jobs', desc: 'People sit by little fires all over the world, and the Moon and Halo too, each with a job: fetch this, beat that, carry a parcel, clear a den. Yellow dots on the map. Some of them pay in amulets, which nobody sells.', hint: 'Do a job for someone on the road', check: G => (G.stats.questsDone || 0) >= 1 ? 1 : 0, reward: { xp: 120 } },
   { id: 'lab', title: 'The Splice', desc: 'Somewhere out there an apprentice waits by a tent: her master is shut in his own lab with the thing he made. Find her, follow ⚗ to the hatch, and beat or cage what is down there. The incubator is the reward: Kin grow fast in it and learn techniques.', hint: 'Find the apprentice by the tent and rescue the maker', check: G => (G.stats.labDone || 0) >= 1 ? 1 : 0, reward: { xp: 400 } },
+  { id: 'sky', title: 'Highmere', desc: 'Captain Merrow at the Flying School says there is a city above the clouds, Highmere, and no glider and no train will get you there. Only wings. Raise a flying Kin to level 20 (you need trainer level 18 to ride one), then fly it up to the city (☁ on the map).', hint: 'Fly a level 20 Kin up to Highmere', check: G => (G.stats.sky || {}).seen_highmere ? 1 : 0, reward: { xp: 150 } },
   { id: 'lost', title: 'The Lost World', desc: 'People by the fires talk about a dinosaur someone caught. Barnaby Quill keeps it in his menagerie (🦎 on the map). Ask him where it came from, then find the two people out in the trapper country who each have half a map. Your Kindex will read it. Then follow 🦖.', hint: 'Find the dinosaur, then the two halves of the map', check: G => G.stats.lostFound ? 1 : 0, reward: { xp: 500 } },
   { id: 'abyss', title: 'Abyssaurus', desc: 'Something circles the deep water outside the Lost World cliffs, level 160, and comes up for air now and then. A water mount helps.', hint: 'Beat or cage Abyssaurus in the sea by the Lost World', check: G => (G.stats.apex || {}).mosa ? 1 : 0, reward: { xp: 5000 } },
   { id: 'rex', title: 'The Tyrant', desc: 'In the clearing at the middle of the Lost World stands Tyrannorex, level 170. Beating it is not enough: it limps off and comes back in about ten days. Cage it. Your snare strength is twice your trainer level, and nothing above twice that will stay caged: you need trainer level 43 to have any chance, and more like 70 for real odds.', hint: 'Cage Tyrannorex in the Lost World', check: G => (G.stats.apex || {}).rex === true ? 1 : 0, reward: { xp: 5000 } },
@@ -6324,14 +6326,16 @@ const QUESTS = [
   { id: 'moonjobs', title: 'Moonfolk', desc: 'The Moon has its own people by its own fires, out on the grey between the domes. They do not trust you yet. Do three of their jobs before anyone tells you where the Selenaut sleeps.', hint: 'Do 3 jobs for people on the Moon', check: G => ((G.stats.jobsBy || {}).moon || 0) / 3, reward: { xp: 600, items: { snare2: 3 } } },
   { id: 'moonfree', title: 'Under the Dome', desc: 'Every alien town on the Moon has a tyrant in its square, the same as on Earth. Free one and its people will open the dome to you and keep your Kin fed.', hint: 'Free a village on the Moon', check: G => Object.values(G.villageState || {}).some(st => st.freed && st.meta && st.meta.world === 'moon') ? 1 : 0, reward: { xp: 800 } },
   { id: 'halojobs', title: 'Caravan Work', desc: 'The caravan people on Halo pay well and talk even better. Three jobs for them and someone will mention the Ringwarden on the high mesa.', hint: 'Do 3 jobs for people on Halo', check: G => ((G.stats.jobsBy || {}).halo || 0) / 3, reward: { xp: 900, items: { snare2: 3, wings: 1 } } },
-  { id: 'legend', title: 'Legend', desc: 'With the Tyrannorex in your bag, the old ones notice. Every world beyond Earth has one creature at a level even it does not reach: the Selenaut over the Moon, the Ringwarden on Halo. ✶ on the map. Beat or cage one and the portal arches reach across the sky.', hint: 'Beat or cage a world\'s legendary (✶ on the map)', check: G => Object.keys(G.stats.legends || {}).length ? 1 : 0, reward: { xp: 2000 } },
+  { id: 'legend', title: 'Legend', desc: 'With the Tyrannorex in your bag, the old ones notice. Every world beyond Earth has one creature at a level even it does not reach: the Selenaut over the Moon, the Ringwarden on Halo. ✶ on the map. Beat or cage one, and you will hear what still sleeps under Earth.', hint: 'Beat or cage a world\'s legendary (✶ on the map)', check: G => Object.keys(G.stats.legends || {}).length ? 1 : 0, reward: { xp: 2000 } },
+  { id: 'heart', title: 'The Heart', desc: 'The Deep Chart marks a chamber far out in the Core with a pedestal of Starmetal, on an island in a lava sea nobody can cross on foot or on a Kin. Halo Wings would do it. Inside, two Wardens patrol in step: find the gap.', hint: 'Find the Heart chamber', check: G => G.stats.heartFound ? 1 : 0, reward: { xp: 100 } },
+  { id: 'mythic', title: 'Mantlewyrm', desc: 'The Mythic sleeps on the Starmetal in the Heart. The hardest thing on Earth: catch it (bring Void Snares and a strong, evolved team) or defeat it.', hint: 'Catch or defeat the Mantlewyrm', check: G => G.stats.mythicDone ? 1 : 0, reward: { xp: 500 } },
 ];
 
 const Quests = (() => {
   let G = null;
   // three arcs that run side by side: the journey (your tools, the people, the worlds), the Dark Arc (the Kinmaster), and the Old Ones (the great Kin)
   const ARC_OF = { kinmaster: 'dark', holds: 'dark', storm: 'dark', citadel: 'dark', scientist: 'dark', ship: 'dark', heart: 'old', mythic: 'old', lost: 'old', abyss: 'old', rex: 'old', legend: 'old' };
-  const AFTER = { storm: 'sky', kinmaster: 'glider', heart: 'core', moon: 'ship', legend: 'ship' };
+  const AFTER = { storm: 'sky', kinmaster: 'glider', heart: 'legend', moon: 'ship', legend: 'ship' };
   const ARCS = { main: { name: 'The Journey', col: '#4fb0ff' }, dark: { name: 'The Dark Arc', col: '#b07aff' }, old: { name: 'The Old Ones', col: '#ffc94a' } };
   const arcList = (a) => QUESTS.filter(q => (ARC_OF[q.id] || 'main') === a);
   function init(game) { G = game; if (!G.questState) G.questState = { index: 0, bounty: { need: 3, done: 0, round: 1 } }; }
@@ -6343,7 +6347,7 @@ const Quests = (() => {
   }
   function arcCurrent(a) { if (!G.questState.arcs) migrate(); const q = arcList(a)[G.questState.arcs[a]]; return q || null; }
   // some quests wait on an item rather than a quest: the Heart only shows itself to someone holding the Deep Chart
-  const NEEDS_ITEM = { heart: ['deepchart', 'the Deep Chart (free all eleven surface Holds)'], mythic: ['deepchart', 'the Deep Chart (free all eleven surface Holds)'] };
+  const NEEDS_ITEM = { heart: ['wings', 'the Halo Wings (finish the caravan jobs on Halo)'], mythic: ['wings', 'the Halo Wings'] };
   function gated(q) { if (!q) return null; if (AFTER[q.id] && !isDone(AFTER[q.id])) return AFTER[q.id]; const ni = NEEDS_ITEM[q.id]; if (ni && G && G.player && !G.player.has(ni[0])) return ni[1]; return null; }
   function current() {
     if (!G.questState.arcs) migrate(); const f = G.questState.focus || 'main';
@@ -7241,7 +7245,7 @@ const Campaign = (() => {
       if (c.lava !== 2 && G.stats.reachedMines && (Quests.isActive('lavasuit') || c.lava === 1)) {
         if (!c.lava) return say(['You want to go under the basalt? Into the Core?', 'Then you want a Lava Suit, and I am the only one who knows how. Five iron, three void crystal, four ember ore. Bring them.'], () => { c.lava = 1; });
         const ok = P.count('iron') >= 5 && P.count('void') >= 3 && P.count('ember') >= 4; if (!ok) return say(['Five iron, three void, four ember.', `You have ${P.count('iron')}, ${P.count('void')} and ${P.count('ember')}.`]);
-        return say(['Stand still. This is going to be hot.', 'There. It will hold in lava, for a while. Come back alive.'], () => { P.take('iron', 5); P.take('void', 3); P.take('ember', 4); c.lava = 2; give('lavasuit'); });
+        return say(['Stand still. This is going to be hot.', 'There. It keeps the heat off you down there. It will not save you if you fall in the lava, so do not. Come back alive.'], () => { P.take('iron', 5); P.take('void', 3); P.take('ember', 4); c.lava = 2; give('lavasuit'); });
       }
       return say(['Mind the shaft.', c.pick >= 2 ? 'Gold and diamond deeper down. And if you ever get rich, I have something of my father\'s I might part with.' : ''], relic('foreman'));
     }
@@ -8484,7 +8488,7 @@ const UI = (() => {
     const inDome = inV && va.type === 'deep' && Math.hypot(va.x - p.x, va.z - p.z) < 11 && p.y < SEA;
     const zl = Wild.zoneLevel ? Wild.zoneLevel(p.x, p.y, p.z, { layer }, G.trainerLevel) : null;
     el.where.textContent = `${inV ? va.name + ' · ' : ''}${inDome ? 'Dome' : layer} · ${layer === 'Surface' || layer === 'Water' ? biome + ' · ' : ''}y ${Math.floor(p.y)}${zl != null ? ' · wild Lv ~' + zl : ''}`;
-    const bt = G.buffText ? G.buffText() : ''; const wl = Weather.label(); el.weather.textContent = (bt ? bt + ' · ' : '') + ((p.chill || 0) > 0.05 ? (p.coldKind === 'space' ? 'FREEZING · no air · ' : 'FREEZING · ') : '') + (layer === 'Surface' || layer === 'Sky' || layer === 'Water' ? (wl === 'clear' ? ((R.state.day || 0) < 0.3 ? 'night' : 'clear') : wl + ((R.state.day || 0) < 0.3 ? ' · night' : '')) : '');
+    const bt = G.buffText ? G.buffText() : ''; const wl = Weather.label(); el.weather.textContent = (bt ? bt + ' · ' : '') + ((p.chill || 0) > 0.05 ? (p.coldKind === 'space' ? 'FREEZING · no air · ' : p.coldKind === 'heat' ? 'SCORCHING · get a Lava Suit · ' : 'FREEZING · ') : '') + (layer === 'Surface' || layer === 'Sky' || layer === 'Water' ? (wl === 'clear' ? ((R.state.day || 0) < 0.3 ? 'night' : 'clear') : wl + ((R.state.day || 0) < 0.3 ? ' · night' : '')) : '');
     const pinTxt = (() => { if (!G.pin) return ''; const dx = U.mod(G.pin.x - p.x + WORLD_W / 2, WORLD_W) - WORLD_W / 2, dz = U.mod(G.pin.z - p.z + WORLD_W / 2, WORLD_W) - WORLD_W / 2; const d = Math.round(Math.hypot(dx, dz)); if (d < 6) { G.pin = null; toast('You are at your pin.'); return ''; } const dirs = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW']; const ang = Math.atan2(dx, -dz); return ` · ◎ pin ${d}m ${dirs[Math.round(((ang / (Math.PI * 2)) + 1) * 8) % 8]}`; })();
     const now = performance.now(); const fx = (G.repelUntil > now ? ` · hush ${Math.ceil((G.repelUntil - now) / 1000)}s` : G.lure && G.lure.until > now ? ` · ${G.lure.elem} lure ${Math.ceil((G.lure.until - now) / 1000)}s` : '') + Npcs.hudText();
     { const ft = Combat.focusText(); el['quest-hint'].textContent = ft ? '⚔ ' + ft : Quests.hintText() + pinTxt + fx; }
@@ -8492,7 +8496,7 @@ const UI = (() => {
     el['kin-count'].textContent = `${G.kin.length + G.eggs.length}/${G.MAX_KIN}`;
     el.hurt.style.opacity = p.hurtFlash > 0 ? Math.min(0.6, p.hurtFlash * 1.5) : 0;
     el.vignette.style.opacity = R.state.underwater ? 0.45 : (layer === 'Mines' ? 0.3 : 0.08) + 0.35 * (p.chill || 0);
-    el.vignette.style.background = (p.chill || 0) > 0.05 ? `radial-gradient(ellipse at center, rgba(0,0,0,0) 45%, rgba(${p.coldKind === 'space' ? '120,140,255' : '150,210,255'},${0.5 + 0.5 * p.chill}) 100%)` : '';
+    el.vignette.style.background = (p.chill || 0) > 0.05 ? `radial-gradient(ellipse at center, rgba(0,0,0,0) 45%, rgba(${p.coldKind === 'space' ? '120,140,255' : p.coldKind === 'heat' ? '255,110,40' : '150,210,255'},${0.5 + 0.5 * p.chill}) 100%)` : '';
     renderHotbar();
     renderCompass(p);
     renderGlide(p);

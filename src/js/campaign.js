@@ -324,7 +324,7 @@ const Campaign = (() => {
       if (c.lava !== 2 && G.stats.reachedMines && (Quests.isActive('lavasuit') || c.lava === 1)) {
         if (!c.lava) return say(['You want to go under the basalt? Into the Core?', 'Then you want a Lava Suit, and I am the only one who knows how. Five iron, three void crystal, four ember ore. Bring them.'], () => { c.lava = 1; });
         const ok = P.count('iron') >= 5 && P.count('void') >= 3 && P.count('ember') >= 4; if (!ok) return say(['Five iron, three void, four ember.', `You have ${P.count('iron')}, ${P.count('void')} and ${P.count('ember')}.`]);
-        return say(['Stand still. This is going to be hot.', 'There. It will hold in lava, for a while. Come back alive.'], () => { P.take('iron', 5); P.take('void', 3); P.take('ember', 4); c.lava = 2; give('lavasuit'); });
+        return say(['Stand still. This is going to be hot.', 'There. It keeps the heat off you down there. It will not save you if you fall in the lava, so do not. Come back alive.'], () => { P.take('iron', 5); P.take('void', 3); P.take('ember', 4); c.lava = 2; give('lavasuit'); });
       }
       return say(['Mind the shaft.', c.pick >= 2 ? 'Gold and diamond deeper down. And if you ever get rich, I have something of my father\'s I might part with.' : ''], relic('foreman'));
     }

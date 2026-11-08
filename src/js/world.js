@@ -294,7 +294,7 @@ class World {
       const tint = this.grassTint(biome, info.temp, info.moist);
       const ti = (lx * CH + lz) * 3; chunk.tint[ti] = tint[0]; chunk.tint[ti + 1] = tint[1]; chunk.tint[ti + 2] = tint[2];
       const base = (lx * CH + lz) * WH;
-      const inHeart = heart && (x - heart.x) * (x - heart.x) + (z - heart.z) * (z - heart.z) < 121;
+      const hd2 = heart ? (x - heart.x) * (x - heart.x) + (z - heart.z) * (z - heart.z) : 1e9; const inHeart = hd2 < 121; const inMoat = !inHeart && hd2 < 34 * 34; // a lava sea all round the Heart
       const islandN = U.vnoise2(x, z, 32, P, s + 501);
       const ceilN = U.vnoise2(x, z, 16, P, s + 503);
       // core
@@ -304,6 +304,8 @@ class World {
         if (inHeart) {
           if (y <= 4) b = B.BASALT; else if (y >= 12) b = B.BASALT; else b = B.AIR;
           if (y === 5 && x === heart.x && z === heart.z) b = B.STARMETAL;
+        } else if (inMoat) {
+          b = y <= 6 ? B.LAVA : y >= 12 + Math.floor(ceilN * 2.5) ? B.BASALT : B.AIR;
         } else {
           const island = islandN > 0.6;
           const islandH = island ? 3 + (islandN - 0.6) * 28 : 0;

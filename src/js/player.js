@@ -112,7 +112,7 @@ const ITEMS = {
   snare2: { name: 'Void Snare', col: '#c07fe0', snare: 0.66, desc: 'A stronger snare laced with void crystal.' },
   bulb: { name: 'Breathing Bulb', col: '#9fd8ff', gear: true, desc: 'Breathe underwater for two minutes.' },
   glider: { name: 'Glider', col: '#f0d090', gear: true, desc: 'Hold ▲ while falling to glide. Stick sideways turns, forward dives, back brakes. Pull back just before the ground to flare and land soft.' },
-  lavasuit: { name: 'Lava Suit', col: '#ff9050', gear: true, desc: 'Swim in lava. Without it, lava kills on touch. Needed for the Core.' },
+  lavasuit: { name: 'Lava Suit', col: '#ff9050', gear: true, desc: 'Keeps the heat of the Core off you. Without it the heat down there wears you down, the way the cold does on the peaks. It does not make lava safe: nothing does. Stay out of it.' },
   frostcloak: { name: 'Frost Cloak', col: '#bfe3ff', gear: true, desc: 'Keeps the cold out. Without it, snowfields and mountain tops slow you, then freeze you.' },
   spacesuit: { name: 'Space Suit', col: '#e8f0ff', gear: true, desc: 'Air and warmth beyond the sky. Without it the Moon freezes you in moments.' },
   ship: { name: 'Starlark', col: '#c7fbff', gear: true, desc: 'Professor Finch\'s prototype, finished at Garrick\'s forge. Tap it on the surface to board; hold ▲ to climb, hold ▼ to go down. Climb above the clouds to leave the world.' },
@@ -198,7 +198,7 @@ class Player {
     const ml = Math.hypot(mx, mz); if (ml > 1) { mx /= ml; mz /= ml; }
     this.sneak = !!input.sneak;
     let speed = (this.sneak ? 1.7 : 4.4) * this.speedMul * (typeof G !== 'undefined' && G.buffMul ? G.buffMul('speed') : 1) * (1 - 0.55 * (this.chill || 0));
-    if (this.inLava) speed = 1.6 * (this.has('lavasuit') ? this.gearMul('lavasuit') * 1.5 : 1); else if (this.inWater) speed = 2.6 * (this.has('reeffins') ? 1.8 : 1);
+    if (this.inLava) speed = 1.2; else if (this.inWater) speed = 2.6 * (this.has('reeffins') ? 1.8 : 1);
     const mountShape = this.mount ? (this.mountMode || 'land') : null; // 'land' | 'water' | 'air'
     const ride = this.mount ? 1 + 0.3 * (this.mount.trust || 0) : 1; // trust: two hours under you to full stride; it fades if you leave it alone
     if (mountShape === 'land' && !inFluid) speed *= (this.mount.sp.fast ? 3.2 : 1.8) * ride;
@@ -313,7 +313,7 @@ class Player {
       this.breath -= dt / max;
       if (this.breath <= 0) { this.breath = 0; this.lavaTick += dt; if (this.lavaTick > 1) { this.lavaTick = 0; this.damage(1, 'drown'); } }
     } else { this.breath = Math.min(1, this.breath + dt * 0.5); }
-    if (this.inLava && !this.has('lavasuit')) { if (!this.lavaTouch) { this.lavaTouch = true; this.damage(Math.ceil(6 * this.lavaMul), 'lava'); } this.lavaTick += dt; if (this.lavaTick > 0.2 / this.lavaMul) { this.lavaTick = 0; this.damage(3, 'lava'); } } else this.lavaTouch = false;
+    if (this.inLava) { if (!this.lavaTouch) { this.lavaTouch = true; this.damage(Math.ceil(6 * this.lavaMul), 'lava'); } this.lavaTick += dt; if (this.lavaTick > 0.2 / this.lavaMul) { this.lavaTick = 0; this.damage(3, 'lava'); } } else this.lavaTouch = false;
     if (this.inBrine && !this.has('lavasuit')) { this.brineTick = (this.brineTick || 0) + dt; if (this.brineTick > 0.7) { this.brineTick = 0; this.damage(1, 'brine'); } } else this.brineTick = 0;
     this.updateChill(dt);
     if (this.y < -2) { this.y = 3; }
@@ -349,6 +349,7 @@ class Player {
     if (typeof G !== 'undefined' && G.warmUntil > performance.now() && !w.preset.airless) return null; // warm broth
     if (!w.preset.airless) { const bx0 = Math.floor(this.x), by0 = Math.floor(this.y), bz0 = Math.floor(this.z); for (let dx = -4; dx <= 4; dx++) for (let dz = -4; dz <= 4; dz++) for (let dy = -2; dy <= 1; dy++) if (w.getBlock(bx0 + dx, by0 + dy, bz0 + dz) === B.CAMPFIRE) return null; }
     if (w.preset.airless) return this.has('spacesuit') ? null : 'space';
+    if (w.preset.id === 'earth' && this.y < CORE_TOP + 1) return this.has('lavasuit') ? null : 'heat'; // the Core: heat, not cold
     if (this.has('frostcloak')) return null;
     const bx = Math.floor(this.x), bz = Math.floor(this.z);
     if (this.y < w.topAt(bx, bz) - 4) return null; // underground is out of the wind
@@ -358,9 +359,9 @@ class Player {
   }
   updateChill(dt) {
     const kind = this.coldHere();
-    const rate = kind === 'space' ? 1 / 3 : kind === 'cold' ? 1 / 8 : 0;
+    const rate = kind === 'space' ? 1 / 3 : kind === 'cold' ? 1 / 8 : kind === 'heat' ? 1 / 6 : 0;
     const shelter = this.mount && this.mount.sp.climber ? 0.5 : 1;
-    this.chill = U.clamp((this.chill || 0) + (kind ? rate * shelter * this.lavaMul : -1 / 4) * dt, 0, 1);
+    this.chill = U.clamp((this.chill || 0) + (kind ? rate * (kind === 'heat' ? 1 : shelter * this.lavaMul) : -1 / 4) * dt, 0, 1);
     this.coldKind = kind;
     if (this.chill >= 1) { this.chillTick = (this.chillTick || 0) + dt; const every = kind === 'space' ? 1.5 : 3 / this.lavaMul; if (this.chillTick > every) { this.chillTick = 0; this.damage(1, kind); } }
     else this.chillTick = 0;
@@ -479,6 +480,7 @@ class Player {
     if (info && info.kit) return { kit: info.kit, item, hit };
     if (!item || !info.block) return { nothing: true };
     const px = hit.x + hit.face[0], py = hit.y + hit.face[1], pz = hit.z + hit.face[2];
+    { const hh = this.world.heart; if (hh && py < 12 && this.world.preset.id === 'earth') { const d2 = (px - hh.x) ** 2 + (pz - hh.z) ** 2; if (d2 >= 121 && d2 < 34 * 34) { if (typeof UI !== 'undefined') UI.toast('The heat off the lava sea warps anything you set down here. Only wings will get you across.', 'bad'); return null; } } }
     if (py < 1 || py >= WH) return null;
     const cur = this.world.getBlock(px, py, pz);
     if (cur !== B.AIR && cur !== B.WATER) return null;
