@@ -589,7 +589,7 @@ const B = {
   AIR: 0, BEDROCK: 1, STONE: 2, DIRT: 3, GRASS: 4, SAND: 5, WATER: 6, LOG: 7, LEAVES: 8, SNOW: 9,
   COPPER: 10, IRON: 11, EMBER: 12, VOID: 13, BASALT: 14, LAVA: 15, CLOUD: 16, GLOWGRASS: 17,
   TORCH: 18, FUSION: 19, GRAVEL: 20, CACTUS: 21, STARMETAL: 22, MOSS: 23, STATUE: 24, PLANKS: 25, BERRY: 26, GLASS: 27, CAMPFIRE: 28, IRONWALL: 29, VOIDWALL: 30, GLOWWORM: 31, BERRYLEAF: 32, DOOR: 33, DOOR_OPEN: 34, PORTAL: 35,
-  CHEST: 36, SELENITE: 37, TYCHO: 38, STARSALT: 39, MOONGLOW: 40, AMBER: 41, SULFUR: 42, RINGSHARD: 43, BRINE: 44, CORAL_R: 45, CORAL_B: 46, CORAL_Y: 47, PEARLCORAL: 48, GOLD: 49, DIAMOND: 50, FERN: 51, SELGLASS: 52, INCUBATOR: 53, REGOLITH: 54, DUNE: 55, SALTCRUST: 56, LADDER: 57
+  CHEST: 36, SELENITE: 37, TYCHO: 38, STARSALT: 39, MOONGLOW: 40, AMBER: 41, SULFUR: 42, RINGSHARD: 43, BRINE: 44, CORAL_R: 45, CORAL_B: 46, CORAL_Y: 47, PEARLCORAL: 48, GOLD: 49, DIAMOND: 50, FERN: 51, SELGLASS: 52, INCUBATOR: 53, REGOLITH: 54, DUNE: 55, SALTCRUST: 56, LADDER: 57, TARGET: 58, BALLOON: 59
 };
 
 // name, top colour, side colour, solid, hardness (seconds to mine), drop item id, emissive, fluid
@@ -657,6 +657,8 @@ defBlock(B.GOLD, 'Gold Ore', '#8e8e97', '#85858e', { hard: 1.6, drop: 'gold' });
 defBlock(B.DIAMOND, 'Diamond Ore', '#8e8e97', '#85858e', { hard: 2.2, drop: 'diamond' });
 defBlock(B.FERN, 'Fern', '#3f8a33', '#2f7a2a', { solid: false, hard: 0.15, drop: 'frond', partial: true, transparent: true });
 defBlock(B.SELGLASS, 'Selenite Glass', '#dff4ff', '#cfeafc', { hard: 0.5, drop: 'selglass', transparent: true });
+defBlock(B.TARGET, 'Target', '#f2ede0', '#f2ede0', { hard: 0.5, drop: 'target' });
+defBlock(B.BALLOON, 'Balloon', '#e8323c', '#d42a34', { hard: 0.05, drop: null });
 defBlock(B.LADDER, 'Ladder', '#a07a44', '#8a6a3c', { solid: false, hard: 0.3, drop: 'ladder', partial: true, transparent: true });
 defBlock(B.INCUBATOR, 'Incubator', '#7ad7ff', '#2c3e50', { hard: Infinity, emissive: true });
 
@@ -1314,6 +1316,9 @@ const SPECK = (col, emis) => ({ base: 'stone', studs: (hash) => { const out = []
 const PATTERNS = {};
 PATTERNS[B.PLANKS] = { side: { rects: bands(3, 'v', [1.0, 0.88, 0.95], 0.04, 0.42) }, top: { rects: bands(3, 'u', [1.0, 0.88, 0.95], 0.04, 0.42) } };
 PATTERNS[B.LOG] = { side: { rects: bands(4, 'u', [1.0, 0.84, 0.94, 0.8], 0.02, 0.6) }, top: { rects: strips(0.14, 0.78).concat(strips(0.14, 0.95).map(r => ({ u0: 0.14 + r.u0 * 0.72, v0: 0.14 + r.v0 * 0.72, u1: 0.14 + r.u1 * 0.72, v1: 0.14 + r.v1 * 0.72, mul: 1.1, col: [0.78, 0.62, 0.38] })), [{ u0: 0.28, v0: 0.28, u1: 0.72, v1: 0.72, mul: 0.86, col: [0.6, 0.45, 0.26] }]) } };
+// a bullseye: red rings on straw-white
+PATTERNS[B.TARGET] = { all: { rects: [{ u0: 0.08, v0: 0.08, u1: 0.92, v1: 0.92, mul: 1, col: [0.85, 0.16, 0.18] }, { u0: 0.2, v0: 0.2, u1: 0.8, v1: 0.8, mul: 1, col: [0.95, 0.93, 0.88] }, { u0: 0.32, v0: 0.32, u1: 0.68, v1: 0.68, mul: 1, col: [0.85, 0.16, 0.18] }, { u0: 0.43, v0: 0.43, u1: 0.57, v1: 0.57, mul: 1, col: [0.98, 0.84, 0.2] }] } };
+PATTERNS[B.BALLOON] = { all: { rects: [{ u0: 0.18, v0: 0.55, u1: 0.42, v1: 0.82, mul: 1.35, col: null }] } };
 PATTERNS[B.IRONWALL] = { all: PLATE(0.74, { mul: 0.45, col: null }) };
 PATTERNS[B.VOIDWALL] = { all: PLATE(0.62, { mul: 1, col: [0.8, 0.4, 1.0], emis: true }) };
 PATTERNS[B.GLASS] = { all: { rects: strips(0.06, 0.55, [0.72, 0.76, 0.8]).concat([{ u0: 0.06, v0: 0.06, u1: 0.94, v1: 0.94, mul: 1, glass: true }]) } };
@@ -1784,6 +1789,10 @@ const ITEMS = {
   bait_berry: { name: 'Berry Bait', col: '#c8334a', crafted: true, desc: 'Used up on a cast. Uncommon fish bite more.' },
   bait_glow: { name: 'Glow Bait', col: '#d8ff6a', crafted: true, desc: 'Used up on a cast. Rare fish come to the light.' },
   bait_void: { name: 'Void Bait', col: '#9a4de0', crafted: true, desc: 'Used up on a cast. Epic and legendary fish answer it.' },
+  bow: { name: 'Bow', col: '#8a5a2c', keep: true, bow: true, desc: 'The castle-builder\'s bow. Hold it and tap a Kin up to 40 blocks away: each arrow takes a big bite out of its health before the fight starts. Uses arrows.' },
+  arrow: { name: 'Arrow', col: '#c9b48a', arrow: 0.22, crafted: true, desc: 'Takes about a fifth of a wild Kin\'s health. Twice that if it never saw you. Needs a bow.' },
+  arrow_ember: { name: 'Ember Arrow', col: '#ff7a3a', arrow: 0.34, crafted: true, desc: 'Burns. Takes about a third of a wild Kin\'s health. Needs a bow.' },
+  target: { name: 'Target', block: B.TARGET, col: '#e04040', crafted: true, desc: 'A bullseye. Set a few up and shoot at them from a distance. Archery jobs ask for them.' },
   ladder: { name: 'Ladder', block: B.LADDER, col: '#a07a44', crafted: true, desc: 'Place it against a wall and climb: ▲ or push forward to go up, hold ▼ to go down. Stack them for a shaft.' },
   chest: { name: 'Chest', block: B.CHEST, col: '#a0783c', crafted: true, desc: 'Place it and tap it: whatever you store inside stays there, safe, even if the wild beats you. Build as many as you like.' },
   kit_bridge: { name: 'Bridge kit', kit: 'bridge', col: '#b58d58', crafted: true, desc: 'A plank bridge with rails, from where you tap straight ahead until it meets ground, up to twelve blocks.' },
@@ -2070,7 +2079,7 @@ class Player {
   }
   eye() { return { x: this.x, y: this.y + this.EYE - (this.sneak ? 0.25 : 0), z: this.z }; }
   // ---- block targeting (DDA raycast) ----
-  raycast(maxDist = 6, hitFluids = false) {
+  raycast(maxDist = 6, hitFluids = false, solidOnly = false) {
     const e = this.eye();
     const [dx, dy, dz] = U.forwardVec(this.yaw, this.pitch);
     let x = Math.floor(e.x), y = Math.floor(e.y), z = Math.floor(e.z);
@@ -2080,9 +2089,9 @@ class Player {
     let tMaxY = dy > 0 ? (y + 1 - e.y) / dy : dy < 0 ? (e.y - y) / -dy : Infinity;
     let tMaxZ = dz > 0 ? (z + 1 - e.z) / dz : dz < 0 ? (e.z - z) / -dz : Infinity;
     let face = [0, 0, 0], t = 0;
-    for (let i = 0; i < 80; i++) {
+    for (let i = 0; i < 200; i++) {
       const id = this.world.getBlock(x, y, z);
-      if (id !== B.AIR && (isSolid(id) || BLOCKS[id].partial || (hitFluids && BLOCKS[id].fluid))) return { x, y, z, id, face, dist: t };
+      if (id !== B.AIR && (isSolid(id) || (!solidOnly && BLOCKS[id].partial) || (hitFluids && BLOCKS[id].fluid))) return { x, y, z, id, face, dist: t };
       if (tMaxX < tMaxY && tMaxX < tMaxZ) { x += stepX; t = tMaxX; tMaxX += tDeltaX; face = [-stepX, 0, 0]; }
       else if (tMaxY < tMaxZ) { y += stepY; t = tMaxY; tMaxY += tDeltaY; face = [0, -stepY, 0]; }
       else { z += stepZ; t = tMaxZ; tMaxZ += tDeltaZ; face = [0, 0, -stepZ]; }
@@ -3237,7 +3246,7 @@ const Wild = (() => {
         else rate = -0.6;
         e.alert = U.clamp(e.alert + rate * dt * (dist < senseR * 0.5 && !sneaking ? 1.5 : 1), 0, 1);
         // only the real threats force a fight: tyrants, their guards, legends, the lab's splice and the truly rare; everything else follows you and gives up
-        const strong = (e.kin.sp.rarity || 0) >= 3 || e.lieutenant || e.isBoss || e.isLegend || e.isApex || e.isLabBoss || e.lairQuest;
+        const strong = (e.kin.sp.rarity || 0) >= 3 || e.lieutenant || e.isBoss || e.isLegend || e.isApex || e.isLabBoss || e.lairQuest || e.nightQuest;
         // once it has seen you, stay in its ring for three seconds and it attacks; walk out in time and it lets you go
         if (e.alert >= 1) { e.ringT = (e.ringT || 0) + dt; if (!strong) e.hunt = 4; } else e.ringT = Math.max(0, (e.ringT || 0) - dt);
         if (e.alert >= 1 && !trigger && (strong || e.ringT >= 3)) trigger = { e, ambush: false };
@@ -3265,9 +3274,9 @@ const Wild = (() => {
     return best;
   }
   // entity under the crosshair (for tapping on a Kin)
-  function pick(player) {
+  function pick(player, reach = 7) {
     const eye = player.eye(); const f = U.forwardVec(player.yaw, player.pitch);
-    let best = null, bt = 7;
+    let best = null, bt = reach;
     for (const e of list) {
       const r = Math.max(0.6, e.model.radius * e.model.scale * 0.9), h = e.model.height * e.model.scale;
       const cx = e.x, cy = e.y + h / 2 + (e.hover || 0), cz = e.z;
@@ -5221,6 +5230,9 @@ const RECIPES = [
   { id: 'voidwall', out: 'voidwall', n: 4, needs: { iron: 3, void: 1 } },
   { id: 'door', out: 'door', n: 1, needs: { planks: 4 }, cat: 'blocks' },
   { id: 'ladder', out: 'ladder', n: 4, needs: { planks: 3 }, cat: 'blocks' },
+  { id: 'target', out: 'target', n: 2, needs: { planks: 2, frond: 2 }, cat: 'blocks' },
+  { id: 'arrow', out: 'arrow', n: 6, needs: { wood: 1, stone: 1, frond: 1 } },
+  { id: 'arrow_ember', out: 'arrow_ember', n: 4, needs: { wood: 1, ember: 1, frond: 1 } },
   { id: 'chest', out: 'chest', n: 1, needs: { planks: 8, iron: 1 }, cat: 'blocks' },
   { id: 'kit_house', out: 'kit_house', n: 1, needs: { planks: 20, glass: 4 }, cat: 'builds' },
   { id: 'kit_bakery', out: 'kit_bakery', n: 1, needs: { planks: 24, glass: 4, ember: 2 }, cat: 'builds' },
@@ -5598,6 +5610,273 @@ const Hazards = (() => {
 
 </script>
 <script>
+// Building jobs for the quest people: bridges, pens, houses, watchtowers, forts, castles and walled towns,
+// checked block by block at a marked site. Plus the night lurker: a Kin that only comes out in the dead of night.
+const Builds = (() => {
+  let G, world;
+  const wd = (d) => d - Math.round(d / WORLD_W) * WORLD_W;
+  function init(game) { G = game; world = game.world; }
+
+  // half = half the side of the square; wall = blocks high; towers = corner towers this tall; roof; tower = a watchtower at the centre
+  const KINDS = {
+    pen:    { name: 'a Kin pen', half: 4, wall: 2, minDiff: 0, line: 'My Kin wander off every night and I spend the morning chasing them. Fence me a pen where the posts are: two blocks high all the way round. Leave a gap for a gate.' },
+    house:  { name: 'a house', half: 3, wall: 3, roof: true, minDiff: 0, line: 'The storm took my roof and most of my walls. Build me a house where the posts are: walls three high and a roof over all of it. A door gap is fine. I am too old to sleep outside.' },
+    tower:  { name: 'a watchtower', half: 1, tower: 9, minDiff: 1, line: 'I need to see them coming. Build me a watchtower between the posts: nine blocks tall with a platform on top I can stand on.' },
+    bridge: { name: 'a bridge', minDiff: 0, line: 'My knees are old and that water is cold. Build me a bridge across, from one post to the other. Anything solid will do, as long as I can walk it.' },
+    fort:   { name: 'a walled homestead', half: 6, wall: 3, minDiff: 1, line: 'RIDERS. Every few nights they come through and take what they like. Wall in my homestead where the posts are: three blocks high all the way round, one gap for a gate.' },
+    castle: { name: 'a castle', half: 7, wall: 4, towers: 7, minDiff: 2, line: 'I have money and enemies, in that order. Build me a castle where the posts are: walls four high and a tower at each corner, seven high. Do it properly and I have something special for you.' },
+    town:   { name: 'a walled town', half: 10, wall: 3, watch: 8, minDiff: 2, line: 'We are a whole settlement and the raiders know it. Wall the whole place in, post to post: three high, one gate, and a lookout tower in one corner at least eight high. Then they can come.' },
+  };
+  const RAIDERS = { earth: ['riders', 'the Painted', 'outlaws on horseback'], moon: ['the Grey Riders', 'crater bandits'], halo: ['dune raiders', 'the shard-thieves'] };
+
+  const solid = (x, y, z) => { const b = world.getBlock(x, y, z); return b !== B.LEAVES && b !== B.TORCH && BLOCKS[b] && BLOCKS[b].solid; };
+  const natural = (x, z) => world.colInfo(x, z).h;
+  // blocks you have stacked on a column, counted from its natural ground up
+  function stack(x, z, upto) { const h = natural(x, z); let n = 0; for (let y = h + 1; y <= h + upto; y++) if (solid(x, y, z)) n++; return n; }
+
+  // ---------- picking a site ----------
+  function flatSquare(cx, cz, half) {
+    let lo = 999, hi = -999;
+    for (let dx = -half; dx <= half; dx += half > 5 ? 2 : 1) for (let dz = -half; dz <= half; dz += half > 5 ? 2 : 1) {
+      const info = world.colInfo(cx + dx, cz + dz);
+      if (info.h < SEA || info.lost === 'rim') return false;
+      lo = Math.min(lo, info.h); hi = Math.max(hi, info.h);
+    }
+    return hi - lo <= (half > 5 ? 4 : 3);
+  }
+  function findSquare(w, half, seed) {
+    const r = U.rng(seed);
+    for (const d of [half + 9, half + 16, half + 26, half + 40]) {
+      const a0 = r() * Math.PI * 2;
+      for (let k = 0; k < 12; k++) {
+        const a = a0 + k / 12 * Math.PI * 2; const cx = Math.round(w.x + Math.cos(a) * d), cz = Math.round(w.z + Math.sin(a) * d);
+        if (flatSquare(cx, cz, half)) return { x: cx, z: cz };
+      }
+    }
+    return null;
+  }
+  // a stretch of water 4 to 16 wide with land on both sides, along x or z
+  function findBridge(w, seed) {
+    if (!world.preset.water) return null;
+    const r = U.rng(seed); const wet = (x, z) => world.colInfo(x, z).h < SEA - 1; /* at least two deep */ const bank = (x, z) => { const h = world.colInfo(x, z).h; return h >= SEA && h <= SEA + 5; };
+    for (let d = 14; d <= 120; d += 6) {
+      const a0 = r() * Math.PI * 2;
+      for (let k = 0; k < 16; k++) {
+        const a = a0 + k / 16 * Math.PI * 2; const px = Math.round(w.x + Math.cos(a) * d), pz = Math.round(w.z + Math.sin(a) * d);
+        if (!wet(px, pz)) continue;
+        for (const [ux, uz] of [[1, 0], [0, 1]]) {
+          let i = 0, j = 0;
+          while (i < 22 && wet(px + ux * (i + 1), pz + uz * (i + 1))) i++;
+          while (j < 22 && wet(px - ux * (j + 1), pz - uz * (j + 1))) j++;
+          const len = i + j + 1; const ax = px - ux * (j + 1), az = pz - uz * (j + 1), bx = px + ux * (i + 1), bz = pz + uz * (i + 1);
+          if (len >= 4 && len <= 20 && bank(ax, az) && bank(bx, bz)) return { ax, az, bx, bz, len, ux, uz };
+        }
+      }
+    }
+    return null;
+  }
+
+  // ---------- making and taking the job ----------
+  function make(w, r, diff, base, wid) {
+    const pool = Object.keys(KINDS).filter(k => KINDS[k].minDiff <= diff);
+    let kind = pool[r.int(pool.length)];
+    if (kind === 'bridge' && !findBridge(w, U.combine(w.seedN, base.round, 0xB1))) kind = 'pen';
+    const K = KINDS[kind]; const rd = RAIDERS[wid] || RAIDERS.earth;
+    const line = K.line.replace('RIDERS', rd[r.int(rd.length)].replace(/^./, c => c.toUpperCase()));
+    return Object.assign(base, { kind: 'build', what: kind, name: K.name, line });
+  }
+  function take(w, q) {
+    const seed = U.combine(w.seedN, q.round, 0xB1);
+    if (q.what === 'bridge') { const b = findBridge(w, seed); if (b) { q.site = b; return; } q.what = 'pen'; q.name = KINDS.pen.name; }
+    const K = KINDS[q.what]; const s = findSquare(w, K.half, seed) || { x: Math.round(w.x + K.half + 8), z: Math.round(w.z) };
+    q.site = { x: s.x, z: s.z };
+  }
+  function siteCentre(q) { const s = q.site; return s.ax != null ? { x: (s.ax + s.bx) / 2, z: (s.az + s.bz) / 2 } : { x: s.x, z: s.z }; }
+
+  // ---------- checking the work ----------
+  function ring(cx, cz, half, need) {
+    const cells = [];
+    for (let i = -half; i <= half; i++) cells.push([cx + i, cz - half], [cx + i, cz + half]);
+    for (let i = -half + 1; i <= half - 1; i++) cells.push([cx - half, cz + i], [cx + half, cz + i]);
+    let ok = 0; for (const [x, z] of cells) if (stack(x, z, need + 2) >= need) ok++;
+    return ok / cells.length;
+  }
+  function towerAt(cx, cz, need) { // tallest stack in a 2x2 or 3x3 footprint
+    let best = 0; for (let dx = -1; dx <= 1; dx++) for (let dz = -1; dz <= 1; dz++) best = Math.max(best, stack(cx + dx, cz + dz, need + 3)); return Math.min(1, best / need);
+  }
+  function roof(cx, cz, half) {
+    let ok = 0, n = 0;
+    for (let dx = -half + 1; dx <= half - 1; dx++) for (let dz = -half + 1; dz <= half - 1; dz++) { n++; const h = natural(cx + dx, cz + dz); for (let y = h + 3; y <= h + 7; y++) if (solid(cx + dx, y, cz + dz)) { ok++; break; } }
+    return ok / n;
+  }
+  function platform(cx, cz, at) { // at least 5 blocks of a 3x3 at the top
+    let best = 0;
+    for (let y = at - 1; y <= at + 3; y++) { let n = 0; for (let dx = -1; dx <= 1; dx++) for (let dz = -1; dz <= 1; dz++) if (solid(cx + dx, y, cz + dz)) n++; best = Math.max(best, n); }
+    return Math.min(1, best / 5);
+  }
+  function bridgeDone(s) {
+    let ok = 0;
+    for (let t = 1; t < s.len + 1; t++) { const x = s.ax + s.ux * t, z = s.az + s.uz * t; for (let y = SEA; y <= SEA + 3; y++) if (solid(x, y, z)) { ok++; break; } }
+    return ok / s.len;
+  }
+  // 0..1, and whether it passes
+  function measure(q) {
+    const K = KINDS[q.what], s = q.site;
+    if (q.what === 'bridge') { const f = bridgeDone(s); return { f, pass: f >= 1 }; }
+    if (q.what === 'tower') { const h = natural(s.x, s.z); const a = towerAt(s.x, s.z, K.tower), b = platform(s.x, s.z, h + K.tower); const f = a * 0.7 + b * 0.3; return { f, pass: a >= 1 && b >= 1 }; }
+    const w = ring(s.x, s.z, K.half, K.wall); const wallPass = w >= 0.84; let f = Math.min(1, w / 0.84); let pass = wallPass;
+    if (K.roof) { const r = roof(s.x, s.z, K.half); f = f * 0.6 + Math.min(1, r / 0.8) * 0.4; pass = pass && r >= 0.8; }
+    if (K.towers) { const c = [[-1, -1], [1, -1], [-1, 1], [1, 1]].map(([a, b]) => towerAt(s.x + a * K.half, s.z + b * K.half, K.towers)); const t = c.reduce((m, v) => m + v, 0) / 4; f = f * 0.6 + t * 0.4; pass = pass && c.every(v => v >= 1); }
+    if (K.watch) { const c = Math.max(...[[-1, -1], [1, -1], [-1, 1], [1, 1]].map(([a, b]) => towerAt(s.x + a * K.half, s.z + b * K.half, K.watch))); f = f * 0.8 + c * 0.2; pass = pass && c >= 1; }
+    return { f, pass };
+  }
+
+  // ---------- the marks on the ground ----------
+  function post(x, z) { world.ensureAround(Math.floor(x / CH), Math.floor(z / CH), 0, 99); const g = world.groundY(x, z); world.setBlock(x, g + 1, z, B.BASALT); world.setBlock(x, g + 2, z, B.TORCH); }
+  function stampPosts(q) {
+    const s = q.site;
+    if (q.what === 'bridge') { post(s.ax - s.ux, s.az - s.uz); post(s.bx + s.ux, s.bz + s.uz); return; }
+    const K = KINDS[q.what]; const o = K.half + 1;
+    for (const [a, b] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) post(s.x + a * o, s.z + b * o);
+  }
+
+  // ---------- the night lurker ----------
+  const deadOfNight = () => Math.cos(world.time * Math.PI * 2) > 0.55;
+  const lurkers = new Map(); // quest -> entity, never saved
+  function makeNight(w, r, base) {
+    const tales = [['the Pond Thing', 'There is something in the pond out that way. Only comes up in the dead of night. I have heard it. I want it caught, not killed: I want to see its face.'],
+      ['Old Lantern-Eyes', 'Every night, around midnight, two lights come up out of the hollow and look at my house. I want whatever it is in a cage. Not dead. In a cage.'],
+      ['the Midnight Digger', 'Something digs up my field after midnight and is gone by dawn. Catch it for me. If you just beat it, it will be back the next night.'],
+      ['the Hollow Singer', 'It sings in the dead of night out past the stones. Beautiful and horrible. Catch it before I lose my mind.']];
+    const t = tales[r.int(tales.length)];
+    return Object.assign(base, { kind: 'night', lurker: t[0], line: t[1] });
+  }
+  function takeNight(w, q) { const r = U.rng(U.combine(w.seedN, q.round, 0x4E)); const a = r() * Math.PI * 2, d = 50 + r() * 60; q.spot = { x: Math.round(w.x + Math.cos(a) * d), z: Math.round(w.z + Math.sin(a) * d) }; }
+
+  // ---------- archery jobs, once you have a bow ----------
+  function makeArchery(w, r, diff, base) {
+    const v = ['balloons', 'balloons', 'bullseye', 'range', 'herd'][r.int(5)];
+    const n = v === 'balloons' ? 6 + diff * 2 : v === 'herd' ? 3 + diff : v === 'range' ? 4 : 5;
+    const line = { balloons: `The fair came through and nobody could hit a single balloon. Show them how. There are ${n} floating over by the posts: pop every one.`,
+      bullseye: 'Five targets on poles, near to far, the last one forty paces out. Hit every one of them from the firing post, the one with the torch. My father could. Can you?',
+      range: 'Teach my boy to shoot. Build a training range near the posts: four targets of your own (craft them from planks and fronds), then hit each one from at least twelve blocks away.',
+      herd: `Kin keep getting into my grain. I do not want them hurt much, just taught. Put an arrow in ${n} of them, any Kin, anywhere.` }[v];
+    return Object.assign(base, { kind: 'archery', v, n, line });
+  }
+  function takeArchery(w, q) {
+    if (q.v === 'herd') { q.base = G.stats.arrowHits || 0; return; }
+    const s = findSquare(w, 8, U.combine(w.seedN, q.round, 0xA2)) || { x: Math.round(w.x + 16), z: Math.round(w.z) };
+    q.site = { x: s.x, z: s.z }; q.hits = [];
+  }
+  function stampArchery(q) {
+    const s = q.site; world.ensureAround(Math.floor(s.x / CH), Math.floor(s.z / CH), 3, 99);
+    if (q.v === 'balloons') {
+      const r = U.rng(U.combine(s.x, s.z, 0xBA)); q.balloons = [];
+      for (let i = 0; i < q.n; i++) { const a = r() * Math.PI * 2, d = 4 + r() * 12; const x = Math.round(s.x + Math.cos(a) * d), z = Math.round(s.z + Math.sin(a) * d); const y = world.groundY(x, z) + 5 + r.int(10); if (world.getBlock(x, y, z) !== B.AIR) continue; world.setBlock(x, y, z, B.BALLOON); q.balloons.push([x, y, z]); }
+      q.n = q.balloons.length; post(s.x, s.z);
+    } else if (q.v === 'bullseye') {
+      post(s.x, s.z); const r = U.rng(U.combine(s.x, s.z, 0xB5)); const a = r() * Math.PI * 2; q.targets = [];
+      for (const d of [10, 17, 24, 31, 38]) { const x = Math.round(s.x + Math.cos(a) * d), z = Math.round(s.z + Math.sin(a) * d); world.ensureAround(Math.floor(x / CH), Math.floor(z / CH), 0, 99); const g = world.groundY(x, z); world.setBlock(x, g + 1, z, B.LOG); world.setBlock(x, g + 2, z, B.TARGET); q.targets.push([x, g + 2, z]); }
+    } else { for (const [a, b] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) post(s.x + a * 9, s.z + b * 9); }
+  }
+  function onShot(type, blk, p) {
+    let used = false;
+    for (const [w, q] of Npcs.takenList()) {
+      if (q.kind !== 'archery' || q.shotDone || !q.site) continue;
+      const key = blk.x + ',' + blk.y + ',' + blk.z;
+      if (type === 'balloon' && q.v === 'balloons' && q.balloons && q.balloons.some(b => b.join(',') === key)) { used = true; const left = q.balloons.filter(b => world.getBlock(b[0], b[1], b[2]) === B.BALLOON).length; if (!left) { q.shotDone = true; UI.sfx('quest'); UI.toast(`Every balloon popped. Go and tell ${q.wname}.`, 'good'); } else UI.toast(`Pop! ${left} to go.`); }
+      if (type === 'target' && q.v === 'bullseye' && q.targets) { const i = q.targets.findIndex(t => t.join(',') === key); if (i < 0) continue; used = true;
+        if (Math.hypot(p.x - (q.site.x + 0.5), p.z - (q.site.z + 0.5)) > 4.5) { UI.toast('That one does not count: shoot from the firing post, the torch.'); continue; }
+        if (!q.hits.includes(i)) q.hits.push(i); const left = q.targets.length - q.hits.length; if (!left) { q.shotDone = true; UI.sfx('quest'); UI.toast(`Five for five. Go and tell ${q.wname}.`, 'good'); } else UI.toast(`Bullseye! ${left} to go.`, 'good'); }
+      if (type === 'target' && q.v === 'range') { const sx = p.x + wd(q.site.x - p.x), sz = p.z + wd(q.site.z - p.z); if (Math.hypot(blk.x - sx, blk.z - sz) > 30) continue; used = true;
+        const d = Math.hypot(blk.x + 0.5 - p.x, blk.z + 0.5 - p.z); if (d < 12) { UI.toast(`Too close (${Math.round(d)} blocks). Back up to twelve.`); continue; }
+        if (!q.hits.includes(key)) q.hits.push(key); const left = q.n - q.hits.length; if (left <= 0) { q.shotDone = true; UI.sfx('quest'); UI.toast(`The range works. Go and tell ${q.wname}.`, 'good'); } else UI.toast(`Bullseye from ${Math.round(d)} blocks! ${left} more target${left > 1 ? 's' : ''}.`, 'good'); }
+    }
+    if (!used) UI.toast(type === 'balloon' ? 'Pop!' : 'Bullseye!', 'good');
+  }
+  function archeryProgress(q) { if (q.v === 'herd') return Math.min(1, ((G.stats.arrowHits || 0) - (q.base || 0)) / q.n); return q.shotDone ? 1 : 0; }
+  function archeryNeed(q) {
+    if (q.v === 'herd') return `${Math.min(q.n, (G.stats.arrowHits || 0) - (q.base || 0))} of ${q.n} Kin hit with an arrow. Hold the bow and tap them.`;
+    if (q.v === 'balloons') return `${q.balloons ? q.balloons.filter(b => world.getBlock(b[0], b[1], b[2]) === B.BALLOON).length + ' balloons left.' : 'Follow ⌖ to the posts.'} Hold the bow and tap them.`;
+    if (q.v === 'bullseye') return `${q.hits ? q.hits.length : 0} of 5 targets hit. Stand at the firing post (the torch) and shoot.`;
+    return `${q.hits ? q.hits.length : 0} of 4 targets hit from twelve blocks or more. Craft targets (2 planks, 2 fronds) and set them up near the posts.`;
+  }
+
+  // ---------- each frame ----------
+  let tick = 0;
+  function update(dt, p, inBattle) {
+    tick += dt; if (tick < 0.5) return; tick = 0;
+    for (const [w, q] of Npcs.takenList()) {
+      if (q.kind === 'archery' && q.site && !q.stamped) { const sx = p.x + wd(q.site.x - p.x), sz = p.z + wd(q.site.z - p.z); if (Math.hypot(p.x - sx, p.z - sz) < 70) { q.stamped = true; stampArchery(q); G.meshPass(99); } }
+      if (q.kind === 'build' && !q.built) {
+        const c = siteCentre(q); const cx = p.x + wd(c.x - p.x), cz = p.z + wd(c.z - p.z); const d = Math.hypot(p.x - cx, p.z - cz);
+        if (d < 70 && !q.posts) { q.posts = true; stampPosts(q); G.meshPass(99); }
+        if (d < 45) { const m = measure(q); const before = q.prog || 0; q.prog = m.f;
+          if (m.pass) { q.built = true; UI.sfx('quest'); UI.toast(`That is ${q.name}. Go and tell ${q.wname}.`, 'good'); }
+          else if (Math.floor(m.f * 4) > Math.floor(before * 4) && m.f > 0.2) UI.toast(`${q.name[0].toUpperCase() + q.name.slice(1)}: about ${Math.round(m.f * 100)}% there.`); }
+      }
+      if (q.kind === 'night' && !q.caught) {
+        const sx = p.x + wd(q.spot.x - p.x), sz = p.z + wd(q.spot.z - p.z); const d = Math.hypot(p.x - sx, p.z - sz);
+        if (d < 60 && !q.stampedSpot) { q.stampedSpot = true; const bx = Math.floor(sx), bz = Math.floor(sz); world.ensureAround(Math.floor(bx / CH), Math.floor(bz / CH), 1, 99); for (let i = 0; i < 10; i++) { const a = i / 10 * Math.PI * 2; const x = Math.floor(sx + Math.cos(a) * 3), z = Math.floor(sz + Math.sin(a) * 3); const g = world.groundY(x, z); world.setBlock(x, g + 1, z, i % 2 ? B.BASALT : B.STONE); } const g0 = world.groundY(bx, bz); world.setBlock(bx, g0, bz, B.AIR); world.setBlock(bx, g0 - 1, bz, B.AIR); G.meshPass(99); }
+        let e = lurkers.get(q); if (e && !Wild.list.includes(e)) { lurkers.delete(q); e = null; }
+        const night = deadOfNight();
+        if (e && !night && !inBattle) { Wild.list.splice(Wild.list.indexOf(e), 1); lurkers.delete(q); UI.toast(`${q.lurker} slips back underground. It is morning.`); continue; }
+        if (!e && night && d < 55) {
+          const bx = Math.floor(sx), bz = Math.floor(sz); const gy = world.groundY(bx, bz) + 1;
+          const rx = Math.floor(U.mod(sx, WORLD_W) / 1024), rz = Math.floor(U.mod(sz, WORLD_W) / 1024);
+          const list = KIN.roster(world.preset.id, rx, rz, 'Surface', BIOME_NAME[world.colInfo(bx, bz).biome] || 'Plains', Math.min(9, 3 + q.diff)).filter(sp => (sp.rarity || 0) >= 1);
+          const sp = Object.assign({}, list[U.combine(w.seedN, q.round) % Math.max(1, list.length)] || KIN.roster(world.preset.id, 0, 0, 'Surface', 'Plains', 2)[0]);
+          sp.names = [q.lurker, q.lurker, q.lurker];
+          const lvl = Math.max(5, Wild.zoneLevel(sx, gy, sz, { layer: 'Surface' }, G.trainerLevel) + 2 + q.diff);
+          e = Wild.makeEntity(sp, lvl, sx + 0.5, gy, sz + 0.5, { senseR: 5, elite: true }); e.nightQuest = { wid: w.id }; e.speed = 1.6;
+          e.patrol = { ax: sx - 4, az: sz + 0.5, bx: sx + 4, bz: sz + 0.5, period: 9, phase: 0 };
+          Wild.list.push(e); lurkers.set(q, e);
+          UI.toast(`Something climbs out of the ground: ${q.lurker}.`, 'bad');
+        }
+      }
+    }
+  }
+  function onBattle(info, result) {
+    const st = G.npcState[info.wid]; const q = st && st.quest; if (!q || q.kind !== 'night') return;
+    if (result === 'caught') { q.caught = true; UI.toast(`You caught ${q.lurker}. Go and show ${q.wname}.`, 'good'); }
+    else if (result === 'won') UI.toast(`${q.lurker} drags itself back into the dark. Beaten is not caught: try again another night.`);
+  }
+
+  function progressOf(q) { return q.kind === 'archery' ? archeryProgress(q) : q.kind === 'build' ? (q.built ? 1 : 0) : q.caught ? 1 : 0; }
+  function needText(q) {
+    if (q.kind === 'archery') return archeryNeed(q);
+    if (q.kind === 'night') return `${q.lurker} is still out there. It only comes up in the dead of night (around midnight). Follow ⌖, and bring snares: beaten does not count.`;
+    if (q.built) return '';
+    const pct = q.prog ? ` You are about ${Math.round(q.prog * 100)}% there.` : ' Follow ⌖ to the posts.';
+    const K = KINDS[q.what];
+    const how = q.what === 'bridge' ? 'A solid walkway from one post to the other, at the water line or just above.' : q.what === 'tower' ? `A tower ${K.tower} high between the posts, with a platform on top.` : `Walls ${K.wall} high joining the four posts${K.roof ? ', and a roof over the inside' : ''}${K.towers ? `, with a tower ${K.towers} high at every corner` : ''}${K.watch ? `, and one corner tower ${K.watch} high` : ''}. A gap for a gate is fine.`;
+    return how + pct;
+  }
+  function text(q) { if (q.kind === 'archery') return { balloons: `pop ${q.n} balloons`, bullseye: 'hit five targets from the firing post', range: 'build a training range and use it', herd: `put an arrow in ${q.n} Kin` }[q.v]; return q.kind === 'night' ? `catch ${q.lurker} (at night)` : `build ${q.name}`; }
+  // colours, so you can tell the jobs apart: building amber, archery cyan, night violet
+  const COL = { build: '#ffb040', archery: '#4fe0ff', night: '#c08cff' };
+  function marks(p) {
+    const out = [];
+    for (const [w, q] of Npcs.takenList()) {
+      if (q.kind === 'build' && !q.built) { const c = siteCentre(q); out.push({ t: '⌖', x: p.x + wd(c.x - p.x), z: p.z + wd(c.z - p.z), name: q.name, col: COL.build }); }
+      if (q.kind === 'night' && !q.caught) out.push({ t: '⌖', x: p.x + wd(q.spot.x - p.x), z: p.z + wd(q.spot.z - p.z), name: q.lurker, col: COL.night });
+      if (q.kind === 'archery' && q.site && !q.shotDone) out.push({ t: '⌖', x: p.x + wd(q.site.x - p.x), z: p.z + wd(q.site.z - p.z), name: text(q), col: COL.archery });
+    }
+    return out;
+  }
+  // a castle pays in a bow, the first time
+  function reward(q, rw) {
+    if (q.kind === 'build') { const big = { castle: 160, town: 200, fort: 90, tower: 60, house: 50, bridge: 40, pen: 30 }[q.what] || 40; rw.shards += big; rw.xp += big; }
+    if (q.kind === 'night') { rw.shards += 70; rw.xp += 80; }
+    if (q.kind === 'archery') { rw.shards += 45; rw.xp += 50; if (!rw.amulet) rw.items.arrow = (rw.items.arrow || 0) + 12; }
+    if (q.kind === 'build' && q.what === 'castle' && !G.player.has('bow')) rw.bow = true;
+    return rw;
+  }
+  return { init, make, take, makeNight, takeNight, makeArchery, takeArchery, onShot, COL, update, onBattle, progressOf, needText, text, marks, reward, measure, KINDS };
+})();
+
+</script>
+<script>
 'use strict';
 // People of the road. Wanderers with odd jobs every few minutes of walking, on every world; amulets as the reward nobody sells;
 // the story quests (a scientist stuck in his own lab, and his incubator); the Painted camps you can only rob by night or on a dinosaur;
@@ -5638,7 +5917,7 @@ const Npcs = (() => {
   for (const k of AMULET_KEYS) ITEMS[k] = Object.assign({ gear: true, keep: true }, AMULETS[k]);
   ITEMS.parcel = { name: 'Sealed Parcel', col: '#c9a84c', keep: true, desc: 'Somebody\'s parcel for somebody\'s headman. Deliver it and come back for your pay.' };
 
-  function init(game) { G = game; world = game.world; wanderers.clear(); camps.clear(); activeW = []; activeCamp = null; school = null; lab = null; QCELL = WORLD_W / QN; if (!G.npcState) G.npcState = {}; if (!G.amulet) G.amulet = { cd: 0, kind: null, until: 0, charges: 0 }; }
+  function init(game) { G = game; world = game.world; Builds.init(game); wanderers.clear(); camps.clear(); activeW = []; activeCamp = null; school = null; lab = null; QCELL = WORLD_W / QN; if (!G.npcState) G.npcState = {}; if (!G.amulet) G.amulet = { cd: 0, kind: null, until: 0, charges: 0 }; }
   const people = () => WORLD_PEOPLE[world.preset.id] || WORLD_PEOPLE.earth;
   const sea = () => world.preset.water ? SEA : world.preset.brine ? world.preset.brineLevel : -99;
   function npcState(id) { if (!G.npcState[id]) G.npcState[id] = { done: 0, quest: null, stamped: false }; return G.npcState[id]; }
@@ -5684,13 +5963,17 @@ const Npcs = (() => {
   function makeQuest(w, round) {
     const r = U.rng(U.combine(w.seedN, round, 0x51));
     const wid = world.preset.id; const diff = Math.min(4, 1 + Math.floor(round / 2) + (w.lost ? 1 : 0));
-    const kinds = ['fetch', 'hunt', 'catch', 'dig', 'deliver', 'lair', 'explore', 'explore', 'lair', 'fetch'];
+    const kinds = ['fetch', 'hunt', 'catch', 'dig', 'deliver', 'lair', 'explore', 'explore', 'lair', 'fetch', 'build', 'build', 'build', 'build', 'build', 'build', 'build', 'build', 'night', 'night']; // building is the backbone
+    if (G.player.has('bow')) kinds.push('archery', 'archery', 'archery', 'archery', 'archery', 'archery'); // a bow opens a whole new line of work
     const kind = kinds[r.int(kinds.length)];
     const base = { kind, round, diff, taken: false, done: false };
     if (kind === 'fetch') { const pool = (FETCH[wid] || FETCH.earth).filter(f => f[2] <= diff); const f = pool[r.int(pool.length)]; return Object.assign(base, { item: f[0], n: f[1], line: `I need ${f[1]} ${ITEMS[f[0]].name}. Do not ask what for.` }); }
     if (kind === 'hunt') { const e = r.pick(ELEMENTS); const n = 2 + diff; return Object.assign(base, { elem: e, n, line: `${e} Kin have been at my things. Beat ${n} of them, anywhere, and we are square.` }); }
     if (kind === 'catch') { const e = r.pick(ELEMENTS); return Object.assign(base, { elem: e, n: 1, line: `Catch me a ${e} Kin. Any one will do. Keep it; I only want to see it done.` }); }
     if (kind === 'dig') { const pool = DIG[wid] || DIG.earth; const it = pool[Math.min(pool.length - 1, r.int(diff + 1))]; const n = 2 + diff * 2; return Object.assign(base, { item: it, n, line: `Dig me ${n} ${ITEMS[it].name} out of the ground with your own hands. Bought does not count.` }); }
+    if (kind === 'build') return Builds.make(w, r, diff, base, wid);
+    if (kind === 'night') return Builds.makeNight(w, r, base);
+    if (kind === 'archery') return Builds.makeArchery(w, r, diff, base);
     if (kind === 'deliver') return Object.assign(base, { line: 'Take this parcel to the nearest headman and tell him it is from me. Then come back.' });
     if (kind === 'explore') { const tales = [['My brother buried his savings out there before the raiders came. He never came back for them. You go; bring me half.', 'the buried savings'], ['A cart went off the road out that way. The driver walked. The cargo did not. See what is left.', 'the lost cart'], ['There is a cairn out there I built for my mother. Someone has been at it. Go and see, and keep what you find.', 'the cairn'], ['I saw something fall out of the sky over there last night. Something shiny. Go and look before somebody else does.', 'the fallen thing'], ['An old shrine. People leave gifts. Nobody has been for years. Go, and tell me it still stands.', 'the shrine']]; const tl = tales[r.int(tales.length)]; return Object.assign(base, { line: tl[0], spotName: tl[1] }); }
     return Object.assign(base, { elem: r.pick(ELEMENTS), line: 'Something has made a den out that way and it took what was mine. Beat it or cage it; I do not care which.' });
@@ -5707,12 +5990,16 @@ const Npcs = (() => {
     if (q.kind === 'deliver') return q.delivered ? 1 : 0;
     if (q.kind === 'lair') return q.beaten ? 1 : 0;
     if (q.kind === 'explore') return q.reached ? 1 : 0;
+    if (q.kind === 'build' || q.kind === 'night' || q.kind === 'archery') return Builds.progressOf(q);
     return 0;
   }
   const lairEnts = new Map(); // quest -> live entity (never saved)
   function takenQuests() { const out = []; for (const id in (G.npcState || {})) { const q = G.npcState[id].quest; if (q && q.taken && (q.world || 'earth') === world.preset.id && !String(id).startsWith('mer')) out.push([{ id, name: q.wname, seedN: q.seedN, x: q.wx, z: q.wz }, q]); } return out; }
   function take(w, q) {
     q.taken = true; q.wname = w.name; q.seedN = w.seedN; q.world = world.preset.id; q.wx = w.x; q.wz = w.z;
+    if (q.kind === 'build') Builds.take(w, q);
+    if (q.kind === 'night') Builds.takeNight(w, q);
+    if (q.kind === 'archery') Builds.takeArchery(w, q);
     if (q.kind === 'hunt') q.base = elemCount(q.elem);
     if (q.kind === 'catch') q.base = caughtCount(q.elem);
     if (q.kind === 'dig') q.base = dugCount(q.item);
@@ -5730,7 +6017,7 @@ const Npcs = (() => {
     const pool = AMULET_KEYS.filter(k => !G.player.has(k));
     const amulet = (r() < amuletChance && pool.length) ? pool[r.int(pool.length)] : null;
     const items = {}; if (!amulet) { const extra = ['tonic_revive', 'snare2', 'tonic_vigor', 'tonic_might', 'tonic_swift', 'bread'][r.int(6)]; items[extra] = 1 + (q.diff > 2 ? 1 : 0); }
-    return { shards, amulet, items, xp: 40 + q.diff * 30 };
+    return Builds.reward(q, { shards, amulet, items, xp: 40 + q.diff * 30 });
   }
   function complete(w, q) {
     const st = npcState(w.id); const rw = rewardFor(w, q);
@@ -5738,7 +6025,8 @@ const Npcs = (() => {
     if (q.kind === 'deliver') G.player.take('parcel', 1);
     G.shards += rw.shards; G.addTrainerXp(rw.xp);
     for (const k in rw.items) G.player.add(k, rw.items[k]);
-    if (rw.amulet) { G.player.add(rw.amulet, 1); UI.sfx('quest'); UI.openPanel('reveal', { kind: 'item', item: rw.amulet, n: 1 }); }
+    if (rw.bow) { G.player.add('bow', 1); G.player.add('arrow', 24); UI.sfx('quest'); UI.openPanel('reveal', { kind: 'item', item: 'bow', n: 1 }); setTimeout(() => UI.toast('A bow, and a quiver of 24 arrows. Hold the bow and tap a Kin, even a long way off. Craft more arrows from wood, stone and fronds.', 'good'), 1200); }
+    else if (rw.amulet) { G.player.add(rw.amulet, 1); UI.sfx('quest'); UI.openPanel('reveal', { kind: 'item', item: rw.amulet, n: 1 }); }
     else UI.sfx('quest');
     st.done++; st.quest = null; q.done = true;
     if (world.preset.id === 'earth' && !G.stats.lostMap && (G.stats.questsDone || 0) >= 2) { setTimeout(() => G.giveLostMap(w.name), 900); }
@@ -5752,17 +6040,17 @@ const Npcs = (() => {
     const greet = P.greet[U.combine(w.seedN, st.done) % P.greet.length];
     if (!q.taken) {
       const lines = [greet, q.line];
-      if (q.kind === 'lair' || q.kind === 'explore') lines.push('Follow the mark on your compass: ⌖. It is not far, as the crow flies.');
+      if (q.kind === 'lair' || q.kind === 'explore' || q.kind === 'build' || q.kind === 'night' || (q.kind === 'archery' && q.v !== 'herd')) lines.push('Follow the mark on your compass: ⌖. It is not far, as the crow flies.');
       if (q.kind === 'deliver') lines.push('Any headman will do if the nearest is not to your taste.');
       Dialogue.show(w.name, lines, () => { take(w, q); UI.toast(`Job from ${w.name}: ${questText(q)}`, 'good'); });
       return;
     }
     if (progress(w, q) >= 1) { Dialogue.show(w.name, ['That is it. That is exactly it.', 'Here, what I promised. Come back; there is always more.'], () => complete(w, q)); return; }
-    const need = q.kind === 'fetch' ? `${G.player.count(q.item)} of ${q.n} ${ITEMS[q.item].name} so far.` : q.kind === 'hunt' ? `${Math.min(q.n, elemCount(q.elem) - (q.base || 0))} of ${q.n} ${q.elem} Kin beaten.` : q.kind === 'catch' ? `No ${q.elem} Kin caught yet.` : q.kind === 'dig' ? `${Math.min(q.n, dugCount(q.item) - (q.base || 0))} of ${q.n} ${ITEMS[q.item].name} dug.` : q.kind === 'deliver' ? `The parcel is for ${q.targetName}. ${G.player.has('parcel') ? 'You still have it.' : 'Lost it? Here is another.'}` : q.kind === 'explore' ? `You have not found ${q.spotName} yet. Follow ⌖.` : `${q.lairName} is still out there. Follow ⌖.`;
+    const need = (q.kind === 'build' || q.kind === 'night' || q.kind === 'archery') ? Builds.needText(q) : q.kind === 'fetch' ? `${G.player.count(q.item)} of ${q.n} ${ITEMS[q.item].name} so far.` : q.kind === 'hunt' ? `${Math.min(q.n, elemCount(q.elem) - (q.base || 0))} of ${q.n} ${q.elem} Kin beaten.` : q.kind === 'catch' ? `No ${q.elem} Kin caught yet.` : q.kind === 'dig' ? `${Math.min(q.n, dugCount(q.item) - (q.base || 0))} of ${q.n} ${ITEMS[q.item].name} dug.` : q.kind === 'deliver' ? `The parcel is for ${q.targetName}. ${G.player.has('parcel') ? 'You still have it.' : 'Lost it? Here is another.'}` : q.kind === 'explore' ? `You have not found ${q.spotName} yet. Follow ⌖.` : `${q.lairName} is still out there. Follow ⌖.`;
     if (q.kind === 'deliver' && !G.player.has('parcel')) G.player.add('parcel', 1);
     Dialogue.show(w.name, ['Not done yet.', need]);
   }
-  function questText(q) { if (q.kind === 'explore') return `find ${q.spotName}`; return q.kind === 'fetch' ? `bring ${q.n} ${ITEMS[q.item].name}` : q.kind === 'hunt' ? `beat ${q.n} ${q.elem} Kin` : q.kind === 'catch' ? `catch a ${q.elem} Kin` : q.kind === 'dig' ? `dig ${q.n} ${ITEMS[q.item].name}` : q.kind === 'deliver' ? `deliver the parcel to ${q.targetName}` : `beat ${q.lairName} at its den`; }
+  function questText(q) { if (q.kind === 'build' || q.kind === 'night' || q.kind === 'archery') return Builds.text(q); if (q.kind === 'explore') return `find ${q.spotName}`; return q.kind === 'fetch' ? `bring ${q.n} ${ITEMS[q.item].name}` : q.kind === 'hunt' ? `beat ${q.n} ${q.elem} Kin` : q.kind === 'catch' ? `catch a ${q.elem} Kin` : q.kind === 'dig' ? `dig ${q.n} ${ITEMS[q.item].name}` : q.kind === 'deliver' ? `deliver the parcel to ${q.targetName}` : `beat ${q.lairName} at its den`; }
   // the parcel reaches a headman
   function onElderTalk(v) {
     if (!G.player.has('parcel')) return false;
@@ -5831,7 +6119,7 @@ const Npcs = (() => {
       if (!w.npc) w.npc = makeNpc(w);
       const n = w.npc; n.bob += dt; const ddx = p.x - n.x, ddz = p.z - n.z; if (Math.hypot(ddx, ddz) < 7) n.yaw = Math.atan2(ddx, ddz);
     }
-    updateLairs(p); updateSpots(p);
+    updateLairs(p); updateSpots(p); Builds.update(dt, p, inBattle);
     Camps.update(dt, p, inBattle);
     Mer.update(dt, p, inBattle);
     Lab.update(dt, p, inBattle);
@@ -5867,7 +6155,7 @@ const Npcs = (() => {
   function marks(p) {
     const out = [];
     for (const [w, q] of takenQuests()) { if (q.kind === 'lair' && !q.beaten) out.push({ t: '⌖', x: p.x + wd(q.lair.x - p.x), z: p.z + wd(q.lair.z - p.z), name: q.lairName }); if (q.kind === 'explore' && !q.reached) out.push({ t: '⌖', x: p.x + wd(q.spot.x - p.x), z: p.z + wd(q.spot.z - p.z), name: q.spotName }); }
-    out.push(...Lab.marks(p), ...Camps.marks(p));
+    out.push(...Builds.marks(p), ...Lab.marks(p), ...Camps.marks(p));
     return out;
   }
   function mapMarks(p, range) {
@@ -5877,7 +6165,7 @@ const Npcs = (() => {
     out.push(...Camps.mapMarks(p, range), ...Lab.mapMarks(p));
     return out;
   }
-  return { init, update, entities, pick, talk, label, marks, mapMarks, activate, active, useCharge, hudText, onElderTalk, onLairBeaten, AMULETS, AMULET_KEYS, questText, npcState, get wanderers() { return activeW; }, get lab() { return Lab; }, get camps() { return Camps; }, get mer() { return Mer; } };
+  return { init, update, entities, pick, talk, label, marks, mapMarks, activate, active, useCharge, hudText, onElderTalk, onLairBeaten, takenList: takenQuests, AMULETS, AMULET_KEYS, questText, npcState, get wanderers() { return activeW; }, get lab() { return Lab; }, get camps() { return Camps; }, get mer() { return Mer; } };
 })();
 
 </script>
@@ -6788,7 +7076,10 @@ const UI = (() => {
     const idx = G.questState.index, b = G.questState.bounty;
     const cur = Quests.current(); const tg = Quests.target();
     const head = cur ? `<div class="quest current"><b>Now: ${cur.title}</b><div class="small">${cur.desc}</div><div class="small"><b>${Quests.hintText()}</b></div>${tg ? '<div class="row"><button class="btn" id="q-pin">Point me there</button></div>' : ''}</div>` : '';
-    el['panel-body'].innerHTML = head + `<div class="quest bounty"><b>Villages</b><div class="small">${Village.summaryHtml()}</div></div><div class="quest bounty"><b>Bounty ${b.round}</b><div class="small">Win ${b.need} battles: ${G.stats.battlesWon - (b.base || 0)}/${b.need}. Reward: Snare Cube and XP. Repeats, bigger each time.</div></div>` +
+    const JOBCOL = Object.assign({ fetch: '#9fd36a', hunt: '#ff7060', catch: '#ff7060', dig: '#c8a070', deliver: '#9fd36a', lair: '#ff8040', explore: '#ff8040' }, Builds.COL);
+    const JOBTAG = { build: 'BUILD', archery: 'ARCHERY', night: 'NIGHT', lair: 'DEN', explore: 'FIND', hunt: 'HUNT', catch: 'CATCH', dig: 'DIG', fetch: 'FETCH', deliver: 'DELIVER' };
+    const jobs = Npcs.takenList(); const jobsHtml = jobs.length ? `<div class="quest bounty"><b>Jobs (${jobs.length})</b>` + jobs.map(([w, q]) => `<div class="small" style="margin-top:4px"><span style="display:inline-block;padding:1px 6px;border-radius:6px;font-size:10px;font-weight:700;background:${JOBCOL[q.kind] || '#888'};color:#111">${JOBTAG[q.kind] || q.kind.toUpperCase()}</span> ${Npcs.questText(q)} <span style="opacity:.7">· for ${q.wname}</span></div>`).join('') + '</div>' : '';
+    el['panel-body'].innerHTML = head + jobsHtml + `<div class="quest bounty"><b>Villages</b><div class="small">${Village.summaryHtml()}</div></div><div class="quest bounty"><b>Bounty ${b.round}</b><div class="small">Win ${b.need} battles: ${G.stats.battlesWon - (b.base || 0)}/${b.need}. Reward: Snare Cube and XP. Repeats, bigger each time.</div></div>` +
       QUESTS.map((qq, i) => { const state = i < idx ? 'done' : i === idx ? 'current' : 'locked'; return `<div class="quest ${state}"><b>${i < idx ? '✓ ' : ''}${qq.title}</b>${state !== 'locked' ? `<div class="small">${qq.desc}</div>` : '<div class="small">Locked</div>'}${state === 'current' ? `<div class="qbar"><div style="width:${Math.round(100 * U.clamp(qq.check(G), 0, 1))}%"></div></div>` : ''}</div>`; }).join('');
     el['quest-dot'].classList.add('hidden');
     const qp = document.getElementById('q-pin'); if (qp) qp.addEventListener('click', () => { const t = Quests.target(); if (t) { G.pin = { x: Math.round(t.x), z: Math.round(t.z) }; closePanel(); toast('Pinned. Follow ◎ and ★ on the compass.', 'good'); } });
@@ -6911,7 +7202,7 @@ const UI = (() => {
       else if (m.kind === 'tent') { dot(m.x, m.z, 3, '#7ad7ff', '#ffffff'); label(m.x, m.z, m.name, '#cfe9ff'); }
       else if (m.kind === 'lab') { glyph(m.x, m.z, '⚗', '#7ad7ff'); label(m.x, m.z, m.name, '#cfe9ff'); }
     }
-    for (const m of Npcs.marks(p)) if (m.t === '⌖') { glyph(m.x, m.z, '⌖', '#ff8040'); label(m.x, m.z, m.name, '#ffd0b0'); }
+    for (const m of Npcs.marks(p)) if (m.t === '⌖') { glyph(m.x, m.z, '⌖', m.col || '#ff8040'); label(m.x, m.z, m.name, m.col || '#ffd0b0'); edge(m.x, m.z, '⌖', m.col || '#ff8040'); }
     if (G.world.lost && G.stats.lostMap) { const L = G.world.lost; glyph(L.x, L.z, '🦖', '#ffffff'); label(L.x, L.z, 'Lost World', '#c0ffc0', true); const T = G.world.lostTunnel(); if (T) { glyph(T.ax, T.az, '◠', '#ffffff'); if (bpp <= 8) label(T.ax, T.az, 'tunnel', '#e0e0e0'); } }
     if (G.world.lost && G.stats.lostMap) { const ap0 = G.stats.apex || {}, ap = {}; for (const k in ap0) ap[k] = ap0[k] === true || (ap0[k] && (G.dayCount || 0) < ap0[k].back); if (!ap.rex) { glyph(G.world.lost.x, G.world.lost.z + 22, '✶', '#ff5a2a'); label(G.world.lost.x, G.world.lost.z + 22, 'Tyrannorex', '#ffb090'); } const sea = Wild.apexSea(); if (sea && !ap.mosa) { glyph(sea.x, sea.z, '✶', '#3fd1c4'); label(sea.x, sea.z, 'Abyssaurus', '#a8f0ea'); } }
     const lb = (G.stats.legendBack || {})[G.worldId];
@@ -6965,15 +7256,15 @@ const UI = (() => {
     if (G.camp && G.worldId === 'earth') marks.push({ t: '✦', x: G.camp.x, z: G.camp.z });
     if (G.world.pad) marks.push({ t: '▲', x: G.world.pad.x, z: G.world.pad.z });
     const qt = Quests.target(); if (qt) marks.push({ t: '★', x: qt.x, z: qt.z });
-    for (const m of Npcs.marks(p)) marks.push({ t: m.t, x: m.x, z: m.z });
+    for (const m of Npcs.marks(p)) marks.push({ t: m.t, x: m.x, z: m.z, col: m.col });
     if (G.world.lost && G.stats.lostMap && !G.stats.lostFound) marks.push({ t: '🦖', x: G.world.lost.x, z: G.world.lost.z });
     const wrap = (d) => U.mod(d + WORLD_W / 2, WORLD_W) - WORLD_W / 2;
-    for (const m of marks) { const dx = wrap(m.x - p.x), dz = wrap(m.z - p.z); if (Math.hypot(dx, dz) < 6) continue; items.push({ t: m.t, b: Math.atan2(dx, -dz), cls: 'mark' }); }
+    for (const m of marks) { const dx = wrap(m.x - p.x), dz = wrap(m.z - p.z); if (Math.hypot(dx, dz) < 6) continue; items.push({ t: m.t, b: Math.atan2(dx, -dz), cls: 'mark', col: m.col }); }
     let html = '';
     for (const it of items) {
       let rel = it.b + p.yaw; while (rel > Math.PI) rel -= Math.PI * 2; while (rel < -Math.PI) rel += Math.PI * 2;
       if (Math.abs(rel) > Math.PI / 2) continue;
-      html += `<span class="${it.cls}" style="left:${(W / 2 + rel / (Math.PI / 2) * (W / 2)).toFixed(0)}px">${it.t}</span>`;
+      html += `<span class="${it.cls}" style="left:${(W / 2 + rel / (Math.PI / 2) * (W / 2)).toFixed(0)}px${it.col ? ';color:' + it.col : ''}">${it.t}</span>`;
     }
     if (tape.innerHTML !== html) tape.innerHTML = html;
   }
@@ -7571,6 +7862,31 @@ G.dismantle = function (entry) {
   this.stats.dismantled = (this.stats.dismantled || 0) + 1;
   return true;
 };
+// the bow: tap a Kin a long way off. The arrow takes a chunk of its health, never the last of it, and it comes for you.
+// Balloons pop; targets count for archery jobs.
+G.shoot = function () {
+  const p = this.player;
+  const ammo = p.has('arrow_ember') ? 'arrow_ember' : p.has('arrow') ? 'arrow' : null;
+  if (!ammo) { UI.toast('No arrows. Craft them: 1 wood, 1 stone, 1 frond makes 6.', 'bad'); return; }
+  if (this.lastShot && performance.now() - this.lastShot < 600) return; this.lastShot = performance.now();
+  p.take(ammo, 1); UI.sfx('place'); UI.renderHotbar();
+  const e = Wild.pick(p, 40); const wall = p.raycast(40, false, true); // arrows fly past torches, ladders and plants
+  const eD = e ? Math.hypot(e.x - p.x, e.y - p.y, e.z - p.z) : Infinity;
+  if (wall && wall.dist < eD) {
+    if (wall.id === B.BALLOON) { this.world.setBlock(wall.x, wall.y, wall.z, B.AIR); this.meshPass(99); UI.sfx('caught'); Builds.onShot('balloon', wall, p); return; }
+    if (wall.id === B.TARGET) { UI.sfx('hit'); Builds.onShot('target', wall, p); return; }
+    UI.toast('The arrow thunks into the ground.'); return;
+  }
+  if (!e) { UI.toast('Missed.'); return; }
+  const st = KIN.stats(e.kin); const unaware = (e.alert || 0) < 0.6;
+  let bite = ITEMS[ammo].arrow * (unaware ? 2 : 1);
+  if (e.isApex || e.isLegend || e.isBoss || e.isLabBoss || e.lieutenant) bite *= 0.35; // the big ones shrug most of it off
+  const dmg = Math.max(1, Math.round(st.hp * bite)); const before = e.kin.hp;
+  e.kin.hp = Math.max(1, e.kin.hp - dmg); e.alert = 1; e.ringT = 3; e.cool = 0; if (e.sleep) e.sleep = false;
+  this.stats.arrowHits = (this.stats.arrowHits || 0) + 1;
+  const pct = Math.round(e.kin.hp / st.hp * 100);
+  UI.sfx('hit'); UI.toast(`${unaware ? 'Clean shot! ' : 'Hit! '}${KIN.name(e.kin)} down to ${pct}% (${before - e.kin.hp} damage). ${e.kin.hp <= 1 ? 'It is barely standing.' : 'It is coming for you.'}`, 'good');
+};
 // use a consumable from the Bag or by tapping with it held
 G.useItem = function (key) {
   const p = this.player; const info = key ? p.itemInfo(key) : null; if (!info || !info.use || !p.has(key)) return false;
@@ -7626,6 +7942,7 @@ G.onBattleEnd = function (result, wildE, wild, mine, ambush) {
     { const dom0 = KIN.dominant(wild.sp.elem, 1)[0]; if (result === 'won') { if (!this.stats.beatElem) this.stats.beatElem = {}; this.stats.beatElem[dom0] = (this.stats.beatElem[dom0] || 0) + 1; } else { if (!this.stats.caughtElem) this.stats.caughtElem = {}; this.stats.caughtElem[dom0] = (this.stats.caughtElem[dom0] || 0) + 1; } }
     if (wildE.isLabBoss) Lab.onBossBeaten();
     if (wildE.lairQuest) Npcs.onLairBeaten(wildE.lairQuest);
+    if (wildE.nightQuest) Builds.onBattle(wildE.nightQuest, result);
     if (result === 'won') {
       const dom = KIN.dominant(wild.sp.elem, 1)[0];
       if (Math.random() < ((wild.sp.rarity || 0) >= 2 || wildE.elite ? 1 : 0.6)) { p.add('ess_' + dom, 1); UI.toast(`${dom} Essence collected.`); }
@@ -7919,13 +8236,14 @@ G.onTap = function () {
   if (npc) { Village.talk(npc); return; }
   const rn = Npcs.pick(p);
   if (rn) { Npcs.talk(rn); return; }
-  const e = Wild.pick(p);
+  const e = (p.selected() && (p.itemInfo(p.selected()) || {}).bow) ? null : Wild.pick(p);
   const hit = p.raycast(5.5);
   if (e && (!hit || Math.hypot(e.x - p.x, e.z - p.z, e.y - p.y) < hit.dist + 0.5)) {
     if (e.cool > 0) e.cool = 0;
     Battle.start(e, e.alert < 0.6); return;
   }
   const selInfo = p.selected() ? p.itemInfo(p.selected()) : null;
+  if (selInfo && selInfo.bow) { this.shoot(); return; }
   const interactable = hit && (hit.id === B.CAMPFIRE || hit.id === B.FUSION || hit.id === B.STARMETAL || hit.id === B.PORTAL || hit.id === B.DOOR || hit.id === B.DOOR_OPEN || hit.id === B.CHEST || hit.id === B.INCUBATOR);
   if (!interactable && selInfo && selInfo.rod) { Fishing.cast(); return; }
   if (!interactable && selInfo && selInfo.use) { this.useItem(p.selected()); return; }
