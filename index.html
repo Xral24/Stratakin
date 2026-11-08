@@ -6372,7 +6372,7 @@ const Campaign = (() => {
       if (!c.ranch) return say(['Ride? You? Nobody rides a Kin they have not been thrown off first.', 'I will teach you. But I need a paddock first, for the wild one they are bringing in. Build me a fence where my posts are: two high, a gap for a gate.'], () => { c.ranch = 1; });
       if (c.ranch === 1) return say(['The paddock. Two high, all the way round, between my posts.']);
       if (c.ranch === 2 && !c.rogueTamed) return say(['They brought him in last night. Thunderhoof. Nobody has stayed on him longer than a breath.', 'You want to learn? Get on him. Tap when he lands his weight, not before, not after. If he throws you, get up and try again.']);
-      return say(['You ride now. But only a few kinds will ever take a rider: steeds, dinosaurs, the great ones. Your Kindex marks steeds with ♞.', 'Each one has to be broken in once. Then ride it: trust builds over a couple of hours and it gets faster. Leave it alone too long and the trust fades.']);
+      return say(['You ride now. But only a few kinds will ever take a rider: steeds, dinosaurs, the great ones. Your Kindex marks steeds with ♞.', 'Each one has to be broken in once. Then ride it: trust builds over a couple of hours and it gets faster. Leave it unridden for a long time (hours of play) and the trust slowly fades.']);
     }
     if (n.job === 'hand') return say([['Hale was thrown seven times before he stayed on anything.', 'Feed them berries. They remember.', 'Mind the back legs.'][Math.floor(Math.random() * 3)]]);
     if (n.job === 'snow') {
@@ -8790,7 +8790,7 @@ G.loop = function (t) {
       p.jumpMul = tr.includes('Climber') ? 1.15 : 1; p.autoJumpTrait = tr.includes('Climber') || !!(p.mount && p.mount.sp.climber); p.lavaMul = tr.includes('Warm') ? 0.5 : 1; p.senseMul = tr.includes('Stalker') ? 0.7 : 1;
       const healMul = tr.includes('Mender') ? 2 : 1;
       const hpBefore = p.hp;
-      for (const k of this.kin) if (k !== p.mount && k.trust > 0) k.trust = Math.max(0, k.trust - dt / 5400); // trust drains in an hour and a half of not riding
+      for (const k of this.kin) if (k !== p.mount && k.trust > 0) k.trust = Math.max(0, k.trust - dt / 21600); // trust drains over six hours of play without riding (only while the game runs)
       { const ox = p.x, oz = p.z; p.update(dt, input); if (this.eggs.length) { const d = Math.hypot(p.x - ox, p.z - oz); if (d < 5) this.updateEggs(p.mount || p.flying ? d * 0.5 : d); } }
       if (p.hp < hpBefore) { UI.sfx('hurt'); const now = performance.now(); if (!this.lastHurtToast || now - this.lastHurtToast > 6000) { this.lastHurtToast = now; const why = { drown: 'You are drowning. Get your head above water.', lava: 'Lava burns. You need a Lava Suit.', fall: 'That was a long fall.', kin: 'It is on you. Run, or you black out.', cold: 'You are freezing. Craft a Frost Cloak: 6 frond, 8 snow, 2 wood. Snow is the white ground here and on mountain tops; mine it, or buy it from a trader.', space: 'No air, no warmth. Get back in the ship, or craft a Space Suit.', brine: 'The brine burns. Get out, or wear a Lava Suit.', worm: 'A worm. Keep moving when the ground shakes, or stay off the Mare.', shard: 'A shard from the ring. When the sky whistles, run.', spear: 'Spears. They do not want you here: run until they turn back.' }[p.lastDamage]; if (why) UI.toast(why, 'bad'); } }
       if (p.landed) { p.landed = false; UI.sfx('place'); UI.toast('Landed. The ship folds up and follows you.', 'good'); }
