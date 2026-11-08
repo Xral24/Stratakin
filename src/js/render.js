@@ -282,6 +282,12 @@ const R = (() => {
           col *= (0.72 + 0.4 * straw) * (0.8 + 0.2 * lip) * (0.94 + 0.1 * vn(vec2(along, vWorld.y) * 0.4 + 7.0));
         } else if (mat == 10) { // plaster: soft trowel marks, a little grime low down
           col *= 0.95 + 0.07 * vn(uv * 3.0 + 1.0) + 0.03 * vn(uv * 11.0);
+        } else if (mat == 14) { // dressed stone: courses half a block tall, each offset half a stone, mortar between, every stone its own shade; flags on the tops
+          bool flatTop = abs(n.y) > 0.5; float cy = flatTop ? vWorld.z : vWorld.y * 2.0; float row = floor(cy); float ry = fract(cy);
+          float cx = (flatTop ? vWorld.x : (abs(n.x) > 0.5 ? vWorld.z : vWorld.x)) + mod(row, 2.0) * 0.5; float cc = floor(cx); float rx = fract(cx);
+          float mortar = min(smoothstep(0.0, 0.06, ry) * smoothstep(1.0, 0.94, ry), smoothstep(0.0, 0.035, rx) * smoothstep(1.0, 0.965, rx));
+          float own = hash3(vec3(cc, row, 4.0));
+          col *= mix(0.6, 1.0, mortar) * (0.9 + 0.2 * own) * (0.96 + 0.08 * vn(uv * 9.0)) * (0.95 + 0.1 * vn(uv * 0.6 + 2.0));
         } else if (mat == 11) { // cobbles: rounded stones packed in a bed of dark mortar
           vec2 q = uv * 3.2; vec2 ci = floor(q), cf = fract(q); float f1 = 9.0, f2 = 9.0, idc = 0.0;
           for (int i = -1; i <= 1; i++) for (int j = -1; j <= 1; j++) { vec2 g = vec2(float(i), float(j)); vec2 o = vec2(hash3(vec3(ci + g, 1.0)), hash3(vec3(ci + g, 2.0))) * 0.7 + 0.15; float d = length(g + o - cf); if (d < f1) { f2 = f1; f1 = d; idc = hash3(vec3(ci + g, 3.0)); } else if (d < f2) f2 = d; }
@@ -675,15 +681,15 @@ const R = (() => {
   }
 
   // ---------- chunk meshing ----------
-  // material classes for the fragment shader: 1 grass top, 2 sand, 3 rock, 4 earth, 5 snow, 6 wood, 7 leaves, 8 lava, 9 tiles, 10 plaster, 11 cobbles, 12 thatch, 13 slate
-  const MAT_OF = {}; for (const [ids, m] of [[[B.SAND, B.DUNE, B.SALTCRUST], 2], [[B.STONE, B.GRAVEL, B.MOSS, B.COPPER, B.IRON, B.EMBER, B.GOLD, B.DIAMOND, B.BASALT, B.BEDROCK, B.FORTSTONE, B.RUBBLE, B.SELENITE, B.TYCHO, B.AMBER, B.REGOLITH, B.BOULDER], 3], [[B.DIRT], 4], [[B.SNOW], 5], [[B.PLANKS, B.LOG, B.BIRCHLOG, B.PALMLOG, B.BEAM, B.DOOR, B.DOOR_OPEN, B.LADDER, B.CHEST], 6], [[B.LEAVES, B.BERRYLEAF, B.NEEDLES, B.CACTUS], 7], [[B.LAVA], 8], [[B.TILES], 9], [[B.PLASTER], 10], [[B.COBBLE], 11], [[B.THATCH], 12], [[B.SLATE], 13]]) for (const id of ids) MAT_OF[id] = m;
+  // material classes for the fragment shader: 1 grass top, 2 sand, 3 rock, 4 earth, 5 snow, 6 wood, 7 leaves, 8 lava, 9 tiles, 10 plaster, 11 cobbles, 12 thatch, 13 slate, 14 dressed stone
+  const MAT_OF = {}; for (const [ids, m] of [[[B.SAND, B.DUNE, B.SALTCRUST], 2], [[B.STONE, B.GRAVEL, B.MOSS, B.COPPER, B.IRON, B.EMBER, B.GOLD, B.DIAMOND, B.BASALT, B.BEDROCK, B.FORTSTONE, B.RUBBLE, B.SELENITE, B.TYCHO, B.AMBER, B.REGOLITH, B.BOULDER], 3], [[B.DIRT], 4], [[B.SNOW], 5], [[B.PLANKS, B.LOG, B.BIRCHLOG, B.PALMLOG, B.BEAM, B.DOOR, B.DOOR_OPEN, B.LADDER, B.CHEST], 6], [[B.LEAVES, B.BERRYLEAF, B.NEEDLES, B.CACTUS], 7], [[B.LAVA], 8], [[B.TILES], 9], [[B.PLASTER], 10], [[B.COBBLE], 11], [[B.THATCH], 12], [[B.SLATE], 13], [[B.MASONRY], 14]]) for (const id of ids) MAT_OF[id] = m;
   const scratchOpaque = new MeshBuilder(16384, false, true), scratchWater = new MeshBuilder(2048, false, true), scratchGlass = new MeshBuilder(512, false, true), scratchGrass = new MeshBuilder(8192, false, true);
   const SOIL = new Set([B.GRASS, B.DIRT, B.SAND, B.SNOW, B.GRAVEL, B.STONE, B.MOSS, B.GLOWGRASS, B.REGOLITH, B.DUNE, B.SALTCRUST]);
   // things that stand on the ground without stopping it from sloping: air, leaves, trunks, bushes, flowers, pebbles, torches, chests...
   const DECOR = (b) => b === B.AIR || isLeaf(b) || isTrunk(b) || b === B.BERRY || BLOCKS[b].partial;
   const ROOFB = (b) => b === B.TILES || b === B.SLATE || b === B.THATCH;
   const SIGNABLE = new Set([B.EMBER, B.BERRY, B.COPPER, B.VOID, B.IRON, B.GOLD, B.GLOWWORM, B.LOG, B.MOONGLOW, B.CLOUD, B.SELENITE, B.BERRYLEAF, B.AMBER]);
-  const WALLY = (b) => b === B.PLANKS || b === B.PLASTER || b === B.BEAM || b === B.IRONWALL || b === B.VOIDWALL || b === B.SELGLASS;
+  const WALLY = (b) => b === B.PLANKS || b === B.PLASTER || b === B.BEAM || b === B.MASONRY || b === B.IRONWALL || b === B.VOIDWALL || b === B.SELGLASS;
   const surfTop = new Int16Array(18 * 18), surfWet = new Int16Array(18 * 18), cornerH = new Float32Array(17 * 17);
   const FLOWERS = [[0.95, 0.85, 0.25], [0.95, 0.95, 0.95], [0.85, 0.35, 0.55], [0.6, 0.5, 0.95], [0.95, 0.5, 0.25]];
   function buildChunk(world, chunk) {
@@ -792,6 +798,21 @@ const R = (() => {
             face([P(i, 0), P(j, 0), P(j, H[j]), P(i, H[i])], H[i] >= 0.999 && H[j] >= 0.999 ? under : rafter, 6, [a, 0, b]);
           }
           if (!isOpaque(get(lx, y - 1, lz))) face([[lx, y, lz], [lx + 1, y, lz], [lx + 1, y, lz + 1], [lx, y, lz + 1]], under, 6, [0, -1, 0]);
+          continue;
+        }
+        if (id === B.PALISADE) { // a palisade: two stout posts per block, pointed where the wall ends above
+          const sk = skyAt(lx, y + 1, lz); const isP = (b) => b === B.PALISADE;
+          const ax = (isP(get(lx + 1, y, lz)) || isP(get(lx - 1, y, lz))) ? 'x' : (isP(get(lx, y, lz + 1)) || isP(get(lx, y, lz - 1))) ? 'z' : 'x';
+          const tip = !isP(get(lx, y + 1, lz)) && !isOpaque(get(lx, y + 1, lz)); const bark = [0.5, 0.36, 0.2]; const seed = wx * 3 + wz * 7;
+          for (const t of [0.27, 0.73]) {
+            const cx = ax === 'x' ? lx + t : lx + 0.5, cz = ax === 'x' ? lz + 0.5 : lz + t; const r = 0.23; const h0 = U.hash3(wx, t * 10, wz, 150);
+            const path = [[cx, y - 0.1, cz], [cx, y + (tip ? 0.86 : 1.0), cz]]; const rad = [r, r];
+            if (tip) { path.push([cx, y + 1.08 + h0 * 0.25, cz], [cx, y + 1.42 + h0 * 0.3, cz]); rad.push(r * 0.72, 0.01); }
+            op.tube(path, rad, bark, { sky: sk, segs: 7, cap0: 'none', cap1: tip ? 'none' : 'none', shade: (p, nx, ny, nz, tt) => { const seg = Math.floor(Math.atan2(nx, nz) * 1.11 + 7); const k = U.hash3(seg, seed, Math.round(t * 10), 5); const m = (0.8 + k * 0.4) * (tt > 0.6 && tip ? 1.15 : 1); return [bark[0] * m, bark[1] * m, bark[2] * m]; } });
+          }
+          if (isP(get(lx, y - 1, lz)) || !isOpaque(get(lx, y - 1, lz))) {} // posts run on down; nothing to close
+          // a binding rail between the posts
+          const ry = y + 0.5 + U.hash3(wx, y, wz, 151) * 0.2; if (ax === 'x') op.box(lx, ry, lz + 0.42, lx + 1, ry + 0.1, lz + 0.58, [0.42, 0.3, 0.16], sk, false); else op.box(lx + 0.42, ry, lz, lx + 0.58, ry + 0.1, lz + 1, [0.42, 0.3, 0.16], sk, false);
           continue;
         }
         if (id === B.LAMP) { // a street lamp: an iron post with a caged lantern, or a lantern hung from a beam

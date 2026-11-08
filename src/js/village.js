@@ -14,19 +14,19 @@ const Village = (() => {
   const seaLevel = () => world.preset.water ? SEA : world.preset.brine ? world.preset.brineLevel : -99;
   const FOUND = { wood: 40, wall: 36, radius: 14, apart: 70 };
   const WALLS = [
-    { name: 'Wood', block: B.PLANKS, bonus: 2, level: 1 },
-    { name: 'Stone', block: B.STONE, bonus: 8, level: 2, cost: { shards: 60, items: { stone: 40 } } },
+    { name: 'Palisade', block: B.PALISADE, bonus: 2, level: 1 },
+    { name: 'Stone', block: B.MASONRY, bonus: 8, level: 2, cost: { shards: 60, items: { stone: 40 } } },
     { name: 'Iron', block: B.IRONWALL, bonus: 16, level: 3, cost: { shards: 150, items: { iron: 24 } } },
     { name: 'Voidsteel', block: B.VOIDWALL, bonus: 28, level: 4, cost: { shards: 400, items: { iron: 16, void: 12 } } },
   ];
   const WALL_SETS = {
     land: WALLS,
-    frontier: [{ name: 'Palisade', block: B.LOG, bonus: 3, level: 1 }, WALLS[1], WALLS[2], WALLS[3]],
+    frontier: [{ name: 'Palisade', block: B.PALISADE, bonus: 3, level: 1 }, WALLS[1], WALLS[2], WALLS[3]],
     alien: [{ name: 'Regolith', block: B.REGOLITH, bonus: 2, level: 1 }, { name: 'Basalt', block: B.BASALT, bonus: 8, level: 2, cost: { shards: 60, items: { stone: 40 } } }, { name: 'Tycho', block: B.IRONWALL, bonus: 18, level: 3, cost: { shards: 150, items: { tycho: 10, iron: 10 } } }, WALLS[3]],
     halo: [{ name: 'Sandstone', block: B.STONE, bonus: 3, level: 1 }, { name: 'Basalt', block: B.BASALT, bonus: 8, level: 2, cost: { shards: 60, items: { stone: 40 } } }, WALLS[2], WALLS[3]],
   };
   const wallSet = (v) => WALL_SETS[v.style] || WALLS;
-  const WALL_BLOCKS = new Set([B.PLANKS, B.STONE, B.IRONWALL, B.VOIDWALL, B.TORCH, B.LOG, B.REGOLITH, B.BASALT, B.MOONGLOW, B.RINGSHARD]);
+  const WALL_BLOCKS = new Set([B.PLANKS, B.STONE, B.MASONRY, B.PALISADE, B.IRONWALL, B.VOIDWALL, B.TORCH, B.LOG, B.REGOLITH, B.BASALT, B.MOONGLOW, B.RINGSHARD]);
   const LEVELS = [0, 90, 300, 700, 1500]; // lifetime Shards earned for level 1..5
   const EXPAND = { level: 2, cost: { shards: 200, items: { planks: 40 } } };
   const SHOP_BUILD = {
@@ -273,7 +273,15 @@ const Village = (() => {
       for (let a = -2; a <= 2; a++) for (let b = -2; b <= 2; b++) { const edge = Math.max(Math.abs(a), Math.abs(b)) === 2; push(vx + a, vy - 1, vz + b, B.STONE); push(vx + a, vy, vz + b, edge ? B.STONE : B.WATER); }
       for (let y = vy; y <= vy + 2; y++) push(vx, y, vz, B.STONE); push(vx, vy + 3, vz, B.WATER); push(vx, vy + 4, vz, M.light);
       push(vx + 5, vy, vz - 5, B.FUSION);
-    } else push(vx, vy, vz, B.FUSION);
+    } else {
+      push(vx, vy, vz, B.FUSION);
+      // the town well, off to one side of the square: a stone kerb round the water, two posts and a little tiled roof
+      const wx0 = vx - 4, wz0 = vz + 4;
+      for (let a = -1; a <= 1; a++) for (let b = -1; b <= 1; b++) { push(wx0 + a, vy - 1, wz0 + b, M.plazaEdge); push(wx0 + a, vy, wz0 + b, (a || b) ? B.MASONRY : B.WATER); }
+      for (const a of [-1, 1]) for (let y = vy + 1; y <= vy + 2; y++) push(wx0 + a, y, wz0, B.LOG);
+      for (let b = -1; b <= 1; b++) { push(wx0 - 1, vy + 3, wz0 + b, B.TILES); push(wx0, vy + 4, wz0 + b, B.TILES); push(wx0 + 1, vy + 3, wz0 + b, B.TILES); }
+      push(wx0, vy + 3, wz0, B.BEAM); // the windlass beam under the ridge
+    }
     // a market street in the cities: stalls under coloured awnings down the west road
     if (city) { const AW = [B.EMBER, B.GOLD, B.BERRYLEAF, B.CLOUD, B.COPPER]; let n = 0; for (let d = 10; d < R - 10; d += 4) for (const sg of [-1, 1]) { const x = vx - d, z = vz + sg * 2; push(x, vy, z, M.post); push(x, vy + 1, z, M.post); push(x, vy, z, B.CHEST); for (let a = -1; a <= 1; a++) push(x + a, vy + 2, z, AW[n % AW.length]); push(x, vy + 2, z + sg, AW[n % AW.length]); n++; } }
     // a castle on a hill at the back of a city, a waterfall down its side
@@ -589,7 +597,7 @@ const Village = (() => {
   // what each style of village is built from: the ground it levels, the square, the posts and lamps, the houses
   const MATS = {
     land: { ground: B.GRASS, under: B.DIRT, plaza: B.COBBLE, plazaEdge: B.STONE, post: B.LOG, light: B.TORCH, lamp: B.LAMP, floor: B.PLANKS, wall: B.PLASTER, window: B.GLASS, roof: B.TILES, eave: B.PLANKS, counter: B.PLANKS, bush: B.BERRY,
-      houses: [{ wall: B.PLASTER, base: B.STONE, beam: B.BEAM, roofs: [B.TILES, B.TILES, B.SLATE] }, { wall: B.PLASTER, base: B.STONE, beam: B.BEAM, roofs: [B.SLATE] }, { wall: B.STONE, base: B.STONE, beam: null, roofs: [B.SLATE, B.TILES] }, { wall: B.PLANKS, base: B.STONE, beam: B.BEAM, roofs: [B.THATCH, B.TILES] }] },
+      houses: [{ wall: B.PLASTER, base: B.MASONRY, beam: B.BEAM, roofs: [B.TILES, B.TILES, B.SLATE] }, { wall: B.PLASTER, base: B.MASONRY, beam: B.BEAM, roofs: [B.SLATE] }, { wall: B.MASONRY, base: B.MASONRY, beam: null, roofs: [B.SLATE, B.TILES] }, { wall: B.PLANKS, base: B.MASONRY, beam: B.BEAM, roofs: [B.THATCH, B.TILES] }] },
     frontier: { ground: B.SAND, under: B.SAND, plaza: B.SAND, plazaEdge: B.PLANKS, post: B.LOG, light: B.TORCH, lamp: B.LAMP, floor: B.PLANKS, wall: B.PLANKS, window: B.GLASS, roof: B.THATCH, eave: B.LOG, counter: B.PLANKS, bush: B.CACTUS, boardwalk: true, saloon: true,
       houses: [{ wall: B.PLANKS, base: B.PLANKS, beam: B.LOG, roofs: [B.THATCH, B.THATCH, B.PLANKS] }] },
     alien: { ground: B.REGOLITH, under: B.DIRT, plaza: B.STARSALT, plazaEdge: B.BASALT, post: B.BASALT, light: B.MOONGLOW, floor: B.REGOLITH, wall: B.SELGLASS, window: B.SELGLASS, roof: B.SELGLASS, eave: B.SELGLASS, counter: B.BASALT, bush: null, pod: true },
@@ -666,7 +674,7 @@ const Village = (() => {
         if (Math.abs(dx) <= 2 && Math.abs(dz) <= 2) set(x, vy + WT + 1, z, M.floor); // the ceiling: the attic is its own dark space under the roof
         if (Math.abs(a) === 3 && Math.abs(b) <= 2) { // the gable: a triangle of wall under the roof, a beam along its foot and up its middle, a little window
           for (let y = vy + WT + 1; y < lvl(b); y++) set(x, y, z, beam && (y === vy + WT + 1 || b === 0) ? beam : (b === 0 && y === vy + WT + 3) ? M.window : st.wall);
-          if (a === -3 * sgn && b === -2) for (let y = vy + WT + 1; y <= vy + WT + 5; y++) set(x, y, z, B.STONE); // the chimney, up through the back gable
+          if (a === -3 * sgn && b === -2) for (let y = vy + WT + 1; y <= vy + WT + 5; y++) set(x, y, z, B.MASONRY); // the chimney, up through the back gable
         }
       }
       if (!(a === -3 * sgn && b === -2)) set(x, lvl(b), z, roof); // the roof: a wedge at every spot but the chimney's
@@ -771,20 +779,29 @@ const Village = (() => {
     if (v.type !== 'land' || v.founded) return;
     const vy = v.y, blk = wallSet(v)[st.wall || 0].block, wr = wallRadius(st); const M = MATS[v.style] || MATS.land;
     const set = (x, y, z, id) => world.setBlock(x, y, z, id);
+    const masonry = !(blk === B.PALISADE || blk === B.LOG || blk === B.REGOLITH); // stone and metal walls stand three high with battlements; a palisade is two posts tall
+    const H = masonry ? 3 : 2;
     for (const [x, z, gate] of ringCols(v, st)) {
       const gy = world.groundY(x, z, vy + 6);
-      for (let y = Math.min(gy, vy) + 1; y <= vy + 6; y++) { const b = world.getBlock(x, y, z); if (b !== B.AIR && b !== B.WATER) set(x, y, z, B.AIR); }
-      if (gate) { if (!isSolid(world.getBlock(x, vy - 1, z))) set(x, vy - 1, z, M.floor); continue; }
-      const base = Math.min(gy + 1, vy), top = Math.max(vy + 1, gy + 2);
-      for (let y = base; y <= top; y++) set(x, y, z, blk);
-      const dx = x - v.x, dz = z - v.z;
-      if ((Math.abs(dx) === wr && Math.abs(dz) === 2) || (Math.abs(dz) === wr && Math.abs(dx) === 2)) set(x, top + 1, z, M.light);
+      for (let y = Math.min(gy, vy) + 1; y <= vy + 7; y++) { const b = world.getBlock(x, y, z); if (b !== B.AIR && b !== B.WATER) set(x, y, z, B.AIR); }
+      const dx = x - v.x, dz = z - v.z; const along = Math.abs(dx) === wr ? dz : dx; const corner = Math.abs(dx) === wr && Math.abs(dz) === wr;
+      if (gate) { // the gateway: floor under it, an arch over it with a merlon on top (masonry) or a lintel beam (palisade)
+        if (!isSolid(world.getBlock(x, vy - 1, z))) set(x, vy - 1, z, M.floor);
+        if (masonry) { set(x, vy + 3, z, blk); if (along === 0) set(x, vy + 4, z, blk); } else set(x, vy + 2, z, B.LOG);
+        continue;
+      }
+      const lightCol = (Math.abs(dx) === wr && Math.abs(dz) === 2) || (Math.abs(dz) === wr && Math.abs(dx) === 2);
+      const base = Math.min(gy + 1, vy), top = Math.max(vy + H - 1, gy + H);
+      const post = !masonry && (lightCol || corner); // in a palisade the gate flanks and corners are single stout posts that carry the lamps
+      for (let y = base; y <= top; y++) set(x, y, z, post ? B.LOG : blk);
+      if (masonry) { if (corner) { for (let y = top + 1; y <= top + 3; y++) set(x, y, z, blk); } else if (along % 2 === 0) set(x, top + 1, z, blk); } // battlements, and a taller pier at each corner
+      if (lightCol) set(x, top + (masonry && along % 2 === 0 ? 2 : 1), z, M.light);
     }
-    for (const [x, z] of st.holeCols) for (let y = vy; y <= vy + 3; y++) if (world.getBlock(x, y, z) !== B.AIR) set(x, y, z, B.AIR);
+    for (const [x, z] of st.holeCols) for (let y = vy; y <= vy + 4; y++) if (world.getBlock(x, y, z) !== B.AIR) set(x, y, z, B.AIR);
   }
   function clearWall(v, st) {
     const vy = v.y; const M = MATS[v.style] || MATS.land;
-    for (const [x, z] of ringCols(v, st)) for (let y = vy - 1; y <= vy + 4; y++) { const b = world.getBlock(x, y, z); if (WALL_BLOCKS.has(b)) world.setBlock(x, y, z, y === vy - 1 ? M.ground : B.AIR); }
+    for (const [x, z] of ringCols(v, st)) for (let y = vy - 1; y <= vy + 7; y++) { const b = world.getBlock(x, y, z); if (WALL_BLOCKS.has(b)) world.setBlock(x, y, z, y === vy - 1 ? M.ground : B.AIR); }
   }
   function setGates(v, st, closed) {
     if (v.type !== 'land' || v.founded) return;
@@ -1502,8 +1519,7 @@ const Village = (() => {
     if (!next || v.type !== 'land' || v.founded) return 'No wall to raise here.';
     if (levelOf(st) < next.level) return `${v.name} must reach level ${next.level} first.`;
     if (!canPay(next.cost)) return 'You cannot pay for that yet: ' + costText(next.cost) + '.';
-    pay(next.cost); if (v.R) { st.wall++; st.holeCols = []; return null; } // a preset town's walls are part of its layout: the upgrade is the masonry and the gatehouse, not a new ring
-    clearWall(v, st); st.wall++; st.holeCols = []; stampWall(v, st);
+    pay(next.cost); clearWall(v, st); st.wall++; st.holeCols = []; stampWall(v, st); // the ring comes down and goes up again in the new material, battlements and all
     return null;
   }
   function repairWall(v) {
