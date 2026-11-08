@@ -61,7 +61,7 @@ button { font-family: var(--font); color: var(--ui); }
 #joy-knob { position: absolute; left: 33px; top: 33px; width: 40px; height: 40px; border-radius: 50%; background: rgba(255,255,255,.55); box-shadow: 0 2px 6px rgba(0,0,0,.4); }
 #joy::after { content: '◀ ▶'; position: absolute; left: 0; right: 0; top: 46px; text-align: center; font-size: 10px; letter-spacing: 36px; padding-left: 36px; opacity: .35; pointer-events: none; }
 #btn-jump { position: absolute; right: 18px; bottom: calc(96px + env(safe-area-inset-bottom)); width: 68px; height: 68px; border-radius: 50%; background: rgba(255,255,255,.14); border: 2px solid rgba(255,255,255,.4); font-size: 24px; pointer-events: auto; }
-#btn-sneak { position: absolute; right: 96px; bottom: calc(104px + env(safe-area-inset-bottom)); width: 54px; height: 40px; border-radius: 20px; background: rgba(255,255,255,.1); border: 2px solid rgba(255,255,255,.3); font-size: 12px; pointer-events: auto; }
+#btn-sneak { position: absolute; right: 96px; bottom: calc(96px + env(safe-area-inset-bottom)); width: 56px; height: 56px; border-radius: 50%; background: rgba(255,255,255,.12); border: 2px solid rgba(255,255,255,.4); font-size: 20px; pointer-events: auto; }
 #btn-sneak.on { background: rgba(122,215,255,.5); }
 #hud.in-battle #hotbar, #hud.in-battle #item-name, #hud.in-battle #touch-ui, #hud.in-battle #quest-hint, #hud.in-battle #mine-bar, #hud.in-battle #drop-bar, #hud.in-battle #look { display: none; }
 #toasts { position: absolute; left: 50%; top: 80px; transform: translateX(-50%); display: flex; flex-direction: column; gap: 6px; align-items: center; width: 90vw; }
@@ -213,7 +213,7 @@ code { font-family: var(--pix); font-size: 11px; }
 .tag.down { background: #ff6b5a; }
 #btn-snare { position: absolute; left: 50%; bottom: calc(176px + env(safe-area-inset-bottom)); transform: translateX(-50%); padding: 12px 22px; border-radius: 24px; background: #7fe0c0; color: #0a2a22; border: 0; font-weight: 800; font-size: 16px; pointer-events: auto; box-shadow: 0 4px 14px rgba(0,0,0,.4); animation: pulse 1.2s infinite; }
 @keyframes pulse { 50% { transform: translateX(-50%) scale(1.06); } }
-#btn-ride { position: absolute; right: 96px; bottom: calc(152px + env(safe-area-inset-bottom)); width: 54px; height: 40px; border-radius: 20px; background: rgba(255,255,255,.1); border: 2px solid rgba(255,255,255,.3); font-size: 12px; pointer-events: auto; }
+#btn-ride { position: absolute; right: 97px; bottom: calc(160px + env(safe-area-inset-bottom)); width: 54px; height: 40px; border-radius: 20px; background: rgba(255,255,255,.1); border: 2px solid rgba(255,255,255,.3); font-size: 12px; pointer-events: auto; }
 #btn-ride.on { background: rgba(240,208,144,.5); }
 body.desktop #joy, body.desktop #btn-jump, body.desktop #btn-sneak { display: none; }
 #sky { position: fixed; inset: 0; pointer-events: none; overflow: hidden; z-index: 2; transition: opacity .8s; }
@@ -334,7 +334,7 @@ body.desktop #joy, body.desktop #btn-jump, body.desktop #btn-sneak { display: no
   <div id="touch-ui">
     <div id="joy"><div id="joy-knob"></div></div>
     <button id="btn-jump">▲</button>
-    <button id="btn-sneak">sneak</button>
+    <button id="btn-sneak" aria-label="Down">▼</button>
     <button id="btn-snare" class="hidden">Set snare</button>
     <div id="fishbar" class="hidden"><div class="snare-tip">A bite! Tap when the marker is in the glow.</div><div class="snare-track"><div class="snare-zone"></div><div class="snare-marker"></div></div></div>
     <button id="btn-ride" class="hidden">Ride</button>
@@ -1783,7 +1783,7 @@ const ITEMS = {
   bait_berry: { name: 'Berry Bait', col: '#c8334a', crafted: true, desc: 'Used up on a cast. Uncommon fish bite more.' },
   bait_glow: { name: 'Glow Bait', col: '#d8ff6a', crafted: true, desc: 'Used up on a cast. Rare fish come to the light.' },
   bait_void: { name: 'Void Bait', col: '#9a4de0', crafted: true, desc: 'Used up on a cast. Epic and legendary fish answer it.' },
-  ladder: { name: 'Ladder', block: B.LADDER, col: '#a07a44', crafted: true, desc: 'Place it against a wall and climb: jump or push forward to go up, sneak to go down. Stack them for a shaft.' },
+  ladder: { name: 'Ladder', block: B.LADDER, col: '#a07a44', crafted: true, desc: 'Place it against a wall and climb: ▲ or push forward to go up, hold ▼ to go down. Stack them for a shaft.' },
   chest: { name: 'Chest', block: B.CHEST, col: '#a0783c', crafted: true, desc: 'Place it and tap it: whatever you store inside stays there, safe, even if the wild beats you. Build as many as you like.' },
   kit_bridge: { name: 'Bridge kit', kit: 'bridge', col: '#b58d58', crafted: true, desc: 'A plank bridge with rails, from where you tap straight ahead until it meets ground, up to twelve blocks.' },
   claw: { name: 'Claw Band', kinGear: 'weapon', boost: { atk: 0.12 }, col: '#c9a84c', crafted: true, desc: 'Kin weapon: Attack +12%.' },
@@ -1809,7 +1809,7 @@ const ITEMS = {
   amber: { name: 'Amber', col: '#e8b85a', elem: 'Flame', desc: 'Warm golden resin-stone from under Halo\'s dunes. Flame ingredient.' },
   sulfur: { name: 'Sulfur', col: '#e8d84a', elem: 'Spark', desc: 'Yellow crust from Halo\'s salt flats. Burns. Spark ingredient.' },
   ringshard: { name: 'Ring Shard', col: '#fff0c0', elem: 'Light', desc: 'A piece of Halo\'s ring, fallen from the sky. Light that you can hold.' },
-  wings: { name: 'Halo Wings', col: '#fff0c0', gear: true, desc: 'Wings of ring shard and amber. Jump in the air to open them: hold jump to climb, sneak to come down, let go to drift. You land softly.' },
+  wings: { name: 'Halo Wings', col: '#fff0c0', gear: true, desc: 'Wings of ring shard and amber. Jump in the air to open them: hold ▲ to climb, hold ▼ to come down, let go to drift. You land softly.' },
   amberheart: { name: 'Amber Heart', kinGear: 'charm', boost: { pow: 0.18, hp: 0.06 }, col: '#e8b85a', crafted: true, desc: 'Kin charm: Power +18%, Health +6%.' },
   sulfurfang: { name: 'Sulfur Fang', kinGear: 'weapon', boost: { atk: 0.18, pow: 0.12 }, col: '#e8d84a', crafted: true, desc: 'Kin weapon: Attack +18%, Power +12%.' },
   ringplate: { name: 'Ring Plate', kinGear: 'armor', boost: { hp: 0.3, atk: 0.1 }, col: '#fff0c0', crafted: true, desc: 'Kin armour of ring shard: Health +30%, Attack +10%.' },
@@ -1845,7 +1845,7 @@ const ITEMS = {
   lavasuit: { name: 'Lava Suit', col: '#ff9050', gear: true, desc: 'Swim in lava. Without it, lava kills on touch. Needed for the Core.' },
   frostcloak: { name: 'Frost Cloak', col: '#bfe3ff', gear: true, desc: 'Keeps the cold out. Without it, snowfields and mountain tops slow you, then freeze you.' },
   spacesuit: { name: 'Space Suit', col: '#e8f0ff', gear: true, desc: 'Air and warmth beyond the sky. Without it the Moon freezes you in moments.' },
-  ship: { name: 'Starship', col: '#c7fbff', gear: true, desc: 'Forged from Starmetal. Tap it on the surface to board; hold jump to climb, sneak to descend. Climb above the clouds to leave the world.' },
+  ship: { name: 'Starship', col: '#c7fbff', gear: true, desc: 'Forged from Starmetal. Tap it on the surface to board; hold ▲ to climb, hold ▼ to go down. Climb above the clouds to leave the world.' },
 };
 for (const e of ELEMENTS) ITEMS['ess_' + e] = { name: e + ' Essence', col: ELEM_COLOR[e], elem: e, desc: 'Left behind by ' + e + ' Kin. Fusion ingredient.' };
 for (const e of ELEMENTS) ITEMS['lure_' + e] = { name: e + ' Lure', col: ELEM_COLOR[e], use: 'self', lure: e, crafted: true, desc: 'Drink it and ' + e + ' Kin come to you for four minutes, twice as often and far more of them.' };
@@ -6526,8 +6526,15 @@ const UI = (() => {
     const press = (ev, v) => { ev.preventDefault(); Controls.input.touchJump = v; if (v) Controls.input.jumpPressed = true; };
     jb.addEventListener('touchstart', (e) => press(e, true), { passive: false }); jb.addEventListener('touchend', (e) => press(e, false), { passive: false }); jb.addEventListener('touchcancel', (e) => press(e, false), { passive: false });
     jb.addEventListener('mousedown', (e) => press(e, true)); jb.addEventListener('mouseup', (e) => press(e, false));
-    sb.addEventListener('touchstart', (e) => { e.preventDefault(); Controls.input.touchSneak = !Controls.input.touchSneak; sb.classList.toggle('on', Controls.input.touchSneak); }, { passive: false });
-    sb.addEventListener('click', () => { Controls.input.touchSneak = !Controls.input.touchSneak; sb.classList.toggle('on', Controls.input.touchSneak); });
+    // ▼: hold it to go down (ship, wings, flying mounts, ladders, water); a quick tap on foot locks a sneak, tap again to stand up
+    const down = { held: false, locked: false, t0: 0, unlocking: false };
+    const syncDown = () => { Controls.input.touchSneak = down.held || down.locked; sb.classList.toggle('on', down.locked); };
+    const downStart = (e) => { e.preventDefault(); if (down.locked) { down.locked = false; down.unlocking = true; } else { down.held = true; down.t0 = performance.now(); down.unlocking = false; } syncDown(); };
+    const downEnd = (e) => { e.preventDefault(); const p = G.player; const onFoot = p && !p.flying && !p.mount && !p.gliding;
+      if (down.held && !down.unlocking && onFoot && performance.now() - down.t0 < 280) down.locked = true;
+      down.held = false; syncDown(); };
+    sb.addEventListener('touchstart', downStart, { passive: false }); sb.addEventListener('touchend', downEnd, { passive: false }); sb.addEventListener('touchcancel', downEnd, { passive: false });
+    sb.addEventListener('mousedown', downStart); sb.addEventListener('mouseup', downEnd);
     const bs = q('btn-snare'), br = q('btn-ride');
     const tap = (el, fn) => { el.addEventListener('touchstart', (e) => { e.preventDefault(); fn(); }, { passive: false }); el.addEventListener('click', fn); };
     tap(bs, () => G.stealthSnare()); tap(br, () => G.toggleRide()); tap(q('btn-ship'), () => G.boardShip());
@@ -6969,7 +6976,7 @@ const UI = (() => {
   }
   // ---------- the reveal: what the table just made ----------
   const KIT_HOW = 'Select it in the Bag (Hold), stand on open ground, face where you want it and tap the ground a few steps ahead. The building rises with its door toward you.';
-  const GEAR_HOW = { amulet_haste: 'Bag › Amulets › Activate. Any amulet used puts all of them to sleep for four minutes.', amulet_skin: 'Bag › Amulets › Activate before you cross something dangerous.', amulet_focus: 'Bag › Amulets › Activate; the next three fights hit harder.', amulet_hunter: 'Bag › Amulets › Activate; the next three snares catch better.', amulet_mender: 'Bag › Amulets › Activate when your Kin are down and the hut is far.', amulet_shadow: 'Bag › Amulets › Activate to walk past wild Kin and camp guards for a minute.', wings: 'Jump, then jump again in the air: the wings open. Hold jump to climb, sneak to come down.', reeffins: 'Wear them (gear is always on): you swim nearly twice as fast and breathe twice as long.', pick: 'Wear it: everything mines twice as fast.', kit_dome: 'In a land village you hold: open the headman\'s ledger and Raise the Moon Dome, or tap the ground inside the walls with the kit in hand.', moonlamp: 'Place it like a torch. It lights twelve blocks, air or no air.', selglass: 'See-through blocks that glow a little. Twenty-four of them go into a Moon Dome kit.', chest: 'Place it, tap it, store what you do not want to lose. Mine it to pick it up again with everything inside.', rod: 'Hold it (Bag › Hold), stand by the water, face it and tap. When the toast says a bite, a bar appears: tap when the marker is inside the glow. Rarer fish run faster and the glow is narrower; a better rod widens it. Bait is used up on each cast.', kit_portal: 'Place it like a block inside a village you hold. Tap the arch to pick any other village of yours, or Brannock\'s shore.', door: 'Place it in a wall gap like a block. Tap it to open or shut. Shut, it counts as wall; raiders have to break it down.', kit_house: KIT_HOW, kit_bakery: KIT_HOW, kit_juice: KIT_HOW, kit_trader: KIT_HOW, kit_voodoo: KIT_HOW, kit_post: KIT_HOW, kit_wall: 'Select it, face along the line you want and tap the ground: seven blocks of wall rise across your view, two high.', kit_wall_stone: 'Same as the wood wall, in stone. Raiders need about three seconds a block instead of two.', kit_wall_iron: 'Same as the wood wall, in iron. Raiders need about ten seconds a block.', kit_bridge: 'Stand at the edge, face across the gap and tap the last block of ground: planks run out ahead until they meet ground, twelve blocks at most.', claw: 'Open the Kin, Put on. One weapon, one armour, one charm per Kin. Comes back to your bag if the Kin is fused.', bulb: 'Wear it (gear is always on). Under water your air lasts two minutes instead of twenty seconds.', glider: 'Hold Jump while falling and you glide. Jump off anything tall.', lavasuit: 'Lava no longer burns: you swim in it. The Core is open to you.', frostcloak: 'Snowfields and mountain tops no longer freeze you.', spacesuit: 'Air and warmth off-world. Now the Moon will not kill you.', torch: 'Hold it to light caves, or place it on a block. Holding it, select it in the Bag.', snare: 'Fight a Kin down, then use it: a timing bar appears; tap when the marker is in the green. Or sneak up behind an unaware Kin and press Set snare.', snare2: 'A stronger snare: a wider green zone. Needed for the rarest Kin.', fusion: 'Place it anywhere and tap it to fuse Kin or craft, wherever you are.', planks: 'Building blocks. Forty of them around a table help found a village.', glass: 'Windows. See-through blocks.', ironwall: 'Wall blocks for a village you found: raiders take far longer to break through.', voidwall: 'The strongest wall blocks there are. They glow.', smoothie: 'Use it from the Bag: every Kin recovers half its health.', bread: 'Use it from the Bag: your own health back to full.' };
+  const GEAR_HOW = { amulet_haste: 'Bag › Amulets › Activate. Any amulet used puts all of them to sleep for four minutes.', amulet_skin: 'Bag › Amulets › Activate before you cross something dangerous.', amulet_focus: 'Bag › Amulets › Activate; the next three fights hit harder.', amulet_hunter: 'Bag › Amulets › Activate; the next three snares catch better.', amulet_mender: 'Bag › Amulets › Activate when your Kin are down and the hut is far.', amulet_shadow: 'Bag › Amulets › Activate to walk past wild Kin and camp guards for a minute.', wings: 'Jump, then jump again in the air: the wings open. Hold ▲ to climb, hold ▼ to come down.', reeffins: 'Wear them (gear is always on): you swim nearly twice as fast and breathe twice as long.', pick: 'Wear it: everything mines twice as fast.', kit_dome: 'In a land village you hold: open the headman\'s ledger and Raise the Moon Dome, or tap the ground inside the walls with the kit in hand.', moonlamp: 'Place it like a torch. It lights twelve blocks, air or no air.', selglass: 'See-through blocks that glow a little. Twenty-four of them go into a Moon Dome kit.', chest: 'Place it, tap it, store what you do not want to lose. Mine it to pick it up again with everything inside.', rod: 'Hold it (Bag › Hold), stand by the water, face it and tap. When the toast says a bite, a bar appears: tap when the marker is inside the glow. Rarer fish run faster and the glow is narrower; a better rod widens it. Bait is used up on each cast.', kit_portal: 'Place it like a block inside a village you hold. Tap the arch to pick any other village of yours, or Brannock\'s shore.', door: 'Place it in a wall gap like a block. Tap it to open or shut. Shut, it counts as wall; raiders have to break it down.', kit_house: KIT_HOW, kit_bakery: KIT_HOW, kit_juice: KIT_HOW, kit_trader: KIT_HOW, kit_voodoo: KIT_HOW, kit_post: KIT_HOW, kit_wall: 'Select it, face along the line you want and tap the ground: seven blocks of wall rise across your view, two high.', kit_wall_stone: 'Same as the wood wall, in stone. Raiders need about three seconds a block instead of two.', kit_wall_iron: 'Same as the wood wall, in iron. Raiders need about ten seconds a block.', kit_bridge: 'Stand at the edge, face across the gap and tap the last block of ground: planks run out ahead until they meet ground, twelve blocks at most.', claw: 'Open the Kin, Put on. One weapon, one armour, one charm per Kin. Comes back to your bag if the Kin is fused.', bulb: 'Wear it (gear is always on). Under water your air lasts two minutes instead of twenty seconds.', glider: 'Hold Jump while falling and you glide. Jump off anything tall.', lavasuit: 'Lava no longer burns: you swim in it. The Core is open to you.', frostcloak: 'Snowfields and mountain tops no longer freeze you.', spacesuit: 'Air and warmth off-world. Now the Moon will not kill you.', torch: 'Hold it to light caves, or place it on a block. Holding it, select it in the Bag.', snare: 'Fight a Kin down, then use it: a timing bar appears; tap when the marker is in the green. Or sneak up behind an unaware Kin and press Set snare.', snare2: 'A stronger snare: a wider green zone. Needed for the rarest Kin.', fusion: 'Place it anywhere and tap it to fuse Kin or craft, wherever you are.', planks: 'Building blocks. Forty of them around a table help found a village.', glass: 'Windows. See-through blocks.', ironwall: 'Wall blocks for a village you found: raiders take far longer to break through.', voidwall: 'The strongest wall blocks there are. They glow.', smoothie: 'Use it from the Bag: every Kin recovers half its health.', bread: 'Use it from the Bag: your own health back to full.' };
   function renderReveal(d) {
     const body = el['panel-body'];
     if (d.kind === 'kin') {
@@ -7166,7 +7173,7 @@ const UI = (() => {
   function showTutorial() {
     const t = document.getElementById('tutorial');
     t.innerHTML = Controls.isTouch
-      ? `<b>How to move</b><div class="tut-row"><span class="k">◎</span> Left stick: walk</div><div class="tut-row"><span class="k">↔</span> Drag the right side: look around</div><div class="tut-row"><span class="k">▲</span> Jump (also swims up)</div><div class="tut-row"><span class="k">●</span> Hold a finger on a block: mine it</div><div class="tut-row"><span class="k">·</span> Tap: place the selected item, or use a table</div><div class="tut-row"><span class="k">⌁</span> Wild Kin have a ring. Sneak behind them to ambush.</div><button class="btn" id="tut-ok">Got it</button>`
+      ? `<b>How to move</b><div class="tut-row"><span class="k">◎</span> Left stick: walk</div><div class="tut-row"><span class="k">↔</span> Drag the right side: look around</div><div class="tut-row"><span class="k">▲</span> Jump (also swims up)</div><div class="tut-row"><span class="k">●</span> Hold a finger on a block: mine it</div><div class="tut-row"><span class="k">·</span> Tap: place the selected item, or use a table</div><div class="tut-row"><span class="k">⌁</span> Wild Kin have a ring. Sneak behind them to ambush.</div><div class="tut-row"><span class="k">▼</span> Hold to go down (ship, wings, ladders). Tap to sneak, tap again to stand.</div><button class="btn" id="tut-ok">Got it</button>`
       : `<b>How to move</b><div class="tut-row"><span class="k">WASD</span> walk · <span class="k">mouse</span> look · <span class="k">Space</span> jump · <span class="k">Shift</span> sneak</div><div class="tut-row"><span class="k">hold click</span> mine · <span class="k">right click</span> place or use</div><div class="tut-row"><span class="k">E</span> craft · <span class="k">Q</span> Kin · <span class="k">J</span> quests · <span class="k">Esc</span> free the mouse</div><div class="tut-row">Wild Kin have a ring. Sneak behind them to ambush.</div><button class="btn" id="tut-ok">Got it</button>`;
     t.classList.remove('hidden');
     const close = () => t.classList.add('hidden');
@@ -7405,7 +7412,7 @@ G.toggleRide = function () {
   const mode = this.rideMode(k);
   if (mode === 'water' && !p.inWater) { UI.toast(`${KIN.name(k)} carries you in the water. Get in first.`); return; }
   p.mount = k; p.mountMode = mode; UI.sfx('util');
-  UI.toast(mode === 'air' ? (k.level >= 20 ? `You climb onto ${KIN.name(k)}. Jump, then hold jump to climb, sneak to come down, let go to hover. It lands you softly.` : `You climb onto ${KIN.name(k)}. It glides; at Lv 20 it will fly.`) : mode === 'water' ? `You climb onto ${KIN.name(k)}. It floats you; sneak to dive.` : `You climb onto ${KIN.name(k)}.`, 'good');
+  UI.toast(mode === 'air' ? (k.level >= 20 ? `You climb onto ${KIN.name(k)}. Jump, then hold ▲ to climb, hold ▼ to come down, let go to hover. It lands you softly.` : `You climb onto ${KIN.name(k)}. It glides; at Lv 20 it will fly.`) : mode === 'water' ? `You climb onto ${KIN.name(k)}. It floats you; hold ▼ to dive.` : `You climb onto ${KIN.name(k)}.`, 'good');
 };
 G.toast = function (m, c) { UI.toast(m, c); };
 G.toggleCamera = function () { this.thirdPerson = !this.thirdPerson; UI.toast(this.thirdPerson ? 'Third person. You can see yourself now; V or the menu switches back.' : 'First person.'); };
@@ -7719,14 +7726,14 @@ G.boardShip = function () {
   if (Battle.active || Dialogue.active()) return;
   if (p.flying) { // land if close to the ground
     const gy = this.world.groundY(Math.floor(p.x), Math.floor(p.z), Math.floor(p.y) + 1);
-    if (p.y - gy > 3) { UI.toast('Too high to land. Descend (sneak) first.'); return; }
+    if (p.y - gy > 3) { UI.toast('Too high to land. Hold ▼ to go down first.'); return; }
     p.flying = false; p.vx = p.vz = 0; UI.toast('Landed.');
     return;
   }
   if (!p.has('ship')) return;
   if (p.inWater || p.inLava) { UI.toast('Board from dry ground.'); return; }
   if (this.world.layerAt(Math.floor(p.y), Math.floor(p.x), Math.floor(p.z)) === 'Mines' || p.y < CORE_TOP) { UI.toast('The ship needs open sky. Go up to the surface.'); return; }
-  p.flying = true; p.mount = null; p.vy = 4; UI.sfx('fuse'); UI.toast('Starship up. Hold jump to climb, sneak to descend. Above the clouds the world lets go.', 'good');
+  p.flying = true; p.mount = null; p.vy = 4; UI.sfx('fuse'); UI.toast('Starship up. Hold ▲ to climb, hold ▼ to go down. Above the clouds the world lets go.', 'good');
 };
 // ---------- chunk streaming ----------
 G.meshPass = function (budget) {
