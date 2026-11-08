@@ -41,6 +41,12 @@ These are original characters and must stay that way: do not base them on any ex
 - **Silas Pennywise**, the merchant (`campaign.js`, job `merchant`; also sells the bridge repair and the Sovereign's Crown relic). Not human, not an animal: his own species, a Glimmerkin. Lanky and stooped, long fingers, mossy-green skin with copper freckles, a tall stovepipe hat with a shard of crystal tucked in the band, a teal waistcoat hung with coin chains, a ledger under one arm and an abacus on his belt. He talks like a showman and he is the face of shards in this game.
 - **Professor Aldous Finch**, the scientist (`citadel.js`): wiry and tall, a singed coat with too many pockets, brass goggles on his forehead, a mechanical brace on one arm from five years building ships at knifepoint, white tufts of hair that stick out sideways.
 
+## The Indians (`camps.js`)
+
+The camp people are called **Indians**, in code comments, toasts, items and anywhere else they appear. This is Alexander's decision: he has Native American ancestry, it is his game, and he does not want them renamed to something "safer" (an earlier pass called them "the Painted"; that has been reverted). Do not rename them.
+
+What he wants is a proper, good-looking Indian people, drawn with care: camps of tipis around a fire, a chief's lodge with the hoard, totems, a corral with the Duststrider, warriors on foot and mounted riders on fast Kin (riders are scaled-up warriors for now, there are no mounts drawn). Make them look strong and impressive. They speak their own language (the invented lines in `camps.js` when a disguised player is caught), and towns hold the Indian Cloak, stitched from a piece out of every camp.
+
 ## What to redesign (Alexander's wish list, roughly in his order)
 
 1. **Kin.** `kin.js` `model()` / `buildMesh()` / `decorate()`. Procedural species: shapes (biped, quadruped, bird, floater, serpent, raptor, blob...), feature flags (horns, wings, spikes, tail, crest...), colours. They must read at a distance ("ooh, look at that one"). Dinosaurs (Lost World, the T-Rex `apexSpecies('rex')`, the mosasaur) especially. Kin wear (scarf, coat, hat, crown, show rosettes) is drawn by `buddy.js` `WEAR`.

@@ -15,7 +15,7 @@ const Builds = (() => {
     castle: { name: 'a castle', half: 7, wall: 4, towers: 7, minDiff: 2, line: 'I have money and enemies, in that order. Build me a castle where the posts are: walls four high and a tower at each corner, seven high. Do it properly and I have something special for you.' },
     town:   { name: 'a walled town', half: 10, wall: 3, watch: 8, minDiff: 2, line: 'We are a whole settlement and the raiders know it. Wall the whole place in, post to post: three high, one gate, and a lookout tower in one corner at least eight high. Then they can come.' },
   };
-  const RAIDERS = { earth: ['riders', 'the Painted', 'outlaws on horseback'], moon: ['the Grey Riders', 'crater bandits'], halo: ['dune raiders', 'the shard-thieves'] };
+  const RAIDERS = { earth: ['riders', 'Indians', 'outlaws on horseback'], moon: ['the Grey Riders', 'crater bandits'], halo: ['dune raiders', 'the shard-thieves'] };
 
   const solid = (x, y, z) => { const b = world.getBlock(x, y, z); return b !== B.LEAVES && b !== B.TORCH && BLOCKS[b] && BLOCKS[b].solid; };
   const natural = (x, z) => world.colInfo(x, z).h;

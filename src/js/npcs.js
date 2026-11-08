@@ -1,6 +1,6 @@
 'use strict';
 // People of the road. Wanderers with odd jobs every few minutes of walking, on every world; amulets as the reward nobody sells;
-// the story quests (a scientist stuck in his own lab, and his incubator); the Painted camps you can only rob by night or on a dinosaur;
+// the story quests (a scientist stuck in his own lab, and his incubator); the Indian camps you can only rob by night or on a dinosaur;
 // and the mer-schools out at sea that only a swimmer's mount can catch.
 const Npcs = (() => {
   let G = null, world = null;
