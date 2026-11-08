@@ -361,6 +361,7 @@ const Campaign = (() => {
     if (n.job === 'kinmaster_final') return Citadel.talk(n, say);
     if (n.job === 'professor') return Citadel.talkProf(n, say);
     if (n.job === 'farmer') return Farms.talk(n, say);
+    if (['skyfolk', 'skymayor', 'skyguard', 'skytrader', 'skyfreed'].includes(n.job)) return Sky.talk(n, say);
     if (n.job === 'runesmith' && n.id === 'sable' && Keeps.finalReady() && !Citadel.open()) {
       return say(['You have it. All of it. Hold it up... there. Do you feel it pulling?', 'He bound himself to it when he bound the others. It knows where he is: not in the Core. He lied. He went to the Black Citadel, far out where nobody goes.', 'It will not be like the holds. He built that place to keep out exactly you. You will need everything: the glider, a Flame Kin, a Spark Kin, a Stone Kin, the bulb, your bow, your blade.', 'Go. End it.'], () => Citadel.begin());
     }

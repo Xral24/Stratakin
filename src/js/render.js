@@ -674,7 +674,7 @@ const R = (() => {
       else if (wk === 'storm') { sky = U.mixColor(sky, storm, wi * 0.8); state.dayLight *= 1 - 0.45 * wi; }
     }
     // the gloom round a hold you have not taken: a low grey sky, dull light, close haze
-    const gl0 = (typeof Keeps !== 'undefined' && world.preset.id === 'earth') ? Keeps.gloom(player.x, player.z) : 0; state.gloom = gl0;
+    const gl0 = (typeof Keeps !== 'undefined' && world.preset.id === 'earth') ? Math.max(Keeps.gloom(player.x, player.z), typeof Sky !== 'undefined' ? Sky.gloom(player.x, player.z) : 0) : 0; state.gloom = gl0;
     if (gl0 > 0.01) { sky = U.mixColor(sky, [0.36, 0.35, 0.4], gl0 * 0.85); state.dayLight *= 1 - 0.35 * gl0; }
     // the sun: where it is, how warm, and the sky it paints
     const ang = t * Math.PI * 2; let sd = [Math.sin(ang) * 0.75, -Math.cos(ang), 0.42]; const sl = Math.hypot(sd[0], sd[1], sd[2]); sd = sd.map(v => v / sl);

@@ -1,6 +1,6 @@
 'use strict';
 // The story quest of each world: somebody who tinkers with Kin has been shut in with what they made. An apprentice outside points the
-// way to a hidden lab; inside, the splice waits in the dark. Rescue the maker and the incubator is yours: Kin left in it grow fast and
+// way to a hidden lab; inside, the splice waits in the dark. Rescue the maker and the incubator is yours: it hatches eggs on play time, and
 // come out knowing a technique nothing in the wild has.
 const Lab = (() => {
   let G = null, world = null; let apprentice = null, scientist = null, bossRef = null, site = null;
@@ -8,13 +8,13 @@ const Lab = (() => {
   const STORY = {
     earth: { who: 'Dr Vexley', kid: 'Pim Vexley', place: 'the lab', bossName: 'Chimera Nine', elems: ['Void', 'Spark', 'Flame'], shape: 'quadruped',
       ask: ['My father splices Kin. Eight of them went wrong and he fed them to the ninth, and the ninth is not wrong at all. It is very, very right.', 'It has him in the lab under the hill. The hatch will not open from inside. I have marked it for you: ⚗ on your compass. Beat it or cage it; please.'],
-      wait: ['Not now! It is right behind you!'], thanks: ['You… it is done? It is done. I have been under the bench for two days.', 'The incubator at the back: Kin left in it grow a level every other dawn and after three dawns they learn a technique, a fourth move, one of mine. Three at a time. It is yours; I am going outside to look at the sky.'] },
+      wait: ['Not now! It is right behind you!'], thanks: ['You… it is done? It is done. I have been under the bench for two days.', 'The incubator at the back: it hatches eggs, three at a time, and much faster than carrying them about. It keeps them warm while you are off doing whatever you do. It is yours; I am going outside to look at the sky.'] },
     moon: { who: 'Archivist Oon', kid: 'Probe Vel-9', place: 'the vault', bossName: 'Splice-Null', elems: ['Light', 'Void', 'Frost'], shape: 'floater',
       ask: ['The Archivist kept the old Kin in the vault and tried to make a new one from all of them. It made itself instead.', 'It has sealed the vault with the Archivist inside. The way down is marked: ⚗. End it, earth-walker, or cage it.'],
-      wait: ['Behind you. It is behind you.'], thanks: ['Earth-walker. The null is gone. The Archivist thanks you in the old way, which is this: the incubator is yours.', 'Kin rest in it and grow a level every other dawn; after three dawns they wake knowing a technique. Three at a time.'] },
+      wait: ['Behind you. It is behind you.'], thanks: ['Earth-walker. The null is gone. The Archivist thanks you in the old way, which is this: the incubator is yours.', 'It warms eggs, three at a time, and hatches them while you are elsewhere.'] },
     halo: { who: 'Ring-Gazer Idris', kid: 'Lale', place: 'the dig', bossName: 'the Amber Wyrm', elems: ['Flame', 'Spark', 'Stone'], shape: 'serpent',
       ask: ['Idris dug under the mesa for ring shards and found something in the amber, asleep. He woke it. Of course he woke it.', 'It has him in the dig and the shaft is blocked from inside. ⚗ marks the hatch. Beat it or cage it and bring him out.'],
-      wait: ['Not me! It! Look at it!'], thanks: ['Out. I am out. I owe you the dig, and I mean the incubator in it, the one thing down there that works.', 'Kin left in it grow a level every other dawn and after three dawns they learn a technique. Three at a time. Take what you want from the chest too.'] },
+      wait: ['Not me! It! Look at it!'], thanks: ['Out. I am out. I owe you the dig, and I mean the incubator in it, the one thing down there that works.', 'It hatches eggs, three at a time, while you get on with things. Take what you want from the chest too.'] },
   };
   function init(game) { G = game; world = game.world; apprentice = null; scientist = null; bossRef = null; site = null; specimens = null; if (!G.labState) G.labState = {}; }
   function S() { const id = world.preset.id; if (!G.labState[id]) G.labState[id] = { told: false, stamped: false, rescued: false, kin: [], days: [], seen: false }; return G.labState[id]; }
@@ -138,7 +138,7 @@ const Lab = (() => {
     }
     if (!L.rescued) { Dialogue.show(n.name, story().wait); return; }
     if (!L.thanked) { L.thanked = true; Dialogue.show(n.name, story().thanks, () => { G.shards += 200; G.player.add('snare2', 2); UI.sfx('quest'); }); return; }
-    Dialogue.show(n.name, ['The incubator takes three. Two dawns a level, three dawns a technique. Go on.']);
+    Dialogue.show(n.name, ['The incubator takes three eggs. Leave them and get on with your day; they hatch on their own.']);
   }
   // what floats in the tanks: half-made Kin, a head on its own, a pair of wings; and something strapped to the table
   let specimens = null;
@@ -162,31 +162,22 @@ const Lab = (() => {
   function talkable() { const l = []; if (apprentice) l.push(apprentice); if (scientist) l.push(scientist); return l; }
   function marks(p) { const L = S(); const s = site; if (!s) return []; const out = []; if (L.told && !L.rescued) out.push({ t: '⚗', x: p.x + wd(s.hatch.x - p.x), z: p.z + wd(s.hatch.z - p.z), name: story().place }); return out; }
   function mapMarks(p) { const L = S(); const s = place(); const out = [{ kind: 'tent', x: p.x + wd(s.tent.x - p.x), z: p.z + wd(s.tent.z - p.z), name: story().kid }]; if (L.told) out.push({ kind: 'lab', x: p.x + wd(s.hatch.x - p.x), z: p.z + wd(s.hatch.z - p.z), name: story().place }); return out; }
-  // ---- the incubator ----
+  // ---- the incubator: it takes eggs, never Kin. Three at a time; they hatch on play time, wherever you are, no walking needed ----
+  // hours of play by rarity: common 40 min, uncommon 1h15, rare 2h, very rare 3h, legendary 5h
+  const INC_H = [0.67, 1.25, 2, 3, 5];
   function canUse() { const L = S(); return L.rescued; }
-  function put(k) {
+  const incEggs = () => { const L = S(); if (!L.eggs) L.eggs = []; return L.eggs; };
+  function putEgg(e) {
     const L = S(); if (!L.rescued) return 'The incubator is dead until its maker is free.';
-    if (L.kin.length >= 3) return 'The incubator takes three.';
-    if (G.kin.filter(x => x.hp > 0).length <= 1) return 'Keep at least one Kin that can fight with you.';
-    const i = G.kin.indexOf(k); if (i < 0) return 'Not in your bag.';
-    G.kin.splice(i, 1); if (G.activeIdx >= G.kin.length) G.activeIdx = 0; if (G.player.mount === k) G.player.mount = null;
-    L.kin.push(KIN.serialize(k)); L.days.push(0);
-    return null;
+    const E = incEggs(); if (E.length >= 3) return 'The incubator takes three eggs.';
+    const i = G.eggs.indexOf(e); if (i < 0) return 'Not in your bag.';
+    G.eggs.splice(i, 1); const sp = KIN.bySeed(e.seed); const r = e.rarity != null ? e.rarity : (sp ? sp.rarity || 0 : 0);
+    const left = Math.max(0.05, 1 - e.walked / e.need); // walking it first still counts
+    E.push({ egg: e, start: G.stats.playT || 0, dur: INC_H[Math.min(4, r)] * 3600 * left }); return null;
   }
-  function takeBack(i) { const L = S(); if (!L.kin[i]) return 'Nothing there.'; if (G.kin.length >= G.MAX_KIN) return 'Your bag is full.'; const k = KIN.deserialize(L.kin.splice(i, 1)[0]); L.days.splice(i, 1); G.kin.push(k); return null; }
-  // every dawn, in every world's lab: a level every other dawn, a technique after three
-  function dawn() {
-    const out = [];
-    for (const id in G.labState) {
-      const L = G.labState[id]; if (!L || !L.kin) continue;
-      L.kin.forEach((k, i) => {
-        const before = k.level; KIN.gainXp(k, Math.round(KIN.xpToNext(k.level) * 0.55)); L.days[i] = (L.days[i] || 0) + 1;
-        if (L.days[i] >= 3 && !k.tech) { k.tech = KIN.techFor(k); out.push(`${KIN.name(k)} learned ${k.tech}.`); }
-        else if (k.level > before) out.push(`${KIN.name(k)} reached Lv ${k.level} in the incubator.`);
-      });
-    }
-    return out;
-  }
-  function slots() { const L = S(); return L.kin.map((k, i) => ({ k, days: L.days[i] || 0 })); }
-  return { init, update, entities, talkable, talk, marks, mapMarks, onBossBeaten, canUse, put, takeBack, dawn, slots, get site() { return site; }, get boss() { return bossRef; }, get state() { return S(); } };
+  function takeEgg(i) { const E = incEggs(); const x = E[i]; if (!x) return 'Nothing there.'; if (G.partyFull()) return 'No room in your party for an egg.'; const done = Math.min(1, ((G.stats.playT || 0) - x.start) / x.dur); x.egg.walked = Math.max(x.egg.walked, x.egg.need * (1 - (1 - done) * (1 - x.egg.walked / x.egg.need))); E.splice(i, 1); G.eggs.push(x.egg); return null; }
+  function tickEggs() { if (!G.labState) return; const now = G.stats.playT || 0; for (const id in G.labState) { const L = G.labState[id]; if (!L || !L.eggs) continue; for (const x of L.eggs.slice()) if (now - x.start >= x.dur) { L.eggs.splice(L.eggs.indexOf(x), 1); G.hatchEgg(x.egg, 'Hatched in the incubator. It came out warm and it is already looking for you.'); } } }
+  function slots() { const now = G.stats.playT || 0; return incEggs().map(x => ({ egg: x.egg, left: Math.max(0, x.dur - (now - x.start)), pct: Math.min(1, (now - x.start) / x.dur) })); }
+  function dawn() { return []; }
+  return { init, update, entities, talkable, talk, marks, mapMarks, onBossBeaten, canUse, putEgg, takeEgg, tickEggs, dawn, slots, get site() { return site; }, get boss() { return bossRef; }, get state() { return S(); } };
 })();

@@ -338,8 +338,8 @@ const Village = (() => {
       const ops = layout(v).buckets.get(key); if (!ops) continue;
       const bl = chunk.blocks; for (let i = 0; i < ops.length; i += 4) bl[(ops[i] * CH + ops[i + 2]) * WH + ops[i + 1]] = ops[i + 3];
     }
+    if (typeof Sky !== 'undefined') Sky.overlay(chunk);
   }
-  // a town first seen this session after its chunks were already loaded: draw it into them now, then put back what the player changed
   function patchLoaded(v) {
     if (v.patched) return; v.patched = true; const L = layout(v);
     for (const c of world.chunks.values()) { const key = U.mod(c.cx, NCH) + ',' + U.mod(c.cz, NCH); const ops = L.buckets.get(key); if (!ops) continue; const bl = c.blocks; for (let i = 0; i < ops.length; i += 4) bl[(ops[i] * CH + ops[i + 2]) * WH + ops[i + 1]] = ops[i + 3]; world.reapplyEdits(c); }

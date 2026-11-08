@@ -165,16 +165,17 @@ const UI = (() => {
     el['panel-body'].querySelectorAll('[data-skin]').forEach(b => b.addEventListener('click', () => { G.skin = b.dataset.skin; sfx('place'); renderSkins(); }));
     q('sk-close').addEventListener('click', closePanel);
   }
-  // ---------- the incubator: three Kin grow while you are away ----------
+  // ---------- the incubator: three eggs hatch on play time ----------
   function renderIncubator() {
     setTitle('Incubator');
-    const slots = Lab.slots(); const party = G.kin.filter(k => k.hp > 0);
-    el['panel-body'].innerHTML = `<p class="note">Kin left here grow a level every other dawn, and after three dawns they wake knowing a technique: a fourth move nothing in the wild has. Three at a time. Come back for them whenever you like.</p>
-      <h4>Inside · ${slots.length}/3</h4>${slots.length ? slots.map((s, i) => `<div class="shop-row"><div class="rinfo"><b>${KIN.name(s.k)}</b> <span class="small">Lv ${s.k.level} · ${s.days} dawn${s.days === 1 ? '' : 's'} in${s.k.tech ? ' · knows ' + s.k.tech : ' · technique in ' + Math.max(0, 3 - s.days)}</span></div><button class="btn ghost" data-out="${i}">Take back</button></div>`).join('') : '<p class="small">Empty.</p>'}
-      ${slots.length < 3 ? `<h4>Put in</h4>${party.map(k => `<div class="shop-row"><div class="rinfo"><b>${KIN.name(k)}</b> <span class="small">Lv ${k.level}${k.tech ? ' · knows ' + k.tech : ''}</span></div><button class="btn" data-in="${G.kin.indexOf(k)}">Put in</button></div>`).join('')}` : ''}
+    const slots = Lab.slots(); const fmt = (sec) => { const m = Math.ceil(sec / 60); return m >= 60 ? `${Math.floor(m / 60)}h ${m % 60}m` : `${m}m`; };
+    const eggName = (e) => (e.label ? e.label.charAt(0).toUpperCase() + e.label.slice(1) : 'Egg') + (e.from ? ' from ' + e.from : '');
+    el['panel-body'].innerHTML = `<p class="note">Eggs only. Three at a time; they hatch on play time while you are anywhere, no walking needed. A common egg takes about 40 minutes, a rare one a couple of hours, the rarest five. Steps you already walked with an egg still count.</p>
+      <h4>Warming · ${slots.length}/3</h4>${slots.length ? slots.map((s, i) => `<div class="shop-row"><div class="rinfo"><b>${eggName(s.egg)}</b><div class="condbar"><i style="width:${Math.round(s.pct * 100)}%;background:#ffd27a"></i></div><span class="small">hatches in about ${fmt(s.left)}</span></div><button class="btn ghost" data-out="${i}">Take out</button></div>`).join('') : '<p class="small">Empty and warm.</p>'}
+      ${slots.length < 3 && G.eggs.length ? `<h4>Your eggs</h4>${G.eggs.map((e, i) => `<div class="shop-row"><div class="rinfo"><b>${eggName(e)}</b> <span class="small">${Math.ceil(e.need - e.walked)} steps left on foot</span></div><button class="btn" data-in="${i}">Put in</button></div>`).join('')}` : (G.eggs.length ? '' : '<p class="small">You are not carrying any eggs.</p>')}
       <div class="row"><button class="btn ghost" id="inc-close">Close</button></div>`;
-    el['panel-body'].querySelectorAll('[data-in]').forEach(b => b.addEventListener('click', () => { const err = Lab.put(G.kin[+b.dataset.in]); if (err) toast(err, 'bad'); else { sfx('place'); renderIncubator(); } }));
-    el['panel-body'].querySelectorAll('[data-out]').forEach(b => b.addEventListener('click', () => { const err = Lab.takeBack(+b.dataset.out); if (err) toast(err, 'bad'); else { sfx('caught'); renderIncubator(); } }));
+    el['panel-body'].querySelectorAll('[data-in]').forEach(b => b.addEventListener('click', () => { const err = Lab.putEgg(G.eggs[+b.dataset.in]); if (err) toast(err, 'bad'); else { sfx('place'); renderIncubator(); } }));
+    el['panel-body'].querySelectorAll('[data-out]').forEach(b => b.addEventListener('click', () => { const err = Lab.takeEgg(+b.dataset.out); if (err) toast(err, 'bad'); else { sfx('caught'); renderIncubator(); } }));
     q('inc-close').addEventListener('click', closePanel);
   }
   // ---------- the Starship above the clouds ----------
@@ -494,6 +495,7 @@ const UI = (() => {
     for (const m of Campaign.mapMarks()) { glyph(m.x, m.z, m.t, '#ffe08a'); label(m.x, m.z, m.name, '#fff0c0'); }
     if (G.stats.mapTowns && Village.townList) for (const v of Village.townList()) { glyph(v.x, v.z, v.size === 'city' ? '♛' : '⌂', '#9fe0ff'); label(v.x, v.z, v.name, '#d8f0ff'); }
     for (const m of Farms.mapMarks()) { glyph(m.x, m.z, m.t, '#b0e070'); label(m.x, m.z, m.name, '#e0f0c0'); }
+    for (const m of Sky.mapMarks()) { glyph(m.x, m.z, m.t, m.t === '⛈' ? '#ff6a6a' : '#cfe4ff'); label(m.x, m.z, m.name, '#e8f0ff'); }
     for (const m of Keeps.mapMarks()) { glyph(m.x, m.z, m.t, m.t === '♜' ? '#c9a0ff' : '#ff6a6a'); label(m.x, m.z, m.name, '#e8d8ff'); }
     for (const m of Npcs.marks(p)) if (m.t === '⌖') { glyph(m.x, m.z, '⌖', m.col || '#ff8040'); label(m.x, m.z, m.name, m.col || '#ffd0b0'); edge(m.x, m.z, '⌖', m.col || '#ff8040'); }
     if (G.world.lost && G.stats.lostMap) { const L = G.world.lost; glyph(L.x, L.z, '🦖', '#ffffff'); label(L.x, L.z, 'Lost World', '#c0ffc0', true); const T = G.world.lostTunnel(); if (T) { glyph(T.ax, T.az, '◠', '#ffffff'); if (bpp <= 8) label(T.ax, T.az, 'tunnel', '#e0e0e0'); } }

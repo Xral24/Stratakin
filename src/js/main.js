@@ -53,7 +53,7 @@ G.setupWorld = function (seed, presetId) {
   this.world.findSpawn();
   Wild.init(this.world, this.mobile);
   Weather.init(this.world.seed);
-  Village.init(this); Hazards.init(this); Campaign.init(this); Npcs.init(this); Camps.init(this); Mer.init(this); Lab.init(this); Avatar.init(this); Combat.init(this); Buddy.init(this); Relics.init(this); Keeps.init(this); Citadel.init(this); Farms.init(this);
+  Village.init(this); Hazards.init(this); Campaign.init(this); Npcs.init(this); Camps.init(this); Mer.init(this); Lab.init(this); Avatar.init(this); Combat.init(this); Buddy.init(this); Relics.init(this); Keeps.init(this); Citadel.init(this); Farms.init(this); Sky.init(this);
   Quests.init(this);
 };
 G.newWorld = function (seed, starterIdx, name) {
@@ -291,15 +291,19 @@ G.addKin = function (k) {
 // eggs: carried in a party slot, hatch after you have walked far enough with them
 G.addEgg = function (sp, from, need) {
   if (this.partyFull()) { UI.toast(`No room for an egg: your party is full (${this.MAX_KIN}). Put a Kin in storage at a Fusion Table and come back.`, 'bad'); return false; }
-  this.eggs.push({ id: Date.now() + Math.random(), seed: sp.seed, from: from || '', walked: 0, need: need || 600, label: sp.eggLabel || null }); UI.sfx('quest');
+  // steps to hatch on foot, by rarity (Pokemon eggs take about 1,300 to 30,000 steps; most around 5,000). Early story eggs pass their own short count
+  const STEPS = [2500, 4000, 6500, 10000, 16000]; const r = Math.max(0, Math.min(4, sp.rarity || 0));
+  this.eggs.push({ id: Date.now() + Math.random(), seed: sp.seed, from: from || '', walked: 0, need: need || STEPS[r], rarity: r, label: sp.eggLabel || null }); UI.sfx('quest');
   return true;
 };
+// hatch an egg (from the bag or the incubator): into the party if there is room, otherwise into storage
+G.hatchEgg = function (e, how) { const sp = KIN.bySeed(e.seed) || KIN.dex('earth')[0]; const k = KIN.create(sp, 5); if (this.kin.length + this.eggs.length < this.MAX_KIN) this.kin.push(k); else this.box.push(KIN.serialize(k)); this.seenDex(k.sp, 'caught'); UI.sfx('caught'); UI.openPanel('reveal', { kind: 'kin', kin: k, parents: [], n: 0, caught: how }); return k; };
 G.updateEggs = function (dist) {
   if (!this.eggs.length || !(dist > 0)) return;
   for (const e of this.eggs.slice()) {
     e.walked += dist; const left = e.need - e.walked;
-    if (left <= 0) { const sp = KIN.bySeed(e.seed) || KIN.dex('earth')[0]; this.eggs = this.eggs.filter(x => x !== e); const k = KIN.create(sp, 5); this.kin.push(k); this.seenDex(k.sp, 'caught'); UI.sfx('caught'); UI.openPanel('reveal', { kind: 'kin', kin: k, parents: [], n: 0, caught: 'Hatched from the egg you carried.' }); }
-    else if (Math.floor((e.walked - dist) / 150) < Math.floor(e.walked / 150)) UI.toast(`The egg moves. About ${Math.ceil(left)} more steps.`);
+    if (left <= 0) { this.eggs = this.eggs.filter(x => x !== e); this.hatchEgg(e, 'Hatched from the egg you carried.'); }
+    else if (Math.floor((e.walked - dist) / 500) < Math.floor(e.walked / 500)) UI.toast(`The egg moves. About ${Math.ceil(left)} more steps.`);
   }
 };
 G.knowsRecipe = function (rc) { const k = (this.stats.recipes || {})[rc.body] || []; return k.includes(rc.i); };
@@ -476,6 +480,7 @@ G.onBattleEnd = function (result, wildE, wild, mine, ambush) {
     if (wildE.nightQuest) Builds.onBattle(wildE.nightQuest, result);
     if (wildE.kinmaster) Campaign.onBoss(result);
     if (wildE.keepBoss) Keeps.onBattle(wildE.keepBoss, result);
+    if (wildE.skyBoss) Sky.onBattle(result);
     if (wildE.finalBoss) Keeps.onFinal(result);
     if (wildE.citadelFirst) Citadel.onBattle(wildE, result);
     if (wildE.thief) Village.thiefCaught(wildE.thief);
@@ -636,7 +641,7 @@ G.loop = function (t) {
     const nightNow = Math.cos(w.time * Math.PI * 2) > 0.17;
     if (this.wasNight === true && !nightNow) this.onDawn();
     this.wasNight = nightNow;
-    Weather.update(dt); this.stats.playT = (this.stats.playT || 0) + dt;
+    Weather.update(dt); this.stats.playT = (this.stats.playT || 0) + dt; if (((this.frame || 0) & 31) === 0) Lab.tickEggs();
     if (this.buffOn('train')) { this.trainT = (this.trainT || 0) + dt; if (this.trainT >= 60) { this.trainT = 0; for (const k of this.kin) if (k.hp > 0) KIN.gainXp(k, 15 + k.level * 6); } }
     if (!inBattle) {
       p.yaw -= input.lookDX; p.pitch = U.clamp(p.pitch - input.lookDY, -1.55, 1.55);
@@ -683,9 +688,9 @@ G.loop = function (t) {
       }
       if (w.regrow && w.regrow.length && (this.frame & 31) === 0) { const now = performance.now(); w.regrow = w.regrow.filter(r => { if (now < r.t) return true; const b = w.getBlock(r.x, r.y, r.z); if (r.id != null) { if (b === B.AIR && !(Math.abs(r.x + 0.5 - p.x) < 0.8 && Math.abs(r.z + 0.5 - p.z) < 0.8 && r.y >= Math.floor(p.y) - 1 && r.y <= Math.floor(p.y) + 2)) { if (r.id === B.GLOWWORM && !isSolid(w.getBlock(r.x, r.y - 1, r.z))) return false; w.setBlock(r.x, r.y, r.z, r.id); } else if (b === B.AIR) { r.t = now + 15000; return true; } } else if (r.leaf) { if (b === B.LEAVES) w.setBlock(r.x, r.y, r.z, B.BERRYLEAF); } else if (b === B.AIR) w.setBlock(r.x, r.y, r.z, B.BERRY); return false; }); }
       const trig = (Dialogue.active() || Village.walking) ? null : Wild.update(dt, p, performance.now() / 1000, false);
-      Buddy.update(dt, p); Keeps.update(dt, p); Citadel.update(dt, p); Farms.update(dt, p); Combat.update(dt, p, input);
+      Buddy.update(dt, p); Keeps.update(dt, p); Citadel.update(dt, p); Farms.update(dt, p); Sky.update(dt, p); Combat.update(dt, p, input);
       Wild.ensureHeart(p, this.trainerLevel, this.mythicCaught); Wild.ensureLegend(p); Wild.ensureApex(p);
-      if (trig && !trig.e.cool && !Dialogue.active() && !p.flying && !(this.fightGrace > performance.now()) && !((Keeps.inHold(p) || Citadel.inside(p)) && !trig.e.keepBoss)) Battle.start(trig.e, trig.ambush);
+      if (trig && !trig.e.cool && !Dialogue.active() && !p.flying && !(this.fightGrace > performance.now()) && !((Keeps.inHold(p) || Citadel.inside(p) || Sky.inFort(p)) && !trig.e.keepBoss && !trig.e.skyBoss)) Battle.start(trig.e, trig.ambush);
       for (const e of Wild.list) if (e.cool > 0) e.cool -= dt;
       Hazards.update(dt, p, false); Npcs.update(dt, p, false); Campaign.update(dt, p, false); Taming.update(dt, p); if (p.gliding) { this.lastGlide = performance.now(); if (!this.stats.glideTold && !p.mount && !p.wingsOn) { this.stats.glideTold = true; G.explain('Gliding', 'Left stick: push sideways to bank and turn. Push forward to dive and pick up speed, pull back to brake. The arrow on the glide compass is the wind: with it behind you, you go far; into it, you barely move over the ground. Coming in to land, pull back a moment before the ground to flare and you touch down soft. Too fast and too steep, and it hurts. Let go of ▲ to drop, best done low.'); } }
       if (p.landMsg) { if (p.landMsg === 'hard') UI.toast('Hard landing. Pull back on the stick just before the ground to flare.', 'bad'); else if (p.landMsg === 'stall') UI.toast('You stalled her and dropped. Brake less: keep a little speed until the flare.', 'bad'); else if (p.landMsg === 'soft' && !this.stats.flareTold) { this.stats.flareTold = true; UI.toast('A clean flare. Feather-soft.', 'good'); } p.landMsg = null; }
@@ -784,7 +789,7 @@ G.onTap = function () {
   if (rn) { Npcs.talk(rn); return; }
   if (Buddy.pick(p) && !Wild.pick(p)) { Buddy.tap(); return; }
   { const sel0 = p.selected(); const ai = sel0 && ITEMS[sel0]; if (ai && ai.arrow && Combat.anyBow()) { this.shoot(sel0); return; } }
-  if (Combat.weapon() && (Keeps.inHold(p) || Citadel.inside(p) || !Wild.pick(p))) { Combat.swing(); return; }
+  if (Combat.weapon() && (Keeps.inHold(p) || Citadel.inside(p) || Sky.inFort(p) || !Wild.pick(p))) { Combat.swing(); return; }
   const e = (p.selected() && (p.itemInfo(p.selected()) || {}).bow) ? null : Wild.pick(p);
   const hit = p.raycast(5.5);
   if (e && e.rogue) { const c = Campaign.C(); if (c.ranch !== 2) { UI.toast('Thunderhoof flattens his ears at you. Talk to Dusty Hale first.'); return; } const k = KIN.create(e.kin.sp, e.kin.level); Taming.start(k, { hard: true, onDone: (kk) => { kk.tamed = true; this.addKin(kk); Campaign.onRogueTamed(kk); UI.toast('Thunderhoof is yours, and you can ride now. Every Kin still has to be broken in once: press Ride and hold on.', 'good'); } }); return; }
