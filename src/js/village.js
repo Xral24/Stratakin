@@ -1433,19 +1433,22 @@ const Village = (() => {
     for (const id in (G.villageState || {})) {
       const st = G.villageState[id]; if (!st.freed) continue;
       const v = recordFor(id) || metaRecord(id, st); if (!v) continue;
-      let breached;
-      if (v.raid && !v.raid.settled) {
-        v.raid.settled = true;
-        if (v.raid.state === 'active') endRaid(v, st);
-        if (v.raid.state === 'quiet') { breached = false; st.report = { night, text: 'A quiet night.' }; }
-        else breached = !!v.raid.breached;
-      } else breached = simulateNight(v, st, night);
+      // a freed town stays freed. Every two to four days something hits the walls in the night, and the repairs come out of the takings
+      if (v.raid) v.raid.settled = true;
       st.income = incomeFor(v, st);
-      if (breached) out.lines.push(`${v.name}: raiders broke in, no pay.`);
-      else { st.bank += st.income; st.earned += st.income; out.paid++; out.sum += st.income; }
+      st.bank += st.income; st.earned += st.income; out.paid++; out.sum += st.income;
+      if (st.upkeepIn == null) st.upkeepIn = 2 + Math.floor(Math.random() * 3);
+      if (--st.upkeepIn <= 0) {
+        st.upkeepIn = 2 + Math.floor(Math.random() * 3);
+        const cut = Math.max(1, Math.round(st.income * (0.45 + Math.random() * 0.45)));
+        const what = ['Something tried the east gate in the night', 'A pack of wild Kin went at the north wall', 'Raiders hit the stockade before dawn', 'A storm and a stray Kin brought down a stretch of fence', 'Bandits tested the walls and ran'][Math.floor(Math.random() * 5)];
+        st.bank = Math.max(0, st.bank - cut); st.upkeepTotal = (st.upkeepTotal || 0) + cut;
+        st.report = { night, text: `${what}. The walls held; the repairs cost ◆ ${cut}, taken from the town's share.` };
+        out.lines.push(`${v.name}: ${what.toLowerCase()}. Repairs ◆ ${cut}.`);
+      } else st.report = { night, text: 'A quiet night.' };
       for (const n of v.npcs) if (n.role !== 'voodoo') n.hidden = false;
-      // the tyrant tries to come back every seventh night
-      if (st.freedDay != null && night > st.freedDay && (night - st.freedDay) % 7 === 0) {
+      // (towns used to fall back to their tyrant every seventh night; they do not any more)
+      if (false) {
         if (st.dome) out.lines.push(`${v.name}: the tyrant came back and could not get through the dome.`);
         else if (guardTotal(st) >= tyrantNeed(v)) { for (const k of st.guards) if (k.hp > 0) KIN.gainXp(k, 25); out.lines.push(`${v.name}: the tyrant came back and your guards drove him off.`); }
         else { retaken(v, st); out.lines.push(`${v.name}: the tyrant has retaken it. Your guards fell.`); }
@@ -1589,7 +1592,7 @@ const Village = (() => {
     if (fisher) { const dx = wd(player.x - fisher.x), dz = wd(player.z - fisher.z); if (Math.hypot(dx, dz) < 6) fisher.yaw = Math.atan2(dx, dz); }
     if (!active) { if (walkState && !inBattle) elderWalk(dt, player); return; }
     const v = active; const st = state(v.id);
-    if (!inBattle) updateRaid(v, st, dt, player);
+    // raids on freed towns now happen off-screen, as wall repairs at dawn
     if (!inBattle) ensureThief(v, st, player);
     if (v.gatesClosed !== false && !isNight() && !(v.raid && v.raid.state === 'active')) setGates(v, st, false);
     // guards off duty: stand at their posts and watch you
@@ -1784,7 +1787,7 @@ const Village = (() => {
     const def = guardTotal(st) + wallBonus(v, st); const raid = raidTotal(v, st); const need = tyrantNeed(v);
     const WS = wallSet(v);
     const wall = v.type === 'land' ? (v.founded ? { name: ['Wood', 'Stone', 'Iron', 'Voidsteel'][v.wallTier || 0], bonus: wallBonus(v, st), founded: true } : { name: WS[st.wall || 0].name, bonus: wallBonus(v, st), holes: st.holeCols.length, next: WS[(st.wall || 0) + 1] || null, repair: 5 * st.holeCols.length }) : { name: v.type === 'sea' ? 'The sea' : 'The deep', bonus: wallBonus(v, st) };
-    const nightsToTyrant = st.freedDay == null ? null : 7 - ((curNight() - st.freedDay) % 7);
+    const nightsToTyrant = null;
     return { st, lvl, next, guards, cap: guardCap(st), def, raid, need, wall, tyrant: bossLevelFor(v), nightsToTyrant, income: incomeFor(v, st), amen: amenCount(v, st), canExpand: v.type === 'land' && !v.founded && !st.expanded && !v.R, canBuild: v.type === 'land' && !v.founded && st.expanded && !v.R, slotsLeft: SLOTS.length - st.shops.length, EXPAND, SHOP_BUILD, costText, canPay, report: st.report, hasPost: hasAmen(v, st, 'post'), dome: !!st.dome, canDome: v.type === 'land' && !st.dome, hasDomeKit: G.player.has('kit_dome') };
   }
   // everything worth a dot on the minimap, near the player
