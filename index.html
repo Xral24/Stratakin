@@ -292,6 +292,24 @@ body.desktop #joy, body.desktop #btn-jump, body.desktop #btn-sneak { display: no
 .starter.skin.locked { opacity: .45; }
 .act.move.tech { border-color: #ffd25a; }
 
+/* Kindex */
+.dexgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 6px; }
+.dexcell { background: rgba(255,255,255,.05); border-radius: 10px; padding: 6px; text-align: center; min-height: 92px; }
+.dexcell.unknown { opacity: .35; }
+.dexcell.seen { opacity: .75; }
+.dexcell.caught { background: rgba(122,215,255,.12); }
+.dexq { width: 48px; height: 48px; margin: 0 auto; border-radius: 8px; background: rgba(0,0,0,.3); display: flex; align-items: center; justify-content: center; font-size: 22px; color: rgba(255,255,255,.4); }
+.dexpic { display: block; margin: 0 auto; }
+.dexn { font-size: 10px; opacity: .6; margin-top: 2px; }
+.dexname { font-size: 12px; font-weight: 700; }
+.dexwhere { font-size: 10px; opacity: .8; }
+.kcard.egg .eggico { width: 52px; height: 64px; border-radius: 50% 50% 46% 46% / 60% 60% 40% 40%; background: radial-gradient(circle at 35% 30%, #fff8e0, #e8d6a8 55%, #b89a60); margin-right: 10px; flex: none; }
+
+#explain { position: absolute; left: 50%; transform: translateX(-50%); bottom: calc(190px + env(safe-area-inset-bottom)); width: min(86vw, 360px); background: rgba(16,24,38,.94); border: 2px solid rgba(122,215,255,.6); border-radius: 14px; padding: 10px 12px 8px; font-size: 13px; line-height: 1.35; pointer-events: auto; box-shadow: 0 4px 18px rgba(0,0,0,.5); z-index: 30; }
+#explain b { display: block; color: #9fe6ff; margin-bottom: 3px; }
+#explain .x { display: block; text-align: right; font-size: 10px; opacity: .5; margin-top: 4px; }
+#explain.hidden { display: none; }
+
 </style>
 </head>
 <body>
@@ -5008,7 +5026,7 @@ const Battle = (() => {
   function renderActions() {
     const mv = KIN.moves(mine);
     const snares = ['snare2', 'snare'].filter(s => G.player.has(s));
-    const bagFull = G.kin.length >= G.MAX_KIN;
+    const bagFull = false; // a full party sends new catches to storage
     let html = '';
     mv.forEach((m, i) => {
       const eff = m.kind === 'util' ? null : KIN.effectiveness(m.elem, wild);
@@ -5559,8 +5577,7 @@ const Fishing = (() => {
     const sp = state.sp; const r = sp.rarity || 0;
     const level = Math.max(1, (G.trainerLevel || 1) + (state.rod.tier - 1) * 2 + KIN.RARITY[r].lvl + Math.floor(Math.random() * 3) - 1);
     const kin = KIN.create(sp, level);
-    if (G.kin.length >= G.MAX_KIN) { end(`${KIN.name(kin)} (Lv ${level}) was on the hook, but your bag is full. Fuse something.`); return true; }
-    G.kin.push(kin); G.stats.caught++; G.stats.fished = (G.stats.fished || 0) + 1;
+    G.addKin(kin); G.stats.caught++; G.stats.fished = (G.stats.fished || 0) + 1;
     end(null); UI.sfx('caught');
     UI.openPanel('reveal', { kind: 'kin', kin, parents: [], n: 0, caught: `Pulled from the water at Lv ${level}${r > 0 ? ' · ' + KIN.RARITY[r].name : ''}.` });
     return true;
@@ -6112,6 +6129,7 @@ const Npcs = (() => {
     if (world.preset.id === 'earth' && !G.stats.lostMap && (G.stats.questsDone || 0) >= 2) { setTimeout(() => G.giveLostMap(w.name), 900); }
     UI.toast(`${w.name}: +${rw.shards} Shards${rw.amulet ? ' and the ' + ITEMS[rw.amulet].name : Object.keys(rw.items).map(k => ', ' + ITEMS[k].name).join('')}.`, 'good');
     { const known = ((G.stats.recipes || {})[world.preset.id] || []).length; if (Math.random() < (q.kind === 'build' || q.kind === 'night' ? 0.6 : 0.4) || known < 3) setTimeout(() => G.learnRecipe(world.preset.id, w.name), 1800); }
+    if (q.kind === 'night' || (q.kind === 'build' && (q.what === 'castle' || q.what === 'town')) || Math.random() < 0.12) { const pool = KIN.dex(world.preset.id).filter(sp => sp.rarity === 2 && sp.home && sp.home.layer === 'Surface'); const sp = pool[U.combine(w.seedN, q.round, 0xE6) % pool.length]; if (sp) setTimeout(() => { if (G.addEgg(sp, w.name, 500)) UI.toast(`${w.name} also hands you an egg. "Found it in the long grass. Keep it warm: walk with it."`, 'good'); }, 2600); }
     G.stats.questsDone = (G.stats.questsDone || 0) + 1;
     if (!G.stats.jobsBy) G.stats.jobsBy = {}; G.stats.jobsBy[world.preset.id] = (G.stats.jobsBy[world.preset.id] || 0) + 1;
   }
@@ -6415,8 +6433,7 @@ const Camps = (() => {
     const night = isNight();
     if (c.alarm > 0) { UI.toast('It shies away from you while the camp is roused.'); return; }
     if (!night && !c.scared) { UI.toast('In daylight the whole camp watches it. Come back at night and be quiet, or come on a dinosaur.'); return; }
-    if (G.kin.length >= G.MAX_KIN) { UI.toast('Your bag is full (20). Fuse at a table first.'); return; }
-    const k = KIN.create(n.sp, Math.max(10, G.trainerLevel)); G.kin.push(k); c.strider = null; poi(c.id).striderTaken = true;
+    const k = KIN.create(n.sp, Math.max(10, G.trainerLevel)); G.addKin(k); c.strider = null; poi(c.id).striderTaken = true;
     UI.sfx('caught'); UI.toast('The Duststrider lets you up. It is yours: faster than anything on legs, and it will never go in a table.', 'good');
     G.stats.caught++;
   }
@@ -6986,7 +7003,7 @@ const UI = (() => {
     const now = performance.now(); const fx = (G.repelUntil > now ? ` · hush ${Math.ceil((G.repelUntil - now) / 1000)}s` : G.lure && G.lure.until > now ? ` · ${G.lure.elem} lure ${Math.ceil((G.lure.until - now) / 1000)}s` : '') + Npcs.hudText();
     el['quest-hint'].textContent = Quests.hintText() + pinTxt + fx;
     if (p.mineTarget) { el['mine-bar'].classList.remove('hidden'); el['mine-fill'].style.width = (p.mineProgress * 100) + '%'; } else el['mine-bar'].classList.add('hidden');
-    el['kin-count'].textContent = `${G.kin.length}/${G.MAX_KIN}`;
+    el['kin-count'].textContent = `${G.kin.length + G.eggs.length}/${G.MAX_KIN}`;
     el.hurt.style.opacity = p.hurtFlash > 0 ? Math.min(0.6, p.hurtFlash * 1.5) : 0;
     el.vignette.style.opacity = R.state.underwater ? 0.45 : (layer === 'Mines' ? 0.3 : 0.08) + 0.35 * (p.chill || 0);
     el.vignette.style.background = (p.chill || 0) > 0.05 ? `radial-gradient(ellipse at center, rgba(0,0,0,0) 45%, rgba(${p.coldKind === 'space' ? '120,140,255' : '150,210,255'},${0.5 + 0.5 * p.chill}) 100%)` : '';
@@ -7000,6 +7017,7 @@ const UI = (() => {
     panelOpen = name; el.panel.classList.remove('hidden'); G.setPaused(true);
     el['panel-body'].scrollTop = 0;
     if (name === 'kin') renderKin();
+    else if (name === 'kindex') renderKindex(data);
     else if (name === 'craft') renderCraft();
     else if (name === 'quest') renderQuests();
     else if (name === 'menu') renderMenu();
@@ -7082,13 +7100,39 @@ const UI = (() => {
     return `<button class="kheal" data-heal="${item}" ${have ? '' : 'disabled'}>${k.hp <= 0 ? 'Revive' : 'Heal'}${have ? ' ×' + have : ' (none)'}</button>`;
   }
   function renderKin() {
-    setTitle(`Your Kin · ${G.kin.length}/${G.MAX_KIN}`);
+    setTitle(`Your party · ${G.kin.length + G.eggs.length}/${G.MAX_KIN}`);
     const body = el['panel-body'];
     const tonics = ['tonic_revive', 'tonic_heal'].map(t => `${ITEMS[t].name} ×${G.player.count(t)}`).join(' · ');
-    body.innerHTML = `<p class="note">The bag holds 20. There is no way to expand it: when it is full, fuse Kin at a Fusion Table.<br>${tonics}</p>` + G.kin.map(k => kinCard(k, healButton(k))).join('');
+    const atTable = G.nearTable();
+    const eggs = G.eggs.map(e => `<div class="kcard egg"><div class="eggico"></div><div class="kinfo"><b>Egg${e.label ? ': ' + e.label : ''}</b><div class="small">${e.from ? 'From ' + e.from + '. ' : ''}Keep walking with it: about ${Math.max(0, Math.ceil(e.need - e.walked))} steps to go.</div><div class="qbar"><div style="width:${Math.round(100 * Math.min(1, e.walked / e.need))}%"></div></div></div></div>`).join('');
+    const box = G.box.length ? `<h4>Storage (${G.box.length})</h4>` + (atTable ? G.box.map((d, i) => `<div class="recipe"><div class="rinfo"><b>${d.nick || d.sp.names[(d.stage || 1) - 1]}</b> <span class="small">Lv ${d.level}</span></div><button class="btn" data-unbox="${i}" ${G.partyFull() ? 'disabled' : ''}>Take</button></div>`).join('') : '<p class="note">Your stored Kin wait at the Fusion Tables. Stand at any table to swap.</p>') : '';
+    body.innerHTML = `<p class="note">You carry eight, and an egg takes a slot. Everyone awake learns a little from every win; the one that fights learns most.<br>${tonics}</p><div class="row"><button class="btn" id="k-dex">Kindex</button></div>` + G.kin.map(k => kinCard(k, healButton(k) + (atTable && G.kin.length > 1 ? `<button class="kheal" data-store="${k.id}">Store</button>` : ''))).join('') + eggs + box;
     drawPortraits(body);
+    q('k-dex').addEventListener('click', () => openPanel('kindex'));
+    body.querySelectorAll('[data-store]').forEach(b => b.addEventListener('click', (ev) => { ev.stopPropagation(); const k = G.kin.find(x => x.id == b.dataset.store); if (!k || G.kin.length <= 1) return; G.returnGear([k]); G.kin = G.kin.filter(x => x !== k); G.box.push(KIN.serialize(k)); G.activeIdx = U.clamp(G.activeIdx, 0, G.kin.length - 1); renderKin(); }));
+    body.querySelectorAll('[data-unbox]').forEach(b => b.addEventListener('click', () => { if (G.partyFull()) return; const d = G.box.splice(+b.dataset.unbox, 1)[0]; G.kin.push(KIN.deserialize(d)); renderKin(); }));
     body.querySelectorAll('.kheal').forEach(b => b.addEventListener('click', (ev) => { ev.stopPropagation(); const card = b.closest('.kcard'); const k = G.kin.find(x => x.id == card.dataset.kid); if (G.useTonic(b.dataset.heal, k)) renderKin(); }));
     body.querySelectorAll('.kcard').forEach(c => c.addEventListener('click', () => openPanel('detail', G.kin.find(k => k.id == c.dataset.kid))));
+  }
+  // the Kindex: every species on this planet, in order; seen ones show their name and home, caught ones their picture
+  function renderKindex(data) {
+    const body0 = (data && data.body) || G.worldId; const list = KIN.dex(body0); const seen = G.stats.dex || {};
+    const nCaught = list.filter(sp => seen[sp.seed] === 'caught').length, nSeen = list.filter(sp => seen[sp.seed]).length;
+    setTitle(`Kindex · ${G.world.preset.name ? ({ earth: 'Earth', moon: 'Moon', halo: 'Halo' })[body0] : body0}`);
+    const where = (sp) => sp.fusion ? 'fusion recipe' : sp.home.layer === 'Surface' ? sp.home.biome : sp.home.layer === 'Water' ? 'water' : sp.home.layer === 'Sky' ? 'sky islands' : sp.home.layer === 'Mines' ? 'the mines' : 'the core';
+    const tabs = ['earth', 'moon', 'halo'].map(b => `<button class="btn ${b === body0 ? '' : 'ghost'}" data-dexb="${b}">${({ earth: 'Earth', moon: 'Moon', halo: 'Halo' })[b]}</button>`).join('');
+    el['panel-body'].innerHTML = `<div class="row">${tabs}</div><p class="note">${nCaught} caught, ${nSeen} seen, of ${list.length}. Numbers 201 and up only come from fusion recipes.</p><div class="dexgrid">` + list.map(sp => { const st = seen[sp.seed];
+      return `<div class="dexcell ${st || 'unknown'}">${st === 'caught' ? `<canvas class="dexpic" width="48" height="48" data-seed="${sp.seed}"></canvas>` : '<div class="dexq">?</div>'}<div class="dexn">#${sp.dex}</div><div class="dexname">${st ? sp.names[0] : '???'}</div>${st ? `<div class="dexwhere"><span class="rar r${sp.rarity}">${KIN.RARITY[sp.rarity].name}</span> ${where(sp)}</div>` : ''}</div>`; }).join('') + '</div>';
+    el['panel-body'].querySelectorAll('canvas.dexpic').forEach(cv => { const sp = list.find(x => x.seed == cv.dataset.seed); if (sp) KIN.portrait(cv, sp, 1, 48); });
+    el['panel-body'].querySelectorAll('[data-dexb]').forEach(b => b.addEventListener('click', () => renderKindex({ body: b.dataset.dexb })));
+  }
+  let explainQ = [], explainBusy = false;
+  function explain(title, text) { explainQ.push([title, text]); if (!explainBusy) nextExplain(); }
+  function nextExplain() {
+    const it = explainQ.shift(); let b = document.getElementById('explain'); if (!it) { explainBusy = false; if (b) b.classList.add('hidden'); return; }
+    explainBusy = true; if (!b) { b = document.createElement('div'); b.id = 'explain'; document.getElementById('hud').appendChild(b); b.addEventListener('click', () => { clearTimeout(b._t); nextExplain(); }); }
+    b.innerHTML = `<b>${it[0]}</b><div>${it[1]}</div><span class="x">tap to close</span>`; b.classList.remove('hidden');
+    clearTimeout(b._t); b._t = setTimeout(nextExplain, 7000);
   }
   function statBars(k) {
     const st = KIN.stats(k);
@@ -7625,7 +7669,7 @@ const UI = (() => {
   function lookLabel(t) { const e = document.getElementById('look'); if (e.textContent !== t) e.textContent = t; }
   function hideStart() { el.start.classList.add('hidden'); el.hud.classList.remove('hidden'); document.body.classList.toggle('desktop', !Controls.isTouch); }
   function loading(v) { el.loading.classList.toggle('hidden', !v); }
-  return { init, sfx, audio, toast, renderHud, renderMinimap, renderHotbar, openPanel, closePanel, showStart, hideStart, showTutorial, lookLabel, setButtons, renderSky, loading, get panelOpen() { return panelOpen; }, get soundOn() { return soundOn; } };
+  return { init, sfx, audio, toast, explain, renderHud, renderMinimap, renderHotbar, openPanel, closePanel, showStart, hideStart, showTutorial, lookLabel, setButtons, renderSky, loading, get panelOpen() { return panelOpen; }, get soundOn() { return soundOn; } };
 })();
 
 </script>
@@ -7633,7 +7677,7 @@ const UI = (() => {
 'use strict';
 // Game state, main loop, chunk streaming, progression, save/load.
 const G = {
-  world: null, player: null, kin: [], activeIdx: 0, MAX_KIN: 20, xp: 0, trainerLevel: 1,
+  world: null, player: null, kin: [], box: [], eggs: [], activeIdx: 0, MAX_KIN: 8, xp: 0, trainerLevel: 1,
   stats: null, questState: null, paused: false, running: false, mobile: false, saveTimer: 0, mythicCaught: false, shards: 0,
   SAVE_KEY: 'strata-save-v1', viewR: 4, lastT: 0, questTimer: 0, deathT: 0, secure: {}, respawnPoint: null, worldId: 'earth', worlds: {}, baseSeed: 0,
   villageState: {}, lastVillage: null, fisherSpot: null, fisherTarget: null, founded: [], dayCount: 0, wasNight: null,
@@ -7678,7 +7722,7 @@ G.setupWorld = function (seed, presetId) {
   if (!this.player) this.player = new Player(this.world); else this.player.world = this.world;
   this.player.autoJump = this.mobile; this.player.gravity = this.world.preset.gravity;
   if (!this.player.onAdd) {
-    this.player.onAdd = (item, n) => { this.stats.got[item] = (this.stats.got[item] || 0) + n; };
+    this.player.onAdd = (item, n) => { const first = !this.stats.got[item]; this.stats.got[item] = (this.stats.got[item] || 0) + n; if (first && this.running && ITEMS[item] && ITEMS[item].desc) this.explain(ITEMS[item].name, ITEMS[item].desc); };
     const origAdd = this.player.add.bind(this.player);
     this.player.add = (item, n = 1) => { origAdd(item, n); this.player.onAdd(item, n); };
   }
@@ -7692,7 +7736,7 @@ G.newWorld = function (seed, starterIdx, name) {
   UI.loading(true);
   const slot = Saves.create(name); this.SAVE_KEY = slot.key; this.gameId = slot.id; this.gameName = slot.name;
   setTimeout(() => {
-    this.stats = freshStats(); this.questState = null; this.xp = 0; this.trainerLevel = 1; this.mythicCaught = false; this.kin = []; this.activeIdx = 0; this.shards = 0; this.village = null; this.secure = {}; this.respawnPoint = null; this.worlds = {}; this.worldId = 'earth';
+    this.stats = freshStats(); this.questState = null; this.xp = 0; this.trainerLevel = 1; this.mythicCaught = false; this.kin = []; this.box = []; this.eggs = []; this.activeIdx = 0; this.shards = 0; this.village = null; this.secure = {}; this.respawnPoint = null; this.worlds = {}; this.worldId = 'earth';
     this.villageState = {}; this.poiState = {}; this.chests = {}; this.npcState = {}; this.labState = {}; this.amulet = { cd: 0, kind: null, until: 0, charges: 0 }; this.skin = 'ranger'; this.thirdPerson = false; this.lastVillage = null; this.fisherSpot = null; this.fisherTarget = null; this.founded = []; this.dayCount = 0; this.wasNight = null; this.fisherTried = false;
     this.player = null; this.setupWorld(seed, 'earth');
     const w = this.world, s = w.spawn;
@@ -7762,7 +7806,6 @@ G.stealthTarget = function () {
 G.stealthSnare = function () {
   const e = this.stealthTarget(); if (!e || Battle.active) return;
   if (!this.player.has('snare') && !this.player.has('snare2')) { UI.toast('No snares. Craft one: 2 wood, 2 stone.'); return; }
-  if (this.kin.length >= this.MAX_KIN) { UI.toast('Bag full (20). Fuse at a table first.'); return; }
   if (!this.healthyKin().length) { UI.toast('You need an awake Kin with you to set a snare.'); return; }
   Battle.start(e, true, { stealth: true });
 };
@@ -7893,6 +7936,26 @@ G.previewGrid = function (slots) {
 // recipes you know, per planet; you start with two on Earth and quest people teach the rest
 // crafting needs a Fusion Table within a few steps
 G.nearTable = function () { const p = this.player, w = this.world; const x0 = Math.floor(p.x), y0 = Math.floor(p.y), z0 = Math.floor(p.z); for (let dx = -5; dx <= 5; dx++) for (let dz = -5; dz <= 5; dz++) for (let dy = -3; dy <= 3; dy++) if (w.getBlock(x0 + dx, y0 + dy, z0 + dz) === B.FUSION) return true; return false; };
+// the party: eight slots, eggs take one each; anything more goes to storage, reached at any Fusion Table
+G.partyFull = function () { return this.kin.length + this.eggs.length >= this.MAX_KIN; };
+G.addKin = function (k) {
+  if (!this.partyFull()) { this.kin.push(k); return 'party'; }
+  this.box.push(KIN.serialize(k)); UI.toast(`Your party is full (${this.MAX_KIN}). ${KIN.name(k)} went to storage: swap Kin at any Fusion Table.`); return 'box';
+};
+// eggs: carried in a party slot, hatch after you have walked far enough with them
+G.addEgg = function (sp, from, need) {
+  if (this.partyFull()) { UI.toast(`No room for an egg: your party is full (${this.MAX_KIN}). Put a Kin in storage at a Fusion Table and come back.`, 'bad'); return false; }
+  this.eggs.push({ id: Date.now() + Math.random(), seed: sp.seed, from: from || '', walked: 0, need: need || 600, label: sp.eggLabel || null }); UI.sfx('quest');
+  return true;
+};
+G.updateEggs = function (dist) {
+  if (!this.eggs.length || !(dist > 0)) return;
+  for (const e of this.eggs.slice()) {
+    e.walked += dist; const left = e.need - e.walked;
+    if (left <= 0) { const sp = KIN.bySeed(e.seed) || KIN.dex('earth')[0]; this.eggs = this.eggs.filter(x => x !== e); const k = KIN.create(sp, 5); this.kin.push(k); this.seenDex(k.sp, 'caught'); UI.sfx('caught'); UI.openPanel('reveal', { kind: 'kin', kin: k, parents: [], n: 0, caught: 'Hatched from the egg you carried.' }); }
+    else if (Math.floor((e.walked - dist) / 150) < Math.floor(e.walked / 150)) UI.toast(`The egg moves. About ${Math.ceil(left)} more steps.`);
+  }
+};
 G.knowsRecipe = function (rc) { const k = (this.stats.recipes || {})[rc.body] || []; return k.includes(rc.i); };
 G.learnRecipe = function (body, from) {
   if (!this.stats.recipes) this.stats.recipes = {}; const known = this.stats.recipes[body] || (this.stats.recipes[body] = []);
@@ -7901,7 +7964,13 @@ G.learnRecipe = function (body, from) {
   if (from) UI.toast(`${from} teaches you a fusion: ${next.parts.map(sp => sp.names[0]).join(' + ')} + ${next.stone} Stone makes ${next.out.names[0]}.`, 'good');
   return next;
 };
-G.seenDex = function (sp, how) { if (!sp || !sp.dex) return; if (!this.stats.dex) this.stats.dex = {}; const prev = this.stats.dex[sp.seed]; if (prev === 'caught') return; if (how === 'caught' || !prev) this.stats.dex[sp.seed] = how; };
+G.seenDex = function (sp, how) {
+  if (!sp || !sp.dex) return; if (!this.stats.dex) this.stats.dex = {}; const prev = this.stats.dex[sp.seed]; if (prev === 'caught') return;
+  if (how === 'caught' || !prev) this.stats.dex[sp.seed] = how;
+  if (!prev) { const where = sp.fusion ? 'made only by a fusion recipe' : sp.home ? (sp.home.layer === 'Surface' ? 'lives in the ' + sp.home.biome : 'lives in the ' + sp.home.layer.toLowerCase()) : ''; this.explain(`New in your Kindex: #${sp.dex} ${sp.names[0]}`, `${KIN.RARITY[sp.rarity || 0].name[0].toUpperCase() + KIN.RARITY[sp.rarity || 0].name.slice(1)}, ${KIN.dominant(sp.elem, 1)[0]}, ${where}.`); }
+};
+// a bubble the first time you meet something: what it is and what to do with it
+G.explain = function (title, text) { UI.explain(title, text); };
 G.fuseGrid = function (slots) {
   const pv = this.previewGrid(slots);
   const p = this.player;
@@ -8041,6 +8110,7 @@ G.onBattleEnd = function (result, wildE, wild, mine, ambush) {
   if (result === 'won' || result === 'caught') {
     const xp = result === 'won' ? baseXp : Math.floor(baseXp * 0.6);
     if (mine && mine.hp > 0) {
+      for (const o of this.kin) if (o !== mine && o.hp > 0) { const oe = KIN.gainXp(o, Math.floor(xp * 0.25)); for (const ev of oe) if (ev.type === 'level') UI.toast(`${KIN.name(o)} (watching) reached Lv ${ev.level}.`); } // the rest of the party learns a little by watching; the fainted learn nothing
       const evs = KIN.gainXp(mine, xp);
       for (const ev of evs) { if (ev.type === 'level') UI.toast(`${KIN.name(mine)} reached Lv ${ev.level}.`, 'good'); if (ev.type === 'evolve') { UI.toast(`${ev.name}… it evolved into ${KIN.name(mine)}!`, 'good'); UI.sfx('level'); } }
     }
@@ -8056,8 +8126,8 @@ G.onBattleEnd = function (result, wildE, wild, mine, ambush) {
       if (st) { this.stats.mythicDone = true; UI.toast('The Mantlewyrm sinks back into the Starmetal. Next time, bring Void Snares.', 'good'); }
     } else {
       wild.buffs = null; wild.hp = Math.max(1, wild.hp);
-      this.kin.push(wild); this.stats.caught++; this.seenDex(wild.sp, "caught");
-      UI.toast(`${KIN.name(wild)} joined you (${this.kin.length}/${this.MAX_KIN}).`, 'good');
+      this.stats.caught++; this.seenDex(wild.sp, "caught");
+      if (this.addKin(wild) === 'party') UI.toast(`${KIN.name(wild)} joined you (${this.kin.length + this.eggs.length}/${this.MAX_KIN}).`, 'good');
       if (st) { this.stats.mythicDone = true; this.mythicCaught = true; UI.toast('You hold the Mythic of the Core. The Starmetal hums: the sky beyond opens in the next version.', 'good'); }
     }
     Wild.remove(wildE);
@@ -8217,7 +8287,7 @@ G.loop = function (t) {
       p.jumpMul = tr.includes('Climber') ? 1.15 : 1; p.autoJumpTrait = tr.includes('Climber') || !!(p.mount && p.mount.sp.climber); p.lavaMul = tr.includes('Warm') ? 0.5 : 1; p.senseMul = tr.includes('Stalker') ? 0.7 : 1;
       const healMul = tr.includes('Mender') ? 2 : 1;
       const hpBefore = p.hp;
-      p.update(dt, input);
+      { const ox = p.x, oz = p.z; p.update(dt, input); if (this.eggs.length) { const d = Math.hypot(p.x - ox, p.z - oz); if (d < 5) this.updateEggs(p.mount || p.flying ? d * 0.5 : d); } }
       if (p.hp < hpBefore) { UI.sfx('hurt'); const now = performance.now(); if (!this.lastHurtToast || now - this.lastHurtToast > 6000) { this.lastHurtToast = now; const why = { drown: 'You are drowning. Get your head above water.', lava: 'Lava burns. You need a Lava Suit.', fall: 'That was a long fall.', kin: 'It is on you. Run, or you black out.', cold: 'You are freezing. Craft a Frost Cloak: 6 frond, 8 snow, 2 wood. Snow is the white ground here and on mountain tops; mine it, or buy it from a trader.', space: 'No air, no warmth. Get back in the ship, or craft a Space Suit.', brine: 'The brine burns. Get out, or wear a Lava Suit.', worm: 'A worm. Keep moving when the ground shakes, or stay off the Mare.', shard: 'A shard from the ring. When the sky whistles, run.', spear: 'Spears. They do not want you here: run until they turn back.' }[p.lastDamage]; if (why) UI.toast(why, 'bad'); } }
       if (p.landed) { p.landed = false; UI.sfx('place'); UI.toast('Landed. The ship folds up and follows you.', 'good'); }
       if (p.crashed) { p.crashed = false; UI.sfx('down'); UI.toast('You crashed the Starship. You wake at the village; the ship is scrap no longer, it follows you.', 'bad'); const s = this.respawnPoint || w.spawn; w.ensureAround(Math.floor(s.x / CH), Math.floor(s.z / CH), 1, 99); p.x = s.x; p.z = s.z; p.y = w.groundY(Math.floor(s.x), Math.floor(s.z)) + 1.2; p.vx = p.vy = p.vz = 0; p.hp = Math.max(1, p.hp - 3); p.hurtFlash = 0.5; }
@@ -8394,7 +8464,7 @@ G.save = function () {
   if (!this.running || !this.world) return false;
   try {
     const data = {
-      v: 2, kinV: 2, seed: this.baseSeed, worldId: this.worldId, worlds: Object.assign({}, this.worlds, { [this.worldId]: this.captureWorldState() }), player: this.player.serialize(), kin: this.kin.map(KIN.serialize), activeIdx: this.activeIdx, xp: this.xp,
+      v: 2, kinV: 2, seed: this.baseSeed, worldId: this.worldId, worlds: Object.assign({}, this.worlds, { [this.worldId]: this.captureWorldState() }), player: this.player.serialize(), kin: this.kin.map(KIN.serialize), box: this.box, eggs: this.eggs, activeIdx: this.activeIdx, xp: this.xp,
       stats: this.stats, questState: this.questState, edits: this.world.serializeEdits(), mythicCaught: this.mythicCaught, shards: this.shards, village: this.village, secure: this.secure, respawnPoint: this.respawnPoint, weather: Weather.serialize(),
       villageState: this.villageState, lastVillage: this.lastVillage, fisherSpot: this.fisherSpot, fisherTarget: this.fisherTarget, founded: this.founded, dayCount: this.dayCount, poiState: this.poiState || {}, pin: this.pin || null, chests: this.chests || {}, npcState: this.npcState || {}, labState: this.labState || {}, skin: this.skin || 'ranger', thirdPerson: !!this.thirdPerson, regrow: (this.world.regrow || []).map(r => ({ x: r.x, y: r.y, z: r.z, t: 0, leaf: !!r.leaf, id: r.id })),
       statues: [...this.world.statues.values()].map(o => { const c = Object.assign({}, o); delete c.model; delete c.mesh; return c; }),
@@ -8425,10 +8495,11 @@ G.load = function () {
   }
   Weather.load(data.weather);
   if (this.worldId === 'earth' && !(data.stats || {}).ruinPlaced && this.world.spawn) { this.world.placeSpawnRuin(); setTimeout(() => { this.stats.ruinPlaced = true; }, 0); }
-  this.kin = (data.kin || []).map(KIN.deserialize); this.activeIdx = data.activeIdx || 0;
+  this.kin = (data.kin || []).map(KIN.deserialize); this.activeIdx = data.activeIdx || 0; this.box = data.box || []; this.eggs = data.eggs || [];
+  while (this.kin.length > this.MAX_KIN) this.box.push(KIN.serialize(this.kin.pop())); // the party is eight now
   this.player.load(data.player);
   if (data.kinV !== 2) { // the Kindex arrived: the old one-of-a-kind Kin are let go, everywhere; a fresh starter takes their place
-    this.kin = []; this.activeIdx = 0;
+    this.kin = []; this.activeIdx = 0; this.box = []; this.eggs = [];
     for (const id in (this.villageState || {})) if (this.villageState[id].guards) this.villageState[id].guards = [];
     for (const id in (this.labState || {})) { this.labState[id].kin = []; this.labState[id].days = []; }
     const st = KIN.create(KIN.starters(this.baseSeed)[0], 5); this.kin.push(st); this.stats.recipes = { earth: [0, 1], moon: [0], halo: [0] }; this.stats.dex = {};
