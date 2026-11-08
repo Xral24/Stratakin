@@ -1481,20 +1481,26 @@ const R = (() => {
     float ha = a.a * 255.0, hb = b.a * 255.0, hc = c.a * 255.0, he = e.a * 255.0;
     float lo = min(min(ha, hb), min(hc, he)), hi = max(max(ha, hb), max(hc, he));
     vec4 own = hm(ivec2(floor(p - uHMO)));
-    float grass = step(0.02, own.r + own.g + own.b) * (1.0 - step(2.5, hi - lo));
+    float grass = step(0.004, own.r + own.g) * (1.0 - step(2.5, hi - lo));
+    float zone = own.b; float tall = smoothstep(0.6, 0.78, zone), lawn = 1.0 - smoothstep(0.22, 0.4, zone);
     float y = mix(mix(ha, hb, f.x), mix(hc, he, f.x), f.y);
     float sc = fade * grass * (0.55 + h3 * 0.8);
     if (sc < 0.03) { gl_Position = vec4(2.0, 2.0, 2.0, 1.0); vC = vec3(0.0); vW = vec3(0.0); vH = 0.0; return; }
     float ang = h1 * 6.2831; vec2 dir = vec2(cos(ang), sin(ang));
-    float hgt = 0.34 * sc * uScale; float wid = uWidth * (1.0 - aBlade.y * 0.85);
+    float hm2 = mix(1.0, 0.32, lawn) * mix(1.0, 3.4, tall);
+    float flowerP = smoothstep(0.55, 0.8, sin(p.x * 0.11 + 1.3) * sin(p.y * 0.13 + 0.7) * 0.5 + 0.5 + h3 * 0.2) * (1.0 - tall); bool flower = hash(cell + 5.13) < 0.035 + flowerP * 0.09;
+    if (flower) hm2 = max(hm2, 0.75);
+    float hgt = 0.34 * sc * uScale * hm2 * (1.0 + (h2 - 0.5) * 0.5 * tall); float wid = uWidth * (1.0 - aBlade.y * 0.85) * mix(1.0, 0.75, tall) * (flower ? 0.6 : 1.0);
     float gust = sin(dot(p, vec2(0.37, 0.2)) - uTime * 1.6) * 0.5 + 0.5; gust = gust * gust;
-    float bend = (sin(uTime * 2.6 + h2 * 6.2831 + p.x * 0.7) * 0.05 + gust * 0.2 + 0.04) * aBlade.y * aBlade.y;
+    float bend = (sin(uTime * 2.6 + h2 * 6.2831 + p.x * 0.7) * 0.05 + gust * 0.2 + 0.04 + tall * (0.1 + gust * 0.25)) * aBlade.y * aBlade.y;
     vec3 w = vec3(p.x + dir.x * aBlade.x * wid, y + aBlade.y * hgt, p.y + dir.y * aBlade.x * wid);
     w.x += bend * 0.85 * (0.4 + hgt * 2.0); w.z += bend * 0.48 * (0.4 + hgt * 2.0); w.y -= bend * bend * 0.6;
-    vec3 tint = own.rgb;
+    vec3 tint = vec3(own.r, own.g, own.g * 0.42);
     vC = mix(tint * vec3(0.5, 0.58, 0.42), tint * vec3(1.06, 1.08, 0.74) + vec3(0.07, 0.06, 0.0), aBlade.y) * (0.82 + 0.34 * h3);
     vC *= 1.0 + gust * 0.22 * aBlade.y;
     float lum = dot(vC, vec3(0.3, 0.59, 0.11)); vC = mix(vec3(lum), vC, 0.72) * vec3(1.04, 1.0, 0.86); // softer, a little golden
+    vC = mix(vC, vC * vec3(1.12, 1.08, 0.82) + vec3(0.06, 0.05, 0.0), tall * aBlade.y * 0.6); // tall grass goes pale and golden at the tips
+    if (flower && aBlade.y > 0.6) { float fk = hash(cell + 9.1); vC = fk < 0.45 ? vec3(0.96, 0.96, 0.92) : fk < 0.7 ? vec3(0.55, 0.65, 1.0) : fk < 0.88 ? vec3(1.0, 0.86, 0.3) : vec3(0.95, 0.55, 0.7); }
     vW = w; vH = aBlade.y;
     gl_Position = uPV * vec4(w, 1.0);
   }`;
@@ -1525,6 +1531,11 @@ const R = (() => {
       gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 128, 128, 0, gl.RGBA, gl.UNSIGNED_BYTE, hmData);
     } catch (e) { console.warn('grass off:', e.message); grassProg = null; }
   }
+  function grassZone(world, x, z, biome) {
+    let v = U.vnoise2(x, z, 46, WORLD_W, world.seed + 909) * 0.7 + U.vnoise2(x, z, 13, WORLD_W, world.seed + 913) * 0.3;
+    if (biome === BIOME.PLAINS || biome === BIOME.SWAMP) v += 0.12; else if (biome === BIOME.FOREST) v -= 0.1; else if (biome === BIOME.MOUNTAIN || biome === BIOME.SNOW) v -= 0.25;
+    return U.clamp(v, 0, 1);
+  }
   // the ground near you, as a little map: grass colour where grass grows, the height of the top everywhere
   function refreshHeightmap(world, cx, cz) {
     const ox = cx - 64, oz = cz - 64; const d = hmData;
@@ -1535,7 +1546,7 @@ const R = (() => {
       let y = ch.tops[lx * CH + lz]; let id = ch.blocks[(lx * CH + lz) * WH + y]; while (y > 0 && (id === B.AIR || id === B.TORCH)) { y--; id = ch.blocks[(lx * CH + lz) * WH + y]; }
       const grass = (id === B.GRASS || id === B.GLOWGRASS) && ch.blocks[(lx * CH + lz) * WH + y + 1] === B.AIR;
       const ti = (lx * CH + lz) * 3;
-      d[k] = grass ? Math.max(1, Math.min(255, ch.tint[ti] * 255)) : 0; d[k + 1] = grass ? Math.min(255, ch.tint[ti + 1] * 255) : 0; d[k + 2] = grass ? Math.min(255, ch.tint[ti + 2] * 255) : 0; d[k + 3] = Math.min(255, y + 1);
+      d[k] = grass ? Math.max(1, Math.min(255, ch.tint[ti] * 255)) : 0; d[k + 1] = grass ? Math.max(1, Math.min(255, ch.tint[ti + 1] * 255)) : 0; d[k + 2] = grass ? Math.max(1, Math.round(grassZone(world, x, z, world.colInfo(x, z).biome) * 254)) : 0; d[k + 3] = Math.min(255, y + 1); // blue holds the kind of grass
     }
     gl.bindTexture(gl.TEXTURE_2D, hmTex); gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, 128, 128, gl.RGBA, gl.UNSIGNED_BYTE, d);
     hmCenter = { x: cx, z: cz, ox, oz };
@@ -2034,7 +2045,7 @@ const R = (() => {
     return out;
   }
 
-  return { init, resize, buildChunk, freeChunk, entityMesh, render, boxLines, ringLines, state, get gl() { return gl; } };
+  return { grassZone, init, resize, buildChunk, freeChunk, entityMesh, render, boxLines, ringLines, state, get gl() { return gl; } };
 })();
 
 </script>
@@ -3382,6 +3393,12 @@ const Wild = (() => {
   function layerBonus(layer, deep) { return layer === 'Mines' ? 2 : layer === 'Core' ? 8 : layer === 'Sky' ? 6 : layer === 'Water' ? (deep ? 3 : 1) : 0; }
   const wdd = (d) => U.mod(d + WORLD_W / 2, WORLD_W) - WORLD_W / 2;
   // how hard a place is, before rarity: the land near home stays easy forever; it climbs with distance and spikes at held villages, in the deep layers and on volcano tops
+  // crouching in tall grass: you are very hard to spot
+  let tgT = 0, tgV = false;
+  function inTallGrass() {
+    const now = performance.now(); if (now - tgT < 300) return tgV; tgT = now; const p = G.player; const bx = Math.floor(p.x), bz = Math.floor(p.z);
+    const below = world.getBlock(bx, Math.floor(p.y - 0.1), bz); tgV = below === B.GRASS && R.grassZone(world, bx, bz, world.colInfo(bx, bz).biome) > 0.66; return tgV;
+  }
   function zoneLevel(x, y, z, ctx, trainerLevel) {
     const pr = world.preset; const onEarth = pr.id === 'earth';
     const o = onEarth ? (G.village || world.spawn) : (world.pad || world.spawn);
@@ -3652,7 +3669,7 @@ const Wild = (() => {
       if (e.cool > 0) continue;
       if (player.flying) { e.alert = Math.max(0, e.alert - dt); e.hunt = 0; continue; } // nothing reaches you in the Starship
       if (G.repelUntil > performance.now() && !e.isBoss && !e.lieutenant && !e.raider) { e.alert = 0; e.hunt = 0; continue; } // hushed: they do not notice you
-      const senseR = e.senseR * (sneaking ? 0.7 : 1) * (player.senseMul || 1);
+      const senseR = e.senseR * (sneaking ? (inTallGrass() ? 0.38 : 0.7) : 1) * (player.senseMul || 1);
       if (dist < senseR + 0.5) {
         const fx = Math.sin(e.yaw), fz = Math.cos(e.yaw);
         const dl = Math.hypot(dx, dz) || 1;
@@ -3721,7 +3738,7 @@ const Wild = (() => {
     return out;
   }
   function clear() { list.length = 0; mythicRef = null; legendRef = null; apexRefs.rex = apexRefs.mosa = null; }
-  const api = { init, update, list, remove, nearest, pick, rings, roll, ensureHeart, ensureLegend, ensureApex, apexSea, apexLevel: APEX_LV, clear, makeEntity, zoneLevel, noSpawn: null, chaser: null, get mythic() { return mythicRef; }, get legend() { return legendRef; } };
+  const api = { inTallGrass, init, update, list, remove, nearest, pick, rings, roll, ensureHeart, ensureLegend, ensureApex, apexSea, apexLevel: APEX_LV, clear, makeEntity, zoneLevel, noSpawn: null, chaser: null, get mythic() { return mythicRef; }, get legend() { return legendRef; } };
   return api;
 })();
 
@@ -9122,6 +9139,9 @@ G.loop = function (t) {
     const mm = KIN.model(p.mount.sp, p.mount.stage); const size = Math.max(mm.height, mm.radius * 1.4);
     cam = Avatar.thirdCam(cam, p, w, 4.5 + size * 1.6, 0.6 + mm.height * 0.45);
   } else if (this.thirdPerson && !inBattle) cam = Avatar.thirdCam(cam, p, w);
+  // tall grass: the camera eases up and back over your shoulder (more when you crouch) so you see over the blades
+  { const want = (!inBattle && !p.mount && !p.flying && Wild.inTallGrass()) ? (p.sneak ? 1 : 0.65) : 0; this.grassCamK = U.lerp(this.grassCamK || 0, want, Math.min(1, dt * 3));
+    if (this.grassCamK > 0.02 && !this.thirdPerson) { const k = this.grassCamK; const tc = Avatar.thirdCam(cam, p, w, 4.2 * k, 1.35 * k); cam = Object.assign({}, cam, { x: tc.x, y: tc.y, z: tc.z, pitch: cam.pitch - 0.12 * k }); this.grassCamOn = k > 0.25; } else this.grassCamOn = false; }
   if (inBattle && Battle.camera) { const bc = Battle.camera(dt, this.mobile); if (bc) cam = Object.assign(cam, bc); }
   // talking to someone: the camera slides round to their face, a little to one side
   const talking = !inBattle && this.talkNpc && (Dialogue.active() || UI.panelOpen === 'shop' || UI.panelOpen === 'village');
@@ -9144,7 +9164,7 @@ G.loop = function (t) {
   if (Battle.mineEntity) ents.push(Battle.mineEntity);
   ents.push(...Village.entities());
   if (p.flying) ents.push({ x: p.x, y: p.y - 0.85, z: p.z, yaw: p.yaw + Math.PI, model: { height: 1 }, mesh: R.entityMesh('ship', (mb) => { const c = [0.75, 0.9, 0.95], d = [0.35, 0.4, 0.5], g = [0.4, 0.95, 1.0]; mb.box(-0.8, 0, -1.3, 0.8, 0.5, 1.4, c); mb.box(-0.4, 0.5, -0.2, 0.4, 0.9, 0.7, d); mb.box(-2.2, 0.15, -0.9, -0.8, 0.25, 0.1, c); mb.box(0.8, 0.15, -0.9, 2.2, 0.25, 0.1, c); mb.box(-0.6, 0.1, -1.6, -0.2, 0.4, -1.3, g, 1, true); mb.box(0.2, 0.1, -1.6, 0.6, 0.4, -1.3, g, 1, true); mb.box(-0.15, 0.15, 1.4, 0.15, 0.35, 1.9, g, 1, true); }), scale: 1, hover: Math.sin(performance.now() / 300) * 0.05, skyMul: 1, isMount: true });
-  const showMe = inBattle || this.thirdPerson || this.talkK > 0 || !!p.mount;
+  const showMe = inBattle || this.thirdPerson || this.talkK > 0 || !!p.mount || this.grassCamOn;
   if (showMe) { const me = Avatar.entity(p, Math.hypot(p.vx, p.vz) > 0.6); if (p.mount) { const mm = KIN.model(p.mount.sp, p.mount.stage); me.y = p.y - 0.75 + mm.height * 0.62; } ents.push(me); }
   if (p.mount) { const k = p.mount; const m = KIN.model(k.sp, k.stage); const fwd = U.forwardVec(p.yaw, 0); ents.push({ x: p.x + fwd[0] * 0.5, y: p.y - 0.75 + (p.inWater ? -0.2 : 0) + Math.sin(performance.now() / 160) * (Math.hypot(p.vx, p.vz) > 0.5 ? 0.06 : 0), z: p.z + fwd[2] * 0.5, yaw: p.yaw + Math.PI, model: m, mesh: R.entityMesh(KIN.meshKey(k.sp, k.stage), (mb) => KIN.buildMesh(mb, m)), scale: 1, hover: 0, skyMul: 1, isMount: true }); }
   ents.push(...Battle.fxEntities()); ents.push(...Hazards.entities()); ents.push(...Npcs.entities());
