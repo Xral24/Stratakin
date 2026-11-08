@@ -224,8 +224,12 @@ body.desktop #joy, body.desktop #btn-jump, body.desktop #btn-sneak { display: no
 .planet.ring::after { content: ''; position: absolute; left: -45%; right: -45%; top: 38%; height: 24%; border-radius: 50%; border: 3px solid rgba(255,230,170,.6); transform: rotate(-18deg); }
 .skyband { position: absolute; height: 26px; border-radius: 50% / 100%; background: linear-gradient(180deg, rgba(255,255,255,0) 0%, rgba(255,250,232,.95) 30%, rgba(120,90,40,.5) 50%, rgba(255,250,232,.92) 70%, rgba(255,255,255,0) 100%); box-shadow: 0 0 14px rgba(255,255,240,.55); }
 #fade { position: fixed; inset: 0; background: #000; opacity: 0; pointer-events: none; transition: opacity .9s; z-index: 30; }
-#btn-ship { position: absolute; right: 96px; bottom: calc(200px + env(safe-area-inset-bottom)); width: 54px; height: 40px; border-radius: 20px; background: rgba(199,251,255,.18); border: 2px solid rgba(199,251,255,.5); font-size: 12px; pointer-events: auto; }
-#btn-ship.on { background: rgba(199,251,255,.5); color: #06202c; }
+/* the Starship lives up by the radar, away from your thumbs */
+#btn-ship { position: absolute; right: calc(8px + env(safe-area-inset-right)); top: calc(222px + env(safe-area-inset-top)); width: 46px; height: 46px; border-radius: 12px; background: rgba(20,30,46,.82); border: 2px solid rgba(199,251,255,.55); font-size: 22px; line-height: 1; padding: 0; pointer-events: auto; display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: 0 2px 10px rgba(0,0,0,.4); }
+#btn-ship.hidden { display: none; }
+#btn-ship.nomap { top: calc(118px + env(safe-area-inset-top)); }
+#btn-ship small { font-size: 9px; font-weight: 700; letter-spacing: .5px; margin-top: 1px; }
+#btn-ship.on { background: rgba(199,251,255,.85); color: #06202c; }
 #drop-bar { position: absolute; right: 10px; bottom: calc(14px + env(safe-area-inset-bottom)); display: flex; flex-direction: column; gap: 4px; pointer-events: auto; }
 #drop-bar button { background: rgba(0,0,0,.55); border: 1px solid rgba(255,255,255,.3); border-radius: 8px; padding: 6px 8px; font-size: 11px; font-weight: 800; }
 .kcard .kheal { margin-left: 6px; padding: 4px 8px; font-size: 11px; border-radius: 8px; background: #ff5f7a; color: #111; border: 0; font-weight: 800; }
@@ -334,7 +338,7 @@ body.desktop #joy, body.desktop #btn-jump, body.desktop #btn-sneak { display: no
     <button id="btn-snare" class="hidden">Set snare</button>
     <div id="fishbar" class="hidden"><div class="snare-tip">A bite! Tap when the marker is in the glow.</div><div class="snare-track"><div class="snare-zone"></div><div class="snare-marker"></div></div></div>
     <button id="btn-ride" class="hidden">Ride</button>
-    <button id="btn-ship" class="hidden">Ship</button>
+    <button id="btn-ship" class="hidden" aria-label="Starship">🚀</button>
   </div>
   <div id="toasts"></div>
 </div>
@@ -7174,8 +7178,8 @@ const UI = (() => {
     const b1 = document.getElementById('btn-snare'), b2 = document.getElementById('btn-ride');
     if (st.snare !== undefined && st.snare !== btnState.snare) { b1.classList.toggle('hidden', !st.snare); btnState.snare = st.snare; }
     if (st.ride !== undefined && (st.ride !== btnState.ride || st.riding !== btnState.riding)) { b2.classList.toggle('hidden', !st.ride); b2.textContent = st.riding ? 'Off' : 'Ride'; b2.classList.toggle('on', !!st.riding); btnState.ride = st.ride; btnState.riding = !!st.riding; }
-    const b3 = document.getElementById('btn-ship');
-    if (st.ship !== undefined && (st.ship !== btnState.ship || st.flying !== btnState.flying)) { b3.classList.toggle('hidden', !st.ship); b3.textContent = st.flying ? 'Land' : 'Ship'; b3.classList.toggle('on', !!st.flying); btnState.ship = st.ship; btnState.flying = !!st.flying; }
+    const b3 = document.getElementById('btn-ship'); b3.classList.toggle('nomap', !MM.on);
+    if (st.ship !== undefined && (st.ship !== btnState.ship || st.flying !== btnState.flying)) { b3.classList.toggle('hidden', !st.ship); b3.innerHTML = st.flying ? '🛬<small>LAND</small>' : '🚀'; b3.classList.toggle('on', !!st.flying); btnState.ship = st.ship; btnState.flying = !!st.flying; }
   }
   // stars and planets as a cheap overlay: fixed directions projected against the camera
   // each body is a stack of CSS gradients: the night side on top, then clouds, land, seas or bands
