@@ -109,7 +109,6 @@ const PATTERNS = {};
 PATTERNS[B.PLANKS] = { side: { rects: bands(3, 'v', [1.0, 0.88, 0.95], 0.04, 0.42) }, top: { rects: bands(3, 'u', [1.0, 0.88, 0.95], 0.04, 0.42) } };
 PATTERNS[B.LOG] = { side: { rects: bands(4, 'u', [1.0, 0.84, 0.94, 0.8], 0.02, 0.6) }, top: { rects: strips(0.14, 0.78).concat(strips(0.14, 0.95).map(r => ({ u0: 0.14 + r.u0 * 0.72, v0: 0.14 + r.v0 * 0.72, u1: 0.14 + r.u1 * 0.72, v1: 0.14 + r.v1 * 0.72, mul: 1.1, col: [0.78, 0.62, 0.38] })), [{ u0: 0.28, v0: 0.28, u1: 0.72, v1: 0.72, mul: 0.86, col: [0.6, 0.45, 0.26] }]) } };
 // the Kinmaster's works: dark dressed stone with mortar, barbed thorn, a dead machine gate with rivets and a cold lamp, a heap of rubble
-PATTERNS[B.FORTSTONE] = { all: { rects: [{ u0: 0, v0: 0, u1: 1, v1: 1, mul: 1, col: null }, { u0: 0, v0: 0.48, u1: 1, v1: 0.52, mul: 0.7, col: null }, { u0: 0.48, v0: 0, u1: 0.52, v1: 0.48, mul: 0.7, col: null }, { u0: 0.2, v0: 0.52, u1: 0.24, v1: 1, mul: 0.7, col: null }, { u0: 0.74, v0: 0.52, u1: 0.78, v1: 1, mul: 0.7, col: null }, { u0: 0.06, v0: 0.06, u1: 0.4, v1: 0.12, mul: 1.15, col: null }] } };
 PATTERNS[B.THORN] = { all: { rects: [{ u0: 0, v0: 0, u1: 1, v1: 1, mul: 1, col: null }, { u0: 0.1, v0: 0.2, u1: 0.9, v1: 0.3, mul: 0.7, col: null }, { u0: 0.2, v0: 0.6, u1: 1, v1: 0.7, mul: 0.7, col: null }, { u0: 0.3, v0: 0.1, u1: 0.36, v1: 0.2, mul: 1, col: [0.85, 0.82, 0.6] }, { u0: 0.6, v0: 0.3, u1: 0.66, v1: 0.4, mul: 1, col: [0.85, 0.82, 0.6] }, { u0: 0.4, v0: 0.7, u1: 0.46, v1: 0.8, mul: 1, col: [0.85, 0.82, 0.6] }, { u0: 0.8, v0: 0.5, u1: 0.86, v1: 0.6, mul: 1, col: [0.85, 0.82, 0.6] }] } };
 PATTERNS[B.DEADGATE] = { all: { rects: [{ u0: 0.05, v0: 0.05, u1: 0.95, v1: 0.95, mul: 0.85, col: null }, { u0: 0.08, v0: 0.08, u1: 0.16, v1: 0.16, mul: 1.4, col: null }, { u0: 0.84, v0: 0.08, u1: 0.92, v1: 0.16, mul: 1.4, col: null }, { u0: 0.08, v0: 0.84, u1: 0.16, v1: 0.92, mul: 1.4, col: null }, { u0: 0.84, v0: 0.84, u1: 0.92, v1: 0.92, mul: 1.4, col: null }, { u0: 0.38, v0: 0.38, u1: 0.62, v1: 0.62, mul: 1, col: [0.25, 0.3, 0.38] }] } };
 PATTERNS[B.RUBBLE] = { all: { rects: [{ u0: 0, v0: 0, u1: 1, v1: 1, mul: 1, col: null }, { u0: 0.05, v0: 0.1, u1: 0.45, v1: 0.45, mul: 1.15, col: null }, { u0: 0.5, v0: 0.05, u1: 0.95, v1: 0.4, mul: 0.85, col: null }, { u0: 0.1, v0: 0.55, u1: 0.55, v1: 0.95, mul: 0.9, col: null }, { u0: 0.6, v0: 0.5, u1: 0.95, v1: 0.92, mul: 1.1, col: null }] } };
@@ -683,7 +682,7 @@ const R = (() => {
 
   // ---------- chunk meshing ----------
   // material classes for the fragment shader: 1 grass top, 2 sand, 3 rock, 4 earth, 5 snow, 6 wood, 7 leaves, 8 lava, 9 tiles, 10 plaster, 11 cobbles, 12 thatch, 13 slate, 14 dressed stone
-  const MAT_OF = {}; for (const [ids, m] of [[[B.SAND, B.DUNE, B.SALTCRUST], 2], [[B.STONE, B.GRAVEL, B.MOSS, B.COPPER, B.IRON, B.EMBER, B.GOLD, B.DIAMOND, B.BASALT, B.BEDROCK, B.FORTSTONE, B.RUBBLE, B.SELENITE, B.TYCHO, B.AMBER, B.REGOLITH, B.BOULDER], 3], [[B.DIRT], 4], [[B.SNOW], 5], [[B.PLANKS, B.LOG, B.BIRCHLOG, B.PALMLOG, B.BEAM, B.DOOR, B.DOOR_OPEN, B.LADDER, B.CHEST], 6], [[B.LEAVES, B.BERRYLEAF, B.NEEDLES, B.CACTUS], 7], [[B.LAVA], 8], [[B.TILES], 9], [[B.PLASTER], 10], [[B.COBBLE], 11], [[B.THATCH], 12], [[B.SLATE], 13], [[B.MASONRY, B.SLIT], 14]]) for (const id of ids) MAT_OF[id] = m;
+  const MAT_OF = {}; for (const [ids, m] of [[[B.SAND, B.DUNE, B.SALTCRUST], 2], [[B.STONE, B.GRAVEL, B.MOSS, B.COPPER, B.IRON, B.EMBER, B.GOLD, B.DIAMOND, B.BASALT, B.BEDROCK, B.RUBBLE, B.SELENITE, B.TYCHO, B.AMBER, B.REGOLITH, B.BOULDER], 3], [[B.DIRT], 4], [[B.SNOW], 5], [[B.PLANKS, B.LOG, B.BIRCHLOG, B.PALMLOG, B.BEAM, B.DOOR, B.DOOR_OPEN, B.LADDER, B.CHEST], 6], [[B.LEAVES, B.BERRYLEAF, B.NEEDLES, B.CACTUS], 7], [[B.LAVA], 8], [[B.TILES], 9], [[B.PLASTER], 10], [[B.COBBLE], 11], [[B.THATCH], 12], [[B.SLATE], 13], [[B.MASONRY, B.SLIT, B.FORTSTONE], 14]]) for (const id of ids) MAT_OF[id] = m;
   const scratchOpaque = new MeshBuilder(16384, false, true), scratchWater = new MeshBuilder(2048, false, true), scratchGlass = new MeshBuilder(512, false, true), scratchGrass = new MeshBuilder(8192, false, true);
   const SOIL = new Set([B.GRASS, B.DIRT, B.SAND, B.SNOW, B.GRAVEL, B.STONE, B.MOSS, B.GLOWGRASS, B.REGOLITH, B.DUNE, B.SALTCRUST]);
   // things that stand on the ground without stopping it from sloping: air, leaves, trunks, bushes, flowers, pebbles, torches, chests...
@@ -900,12 +899,25 @@ const R = (() => {
         }
         if (id === B.BANNER) { // a banner hanging from the wall behind it: a pole bracketed out, cloth falling from it, a device in the middle
           const sk = skyAt(lx, y, lz); let d = [0, -1]; for (const [a, b] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) if (isOpaque(get(lx + a, y, lz + b))) { d = [a, b]; break; }
-          const h0 = U.hash3(Math.floor(wx / 8), 2, Math.floor(wz / 8), 161); const pal = [[0.72, 0.14, 0.18], [0.14, 0.3, 0.66], [0.12, 0.45, 0.28], [0.8, 0.62, 0.14]]; const c = pal[Math.floor(h0 * 4)]; const gold = [0.85, 0.7, 0.3];
+          const h0 = U.hash3(Math.floor(wx / 8), 2, Math.floor(wz / 8), 161); const pal = [[0.72, 0.14, 0.18], [0.14, 0.3, 0.66], [0.12, 0.45, 0.28], [0.8, 0.62, 0.14]]; const onFort = get(lx + d[0], y, lz + d[1]) === B.FORTSTONE; const c = onFort ? [0.3, 0.1, 0.42] : pal[Math.floor(h0 * 4)]; const gold = onFort ? [0.16, 0.06, 0.2] : [0.85, 0.7, 0.3];
           const cx = lx + 0.5 + d[0] * 0.3, cz = lz + 0.5 + d[1] * 0.3; const px = d[0] ? 0 : 1, pz = d[0] ? 1 : 0; // along the wall
           op.tube([[cx - px * 0.46, y + 0.92, cz - pz * 0.46], [cx + px * 0.46, y + 0.92, cz + pz * 0.46]], [0.03, 0.03], [0.3, 0.2, 0.1], { sky: sk, segs: 5, cap0: 'round', cap1: 'round' }); // the pole
           const spine = [], ws = []; for (let i = 0; i <= 5; i++) { const t = i / 5; spine.push([cx - d[0] * (0.04 * t + 0.14 * t * t), y + 0.9 - t * 1.8, cz - d[1] * (0.04 * t + 0.14 * t * t)]); ws.push(0.38 * (1 - 0.12 * t)); }
           op.ribbon(spine, ws, c, { sky: sk, tip: [c[0] * 0.75, c[1] * 0.75, c[2] * 0.75], droop: 0 });
           op.ball(cx - d[0] * 0.08, y + 0.25, cz - d[1] * 0.08, 0.13, gold, { sky: sk, n: 2 });
+          continue;
+        }
+        if (id === B.THORN) { // a tangle of thorned vines: dark green stems crossing every way, thorns along them, a few dead leaves
+          const sk = skyAt(lx, y + 1, lz); const vine = [0.16, 0.3, 0.12], dark = [0.1, 0.18, 0.08]; const hp = (k) => U.hash3(wx, y, wz, 190 + k);
+          for (let k = 0; k < 5; k++) { const a0 = [lx + hp(k) , y + hp(k + 5), lz + hp(k + 10)], a1 = [lx + hp(k + 15), y + hp(k + 20), lz + hp(k + 25)]; const mid = [(a0[0] + a1[0]) / 2 + (hp(k + 30) - 0.5) * 0.4, (a0[1] + a1[1]) / 2 + (hp(k + 35) - 0.5) * 0.4, (a0[2] + a1[2]) / 2 + (hp(k + 40) - 0.5) * 0.4];
+            op.tube([a0, mid, a1], [0.07, 0.09, 0.06], k % 2 ? vine : dark, { sky: sk, segs: 5, cap0: 'round', cap1: 'round' });
+            for (let t = 0; t < 3; t++) { const f = (t + 0.5) / 3; const px = a0[0] + (a1[0] - a0[0]) * f, py = a0[1] + (a1[1] - a0[1]) * f, pz = a0[2] + (a1[2] - a0[2]) * f; const d = [hp(k + t + 50) - 0.5, hp(k + t + 55) - 0.5, hp(k + t + 60) - 0.5]; op.cone(px, py, pz, d, 0.22, 0.045, [0.42, 0.36, 0.28], { sky: sk, segs: 4 }); } }
+          continue;
+        }
+        if (id === B.RUBBLE) { // a heap of broken stone
+          const sk = skyAt(lx, y + 1, lz); const hp = (k) => U.hash3(wx, y, wz, 200 + k); const base = [0.5, 0.46, 0.4];
+          for (let k = 0; k < 6; k++) { const r = 0.18 + hp(k) * 0.22; const cx = lx + 0.15 + hp(k + 6) * 0.7, cz = lz + 0.15 + hp(k + 12) * 0.7, cy = y + 0.1 + hp(k + 18) * 0.55 * (1 - r); const m = 0.8 + hp(k + 24) * 0.4;
+            op.push(); op.rotate(hp(k + 30) * 1.2, hp(k + 36) * 6.283, hp(k + 42) * 1.2, [cx, cy, cz]); op.blob(cx - r, cy - r * 0.7, cz - r * 0.8, cx + r, cy + r * 0.7, cz + r * 0.8, 0.5, [base[0] * m, base[1] * m, base[2] * m], { sky: sk, n: 2 }); op.pop(); }
           continue;
         }
         if (id === B.PALISADE) { // a palisade: two stout posts per block, pointed where the wall ends above

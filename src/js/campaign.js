@@ -182,7 +182,11 @@ const Campaign = (() => {
     for (let x = -24; x <= 80; x++) for (let z = -14; z <= 14; z++) { const X = X0 + x, Z = Z0 + z; for (let y = y0 + 1; y <= y0 + 22; y++) if (world.getBlock(X, y, Z) !== B.AIR) set(X, y, Z, B.AIR); for (let y = y0 - 4; y <= y0; y++) set(X, y, Z, y === y0 ? B.GRAVEL : B.STONE); }
     box(-1, 76, -9, 9, y0 + 1, y0 + 15, F); box(0, 75, -8, 8, y0 + 1, y0 + 14, B.AIR); box(-1, 76, -9, 9, y0 - 12, y0, F);
     for (let x = -1; x <= 76; x += 2) { set(X0 + x, y0 + 16, Z0 - 9, F); set(X0 + x, y0 + 16, Z0 + 9, F); }
-    for (const z of [-10, 10]) for (let x = 4; x <= 72; x += 12) { set(X0 + x, y0 + 12, Z0 + z, B.CORAL_R); set(X0 + x, y0 + 11, Z0 + z, B.CORAL_R); }
+    // the face of it: square towers at the corners and flanking the gate, buttresses along the long walls, banners, thorns crawling up round the gate
+    for (const [tx, tz] of [[-3, -11], [-3, 11], [78, -11], [78, 11], [-3, -4], [-3, 4]]) { for (let a = -1; a <= 1; a++) for (let b = -1; b <= 1; b++) { for (let y = y0 - 2; y <= y0 + 19; y++) set(X0 + tx + a, y, Z0 + tz + b, F); if ((a + b) % 2) set(X0 + tx + a, y0 + 20, Z0 + tz + b, F); } set(X0 + tx, y0 + 20, Z0 + tz, F); set(X0 + tx, y0 + 21, Z0 + tz, B.TORCH); }
+    for (const z of [-10, 10]) for (let x = 8; x <= 70; x += 12) { for (let y = y0 + 1; y <= y0 + 13; y++) set(X0 + x, y, Z0 + z, F); set(X0 + x, y0 + 14, Z0 + z, F); set(X0 + x, y0 + 10, Z0 + z + (z < 0 ? -1 : 1), B.BANNER); }
+    for (const z of [-7, 7]) set(X0 - 2, y0 + 12, Z0 + z, B.BANNER);
+    for (const [vx, vy, vz] of [[-2, 1, 2], [-2, 2, 2], [-2, 3, 3], [-2, 1, -2], [-2, 2, -3], [-2, 4, -2], [-2, 5, 1], [-2, 6, 2]]) if (world.getBlock(X0 + vx, y0 + vy, Z0 + vz) === B.AIR) set(X0 + vx, y0 + vy, Z0 + vz, B.THORN);
     const wallAt = (x) => box(x, x, -8, 8, y0 + 1, y0 + 14, F);
     // room 1: the gate of thorns, then a ladder up to the launch ledge
     box(-1, -1, -1, 1, y0 + 1, y0 + 3, B.THORN); for (const z of [-3, 3]) set(X0 - 2, y0 + 3, Z0 + z, B.TORCH);

@@ -83,10 +83,10 @@ defBlock(B.GOLD, 'Gold Ore', '#8e8e97', '#85858e', { hard: 1.6, drop: 'gold' });
 defBlock(B.DIAMOND, 'Diamond Ore', '#8e8e97', '#85858e', { hard: 2.2, drop: 'diamond' });
 defBlock(B.FERN, 'Fern', '#3f8a33', '#2f7a2a', { solid: false, hard: 0.15, drop: 'frond', partial: true, transparent: true });
 defBlock(B.SELGLASS, 'Selenite Glass', '#dff4ff', '#cfeafc', { hard: 0.5, drop: 'selglass', transparent: true });
-defBlock(B.FORTSTONE, 'Fortress Stone', '#3a3442', '#2e2836', { hard: Infinity });
-defBlock(B.THORN, 'Thorn Wall', '#3a5a22', '#2a4418', { hard: Infinity });
+defBlock(B.FORTSTONE, 'Fortress Stone', '#46404e', '#3c3644', { hard: Infinity });
+defBlock(B.THORN, 'Thorn Wall', '#3a5a22', '#2a4418', { hard: Infinity, transparent: true }); // drawn as a tangle of vines
 defBlock(B.DEADGATE, 'Dead Gate', '#5a6670', '#46525c', { hard: Infinity });
-defBlock(B.RUBBLE, 'Rubble', '#8a7a66', '#6e6050', { hard: Infinity });
+defBlock(B.RUBBLE, 'Rubble', '#8a7a66', '#6e6050', { hard: Infinity, transparent: true }); // drawn as a heap of stones
 defBlock(B.TARGET, 'Target', '#f2ede0', '#f2ede0', { hard: 0.5, drop: 'target' });
 defBlock(B.BALLOON, 'Balloon', '#e8323c', '#d42a34', { hard: 0.05, drop: null });
 defBlock(B.LADDER, 'Ladder', '#a07a44', '#8a6a3c', { solid: false, hard: 0.3, drop: 'ladder', partial: true, transparent: true });
