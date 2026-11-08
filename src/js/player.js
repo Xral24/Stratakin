@@ -104,6 +104,8 @@ const ITEMS = {
   torch: { name: 'Torch', block: B.TORCH, col: '#ffd36a', light: true, crafted: true, desc: 'Hold it to see in the dark, or place it.' },
   fusion: { name: 'Fusion Table', block: B.FUSION, col: '#7ad7ff', crafted: true, desc: 'Place it, then tap it to fuse Kin.' },
   snare: { name: 'Snare Cube', col: '#7fe0c0', snare: 0.40, desc: 'Unfolds into a crystal cage. Weaken a Kin first.' },
+  painted_piece: { name: 'Painted Cloth', col: '#c96a3a', keep: true, desc: 'A strip of painted cloth from a Painted camp. One of the pieces of something. Somebody in a town might know what.' },
+  painted_cloak: { name: 'Painted Cloak', col: '#c9643a', gear: true, keep: true, desc: 'Stitched by Zazu from a piece out of every Painted camp. Walk into a camp in broad daylight and nobody looks twice, for a few minutes. Take their hoard and try to leave, and someone will ask who you are.' },
   snare_sky: { name: 'Flight Snare', col: '#9fd8ff', snare: 0.55, desc: 'A light cage on a long cord, for the birds that never come down. Only works thrown from the air: off the glider or the back of a flier. Tap the bird as you pass.' },
   feather: { name: 'Sky Feather', col: '#e8f4ff', desc: 'Shed by the high flyers. Shoot one with the bow, or beat one, and feathers come down.' },
   snare2: { name: 'Void Snare', col: '#c07fe0', snare: 0.66, desc: 'A stronger snare laced with void crystal.' },

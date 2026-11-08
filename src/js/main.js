@@ -1013,7 +1013,7 @@ G.damageMul = function () { return (typeof Npcs !== 'undefined' && this.amulet &
 G.chestKey = function (x, y, z) { return `${this.worldId}:${U.mod(x, WORLD_W)},${y},${U.mod(z, WORLD_W)}`; };
 G.chestAt = function (x, y, z, create) { if (!this.chests) this.chests = {}; const k = this.chestKey(x, y, z); if (!this.chests[k] && create) this.chests[k] = { items: {} }; return this.chests[k] || null; };
 G.chestStore = function (chest, item, n) { const p = this.player; const info = p.itemInfo(item); if (!info || info.gear || info.obj || item.startsWith('obj:')) return 0; const take = Math.min(p.count(item), n); if (take <= 0) return 0; p.take(item, take); chest.items[item] = (chest.items[item] || 0) + take; return take; };
-G.chestTake = function (chest, item, n) { const have = chest.items[item] || 0; const take = Math.min(have, n); if (take <= 0) return 0; if (have - take <= 0) delete chest.items[item]; else chest.items[item] = have - take; this.player.add(item, take); return take; };
+G.chestTake = function (chest, item, n) { const have = chest.items[item] || 0; const take = Math.min(have, n); if (take <= 0) return 0; if (Camps.active) Camps.onTake(chest, item); if (have - take <= 0) delete chest.items[item]; else chest.items[item] = have - take; this.player.add(item, take); return take; };
 G.onChestBroken = function (x, y, z) {
   const k = this.chestKey(x, y, z); const c = this.chests && this.chests[k]; if (!c) return;
   let n = 0; for (const it in c.items) { this.player.add(it, c.items[it]); n += c.items[it]; }

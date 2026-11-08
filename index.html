@@ -2236,6 +2236,8 @@ const ITEMS = {
   torch: { name: 'Torch', block: B.TORCH, col: '#ffd36a', light: true, crafted: true, desc: 'Hold it to see in the dark, or place it.' },
   fusion: { name: 'Fusion Table', block: B.FUSION, col: '#7ad7ff', crafted: true, desc: 'Place it, then tap it to fuse Kin.' },
   snare: { name: 'Snare Cube', col: '#7fe0c0', snare: 0.40, desc: 'Unfolds into a crystal cage. Weaken a Kin first.' },
+  painted_piece: { name: 'Painted Cloth', col: '#c96a3a', keep: true, desc: 'A strip of painted cloth from a Painted camp. One of the pieces of something. Somebody in a town might know what.' },
+  painted_cloak: { name: 'Painted Cloak', col: '#c9643a', gear: true, keep: true, desc: 'Stitched by Zazu from a piece out of every Painted camp. Walk into a camp in broad daylight and nobody looks twice, for a few minutes. Take their hoard and try to leave, and someone will ask who you are.' },
   snare_sky: { name: 'Flight Snare', col: '#9fd8ff', snare: 0.55, desc: 'A light cage on a long cord, for the birds that never come down. Only works thrown from the air: off the glider or the back of a flier. Tap the bird as you pass.' },
   feather: { name: 'Sky Feather', col: '#e8f4ff', desc: 'Shed by the high flyers. Shoot one with the bow, or beat one, and feathers come down.' },
   snare2: { name: 'Void Snare', col: '#c07fe0', snare: 0.66, desc: 'A stronger snare laced with void crystal.' },
@@ -4034,7 +4036,7 @@ const Village = (() => {
     'The bakery\'s bread heals a tired traveller.', 'Kin on the outskirts are stronger. The old paths stay gentle.', 'Void Crystal glows purple below y 22. Bring a torch.',
     'Never swim far without a Breathing Bulb.', 'Sixteen Kin in the table at once. Nobody here has dared.', 'The Core is lava. Suit up first.', 'Berries grow back. Pick them freely.',
     'Sneak up behind a Kin and it never sees you coming.', 'A statue of your best Kin would look fine in our square.', 'They say the Mantlewyrm sleeps on Starmetal.',
-    'Every freed village pays its share. Ask the headman.', 'There are villages out on the water, and under it. Nobody here has seen the deep ones.',
+    'Every freed village pays its share. Ask the headman.', 'My cousin swears a man once walked straight into a Painted camp at noon. Dressed as one of them, he said. Never told me where he got the clothes.', 'Those Painted camps: every one keeps a strip of its own cloth in a tent. Take one from each and you would have quite a coat. If anyone could sew it.', 'Zazu, in the city, can stitch anything from anything. Even disguises, they say.', 'There are villages out on the water, and under it. Nobody here has seen the deep ones.',
     'Found your own village? Table, forty planks, two signs and a wall. People will come.', 'Raiders come at night for the walls. Leave us a guard or two.',
     'The tyrants always try to come back. Strong guards send them packing.', 'Stone walls, then iron. The headman knows the price.',
   ];
@@ -4057,7 +4059,7 @@ const Village = (() => {
     daycare: { title: 'Kin Daycare', keeper: 'Nanny Bree', greet: 'Leave them with me while you go about your business. They will come back stronger.', stock: [{ service: 'meal', buff: 'train', amt: 1, mins: 60, name: 'An hour of training: your whole party gains experience every minute you play', price: 180 }, { service: 'calm', name: 'A nap and a snack: your whole party healed', price: 20 }] },
     barber: { title: 'Barber', keeper: 'Fenwick the Barber', greet: 'Sit down. Something bold, or something sensible?', stock: [{ service: 'look', panel: 'barber', name: 'A new cut, a new colour', price: 0 }] },
     mirror: { title: 'Mirror Hall', keeper: 'The Glass Lady', greet: 'Look into it. Now tell it who you would rather be.', stock: [{ service: 'look', panel: 'mirror', name: 'Change your skin tone and your height', price: 0 }] },
-    designer: { title: 'House of Zazu', keeper: 'Zazu', greet: 'Darling. DARLING. We must do something about all of this. Paint, capes, colour!', stock: [{ service: 'look', panel: 'designer', name: 'Face paint, a cape, your own colours', price: 0 }] },
+    designer: { title: 'House of Zazu', keeper: 'Zazu', greet: 'Darling. DARLING. We must do something about all of this. Paint, capes, colour!', stock: [{ service: 'look', panel: 'designer', name: 'Face paint, a cape, your own colours', price: 0 }, { service: 'stitch', name: 'Stitch a disguise from Painted cloth (a piece from every camp)', price: 800 }] },
     kinwear: { title: 'Kin Outfitter', keeper: 'Pemberton', greet: 'Every Kin deserves to look its best. Scarves, coats, a little hat. Bring your lead Kin closer.', stock: [{ service: 'look', panel: 'kinwear', name: 'Dress your lead Kin', price: 0 }] },
     kinmarket: { title: 'Kin Sale Yard', keeper: 'Auctioneer Briggs', greet: 'Step up, step up! Fresh Kin in the ring every morning, and on the seventh day, the big parade.', stock: [] },
     kinshow: { title: 'Kin Show', keeper: 'Judge Ottilie', greet: 'One entry a day. Bring your lead Kin, groomed and dressed, and let the judges decide.', stock: [{ service: 'show', name: 'Enter your lead Kin in today\'s show', price: 50 }] },
@@ -5734,6 +5736,7 @@ const Village = (() => {
     if (entry.service === 'teach') { const k = G.kin[G.activeIdx]; if (!k) return false; if (k.tech) { UI.toast(`${KIN.name(k)} already knows ${k.tech}.`); return false; } const pr = 60 + k.level * 12; if (G.shards < pr) { UI.toast(`Teaching ${KIN.name(k)} costs ${pr} shards.`, 'bad'); return false; } G.shards -= pr; k.tech = KIN.techFor(k); UI.sfx('quest'); UI.toast(`${KIN.name(k)} learned ${k.tech}.`, 'good'); return true; }
     if (entry.service === 'kin') { if (G.shards < price) { UI.toast('Not enough Shards.', 'bad'); return false; } const sp = KIN.bySeed(entry.seed); if (!sp) return false; const st0 = G.stats.boughtKin || (G.stats.boughtKin = {}); const key = (G.dayCount || 0) + ':' + entry.seed; if (st0[key]) { UI.toast('Sold already. Come back tomorrow.'); return false; } G.shards -= price; st0[key] = true; const k = KIN.create(sp, entry.level); const where = G.addKin(k); G.seenDex(k.sp, 'caught'); UI.sfx('caught'); UI.toast(`${KIN.name(k)} is yours${where === 'party' ? '' : ' (sent to storage: your party is full)'}.`, 'good'); return true; }
     if (entry.service === 'show') return Village.enterShow(active);
+    if (entry.service === 'stitch') { const P = G.player; if (P.has('painted_cloak')) { UI.toast('You already have it, darling. Wear it with confidence.'); return false; } const have = Object.keys(G.stats.pieces || {}).length, need = Camps.all().length; if (have < need) { UI.toast(`Painted cloth from ${have} of ${need} camps. I need a piece from every one, darling, or it will look like a disguise.`, 'bad'); return false; } if (G.shards < price) { UI.toast(`${price} shards for the stitching.`, 'bad'); return false; } G.shards -= price; P.take('painted_piece', 99); P.add('painted_cloak', 1); UI.sfx('quest'); G.explain('The Painted Cloak', 'Zazu stitches every strip of cloth into one cloak. In it, the Painted take you for one of their own, by day as well as night, for about four minutes per visit. Take their hoard and head for the edge of camp, or stay too long, and someone will stop you and ask who you are. You will not be able to answer. Then run.'); return true; }
     if (entry.service === 'look') { UI.openPanel('look', { kind: entry.panel }); return true; }
     if (entry.service === 'skin') { const b = G.stats.boughtSkins || (G.stats.boughtSkins = {}); if (b[entry.skin]) { G.skin = entry.skin; UI.toast('You change into it.'); return true; } if (G.shards < price) { UI.toast('Not enough Shards.', 'bad'); return false; } G.shards -= price; b[entry.skin] = true; G.skin = entry.skin; UI.sfx('caught'); UI.toast(`${entry.name.split(':')[0]}. Yours, and you are wearing it. Switch any time from the menu.`, 'good'); return true; }
     if (entry.service === 'map') { if (G.shards < price) { UI.toast('Not enough Shards.', 'bad'); return false; } G.shards -= price; if (entry.what === 'holds') { if (!G.stats.keeps) G.stats.keeps = {}; for (const k of Keeps.sites()) G.stats.keeps['seen_' + k.id] = true; } else { G.stats.mapTowns = true; } UI.sfx('caught'); UI.toast('Pim unrolls it and marks your map. Open the Map to see.', 'good'); return true; }
@@ -7699,6 +7702,7 @@ const Camps = (() => {
       set(tx, vy + 3, tz, B.LOG); set(tx + fx, vy, tz + fz, B.AIR); set(tx + fx, vy + 1, tz + fz, B.AIR);
       c['tent' + i] = { x: tx, z: tz };
     }
+    { const t = c['tent' + (c.seedN % 10)]; if (t) { set(t.x, vy, t.z, B.CHEST); c.pieceChest = { x: t.x, y: vy, z: t.z }; const pst = poi(c.id); if (!pst.pieceSet) { const ch = G.chestAt(t.x, vy, t.z, true); ch.items = { painted_piece: 1, berry: 3 }; pst.pieceSet = true; } } }
     // the chief's hut, north of the fire: plank walls, a totem at the door, the hoard at the back
     const hx = vx, hz = vz - 6;
     for (let dx = -2; dx <= 2; dx++) for (let dz = -2; dz <= 2; dz++) { set(hx + dx, vy - 1, hz + dz, B.PLANKS); const wall = Math.abs(dx) === 2 || Math.abs(dz) === 2; for (let y = vy; y <= vy + 2; y++) set(hx + dx, y, hz + dz, wall ? B.PLANKS : B.AIR); set(hx + dx, vy + 3, hz + dz, B.LOG); }
@@ -7756,6 +7760,17 @@ const Camps = (() => {
     else if (c.scared && now > c.scaredUntil) { c.scared = false; if (nd < 26) { c.alarm = 25; UI.toast('The Painted are back, and they have seen you.', 'bad'); } }
     else if (c.scared && !onDino && c.scaredUntil - now < 29.9 && (G.frame & 63) === 0 && nd < 40) UI.toast(`${Math.ceil(c.scaredUntil - now)}s before the Painted return.`);
     if (c.alarm > 0) c.alarm -= dt;
+    // the Painted Cloak: in it you pass as one of them, for a while, until you take their hoard and try to walk out with it
+    const cloak = p.has('painted_cloak') && !c.blown && c.alarm <= 0 && !c.scared;
+    if (cloak && nd < 26) {
+      c.disguiseT = (c.disguiseT || 0) + dt;
+      if (!c.cloakTold) { c.cloakTold = true; UI.toast('In the cloak, the Painted nod at you and look away. You have a few minutes.', 'good'); }
+      if ((c.stole && nd > 17) || c.disguiseT > 240) { c.blown = true; const w = c.warriors.filter(x => !x.sleeping).sort((a, b) => Math.hypot(a.x - p.x, a.z - p.z) - Math.hypot(b.x - p.x, b.z - p.z))[0];
+        const lines = ['Ka\'teshru? Vo haneth ru kesh?', '(He waits for an answer. You do not have one.)', 'Tanu... RA\'TUK! Who ARE you?'];
+        Dialogue.show(w ? w.name : 'A Painted warrior', lines, () => { c.alarm = 25; UI.sfx('alert'); UI.toast(c.stole ? 'They know. RUN, and do not drop the gold.' : 'You stayed too long. RUN.', 'bad'); for (const o of c.warriors) o.alert = 1; }); }
+      for (const w of c.warriors) w.alert = 0;
+    }
+    if (nd > 60) { c.disguiseT = 0; c.stole = false; c.blown = false; c.cloakTold = false; }
     const sneaking = p.sneak, moving = Math.hypot(p.vx, p.vz) > 0.6;
     const noisy = !!p.mineTarget || p.vy > 3 || Math.hypot(p.vx, p.vz) > 5; // digging, jumping, galloping
     const hidden = G.repelUntil > performance.now(); // the Amulet of Shadow
@@ -7785,7 +7800,7 @@ const Camps = (() => {
         const mdx = tx - w.x, mdz = tz - w.z; if (Math.hypot(mdx, mdz) > 0.05) { move(w, tx, tz); w.yaw = Math.atan2(mdx, mdz); w.moving = true; } else w.moving = false;
       }
       // detection: eyes by day, ears at night
-      if (hidden || inBattle) { w.alert = Math.max(0, w.alert - dt); continue; }
+      if (hidden || inBattle || cloak) { w.alert = Math.max(0, w.alert - dt); continue; }
       const senseR = (w.sleeping ? 2.5 : night ? 5 : 8) + (noisy ? 7 : 0);
       if (d < senseR) {
         const fx = Math.sin(w.yaw), fz = Math.cos(w.yaw); const facing = (fx * dx + fz * dz) / (d || 1);
@@ -7803,6 +7818,11 @@ const Camps = (() => {
     for (const w of active.warriors) { if (w.sleeping) continue; out.push({ x: w.x, y: w.y, z: w.z, yaw: w.yaw, model: w.model, mesh: w.mesh, scale: w.scale || 1, hover: w.moving ? Math.abs(Math.sin(w.bob * 9)) * 0.08 : 0, skyMul: 1 }); }
     if (active.strider) { const s = active.strider; out.push({ x: s.x, y: s.y, z: s.z, yaw: s.yaw, model: s.model, mesh: s.mesh, scale: 1, hover: Math.sin(s.bob * 2) * 0.03, skyMul: 1 }); }
     return out;
+  }
+  function onTake(chest, item) {
+    const c = active; if (!c) return;
+    if (item === 'painted_piece') { if (!G.stats.pieces) G.stats.pieces = {}; if (!G.stats.pieces[c.id]) { G.stats.pieces[c.id] = true; const n = Object.keys(G.stats.pieces).length, need = all().length; setTimeout(() => UI.toast(`Painted cloth, from ${c.name} (${n} of ${need} camps). Zazu in the city could make something of this.`, 'good'), 300); } return; }
+    if (chest.treasure) c.stole = true;
   }
   function talkable() { return active && active.strider ? [active.strider] : []; }
   // taking the Duststrider: by night, unseen, or while they are scared
@@ -7823,7 +7843,7 @@ const Camps = (() => {
     return out;
   }
   function all() { const out = []; for (let cx = 0; cx < NC; cx++) for (let cz = 0; cz < NC; cz++) { const c = campFor(cx, cz); if (c) out.push(c); } return out; }
-  return { init, update, entities, talkable, tame, marks, mapMarks, all, get active() { return active; } };
+  return { init, update, entities, talkable, tame, marks, mapMarks, all, onTake, get active() { return active; } };
 })();
 
 </script>
@@ -11017,7 +11037,7 @@ G.damageMul = function () { return (typeof Npcs !== 'undefined' && this.amulet &
 G.chestKey = function (x, y, z) { return `${this.worldId}:${U.mod(x, WORLD_W)},${y},${U.mod(z, WORLD_W)}`; };
 G.chestAt = function (x, y, z, create) { if (!this.chests) this.chests = {}; const k = this.chestKey(x, y, z); if (!this.chests[k] && create) this.chests[k] = { items: {} }; return this.chests[k] || null; };
 G.chestStore = function (chest, item, n) { const p = this.player; const info = p.itemInfo(item); if (!info || info.gear || info.obj || item.startsWith('obj:')) return 0; const take = Math.min(p.count(item), n); if (take <= 0) return 0; p.take(item, take); chest.items[item] = (chest.items[item] || 0) + take; return take; };
-G.chestTake = function (chest, item, n) { const have = chest.items[item] || 0; const take = Math.min(have, n); if (take <= 0) return 0; if (have - take <= 0) delete chest.items[item]; else chest.items[item] = have - take; this.player.add(item, take); return take; };
+G.chestTake = function (chest, item, n) { const have = chest.items[item] || 0; const take = Math.min(have, n); if (take <= 0) return 0; if (Camps.active) Camps.onTake(chest, item); if (have - take <= 0) delete chest.items[item]; else chest.items[item] = have - take; this.player.add(item, take); return take; };
 G.onChestBroken = function (x, y, z) {
   const k = this.chestKey(x, y, z); const c = this.chests && this.chests[k]; if (!c) return;
   let n = 0; for (const it in c.items) { this.player.add(it, c.items[it]); n += c.items[it]; }

@@ -64,6 +64,7 @@ const Camps = (() => {
       set(tx, vy + 3, tz, B.LOG); set(tx + fx, vy, tz + fz, B.AIR); set(tx + fx, vy + 1, tz + fz, B.AIR);
       c['tent' + i] = { x: tx, z: tz };
     }
+    { const t = c['tent' + (c.seedN % 10)]; if (t) { set(t.x, vy, t.z, B.CHEST); c.pieceChest = { x: t.x, y: vy, z: t.z }; const pst = poi(c.id); if (!pst.pieceSet) { const ch = G.chestAt(t.x, vy, t.z, true); ch.items = { painted_piece: 1, berry: 3 }; pst.pieceSet = true; } } }
     // the chief's hut, north of the fire: plank walls, a totem at the door, the hoard at the back
     const hx = vx, hz = vz - 6;
     for (let dx = -2; dx <= 2; dx++) for (let dz = -2; dz <= 2; dz++) { set(hx + dx, vy - 1, hz + dz, B.PLANKS); const wall = Math.abs(dx) === 2 || Math.abs(dz) === 2; for (let y = vy; y <= vy + 2; y++) set(hx + dx, y, hz + dz, wall ? B.PLANKS : B.AIR); set(hx + dx, vy + 3, hz + dz, B.LOG); }
@@ -121,6 +122,17 @@ const Camps = (() => {
     else if (c.scared && now > c.scaredUntil) { c.scared = false; if (nd < 26) { c.alarm = 25; UI.toast('The Painted are back, and they have seen you.', 'bad'); } }
     else if (c.scared && !onDino && c.scaredUntil - now < 29.9 && (G.frame & 63) === 0 && nd < 40) UI.toast(`${Math.ceil(c.scaredUntil - now)}s before the Painted return.`);
     if (c.alarm > 0) c.alarm -= dt;
+    // the Painted Cloak: in it you pass as one of them, for a while, until you take their hoard and try to walk out with it
+    const cloak = p.has('painted_cloak') && !c.blown && c.alarm <= 0 && !c.scared;
+    if (cloak && nd < 26) {
+      c.disguiseT = (c.disguiseT || 0) + dt;
+      if (!c.cloakTold) { c.cloakTold = true; UI.toast('In the cloak, the Painted nod at you and look away. You have a few minutes.', 'good'); }
+      if ((c.stole && nd > 17) || c.disguiseT > 240) { c.blown = true; const w = c.warriors.filter(x => !x.sleeping).sort((a, b) => Math.hypot(a.x - p.x, a.z - p.z) - Math.hypot(b.x - p.x, b.z - p.z))[0];
+        const lines = ['Ka\'teshru? Vo haneth ru kesh?', '(He waits for an answer. You do not have one.)', 'Tanu... RA\'TUK! Who ARE you?'];
+        Dialogue.show(w ? w.name : 'A Painted warrior', lines, () => { c.alarm = 25; UI.sfx('alert'); UI.toast(c.stole ? 'They know. RUN, and do not drop the gold.' : 'You stayed too long. RUN.', 'bad'); for (const o of c.warriors) o.alert = 1; }); }
+      for (const w of c.warriors) w.alert = 0;
+    }
+    if (nd > 60) { c.disguiseT = 0; c.stole = false; c.blown = false; c.cloakTold = false; }
     const sneaking = p.sneak, moving = Math.hypot(p.vx, p.vz) > 0.6;
     const noisy = !!p.mineTarget || p.vy > 3 || Math.hypot(p.vx, p.vz) > 5; // digging, jumping, galloping
     const hidden = G.repelUntil > performance.now(); // the Amulet of Shadow
@@ -150,7 +162,7 @@ const Camps = (() => {
         const mdx = tx - w.x, mdz = tz - w.z; if (Math.hypot(mdx, mdz) > 0.05) { move(w, tx, tz); w.yaw = Math.atan2(mdx, mdz); w.moving = true; } else w.moving = false;
       }
       // detection: eyes by day, ears at night
-      if (hidden || inBattle) { w.alert = Math.max(0, w.alert - dt); continue; }
+      if (hidden || inBattle || cloak) { w.alert = Math.max(0, w.alert - dt); continue; }
       const senseR = (w.sleeping ? 2.5 : night ? 5 : 8) + (noisy ? 7 : 0);
       if (d < senseR) {
         const fx = Math.sin(w.yaw), fz = Math.cos(w.yaw); const facing = (fx * dx + fz * dz) / (d || 1);
@@ -168,6 +180,11 @@ const Camps = (() => {
     for (const w of active.warriors) { if (w.sleeping) continue; out.push({ x: w.x, y: w.y, z: w.z, yaw: w.yaw, model: w.model, mesh: w.mesh, scale: w.scale || 1, hover: w.moving ? Math.abs(Math.sin(w.bob * 9)) * 0.08 : 0, skyMul: 1 }); }
     if (active.strider) { const s = active.strider; out.push({ x: s.x, y: s.y, z: s.z, yaw: s.yaw, model: s.model, mesh: s.mesh, scale: 1, hover: Math.sin(s.bob * 2) * 0.03, skyMul: 1 }); }
     return out;
+  }
+  function onTake(chest, item) {
+    const c = active; if (!c) return;
+    if (item === 'painted_piece') { if (!G.stats.pieces) G.stats.pieces = {}; if (!G.stats.pieces[c.id]) { G.stats.pieces[c.id] = true; const n = Object.keys(G.stats.pieces).length, need = all().length; setTimeout(() => UI.toast(`Painted cloth, from ${c.name} (${n} of ${need} camps). Zazu in the city could make something of this.`, 'good'), 300); } return; }
+    if (chest.treasure) c.stole = true;
   }
   function talkable() { return active && active.strider ? [active.strider] : []; }
   // taking the Duststrider: by night, unseen, or while they are scared
@@ -188,5 +205,5 @@ const Camps = (() => {
     return out;
   }
   function all() { const out = []; for (let cx = 0; cx < NC; cx++) for (let cz = 0; cz < NC; cz++) { const c = campFor(cx, cz); if (c) out.push(c); } return out; }
-  return { init, update, entities, talkable, tame, marks, mapMarks, all, get active() { return active; } };
+  return { init, update, entities, talkable, tame, marks, mapMarks, all, onTake, get active() { return active; } };
 })();
