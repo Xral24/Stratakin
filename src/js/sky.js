@@ -26,9 +26,11 @@ const Sky = (() => {
   function sites() {
     if (SITES) return SITES; if (!onEarth()) return (SITES = []); if (!world.spawn) return [];
     const sp = world.spawn || { x: 0, z: 0 }, s = world.seed || 1; const a0 = U.hash3(3, 401, 7, s) * Math.PI * 2;
-    const out = [{ id: 'highmere', kind: 'city', name: 'Highmere', x: Math.round(sp.x + Math.cos(a0) * 560), z: Math.round(sp.z + Math.sin(a0) * 560), y: 92, R: 26 },
-      { id: 'stormspire', kind: 'fort', name: 'Stormspire', x: Math.round(sp.x + Math.cos(a0 + 2.6) * 1350), z: Math.round(sp.z + Math.sin(a0 + 2.6) * 1350), y: 94, R: 17 }];
-    for (let i = 0; i < 6; i++) { const a = a0 + 0.7 + i * 1.03 + U.hash3(i, 402, 1, s) * 0.4, d = 280 + i * 210 + U.hash3(i, 403, 2, s) * 90; out.push({ id: 'isle' + i, kind: 'isle', name: ISLE_FOLK[i].name.split(' ').slice(-1)[0] + '\'s Cloud', folk: ISLE_FOLK[i], x: Math.round(sp.x + Math.cos(a) * d), z: Math.round(sp.z + Math.sin(a) * d), y: 88 + (i % 3) * 2, R: 9 + (i % 3) }); }
+    // keep every sky place well clear of high ground: no peak to glide from, only wings get you up there
+    const clear = (x, z, y) => { for (let dx = -96; dx <= 96; dx += 12) for (let dz = -96; dz <= 96; dz += 12) { if (dx * dx + dz * dz > 96 * 96) continue; const h = world.colInfo(x + dx, z + dz).h; if (h > y - 24) return false; } return true; };
+    const fit = (a, d, y) => { for (let t = 0; t < 14; t++) { const D = d + t * 70, x = Math.round(sp.x + Math.cos(a) * D), z = Math.round(sp.z + Math.sin(a) * D); if (clear(x, z, y)) return { x, z }; } return { x: Math.round(sp.x + Math.cos(a) * d), z: Math.round(sp.z + Math.sin(a) * d) }; };
+    const out = [Object.assign({ id: 'highmere', kind: 'city', name: 'Highmere', y: 92, R: 26 }, fit(a0, 560, 92)), Object.assign({ id: 'stormspire', kind: 'fort', name: 'Stormspire', y: 94, R: 17 }, fit(a0 + 2.6, 1350, 94))];
+    for (let i = 0; i < 6; i++) { const a = a0 + 0.7 + i * 1.03 + U.hash3(i, 402, 1, s) * 0.4, d = 280 + i * 210 + U.hash3(i, 403, 2, s) * 90; const y = 88 + (i % 3) * 2; out.push(Object.assign({ id: 'isle' + i, kind: 'isle', name: ISLE_FOLK[i].name.split(' ').slice(-1)[0] + '\'s Cloud', folk: ISLE_FOLK[i], y, R: 9 + (i % 3) }, fit(a, d, y))); }
     return (SITES = out);
   }
   // ---------- drawing ----------
@@ -132,6 +134,6 @@ const Sky = (() => {
       if (k.kind === 'fort') fortTick(k, p, d);
     }
   }
-  function mapMarks() { if (!onEarth()) return []; return sites().filter(k => k.kind === 'city' || st()['seen_' + k.id] || (k.kind === 'fort' && st().fortSeen)).map(k => ({ x: k.x, z: k.z, t: k.kind === 'city' ? '☁' : k.kind === 'fort' ? (st().fortTaken ? '♜' : '⛈') : '☁', name: k.name + (k.kind === 'fort' && !st().fortTaken ? ' (the Storm Warden)' : '') })); }
+  function mapMarks() { if (!onEarth()) return []; return sites().filter(k => (k.kind === 'city' && G.questState && Quests.isDone && (Quests.isDone('glider'))) || st()['seen_' + k.id] || (k.kind === 'fort' && st().fortSeen)).map(k => ({ x: k.x, z: k.z, t: k.kind === 'city' ? '☁' : k.kind === 'fort' ? (st().fortTaken ? '♜' : '⛈') : '☁', name: k.name + (k.kind === 'fort' && !st().fortTaken ? ' (the Storm Warden)' : '') })); }
   return { init, sites, overlay, update, talk, onBattle, inFort, gloom, mapMarks, layout };
 })();
