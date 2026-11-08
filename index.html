@@ -2669,7 +2669,7 @@ const KIN = (() => {
     return eff;
   }
   // how far each kind can grow: commons stay small, legendaries go big, and fusions sit above everything
-  const CAP_RANGE = [[15, 40], [30, 50], [40, 65], [50, 85], [110, 170]];
+  const CAP_RANGE = [[10, 35], [30, 50], [40, 65], [50, 85], [110, 170]];
   const CAP_BODY = { earth: 0, moon: 8, halo: 16 }, CAP_HAB = { Core: 5, Sky: 5 };
   function capOf(sp) {
     if (sp.cap) return sp.cap;
