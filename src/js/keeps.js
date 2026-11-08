@@ -117,6 +117,7 @@ const Keeps = (() => {
     const n = sites().filter(x => taken(x.id)).length; G.stats.crystal = n; const NEED = sites().length;
     UI.toast(`${k ? k.name : 'The hold'} is yours. The spell on its warriors breaks, the clouds over it thin, and a shard of the Binding Crystal is left on the dais (${n} of ${NEED}).`, 'good');
     if (n >= NEED) setTimeout(() => G.explain('The Binding Crystal', 'Every shard. The crystal the Kinmaster used to bind his warriors is whole again in your hands, and it pulls toward him. Take it to the throne room at Thornhold. Sable will know what to do.'), 1500);
+    { const surf = sites().filter(x => !x.core); if (surf.every(x => taken(x.id)) && !G.player.has('deepchart')) { G.player.add('deepchart', 1); setTimeout(() => G.explain('The Deep Chart', 'The last surface hold falls, and its freed captain presses a rolled chart into your hands. "He kept this locked up. It is the way down." It shows where to dig to the twelfth Hold, on the lava in the Core, and an older mark beyond it: the Heart, where something enormous sleeps on a bed of Starmetal. Dig anywhere else and you take your chances.'), 2600); } }
     G.addTrainerXp(120); G.shards += 400;
     if (!G.stats.keepTold) { G.stats.keepTold = true; G.explain('A hold taken', 'There are twelve Holds, the Kinmaster\'s fortresses: eleven spread out from home, and one deep in the Core, out on the lava. Each one you take frees the warriors he bound with his crystal, clears the grey sky over it, opens its Dark Fusion Table (the only tables that take Void), and gives you one shard of the Binding Crystal. With all twelve, the crystal is whole, and it will lead you to him.'); }
   }
@@ -165,6 +166,6 @@ const Keeps = (() => {
     const f = (Campaign.sites() || {}).fort; if (f && Math.hypot(f.x + 72 - x, f.z - z) < 40) return !!Campaign.C().kinmaster;
     return true;
   }
-  function mapMarks() { if (!onEarth()) return []; const p = G.player; return Citadel.mapMarks().concat(sites().filter(k => st()['seen_' + k.id] || taken(k.id)).map(k => ({ x: k.x, z: k.z, t: taken(k.id) ? '♜' : '☠', name: k.name + (k.core ? ' (deep in the Core)' : '') + (taken(k.id) ? ' (yours)' : '') }))); }
+  function mapMarks() { if (!onEarth()) return []; const p = G.player; return Citadel.mapMarks().concat(sites().filter(k => st()['seen_' + k.id] || taken(k.id) || (k.core && G.player.has('deepchart'))).map(k => ({ x: k.x, z: k.z, t: taken(k.id) ? '♜' : '☠', name: k.name + (k.core ? ' (deep in the Core)' : '') + (taken(k.id) ? ' (yours)' : '') }))); }
   return { inHold, init, update, onBattle, tableOpen, near, mapMarks, keepFor, sites, gloom, talkWarrior, finalReady, onFinal, COUNT };
 })();

@@ -1244,7 +1244,7 @@ class World {
     if (!this.spawn) this.spawn = fallback;
     if (!this.spawn) { const info = this.colInfo(0, 0); this.spawn = { x: 0.5, y: Math.max(info.h, SEA) + 2, z: 0.5 }; }
     const a = this.heartAngle;
-    this.heart = { x: Math.round(this.spawn.x + Math.cos(a) * 240), z: Math.round(this.spawn.z + Math.sin(a) * 240) };
+    this.heart = { x: Math.round(this.spawn.x + Math.cos(a) * 1050), z: Math.round(this.spawn.z + Math.sin(a) * 1050) }; // a long way out: you only find it with the Deep Chart
     // the body's one legendary creature: a fixed lair a long way out from the landing pad, in a zone nothing ordinary survives
     if (this.preset.legend) { const la = a + 2.1; const ld = this.preset.id === 'halo' ? 900 : 700; this.legend = { x: Math.round(this.spawn.x + Math.cos(la) * ld), z: Math.round(this.spawn.z + Math.sin(la) * ld), r: 120 }; }
     return this.spawn;
@@ -2240,6 +2240,7 @@ const ITEMS = {
   torch: { name: 'Torch', block: B.TORCH, col: '#ffd36a', light: true, crafted: true, desc: 'Hold it to see in the dark, or place it.' },
   fusion: { name: 'Fusion Table', block: B.FUSION, col: '#7ad7ff', crafted: true, desc: 'Place it, then tap it to fuse Kin.' },
   snare: { name: 'Snare Cube', col: '#7fe0c0', snare: 0.40, desc: 'Unfolds into a crystal cage. Weaken a Kin first.' },
+  deepchart: { name: 'The Deep Chart', col: '#6a4a8a', keep: true, desc: 'An old miner\'s chart of the Core. It marks where to dig down to the twelfth Hold, out on the lava, and one older mark further on: the Heart, the Starmetal chamber where something enormous sleeps. Your compass follows it.' },
   painted_piece: { name: 'Indian Cloth', col: '#c96a3a', keep: true, desc: 'A strip of painted cloth from an Indian camp. One of the pieces of something. Somebody in a town might know what.' },
   painted_cloak: { name: 'Indian Cloak', col: '#c9643a', gear: true, keep: true, desc: 'Stitched by Zazu from a piece out of every Indian camp. Walk into a camp in broad daylight and nobody looks twice, for a few minutes. Take their hoard and try to leave, and someone will ask who you are.' },
   snare_sky: { name: 'Flight Snare', col: '#9fd8ff', snare: 0.55, desc: 'A light cage on a long cord, for the birds that never come down. Only works thrown from the air: off the glider or the back of a flier. Tap the bird as you pass.' },
@@ -2535,21 +2536,35 @@ class Player {
     if ([B.LOG, B.PLANKS].includes(id)) return 'wood';
     return 'stone';
   }
+  // a tool you own that is not broken (the first stone pick and the rods never wear)
+  tool(k) { return this.has(k) && !(typeof Combat !== 'undefined' && Combat.broken && Combat.broken(k)); }
+  pickTier() { return this.tool('pick') ? 3 : this.tool('pick_iron') ? 2 : this.has('pick_stone') ? 1 : 0; }
+  // which tool took the wear for breaking this block
+  wearTool(id) {
+    if (typeof Combat === 'undefined' || !Combat.use) return; const kind = this.toolKind(id); if (kind === 'hand') return;
+    if (kind === 'soil') { if (this.tool('shovel')) Combat.use('shovel'); else { const t = this.pickTier(); if (t === 3) Combat.use('pick'); else if (t === 2) Combat.use('pick_iron'); } return; }
+    if (kind === 'wood') { if (this.tool('axe_iron')) Combat.use('axe_iron'); else if (this.tool('hatchet')) Combat.use('hatchet'); return; }
+    const t = this.pickTier(); if (t === 3) Combat.use('pick'); else if (t === 2) Combat.use('pick_iron');
+  }
   toolMul(id) {
-    const tier = this.has('pick') ? 3 : this.has('pick_iron') ? 2 : this.has('pick_stone') ? 1 : 0;
+    const tier = this.pickTier();
     const kind = this.toolKind(id);
     if (kind === 'hand') return 1;
-    if (kind === 'soil') return this.has('shovel') ? (tier === 3 ? 2 * this.gearMul('pick') : 1) : tier ? 0.35 : 0; // a pick scrapes soil, slowly; bare hands cannot
-    if (kind === 'wood') { const ct = typeof Combat !== 'undefined' ? Combat.chopTier() : 0; return Math.max(this.has('axe_iron') ? 2 : this.has('hatchet') ? 1 : 0, ct); }
+    if (kind === 'soil') return this.tool('shovel') ? (tier === 3 ? 2 * this.gearMul('pick') : 1) : tier ? 0.35 : 0; // a pick scrapes soil, slowly; bare hands cannot
+    if (kind === 'wood') { const ct = typeof Combat !== 'undefined' ? Combat.chopTier() : 0; return Math.max(this.tool('axe_iron') ? 2 : this.tool('hatchet') ? 1 : 0, ct); }
     const need = [B.VOID, B.GOLD, B.DIAMOND, B.BASALT, B.TYCHO, B.RINGSHARD, B.PEARLCORAL].includes(id) ? 2 : [B.COPPER, B.IRON, B.EMBER, B.SELENITE, B.AMBER].includes(id) ? 1 : 0;
     const table = [[0, 0, 0], [0.5, 0.28, 0], [1.8, 1.4, 0.9], [3.6, 3, 2.5]];
     return table[tier][need] * (tier === 3 ? this.gearMul('pick') : 1);
   }
   toolNeed(id) { // why it will not break, in a sentence
     const kind = this.toolKind(id);
+    const brk = (k) => this.has(k) && !this.tool(k);
+    if (kind === 'soil' && brk('shovel')) return 'Your shovel is broken. A trader or an armoury will mend it.';
+    if (kind === 'wood' && (brk('axe_iron') || brk('hatchet'))) return 'Your axe is broken. A trader or an armoury will mend it.';
+    if (kind === 'stone' && (brk('pick') || brk('pick_iron'))) return 'Your pick is broken and the stone pick will not touch this. A trader or an armoury will mend it.';
     if (kind === 'soil') return 'Your hands cannot dig that. Free the village by your camp and its people will give you a shovel.';
     if (kind === 'wood') return 'You need an axe to cut wood. Free the village by your camp: they will give you a hatchet.';
-    const tier = this.has('pick') ? 3 : this.has('pick_iron') ? 2 : this.has('pick_stone') ? 1 : 0;
+    const tier = this.pickTier();
     if (!tier) return 'Stone needs a pick. Foreman Garrick at the Mining Camp (⛏ on the map) has one for you.';
     return 'Too hard for this pick. Garrick makes an iron pick for six copper and four iron.';
   }
@@ -2569,6 +2584,7 @@ class Player {
       if (hit.id === B.BERRY) { this.world.setBlock(hit.x, hit.y, hit.z, B.AIR); this.add('berry', 2 + (Math.random() < 0.5 ? 1 : 0)); (this.world.regrow = this.world.regrow || []).push({ x: hit.x, y: hit.y, z: hit.z, t: performance.now() + 150000 }); return { broke: hit.id, drop: 'berry', x: hit.x, y: hit.y, z: hit.z }; }
       if (hit.id === B.BERRYLEAF) { this.world.setBlock(hit.x, hit.y, hit.z, B.LEAVES); this.add('berry', 1 + (Math.random() < 0.5 ? 1 : 0)); (this.world.regrow = this.world.regrow || []).push({ x: hit.x, y: hit.y, z: hit.z, t: performance.now() + 240000, leaf: true }); return { broke: hit.id, drop: 'berry', x: hit.x, y: hit.y, z: hit.z }; }
       if (hit.id === B.STATUE) { const obj = this.world.removeStatue(hit.x, hit.y, hit.z); if (obj) this.objects.push(obj); return { broke: hit.id, x: hit.x, y: hit.y, z: hit.z }; }
+      this.wearTool(hit.id);
       this.world.setBlock(hit.x, hit.y, hit.z, B.AIR);
       if (drop) this.add(drop, 1);
       // everything that grows, grows back: logs, leaves, cactus, glowworms
@@ -6285,8 +6301,8 @@ const QUESTS = [
   { id: 'kinmaster', title: 'The Kinmaster', desc: 'Grakor had a letter on him, sealed in purple: every tyrant answers to someone. The Kinmaster, in his fortress Thornhold, out past the hills (♜). Getting in will take everything you have learned: a Flame Kin to burn his thorns, the glider, the bulb, a Spark Kin and a Stone Kin. His walls cannot be broken.', hint: 'Get through Thornhold and face the Kinmaster', check: G => (G.stats.camp || {}).kinmaster ? 1 : 0, reward: { xp: 400, items: { snare2: 3 } } },
   { id: 'void', title: 'Deep Crystal', desc: 'Void Crystal glows purple below y 22. You need the iron pick for it. Bring one back.', hint: 'Mine a Void Crystal (below y 22)', check: G => Math.min(1, G.stats.got.void || 0), reward: { items: { snare2: 2 }, xp: 40 } },
   { id: 'lavasuit', title: 'Suit Up', desc: 'The Core is a sea of lava under the basalt ceiling. Only Garrick knows how to make a Lava Suit. Ask him.', hint: 'Get a Lava Suit from Garrick', check: G => G.player.has('lavasuit') ? 1 : 0, reward: { xp: 60 } },
-  { id: 'core', title: 'The Core', desc: 'Dig through the basalt ceiling beneath the Mines (below y 14). Expect lava and Flame and Void Kin far above your level.', hint: 'Reach the Core (y below 14)', check: G => G.stats.reachedCore ? 1 : 0, reward: { xp: 80 } },
-  { id: 'heart', title: 'The Heart', desc: 'Somewhere in the Core lies a chamber with a pedestal of Starmetal. Two Wardens patrol it in step. Find the gap.', hint: 'Find the Heart chamber', check: G => G.stats.heartFound ? 1 : 0, reward: { xp: 100 } },
+  { id: 'core', title: 'The Core', desc: 'Dig through the basalt ceiling beneath the Mines (below y 14), anywhere you like. Where you come out is luck: a lava lake, a cave, a seam of ore. Expect Flame and Void Kin far above your level.', hint: 'Reach the Core (y below 14)', check: G => G.stats.reachedCore ? 1 : 0, reward: { xp: 80 } },
+  { id: 'heart', title: 'The Heart', desc: 'The Deep Chart marks a chamber far out in the Core with a pedestal of Starmetal. Two Wardens patrol it in step. Dig down where the chart says, then find the gap.', hint: 'Find the Heart chamber', check: G => G.stats.heartFound ? 1 : 0, reward: { xp: 100 } },
   { id: 'mythic', title: 'Mantlewyrm', desc: 'The Kinmaster ran for the Core to wake the Mythic that sleeps on the Starmetal. Get there first. The hardest thing on Earth: catch it (bring Void Snares and a strong, evolved team) or defeat it, before he does.', hint: 'Catch or defeat the Mantlewyrm', check: G => G.stats.mythicDone ? 1 : 0, reward: { xp: 500 } },
   { id: 'job', title: 'Odd Jobs', desc: 'People sit by little fires all over the world, and the Moon and Halo too, each with a job: fetch this, beat that, carry a parcel, clear a den. Yellow dots on the map. Some of them pay in amulets, which nobody sells.', hint: 'Do a job for someone on the road', check: G => (G.stats.questsDone || 0) >= 1 ? 1 : 0, reward: { xp: 120 } },
   { id: 'lab', title: 'The Splice', desc: 'Somewhere out there an apprentice waits by a tent: her master is shut in his own lab with the thing he made. Find her, follow ⚗ to the hatch, and beat or cage what is down there. The incubator is the reward: Kin grow fast in it and learn techniques.', hint: 'Find the apprentice by the tent and rescue the maker', check: G => (G.stats.labDone || 0) >= 1 ? 1 : 0, reward: { xp: 400 } },
@@ -6320,7 +6336,9 @@ const Quests = (() => {
     for (let pass = 0; pass < 3; pass++) for (const a in ARCS) { const L = arcList(a); while (st.arcs[a] < L.length) { const q = L[st.arcs[a]]; let ok = false; try { ok = q.check(G) >= 1; } catch (e) { ok = false; } if (!ok || (AFTER[q.id] && !isDone(AFTER[q.id]))) break; st.arcs[a]++; } }
   }
   function arcCurrent(a) { if (!G.questState.arcs) migrate(); const q = arcList(a)[G.questState.arcs[a]]; return q || null; }
-  function gated(q) { return q && AFTER[q.id] && !isDone(AFTER[q.id]) ? AFTER[q.id] : null; }
+  // some quests wait on an item rather than a quest: the Heart only shows itself to someone holding the Deep Chart
+  const NEEDS_ITEM = { heart: ['deepchart', 'the Deep Chart (free all eleven surface Holds)'], mythic: ['deepchart', 'the Deep Chart (free all eleven surface Holds)'] };
+  function gated(q) { if (!q) return null; if (AFTER[q.id] && !isDone(AFTER[q.id])) return AFTER[q.id]; const ni = NEEDS_ITEM[q.id]; if (ni && G && G.player && !G.player.has(ni[0])) return ni[1]; return null; }
   function current() {
     if (!G.questState.arcs) migrate(); const f = G.questState.focus || 'main';
     for (const a of [f, 'main', 'dark', 'old']) { const q = arcCurrent(a); if (q && !gated(q)) return q; }
@@ -6407,7 +6425,7 @@ const Quests = (() => {
     if (q.id === 'ember') { const b = G.world.findNearest(B.GLOWWORM, p.x, p.z, 80) || G.world.findNearest(B.EMBER, p.x, p.z, 40); return b ? { x: b.x, z: b.z } : null; }
     if (q.id === 'void') { const b = G.world.findNearest(B.VOID, p.x, p.z, 40); return b ? { x: b.x, z: b.z } : null; }
     if (q.id === 'fuse' || q.id === 'snare') { const b = G.world.findNearest(B.FUSION, p.x, p.z, 80); return b ? { x: b.x, z: b.z } : null; }
-    if ((q.id === 'heart' || q.id === 'core' || q.id === 'mythic' || q.id === 'ship') && G.world.heart) return { x: G.world.heart.x, z: G.world.heart.z };
+    if ((q.id === 'heart' || q.id === 'mythic') && G.world.heart && p.has('deepchart')) return { x: G.world.heart.x, z: G.world.heart.z, note: 'the Heart' };
     if (q.id === 'catch' || q.id === 'party') { let best = null, bd = 60; for (const e of Wild.list) { if (e.isBoss || e.lieutenant || e.isLegend || e.isApex) continue; const d = Math.hypot(e.x - p.x, e.z - p.z); if (d < bd) { bd = d; best = e; } } return best ? { x: best.x, z: best.z, note: KIN.name(best.kin) } : null; }
     if (q.id === 'suit') { const b = G.world.findNearest(B.IRON, p.x, p.z, 40); return b ? { x: b.x, z: b.z, note: b.y < p.y - 3 ? 'iron ore, below you' : 'iron ore' } : null; }
     if ((q.id === 'moonjobs' && G.worldId === 'moon') || (q.id === 'halojobs' && G.worldId === 'halo')) q = { id: 'job' };
@@ -9403,21 +9421,22 @@ const Combat = (() => {
   };
   // ---------------- wear: blades, spears, bows, shields and armour all wear out and need mending ----------------
   const BOWS = { bow: { life: 170, price: 120 }, bow_painted: { life: 90, price: 60 } };
-  function lifeOf(id) { const g = GEAR[id], a = ARMOUR[id], b = BOWS[id]; if (b) return b.life; if (a) return 70 + a.tier * 35; if (g) return g.kind === 'shield' ? 60 + g.tier * 30 : 90 + g.tier * 45; return 0; }
-  function priceOf(id) { const g = GEAR[id], a = ARMOUR[id], b = BOWS[id]; return (b && b.price) || (g && g.price) || (a && a.price) || 60; }
+  const TOOLS = { shovel: { life: 400, price: 40 }, hatchet: { life: 260, price: 40 }, axe_iron: { life: 600, price: 140 }, pick_iron: { life: 520, price: 160 }, pick: { life: 1300, price: 650 } }; // the stone pick and the rods never wear
+  function lifeOf(id) { const g = GEAR[id], a = ARMOUR[id], b = BOWS[id] || TOOLS[id]; if (b) return b.life; if (a) return 70 + a.tier * 35; if (g) return g.kind === 'shield' ? 60 + g.tier * 30 : 90 + g.tier * 45; return 0; }
+  function priceOf(id) { const g = GEAR[id], a = ARMOUR[id], b = BOWS[id] || TOOLS[id]; return (b && b.price) || (g && g.price) || (a && a.price) || 60; }
   const wearMap = () => { if (!G.stats.gwear) G.stats.gwear = {}; return G.stats.gwear; };
   function cond(id) { const L = lifeOf(id); if (!L) return 1; return Math.max(0, 1 - (wearMap()[id] || 0) / L); }
   const broken = (id) => lifeOf(id) > 0 && cond(id) <= 0;
   function use(id, n) {
     const L = lifeOf(id); if (!L || !G.player.has(id)) return; const before = cond(id); const m = wearMap(); m[id] = Math.min(L, (m[id] || 0) + (n || 1)); const after = cond(id); const nm = (ITEMS[id] || {}).name || id;
-    if (after <= 0 && before > 0) { UI.toast(`Your ${nm} has broken. Take it to an ${ARMOUR[id] || (GEAR[id] && GEAR[id].kind === 'shield') ? 'armourer' : 'armoury'} to have it mended.`, 'bad'); UI.sfx('hurt'); }
+    if (after <= 0 && before > 0) { UI.toast(`Your ${nm} has broken. Take it to ${ARMOUR[id] || (GEAR[id] && GEAR[id].kind === 'shield') ? 'an armourer' : TOOLS[id] ? 'a trader or an armoury' : 'an armoury'} to have it mended.`, 'bad'); UI.sfx('hurt'); }
     else if (after <= 0.2 && before > 0.2) UI.toast(`Your ${nm} is wearing thin. Get it mended before it goes.`, 'bad');
     if (UI.renderHotbar) UI.renderHotbar();
   }
   function bow() { const p = G.player; let best = null; for (const k in BOWS) if (p.has(k) && !broken(k) && (!best || BOWS[k].life > BOWS[best].life)) best = k; return best; }
   function anyBow() { return Object.keys(BOWS).some(k => G.player.has(k)); }
   // what the smith wants: cheap while it is only scuffed, steep once it has broken
-  function mendList(what) { const p = G.player; const out = []; for (const k of p.inv.keys()) { const L = lifeOf(k); if (!L) continue; const isArm = !!ARMOUR[k] || (GEAR[k] && GEAR[k].kind === 'shield'); if ((what === 'armour') !== isArm) continue; const c = cond(k); if (c >= 0.999) continue; const miss = 1 - c; out.push({ id: k, c, cost: Math.max(5, Math.round((priceOf(k) * 0.5 * Math.pow(miss, 1.3) + (c <= 0 ? priceOf(k) * 0.3 : 0)) / 5) * 5) }); } return out; }
+  function mendList(what) { const p = G.player; const out = []; for (const k of p.inv.keys()) { const L = lifeOf(k); if (!L) continue; const isArm = !!(ARMOUR[k] || (GEAR[k] && GEAR[k].kind === 'shield')); if ((what === 'armour') !== isArm) continue; if (what === 'tools' && !TOOLS[k]) continue; const c = cond(k); if (c >= 0.999) continue; const miss = 1 - c; out.push({ id: k, c, cost: Math.max(5, Math.round((priceOf(k) * 0.5 * Math.pow(miss, 1.3) + (c <= 0 ? priceOf(k) * 0.3 : 0)) / 5) * 5) }); } return out; }
   function mendQuote(what) { return mendList(what).reduce((s, x) => s + x.cost, 0); }
   function mend(what) { const L = mendList(what); if (!L.length) { UI.toast('Nothing of yours needs mending.'); return false; } const cost = L.reduce((s, x) => s + x.cost, 0); if (G.shards < cost) { UI.toast(`Mending all of it comes to ${cost} shards.`, 'bad'); return false; } G.shards -= cost; const m = wearMap(); for (const x of L) delete m[x.id]; UI.sfx('caught'); UI.toast(`Mended: ${L.map(x => (ITEMS[x.id] || {}).name).join(', ')}. Good as new.`, 'good'); if (UI.renderHotbar) UI.renderHotbar(); return true; }
   function init(game) {
@@ -9448,10 +9467,10 @@ const Combat = (() => {
     const size = v && v.size; const tier = Math.min(8, 1 + (v ? v.tier || 0 : 0) * 2 + (size === 'city' ? 2 : 0)); const seed = v ? Math.abs(String(v.id).length * 31 + (v.x | 0)) + 1 : 1;
     const pick = (list, n, salt) => { const out = []; for (let i = 0; i < n * 3 && out.length < Math.min(n, list.length); i++) { const g = list[U.mod(seed * (i + salt) * 13 + i, list.length)]; if (g && !out.includes(g)) out.push(g); } return out; };
     const near = (L) => L.filter(g => g.tier <= tier && g.tier >= tier - 3);
-    const mendE = (what) => { const L = mendList(what); return { service: 'mend', what, name: L.length ? `Mend your ${what === 'armour' ? 'armour and shields' : 'blades, spears and bows'} (${L.length} worn${L.some(x => x.c <= 0) ? ', some broken' : ''})` : `Mending: nothing of yours needs it`, price: mendQuote(what) }; };
+    const mendE = (what) => { const L = mendList(what); return { service: 'mend', what, name: L.length ? `Mend your ${what === 'armour' ? 'armour and shields' : what === 'tools' ? 'tools' : 'blades, bows and tools'} (${L.length} worn${L.some(x => x.c <= 0) ? ', some broken' : ''})` : `Mending: nothing of yours needs it`, price: mendQuote(what) }; };
     if (kind === 'armoury') return [mendE('arms')].concat(pick(near(Object.values(GEAR).filter(g => g.kind !== 'shield' && g.kind !== 'spear')), size === 'city' ? 8 : 5, 7).map(g => ({ item: g.id, price: g.price })));
     if (kind === 'armourer') return [mendE('armour')].concat(pick(near(Object.values(ARMOUR)), size === 'city' ? 6 : 4, 3).map(a => ({ item: a.id, price: a.price })), pick(near(Object.values(GEAR).filter(g => g.kind === 'shield')), 3, 11).map(g => ({ item: g.id, price: g.price })));
-    if (kind === 'trader') return armoury(v);
+    if (kind === 'trader') return [mendE('tools')].concat(armoury(v));
     if (kind === 'armoury') return pick(near(Object.values(GEAR).filter(g => g.kind !== 'shield')), size === 'city' ? 8 : 5, 7).map(g => ({ item: g.id, price: g.price }));
     if (kind === 'armourer') return pick(near(Object.values(ARMOUR)), size === 'city' ? 6 : 4, 3).map(a => ({ item: a.id, price: a.price })).concat(pick(near(Object.values(GEAR).filter(g => g.kind === 'shield')), 3, 11).map(g => ({ item: g.id, price: g.price })));
     if (kind === 'alchemist') { const order = ['arrow', 'arrow_frost', 'arrow_spark', 'arrow_barbed', 'arrow_heavy', 'arrow_sleep', 'arrow_ember']; return order.slice(0, 3 + Math.min(4, tier)).map(a => ({ item: a, price: 4 + (ARROWS[a] || ARROWS.arrow).dmg, n: 6 })); }
@@ -9715,6 +9734,7 @@ const Keeps = (() => {
     const n = sites().filter(x => taken(x.id)).length; G.stats.crystal = n; const NEED = sites().length;
     UI.toast(`${k ? k.name : 'The hold'} is yours. The spell on its warriors breaks, the clouds over it thin, and a shard of the Binding Crystal is left on the dais (${n} of ${NEED}).`, 'good');
     if (n >= NEED) setTimeout(() => G.explain('The Binding Crystal', 'Every shard. The crystal the Kinmaster used to bind his warriors is whole again in your hands, and it pulls toward him. Take it to the throne room at Thornhold. Sable will know what to do.'), 1500);
+    { const surf = sites().filter(x => !x.core); if (surf.every(x => taken(x.id)) && !G.player.has('deepchart')) { G.player.add('deepchart', 1); setTimeout(() => G.explain('The Deep Chart', 'The last surface hold falls, and its freed captain presses a rolled chart into your hands. "He kept this locked up. It is the way down." It shows where to dig to the twelfth Hold, on the lava in the Core, and an older mark beyond it: the Heart, where something enormous sleeps on a bed of Starmetal. Dig anywhere else and you take your chances.'), 2600); } }
     G.addTrainerXp(120); G.shards += 400;
     if (!G.stats.keepTold) { G.stats.keepTold = true; G.explain('A hold taken', 'There are twelve Holds, the Kinmaster\'s fortresses: eleven spread out from home, and one deep in the Core, out on the lava. Each one you take frees the warriors he bound with his crystal, clears the grey sky over it, opens its Dark Fusion Table (the only tables that take Void), and gives you one shard of the Binding Crystal. With all twelve, the crystal is whole, and it will lead you to him.'); }
   }
@@ -9763,7 +9783,7 @@ const Keeps = (() => {
     const f = (Campaign.sites() || {}).fort; if (f && Math.hypot(f.x + 72 - x, f.z - z) < 40) return !!Campaign.C().kinmaster;
     return true;
   }
-  function mapMarks() { if (!onEarth()) return []; const p = G.player; return Citadel.mapMarks().concat(sites().filter(k => st()['seen_' + k.id] || taken(k.id)).map(k => ({ x: k.x, z: k.z, t: taken(k.id) ? '♜' : '☠', name: k.name + (k.core ? ' (deep in the Core)' : '') + (taken(k.id) ? ' (yours)' : '') }))); }
+  function mapMarks() { if (!onEarth()) return []; const p = G.player; return Citadel.mapMarks().concat(sites().filter(k => st()['seen_' + k.id] || taken(k.id) || (k.core && G.player.has('deepchart'))).map(k => ({ x: k.x, z: k.z, t: taken(k.id) ? '♜' : '☠', name: k.name + (k.core ? ' (deep in the Core)' : '') + (taken(k.id) ? ' (yours)' : '') }))); }
   return { inHold, init, update, onBattle, tableOpen, near, mapMarks, keepFor, sites, gloom, talkWarrior, finalReady, onFinal, COUNT };
 })();
 

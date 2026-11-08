@@ -614,7 +614,7 @@ class World {
     if (!this.spawn) this.spawn = fallback;
     if (!this.spawn) { const info = this.colInfo(0, 0); this.spawn = { x: 0.5, y: Math.max(info.h, SEA) + 2, z: 0.5 }; }
     const a = this.heartAngle;
-    this.heart = { x: Math.round(this.spawn.x + Math.cos(a) * 240), z: Math.round(this.spawn.z + Math.sin(a) * 240) };
+    this.heart = { x: Math.round(this.spawn.x + Math.cos(a) * 1050), z: Math.round(this.spawn.z + Math.sin(a) * 1050) }; // a long way out: you only find it with the Deep Chart
     // the body's one legendary creature: a fixed lair a long way out from the landing pad, in a zone nothing ordinary survives
     if (this.preset.legend) { const la = a + 2.1; const ld = this.preset.id === 'halo' ? 900 : 700; this.legend = { x: Math.round(this.spawn.x + Math.cos(la) * ld), z: Math.round(this.spawn.z + Math.sin(la) * ld), r: 120 }; }
     return this.spawn;

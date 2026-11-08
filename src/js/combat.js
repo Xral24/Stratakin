@@ -84,21 +84,22 @@ const Combat = (() => {
   };
   // ---------------- wear: blades, spears, bows, shields and armour all wear out and need mending ----------------
   const BOWS = { bow: { life: 170, price: 120 }, bow_painted: { life: 90, price: 60 } };
-  function lifeOf(id) { const g = GEAR[id], a = ARMOUR[id], b = BOWS[id]; if (b) return b.life; if (a) return 70 + a.tier * 35; if (g) return g.kind === 'shield' ? 60 + g.tier * 30 : 90 + g.tier * 45; return 0; }
-  function priceOf(id) { const g = GEAR[id], a = ARMOUR[id], b = BOWS[id]; return (b && b.price) || (g && g.price) || (a && a.price) || 60; }
+  const TOOLS = { shovel: { life: 400, price: 40 }, hatchet: { life: 260, price: 40 }, axe_iron: { life: 600, price: 140 }, pick_iron: { life: 520, price: 160 }, pick: { life: 1300, price: 650 } }; // the stone pick and the rods never wear
+  function lifeOf(id) { const g = GEAR[id], a = ARMOUR[id], b = BOWS[id] || TOOLS[id]; if (b) return b.life; if (a) return 70 + a.tier * 35; if (g) return g.kind === 'shield' ? 60 + g.tier * 30 : 90 + g.tier * 45; return 0; }
+  function priceOf(id) { const g = GEAR[id], a = ARMOUR[id], b = BOWS[id] || TOOLS[id]; return (b && b.price) || (g && g.price) || (a && a.price) || 60; }
   const wearMap = () => { if (!G.stats.gwear) G.stats.gwear = {}; return G.stats.gwear; };
   function cond(id) { const L = lifeOf(id); if (!L) return 1; return Math.max(0, 1 - (wearMap()[id] || 0) / L); }
   const broken = (id) => lifeOf(id) > 0 && cond(id) <= 0;
   function use(id, n) {
     const L = lifeOf(id); if (!L || !G.player.has(id)) return; const before = cond(id); const m = wearMap(); m[id] = Math.min(L, (m[id] || 0) + (n || 1)); const after = cond(id); const nm = (ITEMS[id] || {}).name || id;
-    if (after <= 0 && before > 0) { UI.toast(`Your ${nm} has broken. Take it to an ${ARMOUR[id] || (GEAR[id] && GEAR[id].kind === 'shield') ? 'armourer' : 'armoury'} to have it mended.`, 'bad'); UI.sfx('hurt'); }
+    if (after <= 0 && before > 0) { UI.toast(`Your ${nm} has broken. Take it to ${ARMOUR[id] || (GEAR[id] && GEAR[id].kind === 'shield') ? 'an armourer' : TOOLS[id] ? 'a trader or an armoury' : 'an armoury'} to have it mended.`, 'bad'); UI.sfx('hurt'); }
     else if (after <= 0.2 && before > 0.2) UI.toast(`Your ${nm} is wearing thin. Get it mended before it goes.`, 'bad');
     if (UI.renderHotbar) UI.renderHotbar();
   }
   function bow() { const p = G.player; let best = null; for (const k in BOWS) if (p.has(k) && !broken(k) && (!best || BOWS[k].life > BOWS[best].life)) best = k; return best; }
   function anyBow() { return Object.keys(BOWS).some(k => G.player.has(k)); }
   // what the smith wants: cheap while it is only scuffed, steep once it has broken
-  function mendList(what) { const p = G.player; const out = []; for (const k of p.inv.keys()) { const L = lifeOf(k); if (!L) continue; const isArm = !!ARMOUR[k] || (GEAR[k] && GEAR[k].kind === 'shield'); if ((what === 'armour') !== isArm) continue; const c = cond(k); if (c >= 0.999) continue; const miss = 1 - c; out.push({ id: k, c, cost: Math.max(5, Math.round((priceOf(k) * 0.5 * Math.pow(miss, 1.3) + (c <= 0 ? priceOf(k) * 0.3 : 0)) / 5) * 5) }); } return out; }
+  function mendList(what) { const p = G.player; const out = []; for (const k of p.inv.keys()) { const L = lifeOf(k); if (!L) continue; const isArm = !!(ARMOUR[k] || (GEAR[k] && GEAR[k].kind === 'shield')); if ((what === 'armour') !== isArm) continue; if (what === 'tools' && !TOOLS[k]) continue; const c = cond(k); if (c >= 0.999) continue; const miss = 1 - c; out.push({ id: k, c, cost: Math.max(5, Math.round((priceOf(k) * 0.5 * Math.pow(miss, 1.3) + (c <= 0 ? priceOf(k) * 0.3 : 0)) / 5) * 5) }); } return out; }
   function mendQuote(what) { return mendList(what).reduce((s, x) => s + x.cost, 0); }
   function mend(what) { const L = mendList(what); if (!L.length) { UI.toast('Nothing of yours needs mending.'); return false; } const cost = L.reduce((s, x) => s + x.cost, 0); if (G.shards < cost) { UI.toast(`Mending all of it comes to ${cost} shards.`, 'bad'); return false; } G.shards -= cost; const m = wearMap(); for (const x of L) delete m[x.id]; UI.sfx('caught'); UI.toast(`Mended: ${L.map(x => (ITEMS[x.id] || {}).name).join(', ')}. Good as new.`, 'good'); if (UI.renderHotbar) UI.renderHotbar(); return true; }
   function init(game) {
@@ -129,10 +130,10 @@ const Combat = (() => {
     const size = v && v.size; const tier = Math.min(8, 1 + (v ? v.tier || 0 : 0) * 2 + (size === 'city' ? 2 : 0)); const seed = v ? Math.abs(String(v.id).length * 31 + (v.x | 0)) + 1 : 1;
     const pick = (list, n, salt) => { const out = []; for (let i = 0; i < n * 3 && out.length < Math.min(n, list.length); i++) { const g = list[U.mod(seed * (i + salt) * 13 + i, list.length)]; if (g && !out.includes(g)) out.push(g); } return out; };
     const near = (L) => L.filter(g => g.tier <= tier && g.tier >= tier - 3);
-    const mendE = (what) => { const L = mendList(what); return { service: 'mend', what, name: L.length ? `Mend your ${what === 'armour' ? 'armour and shields' : 'blades, spears and bows'} (${L.length} worn${L.some(x => x.c <= 0) ? ', some broken' : ''})` : `Mending: nothing of yours needs it`, price: mendQuote(what) }; };
+    const mendE = (what) => { const L = mendList(what); return { service: 'mend', what, name: L.length ? `Mend your ${what === 'armour' ? 'armour and shields' : what === 'tools' ? 'tools' : 'blades, bows and tools'} (${L.length} worn${L.some(x => x.c <= 0) ? ', some broken' : ''})` : `Mending: nothing of yours needs it`, price: mendQuote(what) }; };
     if (kind === 'armoury') return [mendE('arms')].concat(pick(near(Object.values(GEAR).filter(g => g.kind !== 'shield' && g.kind !== 'spear')), size === 'city' ? 8 : 5, 7).map(g => ({ item: g.id, price: g.price })));
     if (kind === 'armourer') return [mendE('armour')].concat(pick(near(Object.values(ARMOUR)), size === 'city' ? 6 : 4, 3).map(a => ({ item: a.id, price: a.price })), pick(near(Object.values(GEAR).filter(g => g.kind === 'shield')), 3, 11).map(g => ({ item: g.id, price: g.price })));
-    if (kind === 'trader') return armoury(v);
+    if (kind === 'trader') return [mendE('tools')].concat(armoury(v));
     if (kind === 'armoury') return pick(near(Object.values(GEAR).filter(g => g.kind !== 'shield')), size === 'city' ? 8 : 5, 7).map(g => ({ item: g.id, price: g.price }));
     if (kind === 'armourer') return pick(near(Object.values(ARMOUR)), size === 'city' ? 6 : 4, 3).map(a => ({ item: a.id, price: a.price })).concat(pick(near(Object.values(GEAR).filter(g => g.kind === 'shield')), 3, 11).map(g => ({ item: g.id, price: g.price })));
     if (kind === 'alchemist') { const order = ['arrow', 'arrow_frost', 'arrow_spark', 'arrow_barbed', 'arrow_heavy', 'arrow_sleep', 'arrow_ember']; return order.slice(0, 3 + Math.min(4, tier)).map(a => ({ item: a, price: 4 + (ARROWS[a] || ARROWS.arrow).dmg, n: 6 })); }

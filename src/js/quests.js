@@ -89,8 +89,8 @@ const QUESTS = [
   { id: 'kinmaster', title: 'The Kinmaster', desc: 'Grakor had a letter on him, sealed in purple: every tyrant answers to someone. The Kinmaster, in his fortress Thornhold, out past the hills (♜). Getting in will take everything you have learned: a Flame Kin to burn his thorns, the glider, the bulb, a Spark Kin and a Stone Kin. His walls cannot be broken.', hint: 'Get through Thornhold and face the Kinmaster', check: G => (G.stats.camp || {}).kinmaster ? 1 : 0, reward: { xp: 400, items: { snare2: 3 } } },
   { id: 'void', title: 'Deep Crystal', desc: 'Void Crystal glows purple below y 22. You need the iron pick for it. Bring one back.', hint: 'Mine a Void Crystal (below y 22)', check: G => Math.min(1, G.stats.got.void || 0), reward: { items: { snare2: 2 }, xp: 40 } },
   { id: 'lavasuit', title: 'Suit Up', desc: 'The Core is a sea of lava under the basalt ceiling. Only Garrick knows how to make a Lava Suit. Ask him.', hint: 'Get a Lava Suit from Garrick', check: G => G.player.has('lavasuit') ? 1 : 0, reward: { xp: 60 } },
-  { id: 'core', title: 'The Core', desc: 'Dig through the basalt ceiling beneath the Mines (below y 14). Expect lava and Flame and Void Kin far above your level.', hint: 'Reach the Core (y below 14)', check: G => G.stats.reachedCore ? 1 : 0, reward: { xp: 80 } },
-  { id: 'heart', title: 'The Heart', desc: 'Somewhere in the Core lies a chamber with a pedestal of Starmetal. Two Wardens patrol it in step. Find the gap.', hint: 'Find the Heart chamber', check: G => G.stats.heartFound ? 1 : 0, reward: { xp: 100 } },
+  { id: 'core', title: 'The Core', desc: 'Dig through the basalt ceiling beneath the Mines (below y 14), anywhere you like. Where you come out is luck: a lava lake, a cave, a seam of ore. Expect Flame and Void Kin far above your level.', hint: 'Reach the Core (y below 14)', check: G => G.stats.reachedCore ? 1 : 0, reward: { xp: 80 } },
+  { id: 'heart', title: 'The Heart', desc: 'The Deep Chart marks a chamber far out in the Core with a pedestal of Starmetal. Two Wardens patrol it in step. Dig down where the chart says, then find the gap.', hint: 'Find the Heart chamber', check: G => G.stats.heartFound ? 1 : 0, reward: { xp: 100 } },
   { id: 'mythic', title: 'Mantlewyrm', desc: 'The Kinmaster ran for the Core to wake the Mythic that sleeps on the Starmetal. Get there first. The hardest thing on Earth: catch it (bring Void Snares and a strong, evolved team) or defeat it, before he does.', hint: 'Catch or defeat the Mantlewyrm', check: G => G.stats.mythicDone ? 1 : 0, reward: { xp: 500 } },
   { id: 'job', title: 'Odd Jobs', desc: 'People sit by little fires all over the world, and the Moon and Halo too, each with a job: fetch this, beat that, carry a parcel, clear a den. Yellow dots on the map. Some of them pay in amulets, which nobody sells.', hint: 'Do a job for someone on the road', check: G => (G.stats.questsDone || 0) >= 1 ? 1 : 0, reward: { xp: 120 } },
   { id: 'lab', title: 'The Splice', desc: 'Somewhere out there an apprentice waits by a tent: her master is shut in his own lab with the thing he made. Find her, follow ⚗ to the hatch, and beat or cage what is down there. The incubator is the reward: Kin grow fast in it and learn techniques.', hint: 'Find the apprentice by the tent and rescue the maker', check: G => (G.stats.labDone || 0) >= 1 ? 1 : 0, reward: { xp: 400 } },
@@ -124,7 +124,9 @@ const Quests = (() => {
     for (let pass = 0; pass < 3; pass++) for (const a in ARCS) { const L = arcList(a); while (st.arcs[a] < L.length) { const q = L[st.arcs[a]]; let ok = false; try { ok = q.check(G) >= 1; } catch (e) { ok = false; } if (!ok || (AFTER[q.id] && !isDone(AFTER[q.id]))) break; st.arcs[a]++; } }
   }
   function arcCurrent(a) { if (!G.questState.arcs) migrate(); const q = arcList(a)[G.questState.arcs[a]]; return q || null; }
-  function gated(q) { return q && AFTER[q.id] && !isDone(AFTER[q.id]) ? AFTER[q.id] : null; }
+  // some quests wait on an item rather than a quest: the Heart only shows itself to someone holding the Deep Chart
+  const NEEDS_ITEM = { heart: ['deepchart', 'the Deep Chart (free all eleven surface Holds)'], mythic: ['deepchart', 'the Deep Chart (free all eleven surface Holds)'] };
+  function gated(q) { if (!q) return null; if (AFTER[q.id] && !isDone(AFTER[q.id])) return AFTER[q.id]; const ni = NEEDS_ITEM[q.id]; if (ni && G && G.player && !G.player.has(ni[0])) return ni[1]; return null; }
   function current() {
     if (!G.questState.arcs) migrate(); const f = G.questState.focus || 'main';
     for (const a of [f, 'main', 'dark', 'old']) { const q = arcCurrent(a); if (q && !gated(q)) return q; }
@@ -211,7 +213,7 @@ const Quests = (() => {
     if (q.id === 'ember') { const b = G.world.findNearest(B.GLOWWORM, p.x, p.z, 80) || G.world.findNearest(B.EMBER, p.x, p.z, 40); return b ? { x: b.x, z: b.z } : null; }
     if (q.id === 'void') { const b = G.world.findNearest(B.VOID, p.x, p.z, 40); return b ? { x: b.x, z: b.z } : null; }
     if (q.id === 'fuse' || q.id === 'snare') { const b = G.world.findNearest(B.FUSION, p.x, p.z, 80); return b ? { x: b.x, z: b.z } : null; }
-    if ((q.id === 'heart' || q.id === 'core' || q.id === 'mythic' || q.id === 'ship') && G.world.heart) return { x: G.world.heart.x, z: G.world.heart.z };
+    if ((q.id === 'heart' || q.id === 'mythic') && G.world.heart && p.has('deepchart')) return { x: G.world.heart.x, z: G.world.heart.z, note: 'the Heart' };
     if (q.id === 'catch' || q.id === 'party') { let best = null, bd = 60; for (const e of Wild.list) { if (e.isBoss || e.lieutenant || e.isLegend || e.isApex) continue; const d = Math.hypot(e.x - p.x, e.z - p.z); if (d < bd) { bd = d; best = e; } } return best ? { x: best.x, z: best.z, note: KIN.name(best.kin) } : null; }
     if (q.id === 'suit') { const b = G.world.findNearest(B.IRON, p.x, p.z, 40); return b ? { x: b.x, z: b.z, note: b.y < p.y - 3 ? 'iron ore, below you' : 'iron ore' } : null; }
     if ((q.id === 'moonjobs' && G.worldId === 'moon') || (q.id === 'halojobs' && G.worldId === 'halo')) q = { id: 'job' };

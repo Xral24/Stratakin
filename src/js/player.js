@@ -104,6 +104,7 @@ const ITEMS = {
   torch: { name: 'Torch', block: B.TORCH, col: '#ffd36a', light: true, crafted: true, desc: 'Hold it to see in the dark, or place it.' },
   fusion: { name: 'Fusion Table', block: B.FUSION, col: '#7ad7ff', crafted: true, desc: 'Place it, then tap it to fuse Kin.' },
   snare: { name: 'Snare Cube', col: '#7fe0c0', snare: 0.40, desc: 'Unfolds into a crystal cage. Weaken a Kin first.' },
+  deepchart: { name: 'The Deep Chart', col: '#6a4a8a', keep: true, desc: 'An old miner\'s chart of the Core. It marks where to dig down to the twelfth Hold, out on the lava, and one older mark further on: the Heart, the Starmetal chamber where something enormous sleeps. Your compass follows it.' },
   painted_piece: { name: 'Indian Cloth', col: '#c96a3a', keep: true, desc: 'A strip of painted cloth from an Indian camp. One of the pieces of something. Somebody in a town might know what.' },
   painted_cloak: { name: 'Indian Cloak', col: '#c9643a', gear: true, keep: true, desc: 'Stitched by Zazu from a piece out of every Indian camp. Walk into a camp in broad daylight and nobody looks twice, for a few minutes. Take their hoard and try to leave, and someone will ask who you are.' },
   snare_sky: { name: 'Flight Snare', col: '#9fd8ff', snare: 0.55, desc: 'A light cage on a long cord, for the birds that never come down. Only works thrown from the air: off the glider or the back of a flier. Tap the bird as you pass.' },
@@ -399,21 +400,35 @@ class Player {
     if ([B.LOG, B.PLANKS].includes(id)) return 'wood';
     return 'stone';
   }
+  // a tool you own that is not broken (the first stone pick and the rods never wear)
+  tool(k) { return this.has(k) && !(typeof Combat !== 'undefined' && Combat.broken && Combat.broken(k)); }
+  pickTier() { return this.tool('pick') ? 3 : this.tool('pick_iron') ? 2 : this.has('pick_stone') ? 1 : 0; }
+  // which tool took the wear for breaking this block
+  wearTool(id) {
+    if (typeof Combat === 'undefined' || !Combat.use) return; const kind = this.toolKind(id); if (kind === 'hand') return;
+    if (kind === 'soil') { if (this.tool('shovel')) Combat.use('shovel'); else { const t = this.pickTier(); if (t === 3) Combat.use('pick'); else if (t === 2) Combat.use('pick_iron'); } return; }
+    if (kind === 'wood') { if (this.tool('axe_iron')) Combat.use('axe_iron'); else if (this.tool('hatchet')) Combat.use('hatchet'); return; }
+    const t = this.pickTier(); if (t === 3) Combat.use('pick'); else if (t === 2) Combat.use('pick_iron');
+  }
   toolMul(id) {
-    const tier = this.has('pick') ? 3 : this.has('pick_iron') ? 2 : this.has('pick_stone') ? 1 : 0;
+    const tier = this.pickTier();
     const kind = this.toolKind(id);
     if (kind === 'hand') return 1;
-    if (kind === 'soil') return this.has('shovel') ? (tier === 3 ? 2 * this.gearMul('pick') : 1) : tier ? 0.35 : 0; // a pick scrapes soil, slowly; bare hands cannot
-    if (kind === 'wood') { const ct = typeof Combat !== 'undefined' ? Combat.chopTier() : 0; return Math.max(this.has('axe_iron') ? 2 : this.has('hatchet') ? 1 : 0, ct); }
+    if (kind === 'soil') return this.tool('shovel') ? (tier === 3 ? 2 * this.gearMul('pick') : 1) : tier ? 0.35 : 0; // a pick scrapes soil, slowly; bare hands cannot
+    if (kind === 'wood') { const ct = typeof Combat !== 'undefined' ? Combat.chopTier() : 0; return Math.max(this.tool('axe_iron') ? 2 : this.tool('hatchet') ? 1 : 0, ct); }
     const need = [B.VOID, B.GOLD, B.DIAMOND, B.BASALT, B.TYCHO, B.RINGSHARD, B.PEARLCORAL].includes(id) ? 2 : [B.COPPER, B.IRON, B.EMBER, B.SELENITE, B.AMBER].includes(id) ? 1 : 0;
     const table = [[0, 0, 0], [0.5, 0.28, 0], [1.8, 1.4, 0.9], [3.6, 3, 2.5]];
     return table[tier][need] * (tier === 3 ? this.gearMul('pick') : 1);
   }
   toolNeed(id) { // why it will not break, in a sentence
     const kind = this.toolKind(id);
+    const brk = (k) => this.has(k) && !this.tool(k);
+    if (kind === 'soil' && brk('shovel')) return 'Your shovel is broken. A trader or an armoury will mend it.';
+    if (kind === 'wood' && (brk('axe_iron') || brk('hatchet'))) return 'Your axe is broken. A trader or an armoury will mend it.';
+    if (kind === 'stone' && (brk('pick') || brk('pick_iron'))) return 'Your pick is broken and the stone pick will not touch this. A trader or an armoury will mend it.';
     if (kind === 'soil') return 'Your hands cannot dig that. Free the village by your camp and its people will give you a shovel.';
     if (kind === 'wood') return 'You need an axe to cut wood. Free the village by your camp: they will give you a hatchet.';
-    const tier = this.has('pick') ? 3 : this.has('pick_iron') ? 2 : this.has('pick_stone') ? 1 : 0;
+    const tier = this.pickTier();
     if (!tier) return 'Stone needs a pick. Foreman Garrick at the Mining Camp (⛏ on the map) has one for you.';
     return 'Too hard for this pick. Garrick makes an iron pick for six copper and four iron.';
   }
@@ -433,6 +448,7 @@ class Player {
       if (hit.id === B.BERRY) { this.world.setBlock(hit.x, hit.y, hit.z, B.AIR); this.add('berry', 2 + (Math.random() < 0.5 ? 1 : 0)); (this.world.regrow = this.world.regrow || []).push({ x: hit.x, y: hit.y, z: hit.z, t: performance.now() + 150000 }); return { broke: hit.id, drop: 'berry', x: hit.x, y: hit.y, z: hit.z }; }
       if (hit.id === B.BERRYLEAF) { this.world.setBlock(hit.x, hit.y, hit.z, B.LEAVES); this.add('berry', 1 + (Math.random() < 0.5 ? 1 : 0)); (this.world.regrow = this.world.regrow || []).push({ x: hit.x, y: hit.y, z: hit.z, t: performance.now() + 240000, leaf: true }); return { broke: hit.id, drop: 'berry', x: hit.x, y: hit.y, z: hit.z }; }
       if (hit.id === B.STATUE) { const obj = this.world.removeStatue(hit.x, hit.y, hit.z); if (obj) this.objects.push(obj); return { broke: hit.id, x: hit.x, y: hit.y, z: hit.z }; }
+      this.wearTool(hit.id);
       this.world.setBlock(hit.x, hit.y, hit.z, B.AIR);
       if (drop) this.add(drop, 1);
       // everything that grows, grows back: logs, leaves, cactus, glowworms
