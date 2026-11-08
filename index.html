@@ -644,7 +644,7 @@ const B = {
   TORCH: 18, FUSION: 19, GRAVEL: 20, CACTUS: 21, STARMETAL: 22, MOSS: 23, STATUE: 24, PLANKS: 25, BERRY: 26, GLASS: 27, CAMPFIRE: 28, IRONWALL: 29, VOIDWALL: 30, GLOWWORM: 31, BERRYLEAF: 32, DOOR: 33, DOOR_OPEN: 34, PORTAL: 35,
   CHEST: 36, SELENITE: 37, TYCHO: 38, STARSALT: 39, MOONGLOW: 40, AMBER: 41, SULFUR: 42, RINGSHARD: 43, BRINE: 44, CORAL_R: 45, CORAL_B: 46, CORAL_Y: 47, PEARLCORAL: 48, GOLD: 49, DIAMOND: 50, FERN: 51, SELGLASS: 52, INCUBATOR: 53, REGOLITH: 54, DUNE: 55, SALTCRUST: 56, LADDER: 57, TARGET: 58, BALLOON: 59, FORTSTONE: 60, THORN: 61, DEADGATE: 62, RUBBLE: 63, DARKTABLE: 64,
   NEEDLES: 65, FROND: 66, BIRCHLOG: 67, BOULDER: 68, MUSHROOM: 69, FLOWERS: 70, PEBBLES: 71, PALMLOG: 72,
-  TILES: 73, SLATE: 74, THATCH: 75, PLASTER: 76, BEAM: 77, LAMP: 78, COBBLE: 79, FLOWERBOX: 80, PALISADE: 81, MASONRY: 82
+  TILES: 73, SLATE: 74, THATCH: 75, PLASTER: 76, BEAM: 77, LAMP: 78, COBBLE: 79, FLOWERBOX: 80, PALISADE: 81, MASONRY: 82, FOUNTAIN: 83, BASIN: 84, AWNING: 85, BANNER: 86, SLIT: 87
 };
 
 // name, top colour, side colour, solid, hardness (seconds to mine), drop item id, emissive, fluid
@@ -736,6 +736,11 @@ defBlock(B.LAMP, 'Lamp Post', '#ffd36a', '#3a3a40', { solid: false, hard: 0.3, d
 defBlock(B.COBBLE, 'Cobbles', '#8a8680', '#7e7a74', { hard: 0.9, drop: 'stone' });
 defBlock(B.PALISADE, 'Palisade', '#8a6a3c', '#6e5230', { hard: 0.7, drop: 'wood', transparent: true }); // two pointed posts per block
 defBlock(B.MASONRY, 'Dressed Stone', '#aaa59b', '#9e9990', { hard: 1.0, drop: 'stone' });
+defBlock(B.FOUNTAIN, 'Fountain', '#9aa0a8', '#8a9098', { hard: Infinity, partial: true, transparent: true }); // the centre block draws the whole fountain
+defBlock(B.BASIN, 'Fountain Basin', '#9aa0a8', '#8a9098', { hard: Infinity, partial: true, transparent: true }); // the basin's footprint: solid to walk against, drawn by the fountain
+defBlock(B.AWNING, 'Awning', '#d04a4a', '#e8e0d0', { hard: 0.3, drop: 'planks', partial: true, transparent: true });
+defBlock(B.BANNER, 'Banner', '#b8303a', '#8a2030', { solid: false, hard: 0.2, drop: 'planks', partial: true, transparent: true });
+defBlock(B.SLIT, 'Arrow Slit', '#aaa59b', '#9e9990', { hard: 1.0, drop: 'stone' }); // dressed stone with a slit cut in it
 defBlock(B.FLOWERBOX, 'Flower Box', '#d04a5a', '#6a4a2c', { solid: false, hard: 0.2, drop: 'frond', partial: true, transparent: true }); // the mesher draws a whole palm from the lowest trunk block: a curved trunk, a crown of fronds, coconuts
 defBlock(B.BOULDER, 'Boulder', '#8e9197', '#86898f', { hard: 0.9, drop: 'stone', partial: true, transparent: true });
 defBlock(B.MUSHROOM, 'Mushroom', '#c84a3a', '#e8dcc8', { solid: false, hard: 0.1, drop: 'berry', partial: true, transparent: true });
@@ -745,7 +750,7 @@ defBlock(B.PEBBLES, 'Pebbles', '#8e9197', '#86898f', { solid: false, hard: 0.2, 
 // blocks that light their surroundings, and how far
 const LIGHT_R = { [B.TORCH]: 10, [B.CAMPFIRE]: 14, [B.MOONGLOW]: 12, [B.RINGSHARD]: 10, [B.PEARLCORAL]: 8, [B.INCUBATOR]: 9, [B.LAMP]: 12 };
 // blocks the sky light passes through when working out how deep a column is
-const SKY_CLEAR = { [B.LAMP]: 1, [B.FLOWERBOX]: 1, [B.FROND]: 1, [B.MUSHROOM]: 1, [B.FLOWERS]: 1, [B.PEBBLES]: 1, [B.LADDER]: 1, [B.TORCH]: 1, [B.GLASS]: 1, [B.SELGLASS]: 1, [B.CAMPFIRE]: 1, [B.MOONGLOW]: 1, [B.GLOWWORM]: 1, [B.FERN]: 1, [B.PORTAL]: 1, [B.BERRY]: 1, [B.RINGSHARD]: 1 };
+const SKY_CLEAR = { [B.LAMP]: 1, [B.FLOWERBOX]: 1, [B.BANNER]: 1, [B.BASIN]: 1, [B.FOUNTAIN]: 1, [B.FROND]: 1, [B.MUSHROOM]: 1, [B.FLOWERS]: 1, [B.PEBBLES]: 1, [B.LADDER]: 1, [B.TORCH]: 1, [B.GLASS]: 1, [B.SELGLASS]: 1, [B.CAMPFIRE]: 1, [B.MOONGLOW]: 1, [B.GLOWWORM]: 1, [B.FERN]: 1, [B.PORTAL]: 1, [B.BERRY]: 1, [B.RINGSHARD]: 1 };
 const isSolid = (id) => BLOCKS[id].solid;
 const isLeaf = (id) => id === B.LEAVES || id === B.BERRYLEAF || id === B.NEEDLES;
 const isTrunk = (id) => id === B.LOG || id === B.BIRCHLOG || id === B.PALMLOG;
@@ -1506,6 +1511,7 @@ PATTERNS[B.RUBBLE] = { all: { rects: [{ u0: 0, v0: 0, u1: 1, v1: 1, mul: 1, col:
 PATTERNS[B.TARGET] = { all: { rects: [{ u0: 0.08, v0: 0.08, u1: 0.92, v1: 0.92, mul: 1, col: [0.85, 0.16, 0.18] }, { u0: 0.2, v0: 0.2, u1: 0.8, v1: 0.8, mul: 1, col: [0.95, 0.93, 0.88] }, { u0: 0.32, v0: 0.32, u1: 0.68, v1: 0.68, mul: 1, col: [0.85, 0.16, 0.18] }, { u0: 0.43, v0: 0.43, u1: 0.57, v1: 0.57, mul: 1, col: [0.98, 0.84, 0.2] }] } };
 PATTERNS[B.BALLOON] = { all: { rects: [{ u0: 0.18, v0: 0.55, u1: 0.42, v1: 0.82, mul: 1.35, col: null }] } };
 PATTERNS[B.IRONWALL] = { all: PLATE(0.74, { mul: 0.45, col: null }) };
+PATTERNS[B.SLIT] = { side: { rects: [{ u0: 0, v0: 0, u1: 1, v1: 1, mul: 1 }, { u0: 0.42, v0: 0.14, u1: 0.58, v1: 0.86, mul: 1, col: [0.05, 0.05, 0.07] }] } }; // an arrow slit cut in the stone
 PATTERNS[B.VOIDWALL] = { all: PLATE(0.62, { mul: 1, col: [0.8, 0.4, 1.0], emis: true }) };
 PATTERNS[B.GLASS] = { all: { rects: strips(0.06, 0.55, [0.72, 0.76, 0.8]).concat([{ u0: 0.06, v0: 0.06, u1: 0.94, v1: 0.94, mul: 1, glass: true }]) } };
 PATTERNS[B.COPPER] = { all: SPECK([0.86, 0.5, 0.22], false) };
@@ -2071,7 +2077,7 @@ const R = (() => {
 
   // ---------- chunk meshing ----------
   // material classes for the fragment shader: 1 grass top, 2 sand, 3 rock, 4 earth, 5 snow, 6 wood, 7 leaves, 8 lava, 9 tiles, 10 plaster, 11 cobbles, 12 thatch, 13 slate, 14 dressed stone
-  const MAT_OF = {}; for (const [ids, m] of [[[B.SAND, B.DUNE, B.SALTCRUST], 2], [[B.STONE, B.GRAVEL, B.MOSS, B.COPPER, B.IRON, B.EMBER, B.GOLD, B.DIAMOND, B.BASALT, B.BEDROCK, B.FORTSTONE, B.RUBBLE, B.SELENITE, B.TYCHO, B.AMBER, B.REGOLITH, B.BOULDER], 3], [[B.DIRT], 4], [[B.SNOW], 5], [[B.PLANKS, B.LOG, B.BIRCHLOG, B.PALMLOG, B.BEAM, B.DOOR, B.DOOR_OPEN, B.LADDER, B.CHEST], 6], [[B.LEAVES, B.BERRYLEAF, B.NEEDLES, B.CACTUS], 7], [[B.LAVA], 8], [[B.TILES], 9], [[B.PLASTER], 10], [[B.COBBLE], 11], [[B.THATCH], 12], [[B.SLATE], 13], [[B.MASONRY], 14]]) for (const id of ids) MAT_OF[id] = m;
+  const MAT_OF = {}; for (const [ids, m] of [[[B.SAND, B.DUNE, B.SALTCRUST], 2], [[B.STONE, B.GRAVEL, B.MOSS, B.COPPER, B.IRON, B.EMBER, B.GOLD, B.DIAMOND, B.BASALT, B.BEDROCK, B.FORTSTONE, B.RUBBLE, B.SELENITE, B.TYCHO, B.AMBER, B.REGOLITH, B.BOULDER], 3], [[B.DIRT], 4], [[B.SNOW], 5], [[B.PLANKS, B.LOG, B.BIRCHLOG, B.PALMLOG, B.BEAM, B.DOOR, B.DOOR_OPEN, B.LADDER, B.CHEST], 6], [[B.LEAVES, B.BERRYLEAF, B.NEEDLES, B.CACTUS], 7], [[B.LAVA], 8], [[B.TILES], 9], [[B.PLASTER], 10], [[B.COBBLE], 11], [[B.THATCH], 12], [[B.SLATE], 13], [[B.MASONRY, B.SLIT], 14]]) for (const id of ids) MAT_OF[id] = m;
   const scratchOpaque = new MeshBuilder(16384, false, true), scratchWater = new MeshBuilder(2048, false, true), scratchGlass = new MeshBuilder(512, false, true), scratchGrass = new MeshBuilder(8192, false, true);
   const SOIL = new Set([B.GRASS, B.DIRT, B.SAND, B.SNOW, B.GRAVEL, B.STONE, B.MOSS, B.GLOWGRASS, B.REGOLITH, B.DUNE, B.SALTCRUST]);
   // things that stand on the ground without stopping it from sloping: air, leaves, trunks, bushes, flowers, pebbles, torches, chests...
@@ -2164,11 +2170,13 @@ const R = (() => {
           else if (ups.length === 0) {
             const diag = [[1, 1], [-1, 1], [1, -1], [-1, -1]].find(([a, b]) => ROOFB(get(lx + a, y + 1, lz + b)) && ROOFB(get(lx + a, y, lz)) && ROOFB(get(lx, y, lz + b)));
             if (diag) H = CX.map((cx, i) => Math.max(0, (diag[0] > 0 ? cx : 1 - cx) + (diag[1] > 0 ? CZ[i] : 1 - CZ[i]) - 1)); // a hip corner
+            else if (dns.length === 4) ridge = 'apex'; // slopes fall away on every side: the point of a pyramid
             else if (dns.some(([a, b]) => dns.some(([c, d]) => a === -c && b === -d))) ridge = dns.find(([a]) => a !== 0) ? 'x' : 'z'; // slopes fall away to both sides
             else if (dns.length === 1) { const [a, b] = dns[0]; H = CX.map((cx, i) => a > 0 ? 1 - cx : a < 0 ? cx : b > 0 ? 1 - CZ[i] : CZ[i]); }
           }
           const P = (i, h) => [lx + CX[i], y + h, lz + CZ[i]];
           const face = (verts, col, mat, nrm) => { op.curMat = mat; const n = nrm || (() => { const [a, b, c] = verts; const ux = b[0] - a[0], uy = b[1] - a[1], uz = b[2] - a[2], vx = c[0] - a[0], vy = c[1] - a[1], vz = c[2] - a[2]; const nx = uy * vz - uz * vy, ny = uz * vx - ux * vz, nz = ux * vy - uy * vx; const l = Math.hypot(nx, ny, nz) || 1; return [nx / l, ny / l, nz / l]; })(); op.quad(verts, [col, col, col, col], [sk, sk, sk, sk], false, [n, n, n, n]); };
+          if (ridge === 'apex') { const t = [lx + 0.5, y + 0.6, lz + 0.5]; const c4 = [[lx, y, lz], [lx + 1, y, lz], [lx + 1, y, lz + 1], [lx, y, lz + 1]]; for (let i = 0; i < 4; i++) { const a = c4[i], b = c4[(i + 1) % 4]; face([a, b, t, t], topC, MAT_OF[id], null); } continue; }
           if (ridge) { // a peak along the ridge axis, half a block high, the two slopes meeting on it
             const a0 = ridge === 'x' ? [lx + 0.5, y + 0.5, lz] : [lx, y + 0.5, lz + 0.5], a1 = ridge === 'x' ? [lx + 0.5, y + 0.5, lz + 1] : [lx + 1, y + 0.5, lz + 0.5];
             if (ridge === 'x') { face([[lx, y, lz], [lx, y, lz + 1], a1, a0], topC, MAT_OF[id], [-0.707, 0.707, 0]); face([[lx + 1, y, lz + 1], [lx + 1, y, lz], a0, a1], topC, MAT_OF[id], [0.707, 0.707, 0]); if (!ROOFB(get(lx, y, lz - 1))) face([[lx, y, lz], a0, a0, [lx + 1, y, lz]], rafter, 6, [0, 0, -1]); if (!ROOFB(get(lx, y, lz + 1))) face([[lx + 1, y, lz + 1], a1, a1, [lx, y, lz + 1]], rafter, 6, [0, 0, 1]); }
@@ -2187,6 +2195,48 @@ const R = (() => {
             face([P(i, 0), P(j, 0), P(j, H[j]), P(i, H[i])], H[i] >= 0.999 && H[j] >= 0.999 ? under : rafter, 6, [a, 0, b]);
           }
           if (!isOpaque(get(lx, y - 1, lz))) face([[lx, y, lz], [lx + 1, y, lz], [lx + 1, y, lz + 1], [lx, y, lz + 1]], under, 6, [0, -1, 0]);
+          continue;
+        }
+        if (id === B.BASIN) continue; // drawn by its fountain
+        if (id === B.FOUNTAIN) { // a city fountain: a round basin of dressed stone, water in it, a column with an upper bowl, a jet, and the water falling back
+          const sk = skyAt(lx, y + 1, lz); const cx = lx + 0.5, cz = lz + 0.5; const stone = [0.6, 0.62, 0.66], dark = [0.46, 0.48, 0.52];
+          const ring = (r, segs) => { const pts = []; for (let i = 0; i <= segs; i++) { const a = i / segs * 6.2832; pts.push([cx + Math.cos(a) * r, y, cz + Math.sin(a) * r]); } return pts; };
+          op.curMat = 14;
+          const rim = ring(2.3, 28); op.tube(rim.map(p => [p[0], y + 0.42, p[2]]), rim.map(() => [0.28, 0.3]), stone, { sky: sk, segs: 8, cap0: 'none', cap1: 'none' }); // the kerb
+          op.tube([[cx, y - 0.02, cz], [cx, y + 0.2, cz]], [2.35, 2.35], dark, { sky: sk, segs: 28, cap0: 'none', cap1: 'none' }); // the basin wall below the kerb
+          op.tube([[cx, y + 0.7, cz], [cx, y + 1.6, cz], [cx, y + 1.75, cz]], [0.34, 0.26, 0.5], stone, { sky: sk, segs: 12, cap0: 'none', cap1: 'none' }); // the column, flaring into the bowl
+          op.tube([[cx, y + 1.75, cz], [cx, y + 1.95, cz], [cx, y + 2.0, cz]], [0.8, 0.85, 0.7], stone, { sky: sk, segs: 16, cap0: 'none', cap1: 'none' }); // the upper bowl
+          op.tube([[cx, y + 2.0, cz], [cx, y + 2.1, cz], [cx, y + 2.5, cz]], [0.2, 0.14, 0.09], stone, { sky: sk, segs: 8, cap0: 'none', cap1: 'none' }); // the spout
+          op.curMat = 0;
+          op.tube([[cx, y + 2.5, cz], [cx, y + 3.3, cz], [cx, y + 3.5, cz]], [0.07, 0.1, 0.16], [0.78, 0.9, 0.98], { sky: 1, segs: 6, cap0: 'none', cap1: 'round', emis: true }); // the jet
+          for (let k = 0; k < 6; k++) { const a = k / 6 * 6.2832 + 0.3; const r0 = 0.7, r1 = 1.9; const path = []; for (let i = 0; i <= 4; i++) { const t = i / 4; path.push([cx + Math.cos(a) * (r0 + (r1 - r0) * t), y + 2.0 - t * t * 1.45, cz + Math.sin(a) * (r0 + (r1 - r0) * t)]); } op.tube(path, [0.06, 0.05, 0.045, 0.04, 0.03], [0.74, 0.88, 0.98], { sky: 1, segs: 5, cap0: 'none', cap1: 'round', emis: true }); } // water spilling from the bowl
+          // the water surface in the basin, on the water mesh so it shimmers and reflects
+          wa.curMat = 0; const wc = [0.1, 0, 0]; const N = 24; const c0 = wa.nv; wa.vert(cx, y + 0.5, cz, 0, 1, 0, wc[0], wc[1], wc[2], sk, false); for (let i = 0; i < N; i++) { const a = i / N * 6.2832; wa.vert(cx + Math.cos(a) * 2.2, y + 0.5, cz + Math.sin(a) * 2.2, 0, 1, 0, wc[0], wc[1], wc[2], sk, false); } for (let i = 0; i < N; i++) wa.tri(c0, c0 + 1 + i, c0 + 1 + (i + 1) % N);
+          const b0 = wa.nv; wa.vert(cx, y + 1.98, cz, 0, 1, 0, 0, 0, 0, sk, false); for (let i = 0; i < 12; i++) { const a = i / 12 * 6.2832; wa.vert(cx + Math.cos(a) * 0.72, y + 1.98, cz + Math.sin(a) * 0.72, 0, 1, 0, 0, 0, 0, sk, false); } for (let i = 0; i < 12; i++) wa.tri(b0, b0 + 1 + i, b0 + 1 + (i + 1) % 12);
+          continue;
+        }
+        if (id === B.AWNING) { // a market awning: striped canvas with a scalloped fringe, sagging a little between its posts
+          const sk = skyAt(lx, y + 1, lz); const h0 = U.hash3(Math.floor(wx / 4), 1, Math.floor(wz / 4), 160); const pal = [[0.82, 0.22, 0.2], [0.2, 0.42, 0.78], [0.22, 0.6, 0.32], [0.9, 0.6, 0.15], [0.6, 0.3, 0.7]]; const c1 = pal[Math.floor(h0 * 5)], c2 = [0.94, 0.9, 0.82];
+          const runX = get(lx + 1, y, lz) === B.AWNING || get(lx - 1, y, lz) === B.AWNING; // the run of awning blocks: stripes go across it
+          const endA = runX ? get(lx - 1, y, lz) !== B.AWNING : get(lx, y, lz - 1) !== B.AWNING, endB = runX ? get(lx + 1, y, lz) !== B.AWNING : get(lx, y, lz + 1) !== B.AWNING;
+          const yAt = (u) => y + 0.92 - (endA && endB ? 0 : 0.08 * Math.sin(Math.PI * u) * ((endA || endB) ? 0.5 : 1)); // a sag along the run
+          const stripes = 4;
+          for (let i = 0; i < stripes; i++) { const t0 = i / stripes, t1 = (i + 1) / stripes; const c = i % 2 ? c2 : c1;
+            const q = runX ? [[lx + t0, yAt(t0), lz], [lx + t0, yAt(t0), lz + 1], [lx + t1, yAt(t1), lz + 1], [lx + t1, yAt(t1), lz]] : [[lx, yAt(t0), lz + t0], [lx + 1, yAt(t0), lz + t0], [lx + 1, yAt(t1), lz + t1], [lx, yAt(t1), lz + t1]];
+            op.quad(q, [c, c, c, c], [sk, sk, sk, sk], false, [[0, 1, 0], [0, 1, 0], [0, 1, 0], [0, 1, 0]]); op.quad([q[3], q[2], q[1], q[0]], [c, c, c, c], [sk * 0.7, sk * 0.7, sk * 0.7, sk * 0.7], false, [[0, -1, 0], [0, -1, 0], [0, -1, 0], [0, -1, 0]]); }
+          for (let i = 0; i < 4; i++) { const t = (i + 0.5) / 4; const c = i % 2 ? c2 : c1; const yy = yAt(t); // the fringe along both long edges
+            if (runX) { for (const ez of [lz, lz + 1]) op.plate([[lx + t - 0.125, yy, ez], [lx + t + 0.125, yy, ez], [lx + t, yy - 0.16, ez]], 0.01, c, { sky: sk }); }
+            else { for (const ex of [lx, lx + 1]) op.plate([[ex, yy, lz + t - 0.125], [ex, yy, lz + t + 0.125], [ex, yy - 0.16, lz + t]], 0.01, c, { sky: sk }); } }
+          continue;
+        }
+        if (id === B.BANNER) { // a banner hanging from the wall behind it: a pole bracketed out, cloth falling from it, a device in the middle
+          const sk = skyAt(lx, y, lz); let d = [0, -1]; for (const [a, b] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) if (isOpaque(get(lx + a, y, lz + b))) { d = [a, b]; break; }
+          const h0 = U.hash3(Math.floor(wx / 8), 2, Math.floor(wz / 8), 161); const pal = [[0.72, 0.14, 0.18], [0.14, 0.3, 0.66], [0.12, 0.45, 0.28], [0.8, 0.62, 0.14]]; const c = pal[Math.floor(h0 * 4)]; const gold = [0.85, 0.7, 0.3];
+          const cx = lx + 0.5 + d[0] * 0.3, cz = lz + 0.5 + d[1] * 0.3; const px = d[0] ? 0 : 1, pz = d[0] ? 1 : 0; // along the wall
+          op.tube([[cx - px * 0.46, y + 0.92, cz - pz * 0.46], [cx + px * 0.46, y + 0.92, cz + pz * 0.46]], [0.03, 0.03], [0.3, 0.2, 0.1], { sky: sk, segs: 5, cap0: 'round', cap1: 'round' }); // the pole
+          const spine = [], ws = []; for (let i = 0; i <= 5; i++) { const t = i / 5; spine.push([cx - d[0] * (0.04 * t + 0.14 * t * t), y + 0.9 - t * 1.8, cz - d[1] * (0.04 * t + 0.14 * t * t)]); ws.push(0.38 * (1 - 0.12 * t)); }
+          op.ribbon(spine, ws, c, { sky: sk, tip: [c[0] * 0.75, c[1] * 0.75, c[2] * 0.75], droop: 0 });
+          op.ball(cx - d[0] * 0.08, y + 0.25, cz - d[1] * 0.08, 0.13, gold, { sky: sk, n: 2 });
           continue;
         }
         if (id === B.PALISADE) { // a palisade: two stout posts per block, pointed where the wall ends above
@@ -5313,18 +5363,21 @@ const Village = (() => {
     const city = v.size === 'city';
     const streets = [0].concat(city ? [-40, -20, 20, 40] : v.size === 'town' ? [-24, 24] : []);
     const onStreet = (dx, dz) => { if (Math.max(Math.abs(dx), Math.abs(dz)) >= R - 4 && Math.max(Math.abs(dx), Math.abs(dz)) <= R - 2) return true; for (const s0 of streets) { if (Math.abs(dx - s0) <= 1 && Math.abs(dz) <= R) return true; if (Math.abs(dz - s0) <= 1 && Math.abs(dx) <= R) return true; } return false; };
-    // the ground: levelled across the whole footprint
+    // the ground: levelled across the whole footprint. The air above is cleared to the height of the tallest nearby natural column plus
+    // a canopy, so trees rooted on higher ground just outside a column cannot leave their leaves hanging over the town
+    const RB = R + 9, W2 = 2 * RB + 1, hN = new Int16Array(W2 * W2); // natural heights, six blocks beyond the footprint: a tree rooted out there can still reach in
+    for (let dx = -RB; dx <= RB; dx++) for (let dz = -RB; dz <= RB; dz++) hN[(dx + RB) * W2 + (dz + RB)] = world.colInfo(U.mod(vx + dx, WORLD_W), U.mod(vz + dz, WORLD_W)).h;
+    const hMax = (dx, dz) => { let m = 0; for (let a = -6; a <= 6; a++) for (let b = -6; b <= 6; b++) { const v0 = hN[(dx + a + RB) * W2 + (dz + b + RB)]; if (v0 > m) m = v0; } return m; };
     for (let dx = -R - 3; dx <= R + 3; dx++) for (let dz = -R - 3; dz <= R + 3; dz++) {
-      const x = vx + dx, z = vz + dz; const h = world.colInfo(U.mod(x, WORLD_W), U.mod(z, WORLD_W)).h;
+      const x = vx + dx, z = vz + dz; const h = hN[(dx + RB) * W2 + (dz + RB)], hm = hMax(dx, dz);
       for (let y = Math.min(h, vy - 2); y <= vy - 2; y++) push(x, y, z, M.under);
       const plaza = Math.abs(dx) <= 6 && Math.abs(dz) <= 6;
       push(x, vy - 1, z, plaza ? (Math.max(Math.abs(dx), Math.abs(dz)) === 6 ? M.plazaEdge : M.plaza) : onStreet(dx, dz) ? M.plaza : M.ground);
-      for (let y = vy; y <= Math.max(h, vy) + 10; y++) push(x, y, z, B.AIR);
+      for (let y = vy; y <= Math.max(hm, vy) + 14; y++) push(x, y, z, B.AIR); // a pine is up to fourteen blocks of trunk and needles
     }
     // the square: a fountain in the cities, the Fusion Table to one side
     if (city) {
-      for (let a = -2; a <= 2; a++) for (let b = -2; b <= 2; b++) { const edge = Math.max(Math.abs(a), Math.abs(b)) === 2; push(vx + a, vy - 1, vz + b, B.STONE); push(vx + a, vy, vz + b, edge ? B.STONE : B.WATER); }
-      for (let y = vy; y <= vy + 2; y++) push(vx, y, vz, B.STONE); push(vx, vy + 3, vz, B.WATER); push(vx, vy + 4, vz, M.light);
+      for (let a = -2; a <= 2; a++) for (let b = -2; b <= 2; b++) { push(vx + a, vy - 1, vz + b, B.MASONRY); if (Math.hypot(a, b) <= 2.5) push(vx + a, vy, vz + b, (a || b) ? B.BASIN : B.FOUNTAIN); }
       push(vx + 5, vy, vz - 5, B.FUSION);
     } else {
       push(vx, vy, vz, B.FUSION);
@@ -5336,17 +5389,52 @@ const Village = (() => {
       push(wx0, vy + 3, wz0, B.BEAM); // the windlass beam under the ridge
     }
     // a market street in the cities: stalls under coloured awnings down the west road
-    if (city) { const AW = [B.EMBER, B.GOLD, B.BERRYLEAF, B.CLOUD, B.COPPER]; let n = 0; for (let d = 10; d < R - 10; d += 4) for (const sg of [-1, 1]) { const x = vx - d, z = vz + sg * 2; push(x, vy, z, M.post); push(x, vy + 1, z, M.post); push(x, vy, z, B.CHEST); for (let a = -1; a <= 1; a++) push(x + a, vy + 2, z, AW[n % AW.length]); push(x, vy + 2, z + sg, AW[n % AW.length]); n++; } }
+    if (city) { for (let d = 10; d < R - 10; d += 4) for (const sg of [-1, 1]) { const x = vx - d, z = vz + sg * 2; // each stall: two posts, a counter with wares between them, an awning over all three
+      for (const a of [-1, 1]) { push(x + a, vy, z, M.post); push(x + a, vy + 1, z, M.post); }
+      push(x, vy, z, B.CHEST); push(x, vy, z + sg, (d / 4) % 2 ? B.BERRY : B.PEBBLES);
+      for (let a = -1; a <= 1; a++) push(x + a, vy + 2, z, B.AWNING); } }
     // a castle on a hill at the back of a city, a waterfall down its side
     let castle = null;
     if (city) {
       const cz0 = vz - R + 16, H = 7, hr = 11; castle = { x: vx, z: cz0, y: vy + H, hr };
       for (let a = -hr - 3; a <= hr + 3; a++) for (let b = -hr; b <= hr; b++) { const t = Math.max(Math.abs(a) - hr, 0); const top = vy - 1 + H - t * 2; if (top < vy - 1) continue; for (let y = vy; y <= top; y++) push(vx + a, y, cz0 + b, B.STONE); push(vx + a, top, cz0 + b, t ? B.GRASS : M.plaza); }
       for (let i = 0; i < H; i++) for (let w = -1; w <= 1; w++) { for (let y = vy; y <= vy - 1 + i; y++) push(vx + w, y, cz0 + hr + 1 + (H - 1 - i), B.STONE); push(vx + w, vy - 1 + i, cz0 + hr + 1 + (H - 1 - i), M.plazaEdge); } // steps up the hill
-      const K = vy + H; const F = B.STONE;
-      for (let a = -6; a <= 6; a++) for (let b = -6; b <= 6; b++) { const wall = Math.abs(a) === 6 || Math.abs(b) === 6; for (let y = K; y <= K + 8; y++) push(vx + a, y, cz0 + b, wall ? F : B.AIR); push(vx + a, K + 9, cz0 + b, wall && (a + b) % 2 ? F : wall ? B.AIR : B.PLANKS); }
-      for (const [a, b] of [[-6, -6], [6, -6], [-6, 6], [6, 6]]) { for (let i = -1; i <= 1; i++) for (let j = -1; j <= 1; j++) for (let y = K; y <= K + 13; y++) push(vx + a + i, y, cz0 + b + j, F); push(vx + a, K + 14, cz0 + b, B.GOLD); push(vx + a, K + 15, cz0 + b, M.light); }
-      for (let y = K; y <= K + 3; y++) for (let w = -1; w <= 1; w++) push(vx + w, y, cz0 + 6, B.AIR); push(vx, K + 5, cz0 + 6, B.GOLD);
+      const K = vy + H; const F = B.MASONRY, RF = B.SLATE;
+      // the curtain wall, radius 7, four high with battlements; arrow slits in the middle of each side; a walkway on the inside
+      for (let a = -7; a <= 7; a++) for (let b = -7; b <= 7; b++) {
+        const m = Math.max(Math.abs(a), Math.abs(b)); if (m < 7) { for (let y = K; y <= K + 16; y++) push(vx + a, y, cz0 + b, B.AIR); continue; }
+        const along = Math.abs(a) === 7 ? b : a;
+        for (let y = K; y <= K + 3; y++) push(vx + a, y, cz0 + b, (y === K + 2 && Math.abs(along) % 3 === 0 && Math.abs(along) < 6) ? B.SLIT : F);
+        if (along % 2 === 0) push(vx + a, K + 4, cz0 + b, F); // merlons
+      }
+      for (let a = -6; a <= 6; a++) for (let b = -6; b <= 6; b++) if (Math.max(Math.abs(a), Math.abs(b)) === 6) push(vx + a, K + 2, cz0 + b, B.PLANKS); // the walkway behind the parapet
+      // round corner towers, 3x3, nine high, each under a slate pyramid; a banner on the face of each toward the town
+      for (const [a, b] of [[-7, -7], [7, -7], [-7, 7], [7, 7]]) {
+        for (let i = -1; i <= 1; i++) for (let j = -1; j <= 1; j++) { for (let y = K - 1; y <= K + 8; y++) push(vx + a + i, y, cz0 + b + j, (y === K + 6 && (i === 0 || j === 0) && (i !== 0 || j !== 0)) ? B.SLIT : F); push(vx + a + i, K + 9, cz0 + b + j, (i === 0 && j === 0) ? F : ((i + j) % 2 ? F : B.AIR)); }
+        for (let i = -1; i <= 1; i++) for (let j = -1; j <= 1; j++) push(vx + a + i, K + 10, cz0 + b + j, RF); push(vx + a, K + 11, cz0 + b, RF); // the roof: a pyramid of slate
+        push(vx + a, K + 12, cz0 + b, M.light);
+        if (b > 0) push(vx + a, K + 5, cz0 + b + 2, B.BANNER);
+      }
+      // the gatehouse on the south wall: an arch three wide and four high between two square turrets, a portcullis beam, banners
+      for (let w = -1; w <= 1; w++) for (let y = K; y <= K + 3; y++) push(vx + w, y, cz0 + 7, B.AIR);
+      for (let w = -1; w <= 1; w++) { push(vx + w, K + 4, cz0 + 7, F); push(vx + w, K + 5, cz0 + 7, (w === 0) ? B.AIR : F); } push(vx, K + 5, cz0 + 7, F); push(vx, K + 6, cz0 + 7, F);
+      for (const w of [-2, 2]) { for (let y = K; y <= K + 6; y++) { push(vx + w, y, cz0 + 7, F); push(vx + w, y, cz0 + 8, F); } push(vx + w, K + 7, cz0 + 7, F); push(vx + w, K + 7, cz0 + 8, M.light); push(vx + w, K + 3, cz0 + 9, B.BANNER); }
+      for (let w = -2; w <= 2; w++) { push(vx + w, K - 1, cz0 + 8, M.plaza); }
+      // the keep: 7 by 6, two storeys of dressed stone with framed windows, a slate roof pitched along x, a door toward the gate
+      for (let a = -3; a <= 3; a++) for (let b = -5; b <= 0; b++) {
+        const wall = Math.abs(a) === 3 || b === -5 || b === 0; const win = (Math.abs(a) === 3 && (b === -1 || b === -4)) || ((b === -5 || b === 0) && Math.abs(a) === 1);
+        for (let y = K; y <= K + 5; y++) push(vx + a, y, cz0 + b, wall ? ((win && (y === K + 1 || y === K + 4)) ? B.GLASS : F) : B.AIR);
+        push(vx + a, K + 2, cz0 + b, wall ? F : B.PLANKS); // the first floor
+        push(vx + a, K + 6, cz0 + b, F); // the wall head
+      }
+      push(vx, K, cz0, B.AIR); push(vx, K + 1, cz0, B.AIR); push(vx, K + 2, cz0, B.GOLD); // the door (the gold lintel marks the elder's house)
+      for (let a = -4; a <= 4; a++) for (let b = -6; b <= 1; b++) push(vx + a, K + 6 + (4 - Math.abs(a)), cz0 + b, RF); // the roof: ridge along z at a = 0, eaves one block out and one step down
+      for (let a = -3; a <= 3; a++) for (const b of [-5, 0]) for (let y = K + 7; y < K + 7 + (3 - Math.abs(a)); y++) push(vx + a, y, cz0 + b, F); // the gables
+      push(vx, K + 10, cz0 - 2, M.light); push(vx, K + 4, cz0 - 2, M.lamp || M.light);
+      push(vx - 2, K + 9, cz0 - 5, F); push(vx - 2, K + 10, cz0 - 5, F); push(vx - 2, K + 11, cz0 - 5, F); // a chimney
+      // the courtyard: cobbles, a lamp either side of the keep door, and the steps down to the gate
+      for (let a = -6; a <= 6; a++) for (let b = -6; b <= 6; b++) if (!(Math.abs(a) <= 3 && b <= 0 && b >= -5)) push(vx + a, K - 1, cz0 + b, M.plaza);
+      for (const a of [-2, 2]) push(vx + a, K, cz0 + 2, M.lamp || M.light);
       // the waterfall: a channel off the hilltop, a sheet of water down its east face, a pool at the bottom
       const fx = vx + hr + 1; for (let y = vy; y <= K - 1; y++) for (let b = -1; b <= 1; b++) push(fx, y, cz0 + b, B.WATER);
       for (let a = 1; a <= 4; a++) for (let b = -2; b <= 2; b++) { push(fx + a, vy - 1, cz0 + b, B.STONE); push(fx + a, vy, cz0 + b, a === 4 || Math.abs(b) === 2 ? B.STONE : B.WATER); }

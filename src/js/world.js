@@ -14,7 +14,7 @@ const B = {
   TORCH: 18, FUSION: 19, GRAVEL: 20, CACTUS: 21, STARMETAL: 22, MOSS: 23, STATUE: 24, PLANKS: 25, BERRY: 26, GLASS: 27, CAMPFIRE: 28, IRONWALL: 29, VOIDWALL: 30, GLOWWORM: 31, BERRYLEAF: 32, DOOR: 33, DOOR_OPEN: 34, PORTAL: 35,
   CHEST: 36, SELENITE: 37, TYCHO: 38, STARSALT: 39, MOONGLOW: 40, AMBER: 41, SULFUR: 42, RINGSHARD: 43, BRINE: 44, CORAL_R: 45, CORAL_B: 46, CORAL_Y: 47, PEARLCORAL: 48, GOLD: 49, DIAMOND: 50, FERN: 51, SELGLASS: 52, INCUBATOR: 53, REGOLITH: 54, DUNE: 55, SALTCRUST: 56, LADDER: 57, TARGET: 58, BALLOON: 59, FORTSTONE: 60, THORN: 61, DEADGATE: 62, RUBBLE: 63, DARKTABLE: 64,
   NEEDLES: 65, FROND: 66, BIRCHLOG: 67, BOULDER: 68, MUSHROOM: 69, FLOWERS: 70, PEBBLES: 71, PALMLOG: 72,
-  TILES: 73, SLATE: 74, THATCH: 75, PLASTER: 76, BEAM: 77, LAMP: 78, COBBLE: 79, FLOWERBOX: 80, PALISADE: 81, MASONRY: 82
+  TILES: 73, SLATE: 74, THATCH: 75, PLASTER: 76, BEAM: 77, LAMP: 78, COBBLE: 79, FLOWERBOX: 80, PALISADE: 81, MASONRY: 82, FOUNTAIN: 83, BASIN: 84, AWNING: 85, BANNER: 86, SLIT: 87
 };
 
 // name, top colour, side colour, solid, hardness (seconds to mine), drop item id, emissive, fluid
@@ -106,6 +106,11 @@ defBlock(B.LAMP, 'Lamp Post', '#ffd36a', '#3a3a40', { solid: false, hard: 0.3, d
 defBlock(B.COBBLE, 'Cobbles', '#8a8680', '#7e7a74', { hard: 0.9, drop: 'stone' });
 defBlock(B.PALISADE, 'Palisade', '#8a6a3c', '#6e5230', { hard: 0.7, drop: 'wood', transparent: true }); // two pointed posts per block
 defBlock(B.MASONRY, 'Dressed Stone', '#aaa59b', '#9e9990', { hard: 1.0, drop: 'stone' });
+defBlock(B.FOUNTAIN, 'Fountain', '#9aa0a8', '#8a9098', { hard: Infinity, partial: true, transparent: true }); // the centre block draws the whole fountain
+defBlock(B.BASIN, 'Fountain Basin', '#9aa0a8', '#8a9098', { hard: Infinity, partial: true, transparent: true }); // the basin's footprint: solid to walk against, drawn by the fountain
+defBlock(B.AWNING, 'Awning', '#d04a4a', '#e8e0d0', { hard: 0.3, drop: 'planks', partial: true, transparent: true });
+defBlock(B.BANNER, 'Banner', '#b8303a', '#8a2030', { solid: false, hard: 0.2, drop: 'planks', partial: true, transparent: true });
+defBlock(B.SLIT, 'Arrow Slit', '#aaa59b', '#9e9990', { hard: 1.0, drop: 'stone' }); // dressed stone with a slit cut in it
 defBlock(B.FLOWERBOX, 'Flower Box', '#d04a5a', '#6a4a2c', { solid: false, hard: 0.2, drop: 'frond', partial: true, transparent: true }); // the mesher draws a whole palm from the lowest trunk block: a curved trunk, a crown of fronds, coconuts
 defBlock(B.BOULDER, 'Boulder', '#8e9197', '#86898f', { hard: 0.9, drop: 'stone', partial: true, transparent: true });
 defBlock(B.MUSHROOM, 'Mushroom', '#c84a3a', '#e8dcc8', { solid: false, hard: 0.1, drop: 'berry', partial: true, transparent: true });
@@ -115,7 +120,7 @@ defBlock(B.PEBBLES, 'Pebbles', '#8e9197', '#86898f', { solid: false, hard: 0.2, 
 // blocks that light their surroundings, and how far
 const LIGHT_R = { [B.TORCH]: 10, [B.CAMPFIRE]: 14, [B.MOONGLOW]: 12, [B.RINGSHARD]: 10, [B.PEARLCORAL]: 8, [B.INCUBATOR]: 9, [B.LAMP]: 12 };
 // blocks the sky light passes through when working out how deep a column is
-const SKY_CLEAR = { [B.LAMP]: 1, [B.FLOWERBOX]: 1, [B.FROND]: 1, [B.MUSHROOM]: 1, [B.FLOWERS]: 1, [B.PEBBLES]: 1, [B.LADDER]: 1, [B.TORCH]: 1, [B.GLASS]: 1, [B.SELGLASS]: 1, [B.CAMPFIRE]: 1, [B.MOONGLOW]: 1, [B.GLOWWORM]: 1, [B.FERN]: 1, [B.PORTAL]: 1, [B.BERRY]: 1, [B.RINGSHARD]: 1 };
+const SKY_CLEAR = { [B.LAMP]: 1, [B.FLOWERBOX]: 1, [B.BANNER]: 1, [B.BASIN]: 1, [B.FOUNTAIN]: 1, [B.FROND]: 1, [B.MUSHROOM]: 1, [B.FLOWERS]: 1, [B.PEBBLES]: 1, [B.LADDER]: 1, [B.TORCH]: 1, [B.GLASS]: 1, [B.SELGLASS]: 1, [B.CAMPFIRE]: 1, [B.MOONGLOW]: 1, [B.GLOWWORM]: 1, [B.FERN]: 1, [B.PORTAL]: 1, [B.BERRY]: 1, [B.RINGSHARD]: 1 };
 const isSolid = (id) => BLOCKS[id].solid;
 const isLeaf = (id) => id === B.LEAVES || id === B.BERRYLEAF || id === B.NEEDLES;
 const isTrunk = (id) => id === B.LOG || id === B.BIRCHLOG || id === B.PALMLOG;

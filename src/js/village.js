@@ -260,18 +260,21 @@ const Village = (() => {
     const city = v.size === 'city';
     const streets = [0].concat(city ? [-40, -20, 20, 40] : v.size === 'town' ? [-24, 24] : []);
     const onStreet = (dx, dz) => { if (Math.max(Math.abs(dx), Math.abs(dz)) >= R - 4 && Math.max(Math.abs(dx), Math.abs(dz)) <= R - 2) return true; for (const s0 of streets) { if (Math.abs(dx - s0) <= 1 && Math.abs(dz) <= R) return true; if (Math.abs(dz - s0) <= 1 && Math.abs(dx) <= R) return true; } return false; };
-    // the ground: levelled across the whole footprint
+    // the ground: levelled across the whole footprint. The air above is cleared to the height of the tallest nearby natural column plus
+    // a canopy, so trees rooted on higher ground just outside a column cannot leave their leaves hanging over the town
+    const RB = R + 9, W2 = 2 * RB + 1, hN = new Int16Array(W2 * W2); // natural heights, six blocks beyond the footprint: a tree rooted out there can still reach in
+    for (let dx = -RB; dx <= RB; dx++) for (let dz = -RB; dz <= RB; dz++) hN[(dx + RB) * W2 + (dz + RB)] = world.colInfo(U.mod(vx + dx, WORLD_W), U.mod(vz + dz, WORLD_W)).h;
+    const hMax = (dx, dz) => { let m = 0; for (let a = -6; a <= 6; a++) for (let b = -6; b <= 6; b++) { const v0 = hN[(dx + a + RB) * W2 + (dz + b + RB)]; if (v0 > m) m = v0; } return m; };
     for (let dx = -R - 3; dx <= R + 3; dx++) for (let dz = -R - 3; dz <= R + 3; dz++) {
-      const x = vx + dx, z = vz + dz; const h = world.colInfo(U.mod(x, WORLD_W), U.mod(z, WORLD_W)).h;
+      const x = vx + dx, z = vz + dz; const h = hN[(dx + RB) * W2 + (dz + RB)], hm = hMax(dx, dz);
       for (let y = Math.min(h, vy - 2); y <= vy - 2; y++) push(x, y, z, M.under);
       const plaza = Math.abs(dx) <= 6 && Math.abs(dz) <= 6;
       push(x, vy - 1, z, plaza ? (Math.max(Math.abs(dx), Math.abs(dz)) === 6 ? M.plazaEdge : M.plaza) : onStreet(dx, dz) ? M.plaza : M.ground);
-      for (let y = vy; y <= Math.max(h, vy) + 10; y++) push(x, y, z, B.AIR);
+      for (let y = vy; y <= Math.max(hm, vy) + 14; y++) push(x, y, z, B.AIR); // a pine is up to fourteen blocks of trunk and needles
     }
     // the square: a fountain in the cities, the Fusion Table to one side
     if (city) {
-      for (let a = -2; a <= 2; a++) for (let b = -2; b <= 2; b++) { const edge = Math.max(Math.abs(a), Math.abs(b)) === 2; push(vx + a, vy - 1, vz + b, B.STONE); push(vx + a, vy, vz + b, edge ? B.STONE : B.WATER); }
-      for (let y = vy; y <= vy + 2; y++) push(vx, y, vz, B.STONE); push(vx, vy + 3, vz, B.WATER); push(vx, vy + 4, vz, M.light);
+      for (let a = -2; a <= 2; a++) for (let b = -2; b <= 2; b++) { push(vx + a, vy - 1, vz + b, B.MASONRY); if (Math.hypot(a, b) <= 2.5) push(vx + a, vy, vz + b, (a || b) ? B.BASIN : B.FOUNTAIN); }
       push(vx + 5, vy, vz - 5, B.FUSION);
     } else {
       push(vx, vy, vz, B.FUSION);
@@ -283,17 +286,52 @@ const Village = (() => {
       push(wx0, vy + 3, wz0, B.BEAM); // the windlass beam under the ridge
     }
     // a market street in the cities: stalls under coloured awnings down the west road
-    if (city) { const AW = [B.EMBER, B.GOLD, B.BERRYLEAF, B.CLOUD, B.COPPER]; let n = 0; for (let d = 10; d < R - 10; d += 4) for (const sg of [-1, 1]) { const x = vx - d, z = vz + sg * 2; push(x, vy, z, M.post); push(x, vy + 1, z, M.post); push(x, vy, z, B.CHEST); for (let a = -1; a <= 1; a++) push(x + a, vy + 2, z, AW[n % AW.length]); push(x, vy + 2, z + sg, AW[n % AW.length]); n++; } }
+    if (city) { for (let d = 10; d < R - 10; d += 4) for (const sg of [-1, 1]) { const x = vx - d, z = vz + sg * 2; // each stall: two posts, a counter with wares between them, an awning over all three
+      for (const a of [-1, 1]) { push(x + a, vy, z, M.post); push(x + a, vy + 1, z, M.post); }
+      push(x, vy, z, B.CHEST); push(x, vy, z + sg, (d / 4) % 2 ? B.BERRY : B.PEBBLES);
+      for (let a = -1; a <= 1; a++) push(x + a, vy + 2, z, B.AWNING); } }
     // a castle on a hill at the back of a city, a waterfall down its side
     let castle = null;
     if (city) {
       const cz0 = vz - R + 16, H = 7, hr = 11; castle = { x: vx, z: cz0, y: vy + H, hr };
       for (let a = -hr - 3; a <= hr + 3; a++) for (let b = -hr; b <= hr; b++) { const t = Math.max(Math.abs(a) - hr, 0); const top = vy - 1 + H - t * 2; if (top < vy - 1) continue; for (let y = vy; y <= top; y++) push(vx + a, y, cz0 + b, B.STONE); push(vx + a, top, cz0 + b, t ? B.GRASS : M.plaza); }
       for (let i = 0; i < H; i++) for (let w = -1; w <= 1; w++) { for (let y = vy; y <= vy - 1 + i; y++) push(vx + w, y, cz0 + hr + 1 + (H - 1 - i), B.STONE); push(vx + w, vy - 1 + i, cz0 + hr + 1 + (H - 1 - i), M.plazaEdge); } // steps up the hill
-      const K = vy + H; const F = B.STONE;
-      for (let a = -6; a <= 6; a++) for (let b = -6; b <= 6; b++) { const wall = Math.abs(a) === 6 || Math.abs(b) === 6; for (let y = K; y <= K + 8; y++) push(vx + a, y, cz0 + b, wall ? F : B.AIR); push(vx + a, K + 9, cz0 + b, wall && (a + b) % 2 ? F : wall ? B.AIR : B.PLANKS); }
-      for (const [a, b] of [[-6, -6], [6, -6], [-6, 6], [6, 6]]) { for (let i = -1; i <= 1; i++) for (let j = -1; j <= 1; j++) for (let y = K; y <= K + 13; y++) push(vx + a + i, y, cz0 + b + j, F); push(vx + a, K + 14, cz0 + b, B.GOLD); push(vx + a, K + 15, cz0 + b, M.light); }
-      for (let y = K; y <= K + 3; y++) for (let w = -1; w <= 1; w++) push(vx + w, y, cz0 + 6, B.AIR); push(vx, K + 5, cz0 + 6, B.GOLD);
+      const K = vy + H; const F = B.MASONRY, RF = B.SLATE;
+      // the curtain wall, radius 7, four high with battlements; arrow slits in the middle of each side; a walkway on the inside
+      for (let a = -7; a <= 7; a++) for (let b = -7; b <= 7; b++) {
+        const m = Math.max(Math.abs(a), Math.abs(b)); if (m < 7) { for (let y = K; y <= K + 16; y++) push(vx + a, y, cz0 + b, B.AIR); continue; }
+        const along = Math.abs(a) === 7 ? b : a;
+        for (let y = K; y <= K + 3; y++) push(vx + a, y, cz0 + b, (y === K + 2 && Math.abs(along) % 3 === 0 && Math.abs(along) < 6) ? B.SLIT : F);
+        if (along % 2 === 0) push(vx + a, K + 4, cz0 + b, F); // merlons
+      }
+      for (let a = -6; a <= 6; a++) for (let b = -6; b <= 6; b++) if (Math.max(Math.abs(a), Math.abs(b)) === 6) push(vx + a, K + 2, cz0 + b, B.PLANKS); // the walkway behind the parapet
+      // round corner towers, 3x3, nine high, each under a slate pyramid; a banner on the face of each toward the town
+      for (const [a, b] of [[-7, -7], [7, -7], [-7, 7], [7, 7]]) {
+        for (let i = -1; i <= 1; i++) for (let j = -1; j <= 1; j++) { for (let y = K - 1; y <= K + 8; y++) push(vx + a + i, y, cz0 + b + j, (y === K + 6 && (i === 0 || j === 0) && (i !== 0 || j !== 0)) ? B.SLIT : F); push(vx + a + i, K + 9, cz0 + b + j, (i === 0 && j === 0) ? F : ((i + j) % 2 ? F : B.AIR)); }
+        for (let i = -1; i <= 1; i++) for (let j = -1; j <= 1; j++) push(vx + a + i, K + 10, cz0 + b + j, RF); push(vx + a, K + 11, cz0 + b, RF); // the roof: a pyramid of slate
+        push(vx + a, K + 12, cz0 + b, M.light);
+        if (b > 0) push(vx + a, K + 5, cz0 + b + 2, B.BANNER);
+      }
+      // the gatehouse on the south wall: an arch three wide and four high between two square turrets, a portcullis beam, banners
+      for (let w = -1; w <= 1; w++) for (let y = K; y <= K + 3; y++) push(vx + w, y, cz0 + 7, B.AIR);
+      for (let w = -1; w <= 1; w++) { push(vx + w, K + 4, cz0 + 7, F); push(vx + w, K + 5, cz0 + 7, (w === 0) ? B.AIR : F); } push(vx, K + 5, cz0 + 7, F); push(vx, K + 6, cz0 + 7, F);
+      for (const w of [-2, 2]) { for (let y = K; y <= K + 6; y++) { push(vx + w, y, cz0 + 7, F); push(vx + w, y, cz0 + 8, F); } push(vx + w, K + 7, cz0 + 7, F); push(vx + w, K + 7, cz0 + 8, M.light); push(vx + w, K + 3, cz0 + 9, B.BANNER); }
+      for (let w = -2; w <= 2; w++) { push(vx + w, K - 1, cz0 + 8, M.plaza); }
+      // the keep: 7 by 6, two storeys of dressed stone with framed windows, a slate roof pitched along x, a door toward the gate
+      for (let a = -3; a <= 3; a++) for (let b = -5; b <= 0; b++) {
+        const wall = Math.abs(a) === 3 || b === -5 || b === 0; const win = (Math.abs(a) === 3 && (b === -1 || b === -4)) || ((b === -5 || b === 0) && Math.abs(a) === 1);
+        for (let y = K; y <= K + 5; y++) push(vx + a, y, cz0 + b, wall ? ((win && (y === K + 1 || y === K + 4)) ? B.GLASS : F) : B.AIR);
+        push(vx + a, K + 2, cz0 + b, wall ? F : B.PLANKS); // the first floor
+        push(vx + a, K + 6, cz0 + b, F); // the wall head
+      }
+      push(vx, K, cz0, B.AIR); push(vx, K + 1, cz0, B.AIR); push(vx, K + 2, cz0, B.GOLD); // the door (the gold lintel marks the elder's house)
+      for (let a = -4; a <= 4; a++) for (let b = -6; b <= 1; b++) push(vx + a, K + 6 + (4 - Math.abs(a)), cz0 + b, RF); // the roof: ridge along z at a = 0, eaves one block out and one step down
+      for (let a = -3; a <= 3; a++) for (const b of [-5, 0]) for (let y = K + 7; y < K + 7 + (3 - Math.abs(a)); y++) push(vx + a, y, cz0 + b, F); // the gables
+      push(vx, K + 10, cz0 - 2, M.light); push(vx, K + 4, cz0 - 2, M.lamp || M.light);
+      push(vx - 2, K + 9, cz0 - 5, F); push(vx - 2, K + 10, cz0 - 5, F); push(vx - 2, K + 11, cz0 - 5, F); // a chimney
+      // the courtyard: cobbles, a lamp either side of the keep door, and the steps down to the gate
+      for (let a = -6; a <= 6; a++) for (let b = -6; b <= 6; b++) if (!(Math.abs(a) <= 3 && b <= 0 && b >= -5)) push(vx + a, K - 1, cz0 + b, M.plaza);
+      for (const a of [-2, 2]) push(vx + a, K, cz0 + 2, M.lamp || M.light);
       // the waterfall: a channel off the hilltop, a sheet of water down its east face, a pool at the bottom
       const fx = vx + hr + 1; for (let y = vy; y <= K - 1; y++) for (let b = -1; b <= 1; b++) push(fx, y, cz0 + b, B.WATER);
       for (let a = 1; a <= 4; a++) for (let b = -2; b <= 2; b++) { push(fx + a, vy - 1, cz0 + b, B.STONE); push(fx + a, vy, cz0 + b, a === 4 || Math.abs(b) === 2 ? B.STONE : B.WATER); }
