@@ -3996,6 +3996,10 @@ const Village = (() => {
     trader: { name: 'Trader', marker: B.COPPER, cost: { shards: 100, items: { planks: 20, copper: 2 } } },
     voodoo: { name: 'Voodoo Hut', marker: B.VOID, cost: { shards: 120, items: { planks: 16, void: 2 } } },
     post: { name: 'Trading Post', marker: B.IRON, level: 2, cost: { shards: 120, items: { planks: 24, iron: 2 } } },
+    armoury: { name: 'Armoury', marker: B.IRON, level: 2, cost: { shards: 300, items: { planks: 24, iron: 6 } } },
+    armourer: { name: 'Armourer', marker: B.GOLD, level: 2, cost: { shards: 300, items: { planks: 24, iron: 6 } } },
+    alchemist: { name: 'Alchemist', marker: B.GLOWWORM, level: 2, cost: { shards: 250, items: { planks: 20, glass: 6 } } },
+    inn: { name: 'Inn', marker: B.LOG, level: 1, cost: { shards: 150, items: { planks: 30 } } },
   };
   const SLOTS = [[-11, -11], [11, -11], [-11, 11], [11, 11], [-15, -5], [-15, 5], [15, -5], [15, 5], [-5, -15], [5, -15], [-5, 15], [5, 15]]; // house sites in the expanded ring
   const VILLAGER_LINES = [
@@ -4012,6 +4016,10 @@ const Village = (() => {
     voodoo: { title: 'Voodoo Hut', keeper: 'Mama Oyé', greet: 'Fainted Kin do not wake on their own. I wake them, for Shards.', stock: [{ service: 'rest', name: 'Revive and heal the whole party', price: 20 }, { item: 'tonic_revive', price: 25 }, { item: 'tonic_heal', price: 12 }] },
     trader: { title: 'Trader', keeper: 'Oskar', greet: 'Snares, planks, the odd crystal. Shards only. I buy too: ores, crystals, anything you dug up.', sell: true, stock: [{ item: 'snare', price: 12, n: 2 }, { item: 'snare2', price: 45 }, { item: 'planks', price: 6, n: 8 }, { item: 'void', price: 30 }, { item: 'glass', price: 5, n: 4 }, { item: 'snow', price: 9, n: 8 }, { item: 'frond', price: 4, n: 6 }, { item: 'iron', price: 20, n: 2 }, { item: 'copper', price: 14, n: 2 }, { item: 'ember', price: 12, n: 2 }] },
     post: { title: 'Trading Post', keeper: 'Nadia', greet: 'Whatever the travellers bring in, I sell. New stock every two days.', stock: [] },
+    armoury: { title: 'Armoury', keeper: 'Bram', greet: 'Blades and axes. Nothing here is for show.', stock: [] },
+    armourer: { title: 'Armourer', keeper: 'Hilde', greet: 'Helms, plate, shields. Stand still, I need your size.', stock: [] },
+    alchemist: { title: 'Alchemist', keeper: 'Ottoline', greet: 'Tonics, baits, and arrows that do more than stick in things.', stock: [{ item: 'tonic_heal', price: 14 }, { item: 'tonic_revive', price: 28 }, { item: 'tonic_vigor', price: 45 }, { item: 'tonic_might', price: 45 }, { item: 'tonic_swift', price: 45 }, { item: 'bait_berry', price: 10 }, { item: 'bait_glow', price: 25 }] },
+    inn: { title: 'Inn', keeper: 'Marta', greet: 'A bed, a meal, and nobody asks where you have been.', stock: [{ service: 'rest', name: 'A bed for the night: your whole party back on its feet', price: 18 }, { item: 'bread', price: 9 }, { item: 'smoothie', price: 14 }, { item: 'broth', price: 12 }] },
   };
   // the same five shops wear different names and stock on other worlds and in the themed villages
   const SHOP_STYLE = {
@@ -4044,7 +4052,7 @@ const Village = (() => {
       post: { title: 'Wreck Market', keeper: 'Calyx', greet: 'What the wrecks give up. New stock every two days.', stock: [] },
     },
   };
-  function shopDef(kind, v) { const st = v && SHOP_STYLE[v.style]; const d = (st && st[kind]) || SHOPS[kind]; if (kind === 'trader' && d && typeof Combat !== 'undefined' && world && world.preset.id === 'earth') return Object.assign({}, d, { stock: d.stock.concat(Combat.armoury(v)) }); return d; }
+  function shopDef(kind, v) { const st = v && SHOP_STYLE[v.style]; const d = (st && st[kind]) || SHOPS[kind]; if (d && typeof Combat !== 'undefined' && world && world.preset.id === 'earth' && ['trader', 'armoury', 'armourer', 'alchemist'].includes(kind)) return Object.assign({}, d, { stock: d.stock.concat(Combat.rack(v, kind)) }); return d; }
   const POST_POOL = [
     { item: 'iron', n: 4, price: 28 }, { item: 'copper', n: 4, price: 22 }, { item: 'void', n: 2, price: 50 }, { item: 'cloud', n: 4, price: 20 }, { item: 'ember', n: 4, price: 18 },
     { item: 'snare2', n: 1, price: 45 }, { item: 'tonic_vigor', n: 1, price: 40 }, { item: 'tonic_might', n: 1, price: 40 }, { item: 'tonic_swift', n: 1, price: 40 }, { item: 'glass', n: 8, price: 12 },
@@ -4121,10 +4129,31 @@ const Village = (() => {
   const isNight = () => Math.cos(world.time * Math.PI * 2) > 0.17;
 
   // ---- sites: one candidate per cell, decided by the terrain there ----
+  // Earth keeps a fixed map of named places, not a village in every cell: a few hamlets by home, towns further out, cities beyond them
+  let PLAN = null, planning = false;
+  const QUOTA = { hamlet: [2, 140, 650], town: [8, 550, 1500], city: [4, 1300, 2300] };
+  function plan() {
+    if (PLAN) return PLAN; if (world.preset.id !== 'earth') return null;
+    planning = true; const cands = [];
+    const sx = Math.floor(U.mod(world.spawn.x, WORLD_W) / CELL), sz = Math.floor(U.mod(world.spawn.z, WORLD_W) / CELL); const R = Math.ceil(2400 / CELL);
+    for (let dx = -R; dx <= R; dx++) for (let dz = -R; dz <= R; dz++) { const v = siteFor(sx + dx, sz + dz); if (v && !v.founded) cands.push(v); }
+    planning = false; PLAN = new Map();
+    const byD = cands.sort((a, b) => a.dist - b.dist); const taken = [];
+    const far = (v, r) => taken.every(t => Math.hypot(wd(t.x - v.x), wd(t.z - v.z)) > r);
+    for (const size of ['hamlet', 'town', 'city']) { const [n, lo, hi] = QUOTA[size]; let got = 0, sea = 0;
+      for (const v of byD) { if (got >= n) break; if (v.dist < lo || v.dist > hi || PLAN.has(v.id) || !far(v, size === 'city' ? 500 : 300)) continue;
+        if (size === 'hamlet' && v.type !== 'land') continue; if (v.type !== 'land') { if (sea >= (size === 'town' ? 2 : 1)) continue; sea++; }
+        PLAN.set(v.id, size); taken.push(v); got++; } }
+    return PLAN;
+  }
   function siteFor(cx, cz) {
     if (!world.preset.villages) return null;
     cx = U.mod(cx, NC); cz = U.mod(cz, NC);
     const id = PREFIX + cx + ',' + cz;
+    if (!planning && world.preset.id === 'earth') { const P = plan(); const v0 = villages.has(id) ? villages.get(id) : rawSite(cx, cz, id); if (!v0 || !P.has(id)) return null; v0.size = P.get(id); if (v0.size === 'city' && !/^(Great|Old|High|Port) /.test(v0.name)) v0.name = (v0.type !== 'land' ? 'Port ' : 'Great ') + v0.name; if (v0.size === 'city') v0.tier = Math.max(v0.tier, 4); return v0; }
+    return rawSite(cx, cz, id);
+  }
+  function rawSite(cx, cz, id) {
     if (villages.has(id)) return villages.get(id);
     const h1 = U.hash3(cx, 71, cz, 0x5EED), h2 = U.hash3(cx, 72, cz, 0x5EED);
     const margin = Math.min(48, Math.floor(CELL * 0.2));
@@ -4451,7 +4480,7 @@ const Village = (() => {
   function furnishElder(hx, hz, dx, dz, vy) { world.setBlock(hx - dx * 2 + (dz ? 1 : 0), vy, hz - dz * 2 + (dx ? 1 : 0), B.PLANKS); world.setBlock(hx - dx * 2 + (dz ? 1 : 0), vy + 1, hz - dz * 2 + (dx ? 1 : 0), B.SNOW); side(hx, hz, dx, dz, vy, -1, B.LOG, B.CLOUD); }
   function furnishVoodoo(hx, hz, dx, dz, vy) { counter(hx, hz, dx, dz, vy); side(hx, hz, dx, dz, vy, 1, B.BASALT, B.VOID); side(hx, hz, dx, dz, vy, -1, B.BASALT, B.EMBER); }
   function furnishPost(hx, hz, dx, dz, vy) { counter(hx, hz, dx, dz, vy); side(hx, hz, dx, dz, vy, 1, B.IRON, B.GLASS); side(hx, hz, dx, dz, vy, -1, B.PLANKS, B.CLOUD); }
-  const FURNISH = { bakery: furnishBakery, juice: furnishJuice, trader: furnishTrader, voodoo: furnishVoodoo, post: furnishPost };
+  const FURNISH = { bakery: furnishBakery, juice: furnishJuice, trader: furnishTrader, voodoo: furnishVoodoo, post: furnishPost, armoury: furnishTrader, armourer: furnishTrader, alchemist: furnishJuice, inn: furnishBakery };
 
   // ---- portals: every village has an arch; held villages' arches are dead, yours link up ----
   function portalBlock(v) { return v.type === 'land' ? { x: v.x + 5, y: v.y, z: v.z - 5 } : v.type === 'sea' ? { x: v.x - 3, y: v.y, z: v.z - 2 } : { x: v.x + 4, y: v.y, z: v.z - 4 }; }
@@ -4685,11 +4714,17 @@ const Village = (() => {
     const st = state(v.id);
     if (st.stamped) return;
     world.ensureAround(Math.floor(v.x / CH), Math.floor(v.z / CH), 2, 999);
-    if (v.type === 'land') { stampLand(v); stampWall(v, st); stampRoad(v, st); if (st.dome) stampDome(v, st); } else if (v.type === 'sea') stampSea(v); else if (v.style === 'atlantis') stampAtlantis(v); else stampDeep(v);
+    if (v.type === 'land' && (v.size === 'town' || v.size === 'city') && !st.grown) { // a town, or a city: the outer ring built up from the start, with its own shops
+      st.grown = true; st.expanded = true; if (v.size === 'city') st.wall = Math.max(st.wall || 0, 1);
+      const kinds = v.size === 'city' ? ['armoury', 'armourer', 'alchemist', 'inn', 'post', 'house', 'house', 'house', 'house', 'house', 'house', 'house'] : ['armoury', 'inn', 'alchemist', 'house', 'house', 'house'];
+      st.shops = st.shops || []; kinds.forEach((k, i) => { if (k !== 'house') st.shops.push({ slot: i, kind: k }); });
+      st.homes = kinds.map((k, i) => k === 'house' ? i : -1).filter(i => i >= 0);
+    }
+    if (v.type === 'land') { stampLand(v); if (st.expanded) { stampExpansion(v); MAT = MATS[v.style] || MATS.land; for (const sh of (st.shops || [])) stampShop(v, sh.slot, sh.kind); for (const i of (st.homes || [])) { const [dx, dz] = SLOTS[i]; const [dirX, dirZ] = slotDir(dx, dz); (MAT.pod ? pod : house)(v.x + dx, v.z + dz, v.y, dirX, dirZ, B.LOG, null); } } stampWall(v, st); stampRoad(v, st); if (st.dome) stampDome(v, st); } else if (v.type === 'sea') stampSea(v); else if (v.style === 'atlantis') stampAtlantis(v); else stampDeep(v);
     st.stamped = true; remember(v, st);
   }
   // ---- the tyrant's guards: a road in, with a checkpoint and a lieutenant every dozen blocks ----
-  function lieuCount(v) { return (v.starter || v.founded) ? 0 : Math.min(6, 1 + v.tier); }
+  function lieuCount(v) { return (v.starter || v.founded) ? 0 : Math.min(8, 1 + v.tier + (v.size === 'city' ? 3 : v.size === 'town' ? 1 : 0)); }
   function approachAxis(v) { const dx = wd(world.spawn.x - v.x), dz = wd(world.spawn.z - v.z); return Math.abs(dx) >= Math.abs(dz) ? [Math.sign(dx) || 1, 0] : [0, Math.sign(dz) || 1]; }
   function checkpointPos(v, st, i) { const [ax, az] = approachAxis(v); const wr = v.type === 'land' ? wallRadius(st) : 9; const d = wr + 8 + 12 * i; return { x: v.x + ax * d, z: v.z + az * d, ax, az, d }; }
   function stampRoad(v, st) {
@@ -4913,7 +4948,7 @@ const Village = (() => {
     UI.sfx('hurt'); UI.toast(`The water heaves. ${KIN.name(b.kin)} hauls itself onto the deck!`, 'bad');
     Battle.start(b, false);
   }
-  function bossLevelFor(v) { return Math.max(3, (G.trainerLevel || 1) - 1 + v.tier * 2, (v.zoneBase || 0) + v.tier * 3); }
+  function bossLevelFor(v) { return Math.max(3, (G.trainerLevel || 1) - 1 + (v.size === 'city' ? 6 : v.size === 'town' ? 2 : 0) + v.tier * 2, (v.zoneBase || 0) + v.tier * 3); }
   function onBossGone(id) { const v = villages.get(id); if (v) v.boss = null; }
   function freed(id) {
     const v = villages.get(id); if (!v) return;
@@ -8963,6 +8998,17 @@ const Combat = (() => {
     for (const a of arrows) out.push({ item: a, price: 6 + ARROWS[a].dmg, n: 4 });
     return out;
   }
+  // each shop keeps its own rack: weapons at the armoury, armour and shields at the armourer, arrows at the alchemist; a village trader has a little of everything
+  function rack(v, kind) {
+    const size = v && v.size; const tier = Math.min(8, 1 + (v ? v.tier || 0 : 0) * 2 + (size === 'city' ? 2 : 0)); const seed = v ? Math.abs(String(v.id).length * 31 + (v.x | 0)) + 1 : 1;
+    const pick = (list, n, salt) => { const out = []; for (let i = 0; i < n * 3 && out.length < Math.min(n, list.length); i++) { const g = list[U.mod(seed * (i + salt) * 13 + i, list.length)]; if (g && !out.includes(g)) out.push(g); } return out; };
+    const near = (L) => L.filter(g => g.tier <= tier && g.tier >= tier - 3);
+    if (kind === 'trader') return armoury(v);
+    if (kind === 'armoury') return pick(near(Object.values(GEAR).filter(g => g.kind !== 'shield')), size === 'city' ? 8 : 5, 7).map(g => ({ item: g.id, price: g.price }));
+    if (kind === 'armourer') return pick(near(Object.values(ARMOUR)), size === 'city' ? 6 : 4, 3).map(a => ({ item: a.id, price: a.price })).concat(pick(near(Object.values(GEAR).filter(g => g.kind === 'shield')), 3, 11).map(g => ({ item: g.id, price: g.price })));
+    if (kind === 'alchemist') { const order = ['arrow', 'arrow_frost', 'arrow_spark', 'arrow_barbed', 'arrow_heavy', 'arrow_sleep', 'arrow_ember']; return order.slice(0, 3 + Math.min(4, tier)).map(a => ({ item: a, price: 4 + (ARROWS[a] || ARROWS.arrow).dmg, n: 6 })); }
+    return [];
+  }
   // ---------------- what you hold ----------------
   const weapon = () => { const k = G.player.selected(); return k && GEAR[k] && GEAR[k].kind !== 'shield' ? GEAR[k] : null; };
   function shield() { let best = null; for (const k of G.player.inv.keys()) { const g = GEAR[k]; if (g && g.kind === 'shield' && (!best || g.block > best.block)) best = g; } return best; }
@@ -9096,7 +9142,7 @@ const Combat = (() => {
   function standingIn(id) { return foes.filter(f => f.holdId === id && f.state !== 'down').length; }
   function focusText() { const f = G.foeFocus; if (!f || !(G.foeFocusT > 0)) return null; return f.state === 'down' ? `${f.name}: down` : `${f.name}: ${Math.max(0, Math.round(f.hp / f.max * 100))}%`; }
   function reset() { foes.length = 0; shots.length = 0; }
-  return { ARMOUR, worn, armourPts, armourCut, wornPerk, init, GEAR, ARROWS, armoury, weapon, shield, chopTier, spawn, swing, arrowHit, update, entities, forHold, clearHold, standingIn, focusText, reset, blocking, KINDS };
+  return { rack, ARMOUR, worn, armourPts, armourCut, wornPerk, init, GEAR, ARROWS, armoury, weapon, shield, chopTier, spawn, swing, arrowHit, update, entities, forHold, clearHold, standingIn, focusText, reset, blocking, KINDS };
 })();
 
 </script>
