@@ -1367,49 +1367,129 @@ const R = (() => {
   const meshes = new Map(); // chunk key -> gpu mesh
   const entityMeshes = new Map();
   let lineBuf, lineData = new Float32Array(6 * 600), lineCount = 0;
-  let isMobile = false;
+  let isMobile = false; let skyProg = null, skyBuf = null; const sloc = {};
   const state = { viewDist: 64, dayLight: 1, fogColor: [0.6, 0.8, 1], skyColor: [0.6, 0.8, 1], ambient: 0.07, underwater: false, inCore: false, lights: [] };
 
+  // ---- the look: sunlight with warm light and cool shade, painted block texture with a faint grid, haze, living water ----
   const VS = `
   attribute vec3 aPos; attribute vec4 aCol;
   uniform mat4 uPV; uniform mat4 uModel; uniform float uTime; uniform float uWave;
   varying vec4 vCol; varying vec3 vWorld;
   void main(){
     vec4 w = uModel * vec4(aPos, 1.0);
-    if (uWave > 0.5) { w.y += sin(uTime * 1.7 + w.x * 0.8 + w.z * 0.6) * 0.05 - 0.12; }
+    if (uWave > 1.5) { float k = fract(w.y + 0.0005); k = k * k * 3.0; float gust = sin(uTime * 0.7 + w.x * 0.05 + w.z * 0.03) * 0.5 + 0.5; w.x += (sin(uTime * 2.3 + w.x * 0.9 + w.z * 0.4) * 0.05 + gust * 0.07) * k; w.z += cos(uTime * 1.9 + w.z * 0.8 + w.x * 0.3) * 0.04 * k; }
+    else if (uWave > 0.5) { w.y += sin(uTime * 1.3 + w.x * 0.55 + w.z * 0.35) * 0.045 + sin(uTime * 2.1 - w.x * 0.9 + w.z * 1.2) * 0.025 - 0.12; }
     vWorld = w.xyz; vCol = aCol;
     gl_Position = uPV * w;
   }`;
   const FS = `
+  #ifdef GL_FRAGMENT_PRECISION_HIGH
+  precision highp float;
+  #else
   precision mediump float;
+  #endif
   varying vec4 vCol; varying vec3 vWorld;
   uniform vec3 uCam; uniform float uDay; uniform vec3 uFog; uniform float uFogNear; uniform float uFogFar; uniform float uAmbient;
   uniform vec3 uLights[8]; uniform float uLightR[8]; uniform float uAlpha; uniform vec3 uTint; uniform float uSkyMul;
+  uniform vec3 uSun; uniform vec3 uSunCol; uniform vec3 uZenith; uniform float uGrid; uniform float uWave; uniform float uTime; uniform float uSunAmt; uniform float uQuality;
+  float hash3(vec3 p){ p = fract(p * vec3(0.1031, 0.1030, 0.0973)); p += dot(p, p.yxz + 33.33); return fract((p.x + p.y) * p.z); }
   void main(){
-    float sky = vCol.a;
-    float emis = step(0.999, sky);
-    float skyL = sky * uSkyMul * uDay;
+    vec3 toCam = uCam - vWorld; float dist = length(toCam); vec3 V = toCam / max(dist, 0.0001);
+    vec3 n = normalize(cross(dFdx(vWorld), dFdy(vWorld))); if (dot(n, V) < 0.0) n = -n;
+    float sky = vCol.a; float emis = step(0.999, sky);
+    float skyL = sky * uSkyMul;
     float torch = 0.0;
-    for (int i = 0; i < 8; i++) {
-      float d = distance(vWorld, uLights[i]);
-      torch = max(torch, clamp(1.0 - d / max(uLightR[i], 0.001), 0.0, 1.0));
-    }
+    for (int i = 0; i < 8; i++) { float d = distance(vWorld, uLights[i]); torch = max(torch, clamp(1.0 - d / max(uLightR[i], 0.001), 0.0, 1.0)); }
     torch = torch * torch * (3.0 - 2.0 * torch);
-    float light = max(max(skyL, torch * 0.95), uAmbient);
-    light = mix(light, 1.0, emis);
-    vec3 col = vCol.rgb * light;
-    col += vec3(0.30, 0.14, 0.0) * torch * (1.0 - skyL) * 0.7 * (1.0 - emis);
-    float dist = distance(vWorld, uCam);
-    float f = clamp((dist - uFogNear) / (uFogFar - uFogNear), 0.0, 1.0);
-    f = f * f;
-    col = mix(col * uTint, uFog, f);
-    gl_FragColor = vec4(col, uAlpha);
+    vec3 col;
+    float alpha = uAlpha;
+    if (uWave > 1.5) { n = normalize(vec3(0.0, 1.0, 0.0) + V * 0.3); }
+    if (uWave > 0.5 && uWave < 1.5) {
+      // water: shallow turquoise to deep blue, a moving surface, the sky in it, the sun on it, foam at the edge
+      float depth = vCol.r; bool brine = vCol.g > 0.5; bool top = n.y > 0.6;
+      vec3 wn = vec3(0.0, 1.0, 0.0);
+      if (top) { float t = uTime; vec2 q = vWorld.xz;
+        wn.x = sin(q.x * 1.7 + t * 1.3) * 0.06 + sin(q.x * 3.9 - q.y * 2.3 + t * 2.2) * 0.035 + sin((q.x + q.y) * 7.1 + t * 3.1) * 0.015;
+        wn.z = sin(q.y * 1.9 - t * 1.1) * 0.06 + sin(q.y * 4.3 + q.x * 1.7 - t * 2.6) * 0.035 + sin((q.y - q.x) * 6.7 - t * 2.8) * 0.015;
+        wn = normalize(wn); } else wn = n;
+      vec3 shallow = brine ? vec3(0.55, 0.62, 0.12) : vec3(0.16, 0.74, 0.74), deep = brine ? vec3(0.22, 0.26, 0.04) : vec3(0.03, 0.2, 0.42);
+      vec3 base = mix(shallow, deep, smoothstep(0.0, 0.85, depth)) * (0.35 + 0.65 * uDay);
+      vec3 R = reflect(-V, wn); vec3 skyR = mix(uFog, uZenith, clamp(R.y * 1.6, 0.0, 1.0));
+      float fres = 0.04 + 0.96 * pow(1.0 - max(dot(V, wn), 0.0), 4.0);
+      col = mix(base, skyR, top ? fres * 0.85 : 0.1);
+      float spec = pow(max(dot(R, uSun), 0.0), 160.0) * uSunAmt; col += uSunCol * spec * 2.5;
+      float sparkle = step(0.985, hash3(floor(vec3(vWorld.xz * 6.0, floor(uTime * 3.0))).xzy)) * uSunAmt * 0.6; if (top) col += uSunCol * sparkle * fres;
+      if (top && depth < 0.16) { float foam = smoothstep(0.16, 0.0, depth) * (0.5 + 0.5 * sin(uTime * 2.0 + vWorld.x * 3.0 + vWorld.z * 2.0)); col = mix(col, vec3(0.95), foam * 0.45); }
+      col = max(col, base * torch * 0.9);
+      alpha = top ? mix(0.5, 0.94, max(smoothstep(0.0, 0.7, depth), fres)) : 0.7;
+    } else {
+      float lam = max(dot(n, uSun), 0.0) * uSunAmt;
+      vec3 amb = vec3(0.78, 0.86, 1.05) * (0.36 + 0.26 * uDay);
+      vec3 light = skyL * (amb + uSunCol * lam * 0.72 * uDay);
+      light = max(light, vec3(uAmbient)); light = max(light, vec3(1.0, 0.78, 0.52) * torch * 0.95);
+      light = mix(light, vec3(1.0), emis);
+      vec3 vc = vCol.rgb; float lum = dot(vc, vec3(0.3, 0.59, 0.11)); vc = mix(vec3(lum), vc, 0.86);
+      col = vc * light;
+      if (uGrid > 0.5 && emis < 0.5) {
+        vec2 uv = abs(n.x) > 0.5 ? vWorld.zy : (abs(n.y) > 0.5 ? vWorld.xz : vWorld.xy);
+        vec3 bp = floor(vWorld - n * 0.5);
+        float hb = hash3(bp); float speck = hash3(vec3(floor(uv * 8.0), bp.y)); float blot = hash3(vec3(floor(uv * 3.0), bp.x + bp.z));
+        col *= 0.9 + 0.1 * hb + (speck - 0.5) * 0.12 * uQuality + (blot - 0.5) * 0.07;
+        // broad painted drift: warm and cool patches across the land
+        vec2 wp = vWorld.xz * 0.045; vec2 wi = floor(wp), wf = fract(wp); wf = wf * wf * (3.0 - 2.0 * wf);
+        float d0 = hash3(vec3(wi, 7.0)), d1 = hash3(vec3(wi + vec2(1.0, 0.0), 7.0)), d2 = hash3(vec3(wi + vec2(0.0, 1.0), 7.0)), d3 = hash3(vec3(wi + vec2(1.0, 1.0), 7.0));
+        float drift = mix(mix(d0, d1, wf.x), mix(d2, d3, wf.x), wf.y);
+        col *= mix(vec3(1.08, 1.03, 0.86), vec3(0.88, 0.98, 1.06), drift);
+        vec2 f = fract(uv); float e = min(min(f.x, 1.0 - f.x), min(f.y, 1.0 - f.y));
+        float lw = 0.014 + dist * 0.0012; float g = 1.0 - smoothstep(lw, lw * 2.4, e); g *= 1.0 - smoothstep(8.0, 40.0, dist);
+        col *= 1.0 - 0.22 * g;
+      }
+    }
+    // haze: blue with distance, warm toward the sun
+    float f = clamp((dist - uFogNear) / (uFogFar - uFogNear), 0.0, 1.0); f = f * f * (3.0 - 2.0 * f);
+    float toward = pow(max(dot(-V, uSun), 0.0), 6.0) * uSunAmt;
+    vec3 haze = mix(uFog, uSunCol, toward * 0.45);
+    col = mix(col * uTint, haze, f);
+    gl_FragColor = vec4(col, alpha);
+  }`;
+  // ---- the sky: gradient, the sun and its glow, drifting clouds ----
+  const SVS = `attribute vec2 aPos; varying vec2 vP; void main(){ vP = aPos; gl_Position = vec4(aPos, 0.999, 1.0); }`;
+  const SFS = `
+  #ifdef GL_FRAGMENT_PRECISION_HIGH
+  precision highp float;
+  #else
+  precision mediump float;
+  #endif
+  varying vec2 vP;
+  uniform vec3 uFwd; uniform vec3 uRight; uniform vec3 uUp; uniform float uTan; uniform float uAspect;
+  uniform vec3 uHorizon; uniform vec3 uZenith; uniform vec3 uSun; uniform vec3 uSunCol; uniform float uSunAmt; uniform float uTime; uniform float uClouds; uniform float uNight;
+  float h2(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+  float n2(vec2 p){ vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f); return mix(mix(h2(i), h2(i + vec2(1.0, 0.0)), f.x), mix(h2(i + vec2(0.0, 1.0)), h2(i + vec2(1.0, 1.0)), f.x), f.y); }
+  float fbm(vec2 p){ float a = 0.5, s = 0.0; for (int i = 0; i < 5; i++) { s += a * n2(p); p = p * 2.03 + vec2(1.7, 9.2); a *= 0.5; } return s; }
+  void main(){
+    vec3 rd = normalize(uFwd + uRight * vP.x * uTan * uAspect + uUp * vP.y * uTan);
+    float h = rd.y;
+    vec3 col = mix(uHorizon, uZenith, pow(clamp(h, 0.0, 1.0), 0.55));
+    if (h < 0.0) col = mix(uHorizon, uHorizon * 0.82, clamp(-h * 4.0, 0.0, 1.0));
+    float s = max(dot(rd, uSun), 0.0);
+    col += uSunCol * (pow(s, 900.0) * 6.0 + pow(s, 60.0) * 0.4 + pow(s, 6.0) * 0.18) * uSunAmt;
+    if (uClouds > 0.01 && h > 0.0) {
+      vec2 uv = rd.xz / (h + 0.12) * 1.4 + vec2(uTime * 0.012, uTime * 0.004);
+      float c = fbm(uv); float cov = smoothstep(0.62 - 0.25 * uClouds, 0.95, c) * smoothstep(0.0, 0.18, h);
+      vec3 lit = mix(vec3(0.92, 0.94, 1.0), uSunCol * 1.05, 0.25 + 0.5 * pow(s, 4.0)) * (0.4 + 0.6 * (1.0 - uNight));
+      vec3 shade = mix(uHorizon, vec3(0.55, 0.6, 0.7), 0.5) * (0.45 + 0.55 * (1.0 - uNight));
+      col = mix(col, mix(shade, lit, smoothstep(0.4, 0.95, c)), cov * 0.9);
+    }
+    gl_FragColor = vec4(col, 1.0);
   }`;
   const LVS = `attribute vec3 aPos; uniform mat4 uPV; void main(){ gl_Position = uPV * vec4(aPos,1.0); }`;
   const LFS = `precision mediump float; uniform vec4 uColor; void main(){ gl_FragColor = uColor; }`;
 
   function compile(vs, fs) {
     const p = gl.createProgram();
+    const gl2 = typeof WebGL2RenderingContext !== 'undefined' && gl instanceof WebGL2RenderingContext;
+    if (gl2) { vs = '#version 300 es\n#define attribute in\n#define varying out\n' + vs; fs = '#version 300 es\n#define varying in\nout highp vec4 fragOut;\n#define gl_FragColor fragOut\n' + fs; }
+    else { if (fs.indexOf('dFdx') >= 0) { gl.getExtension('OES_standard_derivatives'); fs = '#extension GL_OES_standard_derivatives : enable\n' + fs; } }
     const mk = (t, src) => { const s = gl.createShader(t); gl.shaderSource(s, src); gl.compileShader(s); if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s)); return s; };
     gl.attachShader(p, mk(gl.VERTEX_SHADER, vs)); gl.attachShader(p, mk(gl.FRAGMENT_SHADER, fs)); gl.linkProgram(p);
     if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(p));
@@ -1423,7 +1503,9 @@ const R = (() => {
     if (!gl) { gl = cv.getContext('webgl', opts) || cv.getContext('experimental-webgl', opts); if (!gl) throw new Error('WebGL is not available'); if (!gl.getExtension('OES_element_index_uint')) throw new Error('32-bit indices unsupported'); }
     prog = compile(VS, FS);
     for (const n of ['aPos', 'aCol']) loc[n] = gl.getAttribLocation(prog, n);
-    for (const n of ['uPV', 'uModel', 'uTime', 'uWave', 'uCam', 'uDay', 'uFog', 'uFogNear', 'uFogFar', 'uAmbient', 'uLights', 'uLightR', 'uAlpha', 'uTint', 'uSkyMul']) loc[n] = gl.getUniformLocation(prog, n);
+    for (const n of ['uPV', 'uModel', 'uTime', 'uWave', 'uCam', 'uDay', 'uFog', 'uFogNear', 'uFogFar', 'uAmbient', 'uLights', 'uLightR', 'uAlpha', 'uTint', 'uSkyMul', 'uSun', 'uSunCol', 'uZenith', 'uGrid', 'uSunAmt', 'uQuality']) loc[n] = gl.getUniformLocation(prog, n);
+    skyProg = compile(SVS, SFS); sloc.aPos = gl.getAttribLocation(skyProg, 'aPos'); for (const n of ['uFwd', 'uRight', 'uUp', 'uTan', 'uAspect', 'uHorizon', 'uZenith', 'uSun', 'uSunCol', 'uSunAmt', 'uTime', 'uClouds', 'uNight']) sloc[n] = gl.getUniformLocation(skyProg, n);
+    skyBuf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, skyBuf); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
     lineProg = compile(LVS, LFS);
     lloc.aPos = gl.getAttribLocation(lineProg, 'aPos'); lloc.uPV = gl.getUniformLocation(lineProg, 'uPV'); lloc.uColor = gl.getUniformLocation(lineProg, 'uColor');
     lineBuf = gl.createBuffer();
@@ -1454,7 +1536,8 @@ const R = (() => {
   }
 
   // ---------- chunk meshing ----------
-  const scratchOpaque = new MeshBuilder(16384), scratchWater = new MeshBuilder(2048), scratchGlass = new MeshBuilder(512);
+  const scratchOpaque = new MeshBuilder(16384), scratchWater = new MeshBuilder(2048), scratchGlass = new MeshBuilder(512), scratchGrass = new MeshBuilder(8192);
+  const FLOWERS = [[0.95, 0.85, 0.25], [0.95, 0.95, 0.95], [0.85, 0.35, 0.55], [0.6, 0.5, 0.95], [0.95, 0.5, 0.25]];
   function buildChunk(world, chunk) {
     const cx = chunk.cx, cz = chunk.cz, ox = cx * CH, oz = cz * CH;
     const nb = [];
@@ -1472,7 +1555,8 @@ const R = (() => {
       if (y >= top) return 1;
       return Math.max(0, 1 - (top - y) * 0.11);
     };
-    const op = scratchOpaque, wa = scratchWater, gs = scratchGlass; op.nv = op.ni = 0; wa.nv = wa.ni = 0; gs.nv = gs.ni = 0;
+    const op = scratchOpaque, wa = scratchWater, gs = scratchGlass, gr = scratchGrass; op.nv = op.ni = 0; wa.nv = wa.ni = 0; gs.nv = gs.ni = 0; gr.nv = gr.ni = 0;
+    const blades = isMobile ? 10 : 16;
     const blocks = chunk.blocks;
     const col0 = [0, 0, 0];
     for (let lx = 0; lx < CH; lx++) for (let lz = 0; lz < CH; lz++) {
@@ -1485,6 +1569,23 @@ const R = (() => {
         const wx = ox + lx, wz = oz + lz;
         const vr = 0.92 + U.hash3(wx, y, wz, 5) * 0.12; // per-block variation
         if (id === B.STATUE) continue; // drawn as an entity
+        // grass: a tuft of blades on every open grass top, and now and then a flower
+        if ((id === B.GRASS || id === B.GLOWGRASS) && y + 1 < WH && blocks[base + y + 1] === B.AIR) {
+          const sk = skyAt(lx, y + 1, lz); const top = y + 1.0;
+          for (let i = 0; i < blades; i++) {
+            const hx = U.hash3(wx, y, wz, 101 + i), hz = U.hash3(wx, y, wz, 201 + i), hh = U.hash3(wx, y, wz, 301 + i), ha = U.hash3(wx, y, wz, 401 + i);
+            const bx = lx + 0.08 + hx * 0.84, bz = lz + 0.08 + hz * 0.84; const hgt = 0.12 + hh * hh * 0.4; const a = ha * Math.PI; const w = 0.035 + hh * 0.025;
+            const dx = Math.cos(a) * w, dz = Math.sin(a) * w; const lean = (hx - 0.5) * 0.18;
+            const flower = U.hash3(wx, y, wz, 501 + i) < 0.05 && i === 0;
+            const baseC = [tint[0] * 0.62, tint[1] * 0.66, tint[2] * 0.5], tipC = flower ? FLOWERS[Math.floor(hh * FLOWERS.length) % FLOWERS.length] : [tint[0] * 0.95 + 0.12, tint[1] * 1.0 + 0.06, tint[2] * 0.7];
+            const tipY = top + hgt + (flower ? 0.12 : 0);
+            gr.quad([[bx - dx, top + 0.001, bz - dz], [bx + dx, top + 0.001, bz + dz], [bx + lean * 0.5 + dx * 0.4, top + hgt * 0.6, bz + lean * 0.3 + dz * 0.4], [bx + lean * 0.5 - dx * 0.4, top + hgt * 0.6, bz + lean * 0.3 - dz * 0.4]], [baseC, baseC, [U.lerp(baseC[0], tipC[0], 0.6), U.lerp(baseC[1], tipC[1], 0.6), U.lerp(baseC[2], tipC[2], 0.6)], [U.lerp(baseC[0], tipC[0], 0.6), U.lerp(baseC[1], tipC[1], 0.6), U.lerp(baseC[2], tipC[2], 0.6)]], [sk, sk, sk, sk], false);
+            const m0 = [bx + lean * 0.5 + dx * 0.4, top + hgt * 0.6, bz + lean * 0.3 + dz * 0.4], m1 = [bx + lean * 0.5 - dx * 0.4, top + hgt * 0.6, bz + lean * 0.3 - dz * 0.4], tp = [bx + lean, tipY, bz + lean * 0.6];
+            const mc = [U.lerp(baseC[0], tipC[0], 0.6), U.lerp(baseC[1], tipC[1], 0.6), U.lerp(baseC[2], tipC[2], 0.6)];
+            gr.quad([m1, m0, tp, tp], [mc, mc, tipC, tipC], [sk, sk, sk, sk], false);
+            if (flower) { const fc = tipC; const s = 0.07; gr.quad([[tp[0] - s, tp[1], tp[2]], [tp[0], tp[1], tp[2] - s], [tp[0] + s, tp[1], tp[2]], [tp[0], tp[1], tp[2] + s]], [fc, fc, fc, fc], [sk, sk, sk, sk], false); }
+          }
+        }
         if (id === B.BERRY) {
           const sk = skyAt(lx, y + 1, lz);
           op.box(lx + 0.12, y, lz + 0.12, lx + 0.88, y + 0.75, lz + 0.88, [0.28, 0.58, 0.25], sk, false);
@@ -1613,6 +1714,7 @@ const R = (() => {
             skys.push(sk);
           }
           const pat = PATTERNS[id]; const pf = pat ? ((f === 2 || f === 3) ? (pat.top || pat.all) : (pat.side || pat.all)) : null;
+          if (isWater) { let d = 0; while (d < 10 && (get(lx, y - d - 1, lz) === id)) d++; const dc = [Math.min(1, (d + 1) / 9), id === B.BRINE ? 1 : 0, 0]; for (let i = 0; i < 4; i++) cols[i] = dc; }
           if (!pf) { if (isWater) wa.quad(verts, cols, skys, false); else if (isGlass) gs.quad(verts, cols, skys, false); else op.quad(verts, cols, skys, emis); }
           else {
             // patterned face: sub-rectangles in face coordinates, then studs raised off the plane
@@ -1642,11 +1744,11 @@ const R = (() => {
         }
       }
     }
-    if (chunk.mesh) { freeMesh(chunk.mesh.op); freeMesh(chunk.mesh.wa); freeMesh(chunk.mesh.gs); }
-    chunk.mesh = { op: upload(op), wa: upload(wa), gs: upload(gs) };
+    if (chunk.mesh) { freeMesh(chunk.mesh.op); freeMesh(chunk.mesh.wa); freeMesh(chunk.mesh.gs); freeMesh(chunk.mesh.gr); }
+    chunk.mesh = { op: upload(op), wa: upload(wa), gs: upload(gs), gr: upload(gr) };
     chunk.dirty = false;
   }
-  function freeChunk(chunk) { if (chunk.mesh) { freeMesh(chunk.mesh.op); freeMesh(chunk.mesh.wa); freeMesh(chunk.mesh.gs); chunk.mesh = null; } }
+  function freeChunk(chunk) { if (chunk.mesh) { freeMesh(chunk.mesh.op); freeMesh(chunk.mesh.wa); freeMesh(chunk.mesh.gs); freeMesh(chunk.mesh.gr); chunk.mesh = null; } }
 
   // ---------- entity meshes ----------
   function entityMesh(key, buildFn) {
@@ -1674,12 +1776,24 @@ const R = (() => {
       else if (wk === 'fog') { sky = U.mixColor(sky, [0.72, 0.75, 0.78], wi * 0.8); state.dayLight *= 1 - 0.1 * wi; }
       else if (wk === 'storm') { sky = U.mixColor(sky, storm, wi * 0.8); state.dayLight *= 1 - 0.45 * wi; }
     }
+    // the sun: where it is, how warm, and the sky it paints
+    const ang = t * Math.PI * 2; let sd = [Math.sin(ang) * 0.75, -Math.cos(ang), 0.42]; const sl = Math.hypot(sd[0], sd[1], sd[2]); sd = sd.map(v => v / sl);
+    if (world.preset.flatDay) sd = [0.35, 0.8, 0.45].map(v => v / Math.hypot(0.35, 0.8, 0.45));
+    state.sun = sd; state.sunAmt = world.preset.flatDay ? 1 : U.clamp((sd[1] + 0.06) / 0.3, 0, 1);
+    const warm = U.clamp(sd[1] * 2.2, 0, 1); state.sunCol = U.mixColor([1.0, 0.55, 0.3], [1.0, 0.95, 0.86], warm);
+    const dayK = world.preset.flatDay ? 0.6 : day;
+    const horizon = U.mixColor(sky, [0.93, 0.95, 1.0], 0.32 * dayK * (1 - duskAmt));
+    state.zenith = world.preset.airless ? sky.map(v => v * 0.6) : U.mixColor(sky.map(v => v * 0.75), [0.16, 0.38, 0.82], 0.45 * dayK * (world.preset.id === 'earth' ? 1 : 0.4));
+    state.clouds = world.preset.airless ? 0 : (world.preset.id === 'earth' ? 0.55 : 0.3) + (wi > 0.02 && (wk === 'rain' || wk === 'storm') ? 0.45 * wi : 0);
+    state.skyPass = true; state.night = 1 - day;
+    sky = horizon;
     state.skyColor = sky; state.fogColor = sky; state.ambient = 0.06;
     state.fogNear = state.viewDist * 0.55 * (world.preset.fogMul || 1); state.fogFar = state.viewDist * 0.98 * (world.preset.fogMul || 1);
     if (wi > 0.02 && wk === 'fog') { state.fogNear = U.lerp(state.fogNear, 4, wi); state.fogFar = U.lerp(state.fogFar, 26, wi); }
     else if (wi > 0.02 && (wk === 'rain' || wk === 'storm')) { state.fogNear = U.lerp(state.fogNear, state.viewDist * 0.3, wi); state.fogFar = U.lerp(state.fogFar, state.viewDist * 0.75, wi); }
     state.tint = [1, 1, 1]; state.underwater = false; state.inCore = false;
     const eyeBlock = world.getBlock(Math.floor(player.x), Math.floor(player.y + 1.62), Math.floor(player.z));
+    if (eyeBlock === B.WATER || eyeBlock === B.BRINE || eyeBlock === B.LAVA || player.y < CORE_TOP || player.y < world.topAt(Math.floor(player.x), Math.floor(player.z)) - 2) state.skyPass = false;
     if (eyeBlock === B.WATER) { state.underwater = true; state.fogColor = [0.05, 0.2, 0.45]; state.skyColor = state.fogColor; state.fogNear = 2; state.fogFar = 18; state.tint = [0.6, 0.8, 1.0]; }
     else if (eyeBlock === B.BRINE) { state.underwater = true; state.fogColor = [0.35, 0.42, 0.08]; state.skyColor = state.fogColor; state.fogNear = 1; state.fogFar = 9; state.tint = [0.9, 1.0, 0.5]; }
     else if (eyeBlock === B.LAVA) { state.fogColor = [0.9, 0.3, 0.05]; state.skyColor = state.fogColor; state.fogNear = 0.5; state.fogFar = 4; state.tint = [1.2, 0.6, 0.3]; }
@@ -1693,6 +1807,14 @@ const R = (() => {
     const sc = state.skyColor;
     gl.clearColor(sc[0], sc[1], sc[2], 1); gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
     const aspect = canvas.width / canvas.height;
+    if (state.skyPass && skyProg) { // the sky behind everything
+      gl.useProgram(skyProg); gl.disable(gl.DEPTH_TEST); gl.depthMask(false);
+      const f = U.forwardVec(cam.yaw, cam.pitch); const r = [Math.cos(cam.yaw), 0, -Math.sin(cam.yaw)]; const u = [r[1] * f[2] - r[2] * f[1], r[2] * f[0] - r[0] * f[2], r[0] * f[1] - r[1] * f[0]];
+      gl.uniform3fv(sloc.uFwd, f); gl.uniform3fv(sloc.uRight, r); gl.uniform3fv(sloc.uUp, u); gl.uniform1f(sloc.uTan, Math.tan(cam.fov / 2)); gl.uniform1f(sloc.uAspect, aspect);
+      gl.uniform3fv(sloc.uHorizon, state.fogColor); gl.uniform3fv(sloc.uZenith, state.zenith); gl.uniform3fv(sloc.uSun, state.sun); gl.uniform3fv(sloc.uSunCol, state.sunCol); gl.uniform1f(sloc.uSunAmt, state.sunAmt); gl.uniform1f(sloc.uTime, performance.now() / 1000); gl.uniform1f(sloc.uClouds, state.clouds); gl.uniform1f(sloc.uNight, state.night);
+      gl.bindBuffer(gl.ARRAY_BUFFER, skyBuf); gl.enableVertexAttribArray(sloc.aPos); gl.vertexAttribPointer(sloc.aPos, 2, gl.FLOAT, false, 0, 0); gl.drawArrays(gl.TRIANGLES, 0, 3); gl.disableVertexAttribArray(sloc.aPos);
+      gl.enable(gl.DEPTH_TEST); gl.depthMask(true);
+    }
     const proj = U.m4perspective(cam.fov, aspect, 0.08, 400);
     const view = U.m4view(cam.x, cam.y, cam.z, cam.yaw, cam.pitch);
     const pv = U.m4mul(proj, view);
@@ -1707,6 +1829,7 @@ const R = (() => {
     gl.uniform1f(loc.uAmbient, state.ambient);
     gl.uniform3fv(loc.uTint, state.tint);
     gl.uniform1f(loc.uSkyMul, 1);
+    gl.uniform3fv(loc.uSun, state.sun || [0, 1, 0]); gl.uniform3fv(loc.uSunCol, state.sunCol || [1, 1, 1]); gl.uniform3fv(loc.uZenith, state.zenith || state.fogColor); gl.uniform1f(loc.uSunAmt, state.skyPass ? state.sunAmt : 0); gl.uniform1f(loc.uQuality, isMobile ? 0.6 : 1); gl.uniform1f(loc.uGrid, 1);
     // lights
     const L = new Float32Array(24), LR = new Float32Array(8);
     const lights = extras.lights || [];
@@ -1727,6 +1850,11 @@ const R = (() => {
     }
     gl.depthMask(true); gl.disable(gl.BLEND);
     for (const c of visible) if (c.mesh.op) { ident[12] = c.cx * CH; ident[14] = c.cz * CH; gl.uniformMatrix4fv(loc.uModel, false, ident); drawMesh(c.mesh.op); }
+    // grass: blades within reach, swaying
+    gl.uniform1f(loc.uGrid, 0); gl.uniform1f(loc.uWave, 2);
+    const gR = (isMobile ? 34 : 48) + 16;
+    for (const c of visible) if (c.mesh.gr) { const dx = c.cx * CH + 8 - cam.x, dz = c.cz * CH + 8 - cam.z; if (dx * dx + dz * dz > gR * gR) continue; ident[12] = c.cx * CH; ident[14] = c.cz * CH; gl.uniformMatrix4fv(loc.uModel, false, ident); drawMesh(c.mesh.gr); }
+    gl.uniform1f(loc.uWave, 0);
     // entities
     for (const e of entities) {
       if (!e.mesh || !e.mesh.count) continue;
