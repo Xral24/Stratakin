@@ -1812,6 +1812,8 @@ const ITEMS = {
   arrow_ember: { name: 'Ember Arrow', col: '#ff7a3a', arrow: 0.34, crafted: true, desc: 'Burns. Takes about a third of a wild Kin\'s health. Needs a bow.' },
   target: { name: 'Target', block: B.TARGET, col: '#e04040', crafted: true, desc: 'A bullseye. Set a few up and shoot at them from a distance. Archery jobs ask for them.' },
   broth: { name: 'Warm Broth', col: '#d8903a', use: 'warm', desc: 'From Ysolde. Drink it and the cold cannot touch you for four minutes. Campfires warm you too.' },
+  mapA: { name: 'Half a Map', col: '#c9a46a', keep: true, desc: 'Torn, with lines on it that mean nothing yet. Someone else has the other half.' },
+  mapB: { name: 'Half a Map', col: '#b8945a', keep: true, desc: 'Torn, with lines on it that mean nothing yet. Someone else has the other half.' },
   ladder: { name: 'Ladder', block: B.LADDER, col: '#a07a44', crafted: true, desc: 'Place it against a wall and climb: ▲ or push forward to go up, hold ▼ to go down. Stack them for a shaft.' },
   chest: { name: 'Chest', block: B.CHEST, col: '#a0783c', crafted: true, desc: 'Place it and tap it: whatever you store inside stays there, safe, even if the wild beats you. Build as many as you like.' },
   kit_bridge: { name: 'Bridge kit', kit: 'bridge', col: '#b58d58', crafted: true, desc: 'A plank bridge with rails, from where you tap straight ahead until it meets ground, up to twelve blocks.' },
@@ -5423,7 +5425,7 @@ const QUESTS = [
   { id: 'moon', title: 'Beyond', desc: 'Wear the Space Suit the Starmetal gave you: the Moon has no air. Board the Starship on the surface (select it, tap). Hold jump to climb. Above the clouds, the world lets go of you and asks where to. Mind what you fly into.', hint: 'Fly the Starship above the clouds', check: G => (G.stats.reachedMoon || (G.stats.reached || {}).moon) ? 1 : 0, reward: { xp: 400 } },
   { id: 'job', title: 'Odd Jobs', desc: 'People sit by little fires all over the world, and the Moon and Halo too, each with a job: fetch this, beat that, carry a parcel, clear a den. Yellow dots on the map. Some of them pay in amulets, which nobody sells.', hint: 'Do a job for someone on the road', check: G => (G.stats.questsDone || 0) >= 1 ? 1 : 0, reward: { xp: 120 } },
   { id: 'lab', title: 'The Splice', desc: 'Somewhere out there an apprentice waits by a tent: her master is shut in his own lab with the thing he made. Find her, follow ⚗ to the hatch, and beat or cage what is down there. The incubator is the reward: Kin grow fast in it and learn techniques.', hint: 'Find the apprentice by the tent and rescue the maker', check: G => (G.stats.labDone || 0) >= 1 ? 1 : 0, reward: { xp: 400 } },
-  { id: 'lost', title: 'The Lost World', desc: 'People on the road talk about a jungle on the far side of the world where the Kin are old and big. Nobody has a map, or nobody admits to one. Do jobs for the people by the fires, rescue the scientist, or beat a legendary, and someone will hand you theirs. Then follow 🦖.', hint: 'Find someone with a map of the Lost World', check: G => G.stats.lostFound ? 1 : 0, reward: { xp: 500 } },
+  { id: 'lost', title: 'The Lost World', desc: 'People by the fires talk about a dinosaur someone caught. Barnaby Quill keeps it in his menagerie (🦎 on the map). Ask him where it came from, then find the two people out in the trapper country who each have half a map. Your Kindex will read it. Then follow 🦖.', hint: 'Find the dinosaur, then the two halves of the map', check: G => G.stats.lostFound ? 1 : 0, reward: { xp: 500 } },
   { id: 'halo', title: 'The Ringed World', desc: 'Fly the Starship above the clouds and choose Halo: amber dunes under a ring that fills the sky, brine that burns, stones that fall. Caravan towns to free, amber and sulfur to dig, and ring shards for wings.', hint: 'Fly to Halo', check: G => (G.stats.reached || {}).halo ? 1 : 0, reward: { xp: 600 } },
   { id: 'moonjobs', title: 'Moonfolk', desc: 'The Moon has its own people by its own fires, out on the grey between the domes. They do not trust you yet. Do three of their jobs before anyone tells you where the Selenaut sleeps.', hint: 'Do 3 jobs for people on the Moon', check: G => ((G.stats.jobsBy || {}).moon || 0) / 3, reward: { xp: 600, items: { snare2: 3 } } },
   { id: 'moonfree', title: 'Under the Dome', desc: 'Every alien town on the Moon has a tyrant in its square, the same as on Earth. Free one and its people will open the dome to you and keep your Kin fed.', hint: 'Free a village on the Moon', check: G => Object.values(G.villageState || {}).some(st => st.freed && st.meta && st.meta.world === 'moon') ? 1 : 0, reward: { xp: 800 } },
@@ -6033,23 +6035,30 @@ const Campaign = (() => {
   const flat = (x, z, r) => { let lo = 999, hi = -1; for (let dx = -r; dx <= r; dx += 2) for (let dz = -r; dz <= r; dz += 2) { if (!land(x + dx, z + dz)) return false; const h = world.colInfo(x + dx, z + dz).h; lo = Math.min(lo, h); hi = Math.max(hi, h); } return hi - lo <= 3; };
   const awayFromVillage = (x, z) => !G.village || Math.hypot(x - G.village.x, z - G.village.z) > 45;
   function sites() {
-    const c = C(); if (c.sites && c.sites.v === 2) return c.sites;
-    const S = { v: 2 };
-    S.mine = ring(80, 220, (x, z) => flat(x, z, 6) && awayFromVillage(x, z), 0x31) || { x: Math.round(world.spawn.x + 90), z: Math.round(world.spawn.z) };
-    S.diver = ring(60, 500, (x, z) => { // a shore with deep water a little way out
+    const c = C(); if (c.sites && c.sites.v === 3) return c.sites;
+    const S = Object.assign({}, c.sites || {}, { v: 3 }); if (c.sites && c.sites.mine) { const old = c.sites; Object.assign(S, old, { v: 3 }); c.sites = S; if (!S.zoo) { /* add the new places to an older save */ } }
+    if (S.mine && S.zoo) return S;
+    S.mine = S.mine || ring(80, 220, (x, z) => flat(x, z, 6) && awayFromVillage(x, z), 0x31) || { x: Math.round(world.spawn.x + 90), z: Math.round(world.spawn.z) };
+    S.diver = S.diver || ring(60, 500, (x, z) => { // a shore with deep water a little way out
       if (!land(x, z) || !awayFromVillage(x, z)) return false;
       for (const [ux, uz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { let ok = true; for (let t = 4; t <= 13 && ok; t++) if (world.colInfo(x + ux * t, z + uz * t).h > SEA - 4) ok = false; if (ok && world.colInfo(x + ux * 2, z + uz * 2).h < SEA + 2) return { x, z, ux, uz }; }
       return false; }, 0x32);
     if (!S.diver) { const f = ring(120, 400, (x, z) => flat(x, z, 10) && awayFromVillage(x, z) && Math.hypot(x - S.mine.x, z - S.mine.z) > 50, 0x3A); if (f) S.diver = { x: f.x - 9, z: f.z, ux: 1, uz: 0, lake: { x: f.x + 3, z: f.z } }; }
-    S.ranch = ring(140, 360, (x, z) => flat(x, z, 9) && awayFromVillage(x, z) && Math.hypot(x - S.mine.x, z - S.mine.z) > 60 && world.colInfo(x, z).biome === BIOME.PLAINS, 0x33) || ring(140, 400, (x, z) => flat(x, z, 9) && awayFromVillage(x, z) && Math.hypot(x - S.mine.x, z - S.mine.z) > 60, 0x34);
-    S.snow = ring(150, 2000, (x, z) => world.colInfo(x, z).biome === BIOME.SNOW && flat(x, z, 3), 0x35);
-    S.peak = ring(150, 2000, (x, z) => { // a steep peak with room to glide out from it
+    S.ranch = S.ranch || ring(140, 360, (x, z) => flat(x, z, 9) && awayFromVillage(x, z) && Math.hypot(x - S.mine.x, z - S.mine.z) > 60 && world.colInfo(x, z).biome === BIOME.PLAINS, 0x33) || ring(140, 400, (x, z) => flat(x, z, 9) && awayFromVillage(x, z) && Math.hypot(x - S.mine.x, z - S.mine.z) > 60, 0x34);
+    S.snow = S.snow || ring(150, 2000, (x, z) => world.colInfo(x, z).biome === BIOME.SNOW && flat(x, z, 3), 0x35);
+    S.peak = S.peak || ring(150, 2000, (x, z) => { // a steep peak with room to glide out from it
       const i = world.colInfo(x, z); if (i.biome !== BIOME.MOUNTAIN || i.h < 76) return false;
       let best = { x, z, h: i.h }; for (let dx = -14; dx <= 14; dx += 2) for (let dz = -14; dz <= 14; dz += 2) { const h = world.colInfo(x + dx, z + dz).h; if (h > best.h) best = { x: x + dx, z: z + dz, h }; }
       for (let k = 0; k < 16; k++) { const a = k / 16 * Math.PI * 2; const nx = Math.round(best.x + Math.cos(a) * 30), nz = Math.round(best.z + Math.sin(a) * 30); const nh = world.colInfo(nx, nz).h;
         if (nh < best.h - 16 && nh > SEA) { let clear = true; for (let t = 6; t < 27 && clear; t += 2) { const tx = Math.round(best.x + Math.cos(a) * t), tz = Math.round(best.z + Math.sin(a) * t); if (world.colInfo(tx, tz).h > best.h - 2 - t * 0.22) clear = false; } if (clear) return { x: best.x, z: best.z, h: best.h, nx, nz, top: best.h - 7 }; } }
       return false; }, 0x36);
     if (!S.peak) { const f = ring(260, 700, (x, z) => flat(x, z, 8) && awayFromVillage(x, z), 0x3B); if (f) { const h = world.colInfo(f.x, f.z).h; S.peak = { x: f.x, z: f.z, h: h + 30, nx: f.x + 30, nz: f.z, top: h + 22, crag: true }; } }
+    S.zoo = S.zoo || ring(280, 700, (x, z) => flat(x, z, 9) && awayFromVillage(x, z) && [S.mine, S.ranch, S.diver].every(o => !o || Math.hypot(x - o.x, z - o.z) > 70), 0x3C);
+    if (S.zoo && world.lost) { // the trapper's country: further out, the way the Lost World lies
+      const a = Math.atan2(wd(world.lost.z - S.zoo.z), wd(world.lost.x - S.zoo.x));
+      const pick = (d, off, salt) => ring(0, 0, () => false, salt) || (() => { for (let k = 0; k < 30; k++) { const aa = a + off + (k % 2 ? 1 : -1) * k * 0.05; const dd = d + k * 6; const x = Math.round(S.zoo.x + Math.cos(aa) * dd), z = Math.round(S.zoo.z + Math.sin(aa) * dd); if (land(x, z)) return { x, z }; } return { x: Math.round(S.zoo.x + Math.cos(a) * d), z: Math.round(S.zoo.z + Math.sin(a) * d) }; })();
+      S.halfA = pick(260, 0.25, 0x3D); S.halfB = pick(330, -0.3, 0x3E); S.country = { x: Math.round((S.halfA.x + S.halfB.x) / 2), z: Math.round((S.halfA.z + S.halfB.z) / 2) };
+    }
     c.sites = S; return S;
   }
 
@@ -6160,6 +6169,18 @@ const Campaign = (() => {
     set(s.nx, tt + 1, s.nz, B.AIR);
   }
 
+  function stampZoo(s) {
+    world.ensureAround(Math.floor(s.x / CH), Math.floor(s.z / CH), 1, 99);
+    const y0 = world.colInfo(s.x, s.z).h; pad(s.x, s.z, 10, y0, B.GRAVEL);
+    // a yard fence, a painted gate, three iron-barred cages with glass roofs; the big one holds the dinosaur
+    for (let i = -10; i <= 10; i++) for (const [x, z] of [[s.x + i, s.z - 10], [s.x + i, s.z + 10], [s.x - 10, s.z + i], [s.x + 10, s.z + i]]) { if (Math.abs(i) <= 1 && z === s.z + 10) continue; set(x, y0 + 1, z, (i + 10) % 4 === 0 ? B.LOG : B.PLANKS); if ((i + 10) % 4 === 0) set(x, y0 + 2, z, B.TORCH); }
+    for (const dx of [-2, 2]) for (let y = y0 + 1; y <= y0 + 5; y++) set(s.x + dx, y, s.z + 10, B.LOG); for (let dx = -2; dx <= 2; dx++) set(s.x + dx, y0 + 6, s.z + 10, dx % 2 ? B.CORAL_R : B.CORAL_Y);
+    const cage = (cx, cz, r, h) => { for (let dx = -r; dx <= r; dx++) for (let dz = -r; dz <= r; dz++) { const edge = Math.abs(dx) === r || Math.abs(dz) === r; for (let y = y0 + 1; y <= y0 + h; y++) set(cx + dx, y, cz + dz, edge ? ((dx + dz) % 2 === 0 || y === y0 + h ? B.IRONWALL : B.GLASS) : B.AIR); set(cx + dx, y0 + h + 1, cz + dz, edge ? B.IRONWALL : B.GLASS); set(cx + dx, y0, cz + dz, edge ? B.GRAVEL : B.GRASS); } };
+    cage(s.x, s.z - 4, 4, 6); cage(s.x - 7, s.z + 3, 2, 3); cage(s.x + 7, s.z + 3, 2, 3);
+    set(s.x - 7, y0 + 1, s.z + 3, B.FERN); set(s.x + 7, y0 + 1, s.z + 3, B.BERRY); set(s.x - 2, y0 + 1, s.z - 6, B.FERN); set(s.x + 2, y0 + 1, s.z - 2, B.FERN);
+    s.y0 = y0; s.dino = { x: s.x, z: s.z - 4 };
+  }
+  function stampTent(at) { world.ensureAround(Math.floor(at.x / CH), Math.floor(at.z / CH), 0, 99); const y0 = world.groundY(at.x, at.z); for (let k = 0; k < 3; k++) for (let dx = -2 + k; dx <= 2 - k; dx++) for (let dz = -2; dz <= 2; dz++) if (Math.abs(dx) === 2 - k) set(at.x + 3 + dx, y0 + 1 + k, at.z + dz, B.PLANKS); set(at.x, y0 + 1, at.z, B.CAMPFIRE); }
   // ---------- each frame ----------
   function update(dt, p, inBattle) {
     if (!onEarth()) { people.length = 0; return; }
@@ -6171,6 +6192,9 @@ const Campaign = (() => {
       if (S.snow && near(S.snow, p, 90) && !c.st_snow) { c.st_snow = true; stampSnow(S.snow); G.meshPass(99); }
       if (S.snow && S.snow.lost && c.frost === 1 && near(S.snow.lost, p, 70) && !c.st_shelter) { c.st_shelter = true; stampShelter(S.snow); G.meshPass(99); }
       if (S.peak && near(S.peak, p, 110) && !c.st_peak) { c.st_peak = true; stampPeak(S.peak); G.meshPass(99); }
+      if (S.zoo && near(S.zoo, p, 90) && !c.st_zoo) { c.st_zoo = true; stampZoo(S.zoo); G.meshPass(99); }
+      if (S.halfA && near(S.halfA, p, 80) && !c.st_halfA) { c.st_halfA = true; stampTent(S.halfA); G.meshPass(99); }
+      if (S.halfB && near(S.halfB, p, 80) && !c.st_halfB) { c.st_halfB = true; stampTent(S.halfB); G.meshPass(99); }
       spawnPeople(S, p);
       checkSteps(S, p);
     }
@@ -6192,6 +6216,11 @@ const Campaign = (() => {
     if (S.snow && near(S.snow, p, 80) && C().st_snow && !has('ysolde')) { const s = S.snow; person('ysolde', 'Ysolde', 'snow', s.x + 2, s.z + 2, { body: '#e8e8f0', belly: '#f1d3b3' }, ['hermit']); }
     if (S.snow && S.snow.lost && C().frost === 1 && C().st_shelter && near(S.snow.lost, p, 70) && !has('tam')) { const L = S.snow.lost; person('tam', 'Tam', 'lost', L.x, L.z + 1, { body: '#9aa8b8', belly: '#f1d3b3' }, ['hermit']); }
     if (S.peak && near(S.peak, p, 100) && C().st_peak && !has('hermit')) { const s = S.peak; const a = Math.atan2(s.nz - s.z, s.nx - s.x) + Math.PI; let hx = Math.round(s.x + Math.cos(a) * 18), hz = Math.round(s.z + Math.sin(a) * 18); person('hermit', 'Old Wren', 'hermit', hx, hz, { body: '#7a6f5a', belly: '#e8c39e' }, ['hermit']); }
+    if (S.zoo && near(S.zoo, p, 80) && C().st_zoo && !has('keeper')) { const s = S.zoo; person('keeper', 'Barnaby Quill', 'keeper', s.x + 3, s.z + 6, { body: '#6a2a4a', belly: '#e8c39e' }, ['hat', 'lamp']);
+      if (!zooDino) { const sp = KIN.dex('earth').find(x => x.dino && x.shape === 'raptor') || KIN.dex('earth').find(x => x.dino); if (sp) { const gy = world.groundY(s.dino.x, s.dino.z) + 1; zooDino = Wild.makeEntity(sp, 40, s.dino.x + 0.5, gy, s.dino.z + 0.5, { senseR: 0 }); zooDino.peaceful = true; zooDino.exhibit = true; zooDino.patrol = { ax: s.dino.x - 2, az: s.dino.z + 0.5, bx: s.dino.x + 2.5, bz: s.dino.z + 0.5, period: 9, phase: 0 }; Wild.list.push(zooDino); } } }
+    if (S.halfA && near(S.halfA, p, 70) && C().st_halfA && !has('jo')) person('jo', 'Trapper Jo', 'halfA', S.halfA.x + 2, S.halfA.z + 1, { body: '#5a4a2a', belly: '#c68642' }, ['hat']);
+    if (S.halfB && near(S.halfB, p, 70) && C().st_halfB && !has('sela')) person('sela', 'Old Sela', 'halfB', S.halfB.x + 2, S.halfB.z + 1, { body: '#4a5a6a', belly: '#8d5524' }, ['hermit']);
+    if (zooDino && !near(S.zoo, p, 110)) { Wild.remove(zooDino); zooDino = null; }
     // the rogue horse-Kin stands in the finished paddock
     if (S.ranch && C().paddock && !C().rogueTamed && !rogue && near(S.ranch, p, 70)) {
       const pen = S.ranch.pen; const sp = rogueSpecies(); const gy = world.groundY(pen.x, pen.z) + 1;
@@ -6200,7 +6229,7 @@ const Campaign = (() => {
     }
     for (let i = people.length - 1; i >= 0; i--) if (Math.hypot(wd(people[i].x - p.x), wd(people[i].z - p.z)) > 110) people.splice(i, 1);
   }
-  let rogueSp = null;
+  let rogueSp = null; let zooDino = null;
   function rogueSpecies() {
     if (rogueSp) return rogueSp;
     const sp = KIN.species(U.combine(0x40CE, 7), ['Gale'], 0, { primary: 'Gale', shape: 'quadruped', total: 420, rarity: 2 });
@@ -6269,6 +6298,18 @@ const Campaign = (() => {
       if (c.frost === 2) { const ok = P.count('torch') >= 3 && P.count('bread') >= 1; if (!ok) return say(['Cold. So cold. I cannot walk like this.', 'Three torches and something to eat. Please.']); return say(['Warmth. Food. Thank you.', 'I can make it home now. Tell Ysolde I am coming.'], () => { P.take('torch', 3); P.take('bread', 1); c.frost = 3; const i = people.findIndex(x => x.id === 'tam'); if (i >= 0) people.splice(i, 1); }); }
       return say(['Thank you.']);
     }
+    if (n.job === 'keeper') {
+      if (G.stats.lostMap) return say(['You found it? The country they come from? Bring me back something with teeth.']);
+      if (!c.zoo) return say(['Welcome to Quill\'s Menagerie! Yes, that is a dinosaur. A real one. A Kin that should not exist.', 'I found it half-starved out past the far hills, wandering the trapper country. It came from somewhere. Nobody believes me.', 'Two people live out that way: Trapper Jo and Old Sela. If anyone knows where it came from, they do. Ask them.'], () => { c.zoo = 1; c.zooHeard = true; });
+      return say(['Trapper Jo and Old Sela, out in the trapper country. Follow your compass.']);
+    }
+    if (n.job === 'halfA' || n.job === 'halfB') {
+      if (G.stats.lostMap) return say(['Good luck out there.']);
+      const mine = n.job === 'halfA' ? 'mapA' : 'mapB'; const other = n.job === 'halfA' ? 'mapB' : 'mapA';
+      if (c[mine]) return say([c[other] ? 'You have both halves already.' : (n.job === 'halfA' ? 'Old Sela had a scrap like mine once. Try her.' : 'Jo the trapper has the other piece, I would bet.')]);
+      const lines = n.job === 'halfA' ? ['A dinosaur? Barnaby\'s raptor. I caught it, I sold it to him, and I wish I had not.', 'It came out of a gully with this tied to its leg: half a map, torn. I cannot read it. Take it.'] : ['The old trails? My grandmother walked them. She left me this: half a map, no use to anyone.', 'If you have the other half, the lines might make sense. Take it, before I burn it.'];
+      return say(lines, () => { c[mine] = true; G.player.add(mine, 1); if (c.mapA && c.mapB) setTimeout(() => { G.player.take('mapA', 1); G.player.take('mapB', 1); G.explain('The Kindex reads the map', 'The two halves fit. The lines are Kin trails, and your Kindex knows them: they all lead to one jungle on the far side of the world.'); G.giveLostMap('the two halves'); c.zoo = 3; }, 1200); });
+    }
     if (n.job === 'hermit') {
       if (!c.glider) return say(['Up there, on the peak, a sky Kin keeps her nest on a pillar of rock. One egg every spring. Nobody has climbed the pillar: you cannot. You fall to it.', 'Take my glider. Climb the peak, jump, hold ▲ to glide, and come down on that pillar top. Walk the egg home and it will hatch into something that flies.', 'And no ladders, no digging. She knows.'], () => { c.glider = 1; give('glider'); });
       if (c.glider === 1) return say(['The pillar, from the peak. Jump, hold ▲, steer. Lean into it.']);
@@ -6291,11 +6332,12 @@ const Campaign = (() => {
     if (id === 'diver') { if (c.bulbStep === 1 && S.diver && S.diver.chest) return { x: S.diver.chest.x, z: S.diver.chest.z, note: 'the sunken chest' }; return S.diver && { x: S.diver.x, z: S.diver.z, note: 'Marisol\'s pier' }; }
     if (id === 'ranch') { if (c.ranch === 1) return { x: S.ranch.pen.x, z: S.ranch.pen.z, note: 'the paddock posts' }; return S.ranch && { x: S.ranch.x, z: S.ranch.z, note: 'Hale\'s Ranch' }; }
     if (id === 'frost') { c.snowKnown = true; if ((c.frost === 1 || c.frost === 2) && S.snow && S.snow.lost) return { x: S.snow.lost.x, z: S.snow.lost.z, note: 'Tam' }; return S.snow && { x: S.snow.x, z: S.snow.z, note: 'the snow camp' }; }
+    if (id === 'lost' && !G.stats.lostMap) { if (!c.zoo && S.zoo) return { x: S.zoo.x, z: S.zoo.z, note: 'Quill\'s Menagerie' }; if (S.halfA && !c.mapA) return { x: S.halfA.x, z: S.halfA.z, note: 'Trapper Jo' }; if (S.halfB && !c.mapB) return { x: S.halfB.x, z: S.halfB.z, note: 'Old Sela' }; }
     if (id === 'glider') { c.peakKnown = true; if (c.glider === 1 && S.peak) return { x: S.peak.x, z: S.peak.z, note: 'the peak' }; return S.peak && { x: S.peak.x, z: S.peak.z, note: 'Old Wren\'s peak' }; }
     return null;
   }
   function stampPosts() { const S = sites(); if (!S.ranch) return; const pen = S.ranch.pen; for (const [a, b] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) { const x = pen.x + a * 5, z = pen.z + b * 5; const g = world.groundY(x, z); world.setBlock(x, g + 1, z, B.BASALT); world.setBlock(x, g + 2, z, B.TORCH); } }
-  function mapMarks() { if (!onEarth()) return []; const S = sites(); const out = []; if (S.mine) out.push({ x: S.mine.x, z: S.mine.z, t: '⛏', name: 'Mining Camp' }); if (S.diver) out.push({ x: S.diver.x, z: S.diver.z, t: '◍', name: 'Marisol\'s Pier' }); if (S.ranch) out.push({ x: S.ranch.x, z: S.ranch.z, t: '♞', name: 'Hale\'s Ranch' }); if (C().frost >= 0 && S.snow && C().snowKnown) out.push({ x: S.snow.x, z: S.snow.z, t: '❄', name: 'Snow Camp' }); if (S.peak && C().peakKnown) out.push({ x: S.peak.x, z: S.peak.z, t: '▲', name: 'Wren\'s Peak' }); return out; }
+  function mapMarks() { if (!onEarth()) return []; const S = sites(); const out = []; if (S.mine) out.push({ x: S.mine.x, z: S.mine.z, t: '⛏', name: 'Mining Camp' }); if (S.diver) out.push({ x: S.diver.x, z: S.diver.z, t: '◍', name: 'Marisol\'s Pier' }); if (S.ranch) out.push({ x: S.ranch.x, z: S.ranch.z, t: '♞', name: 'Hale\'s Ranch' }); if (C().frost >= 0 && S.snow && C().snowKnown) out.push({ x: S.snow.x, z: S.snow.z, t: '❄', name: 'Snow Camp' }); if (S.peak && C().peakKnown) out.push({ x: S.peak.x, z: S.peak.z, t: '▲', name: 'Wren\'s Peak' }); if (S.zoo && C().zooHeard) out.push({ x: S.zoo.x, z: S.zoo.z, t: '🦎', name: 'Quill\'s Menagerie' }); return out; }
   function talkable() { return people; }
   function entities() { return people.map(n => ({ x: n.x, y: n.y, z: n.z, yaw: n.yaw, model: n.model, mesh: n.mesh, scale: 1, hover: 0, skyMul: 1 })); }
   function onRogueTamed(k) { C().rogueTamed = true; C().ranch = 3; if (rogue) { Wild.remove(rogue); rogue = null; } }
@@ -6480,7 +6522,7 @@ const Npcs = (() => {
     else if (rw.amulet) { G.player.add(rw.amulet, 1); UI.sfx('quest'); UI.openPanel('reveal', { kind: 'item', item: rw.amulet, n: 1 }); }
     else UI.sfx('quest');
     st.done++; st.quest = null; q.done = true;
-    if (world.preset.id === 'earth' && !G.stats.lostMap && (G.stats.questsDone || 0) >= 2) { setTimeout(() => G.giveLostMap(w.name), 900); }
+    if (world.preset.id === 'earth' && !G.stats.lostMap && !(G.stats.camp || {}).zooHeard && (G.stats.questsDone || 0) >= 1) { setTimeout(() => { Campaign.C().zooHeard = true; Dialogue.show(w.name, ['One more thing. Did you hear? Somebody caught a dinosaur. A real one, a Kin with teeth like knives.', 'Barnaby Quill keeps it in his menagerie out past the hills. It is on your map now, if you want to see for yourself.']); }, 900); }
     UI.toast(`${w.name}: +${rw.shards} Shards${rw.amulet ? ' and the ' + ITEMS[rw.amulet].name : Object.keys(rw.items).map(k => ', ' + ITEMS[k].name).join('')}.`, 'good');
     { const known = ((G.stats.recipes || {})[world.preset.id] || []).length; if (Math.random() < (q.kind === 'build' || q.kind === 'night' ? 0.6 : 0.4) || known < 3) setTimeout(() => G.learnRecipe(world.preset.id, w.name), 1800); }
     if (q.kind === 'night' || (q.kind === 'build' && (q.what === 'castle' || q.what === 'town')) || Math.random() < 0.12) { const pool = KIN.dex(world.preset.id).filter(sp => sp.rarity === 2 && sp.home && sp.home.layer === 'Surface'); const sp = pool[U.combine(w.seedN, q.round, 0xE6) % pool.length]; if (sp) setTimeout(() => { if (G.addEgg(sp, w.name, 500)) UI.toast(`${w.name} also hands you an egg. "Found it in the long grass. Keep it warm: walk with it."`, 'good'); }, 2600); }
