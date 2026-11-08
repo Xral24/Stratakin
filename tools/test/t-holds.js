@@ -1,0 +1,11 @@
+const { open } = require('./harness');
+(async () => { const h = await open(); const { page, ev } = h; await h.newGame('look-1');
+  const r = await ev(() => { const S = Keeps.sites(); const sp = G.world.spawn; return { n: S.length, list: S.map(k => `${k.name} ${Math.round(Math.hypot(k.x - sp.x, k.z - sp.z))}m y${k.y}`) }; });
+  console.log(r);
+  await ev(() => { const k = Keeps.sites()[0], p = G.player, w = G.world; G.repelUntil = 0; p.frozen = true; w.time = 0.35; p.x = k.x + 0.5; p.z = k.z - 12; w.ensureAround(Math.floor(p.x / CH), Math.floor(p.z / CH), 4, 9999); p.yaw = Math.PI; p.pitch = -0.4; });
+  for (let i = 0; i < 6; i++) await page.waitForTimeout(500);
+  await ev(() => { G.meshPass(999); const k = Keeps.sites()[0], p = G.player; p.y = k.y + 5; });
+  await page.waitForTimeout(1500); await page.screenshot({ path: 'hold.png' });
+  console.log(await ev(() => { const k = Keeps.sites()[0]; const boss = Wild.list.find(e => e.keepBoss); return { gloom: Keeps.gloom(G.player.x, G.player.z).toFixed(2), table: G.world.getBlock(k.x, k.y + 2, k.z + 3) === B.DARKTABLE, open: Keeps.tableOpen(k.x, k.z + 3), boss: boss && KIN.name(boss.kin) + ' Lv' + boss.kin.level, warriors: Campaign.entities().length }; }));
+  console.log(await ev(() => { const k = Keeps.sites()[0]; Keeps.onBattle(k.id, 'won'); return { open: Keeps.tableOpen(k.x, k.z + 3), crystal: G.stats.crystal, gloom: Keeps.gloom(G.player.x, G.player.z).toFixed(2) }; }));
+  console.log('ERRORS:', h.errors.length ? h.errors.slice(0, 3).join('\n') : 'none'); await h.close(); })();

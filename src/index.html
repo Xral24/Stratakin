@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Stratakin</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&family=Nunito:wght@500;700;800&display=swap" rel="stylesheet">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#07090f">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<canvas id="gl"></canvas>
+<div id="sky"></div>
+<div id="fade"></div>
+<div id="crosshair"></div>
+<div id="vignette"></div>
+<div id="hurt"></div>
+<div id="flash"></div>
+
+<!-- HUD -->
+<div id="hud" class="hidden">
+  <div id="hud-top">
+    <div id="status">
+      <div id="hearts"></div>
+      <div id="trainer"><span id="trainer-lvl">Lv 1</span><div class="xpbar"><div id="trainer-xp"></div></div></div>
+      <div id="where"></div>
+      <div id="weather"></div>
+    </div>
+    <div id="buttons">
+      <button class="hbtn" data-panel="kin">Kin <span id="kin-count"></span></button>
+      <button class="hbtn" data-panel="craft">Craft</button>
+      <button class="hbtn" data-panel="quest">Quests <span id="quest-dot" class="hidden">•</span></button>
+      <button class="hbtn" data-panel="map">Map</button>
+      <button class="hbtn" data-panel="menu">≡</button>
+    </div>
+  </div>
+  <canvas id="minimap" width="192" height="192"></canvas>
+  <div id="quest-hint"></div>
+  <div id="look"></div>
+  <div id="mine-bar" class="hidden"><div id="mine-fill"></div></div>
+  <div id="glide-hud" class="hidden"><div class="gc"><svg viewBox="-40 -40 80 80"><circle r="36" class="ring"/><path d="M0 -33 L0 -27" class="tick"/><path d="M33 0 L27 0 M-33 0 L-27 0 M0 33 L0 27" class="tick dim"/><g id="glide-arrow"><path d="M0 -22 L9 -6 L3 -8 L3 20 L-3 20 L-3 -8 L-9 -6 Z" class="arw"/></g><path d="M-6 6 L0 -4 L6 6" class="me"/></svg><b id="glide-wind">wind</b></div><div id="glide-stats"></div><div id="glide-flare">PULL BACK · FLARE</div></div>
+  <div id="breath" class="hidden"><span>AIR</span><div class="track"><div id="breath-fill"></div></div></div>
+  <div id="tutorial" class="hidden"></div>
+  <div id="dialogue" class="hidden"></div>
+  <div id="compass"><div id="compass-tape"></div><div id="compass-needle"></div></div>
+  <div id="bagbar"><button id="btn-bag"><span class="ico" id="bag-ico"></span><span id="bag-label">Bag</span></button></div>
+  <div id="hotbar" class="hidden"></div>
+  <div id="item-name" class="hidden"></div>
+  <div id="drop-bar" class="hidden"></div>
+  <div id="touch-ui">
+    <div id="joy"><div id="joy-knob"></div></div>
+    <button id="btn-jump">▲</button>
+    <button id="btn-sneak" aria-label="Down">▼</button>
+    <button id="btn-snare" class="hidden">Set snare</button>
+    <div id="fishbar" class="hidden"><div class="snare-tip">A bite! Tap when the marker is in the glow.</div><div class="snare-track"><div class="snare-zone"></div><div class="snare-marker"></div></div></div>
+    <button id="btn-ride" class="hidden">Ride</button>
+    <button id="btn-ship" class="hidden" aria-label="Starship">🚀</button>
+  </div>
+  <div id="toasts"></div>
+</div>
+
+<!-- Battle sheet -->
+<div id="battle" class="hidden">
+  <div class="b-head">
+    <div class="b-card" id="b-wild">
+      <div class="b-name"><span class="nm"></span><span class="lv"></span></div>
+      <div class="hpbar"><div class="hpfill"></div></div>
+      <div class="elems"></div>
+    </div>
+    <div class="b-card" id="b-mine">
+      <div class="b-name"><span class="nm"></span><span class="lv"></span></div>
+      <div class="hpbar"><div class="hpfill"></div></div>
+      <div class="elems"></div>
+      <div class="xpbar"><div class="xpfill"></div></div>
+    </div>
+  </div>
+  <div id="b-snare" class="hidden">
+    <div class="snare-tip">Tap anywhere here when the marker is inside the glowing zone.</div>
+    <div class="snare-track"><div class="snare-zone"></div><div class="snare-marker"></div></div>
+    <button id="snare-go">Set the snare!</button>
+  </div>
+  <div id="b-log"></div>
+  <div id="b-actions"></div>
+</div>
+
+<!-- Panels -->
+<div id="panel" class="hidden">
+  <div id="panel-box">
+    <div id="panel-head"><span id="panel-title"></span><button id="panel-close">✕</button></div>
+    <div id="panel-body"></div>
+  </div>
+</div>
+
+<!-- Start screen -->
+<div id="start">
+  <div id="start-box">
+    <h1>STRATAKIN</h1>
+    <p class="tag">Dig down through the layers of the world. Catch and fuse the Kin that live there. Reach the Heart.</p>
+    <div id="start-buttons"></div>
+    <div id="starter-pick" class="hidden">
+      <p>Choose your first Kin</p>
+      <div id="starters"></div>
+    </div>
+    <p class="how" id="how"></p>
+  </div>
+</div>
+<div id="loading" class="hidden"><div>Shaping the world…</div></div>
+
+<script src="js/util.js"></script>
+<script src="js/saves.js"></script>
+<script src="js/world.js"></script>
+<script src="js/render.js"></script>
+<script src="js/player.js"></script>
+<script src="js/controls.js"></script>
+<script src="js/kin.js"></script>
+<script src="js/weather.js"></script>
+<script src="js/wild.js"></script>
+<script src="js/village.js"></script>
+<script src="js/battle.js"></script>
+<script src="js/quests.js"></script>
+<script src="js/fishing.js"></script>
+<script src="js/hazards.js"></script>
+<script src="js/builds.js"></script>
+<script src="js/campaign.js"></script>
+<script src="js/npcs.js"></script>
+<script src="js/camps.js"></script>
+<script src="js/mer.js"></script>
+<script src="js/lab.js"></script>
+<script src="js/avatar.js"></script>
+<script src="js/music.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/relics.js"></script>
+<script src="js/combat.js"></script>
+<script src="js/keeps.js"></script>
+<script src="js/citadel.js"></script>
+<script src="js/farms.js"></script>
+<script src="js/buddy.js"></script>
+<script src="js/main.js"></script>
+<script>
+// offline cache for the installed app (ignored where service workers are not allowed)
+if ('serviceWorker' in navigator && location.protocol === 'https:') { window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(() => {}); }); }
+</script>
+</body>
+</html>
