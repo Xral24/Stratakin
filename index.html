@@ -10941,6 +10941,9 @@ G.giveLostMap = function (from) {
 G.protectedAt = function (hit) {
   if (this.worldId !== 'earth') return null; const p = this.player;
   const kind = p.toolKind(hit.id);
+  for (const k of Keeps.sites()) if (Math.abs(hit.x - k.x) <= 12 && Math.abs(hit.z - k.z) <= 12 && Math.abs(hit.y - k.y) <= 16) return { kind: 'dark' };
+  { const cs = Citadel.open() ? Citadel.site() : null; if (cs && hit.x >= cs.x - 8 && hit.x <= cs.x + 94 && Math.abs(hit.z - cs.z) <= 19) return { kind: 'dark' }; }
+  { const fo = (Campaign.sites() || {}).fort; if (fo && (this.stats.camp || {}).st_fort && hit.x >= fo.x - 18 && hit.x <= fo.x + 78 && Math.abs(hit.z - fo.z) <= 14) return { kind: 'dark' }; }
   for (const f of Farms.sites()) if (Math.abs(hit.x - f.x) <= 13 && Math.abs(hit.z - f.z) <= 13) { if (hit.id === B.CHEST) return null; return { kind: 'farm', f }; }
   const v = Village.active; if (v && v.type === 'land') { const R = (v.R || ((this.villageState[v.id] || {}).expanded ? 18 : 12)) + 3; if (Math.abs(hit.x - v.x) <= R && Math.abs(hit.z - v.z) <= R) { if (kind === 'hand') return null; return { kind: 'town', v }; } }
   return null;
@@ -10950,6 +10953,7 @@ G.onProtectedMine = function (pr, hit) {
   const p = this.player; const fx = -Math.sin(p.yaw), fz = -Math.cos(p.yaw);
   const bring = (n) => { if (!n) return; n.x = p.x - fx * 1.8; n.z = p.z - fz * 1.8; const gy = this.world.groundY(Math.floor(n.x), Math.floor(n.z), Math.floor(p.y) + 2); if (gy != null) n.y = gy + 1; n.yaw = Math.atan2(p.x - n.x, p.z - n.z); if (n.home) n.home = { x: n.x, z: n.z }; this.talkNpc = n; };
   let who = null, lines;
+  if (pr.kind === 'dark') { UI.sfx('miss'); UI.toast('The stone does not even scratch. Whatever the Kinmaster built here, he built it to keep out exactly you. Find the way in.', 'bad'); return; }
   if (pr.kind === 'farm') {
     who = Campaign.getPerson('farmer_' + pr.f.id); bring(who);
     lines = ['Oi! Not my fences, not my field, not my house. Put that down.', 'You want something from this farm, you ask me.'];
