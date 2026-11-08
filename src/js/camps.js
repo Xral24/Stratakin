@@ -80,6 +80,10 @@ const Camps = (() => {
     const kx = vx + 6, kz = vz + 7;
     for (let dx = -3; dx <= 3; dx++) for (let dz = -3; dz <= 3; dz++) { set(kx + dx, vy - 1, kz + dz, B.GRAVEL); if ((Math.abs(dx) === 3 || Math.abs(dz) === 3) && (dx + dz) % 2 === 0) set(kx + dx, vy, kz + dz, B.LOG); }
     c.corral = { x: kx, z: kz };
+    // the horse paddock, west: grass inside a ring of posts, where the camp keeps its Windmanes
+    const qx = vx - 9, qz = vz + 4;
+    for (let dx = -3; dx <= 3; dx++) for (let dz = -3; dz <= 3; dz++) { set(qx + dx, vy - 1, qz + dz, B.GRASS); if ((Math.abs(dx) === 3 || Math.abs(dz) === 3) && (dx + dz) % 2 === 0) set(qx + dx, vy, qz + dz, B.LOG); }
+    c.paddock = { x: qx, z: qz };
   }
   function warriorSpecies(i, seedN) {
     const r = U.rng(U.combine(0x4A7, i, seedN));
@@ -101,13 +105,43 @@ const Camps = (() => {
     const m = KIN.model(sp, 2);
     c.strider = { role: 'duststrider', name: 'Duststrider', sp, x: c.corral.x + 0.5, y: standY(c.corral.x + 0.5, c.y, c.corral.z + 0.5) ?? c.y, z: c.corral.z + 0.5, yaw: 0, model: m, mesh: R.entityMesh('strider:' + c.id, (mb) => KIN.buildMesh(mb, m)), bob: 0 };
     if (poi(c.id).striderTaken) c.strider = null;
+    // three Windmanes: the camp horses. In Indian dress one will carry you out of camp, but the moment you get down it gallops home
+    c.horses = [];
+    if (c.paddock) for (let i = 0; i < 3; i++) {
+      const hs = horseSpecies(c.seedN, i); const hm = KIN.model(hs, 2); const hx = c.paddock.x + 0.5 + (i - 1) * 1.8, hz = c.paddock.z + 0.5 + (i % 2 ? 1.2 : -1.2);
+      c.horses.push({ role: 'camphorse', name: 'Windmane', sp: hs, i, x: hx, z: hz, y: standY(hx, c.y, hz) ?? c.y, hx, hz, yaw: i * 2.1, model: hm, mesh: R.entityMesh('horse:' + c.id + ':' + i, (mb) => KIN.buildMesh(mb, hm)), bob: i, out: false });
+    }
+  }
+  function horseSpecies(seedN, i) {
+    const sp = KIN.species(U.combine(0x4053, seedN, i), ['Gale'], 4, { primary: 'Gale', shape: 'quadruped', total: 400, evolveAt: [9999, 9999], size: 1.3 });
+    const coats = [{ body: '#f2ede4', belly: '#f2ede4', accent: '#6a3a1e' }, { body: '#7a4a2a', belly: '#f0e6d8', accent: '#f0e6d8' }, { body: '#2a2220', belly: '#f2ede4', accent: '#c94a2a' }, { body: '#b07a48', belly: '#f2e4cc', accent: '#3a2216' }];
+    const c0 = coats[U.mod(seedN + i, coats.length)];
+    sp.names = ['Windmane', 'Windmane', 'Windmane']; sp.colors = Object.assign({ dark: '#2a1a10', eye: '#222222' }, c0); sp.feat = { horns: false, wings: false, spikes: false, tail: true, ears: true, crest: true, bigEyes: false, stripes: false, spots: i !== 1, armor: false, bigTail: true };
+    sp.fast = true; sp.noFuse = true; sp.tame = true; sp.rarity = 2; sp.campHorse = true; return sp;
+  }
+  // borrowing a Windmane: never yours, never catchable, only a getaway
+  let lent = null; // { k, camp, horse }
+  function dressed() { return G.player.has('painted_cloak') || G.skin === 'painted'; }
+  function borrow(n) {
+    const c = active; if (!c || n.out) return;
+    if (!dressed()) { UI.toast('The Windmane lays its ears back and sidesteps. It will not carry a stranger. In Indian dress it might.'); return; }
+    if (G.player.mount) { UI.toast('Get down from your own mount first.'); return; }
+    const k = KIN.create(n.sp, Math.max(10, G.trainerLevel)); k.borrowed = true; k.tamed = true; k.trust = 1;
+    n.out = true; lent = { k, camp: c, horse: n };
+    G.player.mount = k; G.player.mountMode = 'land'; UI.sfx('util');
+    UI.toast('The Windmane takes you for one of its own and lets you up. Ride hard. The moment you get down, it goes home.', 'good');
+  }
+  function horseHome() {
+    if (!lent) return; const { horse } = lent; lent = null; horse.out = false; horse.x = horse.hx; horse.z = horse.hz;
+    UI.toast('The Windmane wheels round and gallops back to its camp. Gone.');
   }
   function standY(x, y, z) { const bx = Math.floor(x), bz = Math.floor(z); for (const dy of [0, 1, -1, 2, -2]) { const yy = Math.floor(y) + dy; const b0 = world.getBlock(bx, yy, bz), b1 = world.getBlock(bx, yy + 1, bz), below = world.getBlock(bx, yy - 1, bz); if ((b0 === B.AIR || BLOCKS[b0].partial) && b1 === B.AIR && isSolid(below) && !isLeaf(below)) return yy; } return null; }
   const isNight = () => Math.cos(world.time * Math.PI * 2) > 0.17;
-  function frame(c, px, pz) { const sx = Math.round((px - c.x) / WORLD_W) * WORLD_W, sz = Math.round((pz - c.z) / WORLD_W) * WORLD_W; if (!sx && !sz) return; c.x += sx; c.z += sz; for (const w of c.warriors) { w.x += sx; w.z += sz; } if (c.strider) { c.strider.x += sx; c.strider.z += sz; } if (c.corral) { c.corral.x += sx; c.corral.z += sz; } if (c.chest) { c.chest.x += sx; c.chest.z += sz; } for (let i = 0; i < 6; i++) if (c['tent' + i]) { c['tent' + i].x += sx; c['tent' + i].z += sz; } }
+  function frame(c, px, pz) { const sx = Math.round((px - c.x) / WORLD_W) * WORLD_W, sz = Math.round((pz - c.z) / WORLD_W) * WORLD_W; if (!sx && !sz) return; c.x += sx; c.z += sz; for (const w of c.warriors) { w.x += sx; w.z += sz; } if (c.strider) { c.strider.x += sx; c.strider.z += sz; } for (const h of c.horses || []) { h.x += sx; h.z += sz; h.hx += sx; h.hz += sz; } if (c.corral) { c.corral.x += sx; c.corral.z += sz; } if (c.chest) { c.chest.x += sx; c.chest.z += sz; } for (let i = 0; i < 6; i++) if (c['tent' + i]) { c['tent' + i].x += sx; c['tent' + i].z += sz; } }
   // ---- per frame ----
   function update(dt, p, inBattle) {
     if (world.preset.id !== 'earth') return;
+    if (lent && p.mount !== lent.k) horseHome();
     const cx0 = Math.floor(U.mod(p.x, WORLD_W) / CELL), cz0 = Math.floor(U.mod(p.z, WORLD_W) / CELL);
     let near = null, nd = Infinity;
     for (let dx = -1; dx <= 1; dx++) for (let dz = -1; dz <= 1; dz++) { const c = campFor(cx0 + dx, cz0 + dz); if (!c) continue; const d = dist2d(c.x, c.z, p.x, p.z); if (d < nd) { nd = d; near = c; } }
@@ -175,6 +209,7 @@ const Camps = (() => {
         if (w.alert >= 1) { c.alarm = 25; UI.sfx('alert'); UI.toast('The Indians have seen you. RUN.', 'bad'); for (const o of c.warriors) o.alert = 1; }
       } else w.alert = Math.max(0, w.alert - dt * 0.6);
     }
+    for (const h of c.horses || []) { if (h.out) continue; h.bob += dt; const dx = p.x - h.x, dz = p.z - h.z; if (Math.hypot(dx, dz) < 6) h.yaw = Math.atan2(dx, dz); else h.yaw += Math.sin(h.bob * 0.3 + h.i) * dt * 0.4; }
     if (c.strider) { c.strider.bob += dt; const dx = p.x - c.strider.x, dz = p.z - c.strider.z; if (Math.hypot(dx, dz) < 8) c.strider.yaw = Math.atan2(dx, dz); }
   }
   function move(w, nx, nz) { const gy = standY(nx, w.y, nz); if (gy == null) return false; w.x = nx; w.z = nz; w.y += (gy - w.y) * 0.5; return true; }
@@ -182,6 +217,7 @@ const Camps = (() => {
     if (!active) return [];
     const out = [];
     for (const w of active.warriors) { if (w.sleeping) continue; out.push({ x: w.x, y: w.y, z: w.z, yaw: w.yaw, model: w.model, mesh: w.mesh, scale: w.scale || 1, hover: w.moving ? Math.abs(Math.sin(w.bob * 9)) * 0.08 : 0, skyMul: 1 }); }
+    for (const h of active.horses || []) if (!h.out) out.push({ x: h.x, y: h.y, z: h.z, yaw: h.yaw, model: h.model, mesh: h.mesh, scale: 1, hover: Math.sin(h.bob * 2) * 0.02, skyMul: 1 });
     if (active.strider) { const s = active.strider; out.push({ x: s.x, y: s.y, z: s.z, yaw: s.yaw, model: s.model, mesh: s.mesh, scale: 1, hover: Math.sin(s.bob * 2) * 0.03, skyMul: 1 }); }
     return out;
   }
@@ -190,7 +226,7 @@ const Camps = (() => {
     if (item === 'painted_piece') { if (!G.stats.pieces) G.stats.pieces = {}; if (!G.stats.pieces[c.id]) { G.stats.pieces[c.id] = true; const n = Object.keys(G.stats.pieces).length, need = all().length; setTimeout(() => UI.toast(`Indian cloth, from ${c.name} (${n} of ${need} camps). Zazu in the city could make something of this.`, 'good'), 300); } return; }
     if (chest.treasure || chest.arms) c.stole = true;
   }
-  function talkable() { return active && active.strider ? [active.strider] : []; }
+  function talkable() { if (!active) return []; return (active.strider ? [active.strider] : []).concat((active.horses || []).filter(h => !h.out)); }
   // taking the Duststrider: by night, unseen, or while they are scared
   function tame(n) {
     const c = active; if (!c || c.strider !== n) return;
@@ -209,5 +245,5 @@ const Camps = (() => {
     return out;
   }
   function all() { const out = []; for (let cx = 0; cx < NC; cx++) for (let cz = 0; cz < NC; cz++) { const c = campFor(cx, cz); if (c) out.push(c); } return out; }
-  return { init, update, entities, talkable, tame, marks, mapMarks, all, onTake, get active() { return active; } };
+  return { init, update, entities, talkable, tame, borrow, horseHome, get lent() { return lent; }, marks, mapMarks, all, onTake, get active() { return active; } };
 })();

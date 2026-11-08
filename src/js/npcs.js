@@ -273,8 +273,9 @@ const Npcs = (() => {
     if (n.role === 'mer') return Mer.talk(n);
     if (n.role === 'scientist' || n.role === 'apprentice') return Lab.talk(n);
     if (n.role === 'duststrider') return Camps.tame(n);
+    if (n.role === 'camphorse') return Camps.borrow(n);
   }
-  function label(n) { if (n.role === 'camp') return `${n.name} · tap to talk`; return n.role === 'wanderer' ? `${n.name} · has a job for you` : n.role === 'mer' ? `${n.name} · one of the sea people` : n.role === 'scientist' ? `${n.name} · scientist` : n.role === 'apprentice' ? `${n.name} · needs your help` : n.role === 'duststrider' ? `${n.name} · the camp's mount · tap to take it` : n.name; }
+  function label(n) { if (n.role === 'camp') return `${n.name} · tap to talk`; return n.role === 'wanderer' ? `${n.name} · has a job for you` : n.role === 'mer' ? `${n.name} · one of the sea people` : n.role === 'scientist' ? `${n.name} · scientist` : n.role === 'apprentice' ? `${n.name} · needs your help` : n.role === 'duststrider' ? `${n.name} · the camp's mount · tap to take it` : n.role === 'camphorse' ? `${n.name} · camp horse · tap to ride` : n.name; }
   // compass marks: dens of taken quests, the lab once you know of it
   function marks(p) {
     const out = [];

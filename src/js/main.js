@@ -152,7 +152,7 @@ G.rideRequirement = function (k) {
 G.toggleRide = function () {
   const p = this.player;
   if (Battle.active || Dialogue.active()) return;
-  if (p.mount) { p.mount = null; UI.toast('You climb off.'); return; }
+  if (p.mount) { const was = p.mount; p.mount = null; if (was.borrowed) Camps.horseHome(); else UI.toast('You climb off.'); return; }
   const k = this.activeKin(); if (!k) return;
   if (!(this.stats.camp || {}).rogueTamed && !k.sp.tame && !k.sp.fast) { UI.toast('You do not know how to ride yet. Dusty Hale teaches it, out at his ranch (♞ on the map).'); return; }
   if (this.rideMode(k) === 'land' && !(k.sp.steed || k.sp.fast || k.sp.tame || k.sp.legend || k.sp.apex)) { UI.toast(`${KIN.name(k)} will not carry a rider. Only a few kinds of land Kin ever do: steeds (marked in your Kindex), the dinosaurs, and the legendaries.`); return; }
@@ -767,7 +767,7 @@ G.loop = function (t) {
     const st = this.stealthTarget();
     const lead = this.activeKin();
     UI.setButtons({ snare: !!st && (p.has('snare') || p.has('snare2')), ride: !p.flying && (!!p.mount || !!(lead && this.rideRequirement(lead) != null)), riding: !!p.mount, ship: p.has('ship') && (p.flying || this.world.layerAt(Math.floor(p.y), Math.floor(p.x), Math.floor(p.z)) !== 'Mines'), flying: p.flying, canLand: p.flying && (p.autoLand || this.landHeight() <= G.LAND_REACH) });
-    if (p.mount && (p.mount.hp <= 0 || !this.kin.includes(p.mount))) { p.mount = null; UI.toast('Your mount is down.', 'bad'); }
+    if (p.mount && !p.mount.borrowed && (p.mount.hp <= 0 || !this.kin.includes(p.mount))) { p.mount = null; UI.toast('Your mount is down.', 'bad'); }
     if (p.mount && p.mountMode === 'water' && !p.inWater && p.onGround) { p.mount = null; UI.toast('It cannot follow you onto land.'); }
   }
   if ((this.frame & 7) === 0 && !inBattle) { const npc = Village.pick(p); const rn = npc ? null : Npcs.pick(p); const we = (npc || rn) ? null : Wild.pick(p); const hit = (!npc && !we && !rn) ? p.raycast(5.5) : null; const campHit = hit && hit.id === B.CAMPFIRE;
