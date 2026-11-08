@@ -78,9 +78,10 @@ const UI = (() => {
   let lastHotbar = '';
   function renderHotbar() {
     const p = G.player; const hb = p.hotbar(); const sel = p.selected();
-    const sig = hb.map(k => k + ':' + p.countKey(k)).join('|') + '#' + p.sel;
+    const cw = (k) => (typeof Combat !== 'undefined' && Combat.lifeOf && Combat.lifeOf(k)) ? Combat.cond(k) : null;
+    const sig = hb.map(k => k + ':' + p.countKey(k) + ':' + (cw(k) == null ? '' : Math.round(cw(k) * 20))).join('|') + '#' + p.sel;
     if (sig === lastHotbar) return; lastHotbar = sig;
-    el.hotbar.innerHTML = hb.map((k, i) => { const inf = p.itemInfo(k); return `<div class="slot ${k === sel ? 'sel' : ''} ${inf.obj ? 'obj' : ''}" data-i="${i}" title="${inf.name}"><div class="ico" style="background:${inf.col}"></div><span>${inf.obj ? '' : p.count(k)}</span></div>`; }).join('');
+    el.hotbar.innerHTML = hb.map((k, i) => { const inf = p.itemInfo(k); return `<div class="slot ${k === sel ? 'sel' : ''} ${inf.obj ? 'obj' : ''}" data-i="${i}" title="${inf.name}"><div class="ico" style="background:${inf.col}"></div><span>${inf.obj ? '' : p.count(k)}</span>${(() => { const c = cw(k); if (c == null || c >= 0.999) return ''; return `<b class="wearbar"><i style="width:${Math.round(c * 100)}%;background:${c <= 0 ? '#555' : c < 0.25 ? '#e04040' : c < 0.6 ? '#e0b040' : '#60d060'}"></i></b>`; })()}</div>`; }).join('');
     const si = sel ? p.itemInfo(sel) : null;
     el['item-name'].textContent = si ? si.name + (si.block ? ' · tap to place' : si.snare ? ' · use in battle' : '') : '';
     const bi = document.getElementById('bag-ico'), bl = document.getElementById('bag-label');

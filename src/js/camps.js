@@ -1,7 +1,7 @@
 'use strict';
 // The Painted: a warrior people of the swamps and deserts, far from your camp. Their camps hold a chief's hoard and a Duststrider,
 // the fastest mount there is. They cannot be fought: by day they chase you off with spears; by night most of them sleep, and a quiet
-// visitor can take what they like. A dinosaur scares them away, for as long as you stay in the saddle and half a minute after.
+// visitor can take what they like. Only the Tyrannorex scares them away: while you are in its saddle and about 17 seconds after you step down.
 const Camps = (() => {
   let G = null, world = null;
   const NC = 64, CELL = WORLD_W / 64;
@@ -10,6 +10,7 @@ const Camps = (() => {
   const dist2d = (ax, az, bx, bz) => Math.hypot(wd(ax - bx), wd(az - bz));
   const NAMES = ['the Red Hand', 'the Ashen', 'the Thornfolk', 'the Marsh Painted', 'the Dust Painted', 'the Bone Circle'];
   function init(game) { G = game; world = game.world; camps.clear(); active = null; chosen = null; }
+  function stockArms(c, day) { const r = U.rng(c.seedN ^ (day + 1) * 7331); const o = { arrow: 12 + r.int(9), sp_painted: 1, bow_painted: 1 }; if (r() < 0.35) o.arrow_barbed = 3 + r.int(3); return o; }
   function poi(id) { if (!G.poiState) G.poiState = {}; if (!G.poiState[id]) G.poiState[id] = {}; return G.poiState[id]; }
   let chosen = null;
   function plan() {
@@ -65,6 +66,8 @@ const Camps = (() => {
       c['tent' + i] = { x: tx, z: tz };
     }
     { const t = c['tent' + (c.seedN % 10)]; if (t) { set(t.x, vy, t.z, B.CHEST); c.pieceChest = { x: t.x, y: vy, z: t.z }; const pst = poi(c.id); if (!pst.pieceSet) { const ch = G.chestAt(t.x, vy, t.z, true); ch.items = { painted_piece: 1, berry: 3 }; pst.pieceSet = true; } } }
+    // the weapon tent: the Painted always keep a store of plain arrows, spears and bows, refilled every night
+    { const t = c['tent' + ((c.seedN + 5) % 10)]; if (t) { set(t.x, vy, t.z, B.CHEST); c.armsChest = { x: t.x, y: vy, z: t.z }; const ast = poi(c.id); if (!ast.armsSet) { const ch = G.chestAt(t.x, vy, t.z, true); ch.items = stockArms(c, 0); ch.arms = true; ast.armsSet = true; } } }
     // the chief's hut, north of the fire: plank walls, a totem at the door, the hoard at the back
     const hx = vx, hz = vz - 6;
     for (let dx = -2; dx <= 2; dx++) for (let dz = -2; dz <= 2; dz++) { set(hx + dx, vy - 1, hz + dz, B.PLANKS); const wall = Math.abs(dx) === 2 || Math.abs(dz) === 2; for (let y = vy; y <= vy + 2; y++) set(hx + dx, y, hz + dz, wall ? B.PLANKS : B.AIR); set(hx + dx, vy + 3, hz + dz, B.LOG); }
@@ -113,14 +116,15 @@ const Camps = (() => {
     const st = poi(near.id);
     if (!st.stamped) { world.ensureAround(Math.floor(near.x / CH), Math.floor(near.z / CH), 2, 999); stamp(near); st.stamped = true; G.meshPass(99); UI.toast(`A ${near.name}. Spears on the totems. They do not take visitors.`, 'bad'); }
     if (!near.warriors.length) populate(near);
+    if (near.armsChest && isNight() && st.armsDay !== (G.dayCount || 0)) { const ch = G.chestAt(near.armsChest.x, near.armsChest.y, near.armsChest.z, true); const add = stockArms(near, G.dayCount || 0); ch.items = ch.items || {}; for (const k in add) ch.items[k] = Math.max(ch.items[k] || 0, add[k]); ch.arms = true; st.armsDay = G.dayCount || 0; }
     if (near.chest && isNight() && st.refillDay !== (G.dayCount || 0)) { const ch = G.chestAt(near.chest.x, near.chest.y, near.chest.z, true); const r = U.rng(near.seedN ^ (G.dayCount || 0) * 977); ch.items = ch.items || {}; ch.items.gold = Math.max(ch.items.gold || 0, 5 + r.int(4)); if (r() < 0.4) ch.items.diamond = Math.max(ch.items.diamond || 0, 1); ch.treasure = true; st.refillDay = G.dayCount || 0; }
     active = near;
     const c = near; const night = isNight(); const now = performance.now() / 1000;
-    // a dinosaur in the saddle scares them off; on foot you get half a minute before they come back
-    const onDino = !!(p.mount && p.mount.sp && p.mount.sp.dino);
-    if (onDino && nd < 34) { if (!c.scared) UI.toast('The Painted see what you are riding and run.', 'good'); c.scared = true; c.scaredUntil = now + 30; c.alarm = 0; }
-    else if (c.scared && now > c.scaredUntil) { c.scared = false; if (nd < 26) { c.alarm = 25; UI.toast('The Painted are back, and they have seen you.', 'bad'); } }
-    else if (c.scared && !onDino && c.scaredUntil - now < 29.9 && (G.frame & 63) === 0 && nd < 40) UI.toast(`${Math.ceil(c.scaredUntil - now)}s before the Painted return.`);
+    // the Tyrannorex in the saddle scares them off; step down and you get about 17 seconds before they come back at you. Back in the saddle and they scatter again
+    const onDino = !!(p.mount && p.mount.sp && p.mount.sp.apex === 'rex'); // only the Tyrannorex: smaller dinosaurs they will spear
+    if (onDino && nd < 34) { if (!c.scared) UI.toast('The Painted see the Tyrannorex and run.', 'good'); c.scared = true; c.scaredUntil = now + 17; c.alarm = 0; }
+    else if (c.scared && now > c.scaredUntil) { c.scared = false; if (nd < 40) { c.alarm = 25; for (const o of c.warriors) { o.sleeping = false; o.alert = 1; } UI.toast('Off the Tyrannorex too long. The Painted are coming back for you. Get in the saddle.', 'bad'); } }
+    else if (c.scared && !onDino && c.scaredUntil - now < 16.9 && (G.frame & 63) === 0 && nd < 40) UI.toast(`${Math.ceil(c.scaredUntil - now)}s before the Painted return.`);
     if (c.alarm > 0) c.alarm -= dt;
     // the Painted Cloak: in it you pass as one of them, for a while, until you take their hoard and try to walk out with it
     const cloak = p.has('painted_cloak') && !c.blown && c.alarm <= 0 && !c.scared;
@@ -184,7 +188,7 @@ const Camps = (() => {
   function onTake(chest, item) {
     const c = active; if (!c) return;
     if (item === 'painted_piece') { if (!G.stats.pieces) G.stats.pieces = {}; if (!G.stats.pieces[c.id]) { G.stats.pieces[c.id] = true; const n = Object.keys(G.stats.pieces).length, need = all().length; setTimeout(() => UI.toast(`Painted cloth, from ${c.name} (${n} of ${need} camps). Zazu in the city could make something of this.`, 'good'), 300); } return; }
-    if (chest.treasure) c.stole = true;
+    if (chest.treasure || chest.arms) c.stole = true;
   }
   function talkable() { return active && active.strider ? [active.strider] : []; }
   // taking the Duststrider: by night, unseen, or while they are scared
@@ -192,7 +196,7 @@ const Camps = (() => {
     const c = active; if (!c || c.strider !== n) return;
     const night = isNight();
     if (c.alarm > 0) { UI.toast('It shies away from you while the camp is roused.'); return; }
-    if (!night && !c.scared) { UI.toast('In daylight the whole camp watches it. Come back at night and be quiet, or come on a dinosaur.'); return; }
+    if (!night && !c.scared) { UI.toast('In daylight the whole camp watches it. Come back at night and be quiet, or come on the Tyrannorex.'); return; }
     const k = KIN.create(n.sp, Math.max(10, G.trainerLevel)); G.addKin(k); c.strider = null; poi(c.id).striderTaken = true;
     UI.sfx('caught'); UI.toast('The Duststrider lets you up. It is yours: faster than anything on legs, and it will never go in a table.', 'good');
     G.stats.caught++;

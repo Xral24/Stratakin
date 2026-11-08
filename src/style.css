@@ -324,3 +324,7 @@ body.desktop #joy, body.desktop #btn-jump, body.desktop #btn-sneak { display: no
 .arc { border-left: 4px solid var(--ac); padding-left: 8px; margin: 12px 0; }
 .arc .archead { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; color: var(--ac); }
 .arc .archead .btn { margin-left: auto; padding: 3px 10px; font-size: 12px; }
+
+.slot { position: relative; }
+.slot .wearbar { position: absolute; left: 4px; right: 4px; bottom: 2px; height: 3px; background: rgba(0,0,0,.5); border-radius: 2px; overflow: hidden; }
+.slot .wearbar i { display: block; height: 100%; }

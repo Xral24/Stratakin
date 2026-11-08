@@ -391,9 +391,10 @@ G.dismantle = function (entry) {
 G.shoot = function (pick) {
   const p = this.player;
   const ammo = pick && p.has(pick) ? pick : (this.stats.ammo && p.has(this.stats.ammo)) ? this.stats.ammo : ['arrow_ember', 'arrow', 'arrow_barbed', 'arrow_frost', 'arrow_spark', 'arrow_heavy', 'arrow_void', 'arrow_sleep'].find(a => p.has(a)) || null; if (pick) this.stats.ammo = pick;
+  const bw = Combat.bow(); if (!bw) { UI.toast(Combat.anyBow() ? 'Your bow is broken. An armoury will mend it.' : 'You need a bow.', 'bad'); return; }
   if (!ammo) { UI.toast('No arrows. Craft them: 1 wood, 1 stone, 1 frond makes 6.', 'bad'); return; }
   if (this.lastShot && performance.now() - this.lastShot < 600) return; this.lastShot = performance.now();
-  p.take(ammo, 1); UI.sfx('place'); UI.renderHotbar();
+  p.take(ammo, 1); Combat.use(bw, 1); UI.sfx('place'); UI.renderHotbar();
   { const fh = Combat.arrowHit(ammo, 40); const wall0 = fh && p.raycast(40, false, true); if (fh && (!wall0 || wall0.dist > fh.dist)) { UI.sfx('hit'); const ft = Combat.focusText(); if (ft) UI.toast(ft); return; } }
   const e = Wild.pick(p, 40); const wall = p.raycast(40, false, true); // arrows fly past torches, ladders and plants
   const eD = e ? Math.hypot(e.x - p.x, e.y - p.y, e.z - p.z) : Infinity;
@@ -782,7 +783,7 @@ G.onTap = function () {
   const rn = Npcs.pick(p);
   if (rn) { Npcs.talk(rn); return; }
   if (Buddy.pick(p) && !Wild.pick(p)) { Buddy.tap(); return; }
-  { const sel0 = p.selected(); const ai = sel0 && ITEMS[sel0]; if (ai && ai.arrow && p.has('bow')) { this.shoot(sel0); return; } }
+  { const sel0 = p.selected(); const ai = sel0 && ITEMS[sel0]; if (ai && ai.arrow && Combat.anyBow()) { this.shoot(sel0); return; } }
   if (Combat.weapon() && (Keeps.inHold(p) || Citadel.inside(p) || !Wild.pick(p))) { Combat.swing(); return; }
   const e = (p.selected() && (p.itemInfo(p.selected()) || {}).bow) ? null : Wild.pick(p);
   const hit = p.raycast(5.5);

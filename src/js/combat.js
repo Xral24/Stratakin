@@ -61,13 +61,14 @@ const Combat = (() => {
       ITEMS[id] = { name: `${M.name} ${S.name}`, col: M.col, keep: true, armour: S.k, tier: M.t, desc: `Your armour (${S.name.toLowerCase()}): ${pts} armour points. The best piece you own in each slot is worn automatically.${M.perkTxt ? ' ' + M.name + ' ' + M.perkTxt + '.' : ''}` };
     }
   }
-  function worn() { const out = {}; for (const k of G.player.inv.keys()) { const a = ARMOUR[k]; if (a && (!out[a.slot] || a.pts > out[a.slot].pts)) out[a.slot] = a; } return out; }
+  function worn() { const out = {}; for (const k of G.player.inv.keys()) { const a = ARMOUR[k]; if (a && !broken(k) && (!out[a.slot] || a.pts > out[a.slot].pts)) out[a.slot] = a; } return out; }
   function armourPts() { const w = worn(); return Object.values(w).reduce((s, a) => s + a.pts, 0); }
   function wornPerk(perk, all) { const w = Object.values(worn()); return all ? w.length === 4 && w.every(a => a.perk === perk) : w.filter(a => a.perk === perk).length; }
   function armourCut(n, cause) {
     if (!['warrior', 'kin', 'fall', 'lava', 'cold', 'spear'].includes(cause)) return n;
     let pts = armourPts() + (G.buffOn && G.buffOn('ward') ? G.buffOn('ward').amt : 0); if (cause === 'warrior' && G.player.lastArrow && wornPerk('arrow')) pts += 4 * wornPerk('arrow');
     if (cause === 'lava') pts = wornPerk('fire') * 6; if (cause === 'cold') pts = wornPerk('cold') * 6;
+    if (['warrior', 'kin', 'spear'].includes(cause)) for (const a of Object.values(worn())) use(a.id, 1);
     const keep = 20 / (20 + pts); const r = n * keep; return Math.floor(r) + (Math.random() < r - Math.floor(r) ? 1 : 0);
   }
   // arrows: eight kinds, each with its own trick
@@ -81,20 +82,42 @@ const Combat = (() => {
     arrow_sleep: { dmg: 2, sleep: true, name: 'Sleep Dart', col: '#b0a0ff', kin: 0.05, desc: 'Drops a warrior who has not seen you straight to his knees. On a wild Kin, it does little harm but it forgets you were there.', needs: { wood: 1, berry: 3, glowworm: 1 }, n: 3 },
     arrow_void: { dmg: 22, pierce: true, name: 'Void Arrow', col: '#7a2aa8', kin: 0.4, desc: 'Void-tipped: ignores shields entirely. On a wild Kin, two fifths of its health. Made only at a Dark Fusion Table.', needs: { wood: 1, void: 1, frond: 1 }, n: 3 },
   };
+  // ---------------- wear: blades, spears, bows, shields and armour all wear out and need mending ----------------
+  const BOWS = { bow: { life: 170, price: 120 }, bow_painted: { life: 90, price: 60 } };
+  function lifeOf(id) { const g = GEAR[id], a = ARMOUR[id], b = BOWS[id]; if (b) return b.life; if (a) return 70 + a.tier * 35; if (g) return g.kind === 'shield' ? 60 + g.tier * 30 : 90 + g.tier * 45; return 0; }
+  function priceOf(id) { const g = GEAR[id], a = ARMOUR[id], b = BOWS[id]; return (b && b.price) || (g && g.price) || (a && a.price) || 60; }
+  const wearMap = () => { if (!G.stats.gwear) G.stats.gwear = {}; return G.stats.gwear; };
+  function cond(id) { const L = lifeOf(id); if (!L) return 1; return Math.max(0, 1 - (wearMap()[id] || 0) / L); }
+  const broken = (id) => lifeOf(id) > 0 && cond(id) <= 0;
+  function use(id, n) {
+    const L = lifeOf(id); if (!L || !G.player.has(id)) return; const before = cond(id); const m = wearMap(); m[id] = Math.min(L, (m[id] || 0) + (n || 1)); const after = cond(id); const nm = (ITEMS[id] || {}).name || id;
+    if (after <= 0 && before > 0) { UI.toast(`Your ${nm} has broken. Take it to an ${ARMOUR[id] || (GEAR[id] && GEAR[id].kind === 'shield') ? 'armourer' : 'armoury'} to have it mended.`, 'bad'); UI.sfx('hurt'); }
+    else if (after <= 0.2 && before > 0.2) UI.toast(`Your ${nm} is wearing thin. Get it mended before it goes.`, 'bad');
+    if (UI.renderHotbar) UI.renderHotbar();
+  }
+  function bow() { const p = G.player; let best = null; for (const k in BOWS) if (p.has(k) && !broken(k) && (!best || BOWS[k].life > BOWS[best].life)) best = k; return best; }
+  function anyBow() { return Object.keys(BOWS).some(k => G.player.has(k)); }
+  // what the smith wants: cheap while it is only scuffed, steep once it has broken
+  function mendList(what) { const p = G.player; const out = []; for (const k of p.inv.keys()) { const L = lifeOf(k); if (!L) continue; const isArm = !!ARMOUR[k] || (GEAR[k] && GEAR[k].kind === 'shield'); if ((what === 'armour') !== isArm) continue; const c = cond(k); if (c >= 0.999) continue; const miss = 1 - c; out.push({ id: k, c, cost: Math.max(5, Math.round((priceOf(k) * 0.5 * Math.pow(miss, 1.3) + (c <= 0 ? priceOf(k) * 0.3 : 0)) / 5) * 5) }); } return out; }
+  function mendQuote(what) { return mendList(what).reduce((s, x) => s + x.cost, 0); }
+  function mend(what) { const L = mendList(what); if (!L.length) { UI.toast('Nothing of yours needs mending.'); return false; } const cost = L.reduce((s, x) => s + x.cost, 0); if (G.shards < cost) { UI.toast(`Mending all of it comes to ${cost} shards.`, 'bad'); return false; } G.shards -= cost; const m = wearMap(); for (const x of L) delete m[x.id]; UI.sfx('caught'); UI.toast(`Mended: ${L.map(x => (ITEMS[x.id] || {}).name).join(', ')}. Good as new.`, 'good'); if (UI.renderHotbar) UI.renderHotbar(); return true; }
   function init(game) {
     G = game; buildArmoury(); buildArmour();
+    GEAR.sp_painted = { id: 'sp_painted', kind: 'spear', name: 'Painted Spear', dmg: 9, cd: 0.7, reach: 3.8, arc: 0.6, crit: 0.08, tier: 1, col: '#b0603a', price: 90 };
+    ITEMS.sp_painted = { name: 'Painted Spear', col: '#b0603a', melee: true, keep: true, tier: 1, desc: 'A Painted spear: 9 damage, the longest reach of anything you can hold (3.8). Hits one foe at a time. Plain, and it wears out quicker than forged steel.' };
+    ITEMS.bow_painted = { name: 'Painted Bow', col: '#9a6a3a', keep: true, bow: true, desc: 'A plain Painted hunting bow. Shoots like any bow, but it wears out about twice as fast as a good one.' };
     for (const k in ARROWS) { const a = ARROWS[k]; if (!ITEMS[k]) ITEMS[k] = { name: a.name, col: a.col, arrow: a.kin, crafted: true, desc: a.desc }; if (a.needs && !RECIPES.find(r => r.id === k)) RECIPES.push({ id: k, out: k, n: a.n, needs: a.needs }); }
     // a few simple forge recipes so every early tier can be made, not only bought
     const forge = [['ar_padded_helm', { frond: 4, wood: 1 }], ['ar_padded_chest', { frond: 8, wood: 2 }], ['ar_padded_legs', { frond: 6, wood: 1 }], ['ar_padded_boots', { frond: 3, wood: 1 }], ['ar_iron_helm', { iron: 4 }], ['ar_iron_chest', { iron: 8 }], ['ar_iron_legs', { iron: 6 }], ['ar_iron_boots', { iron: 3 }], ['sw_wood_short', { wood: 4 }], ['sh_wood_buckler', { planks: 4 }], ['sw_stone_short', { wood: 1, stone: 4 }], ['sh_wood_round', { planks: 6, iron: 1 }], ['sw_iron_long', { wood: 1, iron: 5 }], ['ax_iron_hand', { wood: 2, iron: 4 }], ['sh_iron_heater', { iron: 6, planks: 2 }]];
     for (const [id, needs] of forge) if (!RECIPES.find(r => r.id === id)) RECIPES.push({ id, out: id, n: 1, needs, cat: 'arms' });
-    if (typeof HOTBAR_ORDER !== 'undefined') { const melee = Object.values(GEAR).filter(g => g.kind !== 'shield').map(g => g.id); const at = Math.max(1, HOTBAR_ORDER.indexOf('torch') + 1); for (const k of melee.reverse()) if (!HOTBAR_ORDER.includes(k)) HOTBAR_ORDER.splice(at, 0, k); if (!HOTBAR_ORDER.includes('bow')) HOTBAR_ORDER.splice(at, 0, 'bow'); }
+    if (typeof HOTBAR_ORDER !== 'undefined') { const melee = Object.values(GEAR).filter(g => g.kind !== 'shield').map(g => g.id); const at = Math.max(1, HOTBAR_ORDER.indexOf('torch') + 1); for (const k of melee.reverse()) if (!HOTBAR_ORDER.includes(k)) HOTBAR_ORDER.splice(at, 0, k); if (!HOTBAR_ORDER.includes('bow')) HOTBAR_ORDER.splice(at, 0, 'bow'); if (!HOTBAR_ORDER.includes('bow_painted')) HOTBAR_ORDER.splice(at + 1, 0, 'bow_painted'); }
     if (typeof HOTBAR_ORDER !== 'undefined') for (const k of ['arrow_frost', 'arrow_spark', 'arrow_barbed', 'arrow_heavy', 'arrow_sleep', 'arrow_void']) if (!HOTBAR_ORDER.includes(k)) HOTBAR_ORDER.push(k);
   }
   // what a village trader keeps on the rack: a few pieces, never far above what that village could make
   const pool0 = () => Object.keys(GEAR).length > 0;
   function armoury(v) {
     const tier = Math.min(8, 1 + (v ? v.tier || 0 : 0) * 2); const seed = v ? Math.abs(String(v.id).length * 31 + (v.x | 0)) + 1 : 1; if (!pool0()) return [];
-    const pool = Object.values(GEAR).filter(g => g.tier <= tier && g.tier >= tier - 3);
+    const pool = Object.values(GEAR).filter(g => g.kind !== 'spear' && g.tier <= tier && g.tier >= tier - 3);
     const out = []; for (let i = 0; i < Math.min(5, pool.length); i++) { const g = pool[U.mod(Math.abs(seed) * (i + 7) * 13, pool.length)]; if (!g) continue; if (!out.some(o => o.item === g.id)) out.push({ item: g.id, price: g.price }); }
     const ap = Object.values(ARMOUR).filter(a => a.tier <= tier && a.tier >= tier - 3); for (let i = 0; i < Math.min(3, ap.length); i++) { const a = ap[U.mod(Math.abs(seed) * (i + 3) * 17, ap.length)]; if (a && !out.some(o => o.item === a.id)) out.push({ item: a.id, price: a.price }); }
     const arrows = ['arrow_frost', 'arrow_spark', 'arrow_barbed', 'arrow_heavy'].slice(0, 1 + Math.min(3, (v && v.tier) || 0));
@@ -106,6 +129,9 @@ const Combat = (() => {
     const size = v && v.size; const tier = Math.min(8, 1 + (v ? v.tier || 0 : 0) * 2 + (size === 'city' ? 2 : 0)); const seed = v ? Math.abs(String(v.id).length * 31 + (v.x | 0)) + 1 : 1;
     const pick = (list, n, salt) => { const out = []; for (let i = 0; i < n * 3 && out.length < Math.min(n, list.length); i++) { const g = list[U.mod(seed * (i + salt) * 13 + i, list.length)]; if (g && !out.includes(g)) out.push(g); } return out; };
     const near = (L) => L.filter(g => g.tier <= tier && g.tier >= tier - 3);
+    const mendE = (what) => { const L = mendList(what); return { service: 'mend', what, name: L.length ? `Mend your ${what === 'armour' ? 'armour and shields' : 'blades, spears and bows'} (${L.length} worn${L.some(x => x.c <= 0) ? ', some broken' : ''})` : `Mending: nothing of yours needs it`, price: mendQuote(what) }; };
+    if (kind === 'armoury') return [mendE('arms')].concat(pick(near(Object.values(GEAR).filter(g => g.kind !== 'shield' && g.kind !== 'spear')), size === 'city' ? 8 : 5, 7).map(g => ({ item: g.id, price: g.price })));
+    if (kind === 'armourer') return [mendE('armour')].concat(pick(near(Object.values(ARMOUR)), size === 'city' ? 6 : 4, 3).map(a => ({ item: a.id, price: a.price })), pick(near(Object.values(GEAR).filter(g => g.kind === 'shield')), 3, 11).map(g => ({ item: g.id, price: g.price })));
     if (kind === 'trader') return armoury(v);
     if (kind === 'armoury') return pick(near(Object.values(GEAR).filter(g => g.kind !== 'shield')), size === 'city' ? 8 : 5, 7).map(g => ({ item: g.id, price: g.price }));
     if (kind === 'armourer') return pick(near(Object.values(ARMOUR)), size === 'city' ? 6 : 4, 3).map(a => ({ item: a.id, price: a.price })).concat(pick(near(Object.values(GEAR).filter(g => g.kind === 'shield')), 3, 11).map(g => ({ item: g.id, price: g.price })));
@@ -113,8 +139,8 @@ const Combat = (() => {
     return [];
   }
   // ---------------- what you hold ----------------
-  const weapon = () => { const k = G.player.selected(); return k && GEAR[k] && GEAR[k].kind !== 'shield' ? GEAR[k] : null; };
-  function shield() { let best = null; for (const k of G.player.inv.keys()) { const g = GEAR[k]; if (g && g.kind === 'shield' && (!best || g.block > best.block)) best = g; } return best; }
+  const weapon = () => { const k = G.player.selected(); return k && GEAR[k] && GEAR[k].kind !== 'shield' && !broken(k) ? GEAR[k] : null; };
+  function shield() { let best = null; for (const k of G.player.inv.keys()) { const g = GEAR[k]; if (g && g.kind === 'shield' && !broken(k) && (!best || g.block > best.block)) best = g; } return best; }
   function chopTier() { let t = 0; for (const k of G.player.inv.keys()) { const g = GEAR[k]; if (g && g.chop) t = Math.max(t, g.chop); } return t; }
   // ---------------- the warriors ----------------
   const KINDS = {
@@ -170,6 +196,7 @@ const Combat = (() => {
   // tap with a weapon in hand: swing it
   let swingCd = 0, blockT = 0, armT = 0;
   function swing() {
+    const sk = G.player.selected(); if (sk && GEAR[sk] && broken(sk)) { if (swingCd <= 0) { swingCd = 1; UI.toast(`Your ${GEAR[sk].name} is broken. An armoury will mend it.`, 'bad'); } return true; }
     const w = weapon(); if (!w || swingCd > 0) return false;
     swingCd = w.cd; G.player.swingT = 0.25; UI.sfx('miss');
     const p = G.player; const fx = -Math.sin(p.yaw), fz = -Math.cos(p.yaw); let hit = false;
@@ -181,7 +208,7 @@ const Combat = (() => {
       hurt(f, dmg, { burn: w.fx === 'burn' || w.fx === 'all' ? 3 : 0, slow: w.fx === 'slow' || w.fx === 'all' ? 2.5 : 0, halfPierce: w.fx === 'pierce' || w.fx === 'all' });
       if (crit) UI.toast('Critical!'); hit = true; if (w.kind !== 'axe') break; // a sword hits one, an axe cleaves through all in its arc
     }
-    if (hit) UI.sfx('hit');
+    if (hit) { UI.sfx('hit'); use(w.id, 1); }
     return true;
   }
   // an arrow from your bow: does it hit a warrior before anything else?
@@ -203,7 +230,7 @@ const Combat = (() => {
     if (wantBlock && !p.blocking) blockT = 0; p.blocking = wantBlock; if (p.blocking) blockT += dt;
     if (G.foeFocusT > 0) G.foeFocusT -= dt;
     for (let i = shots.length - 1; i >= 0; i--) { const s = shots[i]; s.t += dt; s.x += s.vx * dt; s.y += s.vy * dt; s.z += s.vz * dt; s.vy -= 6 * dt;
-      if (Math.abs(s.x - p.x) < 0.5 && Math.abs(s.z - p.z) < 0.5 && s.y > p.y && s.y < p.y + 1.9) { const fac = Math.cos(Math.atan2(s.x - p.x, s.z - p.z) - (p.yaw + Math.PI)) > 0.2; if (blocking() && fac) { UI.sfx('place'); } else { p.lastArrow = true; p.damage(s.dmg, 'warrior'); p.lastArrow = false; } shots.splice(i, 1); continue; }
+      if (Math.abs(s.x - p.x) < 0.5 && Math.abs(s.z - p.z) < 0.5 && s.y > p.y && s.y < p.y + 1.9) { const fac = Math.cos(Math.atan2(s.x - p.x, s.z - p.z) - (p.yaw + Math.PI)) > 0.2; if (blocking() && fac) { UI.sfx('place'); use(shield().id, 1); } else { p.lastArrow = true; p.damage(s.dmg, 'warrior'); p.lastArrow = false; } shots.splice(i, 1); continue; }
       if (s.t > 3 || isSolid(G.world.getBlock(Math.floor(s.x), Math.floor(s.y), Math.floor(s.z)))) shots.splice(i, 1); }
     for (const f of foes) {
       f.t -= dt; if (f.hitT > 0) f.hitT -= dt;
@@ -230,7 +257,7 @@ const Combat = (() => {
           else if (d <= f.reach + 0.5) {
             const fac = Math.cos(Math.atan2(f.x - p.x, f.z - p.z) - (p.yaw + Math.PI)) > 0.2; const sh2 = shield();
             if (p.blocking && sh2 && fac) {
-              if (blockT < sh2.parry + 0.08) { f.state = 'stun'; f.t = 1.2; UI.sfx('hit'); UI.toast('Parried!'); continue; }
+              use(sh2.id, 1); if (blockT < sh2.parry + 0.08) { f.state = 'stun'; f.t = 1.2; UI.sfx('hit'); UI.toast('Parried!'); continue; }
               const left = Math.round(f.dmg * (1 - sh2.block) * 10) / 10; if (left >= 1 || Math.random() < left) p.damage(Math.max(1, Math.round(left)), 'warrior'); UI.sfx('place');
             } else p.damage(f.dmg, 'warrior');
           }
@@ -245,5 +272,5 @@ const Combat = (() => {
   function standingIn(id) { return foes.filter(f => f.holdId === id && f.state !== 'down').length; }
   function focusText() { const f = G.foeFocus; if (!f || !(G.foeFocusT > 0)) return null; return f.state === 'down' ? `${f.name}: down` : `${f.name}: ${Math.max(0, Math.round(f.hp / f.max * 100))}%`; }
   function reset() { foes.length = 0; shots.length = 0; }
-  return { rack, ARMOUR, worn, armourPts, armourCut, wornPerk, init, GEAR, ARROWS, armoury, weapon, shield, chopTier, spawn, swing, arrowHit, update, entities, forHold, clearHold, standingIn, focusText, reset, blocking, KINDS };
+  return { cond, broken, use, bow, anyBow, mend, mendQuote, lifeOf, BOWS, rack, ARMOUR, worn, armourPts, armourCut, wornPerk, init, GEAR, ARROWS, armoury, weapon, shield, chopTier, spawn, swing, arrowHit, update, entities, forHold, clearHold, standingIn, focusText, reset, blocking, KINDS };
 })();
