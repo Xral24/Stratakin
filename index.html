@@ -333,6 +333,9 @@ body.desktop #joy, body.desktop #btn-jump, body.desktop #btn-sneak { display: no
 .relictag { font-size: 10px; padding: 1px 6px; border-radius: 6px; background: linear-gradient(90deg,#ffd040,#ff8a3a); color: #2a1600; font-weight: bold; }
 .recipe.relic { border: 1px solid rgba(255,208,64,.45); }
 
+.condbar { height: 6px; background: rgba(0,0,0,.4); border-radius: 3px; overflow: hidden; margin: 3px 0; }
+.condbar i { display: block; height: 100%; }
+
 </style>
 </head>
 <body>
@@ -3041,7 +3044,7 @@ const KIN = (() => {
     const s = {};
     for (const key of STAT_KEYS) s[key] = Math.max(1, Math.round(k.sp.base[key] * g * k.iv[key]));
     s.hp = Math.round(s.hp * 2.2);
-    if (k.equip) for (const slot in k.equip) { const it = ITEMS[k.equip[slot]]; if (it && it.boost) for (const key in it.boost) s[key] = Math.round(s[key] * (1 + it.boost[key])); }
+    if (k.equip) for (const slot in k.equip) { const id = k.equip[slot], it = ITEMS[id]; if (it && it.boost) { const m = it.relic && typeof Relics !== 'undefined' ? Relics.mul(id) : 1; for (const key in it.boost) s[key] = Math.round(s[key] * (1 + it.boost[key] * m)); } }
     return s;
   }
   function name(k) { return k.nick || k.sp.names[k.stage - 1]; }
@@ -5626,6 +5629,7 @@ const Battle = (() => {
     if (Math.random() > move.acc || Math.random() < dodgeChance(att, def)) { log(`${an} uses ${move.name}… ${dn} slips aside!`); G.sfx('miss'); await sleep(650); return; }
     const r = damage(att, def, move);
     def.hp = Math.max(0, def.hp - r.dmg);
+    { const k = attIsMine ? att : def, slot = attIsMine ? 'weapon' : 'armor'; const id = k.equip && k.equip[slot]; if (id && ITEMS[id] && ITEMS[id].relic) Relics.wear(id, (attIsMine ? 0.008 : 0.011) * (wildE && (wildE.isBoss || wildE.isLegend || wildE.isApex) ? 2 : 1)); } // relics wear as they work
     if (move.drain) { const st = KIN.stats(att); const h = Math.round(r.dmg / 3); att.hp = Math.min(st.hp, att.hp + h); }
     const card = attIsMine ? el.wild : el.mine;
     card.classList.add('shake'); setTimeout(() => card.classList.remove('shake'), 400);
@@ -5787,6 +5791,7 @@ const Battle = (() => {
     if (camState) { G.player.yaw = camState.yaw; G.player.pitch = Math.max(-0.3, Math.min(0.1, camState.pitch)); }
     active = false; busy = false; snareState = null; camState = null; fx.length = 0;
     el.root.classList.add('hidden'); el.root.classList.remove('snaring');
+    if (mine && mine.equip && mine.equip.charm && ITEMS[mine.equip.charm] && ITEMS[mine.equip.charm].relic) Relics.wear(mine.equip.charm, 0.01);
     if (result === 'won' && wildE && wildE.high) { G.player.add('feather', 2); UI.toast('Two Sky Feathers drift down.', 'good'); }
     G.onBattleEnd(result, wildE, wild, mine, ambush);
     wildE = null; mineE = null;
@@ -6777,6 +6782,7 @@ const Campaign = (() => {
       const s = S.mine;
       person('foreman', 'Foreman Garrick', 'foreman', s.x + 4, s.z + 3, { body: '#5a4a3a', belly: '#c68642' }, ['miner']);
       const mA = person('minerA', 'Bodie', 'miner', s.x - 5, s.z - 4, { body: '#4c6b8a', belly: '#e8c39e' }, ['miner'], { ax: s.x - 5.5, az: s.z - 4.5, bx: s.x + 3.5, bz: s.z - 4.5, period: 14 });
+      person('orrin', 'Orrin the Runesmith', 'runesmith', s.x - 6, s.z + 1, { body: '#2a3a6a', belly: '#e8c39e', accent: '#7ad7ff' }, ['hat', 'star']);
       const mB = person('minerB', 'Ruth', 'miner', s.x - 4, s.z + 5, { body: '#8a5a3a', belly: '#8d5524' }, ['miner'], { ax: s.x - 5.5, az: s.z + 5.5, bx: s.x - 5.5, bz: s.z - 2.5, period: 11 });
     }
     if (S.diver && near(S.diver, p, 80) && C().st_diver && !has('diver')) { const s = S.diver; person('diver', 'Marisol', 'diver', s.x + s.ux * 9, s.z + s.uz * 9, { body: '#2f6f8a', belly: '#c68642' }, ['diver']); }
@@ -6789,6 +6795,7 @@ const Campaign = (() => {
     if (S.fort && C().st_fort && near(S.fort, p, 130)) {
       const f = S.fort;
       if (!has('silas')) person('silas', 'Silas Pennywise', 'merchant', f.merchant.x, f.merchant.z, { body: '#2a2a3a', belly: '#d8a060', accent: '#e0b84a' }, ['hat', 'star']);
+      if (C().kinmaster && !has('sable') && f.throne) { const n = person('sable', 'Sable the Hexwright', 'runesmith', f.throne.x - 3, f.throne.z + 5, { body: '#4a1a3a', belly: '#f1d3b3', accent: '#ff3a8a', dark: '#120818' }, ['hat', 'star']); n.y = f.floorY + 1; }
       if (C().kinmaster && !has('turncoat') && f.throne) { const n = person('turncoat', 'Vesper the Turncoat', 'turncoat', f.throne.x - 5, f.throne.z - 3, { body: '#1e1a2a', belly: '#c9b48a', accent: '#7a2aa8', dark: '#0a0812', eye: '#b0f0ff' }, ['mask']); n.y = f.floorY + 1; }
       if (!C().kinmaster && !has('kinmaster') && f.throne) { const n = person('kinmaster', 'The Kinmaster', 'kinmaster', f.throne.x, f.throne.z, { body: '#3a1a4a', belly: '#c9b48a', accent: '#b026ff', dark: '#120818', eye: '#ff3a3a' }, ['crown', 'mask']); n.y = f.floorY + 1; }
     }
@@ -6878,6 +6885,11 @@ const Campaign = (() => {
     if (n.job === 'merchant') {
       if (c.bridgeFixed) return say(['A pleasure doing business. Mind the step.', 'Oh, and for a customer of means, I keep a certain crown under the counter.'], relic('merchant'));
       return say(['Silas Pennywise, purveyor of solutions. Your problem, I see, is a canyon.', 'The bridge is out. Terrible shame. I could have it mended for, oh, 300 Shards. Or you could find your own way across, if you are the climbing sort.', G.shards >= 300 ? 'Shall we? (it takes your Shards)' : `You have ${G.shards}. Come back richer.`], () => { if (G.shards >= 300 && !c.bridgeFixed) { G.shards -= 300; c.bridgeFixed = true; fixBridge(sites().fort); G.meshPass(99); UI.sfx('caught'); UI.toast('The bridge is mended. Silas counts your Shards twice.', 'good'); } });
+    }
+    if (n.job === 'runesmith') {
+      const first = !c['met_' + n.id]; c['met_' + n.id] = true;
+      const intro = n.id === 'orrin' ? 'Orrin hums over a forge that burns blue.' : 'Sable traces sigils on the Kinmaster\'s old anvil.';
+      return say(first ? (n.id === 'orrin' ? ['Orrin. Runesmith. Garrick lets me keep a forge at the back of his camp because I mend his picks for free.', 'Relics are not forged, they are grown, and they wear like anything living. When yours start to crack, come to me. Or to Sable, at Thornhold, if you can stand her. There are no others.', 'Do not leave it. A crack costs little. A ruin costs a fortune.'] : ['Sable. I mended the Kinmaster\'s things for twenty years. Now I mend yours.', 'Relics, only relics. Bring shards, bring the right stones, and do not let them break.']) : ['Show me what you have.'], () => UI.openPanel('runeforge', { who: n.name, intro }));
     }
     if (n.job === 'turncoat') {
       if (!c.turncoatMet) return say(['Wait. Do not call the guards, there are none left. I am not one of his.', 'Vesper. Eleven years in his service, and every one of them spent passing word to the villages when I could. Who do you think left the gate on the canyon side unbarred?', 'He ran for the Core with what he could carry. He could not carry the vault. I have been emptying it.', 'There are pieces in here no forge on Earth could make. Armour for a Kin, cut from the dark itself. I will not give them away: I need the shards to get out of this country alive.', 'But I will sell them to you. Only to you. Free enough villages that I know you mean it, and bring a fortune.'], () => { c.turncoatMet = true; relic('turncoat')(); });
@@ -8027,6 +8039,7 @@ const UI = (() => {
     else if (name === 'menu') renderMenu();
     else if (name === 'fusion') renderFusion(data);
     else if (name === 'relics') renderRelics(data);
+    else if (name === 'runeforge') renderForge(data);
     else if (name === 'detail') renderDetail(data);
     else if (name === 'shop') renderShop(data);
     else if (name === 'bag') renderBag();
@@ -8158,7 +8171,7 @@ const UI = (() => {
     </div></div>
     <div class="stats">${statBars(k)}</div>
     <h4>Moves</h4>${mv.map(m => `<div class="moverow" style="--c:${m.kind === 'util' ? '#8899aa' : ELEM_COLOR[m.elem]}"><b>${m.name}</b><span>${m.kind === 'util' ? m.desc : m.kind + ' · power ' + m.power + ' · ' + Math.round(m.acc * 100) + '% acc'}</span></div>`).join('')}
-    <h4>Gear</h4><div class="small">${['weapon', 'armor', 'charm'].map(slot => { const it = k.equip && k.equip[slot]; return `<span class="chip" ${it ? `data-uneq="${slot}" style="background:${ITEMS[it].col}"` : 'style="opacity:.6"'}>${slot}: ${it ? ITEMS[it].name + ' ✕' : 'none'}</span>`; }).join(' ')}</div>
+    <h4>Gear</h4><div class="small">${['weapon', 'armor', 'charm'].map(slot => { const it = k.equip && k.equip[slot]; return `<span class="chip" ${it ? `data-uneq="${slot}" style="background:${ITEMS[it].col}"` : 'style="opacity:.6"'}>${slot}: ${it ? ITEMS[it].name + (ITEMS[it].relic ? ' ' + Math.round(Relics.cond(it) * 100) + '%' : '') + ' ✕' : 'none'}</span>`; }).join(' ')}</div>
     ${(() => { const have = [...G.player.inv.keys()].filter(x => ITEMS[x] && ITEMS[x].kinGear); return have.length ? `<div class="usebar">${have.map(x => `<button class="btn ghost" data-equip="${x}">Put on ${ITEMS[x].name} ×${G.player.count(x)}</button>`).join('')}</div>` : '<div class="small">Craft Kin gear under Craft › Kin gear, then put it on here.</div>'; })()}
     ${['tonic_revive', 'tonic_heal', 'tonic_vigor', 'tonic_might', 'tonic_swift'].some(t => G.player.has(t)) ? `<h4>Tonics</h4><div class="usebar">${['tonic_revive', 'tonic_heal', 'tonic_vigor', 'tonic_might', 'tonic_swift'].filter(t => G.player.has(t)).map(t => `<button class="btn ghost" data-tonic="${t}">${ITEMS[t].name} ×${G.player.count(t)}</button>`).join('')}</div>` : ''}
     <div class="row"><button class="btn" id="d-active" ${k === G.activeKin() || k.hp <= 0 ? 'disabled' : ''}>Set active</button><button class="btn" id="d-rename">Rename</button>${Village.active && G.villageState[Village.active.id] && G.villageState[Village.active.id].freed ? `<button class="btn ghost" id="d-guard" ${k.hp <= 0 ? 'disabled' : ''}>Station as guard</button>` : ''}<button class="btn ghost" id="d-back">Back</button></div>`;
@@ -8180,6 +8193,11 @@ const UI = (() => {
     const slots = [];
     for (let i = 0; i < 5; i++) { const k = keys[i]; slots.push(k ? `<span class="chip" data-unsec="${k}" style="background:${ITEMS[k].col}">${ITEMS[k].name} ×${Math.min(p.count(k), G.secure[k])} ✕</span>` : `<span class="chip empty" data-sec="${i}">+ secure</span>`); }
     return `<h4>Secure slots</h4><p class="note">If the wild beats you, your bag is lost except gear, rods and these five slots (up to 10 of an item each). Kin and Shards are always safe.</p><div class="ingr">${slots.join('')}</div>`;
+  }
+  function renderForge(d) {
+    setTitle(d.who || 'Runeforge');
+    el['panel-body'].innerHTML = `<p class="note">${d.intro || ''} Relics wear as your Kin fight in them, and their power fades with them. Mend them early: the price climbs steeply the worse they get, and a broken one needs extra materials. You have ◆ ${G.shards.toLocaleString()}.</p>` + Relics.forgeHtml();
+    el['panel-body'].querySelectorAll('[data-mend]').forEach(b => b.addEventListener('click', () => { if (Relics.repair(b.dataset.mend)) renderForge(d); }));
   }
   function renderRelics(d) {
     setTitle(d.who || 'Relics');
@@ -8714,6 +8732,41 @@ const Relics = (() => {
     { id: 'relic_jaw', lvl: 90, seller: 'keeper', name: 'Tyrant\'s Jaw', slot: 'weapon', boost: { atk: 0.7, pow: 0.15, hp: 0.1 }, price: 60000, col: '#d8c8a0',
       lore: 'One tooth from the Tyrannorex itself, set in Lost World amber. There is no second one. There never will be.', need: (G) => (G.stats.apex || {}).rex === true, needTxt: 'Catch the Tyrannorex' },
   ];
+  // wear: relics lose condition in use. Armour on hits taken, weapons on hits landed, charms a little every fight.
+  // The bonus fades as it wears and is gone at 0%. Only a runesmith can mend one, and the longer you leave it, the dearer it gets.
+  const MATS = { relic_core: ['ember', 'diamond'], relic_talon: ['feather', 'ess_Gale'], relic_scale: ['pearl', 'ess_Tide'], relic_fang: ['void', 'ess_Void'], relic_plate: ['void', 'ess_Void'], relic_crown: ['gold', 'diamond'], relic_jaw: ['diamond', 'gold'] };
+  function cond(id) { const h = (G && G.stats.relicHp) || {}; return h[id] == null ? 1 : h[id]; }
+  function mul(id) { const c = cond(id); return c <= 0 ? 0 : 0.5 + 0.5 * c; }
+  function wear(id, amt) {
+    if (!ITEMS[id] || !ITEMS[id].relic) return;
+    if (!G.stats.relicHp) G.stats.relicHp = {}; const before = cond(id); const after = Math.max(0, before - amt); G.stats.relicHp[id] = after;
+    const nm = ITEMS[id].name;
+    if (before > 0.4 && after <= 0.4) UI.toast(`${nm} is cracking (40%). Its power is fading. Only a runesmith can mend it, and it gets dearer the longer you wait.`, 'bad');
+    else if (before > 0.15 && after <= 0.15) UI.toast(`${nm} is nearly broken (15%).`, 'bad');
+    else if (before > 0 && after <= 0) UI.toast(`${nm} has broken. It does nothing now until a runesmith rebuilds it.`, 'bad');
+  }
+  function quote(id) {
+    const r = LIST.find(x => x.id === id); const miss = 1 - cond(id); if (!r || miss < 0.005) return null;
+    const shards = Math.max(200, Math.round(r.price * 2.8 * Math.pow(miss, 2.45) / 50) * 50);
+    const broken = cond(id) <= 0; const [a, b] = MATS[id] || ['iron', 'gold'];
+    const mats = { [a]: Math.ceil(miss * 6) + (broken ? 3 : 0), [b]: Math.ceil(miss * 4) + (broken ? 2 : 0) };
+    return { shards, mats, broken };
+  }
+  function repair(id) {
+    const q = quote(id); if (!q) return false; const P = G.player;
+    if (G.shards < q.shards) { UI.toast(`The runesmith wants ${q.shards.toLocaleString()} shards.`, 'bad'); return false; }
+    for (const k in q.mats) if (P.count(k) < q.mats[k]) { UI.toast(`Missing ${ITEMS[k].name}: ${P.count(k)}/${q.mats[k]}.`, 'bad'); return false; }
+    G.shards -= q.shards; for (const k in q.mats) P.take(k, q.mats[k]); G.stats.relicHp[id] = 1;
+    UI.sfx('quest'); UI.toast(`${ITEMS[id].name} is whole again.`, 'good'); return true;
+  }
+  function owners() { return LIST.filter(r => (G.stats.relics || {})[r.id]); }
+  function forgeHtml() {
+    const own = owners(); if (!own.length) return '<p class="note">You own no relics. Nothing here needs mending.</p>';
+    return own.map(r => { const c = cond(r.id), q = quote(r.id); const pct = Math.round(c * 100);
+      const matTxt = q ? Object.keys(q.mats).map(k => `<span class="${G.player.count(k) >= q.mats[k] ? 'ok' : 'no'}">${ITEMS[k].name} ${G.player.count(k)}/${q.mats[k]}</span>`).join(' ') : '';
+      const can = q && G.shards >= q.shards && Object.keys(q.mats).every(k => G.player.count(k) >= q.mats[k]);
+      return `<div class="recipe relic"><div class="ico big" style="background:${r.col}"></div><div class="rinfo"><b>${r.name}</b> <span class="relictag">RELIC</span><div class="condbar"><i style="width:${pct}%;background:${pct > 40 ? '#5ad66a' : pct > 15 ? '#ffb040' : '#ff4040'}"></i></div><div class="small">Condition ${pct}%${c <= 0 ? ' · BROKEN, no bonus at all' : ` · bonus at ${Math.round(mul(r.id) * 100)}%`}</div>${q ? `<div class="needs"><span class="${G.shards >= q.shards ? 'ok' : 'no'}">◆ ${q.shards.toLocaleString()}</span> ${matTxt}</div>` : '<div class="small">Whole. Nothing to mend.</div>'}</div><button class="btn" data-mend="${r.id}" ${can ? '' : 'disabled'}>${q ? 'Mend' : 'Whole'}</button></div>`; }).join('');
+  }
   function freedEver(G) { return Object.keys(G.villageState || {}).filter(id => { const s = G.villageState[id]; return s && (s.freed || s.freedDay != null); }).length; }
   function init(game) {
     G = game;
@@ -8753,7 +8806,7 @@ const Relics = (() => {
       return `<div class="recipe relic ${mine ? '' : ok && afford ? 'can' : ''}"><div class="ico big" style="background:${r.col}"></div><div class="rinfo"><b>${r.name}</b> <span class="relictag">RELIC</span><div class="small">${ITEMS[r.id].desc}</div><div class="needs"><span class="${afford ? 'ok' : 'no'}">◆ ${r.price.toLocaleString()}</span> <span class="${ok ? 'ok' : 'no'}">${ok ? 'You have earned the right to ask' : r.needTxt + prog}</span></div></div><button class="btn" data-relic="${r.id}" ${mine || !ok || !afford ? 'disabled' : ''}>${mine ? 'Yours' : 'Buy'}</button></div>`;
     }).join('');
   }
-  return { init, LIST, html, buy, has, forSeller, freedEver, gate };
+  return { init, LIST, html, buy, has, forSeller, freedEver, gate, cond, mul, wear, quote, repair, forgeHtml };
 })();
 
 </script>
