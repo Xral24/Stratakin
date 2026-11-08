@@ -4283,6 +4283,11 @@ const Village = (() => {
     const stI = lots.reduce((bi, l, i) => { const d = Math.hypot(l.x - (vx + R - 9), l.z - (vz + 6)); return d < bi[1] ? [i, d] : bi; }, [-1, 1e9])[0];
     const free = lots.map((l, i) => i).filter(i => i !== stI);
     for (const k of kinds) { if (k === 'elder' && castle) { shops.push({ kind: 'elder', x: castle.x, z: castle.z + 2, dirX: 0, dirZ: 1, castle: true, y: castle.y }); continue; } const i = k === 'station' ? stI : free.shift(); if (i == null || i < 0) continue; shops.push(Object.assign({ kind: k }, lots[i])); lots[i].used = true; }
+    // building plots: empty lots marked with lamps at the corners, for sale to you
+    const nPlots = { start: 1, hamlet: 1, town: 2, city: 3 }[v.starter ? 'start' : v.size] || 1; const plots = [];
+    const spare = lots.filter(l => !l.used); for (let i = 0; i < nPlots && spare.length; i++) { const l = spare.splice(Math.floor(spare.length * (0.35 + 0.2 * i)) % spare.length, 1)[0]; l.used = true; l.plot = true; plots.push({ x: l.x, z: l.z, i });
+      for (let a = -4; a <= 4; a++) for (let b = -4; b <= 4; b++) push(l.x + a, vy - 1, l.z + b, Math.max(Math.abs(a), Math.abs(b)) === 4 ? M.plazaEdge : M.ground);
+      for (const [a, b] of [[-4, -4], [4, -4], [-4, 4], [4, 4]]) { push(l.x + a, vy, l.z + b, M.post); push(l.x + a, vy + 1, l.z + b, M.light); } }
     // draw the buildings into the overlay by borrowing the house builder
     const sb = world.setBlock, gb = world.getBlock; world.setBlock = (x, y, z, id) => push(x, y, z, id); world.getBlock = () => B.AIR;
     try {
@@ -4291,7 +4296,7 @@ const Village = (() => {
       const r = U.rng(U.combine(world.seed, U.strHash(v.id)));
       for (const l of lots) if (!l.used) { if (r() < 0.12) { for (let a = -2; a <= 2; a++) for (let b = -2; b <= 2; b++) if (r() < 0.35 && M.bush) push(l.x + a, vy, l.z + b, M.bush); continue; } build(l.x, l.z, vy, l.dirX, l.dirZ, B.LOG, null); l.home = true; }
     } finally { world.setBlock = sb; world.getBlock = gb; }
-    const L = { R, buckets, shops, homes: lots.filter(l => l.home), streets };
+    const L = { R, buckets, shops, homes: lots.filter(l => l.home), streets, plots };
     towns.set(v.id, L); return L;
   }
   // called by the world as each chunk is generated: draw any town that touches it
@@ -4747,6 +4752,12 @@ const Village = (() => {
   }
 
   // stilt village: plank platforms above the water joined by walkways, four thatched huts around a square with the table
+  function seaPlot(v) { return v.type === 'sea' ? { x: v.x + 22, z: v.z, i: 0, pier: true } : null; }
+  function stampPier(v) {
+    const pl = seaPlot(v); if (!pl) return; const set = (x, y, z, id) => world.setBlock(x, y, z, id); const y0 = SEA + 1;
+    for (let a = -4; a <= 4; a++) for (let b = -4; b <= 4; b++) { set(pl.x + a, y0 - 1, pl.z + b, B.PLANKS); if (Math.abs(a) === 4 && Math.abs(b) === 4) { const gy = world.groundY(pl.x + a, pl.z + b, y0 - 2); for (let y = gy + 1; y < y0 - 1; y++) set(pl.x + a, y, pl.z + b, B.LOG); set(pl.x + a, y0, pl.z + b, B.LOG); set(pl.x + a, y0 + 1, pl.z + b, B.TORCH); } }
+    for (let d = 13; d <= 17; d++) for (let w = -1; w <= 1; w++) set(v.x + d, y0 - 1, v.z + w, B.PLANKS); // a walkway out from the village
+  }
   function stampSea(v) {
     const vx = v.x, vz = v.z, vy = v.y; // vy = SEA + 1, the deck level
     const set = (x, y, z, id) => world.setBlock(x, y, z, id);
@@ -4878,7 +4889,7 @@ const Village = (() => {
       st.shops = st.shops || []; kinds.forEach((k, i) => { if (k !== 'house') st.shops.push({ slot: i, kind: k }); });
       st.homes = kinds.map((k, i) => k === 'house' ? i : -1).filter(i => i >= 0);
     }
-    if (v.type === 'land') { stampLand(v); if (st.expanded) { stampExpansion(v); MAT = MATS[v.style] || MATS.land; for (const sh of (st.shops || [])) stampShop(v, sh.slot, sh.kind); for (const i of (st.homes || [])) { const [dx, dz] = SLOTS[i]; const [dirX, dirZ] = slotDir(dx, dz); (MAT.pod ? pod : house)(v.x + dx, v.z + dz, v.y, dirX, dirZ, B.LOG, null); } } stampWall(v, st); stampRoad(v, st); if (st.dome) stampDome(v, st); } else if (v.type === 'sea') stampSea(v); else if (v.style === 'atlantis') stampAtlantis(v); else stampDeep(v);
+    if (v.type === 'land') { stampLand(v); if (st.expanded) { stampExpansion(v); MAT = MATS[v.style] || MATS.land; for (const sh of (st.shops || [])) stampShop(v, sh.slot, sh.kind); for (const i of (st.homes || [])) { const [dx, dz] = SLOTS[i]; const [dirX, dirZ] = slotDir(dx, dz); (MAT.pod ? pod : house)(v.x + dx, v.z + dz, v.y, dirX, dirZ, B.LOG, null); } } stampWall(v, st); stampRoad(v, st); if (st.dome) stampDome(v, st); } else if (v.type === 'sea') { stampSea(v); stampPier(v); } else if (v.style === 'atlantis') stampAtlantis(v); else stampDeep(v);
     st.stamped = true; remember(v, st);
   }
   // ---- the tyrant's guards: a road in, with a checkpoint and a lieutenant every dozen blocks ----
@@ -5076,6 +5087,11 @@ const Village = (() => {
     lines.push(`Your score: ${Math.round(mine)}. The winning score: ${Math.round(Math.max(mine, ...rivals))}. Level for its kind, trust, dress and rarity all count.`);
     UI.closePanel(); setTimeout(() => Dialogue.show('Judge Ottilie', lines), 200); return true;
   }
+  function plotsOf(v) { if (!v) return []; if (v.R) return layout(v).plots || []; const sp = seaPlot(v); return sp ? [sp] : []; }
+  function plotPrice(v) { return v.starter || v.size === 'hamlet' ? 2500 : v.size === 'city' ? 15000 : v.type === 'sea' ? 4000 : 6000; }
+  const plotKey = (v, i) => v.id + ':' + i;
+  function ownsPlotAt(v, x, z) { const own = G.stats.plots || {}; return plotsOf(v).some(pl => own[plotKey(v, pl.i)] && Math.abs(x - pl.x) <= 4 && Math.abs(z - pl.z) <= 4); }
+  function buyPlot(v, i) { const own = G.stats.plots || (G.stats.plots = {}); const k = plotKey(v, i); if (own[k]) return false; const free = !G.stats.freeDeed && state(v.id).freed; const price = free ? 0 : plotPrice(v); if (G.shards < price) { UI.toast(`A deed here is ${price.toLocaleString()} shards.`, 'bad'); return false; } G.shards -= price; own[k] = true; if (free) G.stats.freeDeed = true; UI.sfx('quest'); UI.toast(free ? 'The deed is yours, a gift for what you did here. Build whatever you like on it: nobody will stop you.' : 'Signed and sealed. That plot is yours to build on.', 'good'); return true; }
   function thiefCaught(vid) { const v = villages.get(vid); if (!v) return; const st = state(vid); if (st.closed) delete st.closed.bakery; v.thief = null; UI.sfx('quest'); UI.toast(`${v.name}: the flour thief is dealt with. The bakery is open.`, 'good'); }
   function fixShop(n) {
     const v = active; if (!v) return false; const st = state(v.id); const closed = closures(v, st); const k = n.shop; if (!closed[k] || !st.freed) return false;
@@ -5768,7 +5784,7 @@ const Village = (() => {
     if (G.stats && G.stats.villageFreed && !st.freed && !st.retakenOnce) { st.freed = true; st.income = incomeFor(villages.get('start'), st); if (st.freedDay == null) st.freedDay = curNight(); }
     if (!G.fisherSpot && !G.fisherTried) { G.fisherTried = true; placeFisher(villages.get('start')); }
   }
-  return { enterShow, thiefCaught, layout, townList, init, stamp, restoreStart, update, pick, talk, entities, buy, sell, sellValue, raiseDome, shopDef, freed, onBossGone, lieutenantDown, tableChallenge, placeKit, portalList, portalHere, markers, wakeDialogue, questTarget, dawn, pendingIncome, foundingInfo, foundVillage, summaryHtml, ledger, station, recall, upgradeWall, repairWall, expand, build, postShop, levelOf, SHOPS, WALLS,
+  return { plotsOf, plotPrice, ownsPlotAt, buyPlot, enterShow, thiefCaught, layout, townList, init, stamp, restoreStart, update, pick, talk, entities, buy, sell, sellValue, raiseDome, shopDef, freed, onBossGone, lieutenantDown, tableChallenge, placeKit, portalList, portalHere, markers, wakeDialogue, questTarget, dawn, pendingIncome, foundingInfo, foundVillage, summaryHtml, ledger, station, recall, upgradeWall, repairWall, expand, build, postShop, levelOf, SHOPS, WALLS,
     get def() { return active ? { x: active.x, y: active.y, z: active.z } : null; }, set def(v) { restoreStart(v); }, get active() { return active; }, get boss() { return active ? active.boss : null; }, get elder() { return active ? active.elder : null; }, get walking() { return !!walkState; }, get fisher() { return fisher; } };
 })();
 
@@ -8877,6 +8893,10 @@ const UI = (() => {
     q('pt-close').addEventListener('click', closePanel);
   }
   // ---------- the village ledger ----------
+  function plotHtml(v) {
+    const pls = Village.plotsOf(v); if (!pls.length) return ''; const own = G.stats.plots || {}; const free = !G.stats.freeDeed; const price = Village.plotPrice(v);
+    return `<h4>Building plots · ${pls.length}</h4><p class="small">Empty plots marked with lamps at the corners${v.type === 'sea' ? ': a pier on stilts at the edge of the village, for building in wood' : ''}. Own one and you can build anything on it, and dig it out again; the guards leave you alone there.${free ? ' <b>Your first deed is a gift.</b>' : ''}</p><div class="roosts">${pls.map(pl => { const mine = own[v.id + ':' + pl.i]; return `<button class="btn ${mine ? 'ghost' : ''}" data-plot="${pl.i}" ${mine ? 'disabled' : ''}>${mine ? 'Plot ' + (pl.i + 1) + ': yours' : 'Plot ' + (pl.i + 1) + ' · ' + (free ? 'free' : '◆ ' + price.toLocaleString())}</button>`; }).join('')}</div>`;
+  }
   function renderVillage(v) {
     if (!v) { closePanel(); return; }
     const L = Village.ledger(v); const st = L.st;
@@ -8898,7 +8918,8 @@ const UI = (() => {
       <h4>Last night</h4><p class="small">${L.report ? L.report.text : 'Nothing to report yet.'}${L.nightsToTyrant != null ? ` The tyrant returns in ${L.nightsToTyrant} night${L.nightsToTyrant === 1 ? '' : 's'}.` : ''}</p>
       <h4>Defence</h4><p class="small">${defence}<br>${tyr}</p>${wall}
       <h4>Guards · ${L.guards.length}/${L.cap}</h4><p class="small">Your own Kin, left here. They fight raiders at night and the tyrant when he returns, and they level up doing it. A guard that falls needs a Revive Tonic or the hut.</p>${guardRows || '<p class="small">Nobody on the walls.</p>'}
-      <div class="row">${L.guards.length < L.cap ? '<button class="btn" id="v-station">Station a Kin</button>' : ''}<button class="btn ghost" id="v-close">Close</button></div>${build}`;
+      <div class="row">${L.guards.length < L.cap ? '<button class="btn" id="v-station">Station a Kin</button>' : ''}<button class="btn ghost" id="v-close">Close</button></div>${build}${plotHtml(v)}`;
+    el['panel-body'].querySelectorAll('[data-plot]').forEach(b => b.addEventListener('click', () => { if (Village.buyPlot(v, +b.dataset.plot)) renderVillage(v); }));
     el['panel-body'].querySelectorAll('[data-recall]').forEach(b => b.addEventListener('click', () => { if (G.recallGuard(+b.dataset.recall)) renderVillage(v); }));
     el['panel-body'].querySelectorAll('[data-act]').forEach(b => b.addEventListener('click', () => { if (G.villageAction(v, b.dataset.act)) renderVillage(v); }));
     el['panel-body'].querySelectorAll('[data-build]').forEach(b => b.addEventListener('click', () => { if (G.villageAction(v, 'build', b.dataset.build)) renderVillage(v); }));
@@ -9609,6 +9630,7 @@ const Keeps = (() => {
     if (!freed) return say(['...', 'The crystal... it hums... we hold the gate... we hold the gate...', 'His eyes are glazed and violet. He does not see you at all.']);
     const c = Campaign.C(); const key = 'thanked_' + n.id; const first = !c[key]; c[key] = true;
     if (first) { G.shards += 150; UI.toast('+150 Shards.', 'good'); return say([`I can see. I can SEE. How long was I standing here?`, `He put a shard of that cursed crystal over ${k.name} and we were his. You broke it. Take this, it is all I have on me.`, 'There are other holds. Others like us. Free them.']); }
+    if (n.id.endsWith('_2') && !(G.stats.holdDeeds || {})[n.holdId]) return say([`${k.name} is ours again because of you.`, 'The courtyard inside these walls, it should belong to someone who will not let him back in. Eight thousand shards and it is yours to build in. The walls stay as they are: nothing scratches that stone.'], () => { if (G.shards < 8000) { UI.toast('A courtyard deed is 8,000 shards.', 'bad'); return; } G.shards -= 8000; (G.stats.holdDeeds || (G.stats.holdDeeds = {}))[n.holdId] = true; UI.sfx('quest'); UI.toast(`The courtyard of ${k.name} is yours to build in.`, 'good'); });
     return say([`${k.name} is ours again because of you.`, (G.stats.crystal || 0) >= sites().length ? 'The crystal is whole? Then go. End him.' : `${G.stats.crystal || 0} shards of ${sites().length}. Keep going.`]);
   }
   // the end: the whole crystal drags him back to his throne, and he fights with everything he has
@@ -10941,11 +10963,12 @@ G.giveLostMap = function (from) {
 G.protectedAt = function (hit) {
   if (this.worldId !== 'earth') return null; const p = this.player;
   const kind = p.toolKind(hit.id);
-  for (const k of Keeps.sites()) if (Math.abs(hit.x - k.x) <= 12 && Math.abs(hit.z - k.z) <= 12 && Math.abs(hit.y - k.y) <= 16) return { kind: 'dark' };
+  for (const k of Keeps.sites()) if (Math.abs(hit.x - k.x) <= 12 && Math.abs(hit.z - k.z) <= 12 && Math.abs(hit.y - k.y) <= 16) { if ((this.stats.holdDeeds || {})[k.id] && Math.abs(hit.x - k.x) <= 7 && Math.abs(hit.z - k.z) <= 7 && hit.id !== B.DARKTABLE) return null; return { kind: 'dark' }; }
   { const cs = Citadel.open() ? Citadel.site() : null; if (cs && hit.x >= cs.x - 8 && hit.x <= cs.x + 94 && Math.abs(hit.z - cs.z) <= 19) return { kind: 'dark' }; }
   { const fo = (Campaign.sites() || {}).fort; if (fo && (this.stats.camp || {}).st_fort && hit.x >= fo.x - 18 && hit.x <= fo.x + 78 && Math.abs(hit.z - fo.z) <= 14) return { kind: 'dark' }; }
   for (const f of Farms.sites()) if (Math.abs(hit.x - f.x) <= 13 && Math.abs(hit.z - f.z) <= 13) { if (hit.id === B.CHEST) return null; return { kind: 'farm', f }; }
-  const v = Village.active; if (v && v.type === 'land') { const R = (v.R || ((this.villageState[v.id] || {}).expanded ? 18 : 12)) + 3; if (Math.abs(hit.x - v.x) <= R && Math.abs(hit.z - v.z) <= R) { if (kind === 'hand') return null; return { kind: 'town', v }; } }
+  const v = Village.active; if (v && !v.founded) { const R = v.type === 'land' ? (v.R || ((this.villageState[v.id] || {}).expanded ? 18 : 12)) + 3 : v.type === 'sea' ? 28 : v.style === 'atlantis' ? 22 : 16;
+    if (Math.abs(hit.x - v.x) <= R && Math.abs(hit.z - v.z) <= R) { if (Village.ownsPlotAt(v, hit.x, hit.z)) return null; if (kind === 'hand') return null; return { kind: 'town', v }; } }
   return null;
 };
 G.onProtectedMine = function (pr, hit) {
@@ -10961,7 +10984,7 @@ G.onProtectedMine = function (pr, hit) {
     const v = pr.v; const st = this.villageState[v.id] || {}; const big = v.size === 'town' || v.size === 'city';
     const npcs = (v.npcs || []).filter(n => !n.hidden && n.role !== 'keeper'); let best = null, bd = 1e9; for (const n of npcs) { if (!big && n !== v.elder) continue; const d = Math.hypot(n.x - p.x, n.z - p.z); if (d < bd) { bd = d; best = n; } }
     who = best || v.elder || npcs[0]; bring(who);
-    lines = big ? [st.freed ? 'Hey! HEY. Hands off the walls. This is a town, not a quarry.' : 'Halt! What do you think you are doing to our walls?', 'Try that again and you will spend the night in the cells. Dig outside the gates if you must dig.'] : ['Whoa, whoa! What are you doing? Those are people\'s homes.', 'You want stone, there is a whole hillside out past the gate.'];
+    lines = big ? [st.freed ? 'Hey! HEY. Hands off the walls. This is a town, not a quarry.' : 'Halt! What do you think you are doing to our walls?', 'Try that again and you will spend the night in the cells. If you want to build here, buy a plot: the governor sells deeds.'] : ['Whoa, whoa! What are you doing? Those are people\'s homes.', 'You want stone, there is a whole hillside out past the gate.'];
   }
   UI.sfx('miss'); Dialogue.show(who ? who.name : 'A voice behind you', lines);
 };
