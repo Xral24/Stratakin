@@ -336,6 +336,10 @@ body.desktop #joy, body.desktop #btn-jump, body.desktop #btn-sneak { display: no
 .condbar { height: 6px; background: rgba(0,0,0,.4); border-radius: 3px; overflow: hidden; margin: 3px 0; }
 .condbar i { display: block; height: 100%; }
 
+.arc { border-left: 4px solid var(--ac); padding-left: 8px; margin: 12px 0; }
+.arc .archead { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; color: var(--ac); }
+.arc .archead .btn { margin-left: auto; padding: 3px 10px; font-size: 12px; }
+
 </style>
 </head>
 <body>
@@ -5977,18 +5981,33 @@ const QUESTS = [
 
 const Quests = (() => {
   let G = null;
+  // three arcs that run side by side: the journey (your tools, the people, the worlds), the Dark Arc (the Kinmaster), and the Old Ones (the great Kin)
+  const ARC_OF = { kinmaster: 'dark', holds: 'dark', citadel: 'dark', scientist: 'dark', ship: 'dark', heart: 'old', mythic: 'old', lost: 'old', abyss: 'old', rex: 'old', legend: 'old' };
+  const AFTER = { kinmaster: 'glider', heart: 'core', moon: 'ship', legend: 'ship' };
+  const ARCS = { main: { name: 'The Journey', col: '#4fb0ff' }, dark: { name: 'The Dark Arc', col: '#b07aff' }, old: { name: 'The Old Ones', col: '#ffc94a' } };
+  const arcList = (a) => QUESTS.filter(q => (ARC_OF[q.id] || 'main') === a);
   function init(game) { G = game; if (!G.questState) G.questState = { index: 0, bounty: { need: 3, done: 0, round: 1 } }; }
-  function current() { return QUESTS[G.questState.index] || null; }
+  function doneIds() { const out = new Set(); const A = G.questState.arcs || {}; for (const a in ARCS) arcList(a).slice(0, A[a] || 0).forEach(q => out.add(q.id)); return out; }
+  function isDone(id) { return doneIds().has(id); }
+  function migrate() { // older saves had one long chain: walk each arc forward over everything already true, quietly
+    const st = G.questState; st.arcs = { main: 0, dark: 0, old: 0 }; st.focus = st.focus || 'main';
+    for (let pass = 0; pass < 3; pass++) for (const a in ARCS) { const L = arcList(a); while (st.arcs[a] < L.length) { const q = L[st.arcs[a]]; let ok = false; try { ok = q.check(G) >= 1; } catch (e) { ok = false; } if (!ok || (AFTER[q.id] && !isDone(AFTER[q.id]))) break; st.arcs[a]++; } }
+  }
+  function arcCurrent(a) { if (!G.questState.arcs) migrate(); const q = arcList(a)[G.questState.arcs[a]]; return q || null; }
+  function gated(q) { return q && AFTER[q.id] && !isDone(AFTER[q.id]) ? AFTER[q.id] : null; }
+  function current() {
+    if (!G.questState.arcs) migrate(); const f = G.questState.focus || 'main';
+    for (const a of [f, 'main', 'dark', 'old']) { const q = arcCurrent(a); if (q && !gated(q)) return q; }
+    return null;
+  }
+  function isActive(id) { for (const a in ARCS) { const q = arcCurrent(a); if (q && q.id === id && !gated(q)) return true; } return false; }
   function update() {
-    const q = current();
+    if (!G.questState.arcs) migrate();
     const events = [];
-    if (q) {
-      const p = q.check(G);
-      if (p >= 1) {
-        G.questState.index++;
-        giveReward(q.reward);
-        events.push({ type: 'quest', q });
-      }
+    for (const a in ARCS) {
+      const q = arcCurrent(a); if (!q || gated(q)) continue;
+      let p = 0; try { p = q.check(G); } catch (e) { p = 0; }
+      if (p >= 1) { G.questState.arcs[a]++; G.questState.index = (G.questState.index || 0) + 1; giveReward(q.reward); events.push({ type: 'quest', q, arc: a }); }
     }
     const b = G.questState.bounty;
     if (G.stats.battlesWon - (b.base || 0) >= b.need) {
@@ -6078,7 +6097,7 @@ const Quests = (() => {
     if (q.id === 'legend' && G.world.legend && (G.stats.apex || {}).rex === true && !(G.stats.legends || {})[G.worldId]) return { x: G.world.legend.x, z: G.world.legend.z, note: G.world.preset.legend.name };
     return null;
   }
-  return { init, current, update, hintText, target, RECIPES, QUESTS };
+  return { init, current, update, hintText, target, RECIPES, QUESTS, ARCS, ARC_OF, arcList, arcCurrent, gated, isDone, isActive, AFTER };
 })();
 
 </script>
@@ -6868,7 +6887,7 @@ const Campaign = (() => {
     if (n.job === 'foreman') {
       if (!c.pick) return say(['Another one who wants to dig with their fingernails. I can see it on you.', 'Here. A stone pick. Stone gives way to it, copper and iron will, slowly. Do not lose it.', 'Go down the shaft. Ladder\'s on the side. The gallery at the bottom has ore in every wall.'], () => { c.pick = 1; give('pick_stone'); });
       if (c.pick === 1) { const ok = P.count('copper') >= 6 && P.count('iron') >= 4; if (!ok) return say(['Bring me six copper and four iron and I will make you a proper pick.', `You have ${P.count('copper')} copper and ${P.count('iron')} iron.`]); return say(['That is good ore. Give me a minute.', 'An iron pick. Void crystal, gold, diamond: all of it is yours to break now. And take this axe, it is wasted on me.'], () => { P.take('copper', 6); P.take('iron', 4); c.pick = 2; give('pick_iron'); G.player.add('axe_iron', 1); C().got_axe_iron = true; setTimeout(() => UI.toast('Garrick throws in an iron axe too: wood comes down twice as fast.', 'good'), 1500); }); }
-      if (c.lava !== 2 && G.stats.reachedMines && (G.questState && Quests.current() && Quests.current().id === 'lavasuit' || c.lava === 1)) {
+      if (c.lava !== 2 && G.stats.reachedMines && (Quests.isActive('lavasuit') || c.lava === 1)) {
         if (!c.lava) return say(['You want to go under the basalt? Into the Core?', 'Then you want a Lava Suit, and I am the only one who knows how. Five iron, three void crystal, four ember ore. Bring them.'], () => { c.lava = 1; });
         const ok = P.count('iron') >= 5 && P.count('void') >= 3 && P.count('ember') >= 4; if (!ok) return say(['Five iron, three void, four ember.', `You have ${P.count('iron')}, ${P.count('void')} and ${P.count('ember')}.`]);
         return say(['Stand still. This is going to be hot.', 'There. It will hold in lava, for a while. Come back alive.'], () => { P.take('iron', 5); P.take('void', 3); P.take('ember', 4); c.lava = 2; give('lavasuit'); });
@@ -8261,7 +8280,11 @@ const UI = (() => {
     const JOBTAG = { build: 'BUILD', archery: 'ARCHERY', night: 'NIGHT', lair: 'DEN', explore: 'FIND', hunt: 'HUNT', catch: 'CATCH', dig: 'DIG', fetch: 'FETCH', deliver: 'DELIVER' };
     const jobs = Npcs.takenList(); const jobsHtml = jobs.length ? `<div class="quest bounty"><b>Jobs (${jobs.length})</b>` + jobs.map(([w, q]) => `<div class="small" style="margin-top:4px"><span style="display:inline-block;padding:1px 6px;border-radius:6px;font-size:10px;font-weight:700;background:${JOBCOL[q.kind] || '#888'};color:#111">${JOBTAG[q.kind] || q.kind.toUpperCase()}</span> ${Npcs.questText(q)} <span style="opacity:.7">· for ${q.wname}</span></div>`).join('') + '</div>' : '';
     el['panel-body'].innerHTML = head + jobsHtml + `<div class="quest bounty"><b>Villages</b><div class="small">${Village.summaryHtml()}</div></div><div class="quest bounty"><b>Bounty ${b.round}</b><div class="small">Win ${b.need} battles: ${G.stats.battlesWon - (b.base || 0)}/${b.need}. Reward: Snare Cube and XP. Repeats, bigger each time.</div></div>` +
-      QUESTS.map((qq, i) => { const state = i < idx ? 'done' : i === idx ? 'current' : 'locked'; return `<div class="quest ${state}"><b>${i < idx ? '✓ ' : ''}${qq.title}</b>${state !== 'locked' ? `<div class="small">${qq.desc}</div>` : '<div class="small">Locked</div>'}${state === 'current' ? `<div class="qbar"><div style="width:${Math.round(100 * U.clamp(qq.check(G), 0, 1))}%"></div></div>` : ''}</div>`; }).join('');
+      Object.keys(Quests.ARCS).map(a => { const A = Quests.ARCS[a]; const L = Quests.arcList(a); const ai = (G.questState.arcs || {})[a] || 0; const cq = Quests.arcCurrent(a); const gate = Quests.gated(cq); const focus = (G.questState.focus || 'main') === a;
+        const gateTxt = gate ? `Opens after: ${(QUESTS.find(x => x.id === gate) || {}).title || gate}` : '';
+        return `<div class="arc" style="--ac:${A.col}"><div class="archead"><b>${A.name}</b> <span class="small">${Math.min(ai, L.length)}/${L.length}</span>${cq && !gate ? `<button class="btn ghost" data-focus="${a}" ${focus ? 'disabled' : ''}>${focus ? 'Following' : 'Follow'}</button>` : ''}</div>` +
+          L.map((qq, i) => { const state = i < ai ? 'done' : i === ai ? 'current' : 'locked'; return `<div class="quest ${state}"><b>${i < ai ? '✓ ' : ''}${qq.title}</b>${state !== 'locked' ? `<div class="small">${state === 'current' && gate ? gateTxt : qq.desc}</div>` : '<div class="small">Locked</div>'}${state === 'current' && !gate ? `<div class="qbar"><div style="width:${Math.round(100 * U.clamp(qq.check(G), 0, 1))}%"></div></div>` : ''}</div>`; }).join('') + '</div>'; }).join('');
+    el['panel-body'].querySelectorAll('[data-focus]').forEach(b => b.addEventListener('click', () => { G.questState.focus = b.dataset.focus; renderQuests(); }));
     el['quest-dot'].classList.add('hidden');
     const qp = document.getElementById('q-pin'); if (qp) qp.addEventListener('click', () => { const t = Quests.target(); if (t) { G.pin = { x: Math.round(t.x), z: Math.round(t.z) }; closePanel(); toast('Pinned. Follow ◎ and ★ on the compass.', 'good'); } });
   }
