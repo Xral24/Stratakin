@@ -1811,6 +1811,7 @@ const ITEMS = {
   arrow: { name: 'Arrow', col: '#c9b48a', arrow: 0.22, crafted: true, desc: 'Takes about a fifth of a wild Kin\'s health. Twice that if it never saw you. Needs a bow.' },
   arrow_ember: { name: 'Ember Arrow', col: '#ff7a3a', arrow: 0.34, crafted: true, desc: 'Burns. Takes about a third of a wild Kin\'s health. Needs a bow.' },
   target: { name: 'Target', block: B.TARGET, col: '#e04040', crafted: true, desc: 'A bullseye. Set a few up and shoot at them from a distance. Archery jobs ask for them.' },
+  broth: { name: 'Warm Broth', col: '#d8903a', use: 'warm', desc: 'From Ysolde. Drink it and the cold cannot touch you for four minutes. Campfires warm you too.' },
   ladder: { name: 'Ladder', block: B.LADDER, col: '#a07a44', crafted: true, desc: 'Place it against a wall and climb: ▲ or push forward to go up, hold ▼ to go down. Stack them for a shaft.' },
   chest: { name: 'Chest', block: B.CHEST, col: '#a0783c', crafted: true, desc: 'Place it and tap it: whatever you store inside stays there, safe, even if the wild beats you. Build as many as you like.' },
   kit_bridge: { name: 'Bridge kit', kit: 'bridge', col: '#b58d58', crafted: true, desc: 'A plank bridge with rails, from where you tap straight ahead until it meets ground, up to twelve blocks.' },
@@ -2080,6 +2081,8 @@ class Player {
   coldHere() {
     const w = this.world;
     if (this.flying) return null;
+    if (typeof G !== 'undefined' && G.warmUntil > performance.now() && !w.preset.airless) return null; // warm broth
+    if (!w.preset.airless) { const bx0 = Math.floor(this.x), by0 = Math.floor(this.y), bz0 = Math.floor(this.z); for (let dx = -4; dx <= 4; dx++) for (let dz = -4; dz <= 4; dz++) for (let dy = -2; dy <= 1; dy++) if (w.getBlock(bx0 + dx, by0 + dy, bz0 + dz) === B.CAMPFIRE) return null; }
     if (w.preset.airless) return this.has('spacesuit') ? null : 'space';
     if (this.has('frostcloak')) return null;
     const bx = Math.floor(this.x), bz = Math.floor(this.z);
@@ -6256,7 +6259,8 @@ const Campaign = (() => {
     }
     if (n.job === 'hand') return say([['Hale was thrown seven times before he stayed on anything.', 'Feed them berries. They remember.', 'Mind the back legs.'][Math.floor(Math.random() * 3)]]);
     if (n.job === 'snow') {
-      if (!c.frost) return say(['Have you seen my brother? Tam went out after a white Kin three days ago and did not come back.', 'Out in the snow, that way somewhere. Please.'], () => { c.frost = 1; });
+      if (!c.frost) return say(['Have you seen my brother? Tam went out after a white Kin three days ago and did not come back.', 'The cold out there kills. Take my broth: drink one and you will not freeze for a while. Stand by a fire if you can.', 'Out in the snow, that way somewhere. Please.'], () => { c.frost = 1; G.player.add('broth', 3); });
+      if ((c.frost === 1 || c.frost === 2) && !G.player.has('broth')) return say(['Out of broth? Here, two more. Find him.'], () => G.player.add('broth', 2));
       if (c.frost === 1 || c.frost === 2) return say(['Please. He went out into the snow.']);
       if (c.frost === 3) return say(['Tam! You brought him back.', 'Take this. I sewed it for him, but he says you need it more: a Frost Cloak. The mountains will not freeze you now.'], () => { c.frost = 4; give('frostcloak'); });
       return say(['Stay warm.']);
@@ -8422,6 +8426,7 @@ G.shoot = function () {
 // use a consumable from the Bag or by tapping with it held
 G.useItem = function (key) {
   const p = this.player; const info = key ? p.itemInfo(key) : null; if (!info || !info.use || !p.has(key)) return false;
+  if (info.use === 'warm') { p.take(key, 1); this.warmUntil = performance.now() + 240000; UI.sfx('util'); UI.toast('Warm all the way through. Four minutes before the cold can bite.', 'good'); UI.renderHotbar(); return true; }
   if (info.use === 'player') { if (p.hp >= p.maxHp) { UI.toast('You are at full health.'); return false; } p.take(key, 1); p.hp = p.maxHp; UI.sfx('util'); UI.toast('You feel whole again.', 'good'); UI.renderHotbar(); return true; }
   if (info.use === 'party') { if (!this.kin.some(k => k.hp > 0 && k.hp < KIN.stats(k).hp)) { UI.toast('Nobody needs it right now (fainted Kin need a Revive Tonic).'); return false; } p.take(key, 1); for (const k of this.kin) if (k.hp > 0) k.hp = Math.min(KIN.stats(k).hp, k.hp + KIN.stats(k).hp * 0.5); UI.sfx('util'); UI.toast('Your Kin feel refreshed (fainted ones need a Revive Tonic).', 'good'); UI.renderHotbar(); return true; }
   if (info.use === 'kin') { UI.openPanel('kin'); UI.toast('Pick the Kin to use it on.'); return false; }
