@@ -607,7 +607,7 @@ const B = {
   AIR: 0, BEDROCK: 1, STONE: 2, DIRT: 3, GRASS: 4, SAND: 5, WATER: 6, LOG: 7, LEAVES: 8, SNOW: 9,
   COPPER: 10, IRON: 11, EMBER: 12, VOID: 13, BASALT: 14, LAVA: 15, CLOUD: 16, GLOWGRASS: 17,
   TORCH: 18, FUSION: 19, GRAVEL: 20, CACTUS: 21, STARMETAL: 22, MOSS: 23, STATUE: 24, PLANKS: 25, BERRY: 26, GLASS: 27, CAMPFIRE: 28, IRONWALL: 29, VOIDWALL: 30, GLOWWORM: 31, BERRYLEAF: 32, DOOR: 33, DOOR_OPEN: 34, PORTAL: 35,
-  CHEST: 36, SELENITE: 37, TYCHO: 38, STARSALT: 39, MOONGLOW: 40, AMBER: 41, SULFUR: 42, RINGSHARD: 43, BRINE: 44, CORAL_R: 45, CORAL_B: 46, CORAL_Y: 47, PEARLCORAL: 48, GOLD: 49, DIAMOND: 50, FERN: 51, SELGLASS: 52, INCUBATOR: 53, REGOLITH: 54, DUNE: 55, SALTCRUST: 56, LADDER: 57, TARGET: 58, BALLOON: 59
+  CHEST: 36, SELENITE: 37, TYCHO: 38, STARSALT: 39, MOONGLOW: 40, AMBER: 41, SULFUR: 42, RINGSHARD: 43, BRINE: 44, CORAL_R: 45, CORAL_B: 46, CORAL_Y: 47, PEARLCORAL: 48, GOLD: 49, DIAMOND: 50, FERN: 51, SELGLASS: 52, INCUBATOR: 53, REGOLITH: 54, DUNE: 55, SALTCRUST: 56, LADDER: 57, TARGET: 58, BALLOON: 59, FORTSTONE: 60, THORN: 61, DEADGATE: 62, RUBBLE: 63
 };
 
 // name, top colour, side colour, solid, hardness (seconds to mine), drop item id, emissive, fluid
@@ -675,6 +675,10 @@ defBlock(B.GOLD, 'Gold Ore', '#8e8e97', '#85858e', { hard: 1.6, drop: 'gold' });
 defBlock(B.DIAMOND, 'Diamond Ore', '#8e8e97', '#85858e', { hard: 2.2, drop: 'diamond' });
 defBlock(B.FERN, 'Fern', '#3f8a33', '#2f7a2a', { solid: false, hard: 0.15, drop: 'frond', partial: true, transparent: true });
 defBlock(B.SELGLASS, 'Selenite Glass', '#dff4ff', '#cfeafc', { hard: 0.5, drop: 'selglass', transparent: true });
+defBlock(B.FORTSTONE, 'Fortress Stone', '#3a3442', '#2e2836', { hard: Infinity });
+defBlock(B.THORN, 'Thorn Wall', '#3a5a22', '#2a4418', { hard: Infinity });
+defBlock(B.DEADGATE, 'Dead Gate', '#5a6670', '#46525c', { hard: Infinity });
+defBlock(B.RUBBLE, 'Rubble', '#8a7a66', '#6e6050', { hard: Infinity });
 defBlock(B.TARGET, 'Target', '#f2ede0', '#f2ede0', { hard: 0.5, drop: 'target' });
 defBlock(B.BALLOON, 'Balloon', '#e8323c', '#d42a34', { hard: 0.05, drop: null });
 defBlock(B.LADDER, 'Ladder', '#a07a44', '#8a6a3c', { solid: false, hard: 0.3, drop: 'ladder', partial: true, transparent: true });
@@ -1334,6 +1338,11 @@ const SPECK = (col, emis) => ({ base: 'stone', studs: (hash) => { const out = []
 const PATTERNS = {};
 PATTERNS[B.PLANKS] = { side: { rects: bands(3, 'v', [1.0, 0.88, 0.95], 0.04, 0.42) }, top: { rects: bands(3, 'u', [1.0, 0.88, 0.95], 0.04, 0.42) } };
 PATTERNS[B.LOG] = { side: { rects: bands(4, 'u', [1.0, 0.84, 0.94, 0.8], 0.02, 0.6) }, top: { rects: strips(0.14, 0.78).concat(strips(0.14, 0.95).map(r => ({ u0: 0.14 + r.u0 * 0.72, v0: 0.14 + r.v0 * 0.72, u1: 0.14 + r.u1 * 0.72, v1: 0.14 + r.v1 * 0.72, mul: 1.1, col: [0.78, 0.62, 0.38] })), [{ u0: 0.28, v0: 0.28, u1: 0.72, v1: 0.72, mul: 0.86, col: [0.6, 0.45, 0.26] }]) } };
+// the Kinmaster's works: dark dressed stone with mortar, barbed thorn, a dead machine gate with rivets and a cold lamp, a heap of rubble
+PATTERNS[B.FORTSTONE] = { all: { rects: [{ u0: 0, v0: 0, u1: 1, v1: 1, mul: 1, col: null }, { u0: 0, v0: 0.48, u1: 1, v1: 0.52, mul: 0.7, col: null }, { u0: 0.48, v0: 0, u1: 0.52, v1: 0.48, mul: 0.7, col: null }, { u0: 0.2, v0: 0.52, u1: 0.24, v1: 1, mul: 0.7, col: null }, { u0: 0.74, v0: 0.52, u1: 0.78, v1: 1, mul: 0.7, col: null }, { u0: 0.06, v0: 0.06, u1: 0.4, v1: 0.12, mul: 1.15, col: null }] } };
+PATTERNS[B.THORN] = { all: { rects: [{ u0: 0, v0: 0, u1: 1, v1: 1, mul: 1, col: null }, { u0: 0.1, v0: 0.2, u1: 0.9, v1: 0.3, mul: 0.7, col: null }, { u0: 0.2, v0: 0.6, u1: 1, v1: 0.7, mul: 0.7, col: null }, { u0: 0.3, v0: 0.1, u1: 0.36, v1: 0.2, mul: 1, col: [0.85, 0.82, 0.6] }, { u0: 0.6, v0: 0.3, u1: 0.66, v1: 0.4, mul: 1, col: [0.85, 0.82, 0.6] }, { u0: 0.4, v0: 0.7, u1: 0.46, v1: 0.8, mul: 1, col: [0.85, 0.82, 0.6] }, { u0: 0.8, v0: 0.5, u1: 0.86, v1: 0.6, mul: 1, col: [0.85, 0.82, 0.6] }] } };
+PATTERNS[B.DEADGATE] = { all: { rects: [{ u0: 0.05, v0: 0.05, u1: 0.95, v1: 0.95, mul: 0.85, col: null }, { u0: 0.08, v0: 0.08, u1: 0.16, v1: 0.16, mul: 1.4, col: null }, { u0: 0.84, v0: 0.08, u1: 0.92, v1: 0.16, mul: 1.4, col: null }, { u0: 0.08, v0: 0.84, u1: 0.16, v1: 0.92, mul: 1.4, col: null }, { u0: 0.84, v0: 0.84, u1: 0.92, v1: 0.92, mul: 1.4, col: null }, { u0: 0.38, v0: 0.38, u1: 0.62, v1: 0.62, mul: 1, col: [0.25, 0.3, 0.38] }] } };
+PATTERNS[B.RUBBLE] = { all: { rects: [{ u0: 0, v0: 0, u1: 1, v1: 1, mul: 1, col: null }, { u0: 0.05, v0: 0.1, u1: 0.45, v1: 0.45, mul: 1.15, col: null }, { u0: 0.5, v0: 0.05, u1: 0.95, v1: 0.4, mul: 0.85, col: null }, { u0: 0.1, v0: 0.55, u1: 0.55, v1: 0.95, mul: 0.9, col: null }, { u0: 0.6, v0: 0.5, u1: 0.95, v1: 0.92, mul: 1.1, col: null }] } };
 // a bullseye: red rings on straw-white
 PATTERNS[B.TARGET] = { all: { rects: [{ u0: 0.08, v0: 0.08, u1: 0.92, v1: 0.92, mul: 1, col: [0.85, 0.16, 0.18] }, { u0: 0.2, v0: 0.2, u1: 0.8, v1: 0.8, mul: 1, col: [0.95, 0.93, 0.88] }, { u0: 0.32, v0: 0.32, u1: 0.68, v1: 0.68, mul: 1, col: [0.85, 0.16, 0.18] }, { u0: 0.43, v0: 0.43, u1: 0.57, v1: 0.57, mul: 1, col: [0.98, 0.84, 0.2] }] } };
 PATTERNS[B.BALLOON] = { all: { rects: [{ u0: 0.18, v0: 0.55, u1: 0.42, v1: 0.82, mul: 1.35, col: null }] } };
@@ -1963,7 +1972,7 @@ class Player {
     let speed = (this.sneak ? 1.7 : 4.4) * this.speedMul * (1 - 0.55 * (this.chill || 0));
     if (this.inLava) speed = 1.6 * (this.has('lavasuit') ? this.gearMul('lavasuit') * 1.5 : 1); else if (this.inWater) speed = 2.6 * (this.has('reeffins') ? 1.8 : 1);
     const mountShape = this.mount ? (this.mountMode || 'land') : null; // 'land' | 'water' | 'air'
-    const ride = this.mount ? 1 + 0.3 * Math.min(1, (this.mount.rideT || 0) / 7200) : 1; // a Kin finds its full stride after two hours under you
+    const ride = this.mount ? 1 + 0.3 * (this.mount.trust || 0) : 1; // trust: two hours under you to full stride; it fades if you leave it alone
     if (mountShape === 'land' && !inFluid) speed *= (this.mount.sp.fast ? 3.2 : 1.8) * ride;
     else if (mountShape === 'water' && this.inWater) speed = 6.5 * ride;
     else if (mountShape === 'air' && !inFluid) speed *= 1.3;
@@ -2043,7 +2052,7 @@ class Player {
     // a mount stays near the surface without a bulb, and nothing on wings goes above the clouds: that is what ships are for
     if (mountShape === 'water' && !this.has('bulb') && this.y < SEA - 1.1) { this.y = SEA - 1.1; if (this.vy < 0) this.vy = 0; if (!this.warnedBulb) { this.warnedBulb = true; if (typeof UI !== 'undefined') UI.toast('Your Kin will not take you under: you would drown. Marisol makes Breathing Bulbs.'); } }
     if (mountShape === 'air' && this.y > SKY_BASE - 4) { this.y = SKY_BASE - 4; if (this.vy > 0) this.vy = 0; }
-    if (this.mount) this.mount.rideT = (this.mount.rideT || 0) + dt;
+    if (this.mount) this.mount.trust = Math.min(1, (this.mount.trust || 0) + dt / 7200);
     // breath
     if (this.underwater) {
       const max = (this.has('bulb') ? 120 * this.gearMul('bulb') : 20) * this.breathMul * (this.has('reeffins') ? 2 : 1);
@@ -2520,6 +2529,12 @@ const KIN = (() => {
         taken.set(nm, sp.seed);
         DEX[body].push(sp); sp.dex = DEX[body].length;
       }
+    }
+    for (const body of ['earth', 'moon', 'halo']) {
+      const land = DEX[body].filter(sp => sp.home && sp.home.layer === 'Surface' && (sp.shape === 'quadruped' || sp.shape === 'horned' || sp.shape === 'raptor' || sp.shape === 'longneck'));
+      const picks = land.filter(sp => sp.rarity >= 1 && sp.rarity <= 2 && sp.home.biome !== 'Lost World'); const r = U.rng(U.combine(SPECIES_SEED[body], 0x57EED));
+      for (let i = 0; i < 4 && picks.length; i++) { const sp = picks.splice(r.int(picks.length), 1)[0]; sp.steed = true; }
+      for (const sp of land) if (sp.rarity === 4 || (sp.dino && sp.shape === 'raptor' && sp.rarity <= 1)) sp.steed = true;
     }
   }
   // ---- recipe fusions: 30 per planet, each a fixed pair plus an element stone, each with its own species ----
@@ -3389,7 +3404,7 @@ const Wild = (() => {
         else rate = -0.6;
         e.alert = U.clamp(e.alert + rate * dt * (dist < senseR * 0.5 && !sneaking ? 1.5 : 1), 0, 1);
         // only the real threats force a fight: tyrants, their guards, legends, the lab's splice and the truly rare; everything else follows you and gives up
-        const strong = (e.kin.sp.rarity || 0) >= 3 || e.lieutenant || e.isBoss || e.isLegend || e.isApex || e.isLabBoss || e.lairQuest || e.nightQuest;
+        const strong = (e.kin.sp.rarity || 0) >= 3 || e.lieutenant || e.isBoss || e.isLegend || e.isApex || e.isLabBoss || e.lairQuest || e.nightQuest || e.kinmaster;
         // once it has seen you, stay in its ring for three seconds and it attacks; walk out in time and it lets you go
         if (e.alert >= 1) { e.ringT = (e.ringT || 0) + dt; if (!strong) e.hunt = 4; } else e.ringT = Math.max(0, (e.ringT || 0) - dt);
         if (e.alert >= 1 && !trigger && (strong || e.ringT >= 3)) trigger = { e, ambush: false };
@@ -5433,11 +5448,12 @@ const QUESTS = [
   { id: 'ranch', title: 'Hale\'s Ranch', desc: 'You cannot ride a Kin you have not broken in, and nobody will teach you but Dusty Hale (♞ on the map). He needs a paddock built first, and there is a wild one nobody can stay on.', hint: 'Build Hale\'s paddock and ride out Thunderhoof', check: G => (G.stats.camp || {}).rogueTamed ? 1 : 0, reward: { xp: 120 } },
   { id: 'frost', title: 'Lost in the Snow', desc: 'Up in the snowfields a woman called Ysolde has a camp, and a brother who has not come home. The cold up there kills. Find her, then find him.', hint: 'Find Ysolde\'s camp in the snow, and her brother', check: G => ((G.stats.camp || {}).frost || 0) >= 4 ? 1 : 0, reward: { xp: 150 } },
   { id: 'glider', title: 'The Nest', desc: 'Old Wren the hermit lives under the tallest peak around, and a sky Kin nests on a pillar of rock beside it. You can only reach the pillar one way: from the peak, on a glider. Bring the egg down and walk it until it hatches.', hint: 'Get Old Wren\'s glider and glide to the nest', check: G => (G.stats.camp || {}).skyEgg ? 1 : 0, reward: { xp: 200 } },
+  { id: 'kinmaster', title: 'The Kinmaster', desc: 'Grakor had a letter on him, sealed in purple: every tyrant answers to someone. The Kinmaster, in his fortress Thornhold, out past the hills (♜). Getting in will take everything you have learned: a Flame Kin to burn his thorns, the glider, the bulb, a Spark Kin and a Stone Kin. His walls cannot be broken.', hint: 'Get through Thornhold and face the Kinmaster', check: G => (G.stats.camp || {}).kinmaster ? 1 : 0, reward: { xp: 400, items: { snare2: 3 } } },
   { id: 'void', title: 'Deep Crystal', desc: 'Void Crystal glows purple below y 22. You need the iron pick for it. Bring one back.', hint: 'Mine a Void Crystal (below y 22)', check: G => Math.min(1, G.stats.got.void || 0), reward: { items: { snare2: 2 }, xp: 40 } },
   { id: 'lavasuit', title: 'Suit Up', desc: 'The Core is a sea of lava under the basalt ceiling. Only Garrick knows how to make a Lava Suit. Ask him.', hint: 'Get a Lava Suit from Garrick', check: G => G.player.has('lavasuit') ? 1 : 0, reward: { xp: 60 } },
   { id: 'core', title: 'The Core', desc: 'Dig through the basalt ceiling beneath the Mines (below y 14). Expect lava and Flame and Void Kin far above your level.', hint: 'Reach the Core (y below 14)', check: G => G.stats.reachedCore ? 1 : 0, reward: { xp: 80 } },
   { id: 'heart', title: 'The Heart', desc: 'Somewhere in the Core lies a chamber with a pedestal of Starmetal. Two Wardens patrol it in step. Find the gap.', hint: 'Find the Heart chamber', check: G => G.stats.heartFound ? 1 : 0, reward: { xp: 100 } },
-  { id: 'mythic', title: 'Mantlewyrm', desc: 'The Mythic sleeps on the Starmetal. The hardest thing on Earth. Catch it (bring Void Snares and a strong, evolved team) or defeat it.', hint: 'Catch or defeat the Mantlewyrm', check: G => G.stats.mythicDone ? 1 : 0, reward: { xp: 500 } },
+  { id: 'mythic', title: 'Mantlewyrm', desc: 'The Kinmaster ran for the Core to wake the Mythic that sleeps on the Starmetal. Get there first. The hardest thing on Earth: catch it (bring Void Snares and a strong, evolved team) or defeat it, before he does.', hint: 'Catch or defeat the Mantlewyrm', check: G => G.stats.mythicDone ? 1 : 0, reward: { xp: 500 } },
   { id: 'ship', title: 'Starmetal', desc: 'With the Mythic gone, tap the Starmetal pedestal in the Heart. It forges into a Starship, and folds a Space Suit around you as it does.', hint: 'Tap the Starmetal in the Heart', check: G => G.player.has('ship') ? 1 : 0, reward: { xp: 200 } },
   { id: 'moon', title: 'Beyond', desc: 'Wear the Space Suit the Starmetal gave you: the Moon has no air. Board the Starship on the surface (select it, tap). Hold jump to climb. Above the clouds, the world lets go of you and asks where to. Mind what you fly into.', hint: 'Fly the Starship above the clouds', check: G => (G.stats.reachedMoon || (G.stats.reached || {}).moon) ? 1 : 0, reward: { xp: 400 } },
   { id: 'job', title: 'Odd Jobs', desc: 'People sit by little fires all over the world, and the Moon and Halo too, each with a job: fetch this, beat that, carry a parcel, clear a den. Yellow dots on the map. Some of them pay in amulets, which nobody sells.', hint: 'Do a job for someone on the road', check: G => (G.stats.questsDone || 0) >= 1 ? 1 : 0, reward: { xp: 120 } },
@@ -6054,7 +6070,7 @@ const Campaign = (() => {
   function sites() {
     const c = C(); if (c.sites && c.sites.v === 3) return c.sites;
     const S = Object.assign({}, c.sites || {}, { v: 3 }); if (c.sites && c.sites.mine) { const old = c.sites; Object.assign(S, old, { v: 3 }); c.sites = S; if (!S.zoo) { /* add the new places to an older save */ } }
-    if (S.mine && S.zoo) return S;
+    if (S.mine && S.zoo && S.fort) return S;
     S.mine = S.mine || ring(80, 220, (x, z) => flat(x, z, 6) && awayFromVillage(x, z), 0x31) || { x: Math.round(world.spawn.x + 90), z: Math.round(world.spawn.z) };
     S.diver = S.diver || ring(60, 500, (x, z) => { // a shore with deep water a little way out
       if (!land(x, z) || !awayFromVillage(x, z)) return false;
@@ -6070,6 +6086,7 @@ const Campaign = (() => {
         if (nh < best.h - 16 && nh > SEA) { let clear = true; for (let t = 6; t < 27 && clear; t += 2) { const tx = Math.round(best.x + Math.cos(a) * t), tz = Math.round(best.z + Math.sin(a) * t); if (world.colInfo(tx, tz).h > best.h - 2 - t * 0.22) clear = false; } if (clear) return { x: best.x, z: best.z, h: best.h, nx, nz, top: best.h - 7 }; } }
       return false; }, 0x36);
     if (!S.peak) { const f = ring(260, 700, (x, z) => flat(x, z, 8) && awayFromVillage(x, z), 0x3B); if (f) { const h = world.colInfo(f.x, f.z).h; S.peak = { x: f.x, z: f.z, h: h + 30, nx: f.x + 30, nz: f.z, top: h + 22, crag: true }; } }
+    S.fort = S.fort || ring(500, 1000, (x, z) => flat(x, z, 10) && flat(x + 30, z, 10) && flat(x + 60, z, 10) && awayFromVillage(x, z) && awayFromVillage(x + 40, z), 0x3F) || ring(400, 1200, (x, z) => land(x, z) && land(x + 40, z) && land(x + 76, z) && awayFromVillage(x, z), 0x40);
     S.zoo = S.zoo || ring(280, 700, (x, z) => flat(x, z, 9) && awayFromVillage(x, z) && [S.mine, S.ranch, S.diver].every(o => !o || Math.hypot(x - o.x, z - o.z) > 70), 0x3C);
     if (S.zoo && world.lost) { // the trapper's country: further out, the way the Lost World lies
       const a = Math.atan2(wd(world.lost.z - S.zoo.z), wd(world.lost.x - S.zoo.x));
@@ -6197,6 +6214,52 @@ const Campaign = (() => {
     set(s.x - 7, y0 + 1, s.z + 3, B.FERN); set(s.x + 7, y0 + 1, s.z + 3, B.BERRY); set(s.x - 2, y0 + 1, s.z - 6, B.FERN); set(s.x + 2, y0 + 1, s.z - 2, B.FERN);
     s.y0 = y0; s.dino = { x: s.x, z: s.z - 4 };
   }
+  // ---------- Thornhold: the Kinmaster's fortress, a run of rooms that each want something you have learned ----------
+  function stampFort(s) {
+    const X0 = s.x, Z0 = s.z; for (let cx = -1; cx <= 4; cx++) world.ensureAround(Math.floor((X0 + cx * 20) / CH), Math.floor(Z0 / CH), 2, 99);
+    const y0 = world.colInfo(X0 + 30, Z0).h; s.y0 = y0; const F = B.FORTSTONE;
+    const box = (x0, x1, z0, z1, ya, yb, b) => { for (let x = x0; x <= x1; x++) for (let z = z0; z <= z1; z++) for (let y = ya; y <= yb; y++) set(X0 + x, y, Z0 + z, b); };
+    for (let x = -24; x <= 80; x++) for (let z = -14; z <= 14; z++) { const X = X0 + x, Z = Z0 + z; for (let y = y0 + 1; y <= y0 + 22; y++) if (world.getBlock(X, y, Z) !== B.AIR) set(X, y, Z, B.AIR); for (let y = y0 - 4; y <= y0; y++) set(X, y, Z, y === y0 ? B.GRAVEL : B.STONE); }
+    box(-1, 76, -9, 9, y0 + 1, y0 + 15, F); box(0, 75, -8, 8, y0 + 1, y0 + 14, B.AIR); box(-1, 76, -9, 9, y0 - 12, y0, F);
+    for (let x = -1; x <= 76; x += 2) { set(X0 + x, y0 + 16, Z0 - 9, F); set(X0 + x, y0 + 16, Z0 + 9, F); }
+    for (const z of [-10, 10]) for (let x = 4; x <= 72; x += 12) { set(X0 + x, y0 + 12, Z0 + z, B.CORAL_R); set(X0 + x, y0 + 11, Z0 + z, B.CORAL_R); }
+    const wallAt = (x) => box(x, x, -8, 8, y0 + 1, y0 + 14, F);
+    // room 1: the gate of thorns, then a ladder up to the launch ledge
+    box(-1, -1, -1, 1, y0 + 1, y0 + 3, B.THORN); for (const z of [-3, 3]) set(X0 - 2, y0 + 3, Z0 + z, B.TORCH);
+    box(0, 7, -8, 8, y0, y0, B.GRAVEL); for (let y = y0 + 1; y <= y0 + 9; y++) set(X0 + 7, y, Z0 + 4, B.LADDER); set(X0 + 2, y0 + 3, Z0 - 7, B.TORCH); set(X0 + 2, y0 + 3, Z0 + 7, B.TORCH);
+    // room 2: the pit; a ledge at the top, water far below, the landing on the far side
+    box(9, 29, -8, 8, y0 - 11, y0, B.AIR); box(9, 29, -8, 8, y0 - 12, y0 - 12, F); box(9, 29, -8, 8, y0 - 11, y0 - 9, B.WATER);
+    box(8, 11, -8, 8, y0 - 11, y0 + 8, F); box(8, 8, -8, 8, y0 + 9, y0 + 14, F); box(8, 8, 3, 5, y0 + 9, y0 + 11, B.AIR); for (let y = y0 + 1; y <= y0 + 8; y++) set(X0 + 7, y, Z0 + 4, B.LADDER);
+    for (let y = y0 - 8; y <= y0 + 8; y++) set(X0 + 12, y, Z0, B.LADDER);
+    box(26, 29, -8, 8, y0 - 11, y0 + 4, F); set(X0 + 10, y0 + 9, Z0 + 4, B.TORCH); set(X0 + 28, y0 + 5, Z0 - 6, B.TORCH); set(X0 + 28, y0 + 5, Z0 + 6, B.TORCH);
+    for (let x = 13; x <= 25; x += 4) set(X0 + x, y0 + 14, Z0, B.MOONGLOW);
+    // room 3: the flooded hall, floor to ceiling
+    wallAt(30); box(30, 30, -1, 1, y0 + 5, y0 + 7, B.AIR); box(31, 43, -8, 8, y0 + 1, y0 + 4, F); box(31, 43, -8, 8, y0 + 5, y0 + 14, B.WATER);
+    for (let x = 33; x <= 41; x += 4) set(X0 + x, y0 + 5, Z0 + 7, B.CORAL_B);
+    // room 4: the dead machine gate (Spark); room 5: the rubble (Stone)
+    wallAt(44); box(44, 44, -1, 1, y0 + 5, y0 + 7, B.AIR); box(45, 75, -8, 8, y0 + 1, y0 + 4, F);
+    wallAt(52); box(52, 52, -1, 1, y0 + 5, y0 + 7, B.DEADGATE); set(X0 + 48, y0 + 7, Z0 - 7, B.TORCH); set(X0 + 48, y0 + 7, Z0 + 7, B.TORCH);
+    wallAt(60); box(60, 60, -1, 1, y0 + 5, y0 + 7, B.RUBBLE); box(57, 59, -2, 2, y0 + 5, y0 + 5, B.RUBBLE); set(X0 + 55, y0 + 7, Z0 - 7, B.TORCH);
+    // the throne room: a long carpet, pillars with lamps, a gold throne
+    for (let x = 61; x <= 74; x++) set(X0 + x, y0 + 4, Z0, B.CORAL_R);
+    for (let x = 63; x <= 73; x += 5) for (const z of [-5, 5]) { box(x, x, z, z, y0 + 5, y0 + 13, F); set(X0 + x, y0 + 10, Z0 + z + (z < 0 ? 1 : -1), B.TORCH); }
+    box(74, 74, -1, 1, y0 + 5, y0 + 5, B.GOLD); box(75, 75, -1, 1, y0 + 5, y0 + 8, B.GOLD); set(X0 + 74, y0 + 9, Z0, B.MOONGLOW);
+    s.throne = { x: X0 + 72, z: Z0 }; s.floorY = y0 + 4;
+    // the canyon in front, and the broken bridge over it
+    for (let x = -16; x <= -9; x++) for (let z = -40; z <= 40; z++) { const X = X0 + x, Z = Z0 + z; const gy = world.groundY(X, Z, y0 + 30); for (let y = y0 - 12; y <= Math.max(gy, y0) + 4; y++) set(X, y, Z, y <= y0 - 10 ? B.WATER : B.AIR); set(X, y0 - 13, Z, B.STONE); }
+    for (const x of [-16, -9]) for (const z of [-1, 0, 1]) set(X0 + x, y0, Z0 + z, B.PLANKS);
+    s.bridge = { x0: X0 - 16, x1: X0 - 9, z: Z0, y: y0 }; s.merchant = { x: X0 - 20, z: Z0 + 3 };
+  }
+  function fixBridge(s) { const b = s.bridge; for (let x = b.x0; x <= b.x1; x++) for (const dz of [-1, 0, 1]) set(x, b.y, b.z + dz, B.PLANKS); for (let x = b.x0; x <= b.x1; x += 2) for (const dz of [-2, 2]) set(x, b.y + 1, b.z + dz, B.LOG); }
+  const GATES = { [B.THORN]: ['Flame', 'burns the thorns away'], [B.DEADGATE]: ['Spark', 'jolts the dead gate back to life: it grinds open'], [B.RUBBLE]: ['Stone', 'smashes the rubble flat'] };
+  function tryGate(hit) {
+    const g = GATES[hit.id]; if (!g) return false;
+    const k = G.activeKin(); const els = k ? KIN.dominant(k.sp.elem, 2) : [];
+    if (!k || !els.includes(g[0])) { UI.toast(`${BLOCKS[hit.id].name}: nothing you have can move it. A ${g[0]} Kin in the lead could.`, 'bad'); return true; }
+    const seen = new Set(), q = [[hit.x, hit.y, hit.z]]; let n = 0;
+    while (q.length && n < 80) { const [x, y, z] = q.pop(); const key = x + ',' + y + ',' + z; if (seen.has(key)) continue; seen.add(key); if (world.getBlock(x, y, z) !== hit.id) continue; set(x, y, z, B.AIR); n++; for (const [a, b, c2] of [[1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [0, 0, 1], [0, 0, -1]]) q.push([x + a, y + b, z + c2]); }
+    G.meshPass(99); UI.sfx(hit.id === B.THORN ? 'fuse' : 'break'); UI.toast(`${KIN.name(k)} ${g[1]}.`, 'good'); return true;
+  }
   function stampTent(at) { world.ensureAround(Math.floor(at.x / CH), Math.floor(at.z / CH), 0, 99); const y0 = world.groundY(at.x, at.z); for (let k = 0; k < 3; k++) for (let dx = -2 + k; dx <= 2 - k; dx++) for (let dz = -2; dz <= 2; dz++) if (Math.abs(dx) === 2 - k) set(at.x + 3 + dx, y0 + 1 + k, at.z + dz, B.PLANKS); set(at.x, y0 + 1, at.z, B.CAMPFIRE); }
   // ---------- each frame ----------
   function update(dt, p, inBattle) {
@@ -6209,6 +6272,7 @@ const Campaign = (() => {
       if (S.snow && near(S.snow, p, 90) && !c.st_snow) { c.st_snow = true; stampSnow(S.snow); G.meshPass(99); }
       if (S.snow && S.snow.lost && c.frost === 1 && near(S.snow.lost, p, 70) && !c.st_shelter) { c.st_shelter = true; stampShelter(S.snow); G.meshPass(99); }
       if (S.peak && near(S.peak, p, 110) && !c.st_peak) { c.st_peak = true; stampPeak(S.peak); G.meshPass(99); }
+      if (S.fort && near(S.fort, p, 120) && !c.st_fort) { c.st_fort = true; stampFort(S.fort); G.meshPass(99); }
       if (S.zoo && near(S.zoo, p, 90) && !c.st_zoo) { c.st_zoo = true; stampZoo(S.zoo); G.meshPass(99); }
       if (S.halfA && near(S.halfA, p, 80) && !c.st_halfA) { c.st_halfA = true; stampTent(S.halfA); G.meshPass(99); }
       if (S.halfB && near(S.halfB, p, 80) && !c.st_halfB) { c.st_halfB = true; stampTent(S.halfB); G.meshPass(99); }
@@ -6235,6 +6299,11 @@ const Campaign = (() => {
     if (S.peak && near(S.peak, p, 100) && C().st_peak && !has('hermit')) { const s = S.peak; const a = Math.atan2(s.nz - s.z, s.nx - s.x) + Math.PI; let hx = Math.round(s.x + Math.cos(a) * 18), hz = Math.round(s.z + Math.sin(a) * 18); person('hermit', 'Old Wren', 'hermit', hx, hz, { body: '#7a6f5a', belly: '#e8c39e' }, ['hermit']); }
     if (S.zoo && near(S.zoo, p, 80) && C().st_zoo && !has('keeper')) { const s = S.zoo; person('keeper', 'Barnaby Quill', 'keeper', s.x + 3, s.z + 6, { body: '#6a2a4a', belly: '#e8c39e' }, ['hat', 'lamp']);
       if (!zooDino) { const sp = KIN.dex('earth').find(x => x.dino && x.shape === 'raptor') || KIN.dex('earth').find(x => x.dino); if (sp) { const gy = world.groundY(s.dino.x, s.dino.z) + 1; zooDino = Wild.makeEntity(sp, 40, s.dino.x + 0.5, gy, s.dino.z + 0.5, { senseR: 0 }); zooDino.peaceful = true; zooDino.exhibit = true; zooDino.patrol = { ax: s.dino.x - 2, az: s.dino.z + 0.5, bx: s.dino.x + 2.5, bz: s.dino.z + 0.5, period: 9, phase: 0 }; Wild.list.push(zooDino); } } }
+    if (S.fort && C().st_fort && near(S.fort, p, 130)) {
+      const f = S.fort;
+      if (!has('silas')) person('silas', 'Silas Pennywise', 'merchant', f.merchant.x, f.merchant.z, { body: '#2a2a3a', belly: '#d8a060', accent: '#e0b84a' }, ['hat', 'star']);
+      if (!C().kinmaster && !has('kinmaster') && f.throne) { const n = person('kinmaster', 'The Kinmaster', 'kinmaster', f.throne.x, f.throne.z, { body: '#3a1a4a', belly: '#c9b48a', accent: '#b026ff', dark: '#120818', eye: '#ff3a3a' }, ['crown', 'mask']); n.y = f.floorY + 1; }
+    }
     if (S.halfA && near(S.halfA, p, 70) && C().st_halfA && !has('jo')) person('jo', 'Trapper Jo', 'halfA', S.halfA.x + 2, S.halfA.z + 1, { body: '#5a4a2a', belly: '#c68642' }, ['hat']);
     if (S.halfB && near(S.halfB, p, 70) && C().st_halfB && !has('sela')) person('sela', 'Old Sela', 'halfB', S.halfB.x + 2, S.halfB.z + 1, { body: '#4a5a6a', belly: '#8d5524' }, ['hermit']);
     if (zooDino && !near(S.zoo, p, 110)) { Wild.remove(zooDino); zooDino = null; }
@@ -6246,7 +6315,9 @@ const Campaign = (() => {
     }
     for (let i = people.length - 1; i >= 0; i--) if (Math.hypot(wd(people[i].x - p.x), wd(people[i].z - p.z)) > 110) people.splice(i, 1);
   }
-  let rogueSp = null; let zooDino = null;
+  let rogueSp = null; let zooDino = null; let bossRef = null; let kmSp = null;
+  function kinmasterSpecies() { if (kmSp) return kmSp; const sp = KIN.species(U.combine(0x0BAD, 1), ['Void'], 0, { primary: 'Void', shape: 'biped', total: 760, rarity: 4 }); sp.names = ['Vexmaw', 'Vexmaw', 'Vexmaw']; sp.noFuse = true; sp.colors = { body: '#2a1038', belly: '#b026ff', accent: '#ff3a3a', dark: '#0a0410', eye: '#ff3a3a' }; sp.feat.horns = true; sp.feat.spikes = true; sp.feat.crest = true; sp.cap = 200; kmSp = sp; return sp; }
+  function onBoss(result) { const c = C(); c.kinmaster = true; bossRef = null; const i = people.findIndex(x => x.id === 'kinmaster'); if (i >= 0) people.splice(i, 1); setTimeout(() => Dialogue.show('The Kinmaster', ['Enough! You have not won anything. You have only made me hurry.', 'The Core, the Heart, the thing that sleeps on the Starmetal: I will have it before you can follow.'], () => UI.toast('He is gone, down into the earth. The Core. The Mantlewyrm.', 'bad')), 1200); }
   function rogueSpecies() {
     if (rogueSp) return rogueSp;
     const sp = KIN.species(U.combine(0x40CE, 7), ['Gale'], 0, { primary: 'Gale', shape: 'quadruped', total: 420, rarity: 2 });
@@ -6301,7 +6372,7 @@ const Campaign = (() => {
       if (!c.ranch) return say(['Ride? You? Nobody rides a Kin they have not been thrown off first.', 'I will teach you. But I need a paddock first, for the wild one they are bringing in. Build me a fence where my posts are: two high, a gap for a gate.'], () => { c.ranch = 1; });
       if (c.ranch === 1) return say(['The paddock. Two high, all the way round, between my posts.']);
       if (c.ranch === 2 && !c.rogueTamed) return say(['They brought him in last night. Thunderhoof. Nobody has stayed on him longer than a breath.', 'You want to learn? Get on him. Tap when he lands his weight, not before, not after. If he throws you, get up and try again.']);
-      return say(['You ride now. Every Kin you catch has to be broken in the same way before it will carry you: press Ride and hold on.', 'The longer you ride one, the better it gets. A good Kin finds its full stride after a couple of hours under you.']);
+      return say(['You ride now. But only a few kinds will ever take a rider: steeds, dinosaurs, the great ones. Your Kindex marks steeds with ♞.', 'Each one has to be broken in once. Then ride it: trust builds over a couple of hours and it gets faster. Leave it alone too long and the trust fades.']);
     }
     if (n.job === 'hand') return say([['Hale was thrown seven times before he stayed on anything.', 'Feed them berries. They remember.', 'Mind the back legs.'][Math.floor(Math.random() * 3)]]);
     if (n.job === 'snow') {
@@ -6314,6 +6385,15 @@ const Campaign = (() => {
     if (n.job === 'lost') {
       if (c.frost === 2) { const ok = P.count('torch') >= 3 && P.count('bread') >= 1; if (!ok) return say(['Cold. So cold. I cannot walk like this.', 'Three torches and something to eat. Please.']); return say(['Warmth. Food. Thank you.', 'I can make it home now. Tell Ysolde I am coming.'], () => { P.take('torch', 3); P.take('bread', 1); c.frost = 3; const i = people.findIndex(x => x.id === 'tam'); if (i >= 0) people.splice(i, 1); }); }
       return say(['Thank you.']);
+    }
+    if (n.job === 'merchant') {
+      if (c.bridgeFixed) return say(['A pleasure doing business. Mind the step.']);
+      return say(['Silas Pennywise, purveyor of solutions. Your problem, I see, is a canyon.', 'The bridge is out. Terrible shame. I could have it mended for, oh, 300 Shards. Or you could find your own way across, if you are the climbing sort.', G.shards >= 300 ? 'Shall we? (it takes your Shards)' : `You have ${G.shards}. Come back richer.`], () => { if (G.shards >= 300 && !c.bridgeFixed) { G.shards -= 300; c.bridgeFixed = true; fixBridge(sites().fort); G.meshPass(99); UI.sfx('caught'); UI.toast('The bridge is mended. Silas counts your Shards twice.', 'good'); } });
+    }
+    if (n.job === 'kinmaster') {
+      if (c.kinmaster) return;
+      const f = sites().fort;
+      return say(['So you are the one freeing my villages. Grakor wrote to me about you, before you sent him packing.', 'Every tyrant was mine. Every square, every wall. And under all of it, in the Core, something older than both of us is waking. I mean to be the one it obeys.', 'You came all this way through my little puzzles. Let us see if your Kin are as clever as you.'], () => { if (bossRef && Wild.list.includes(bossRef)) { Battle.start(bossRef, false); return; } const sp = kinmasterSpecies(); const e = Wild.makeEntity(sp, Math.max(45, Math.min(70, G.trainerLevel + 12)), f.throne.x - 3 + 0.5, f.floorY + 1, f.throne.z + 0.5, { senseR: 12, elite: true }); e.kinmaster = true; bossRef = e; Wild.list.push(e); Battle.start(e, false); });
     }
     if (n.job === 'keeper') {
       if (G.stats.lostMap) return say(['You found it? The country they come from? Bring me back something with teeth.']);
@@ -6349,16 +6429,17 @@ const Campaign = (() => {
     if (id === 'diver') { if (c.bulbStep === 1 && S.diver && S.diver.chest) return { x: S.diver.chest.x, z: S.diver.chest.z, note: 'the sunken chest' }; return S.diver && { x: S.diver.x, z: S.diver.z, note: 'Marisol\'s pier' }; }
     if (id === 'ranch') { if (c.ranch === 1) return { x: S.ranch.pen.x, z: S.ranch.pen.z, note: 'the paddock posts' }; return S.ranch && { x: S.ranch.x, z: S.ranch.z, note: 'Hale\'s Ranch' }; }
     if (id === 'frost') { c.snowKnown = true; if ((c.frost === 1 || c.frost === 2) && S.snow && S.snow.lost) return { x: S.snow.lost.x, z: S.snow.lost.z, note: 'Tam' }; return S.snow && { x: S.snow.x, z: S.snow.z, note: 'the snow camp' }; }
+    if (id === 'kinmaster' && S.fort) return { x: S.fort.x + (c.st_fort ? 30 : -18), z: S.fort.z, note: 'Thornhold' };
     if (id === 'lost' && !G.stats.lostMap) { if (!c.zoo && S.zoo) return { x: S.zoo.x, z: S.zoo.z, note: 'Quill\'s Menagerie' }; if (S.halfA && !c.mapA) return { x: S.halfA.x, z: S.halfA.z, note: 'Trapper Jo' }; if (S.halfB && !c.mapB) return { x: S.halfB.x, z: S.halfB.z, note: 'Old Sela' }; }
     if (id === 'glider') { c.peakKnown = true; if (c.glider === 1 && S.peak) return { x: S.peak.x, z: S.peak.z, note: 'the peak' }; return S.peak && { x: S.peak.x, z: S.peak.z, note: 'Old Wren\'s peak' }; }
     return null;
   }
   function stampPosts() { const S = sites(); if (!S.ranch) return; const pen = S.ranch.pen; for (const [a, b] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) { const x = pen.x + a * 5, z = pen.z + b * 5; const g = world.groundY(x, z); world.setBlock(x, g + 1, z, B.BASALT); world.setBlock(x, g + 2, z, B.TORCH); } }
-  function mapMarks() { if (!onEarth()) return []; const S = sites(); const out = []; if (S.mine) out.push({ x: S.mine.x, z: S.mine.z, t: '⛏', name: 'Mining Camp' }); if (S.diver) out.push({ x: S.diver.x, z: S.diver.z, t: '◍', name: 'Marisol\'s Pier' }); if (S.ranch) out.push({ x: S.ranch.x, z: S.ranch.z, t: '♞', name: 'Hale\'s Ranch' }); if (C().frost >= 0 && S.snow && C().snowKnown) out.push({ x: S.snow.x, z: S.snow.z, t: '❄', name: 'Snow Camp' }); if (S.peak && C().peakKnown) out.push({ x: S.peak.x, z: S.peak.z, t: '▲', name: 'Wren\'s Peak' }); if (S.zoo && C().zooHeard) out.push({ x: S.zoo.x, z: S.zoo.z, t: '🦎', name: 'Quill\'s Menagerie' }); return out; }
+  function mapMarks() { if (!onEarth()) return []; const S = sites(); const out = []; if (S.mine) out.push({ x: S.mine.x, z: S.mine.z, t: '⛏', name: 'Mining Camp' }); if (S.diver) out.push({ x: S.diver.x, z: S.diver.z, t: '◍', name: 'Marisol\'s Pier' }); if (S.ranch) out.push({ x: S.ranch.x, z: S.ranch.z, t: '♞', name: 'Hale\'s Ranch' }); if (C().frost >= 0 && S.snow && C().snowKnown) out.push({ x: S.snow.x, z: S.snow.z, t: '❄', name: 'Snow Camp' }); if (S.peak && C().peakKnown) out.push({ x: S.peak.x, z: S.peak.z, t: '▲', name: 'Wren\'s Peak' }); if (S.fort && (C().kinmaster || (G.questState && Quests.current() && Quests.current().id === 'kinmaster'))) out.push({ x: S.fort.x + 30, z: S.fort.z, t: '♜', name: 'Thornhold' }); if (S.zoo && C().zooHeard) out.push({ x: S.zoo.x, z: S.zoo.z, t: '🦎', name: 'Quill\'s Menagerie' }); return out; }
   function talkable() { return people; }
   function entities() { return people.map(n => ({ x: n.x, y: n.y, z: n.z, yaw: n.yaw, model: n.model, mesh: n.mesh, scale: 1, hover: 0, skyMul: 1 })); }
   function onRogueTamed(k) { C().rogueTamed = true; C().ranch = 3; if (rogue) { Wild.remove(rogue); rogue = null; } }
-  return { init, update, talk, fisherHook, target, talkable, entities, locked, give, sites, mapMarks, onRogueTamed, stampPosts, get rogue() { return rogue; }, C };
+  return { init, update, talk, fisherHook, tryGate, onBoss, target, talkable, entities, locked, give, sites, mapMarks, onRogueTamed, stampPosts, get rogue() { return rogue; }, C };
 })();
 
 // ---------- taming: you press Ride on an unbroken Kin and it bucks; tap when it lands its weight ----------
@@ -7504,7 +7585,7 @@ const UI = (() => {
   function drawPortraits(root) { root.querySelectorAll('canvas.portrait').forEach(cv => { const k = G.kin.find(x => x.id == cv.dataset.kid) || (fusionState && fusionState.preview && fusionState.preview.kin && fusionState.preview.kin.id == cv.dataset.kid ? fusionState.preview.kin : null); if (k) KIN.portrait(cv, k.sp, k.stage, +cv.dataset.size); }); }
   function kinCard(k, extra = '') {
     const st = KIN.stats(k); const frac = k.hp / st.hp;
-    return `<div class="kcard" data-kid="${k.id}">${portraitHtml(k)}<div class="kinfo"><div class="krow"><b>${KIN.name(k)}</b>${(k.sp.rarity || 0) > 0 ? `<span class="rar r${k.sp.rarity}">${KIN.RARITY[k.sp.rarity].name}</span>` : ''}${k === G.activeKin() ? '<span class="tag">active</span>' : ''}${k.sp.mythic ? '<span class="tag myth">mythic</span>' : ''}${k.hp <= 0 ? '<span class="tag down">fainted</span>' : ''}<span class="lv">Lv ${k.level}<span style="opacity:.55">/${KIN.capOf(k.sp)}</span></span></div><div class="hpbar"><div class="hpfill" style="width:${frac * 100}%;background:${frac > 0.5 ? '#5ad66a' : frac > 0.22 ? '#f0c040' : '#f05040'}"></div></div><div class="krow small">${KIN.dominant(k.sp.elem, 2).map(e => `<span class="badge" style="background:${ELEM_COLOR[e]}">${e}</span>`).join('')}<span>${Math.round(k.hp)}/${st.hp}</span>${(k.sp.gen || 0) > 0 ? `<span class="gen">fusion g${k.sp.gen}</span>` : ''}</div>${extra}</div></div>`;
+    return `<div class="kcard" data-kid="${k.id}">${portraitHtml(k)}<div class="kinfo"><div class="krow"><b>${KIN.name(k)}</b>${(k.sp.rarity || 0) > 0 ? `<span class="rar r${k.sp.rarity}">${KIN.RARITY[k.sp.rarity].name}</span>` : ''}${k === G.activeKin() ? '<span class="tag">active</span>' : ''}${k.sp.mythic ? '<span class="tag myth">mythic</span>' : ''}${k.hp <= 0 ? '<span class="tag down">fainted</span>' : ''}<span class="lv">Lv ${k.level}<span style="opacity:.55">/${KIN.capOf(k.sp)}</span></span>${(k.tamed || k.sp.tame) ? `<span class="tag" title="trust">♞ ${Math.round((k.trust || 0) * 100)}%</span>` : ""}</div><div class="hpbar"><div class="hpfill" style="width:${frac * 100}%;background:${frac > 0.5 ? '#5ad66a' : frac > 0.22 ? '#f0c040' : '#f05040'}"></div></div><div class="krow small">${KIN.dominant(k.sp.elem, 2).map(e => `<span class="badge" style="background:${ELEM_COLOR[e]}">${e}</span>`).join('')}<span>${Math.round(k.hp)}/${st.hp}</span>${(k.sp.gen || 0) > 0 ? `<span class="gen">fusion g${k.sp.gen}</span>` : ''}</div>${extra}</div></div>`;
   }
   function healButton(k) {
     const p = G.player; const st = KIN.stats(k);
@@ -7536,7 +7617,7 @@ const UI = (() => {
     const where = (sp) => sp.fusion ? 'fusion recipe' : sp.home.layer === 'Surface' ? sp.home.biome : sp.home.layer === 'Water' ? 'water' : sp.home.layer === 'Sky' ? 'sky islands' : sp.home.layer === 'Mines' ? 'the mines' : 'the core';
     const tabs = ['earth', 'moon', 'halo'].map(b => `<button class="btn ${b === body0 ? '' : 'ghost'}" data-dexb="${b}">${({ earth: 'Earth', moon: 'Moon', halo: 'Halo' })[b]}</button>`).join('');
     el['panel-body'].innerHTML = `<div class="row">${tabs}</div><p class="note">${nCaught} caught, ${nSeen} seen, of ${list.length}. Numbers 201 and up only come from fusion recipes.</p><div class="dexgrid">` + list.map(sp => { const st = seen[sp.seed];
-      return `<div class="dexcell ${st || 'unknown'}">${st === 'caught' ? `<canvas class="dexpic" width="48" height="48" data-seed="${sp.seed}"></canvas>` : '<div class="dexq">?</div>'}<div class="dexn">#${sp.dex}</div><div class="dexname">${st ? sp.names[0] : '???'}</div>${st ? `<div class="dexwhere"><span class="rar r${sp.rarity}">${KIN.RARITY[sp.rarity].name}</span> ${where(sp)}</div>` : ''}</div>`; }).join('') + '</div>';
+      return `<div class="dexcell ${st || 'unknown'}">${st === 'caught' ? `<canvas class="dexpic" width="48" height="48" data-seed="${sp.seed}"></canvas>` : '<div class="dexq">?</div>'}<div class="dexn">#${sp.dex}</div><div class="dexname">${st ? sp.names[0] : '???'}</div>${st ? `<div class="dexwhere"><span class="rar r${sp.rarity}">${KIN.RARITY[sp.rarity].name}</span> ${where(sp)}${sp.steed ? ' · ♞ steed' : ''}</div>` : ''}</div>`; }).join('') + '</div>';
     el['panel-body'].querySelectorAll('canvas.dexpic').forEach(cv => { const sp = list.find(x => x.seed == cv.dataset.seed); if (sp) KIN.portrait(cv, sp, 1, 48); });
     el['panel-body'].querySelectorAll('[data-dexb]').forEach(b => b.addEventListener('click', () => renderKindex({ body: b.dataset.dexb })));
   }
@@ -8247,6 +8328,7 @@ G.toggleRide = function () {
   if (p.mount) { p.mount = null; UI.toast('You climb off.'); return; }
   const k = this.activeKin(); if (!k) return;
   if (!(this.stats.camp || {}).rogueTamed && !k.sp.tame && !k.sp.fast) { UI.toast('You do not know how to ride yet. Dusty Hale teaches it, out at his ranch (♞ on the map).'); return; }
+  if (this.rideMode(k) === 'land' && !(k.sp.steed || k.sp.fast || k.sp.tame || k.sp.legend || k.sp.apex)) { UI.toast(`${KIN.name(k)} will not carry a rider. Only a few kinds of land Kin ever do: steeds (marked in your Kindex), the dinosaurs, and the legendaries.`); return; }
   const req = this.rideRequirement(k);
   if (req == null) { UI.toast(`${KIN.name(k)} cannot carry you. Legs carry you on land, fins in the water, wings in the air.`); return; }
   if (this.trainerLevel < req) { UI.toast(`${KIN.name(k)} will carry you at trainer level ${req}. You are ${this.trainerLevel}.`); return; }
@@ -8540,6 +8622,7 @@ G.onBattleEnd = function (result, wildE, wild, mine, ambush) {
     if (wildE.isLabBoss) Lab.onBossBeaten();
     if (wildE.lairQuest) Npcs.onLairBeaten(wildE.lairQuest);
     if (wildE.nightQuest) Builds.onBattle(wildE.nightQuest, result);
+    if (wildE.kinmaster) Campaign.onBoss(result);
     if (result === 'won') {
       const dom = KIN.dominant(wild.sp.elem, 1)[0];
       if (Math.random() < ((wild.sp.rarity || 0) >= 2 || wildE.elite ? 1 : 0.6)) { p.add('ess_' + dom, 1); UI.toast(`${dom} Essence collected.`); }
@@ -8707,6 +8790,7 @@ G.loop = function (t) {
       p.jumpMul = tr.includes('Climber') ? 1.15 : 1; p.autoJumpTrait = tr.includes('Climber') || !!(p.mount && p.mount.sp.climber); p.lavaMul = tr.includes('Warm') ? 0.5 : 1; p.senseMul = tr.includes('Stalker') ? 0.7 : 1;
       const healMul = tr.includes('Mender') ? 2 : 1;
       const hpBefore = p.hp;
+      for (const k of this.kin) if (k !== p.mount && k.trust > 0) k.trust = Math.max(0, k.trust - dt / 5400); // trust drains in an hour and a half of not riding
       { const ox = p.x, oz = p.z; p.update(dt, input); if (this.eggs.length) { const d = Math.hypot(p.x - ox, p.z - oz); if (d < 5) this.updateEggs(p.mount || p.flying ? d * 0.5 : d); } }
       if (p.hp < hpBefore) { UI.sfx('hurt'); const now = performance.now(); if (!this.lastHurtToast || now - this.lastHurtToast > 6000) { this.lastHurtToast = now; const why = { drown: 'You are drowning. Get your head above water.', lava: 'Lava burns. You need a Lava Suit.', fall: 'That was a long fall.', kin: 'It is on you. Run, or you black out.', cold: 'You are freezing. Craft a Frost Cloak: 6 frond, 8 snow, 2 wood. Snow is the white ground here and on mountain tops; mine it, or buy it from a trader.', space: 'No air, no warmth. Get back in the ship, or craft a Space Suit.', brine: 'The brine burns. Get out, or wear a Lava Suit.', worm: 'A worm. Keep moving when the ground shakes, or stay off the Mare.', shard: 'A shard from the ring. When the sky whistles, run.', spear: 'Spears. They do not want you here: run until they turn back.' }[p.lastDamage]; if (why) UI.toast(why, 'bad'); } }
       if (p.landed) { p.landed = false; UI.sfx('place'); UI.toast('Landed. The ship folds up and follows you.', 'good'); }
@@ -8843,6 +8927,7 @@ G.onTap = function () {
   }
   const selInfo = p.selected() ? p.itemInfo(p.selected()) : null;
   if (selInfo && selInfo.bow) { this.shoot(); return; }
+  if (hit && (hit.id === B.THORN || hit.id === B.DEADGATE || hit.id === B.RUBBLE) && Campaign.tryGate(hit)) return;
   const interactable = hit && (hit.id === B.CAMPFIRE || hit.id === B.FUSION || hit.id === B.STARMETAL || hit.id === B.PORTAL || hit.id === B.DOOR || hit.id === B.DOOR_OPEN || hit.id === B.CHEST || hit.id === B.INCUBATOR);
   if (!interactable && selInfo && selInfo.rod) { Fishing.cast(); return; }
   if (!interactable && selInfo && selInfo.use) { this.useItem(p.selected()); return; }
