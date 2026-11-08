@@ -4017,6 +4017,10 @@ const Village = (() => {
     stables: { name: 'Riding School', marker: B.LOG, level: 2, cost: { shards: 300, items: { planks: 30 } } },
     aerie: { name: 'Flying School', marker: B.CLOUD, level: 2, cost: { shards: 300, items: { planks: 30 } } },
     station: { name: 'Station', marker: B.IRON, level: 1, cost: { shards: 200, items: { planks: 30, iron: 8 } } },
+    tailor: { name: 'Tailor', marker: B.BERRY, level: 2, cost: { shards: 400, items: { planks: 20 } } },
+    enchanter: { name: 'Enchanter', marker: B.VOID, level: 2, cost: { shards: 500, items: { planks: 20, void: 2 } } },
+    cartographer: { name: 'Cartographer', marker: B.GLASS, level: 2, cost: { shards: 300, items: { planks: 20 } } },
+    daycare: { name: 'Kin Daycare', marker: B.BERRY, level: 2, cost: { shards: 300, items: { planks: 24 } } },
   };
   const SLOTS = [[-11, -11], [11, -11], [-11, 11], [11, 11], [-15, -5], [-15, 5], [15, -5], [15, 5], [-5, -15], [5, -15], [-5, 15], [5, 15]]; // house sites in the expanded ring
   const VILLAGER_LINES = [
@@ -4040,6 +4044,10 @@ const Village = (() => {
     sanctuary: { title: 'Kin Sanctuary', keeper: 'Sister Imelda', greet: 'Bring me your lead Kin. Here they learn what their element can really do.', stock: [{ service: 'teach', name: 'Teach your lead Kin its element\'s technique', price: 0 }, { service: 'calm', name: 'A day of rest: your whole party healed and calmed', price: 25 }] },
     stables: { title: 'Riding School', keeper: 'Wrangler Tess', greet: 'A Kin that trusts you runs faster under you. We can speed that up.', stock: [{ service: 'trust', name: 'A riding lesson: your lead Kin\'s trust goes up a good way', price: 120 }, { item: 'berry', price: 3, n: 6 }] },
     aerie: { title: 'Flying School', keeper: 'Captain Merrow', greet: 'Gliders, flight snares, and a lesson in reading the wind.', stock: [{ service: 'tune', name: 'Tune your glider: it flies further and faster (once)', price: 400 }, { item: 'snare_sky', price: 60, n: 2 }, { item: 'feather', price: 12, n: 3 }] },
+    tailor: { title: 'Tailor', keeper: 'Madame Orla', greet: 'New clothes, new you. Cut to measure, worn out of here.', stock: [{ service: 'skin', skin: 'noble', name: 'Noble: velvet and gold thread', price: 600 }, { service: 'skin', skin: 'knight', name: 'Knight: polished plate and a plumed helm', price: 900 }, { service: 'skin', skin: 'corsair', name: 'Corsair: sea coat and a red sash', price: 700 }, { service: 'skin', skin: 'sage', name: 'Sage: robes the colour of dusk', price: 800 }, { service: 'skin', skin: 'duelist', name: 'Duelist: black and silver', price: 1000 }, { service: 'skin', skin: 'royal', name: 'Royal: for those who have freed a kingdom', price: 5000 }] },
+    enchanter: { title: 'Enchanter', keeper: 'Magister Vael', greet: 'A word over your armour, a whisper on your blade. It wears off, they always do.', stock: [{ service: 'meal', buff: 'ward', amt: 15, mins: 60, name: 'Ward: fifteen extra armour points for an hour', price: 250 }, { service: 'meal', buff: 'blade', amt: 1.35, mins: 60, name: 'Keen Edge: your sword and axe hit a third harder for an hour', price: 220 }, { service: 'meal', buff: 'luck', amt: 1.3, mins: 30, name: 'Lucky Hand: snares hold better for 30 minutes', price: 300 }, { service: 'meal', buff: 'speed', amt: 1.35, mins: 30, name: 'Fleet Foot: run faster for 30 minutes', price: 120 }] },
+    cartographer: { title: 'Cartographer', keeper: 'Pim the Mapper', greet: 'I sell what I have seen, and I have seen a great deal.', stock: [{ service: 'map', what: 'holds', name: 'Map of the Holds: every one of his fortresses, marked', price: 400 }, { service: 'map', what: 'towns', name: 'Map of the Realm: every town and city, named', price: 250 }] },
+    daycare: { title: 'Kin Daycare', keeper: 'Nanny Bree', greet: 'Leave them with me while you go about your business. They will come back stronger.', stock: [{ service: 'meal', buff: 'train', amt: 1, mins: 60, name: 'An hour of training: your whole party gains experience every minute you play', price: 180 }, { service: 'calm', name: 'A nap and a snack: your whole party healed', price: 20 }] },
     station: { title: 'Station', keeper: 'Stationmaster Pike', greet: 'All aboard, for the towns whose lines are open.', stock: [] },
     inn: { title: 'Inn', keeper: 'Marta', greet: 'A bed, a meal, and nobody asks where you have been.', stock: [{ service: 'rest', name: 'A bed for the night: your whole party back on its feet', price: 18 }, { item: 'bread', price: 9 }, { item: 'smoothie', price: 14 }, { item: 'broth', price: 12 }] },
   };
@@ -4185,8 +4193,8 @@ const Village = (() => {
   const TOWN_SHOPS = {
     start: ['elder', 'bakery', 'juice', 'trader', 'voodoo', 'inn', 'restaurant', 'station'],
     hamlet: ['elder', 'bakery', 'trader', 'voodoo', 'station'],
-    town: ['elder', 'bakery', 'juice', 'trader', 'voodoo', 'inn', 'restaurant', 'armoury', 'alchemist', 'post', 'station'],
-    city: ['elder', 'bakery', 'juice', 'trader', 'voodoo', 'inn', 'restaurant', 'armoury', 'armourer', 'alchemist', 'post', 'sanctuary', 'restaurant', 'station', 'stables', 'aerie'],
+    town: ['elder', 'bakery', 'juice', 'trader', 'voodoo', 'inn', 'restaurant', 'armoury', 'alchemist', 'post', 'daycare', 'station'],
+    city: ['elder', 'bakery', 'juice', 'trader', 'voodoo', 'inn', 'restaurant', 'armoury', 'armourer', 'alchemist', 'post', 'sanctuary', 'tailor', 'enchanter', 'cartographer', 'daycare', 'restaurant', 'inn', 'station', 'stables', 'aerie'],
   };
   const towns = new Map(); // id -> layout
   function townList() { const out = []; const st = villages.get('start'); if (st && st.R) out.push(st); if (PLAN) for (const id of PLAN.keys()) { const v = villages.get(id); if (v && v.R) out.push(v); } return out; }
@@ -4205,8 +4213,28 @@ const Village = (() => {
       push(x, vy - 1, z, plaza ? (Math.max(Math.abs(dx), Math.abs(dz)) === 6 ? M.plazaEdge : M.plaza) : onStreet(dx, dz) ? M.plaza : M.ground);
       for (let y = vy; y <= Math.max(h, vy) + 10; y++) push(x, y, z, B.AIR);
     }
-    // the square
-    push(vx, vy, vz, B.FUSION);
+    // the square: a fountain in the cities, the Fusion Table to one side
+    if (city) {
+      for (let a = -2; a <= 2; a++) for (let b = -2; b <= 2; b++) { const edge = Math.max(Math.abs(a), Math.abs(b)) === 2; push(vx + a, vy - 1, vz + b, B.STONE); push(vx + a, vy, vz + b, edge ? B.STONE : B.WATER); }
+      for (let y = vy; y <= vy + 2; y++) push(vx, y, vz, B.STONE); push(vx, vy + 3, vz, B.WATER); push(vx, vy + 4, vz, M.light);
+      push(vx + 5, vy, vz - 5, B.FUSION);
+    } else push(vx, vy, vz, B.FUSION);
+    // a market street in the cities: stalls under coloured awnings down the west road
+    if (city) { const AW = [B.EMBER, B.GOLD, B.BERRYLEAF, B.CLOUD, B.COPPER]; let n = 0; for (let d = 10; d < R - 10; d += 4) for (const sg of [-1, 1]) { const x = vx - d, z = vz + sg * 2; push(x, vy, z, M.post); push(x, vy + 1, z, M.post); push(x, vy, z, B.CHEST); for (let a = -1; a <= 1; a++) push(x + a, vy + 2, z, AW[n % AW.length]); push(x, vy + 2, z + sg, AW[n % AW.length]); n++; } }
+    // a castle on a hill at the back of a city, a waterfall down its side
+    let castle = null;
+    if (city) {
+      const cz0 = vz - R + 16, H = 7, hr = 11; castle = { x: vx, z: cz0, y: vy + H, hr };
+      for (let a = -hr - 3; a <= hr + 3; a++) for (let b = -hr; b <= hr; b++) { const t = Math.max(Math.abs(a) - hr, 0); const top = vy - 1 + H - t * 2; if (top < vy - 1) continue; for (let y = vy; y <= top; y++) push(vx + a, y, cz0 + b, B.STONE); push(vx + a, top, cz0 + b, t ? B.GRASS : M.plaza); }
+      for (let i = 0; i < H; i++) for (let w = -1; w <= 1; w++) { for (let y = vy; y <= vy - 1 + i; y++) push(vx + w, y, cz0 + hr + 1 + (H - 1 - i), B.STONE); push(vx + w, vy - 1 + i, cz0 + hr + 1 + (H - 1 - i), M.plazaEdge); } // steps up the hill
+      const K = vy + H; const F = B.STONE;
+      for (let a = -6; a <= 6; a++) for (let b = -6; b <= 6; b++) { const wall = Math.abs(a) === 6 || Math.abs(b) === 6; for (let y = K; y <= K + 8; y++) push(vx + a, y, cz0 + b, wall ? F : B.AIR); push(vx + a, K + 9, cz0 + b, wall && (a + b) % 2 ? F : wall ? B.AIR : B.PLANKS); }
+      for (const [a, b] of [[-6, -6], [6, -6], [-6, 6], [6, 6]]) { for (let i = -1; i <= 1; i++) for (let j = -1; j <= 1; j++) for (let y = K; y <= K + 13; y++) push(vx + a + i, y, cz0 + b + j, F); push(vx + a, K + 14, cz0 + b, B.GOLD); push(vx + a, K + 15, cz0 + b, M.light); }
+      for (let y = K; y <= K + 3; y++) for (let w = -1; w <= 1; w++) push(vx + w, y, cz0 + 6, B.AIR); push(vx, K + 5, cz0 + 6, B.GOLD);
+      // the waterfall: a channel off the hilltop, a sheet of water down its east face, a pool at the bottom
+      const fx = vx + hr + 1; for (let y = vy; y <= K - 1; y++) for (let b = -1; b <= 1; b++) push(fx, y, cz0 + b, B.WATER);
+      for (let a = 1; a <= 4; a++) for (let b = -2; b <= 2; b++) { push(fx + a, vy - 1, cz0 + b, B.STONE); push(fx + a, vy, cz0 + b, a === 4 || Math.abs(b) === 2 ? B.STONE : B.WATER); }
+    }
     for (const [a, b] of [[-6, -6], [6, -6], [-6, 6], [6, 6]]) { push(vx + a, vy, vz + b, M.post); push(vx + a, vy + 1, vz + b, M.light); }
     // lamps along the streets
     for (const s0 of streets) for (let d = 9; d < R - 3; d += 8) for (const sg of [-1, 1]) { push(vx + s0 + 2 * sg, vy, vz + d * sg, M.post); push(vx + s0 + 2 * sg, vy + 1, vz + d * sg, M.light); push(vx + d * sg, vy, vz + s0 + 2 * sg, M.post); push(vx + d * sg, vy + 1, vz + s0 + 2 * sg, M.light); }
@@ -4216,6 +4244,7 @@ const Village = (() => {
     const AX = [...axis].sort((a, b) => a - b);
     for (const gx of AX) for (const gz of AX) {
       if (Math.abs(gx) < 12 && Math.abs(gz) < 12) continue;
+      if (castle && Math.abs(gx) <= 21 && gz <= -R + 32) continue;
       let ok = true; for (let a = -4; a <= 4 && ok; a++) for (let b = -4; b <= 4 && ok; b++) if (onStreet(gx + a, gz + b)) ok = false; if (!ok) continue;
       if (lots.some(l => Math.abs(l.x - vx - gx) < 9 && Math.abs(l.z - vz - gz) < 9)) continue;
       let best = null; for (const s0 of streets) { const dX = Math.abs(gx - s0), dZ = Math.abs(gz - s0); if (!best || dX < best.d) best = { d: dX, dir: [Math.sign(s0 - gx) || 1, 0] }; if (dZ < best.d) best = { d: dZ, dir: [0, Math.sign(s0 - gz) || 1] }; }
@@ -4227,12 +4256,12 @@ const Village = (() => {
     // the station goes by the gate at the far end of the east street; everything else from the square outwards
     const stI = lots.reduce((bi, l, i) => { const d = Math.hypot(l.x - (vx + R - 9), l.z - (vz + 6)); return d < bi[1] ? [i, d] : bi; }, [-1, 1e9])[0];
     const free = lots.map((l, i) => i).filter(i => i !== stI);
-    for (const k of kinds) { const i = k === 'station' ? stI : free.shift(); if (i == null || i < 0) continue; shops.push(Object.assign({ kind: k }, lots[i])); lots[i].used = true; }
+    for (const k of kinds) { if (k === 'elder' && castle) { shops.push({ kind: 'elder', x: castle.x, z: castle.z + 2, dirX: 0, dirZ: 1, castle: true, y: castle.y }); continue; } const i = k === 'station' ? stI : free.shift(); if (i == null || i < 0) continue; shops.push(Object.assign({ kind: k }, lots[i])); lots[i].used = true; }
     // draw the buildings into the overlay by borrowing the house builder
     const sb = world.setBlock, gb = world.getBlock; world.setBlock = (x, y, z, id) => push(x, y, z, id); world.getBlock = () => B.AIR;
     try {
       const build = M.pod ? pod : house;
-      for (const sh of shops) build(sh.x, sh.z, vy, sh.dirX, sh.dirZ, sh.kind === 'elder' ? B.GOLD : (SHOP_BUILD[sh.kind] || {}).marker || B.LOG, FURNISH[sh.kind] || null);
+      for (const sh of shops) if (!sh.castle) build(sh.x, sh.z, vy, sh.dirX, sh.dirZ, sh.kind === 'elder' ? B.GOLD : (SHOP_BUILD[sh.kind] || {}).marker || B.LOG, FURNISH[sh.kind] || null);
       const r = U.rng(U.combine(world.seed, U.strHash(v.id)));
       for (const l of lots) if (!l.used) { if (r() < 0.12) { for (let a = -2; a <= 2; a++) for (let b = -2; b <= 2; b++) if (r() < 0.35 && M.bush) push(l.x + a, vy, l.z + b, M.bush); continue; } build(l.x, l.z, vy, l.dirX, l.dirZ, B.LOG, null); l.home = true; }
     } finally { world.setBlock = sb; world.getBlock = gb; }
@@ -4582,7 +4611,7 @@ const Village = (() => {
   function furnishElder(hx, hz, dx, dz, vy) { world.setBlock(hx - dx * 2 + (dz ? 1 : 0), vy, hz - dz * 2 + (dx ? 1 : 0), B.PLANKS); world.setBlock(hx - dx * 2 + (dz ? 1 : 0), vy + 1, hz - dz * 2 + (dx ? 1 : 0), B.SNOW); side(hx, hz, dx, dz, vy, -1, B.LOG, B.CLOUD); }
   function furnishVoodoo(hx, hz, dx, dz, vy) { counter(hx, hz, dx, dz, vy); side(hx, hz, dx, dz, vy, 1, B.BASALT, B.VOID); side(hx, hz, dx, dz, vy, -1, B.BASALT, B.EMBER); }
   function furnishPost(hx, hz, dx, dz, vy) { counter(hx, hz, dx, dz, vy); side(hx, hz, dx, dz, vy, 1, B.IRON, B.GLASS); side(hx, hz, dx, dz, vy, -1, B.PLANKS, B.CLOUD); }
-  const FURNISH = { bakery: furnishBakery, juice: furnishJuice, trader: furnishTrader, voodoo: furnishVoodoo, post: furnishPost, armoury: furnishTrader, armourer: furnishTrader, alchemist: furnishJuice, inn: furnishBakery, restaurant: furnishBakery, sanctuary: furnishVoodoo, stables: furnishJuice, aerie: furnishPost, station: furnishPost, elder: furnishElder };
+  const FURNISH = { bakery: furnishBakery, juice: furnishJuice, trader: furnishTrader, voodoo: furnishVoodoo, post: furnishPost, armoury: furnishTrader, armourer: furnishTrader, alchemist: furnishJuice, inn: furnishBakery, restaurant: furnishBakery, sanctuary: furnishVoodoo, stables: furnishJuice, aerie: furnishPost, station: furnishPost, elder: furnishElder, tailor: furnishJuice, enchanter: furnishVoodoo, cartographer: furnishPost, daycare: furnishBakery };
 
   // ---- portals: every village has an arch; held villages' arches are dead, yours link up ----
   function portalBlock(v) { return v.type === 'land' ? { x: v.x + 5, y: v.y, z: v.z - 5 } : v.type === 'sea' ? { x: v.x - 3, y: v.y, z: v.z - 2 } : { x: v.x + 4, y: v.y, z: v.z - 4 }; }
@@ -4978,7 +5007,7 @@ const Village = (() => {
     let i = 0;
     for (const sh of L.shops) {
       const kx = sh.x - sh.dirX * 2, kz = sh.z - sh.dirZ * 2;
-      if (sh.kind === 'elder') { v.elder = Object.assign(makeNpc(20, 'elder', sh.x + sh.dirX * 4, sh.z + sh.dirZ * 4, v.starter ? 'Elder Hask' : title + ' ' + pname(7), null, vy, v.id, sty), { hidden: !freed, wander: false }); continue; }
+      if (sh.kind === 'elder') { v.elder = Object.assign(makeNpc(20, 'elder', sh.castle ? sh.x : sh.x + sh.dirX * 4, sh.castle ? sh.z : sh.z + sh.dirZ * 4, v.starter ? 'Elder Hask' : title + ' ' + pname(7), null, vy, v.id, sty), { hidden: !freed, wander: false }); continue; }
       if (sh.kind === 'voodoo') { v.npcs.push(Object.assign(makeNpc(13, 'voodoo', kx, kz, shopDef('voodoo', v).keeper, 'voodoo', vy, v.id, sty), { hidden: false, wander: false })); continue; }
       v.npcs.push(Object.assign(makeNpc(30 + i++, 'keeper', kx, kz, shopDef(sh.kind, v).keeper, sh.kind, vy, v.id, sty), { hidden: !freed, wander: false, shopAt: sh }));
     }
@@ -5633,6 +5662,8 @@ const Village = (() => {
     const price = entry.price; if (G.shards < price) { UI.toast('Not enough Shards.', 'bad'); return false; }
     if (entry.service === 'meal') { if (G.shards < price) { UI.toast('Not enough Shards.', 'bad'); return false; } G.shards -= price; G.addBuff(entry.buff, entry.amt, entry.mins); UI.sfx('caught'); UI.toast(entry.name.split(':')[0] + '. ' + entry.name.split(':')[1].trim() + '.', 'good'); return true; }
     if (entry.service === 'teach') { const k = G.kin[G.activeIdx]; if (!k) return false; if (k.tech) { UI.toast(`${KIN.name(k)} already knows ${k.tech}.`); return false; } const pr = 60 + k.level * 12; if (G.shards < pr) { UI.toast(`Teaching ${KIN.name(k)} costs ${pr} shards.`, 'bad'); return false; } G.shards -= pr; k.tech = KIN.techFor(k); UI.sfx('quest'); UI.toast(`${KIN.name(k)} learned ${k.tech}.`, 'good'); return true; }
+    if (entry.service === 'skin') { const b = G.stats.boughtSkins || (G.stats.boughtSkins = {}); if (b[entry.skin]) { G.skin = entry.skin; UI.toast('You change into it.'); return true; } if (G.shards < price) { UI.toast('Not enough Shards.', 'bad'); return false; } G.shards -= price; b[entry.skin] = true; G.skin = entry.skin; UI.sfx('caught'); UI.toast(`${entry.name.split(':')[0]}. Yours, and you are wearing it. Switch any time from the menu.`, 'good'); return true; }
+    if (entry.service === 'map') { if (G.shards < price) { UI.toast('Not enough Shards.', 'bad'); return false; } G.shards -= price; if (entry.what === 'holds') { if (!G.stats.keeps) G.stats.keeps = {}; for (const k of Keeps.sites()) G.stats.keeps['seen_' + k.id] = true; } else { G.stats.mapTowns = true; } UI.sfx('caught'); UI.toast('Pim unrolls it and marks your map. Open the Map to see.', 'good'); return true; }
     if (entry.service === 'calm') { if (G.shards < price) return false; G.shards -= price; for (const k of G.kin) k.hp = KIN.stats(k).hp; UI.sfx('caught'); UI.toast('A day in the garden. Your whole party is whole again.', 'good'); return true; }
     if (entry.service === 'trust') { const k = G.kin[G.activeIdx]; if (!k) return false; if ((k.trust || 0) >= 0.98) { UI.toast(`${KIN.name(k)} already trusts you completely.`); return false; } if (G.shards < price) return false; G.shards -= price; k.trust = Math.min(1, (k.trust || 0) + 0.4); UI.sfx('caught'); UI.toast(`A long morning in the ring. ${KIN.name(k)} trusts you more (${Math.round(k.trust * 100)}%).`, 'good'); return true; }
     if (entry.service === 'tune') { const P = G.player; if (!P.has('glider')) { UI.toast('You need a glider first. Old Wren has one.', 'bad'); return false; } if ((P.gearPower.glider || {}).mark === 'Merrow') { UI.toast('Already tuned.'); return false; } if (G.shards < price) return false; G.shards -= price; P.gearPower.glider = { power: 1.3, mark: 'Merrow', shards: 0 }; UI.sfx('quest'); UI.toast('Captain Merrow re-rigs your glider. It flies further and faster now.', 'good'); return true; }
@@ -5957,6 +5988,7 @@ const Battle = (() => {
     c *= KIN.RARITY[wild.sp.rarity || 0].catch;
     if (wildE && wildE.isBoss) c *= 0.7;
     if (typeof Npcs !== 'undefined' && Npcs.active('hunter')) c *= 1.5; // the Hunter's Amulet
+    if (G.buffMul) c *= G.buffMul('luck');
     if (wild.sp.mythic || wild.sp.legend) c = frac < 0.15 ? Math.min(c, 0.5) : Math.min(c, 0.12);
     return { chance: U.clamp(c, gap > 1.2 ? 0.002 : 0.04, 0.9), item, gap, grip };
   }
@@ -7976,6 +8008,12 @@ const Avatar = (() => {
     { id: 'dune', name: 'Dune', colors: { body: '#e8d8b0', belly: '#c9955a', accent: '#c9a45a', dark: '#9c7a42', eye: '#222222' }, deco: ['veil'], unlock: (g) => (g.stats.reached || {}).halo, how: 'Reach Halo.' },
     { id: 'painted', name: 'Painted', colors: { body: '#c68642', belly: '#c68642', accent: '#e0302a', dark: '#3a2a20', eye: '#222222' }, deco: ['warrior'], unlock: (g) => g.kin.some(k => k.sp.tame) || Object.values(g.poiState || {}).some(s => s && s.striderTaken), how: 'Take a Duststrider from a Painted camp.' },
     { id: 'legend', name: 'Legend', colors: { body: '#3a1458', belly: '#ffd25a', accent: '#ffe08a', dark: '#1a0a2a', eye: '#ff6a1f' }, deco: ['crown'], neon: true, unlock: (g) => Object.keys(g.stats.legends || {}).length > 0, how: "Beat a world's legendary." },
+    { id: 'noble', name: 'Noble', colors: { body: '#5a1a3a', belly: '#f1d3b3', accent: '#ffd040', dark: '#2a0a1a', eye: '#222222' }, deco: ['crown'], unlock: (g) => (g.stats.boughtSkins || {}).noble, how: 'The Tailor in any city' },
+    { id: 'knight', name: 'Knight', colors: { body: '#c8c8d0', belly: '#e8c39e', accent: '#c94c4c', dark: '#6a6a72', eye: '#222222' }, deco: ['visor'], unlock: (g) => (g.stats.boughtSkins || {}).knight, how: 'The Tailor in any city' },
+    { id: 'corsair', name: 'Corsair', colors: { body: '#1a2a4a', belly: '#e8c39e', accent: '#e0302a', dark: '#0a1020', eye: '#222222' }, deco: ['hat'], unlock: (g) => (g.stats.boughtSkins || {}).corsair, how: 'The Tailor in any city' },
+    { id: 'sage', name: 'Sage', colors: { body: '#3a2a6a', belly: '#e8c39e', accent: '#b0a0ff', dark: '#1a1030', eye: '#222222' }, deco: ['voodoo'], unlock: (g) => (g.stats.boughtSkins || {}).sage, how: 'The Tailor in any city' },
+    { id: 'duelist', name: 'Duelist', colors: { body: '#15151a', belly: '#e8c39e', accent: '#d8d8e0', dark: '#05050a', eye: '#222222' }, deco: ['mask'], unlock: (g) => (g.stats.boughtSkins || {}).duelist, how: 'The Tailor in any city' },
+    { id: 'royal', name: 'Royal', colors: { body: '#f0e8d8', belly: '#e8c39e', accent: '#ffd040', dark: '#7a1a2a', eye: '#222222' }, deco: ['crown'], neon: true, unlock: (g) => (g.stats.boughtSkins || {}).royal, how: 'The Tailor in any city' },
   ];
   function init(game) { G = game; }
   function skin() { return SKINS.find(s => s.id === (G.skin || 'ranger')) || SKINS[0]; }
@@ -8627,6 +8665,7 @@ const UI = (() => {
       else if (m.kind === 'lab') { glyph(m.x, m.z, '⚗', '#7ad7ff'); label(m.x, m.z, m.name, '#cfe9ff'); }
     }
     for (const m of Campaign.mapMarks()) { glyph(m.x, m.z, m.t, '#ffe08a'); label(m.x, m.z, m.name, '#fff0c0'); }
+    if (G.stats.mapTowns && Village.townList) for (const v of Village.townList()) { glyph(v.x, v.z, v.size === 'city' ? '♛' : '⌂', '#9fe0ff'); label(v.x, v.z, v.name, '#d8f0ff'); }
     for (const m of Keeps.mapMarks()) { glyph(m.x, m.z, m.t, m.t === '♜' ? '#c9a0ff' : '#ff6a6a'); label(m.x, m.z, m.name, '#e8d8ff'); }
     for (const m of Npcs.marks(p)) if (m.t === '⌖') { glyph(m.x, m.z, '⌖', m.col || '#ff8040'); label(m.x, m.z, m.name, m.col || '#ffd0b0'); edge(m.x, m.z, '⌖', m.col || '#ff8040'); }
     if (G.world.lost && G.stats.lostMap) { const L = G.world.lost; glyph(L.x, L.z, '🦖', '#ffffff'); label(L.x, L.z, 'Lost World', '#c0ffc0', true); const T = G.world.lostTunnel(); if (T) { glyph(T.ax, T.az, '◠', '#ffffff'); if (bpp <= 8) label(T.ax, T.az, 'tunnel', '#e0e0e0'); } }
@@ -9148,7 +9187,7 @@ const Combat = (() => {
   function wornPerk(perk, all) { const w = Object.values(worn()); return all ? w.length === 4 && w.every(a => a.perk === perk) : w.filter(a => a.perk === perk).length; }
   function armourCut(n, cause) {
     if (!['warrior', 'kin', 'fall', 'lava', 'cold'].includes(cause)) return n;
-    let pts = armourPts(); if (cause === 'warrior' && G.player.lastArrow && wornPerk('arrow')) pts += 4 * wornPerk('arrow');
+    let pts = armourPts() + (G.buffOn && G.buffOn('ward') ? G.buffOn('ward').amt : 0); if (cause === 'warrior' && G.player.lastArrow && wornPerk('arrow')) pts += 4 * wornPerk('arrow');
     if (cause === 'lava') pts = wornPerk('fire') * 6; if (cause === 'cold') pts = wornPerk('cold') * 6;
     const keep = 20 / (20 + pts); const r = n * keep; return Math.floor(r) + (Math.random() < r - Math.floor(r) ? 1 : 0);
   }
@@ -9258,7 +9297,7 @@ const Combat = (() => {
     for (const f of foes) {
       if (f.state === 'down') continue; const dx = f.x - p.x, dz = f.z - p.z, d = Math.hypot(dx, dz); if (d > w.reach + 0.4 || Math.abs(f.y - p.y) > 2) continue;
       const ang = Math.acos(U.clamp((dx * fx + dz * fz) / (d || 1), -1, 1)); if (ang > w.arc * 0.5 + 0.25) continue;
-      const crit = Math.random() < w.crit; const dmg = Math.round(w.dmg * (0.9 + Math.random() * 0.2) * (crit ? 1.8 : 1));
+      const crit = Math.random() < w.crit; const dmg = Math.round(w.dmg * (0.9 + Math.random() * 0.2) * (crit ? 1.8 : 1) * (G.buffMul ? G.buffMul('blade') : 1));
       f.wasAware = f.aware;
       hurt(f, dmg, { burn: w.fx === 'burn' || w.fx === 'all' ? 3 : 0, slow: w.fx === 'slow' || w.fx === 'all' ? 2.5 : 0, halfPierce: w.fx === 'pierce' || w.fx === 'all' });
       if (crit) UI.toast('Critical!'); hit = true; if (w.kind !== 'axe') break; // a sword hits one, an axe cleaves through all in its arc
@@ -9346,7 +9385,7 @@ const Keeps = (() => {
   function onEarth() { return W() && W().preset.id === 'earth'; }
   function sites() {
     if (!onEarth()) return [];
-    if (G.stats.holds && G.stats.holdsV === 5) return G.stats.holds;
+    if (G.stats.holds && G.stats.holdsV === 6) return G.stats.holds;
     const w = W(), out = []; const base = U.hash3(7, 7, 7, w.seed + 0xD4) * Math.PI * 2;
     for (let i = 0; i < COUNT; i++) {
       const a0 = base + i * 2.399; let k = null; // golden-angle spread round the compass
@@ -9357,7 +9396,7 @@ const Keeps = (() => {
         let sum = 0, sum2 = 0, n = 0, wet = 0;
         for (let dx = -10; dx <= 10; dx += 2) for (let dz = -10; dz <= 10; dz += 2) { const ci = w.colInfo(x + dx, z + dz); if (ci.h <= SEA + 1 || ci.lost) wet++; sum += ci.h; sum2 += ci.h * ci.h; n++; }
         if (wet > (t < 100 ? 0 : 12)) continue; const mean = sum / n; if (sum2 / n - mean * mean > (t < 80 ? 20 : 60)) continue;
-        if (t < 140 && Village.markers(x, z, 1).some(m => m.kind === 'village' && Math.hypot(m.x - x, m.z - z) < 70)) continue;
+        if (Village.markers(x, z, 2).some(m => m.kind === 'village' && Math.hypot(m.x - x, m.z - z) < (t < 140 ? 280 : 200))) continue; // towns keep their blue sky
         const f = (Campaign.sites() || {}).fort; if (f && Math.hypot(f.x - x, f.z - z) < 160) continue;
         if (out.some(o => Math.hypot(o.x - x, o.z - z) < 220)) continue;
         k = { id: 'hold' + i, i, x, z, y: Math.max(SEA + 2, Math.round(mean)), name: NAMES[(i * 5 + Math.floor(U.hash3(i, 93, 1, w.seed) * 16)) % NAMES.length] };
@@ -9376,7 +9415,7 @@ const Keeps = (() => {
     out.sort((p, q) => Math.hypot(p.x - w.spawn.x, p.z - w.spawn.z) - Math.hypot(q.x - w.spawn.x, q.z - w.spawn.z));
     { const a = base + 1.1, r = 820; out.push({ id: 'holdcore', core: true, x: Math.round(w.spawn.x + Math.cos(a) * r), z: Math.round(w.spawn.z + Math.sin(a) * r), y: 5 }); }
     const used = new Set(); out.forEach((k, j) => { k.i = k.core ? 9 : j; let ni = Math.floor(U.hash3(j, 93, 1, w.seed) * NAMES.length); while (used.has(ni)) ni = (ni + 1) % NAMES.length; used.add(ni); k.name = NAMES[ni]; });
-    G.stats.holds = out; G.stats.holdsV = 5; return out;
+    G.stats.holds = out; G.stats.holdsV = 6; return out;
   }
   function near(px, pz, r) { return sites().filter(k => Math.hypot(k.x - px, k.z - pz) <= r); }
   function keepFor() { return null; }
@@ -10367,6 +10406,7 @@ G.loop = function (t) {
     if (this.wasNight === true && !nightNow) this.onDawn();
     this.wasNight = nightNow;
     Weather.update(dt); this.stats.playT = (this.stats.playT || 0) + dt;
+    if (this.buffOn('train')) { this.trainT = (this.trainT || 0) + dt; if (this.trainT >= 60) { this.trainT = 0; for (const k of this.kin) if (k.hp > 0) KIN.gainXp(k, 15 + k.level * 6); } }
     if (!inBattle) {
       p.yaw -= input.lookDX; p.pitch = U.clamp(p.pitch - input.lookDY, -1.55, 1.55);
       if (input.hotbarDelta) { p.sel += input.hotbarDelta; UI.renderHotbar(); }
@@ -10709,7 +10749,7 @@ G.giveLostMap = function (from) {
 G.addBuff = function (k, amt, mins) { if (!this.stats.buffs) this.stats.buffs = {}; this.stats.buffs[k] = { amt, until: (this.stats.playT || 0) + mins * 60 }; };
 G.buffOn = function (k) { const b = (this.stats.buffs || {})[k]; return b && b.until > (this.stats.playT || 0) ? b : null; };
 G.buffMul = function (k) { const b = this.buffOn(k); return b ? b.amt : 1; };
-G.buffText = function () { const B0 = this.stats.buffs || {}; const now = this.stats.playT || 0; const ic = { hearts: '❤', mine: '⛏', speed: '»', breath: '◌' }; return Object.keys(B0).filter(k => B0[k].until > now).map(k => `${ic[k] || k} ${Math.ceil((B0[k].until - now) / 60)}m`).join(' '); };
+G.buffText = function () { const B0 = this.stats.buffs || {}; const now = this.stats.playT || 0; const ic = { hearts: '❤', mine: '⛏', speed: '»', breath: '◌', ward: '⛨', blade: '⚔', luck: '✣', train: '★' }; return Object.keys(B0).filter(k => B0[k].until > now).map(k => `${ic[k] || k} ${Math.ceil((B0[k].until - now) / 60)}m`).join(' '); };
 G.damageMul = function () { return (typeof Npcs !== 'undefined' && this.amulet && Npcs.active('skin')) ? 0.5 : 1; };
 G.chestKey = function (x, y, z) { return `${this.worldId}:${U.mod(x, WORLD_W)},${y},${U.mod(z, WORLD_W)}`; };
 G.chestAt = function (x, y, z, create) { if (!this.chests) this.chests = {}; const k = this.chestKey(x, y, z); if (!this.chests[k] && create) this.chests[k] = { items: {} }; return this.chests[k] || null; };
