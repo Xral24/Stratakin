@@ -877,31 +877,41 @@ const Village = (() => {
   function stampSea(v) {
     const vx = v.x, vz = v.z, vy = v.y; // vy = SEA + 1, the deck level
     const set = (x, y, z, id) => world.setBlock(x, y, z, id);
+    const piles = (px, pz, r) => { for (const [dx, dz] of [[-r, -r], [r, -r], [-r, r], [r, r], [0, -r], [0, r], [-r, 0], [r, 0]]) { const gy = world.groundY(px + dx, pz + dz, vy - 2); for (let y = gy + 1; y < vy - 1; y++) set(px + dx, y, pz + dz, B.LOG); } };
     const platform = (px, pz, r) => {
       for (let dx = -r; dx <= r; dx++) for (let dz = -r; dz <= r; dz++) {
         set(px + dx, vy - 1, pz + dz, B.PLANKS);
-        for (let y = vy; y <= vy + 5; y++) if (world.getBlock(px + dx, y, pz + dz) !== B.AIR) set(px + dx, y, pz + dz, B.AIR);
+        for (let y = vy; y <= vy + 8; y++) if (world.getBlock(px + dx, y, pz + dz) !== B.AIR) set(px + dx, y, pz + dz, B.AIR);
       }
-      for (const [dx, dz] of [[-r, -r], [r, -r], [-r, r], [r, r], [0, -r], [0, r], [-r, 0], [r, 0]]) { const gy = world.groundY(px + dx, pz + dz, vy - 2); for (let y = gy + 1; y < vy - 1; y++) set(px + dx, y, pz + dz, B.LOG); }
+      piles(px, pz, r);
     };
-    const walkway = (ax, az, bx, bz) => { const n = Math.max(Math.abs(bx - ax), Math.abs(bz - az)); for (let i = 0; i <= n; i++) { const x = Math.round(ax + (bx - ax) * i / n), z = Math.round(az + (bz - az) * i / n); set(x, vy - 1, z, B.PLANKS); for (let y = vy; y <= vy + 3; y++) if (world.getBlock(x, y, z) !== B.AIR) set(x, y, z, B.AIR); if (i % 3 === 1) set(x, vy - 2, z, B.LOG); } };
+    const walkway = (ax, az, bx, bz) => { const n = Math.max(Math.abs(bx - ax), Math.abs(bz - az)); const ux = Math.sign(bx - ax), uz = Math.sign(bz - az); for (let i = 0; i <= n; i++) { const x = ax + ux * i, z = az + uz * i; set(x, vy - 1, z, B.PLANKS); for (let y = vy; y <= vy + 3; y++) if (world.getBlock(x, y, z) !== B.AIR) set(x, y, z, B.AIR); if (i % 3 === 1) { const gy = world.groundY(x, z, vy - 2); for (let y = gy + 1; y < vy - 1; y++) set(x, y, z, B.LOG); } if (i % 3 === 1 && i > 0 && i < n) { for (const s0 of [-1, 1]) { const rx = x + (uz ? s0 : 0), rz = z + (ux ? s0 : 0); set(rx, vy, rz, B.PALISADE); } } } }; // piles under it every third plank, a rail of posts along both sides
     platform(vx, vz, 4);
     set(vx, vy, vz, B.FUSION); set(vx - 3, vy, vz - 2, B.PORTAL);
-    for (const [dx, dz] of [[-4, -4], [4, -4], [-4, 4], [4, 4]]) { set(vx + dx, vy, vz + dz, B.LOG); set(vx + dx, vy + 1, vz + dz, B.TORCH); }
+    for (const [dx, dz] of [[-4, -4], [4, -4], [-4, 4], [4, 4]]) set(vx + dx, vy, vz + dz, B.LAMP);
+    for (let dx = -4; dx <= 4; dx++) for (let dz = -4; dz <= 4; dz++) if ((Math.abs(dx) === 4 || Math.abs(dz) === 4) && !(Math.abs(dx) === 4 && Math.abs(dz) === 4) && Math.abs(dx) > 1 && Math.abs(dz) > 1) set(vx + dx, vy, vz + dz, B.PALISADE); // a rail round the square, gaps toward the walkways
+    // nets drying on the rail, crab pots, a barrel or two
+    set(vx - 2, vy, vz - 4, B.CHEST); set(vx + 3, vy, vz + 4, B.PEBBLES);
     const huts = [[-11, 0, 1, 0, B.EMBER, furnishBakery], [11, 0, -1, 0, B.BERRY, furnishJuice], [0, -11, 0, 1, B.COPPER, furnishTrader], [0, 11, 0, -1, B.VOID, furnishVoodoo]];
     for (const [hx, hz, dirX, dirZ, marker, furnish] of huts) {
-      const cx = vx + hx, cz = vz + hz;
+      const cx = vx + hx, cz = vz + hz; const alongX = dirX !== 0;
       platform(cx, cz, 4);
+      // a stilt house: plank walls with a beam at the corners and the eaves, framed windows, a thatched roof pitched along the door's axis, a lantern inside
       for (let dx = -3; dx <= 3; dx++) for (let dz = -3; dz <= 3; dz++) {
-        const wall = Math.abs(dx) === 3 || Math.abs(dz) === 3;
-        for (let y = vy; y <= vy + 2; y++) { let id = wall ? B.PLANKS : B.AIR; if (wall && y === vy + 1 && ((Math.abs(dx) === 3 && Math.abs(dz) === 1) || (Math.abs(dz) === 3 && Math.abs(dx) === 1))) id = B.GLASS; set(cx + dx, y, cz + dz, id); }
-        set(cx + dx, vy + 3, cz + dz, B.LEAVES); // thatch
+        const wall = Math.abs(dx) === 3 || Math.abs(dz) === 3, corner = Math.abs(dx) === 3 && Math.abs(dz) === 3; const a = alongX ? dx : dz, b = alongX ? dz : dx;
+        for (let y = vy; y <= vy + 2; y++) { let id = wall ? (corner ? B.BEAM : B.PLANKS) : B.AIR; if (wall && y === vy + 1 && ((Math.abs(dx) === 3 && Math.abs(dz) === 1) || (Math.abs(dz) === 3 && Math.abs(dx) === 1))) id = B.GLASS; set(cx + dx, y, cz + dz, id); }
+        if (Math.abs(a) === 3 && Math.abs(b) <= 2) for (let y = vy + 3; y < vy + 3 + (3 - Math.abs(b)); y++) set(cx + dx, y, cz + dz, b === 0 && y > vy + 3 ? B.BEAM : B.PLANKS); // the gables
       }
+      for (let a = -4; a <= 4; a++) for (let b = -4; b <= 4; b++) { const dx = alongX ? a : b, dz = alongX ? b : a; set(cx + dx, vy + 2 + (4 - Math.abs(b)), cz + dz, B.THATCH); }
       set(cx + dirX * 3, vy, cz + dirZ * 3, B.AIR); set(cx + dirX * 3, vy + 1, cz + dirZ * 3, B.AIR); set(cx + dirX * 3, vy + 2, cz + dirZ * 3, marker);
-      set(cx, vy + 2, cz, B.TORCH);
+      set(cx, vy + 2, cz, B.LAMP);
+      for (const [wa, wb] of [[1, 4], [-1, 4], [1, -4], [-1, -4]]) { const dx = alongX ? wa : wb, dz = alongX ? wb : wa; if (world.getBlock(cx + dx, vy + 1, cz + dz) === B.AIR && world.getBlock(cx + dx, vy - 1, cz + dz) === B.PLANKS) set(cx + dx, vy + 1, cz + dz, B.FLOWERBOX); }
       furnish(cx, cz, dirX, dirZ, vy);
       walkway(vx - dirX * 4, vz - dirZ * 4, cx + dirX * 4, cz + dirZ * 4);
     }
+    // a jetty running on east past the juice bar, with a lamp at its end
+    for (let i = 0; i <= 7; i++) { const x = vx + 15 + i; for (const w of [-1, 0, 1]) { set(x, vy - 1, vz + w, B.PLANKS); for (let y = vy; y <= vy + 3; y++) if (world.getBlock(x, y, vz + w) !== B.AIR) set(x, y, vz + w, B.AIR); } if (i % 3 === 1) for (const w of [-1, 1]) { const gy = world.groundY(x, vz + w, vy - 2); for (let y = gy + 1; y < vy - 1; y++) set(x, y, vz + w, B.LOG); set(x, vy, vz + w, B.PALISADE); } }
+    set(vx + 22, vy, vz, B.LAMP);
   }
   // dome village on the sea floor: a glass hemisphere full of air, a water shaft down through the top to swim in by, small stone huts
   function stampDeep(v) {
