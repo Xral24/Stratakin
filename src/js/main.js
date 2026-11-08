@@ -246,14 +246,12 @@ G.previewGrid = function (slots) {
     const rc = KIN.findRecipe(kins.map(k => k.sp));
     if (!rc) return { kind: 'none', msg: `These ${kins.length} do not fuse. Only certain sets do: check the recipes you know.` };
     if (!this.knowsRecipe(rc)) return { kind: 'none', msg: 'Something stirs between them, but you do not know this fusion yet. Someone out there does.' };
-    if (rc.alt) { // a fork: either stone works, and whichever you use first is the one this recipe makes, for good
-      const key = rc.body + ':' + rc.i; const chosen = (this.stats.forks || {})[key];
-      const hasM = items.includes('stone_' + rc.stone), hasA = items.includes('stone_' + rc.alt.stone);
-      if (hasM && hasA) return { kind: 'none', msg: `Two stones, two different Kin. Put only one on: ${rc.stone} makes ${rc.out.names[0]}, ${rc.alt.stone} makes ${rc.alt.out.names[0]}.` };
-      if (!hasM && !hasA) return { kind: 'none', msg: chosen ? `Right set. It needs the ${chosen === 'alt' ? rc.alt.stone : rc.stone} Stone, the path you chose.` : `Right set. This one forks: a ${rc.stone} Stone makes ${rc.out.names[0]}, a ${rc.alt.stone} Stone makes ${rc.alt.out.names[0]}. You only get to choose once.` };
-      const branch = hasA ? 'alt' : 'main';
-      if (chosen && chosen !== branch) return { kind: 'none', msg: `You already chose the ${chosen === 'alt' ? rc.alt.stone : rc.stone} path for this fusion. That choice is made, and the table will not take the other stone.` };
-      return { kind: 'fusion', kin: KIN.fuseRecipe(rc, kins, branch), n: kins.length, items: 1, recipe: rc, branch, stone: branch === 'alt' ? rc.alt.stone : rc.stone, fork: !chosen, essNote: !chosen ? `This is a fork. Fuse with the ${branch === 'alt' ? rc.alt.stone : rc.stone} Stone and ${branch === 'alt' ? rc.out.names[0] : rc.alt.out.names[0]} is gone for good.` : '' };
+    if (rc.alt) { // a fork: the table decides. An ordinary table makes the Light one (Light Stone); the Dark Fusion Table makes the Dark one (Void Stone). The first table you use is the path for good
+      const key = rc.body + ':' + rc.i; const chosen = (this.stats.forks || {})[key]; const onDark = this.nearDarkTable();
+      const branch = onDark ? 'alt' : 'main'; const need = onDark ? rc.alt.stone : rc.stone; const outSp = onDark ? rc.alt.out : rc.out;
+      if (chosen && chosen !== branch) return { kind: 'none', msg: chosen === 'alt' ? `You made ${rc.alt.out.names[0]} on the Dark Fusion Table. This fusion is Dark now, for good: an ordinary table will not take it.` : `You made ${rc.out.names[0]} on an ordinary table. This fusion is Light now, for good: the Dark Table will not take it.` };
+      if (!items.includes('stone_' + need)) return { kind: 'none', msg: chosen ? `Right set. It needs a ${need} Stone, the path you chose.` : onDark ? `Right set, and this one forks. On the Dark Fusion Table it comes out Dark: ${rc.alt.out.names[0]}. It needs a Void Stone (3 Void essence and an iron, made here).` : `Right set, and this one forks. On an ordinary table it comes out Light: ${rc.out.names[0]}. It needs a Light Stone. On the Kinmaster's Dark Fusion Table, with a Void Stone, the same pair comes out Dark: ${rc.alt.out.names[0]}. You only get to choose once.` };
+      return { kind: 'fusion', kin: KIN.fuseRecipe(rc, kins, branch), n: kins.length, items: 1, recipe: rc, branch, stone: need, fork: !chosen, essNote: !chosen ? `This is a fork. Fuse here and ${outSp.names[0]} is the ${onDark ? 'Dark' : 'Light'} path for good: ${onDark ? rc.out.names[0] : rc.alt.out.names[0]} is gone.` : '' };
     }
     if (!items.includes('stone_' + rc.stone)) return { kind: 'none', msg: `Right pair. It needs a ${rc.stone} Stone on the table too (3 ${rc.stone} essence and an iron).` };
     return { kind: 'fusion', kin: KIN.fuseRecipe(rc, kins), n: kins.length, items: 1, recipe: rc, stone: rc.stone, essNote: '' };
@@ -314,8 +312,8 @@ G.learnRecipe = function (body, from) {
   if (!this.stats.recipes) this.stats.recipes = {}; const known = this.stats.recipes[body] || (this.stats.recipes[body] = []);
   const all = KIN.recipes(body); const next = all.find(rc => !known.includes(rc.i) && (rc.i < 20 || known.includes(rc.i - 20)));
   if (!next) return null; known.push(next.i);
-  if (from) UI.toast(next.alt ? `${from} teaches you a forked fusion: ${next.parts.map(sp => sp.names[0]).join(' + ')}. A ${next.stone} Stone makes ${next.out.names[0]}, a ${next.alt.stone} Stone makes ${next.alt.out.names[0]}.` : `${from} teaches you a fusion: ${next.parts.map(sp => sp.names[0]).join(' + ')} + ${next.stone} Stone makes ${next.out.names[0]}.`, 'good');
-  if (next.alt && !this.stats.forkTold) { this.stats.forkTold = true; this.explain('A forked fusion', `Some fusions can go two ways. Same Kin on the table, but the stone you add decides what comes out: ${next.stone} makes ${next.out.names[0]}, ${next.alt.stone} makes ${next.alt.out.names[0]}. Whichever stone you use first is the path that recipe takes for good. The other Kin is lost to you, so choose with care.`); }
+  if (from) UI.toast(next.alt ? `${from} teaches you a forked fusion: ${next.parts.map(sp => sp.names[0]).join(' + ')}. On an ordinary table with a Light Stone it makes ${next.out.names[0]}; on a Dark Fusion Table with a Void Stone it makes ${next.alt.out.names[0]}.` : `${from} teaches you a fusion: ${next.parts.map(sp => sp.names[0]).join(' + ')} + ${next.stone} Stone makes ${next.out.names[0]}.`, 'good');
+  if (next.alt && !this.stats.forkTold) { this.stats.forkTold = true; this.explain('A forked fusion', `Some fusions can go two ways, and the table decides. Put the same Kin on an ordinary Fusion Table with a Light Stone and they come out Light: ${next.out.names[0]}. Put them on the Kinmaster's Dark Fusion Table, in one of his Holds, with a Void Stone, and they come out Dark: ${next.alt.out.names[0]}. Whichever table you use first is the path that recipe takes for good. The other Kin is lost to you, so choose with care.`); }
   return next;
 };
 G.seenDex = function (sp, how) {

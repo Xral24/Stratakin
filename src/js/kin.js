@@ -222,24 +222,28 @@ const KIN = (() => {
       if (i >= 27) out.size *= 1.15;
       list.push({ i, body, a, b, parts, stone, out });
     }
-    // forks: five recipes per planet take either of two stones, and the stone decides what comes out. Built after the rest so nothing else moves.
-    const OPP = { Flame: ['Tide', 'Frost'], Tide: ['Flame', 'Spark'], Bloom: ['Flame', 'Void'], Stone: ['Gale', 'Tide'], Gale: ['Stone', 'Spark'], Frost: ['Flame', 'Light'], Spark: ['Stone', 'Tide'], Void: ['Light', 'Bloom'], Light: ['Void', 'Frost'] };
+    // forks: five recipes per planet go two ways, and the table decides. On an ordinary Fusion Table with a Light Stone the pair
+    // comes out Light; on the Kinmaster's Dark Fusion Table with a Void Stone it comes out Dark. Built after the rest so nothing else moves.
     const r2 = U.rng(U.combine(SPECIES_SEED[body] || 1, 0xF07C));
     for (const fi of FORK_AT) {
       const rc = list[fi]; const { a, b } = rc;
-      const alt = r2.pick(OPP[rc.stone] || E.filter(e => e !== rc.stone));
-      const elem = normalize(a.elem.map((v, k) => v * 0.3 + b.elem[k] * 0.3 + (EI[alt] === k ? 0.4 : 0)));
-      const base = rc.out;
-      const out = species(U.combine(a.seed, b.seed, 0xF1), [alt], 0, { primary: alt, shape: base.shape === a.shape ? b.shape : a.shape, rarity: 3, total: STAT_KEYS.reduce((t, k) => t + base.base[k], 0), neon: body !== 'earth' });
+      // the light path: the recipe's own output, turned toward Light
+      const base = rc.out; rc.stone = 'Light';
+      base.elem = normalize(a.elem.map((v, k) => v * 0.3 + b.elem[k] * 0.3 + (EI.Light === k ? 0.4 : 0)));
+      base.colors = { body: hexMix(hexMix(a.colors.body, b.colors.body, 0.5), PALETTE.Light[0], 0.4), belly: PALETTE.Light[3], accent: PALETTE.Light[1], dark: hexMix(b.colors.dark, '#ffffff', 0.25), eye: PALETTE.Light[2] };
+      base.feat = Object.assign({}, base.feat, { crest: true, wings: true, spikes: false }); base.light = true;
+      // the dark path: a second species, turned toward Void
+      const elem = normalize(a.elem.map((v, k) => v * 0.3 + b.elem[k] * 0.3 + (EI.Void === k ? 0.4 : 0)));
+      const out = species(U.combine(a.seed, b.seed, 0xF1), ['Void'], 0, { primary: 'Void', shape: base.shape === a.shape ? b.shape : a.shape, rarity: 3, total: STAT_KEYS.reduce((t, k) => t + base.base[k], 0), neon: body !== 'earth' });
       out.elem = elem;
       const stem = b.names[0].slice(0, Math.min(3, b.names[0].length)); const tail = a.names[0].slice(-Math.min(4, a.names[0].length)).toLowerCase();
       let nm = cap(stem + tail); if (DEX[body].some(x => x.names[0] === nm)) nm = cap(stem + r2.pick(MID) + tail);
       out.names = [nm, cap(nm + r2.pick(['ra', 'on', 'ix', 'or'])), cap(nm + r2.pick(SUFFIX))];
-      out.colors = { body: hexMix(hexMix(a.colors.body, b.colors.body, 0.5), PALETTE[alt][0], 0.45), belly: a.colors.belly, accent: PALETTE[alt][1], dark: b.colors.dark, eye: PALETTE[alt][3] };
-      out.feat = Object.assign({}, base.feat, { crest: true, wings: alt === 'Gale' ? true : base.feat.wings, spikes: alt === 'Stone' || alt === 'Frost' ? true : base.feat.spikes });
+      out.colors = { body: hexMix(hexMix(a.colors.body, b.colors.body, 0.5), '#1a0a2a', 0.55), belly: hexMix(a.colors.belly, '#2a1040', 0.5), accent: PALETTE.Void[1], dark: '#0a0412', eye: PALETTE.Void[3] };
+      out.feat = Object.assign({}, base.feat, { crest: true, horns: true, spikes: true, wings: base.feat.wings }); out.darkPath = true;
       out.fusion = true; out.recipe = { body, i: fi, fork: true }; out.size = base.size; out.home = null;
       DEX[body].push(out); out.dex = DEX[body].length;
-      rc.alt = { stone: alt, out };
+      rc.alt = { stone: 'Void', out };
     }
     return list;
   }

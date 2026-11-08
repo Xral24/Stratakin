@@ -1,23 +1,44 @@
 'use strict';
 // Raw WebGL renderer: chunk meshing with baked AO + sky exposure, point lights (torches), fog, day/night, entity meshes, line overlays.
 class MeshBuilder {
-  constructor(cap = 4096) {
+  // withNormals: entity meshes carry a smooth normal and a bone index per vertex (chunks do not; their shader derives normals)
+  constructor(cap = 4096, withNormals = false) {
     this.pos = new Float32Array(cap * 3); this.col = new Uint8Array(cap * 4); this.idx = new Uint32Array(cap * 1.5 | 0);
     this.nv = 0; this.ni = 0;
+    this.nrm = withNormals ? new Float32Array(cap * 3) : null; this.bone = withNormals ? new Float32Array(cap) : null;
+    this.curBone = 0; this.M = null; this.stack = []; // transform stack for entity parts (column-major 4x4, applied in vert())
   }
   ensure(nv, ni) {
     if (this.nv + nv > this.pos.length / 3) {
       const cap = Math.max((this.pos.length / 3) * 2, this.nv + nv);
       const p = new Float32Array(cap * 3); p.set(this.pos); this.pos = p;
       const c = new Uint8Array(cap * 4); c.set(this.col); this.col = c;
+      if (this.nrm) { const n = new Float32Array(cap * 3); n.set(this.nrm); this.nrm = n; const bo = new Float32Array(cap); bo.set(this.bone); this.bone = bo; }
     }
     if (this.ni + ni > this.idx.length) {
       const cap = Math.max(this.idx.length * 2, this.ni + ni);
       const ix = new Uint32Array(cap); ix.set(this.idx); this.idx = ix;
     }
   }
-  // quad: 4 corner positions [x,y,z], colours [r,g,b] per vertex (0..1), sky per vertex 0..1, emissive flag
-  quad(p, c, sky, emissive) {
+  // one vertex through the current transform; returns its index
+  vert(x, y, z, nx, ny, nz, r, g, b, sky, emissive) {
+    this.ensure(1, 0); const i = this.nv; const M = this.M;
+    if (M) { const X = M[0] * x + M[4] * y + M[8] * z + M[12], Y = M[1] * x + M[5] * y + M[9] * z + M[13], Z = M[2] * x + M[6] * y + M[10] * z + M[14]; x = X; y = Y; z = Z;
+      const NX = M[0] * nx + M[4] * ny + M[8] * nz, NY = M[1] * nx + M[5] * ny + M[9] * nz, NZ = M[2] * nx + M[6] * ny + M[10] * nz; const l = Math.hypot(NX, NY, NZ) || 1; nx = NX / l; ny = NY / l; nz = NZ / l; }
+    this.pos[i * 3] = x; this.pos[i * 3 + 1] = y; this.pos[i * 3 + 2] = z;
+    const ci = i * 4; this.col[ci] = Math.min(255, r * 255) | 0; this.col[ci + 1] = Math.min(255, g * 255) | 0; this.col[ci + 2] = Math.min(255, b * 255) | 0; this.col[ci + 3] = emissive ? 255 : Math.min(250, sky * 250) | 0;
+    if (this.nrm) { this.nrm[i * 3] = nx; this.nrm[i * 3 + 1] = ny; this.nrm[i * 3 + 2] = nz; this.bone[i] = this.curBone; }
+    this.nv++; return i;
+  }
+  tri(a, b, c) { this.ensure(0, 3); const k = this.ni; this.idx[k] = a; this.idx[k + 1] = b; this.idx[k + 2] = c; this.ni += 3; }
+  // quad: 4 corner positions [x,y,z], colours [r,g,b] per vertex (0..1), sky per vertex 0..1, emissive flag; nrm: optional per-vertex normals (else flat)
+  quad(p, c, sky, emissive, nrm) {
+    if (this.M || this.nrm) { // entity path: transformed, with normals
+      let fn = null;
+      if (!nrm) { const ux = p[1][0] - p[0][0], uy = p[1][1] - p[0][1], uz = p[1][2] - p[0][2], vx = p[3][0] - p[0][0], vy = p[3][1] - p[0][1], vz = p[3][2] - p[0][2]; fn = [uy * vz - uz * vy, uz * vx - ux * vz, ux * vy - uy * vx]; const l = Math.hypot(fn[0], fn[1], fn[2]) || 1; fn[0] /= l; fn[1] /= l; fn[2] /= l; }
+      const b = this.nv; for (let i = 0; i < 4; i++) { const n = nrm ? nrm[i] : fn; this.vert(p[i][0], p[i][1], p[i][2], n[0], n[1], n[2], c[i][0], c[i][1], c[i][2], sky[i], emissive); }
+      this.tri(b, b + 1, b + 2); this.tri(b, b + 2, b + 3); return;
+    }
     this.ensure(4, 6);
     const b = this.nv;
     for (let i = 0; i < 4; i++) {
@@ -30,6 +51,21 @@ class MeshBuilder {
     this.idx[k] = b; this.idx[k + 1] = b + 1; this.idx[k + 2] = b + 2; this.idx[k + 3] = b; this.idx[k + 4] = b + 2; this.idx[k + 5] = b + 3;
     this.nv += 4; this.ni += 6;
   }
+  // ---- transform stack (entity parts) ----
+  push() { this.stack.push(this.M ? this.M.slice() : null); }
+  pop() { this.M = this.stack.pop() || null; }
+  mul(m) { this.M = this.M ? U.m4mul(this.M, m) : Float32Array.from(m); }
+  translate(x, y, z) { const m = U.m4identity(); m[12] = x; m[13] = y; m[14] = z; this.mul(m); }
+  // rotate about a pivot: rx, ry, rz in radians (applied z, then x, then y)
+  rotate(rx, ry, rz, piv) {
+    if (piv) this.translate(piv[0], piv[1], piv[2]);
+    if (ry) { const c = Math.cos(ry), s = Math.sin(ry); const m = U.m4identity(); m[0] = c; m[2] = -s; m[8] = s; m[10] = c; this.mul(m); }
+    if (rx) { const c = Math.cos(rx), s = Math.sin(rx); const m = U.m4identity(); m[5] = c; m[6] = s; m[9] = -s; m[10] = c; this.mul(m); }
+    if (rz) { const c = Math.cos(rz), s = Math.sin(rz); const m = U.m4identity(); m[0] = c; m[1] = s; m[4] = -s; m[5] = c; this.mul(m); }
+    if (piv) this.translate(-piv[0], -piv[1], -piv[2]);
+  }
+  scale(sx, sy, sz) { const m = U.m4identity(); m[0] = sx; m[5] = sy; m[10] = sz; this.mul(m); }
+  setBone(i) { this.curBone = i; }
   // axis aligned box with flat shading per face
   box(x0, y0, z0, x1, y1, z1, color, sky = 1, emissive = false, shade = FACE_SHADE) {
     const c = (f) => { const s = shade[f]; return [[color[0] * s, color[1] * s, color[2] * s], [color[0] * s, color[1] * s, color[2] * s], [color[0] * s, color[1] * s, color[2] * s], [color[0] * s, color[1] * s, color[2] * s]]; };
@@ -199,6 +235,66 @@ const R = (() => {
     col = mix(col * uTint, haze, f);
     gl_FragColor = vec4(col, alpha);
   }`;
+  // ---- entities: smooth normals, ten bones, a soft cel ramp with rim light; a second pass draws a thin dark outline (inverted hull) ----
+  const EVS = `
+  attribute vec3 aPos; attribute vec4 aCol; attribute vec3 aNorm; attribute float aBone;
+  uniform mat4 uPV; uniform mat4 uModel; uniform mat4 uBones[10]; uniform float uOutline; uniform vec4 uSway; uniform float uTime;
+  varying vec4 vCol; varying vec3 vWorld; varying vec3 vNorm; varying vec3 vLocal;
+  void main(){
+    int b = int(aBone + 0.5);
+    mat4 M = uModel * uBones[b];
+    vec3 p = aPos;
+    if (uSway.x > 0.0) { float w = clamp((uSway.w - aPos.z) / max(uSway.w * 1.6 + 0.6, 0.6), 0.0, 1.0); p.x += sin(aPos.z * uSway.y + uSway.z) * uSway.x * w * w; }
+    vec3 n = normalize(mat3(M) * aNorm);
+    vec4 w = M * vec4(p, 1.0);
+    if (uOutline > 0.0) w.xyz += n * uOutline;
+    vWorld = w.xyz; vNorm = n; vCol = aCol; vLocal = aPos;
+    gl_Position = uPV * w;
+  }`;
+  const EFS = `
+  #ifdef GL_FRAGMENT_PRECISION_HIGH
+  precision highp float;
+  #else
+  precision mediump float;
+  #endif
+  varying vec4 vCol; varying vec3 vWorld; varying vec3 vNorm; varying vec3 vLocal;
+  uniform vec3 uCam; uniform float uDay; uniform vec3 uFog; uniform float uFogNear; uniform float uFogFar; uniform float uAmbient;
+  uniform vec3 uLights[8]; uniform float uLightR[8]; uniform float uAlpha; uniform vec3 uTint; uniform float uSkyMul;
+  uniform vec3 uSun; uniform vec3 uSunCol; uniform vec3 uZenith; uniform float uSunAmt; uniform float uOutline; uniform float uFlash;
+  float hash3(vec3 p){ p = fract(p * vec3(0.1031, 0.1030, 0.0973)); p += dot(p, p.yxz + 33.33); return fract((p.x + p.y) * p.z); }
+  void main(){
+    vec3 toCam = uCam - vWorld; float dist = length(toCam); vec3 V = toCam / max(dist, 0.0001);
+    float f = clamp((dist - uFogNear) / (uFogFar - uFogNear), 0.0, 1.0); f = f * f * (3.0 - 2.0 * f);
+    if (uOutline > 0.0) { gl_FragColor = vec4(mix(vec3(0.07, 0.06, 0.09), uFog, f), uAlpha); return; }
+    vec3 n = normalize(vNorm); if (dot(n, V) < -0.15) n = -n;
+    float sky = vCol.a; float emis = step(0.999, sky); float skyL = sky * uSkyMul;
+    float torch = 0.0;
+    for (int i = 0; i < 8; i++) { float d = distance(vWorld, uLights[i]); torch = max(torch, clamp(1.0 - d / max(uLightR[i], 0.001), 0.0, 1.0)); }
+    torch = torch * torch * (3.0 - 2.0 * torch);
+    float lam = max(dot(n, uSun), 0.0) * uSunAmt;
+    float ramp = smoothstep(0.02, 0.3, lam) * 0.6 + smoothstep(0.45, 0.8, lam) * 0.4;
+    vec3 amb = vec3(0.78, 0.86, 1.05) * (0.4 + 0.26 * uDay) * (0.82 + 0.22 * n.y);
+    vec3 light = skyL * (amb + uSunCol * ramp * 0.82 * uDay);
+    light = max(light, vec3(uAmbient)); light = max(light, vec3(1.0, 0.78, 0.52) * torch * 0.95);
+    light = mix(light, vec3(1.0), emis);
+    vec3 vc = vCol.rgb; float lum = dot(vc, vec3(0.3, 0.59, 0.11)); vc = mix(vec3(lum), vc, 0.84);
+    float g = hash3(floor(vLocal * 11.0 + 0.5)); vc *= 0.955 + 0.09 * g;
+    vec3 col = vc * light;
+    float rim = pow(1.0 - max(dot(n, V), 0.0), 3.0) * (0.3 + 0.3 * (1.0 - lam)) * skyL * (0.35 + 0.65 * uDay) * (1.0 - emis);
+    col += (uZenith * 0.7 + vec3(0.2)) * rim;
+    vec3 H = normalize(uSun + V); float spec = pow(max(dot(n, H), 0.0), 36.0) * uSunAmt * uDay * 0.22 * skyL * (1.0 - emis); col += uSunCol * spec;
+    col = mix(col, vec3(1.0, 0.95, 0.9), uFlash);
+    float toward = pow(max(dot(-V, uSun), 0.0), 6.0) * uSunAmt;
+    vec3 haze = mix(uFog, uSunCol, toward * 0.45);
+    col = mix(col * uTint, haze, f);
+    gl_FragColor = vec4(col, uAlpha);
+  }`;
+  let eprog = null; const eloc = {}; const IDENT_BONES = new Float32Array(160); for (let i = 0; i < 10; i++) { IDENT_BONES[i * 16] = IDENT_BONES[i * 16 + 5] = IDENT_BONES[i * 16 + 10] = IDENT_BONES[i * 16 + 15] = 1; }
+  function initEntityProg() {
+    eprog = compile(EVS, EFS);
+    for (const n of ['aPos', 'aCol', 'aNorm', 'aBone']) eloc[n] = gl.getAttribLocation(eprog, n);
+    for (const n of ['uPV', 'uModel', 'uBones', 'uOutline', 'uSway', 'uTime', 'uCam', 'uDay', 'uFog', 'uFogNear', 'uFogFar', 'uAmbient', 'uLights', 'uLightR', 'uAlpha', 'uTint', 'uSkyMul', 'uSun', 'uSunCol', 'uZenith', 'uSunAmt', 'uFlash']) eloc[n] = gl.getUniformLocation(eprog, n);
+  }
   // ---- the meadow: one blade shape drawn tens of thousands of times around you (WebGL2 instancing) ----
   const GVS = `#version 300 es
   in vec2 aBlade;
@@ -373,7 +469,7 @@ const R = (() => {
     for (const n of ['aPos', 'aCol']) loc[n] = gl.getAttribLocation(prog, n);
     for (const n of ['uPV', 'uModel', 'uTime', 'uWave', 'uCam', 'uDay', 'uFog', 'uFogNear', 'uFogFar', 'uAmbient', 'uLights', 'uLightR', 'uAlpha', 'uTint', 'uSkyMul', 'uSun', 'uSunCol', 'uZenith', 'uGrid', 'uSunAmt', 'uQuality', 'uPlayer']) loc[n] = gl.getUniformLocation(prog, n);
     skyProg = compile(SVS, SFS); sloc.aPos = gl.getAttribLocation(skyProg, 'aPos'); for (const n of ['uFwd', 'uRight', 'uUp', 'uTan', 'uAspect', 'uHorizon', 'uZenith', 'uSun', 'uSunCol', 'uSunAmt', 'uTime', 'uClouds', 'uNight']) sloc[n] = gl.getUniformLocation(skyProg, n);
-    initGrass();
+    initGrass(); initEntityProg();
     skyBuf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, skyBuf); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
     lineProg = compile(LVS, LFS);
     lloc.aPos = gl.getAttribLocation(lineProg, 'aPos'); lloc.uPV = gl.getUniformLocation(lineProg, 'uPV'); lloc.uColor = gl.getUniformLocation(lineProg, 'uColor');
@@ -394,12 +490,23 @@ const R = (() => {
     const vbo = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, vbo); gl.bufferData(gl.ARRAY_BUFFER, mb.pos.subarray(0, mb.nv * 3), gl.STATIC_DRAW);
     const cbo = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, cbo); gl.bufferData(gl.ARRAY_BUFFER, mb.col.subarray(0, mb.nv * 4), gl.STATIC_DRAW);
     const ibo = gl.createBuffer(); gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ibo); gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, mb.idx.subarray(0, mb.ni), gl.STATIC_DRAW);
-    return { vbo, cbo, ibo, count: mb.ni };
+    const out = { vbo, cbo, ibo, count: mb.ni, nbo: null, bbo: null, tris: mb.ni / 3 };
+    if (mb.nrm) { out.nbo = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, out.nbo); gl.bufferData(gl.ARRAY_BUFFER, mb.nrm.subarray(0, mb.nv * 3), gl.STATIC_DRAW); out.bbo = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, out.bbo); gl.bufferData(gl.ARRAY_BUFFER, mb.bone.subarray(0, mb.nv), gl.STATIC_DRAW); }
+    return out;
   }
-  function freeMesh(m) { if (!m) return; gl.deleteBuffer(m.vbo); gl.deleteBuffer(m.cbo); gl.deleteBuffer(m.ibo); }
+  function freeMesh(m) { if (!m) return; gl.deleteBuffer(m.vbo); gl.deleteBuffer(m.cbo); gl.deleteBuffer(m.ibo); if (m.nbo) { gl.deleteBuffer(m.nbo); gl.deleteBuffer(m.bbo); } }
   function drawMesh(m) {
     gl.bindBuffer(gl.ARRAY_BUFFER, m.vbo); gl.enableVertexAttribArray(loc.aPos); gl.vertexAttribPointer(loc.aPos, 3, gl.FLOAT, false, 0, 0);
     gl.bindBuffer(gl.ARRAY_BUFFER, m.cbo); gl.enableVertexAttribArray(loc.aCol); gl.vertexAttribPointer(loc.aCol, 4, gl.UNSIGNED_BYTE, true, 0, 0);
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, m.ibo);
+    gl.drawElements(gl.TRIANGLES, m.count, gl.UNSIGNED_INT, 0);
+  }
+  // an entity mesh through the entity program (normals, bones)
+  function drawEntityMesh(m) {
+    gl.bindBuffer(gl.ARRAY_BUFFER, m.vbo); gl.enableVertexAttribArray(eloc.aPos); gl.vertexAttribPointer(eloc.aPos, 3, gl.FLOAT, false, 0, 0);
+    gl.bindBuffer(gl.ARRAY_BUFFER, m.cbo); gl.enableVertexAttribArray(eloc.aCol); gl.vertexAttribPointer(eloc.aCol, 4, gl.UNSIGNED_BYTE, true, 0, 0);
+    if (m.nbo) { gl.bindBuffer(gl.ARRAY_BUFFER, m.nbo); gl.enableVertexAttribArray(eloc.aNorm); gl.vertexAttribPointer(eloc.aNorm, 3, gl.FLOAT, false, 0, 0); gl.bindBuffer(gl.ARRAY_BUFFER, m.bbo); gl.enableVertexAttribArray(eloc.aBone); gl.vertexAttribPointer(eloc.aBone, 1, gl.FLOAT, false, 0, 0); }
+    else { gl.disableVertexAttribArray(eloc.aNorm); gl.vertexAttrib3f(eloc.aNorm, 0, 1, 0); gl.disableVertexAttribArray(eloc.aBone); gl.vertexAttrib1f(eloc.aBone, 0); }
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, m.ibo);
     gl.drawElements(gl.TRIANGLES, m.count, gl.UNSIGNED_INT, 0);
   }
@@ -650,8 +757,68 @@ const R = (() => {
   // ---------- entity meshes ----------
   function entityMesh(key, buildFn) {
     let m = entityMeshes.get(key);
-    if (!m) { const mb = new MeshBuilder(1024); buildFn(mb); m = upload(mb) || { count: 0 }; entityMeshes.set(key, m); }
+    if (!m) { const mb = new MeshBuilder(1024, true); buildFn(mb); m = upload(mb) || { count: 0 }; entityMeshes.set(key, m); }
     return m;
+  }
+  function dropEntityMesh(key) { const m = entityMeshes.get(key); if (m) { freeMesh(m); entityMeshes.delete(key); } }
+  // ---------- drawing the entity list (shared by the frame and by portraits) ----------
+  function setEntityUniforms(pv, cam, lightsL, lightsR) {
+    gl.useProgram(eprog);
+    gl.uniformMatrix4fv(eloc.uPV, false, pv); gl.uniform1f(eloc.uTime, performance.now() / 1000);
+    gl.uniform3f(eloc.uCam, cam.x, cam.y, cam.z); gl.uniform1f(eloc.uDay, state.dayLight); gl.uniform3fv(eloc.uFog, state.fogColor);
+    gl.uniform1f(eloc.uFogNear, state.fogNear); gl.uniform1f(eloc.uFogFar, state.fogFar); gl.uniform1f(eloc.uAmbient, state.ambient); gl.uniform3fv(eloc.uTint, state.tint);
+    gl.uniform3fv(eloc.uSun, state.sun || [0, 1, 0]); gl.uniform3fv(eloc.uSunCol, state.sunCol || [1, 1, 1]); gl.uniform3fv(eloc.uZenith, state.zenith || state.fogColor); gl.uniform1f(eloc.uSunAmt, state.skyPass ? state.sunAmt : 0);
+    gl.uniform3fv(eloc.uLights, lightsL); gl.uniform1fv(eloc.uLightR, lightsR); gl.uniform1f(eloc.uAlpha, 1); gl.uniform1f(eloc.uSkyMul, 1); gl.uniform1f(eloc.uOutline, 0); gl.uniform4f(eloc.uSway, 0, 0, 0, 0); gl.uniform1f(eloc.uFlash, 0);
+  }
+  function drawEntities(entities, cam, now) {
+    const outlineW = state.outlines === false ? 0 : (isMobile ? 0.022 : 0.026);
+    let bonesId = true; gl.uniformMatrix4fv(eloc.uBones, false, IDENT_BONES);
+    const drawOne = (e, outline) => {
+      gl.uniformMatrix4fv(eloc.uModel, false, U.m4model(e.x, e.y + (e.hover || 0), e.z, e.yaw, e.scale || 1));
+      const pose = (typeof Anim !== 'undefined' && e.model && e.model.bones) ? Anim.pose(e, now) : null;
+      if (pose) { gl.uniformMatrix4fv(eloc.uBones, false, pose.mats); bonesId = false; gl.uniform4fv(eloc.uSway, pose.sway); }
+      else { if (!bonesId) { gl.uniformMatrix4fv(eloc.uBones, false, IDENT_BONES); bonesId = true; } gl.uniform4f(eloc.uSway, 0, 0, 0, 0); }
+      gl.uniform1f(eloc.uSkyMul, e.skyMul == null ? 1 : e.skyMul);
+      gl.uniform1f(eloc.uFlash, e.hitT > 0 ? Math.max(0, Math.min(0.7, e.hitT * 2.5)) : 0);
+      gl.uniform1f(eloc.uAlpha, e.alpha == null ? 1 : e.alpha);
+      gl.uniform1f(eloc.uOutline, outline ? outlineW * (e.outlineMul || 1) : 0);
+      drawEntityMesh(e.mesh);
+    };
+    const list = [];
+    for (const e of entities) { if (!e.mesh || !e.mesh.count) continue; const d2 = (e.x - cam.x) ** 2 + (e.z - cam.z) ** 2; if (d2 > state.viewDist * state.viewDist) continue; e._d2 = d2; list.push(e); }
+    for (const e of list) drawOne(e, false);
+    if (outlineW > 0) { gl.enable(gl.CULL_FACE); gl.cullFace(gl.FRONT); for (const e of list) { if (e.isFx || e.noOutline || e._d2 > 1600) continue; drawOne(e, true); } gl.disable(gl.CULL_FACE); }
+    gl.uniform1f(eloc.uOutline, 0); gl.uniform1f(eloc.uSkyMul, 1); gl.uniform1f(eloc.uAlpha, 1);
+  }
+  // ---------- portraits: the same mesh, drawn into a small offscreen target and copied onto a 2D canvas ----------
+  let pfb = null, ptex = null, pdepth = null, psize = 0;
+  function renderPortrait(cv, mesh, model, size, opts = {}) {
+    if (!eprog || !mesh || !mesh.count) return false;
+    size = size || 96; const S = Math.min(256, Math.round(size * (window.devicePixelRatio > 1.4 ? 2 : 1.5)));
+    if (!pfb) { pfb = gl.createFramebuffer(); ptex = gl.createTexture(); pdepth = gl.createRenderbuffer(); }
+    gl.bindFramebuffer(gl.FRAMEBUFFER, pfb);
+    if (psize !== S) { gl.bindTexture(gl.TEXTURE_2D, ptex); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, S, S, 0, gl.RGBA, gl.UNSIGNED_BYTE, null); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR); gl.bindRenderbuffer(gl.RENDERBUFFER, pdepth); gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, S, S); gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, ptex, 0); gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, pdepth); psize = S; }
+    gl.viewport(0, 0, S, S); gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    const h = Math.max(0.6, model ? model.height : 1.5), r = Math.max(0.4, model ? model.radius : 0.6); const ext = Math.max(h * 0.62, r * 0.9) * 1.25 * (opts.zoom || 1);
+    const yaw = opts.yaw == null ? Math.PI * 0.78 : opts.yaw, pitch = opts.pitch == null ? -0.28 : opts.pitch; const dist = ext / Math.tan(0.32) + r;
+    const fwd = U.forwardVec(yaw, pitch); const cx = -fwd[0] * dist, cy = h * 0.5 - fwd[1] * dist + (opts.lift || 0), cz = -fwd[2] * dist;
+    const pv = U.m4mul(U.m4perspective(0.64, 1, 0.1, 60), U.m4view(cx, cy, cz, yaw, pitch));
+    const saved = { fog: state.fogColor, fn: state.fogNear, ff: state.fogFar, sun: state.sun, sc: state.sunCol, sa: state.sunAmt, day: state.dayLight, z: state.zenith, tint: state.tint, amb: state.ambient, sp: state.skyPass };
+    state.fogColor = [0.5, 0.6, 0.7]; state.fogNear = 50; state.fogFar = 60; state.sun = [-0.45, 0.72, 0.53]; state.sunCol = [1.0, 0.95, 0.86]; state.sunAmt = 1; state.dayLight = 1; state.zenith = [0.5, 0.65, 0.95]; state.tint = [1, 1, 1]; state.ambient = 0.06; state.skyPass = true;
+    const L = new Float32Array(24), LR = new Float32Array(8); for (let i = 0; i < 8; i++) { L[i * 3 + 1] = -999; LR[i] = 0.001; }
+    setEntityUniforms(pv, { x: cx, y: cy, z: cz }, L, LR);
+    const ent = { x: 0, y: 0, z: 0, yaw: 0, scale: 1, mesh, model, hover: 0, skyMul: 1, anim: opts.anim || null, _portrait: true };
+    gl.enable(gl.DEPTH_TEST); gl.disable(gl.BLEND);
+    const ol = state.outlines; state.outlines = opts.outline === false ? false : true; const vd = state.viewDist; state.viewDist = 100;
+    drawEntities([ent], { x: cx, y: cy, z: cz }, performance.now()); state.outlines = ol; state.viewDist = vd;
+    Object.assign(state, { fogColor: saved.fog, fogNear: saved.fn, fogFar: saved.ff, sun: saved.sun, sunCol: saved.sc, sunAmt: saved.sa, dayLight: saved.day, zenith: saved.z, tint: saved.tint, ambient: saved.amb, skyPass: saved.sp });
+    const px = new Uint8Array(S * S * 4); gl.readPixels(0, 0, S, S, gl.RGBA, gl.UNSIGNED_BYTE, px);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null); gl.viewport(0, 0, canvas.width, canvas.height);
+    // flip rows (GL is bottom-up) and un-premultiply nothing: alpha is 0 or 1
+    const img = new ImageData(S, S); const d = img.data; for (let y = 0; y < S; y++) d.set(px.subarray((S - 1 - y) * S * 4, (S - y) * S * 4), y * S * 4);
+    cv.width = S; cv.height = S; cv.style.width = cv.style.height = size + 'px';
+    const ctx = cv.getContext('2d'); ctx.putImageData(img, 0, 0);
+    return true;
   }
 
   // ---------- frame ----------
@@ -759,15 +926,10 @@ const R = (() => {
     const gR = (isMobile ? 34 : 48) + 16;
     for (const c of visible) if (c.mesh.gr) { const dx = c.cx * CH + 8 - cam.x, dz = c.cz * CH + 8 - cam.z; if (dx * dx + dz * dz > gR * gR) continue; ident[12] = c.cx * CH; ident[14] = c.cz * CH; gl.uniformMatrix4fv(loc.uModel, false, ident); drawMesh(c.mesh.gr); }
     gl.uniform1f(loc.uWave, 0);
-    // entities
-    for (const e of entities) {
-      if (!e.mesh || !e.mesh.count) continue;
-      const d2 = (e.x - cam.x) ** 2 + (e.z - cam.z) ** 2; if (d2 > state.viewDist * state.viewDist) continue;
-      gl.uniform1f(loc.uSkyMul, e.skyMul == null ? 1 : e.skyMul);
-      gl.uniformMatrix4fv(loc.uModel, false, U.m4model(e.x, e.y + (e.hover || 0), e.z, e.yaw, e.scale || 1));
-      drawMesh(e.mesh);
-    }
-    gl.uniform1f(loc.uSkyMul, 1);
+    // entities: their own program (smooth normals, bones, outline)
+    setEntityUniforms(pv, cam, L, LR);
+    drawEntities(entities, cam, performance.now());
+    gl.useProgram(prog);
     // water
     gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA); gl.depthMask(false);
     gl.uniform1f(loc.uAlpha, 0.62); gl.uniform1f(loc.uWave, 1);
@@ -805,5 +967,5 @@ const R = (() => {
     return out;
   }
 
-  return { grassZone, init, resize, buildChunk, freeChunk, entityMesh, render, boxLines, ringLines, state, get gl() { return gl; } };
+  return { grassZone, init, resize, buildChunk, freeChunk, entityMesh, dropEntityMesh, renderPortrait, render, boxLines, ringLines, state, get gl() { return gl; } };
 })();
