@@ -14,7 +14,7 @@ const B = {
   TORCH: 18, FUSION: 19, GRAVEL: 20, CACTUS: 21, STARMETAL: 22, MOSS: 23, STATUE: 24, PLANKS: 25, BERRY: 26, GLASS: 27, CAMPFIRE: 28, IRONWALL: 29, VOIDWALL: 30, GLOWWORM: 31, BERRYLEAF: 32, DOOR: 33, DOOR_OPEN: 34, PORTAL: 35,
   CHEST: 36, SELENITE: 37, TYCHO: 38, STARSALT: 39, MOONGLOW: 40, AMBER: 41, SULFUR: 42, RINGSHARD: 43, BRINE: 44, CORAL_R: 45, CORAL_B: 46, CORAL_Y: 47, PEARLCORAL: 48, GOLD: 49, DIAMOND: 50, FERN: 51, SELGLASS: 52, INCUBATOR: 53, REGOLITH: 54, DUNE: 55, SALTCRUST: 56, LADDER: 57, TARGET: 58, BALLOON: 59, FORTSTONE: 60, THORN: 61, DEADGATE: 62, RUBBLE: 63, DARKTABLE: 64,
   NEEDLES: 65, FROND: 66, BIRCHLOG: 67, BOULDER: 68, MUSHROOM: 69, FLOWERS: 70, PEBBLES: 71, PALMLOG: 72,
-  TILES: 73, SLATE: 74, THATCH: 75, PLASTER: 76, BEAM: 77, LAMP: 78, COBBLE: 79, FLOWERBOX: 80, PALISADE: 81, MASONRY: 82, FOUNTAIN: 83, BASIN: 84, AWNING: 85, BANNER: 86, SLIT: 87, TIPI: 88, HIDE: 89, LODGE: 90, FENCE: 91, FIREPIT: 92, TOTEM: 93
+  TILES: 73, SLATE: 74, THATCH: 75, PLASTER: 76, BEAM: 77, LAMP: 78, COBBLE: 79, FLOWERBOX: 80, PALISADE: 81, MASONRY: 82, FOUNTAIN: 83, BASIN: 84, AWNING: 85, BANNER: 86, SLIT: 87, TIPI: 88, HIDE: 89, LODGE: 90, FENCE: 91, FIREPIT: 92, TOTEM: 93, RAIL: 94, CART: 95
 };
 
 // name, top colour, side colour, solid, hardness (seconds to mine), drop item id, emissive, fluid
@@ -101,7 +101,7 @@ defBlock(B.TILES, 'Roof Tiles', '#b8583a', '#a44e34', { hard: 0.5, drop: 'planks
 defBlock(B.SLATE, 'Slate Roof', '#55606e', '#4a5462', { hard: 0.5, drop: 'planks', transparent: true });
 defBlock(B.THATCH, 'Thatch', '#c8a858', '#b2924a', { hard: 0.3, drop: 'frond', transparent: true });
 defBlock(B.PLASTER, 'Plaster', '#ece2cc', '#e6dac2', { hard: 0.6, drop: 'planks' });
-defBlock(B.BEAM, 'Timber Beam', '#5e3f26', '#53371f', { hard: 0.6, drop: 'planks' });
+defBlock(B.BEAM, 'Timber Beam', '#6a4830', '#5e3f28', { hard: 0.6, drop: 'planks' });
 defBlock(B.LAMP, 'Lamp Post', '#ffd36a', '#3a3a40', { solid: false, hard: 0.3, drop: 'torch', emissive: true, partial: true, transparent: true });
 defBlock(B.COBBLE, 'Cobbles', '#8a8680', '#7e7a74', { hard: 0.9, drop: 'stone' });
 defBlock(B.PALISADE, 'Palisade', '#8a6a3c', '#6e5230', { hard: 0.7, drop: 'wood', transparent: true }); // two pointed posts per block
@@ -117,6 +117,8 @@ defBlock(B.HIDE, 'Hide Wall', '#c8a878', '#b89868', { hard: Infinity, partial: t
 defBlock(B.FENCE, 'Rail Fence', '#a07a44', '#75522c', { hard: 0.5, drop: 'wood', partial: true, transparent: true });
 defBlock(B.FIREPIT, 'Fire Pit', '#ff9a3a', '#6a6a70', { solid: false, hard: Infinity, emissive: true, partial: true, transparent: true });
 defBlock(B.TOTEM, 'Totem', '#a07a44', '#75522c', { hard: Infinity, partial: true, transparent: true });
+defBlock(B.RAIL, 'Rail', '#6a6a70', '#5a4a30', { solid: false, hard: 0.4, drop: 'iron', partial: true, transparent: true });
+defBlock(B.CART, 'Mine Cart', '#5a5a60', '#4a4a50', { hard: 0.8, drop: 'iron', partial: true, transparent: true });
 defBlock(B.FLOWERBOX, 'Flower Box', '#d04a5a', '#6a4a2c', { solid: false, hard: 0.2, drop: 'frond', partial: true, transparent: true }); // the mesher draws a whole palm from the lowest trunk block: a curved trunk, a crown of fronds, coconuts
 defBlock(B.BOULDER, 'Boulder', '#8e9197', '#86898f', { hard: 0.9, drop: 'stone', partial: true, transparent: true });
 defBlock(B.MUSHROOM, 'Mushroom', '#c84a3a', '#e8dcc8', { solid: false, hard: 0.1, drop: 'berry', partial: true, transparent: true });
@@ -126,7 +128,7 @@ defBlock(B.PEBBLES, 'Pebbles', '#8e9197', '#86898f', { solid: false, hard: 0.2, 
 // blocks that light their surroundings, and how far
 const LIGHT_R = { [B.TORCH]: 10, [B.CAMPFIRE]: 14, [B.FIREPIT]: 13, [B.MOONGLOW]: 12, [B.RINGSHARD]: 10, [B.PEARLCORAL]: 8, [B.INCUBATOR]: 9, [B.LAMP]: 12 };
 // blocks the sky light passes through when working out how deep a column is
-const SKY_CLEAR = { [B.LAMP]: 1, [B.FLOWERBOX]: 1, [B.BANNER]: 1, [B.BASIN]: 1, [B.FOUNTAIN]: 1, [B.TIPI]: 1, [B.LODGE]: 1, [B.HIDE]: 1, [B.FENCE]: 1, [B.FIREPIT]: 1, [B.TOTEM]: 1, [B.FROND]: 1, [B.MUSHROOM]: 1, [B.FLOWERS]: 1, [B.PEBBLES]: 1, [B.LADDER]: 1, [B.TORCH]: 1, [B.GLASS]: 1, [B.SELGLASS]: 1, [B.CAMPFIRE]: 1, [B.MOONGLOW]: 1, [B.GLOWWORM]: 1, [B.FERN]: 1, [B.PORTAL]: 1, [B.BERRY]: 1, [B.RINGSHARD]: 1 };
+const SKY_CLEAR = { [B.LAMP]: 1, [B.FLOWERBOX]: 1, [B.RAIL]: 1, [B.BANNER]: 1, [B.BASIN]: 1, [B.FOUNTAIN]: 1, [B.TIPI]: 1, [B.LODGE]: 1, [B.HIDE]: 1, [B.FENCE]: 1, [B.FIREPIT]: 1, [B.TOTEM]: 1, [B.FROND]: 1, [B.MUSHROOM]: 1, [B.FLOWERS]: 1, [B.PEBBLES]: 1, [B.LADDER]: 1, [B.TORCH]: 1, [B.GLASS]: 1, [B.SELGLASS]: 1, [B.CAMPFIRE]: 1, [B.MOONGLOW]: 1, [B.GLOWWORM]: 1, [B.FERN]: 1, [B.PORTAL]: 1, [B.BERRY]: 1, [B.RINGSHARD]: 1 };
 const isSolid = (id) => BLOCKS[id].solid;
 const isLeaf = (id) => id === B.LEAVES || id === B.BERRYLEAF || id === B.NEEDLES;
 const isTrunk = (id) => id === B.LOG || id === B.BIRCHLOG || id === B.PALMLOG;
@@ -467,6 +469,21 @@ class World {
         blocks[base + y] = b;
       }
       // if the mines carved the block directly under the surface, keep it open (cave mouths); water fill
+      // the old mine galleries: straight timbered tunnels on a grid, one set running north-south at y 28, one east-west at y 21, with
+      // rails down the middle, a frame of beams every fourth block and a lantern hanging from every other frame. They cross the caves.
+      if (this.preset.id === 'earth' && h > SEA + 2) {
+        const gal = (u, v, y0) => { // u across the tunnel (the bore is three wide, u 0..2), v along it
+          const um = U.mod(u, 96); if (um > 2) return;
+          const frame = U.mod(v, 4) === 0;
+          if (y0 + 4 > h - 3) return; // too near the surface: the gallery stops short of the open air
+          for (let y = y0; y <= y0 + 2; y++) blocks[base + y] = B.AIR;
+          if (frame) { blocks[base + y0 + 3] = B.BEAM; if (um !== 1) for (let y = y0; y <= y0 + 2; y++) blocks[base + y] = B.BEAM; } // a frame: two posts and a lintel
+          else if (blocks[base + y0 + 3] === B.AIR) blocks[base + y0 + 3] = B.PLANKS; // boards over a hole in the roof
+          if (um === 1) { blocks[base + y0] = B.RAIL; if (frame && U.mod(v, 8) === 0) blocks[base + y0 + 2] = B.LAMP; else if (!frame && U.hash3(u, y0, v, s + 811) < 0.012) blocks[base + y0] = B.CART; }
+          if (blocks[base + y0 - 1] === B.AIR) blocks[base + y0 - 1] = B.PLANKS; // a plank floor where a cave undercuts the gallery
+        };
+        gal(x + 1, z, 28); gal(z - 47, x, 21);
+      }
       if (this.preset.water && h < SEA) for (let y = h + 1; y <= SEA; y++) blocks[base + y] = B.WATER;
       if (this.preset.brine && h < this.preset.brineLevel) for (let y = h + 1; y <= this.preset.brineLevel; y++) blocks[base + y] = B.BRINE;
       if (this.preset.ringfall && h >= this.preset.brineLevel && h < WH - 2 && biome !== BIOME.MESA && U.hash3(x, 13, z, s + 931) < 0.0012) blocks[base + h + 1] = B.RINGSHARD;

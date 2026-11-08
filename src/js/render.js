@@ -821,6 +821,24 @@ const R = (() => {
             for (const sgn of [-1, 1]) op.plate([[ax - fz * sgn * 0.1, y + Hh - 0.1, az + fx * sgn * 0.1], [ax - fz * sgn * 0.75 + fx * 0.2, y + Hh + 0.55, az + fx * sgn * 0.75 + fz * 0.2], [ax - fz * sgn * 0.35 + fx * 0.3, y + Hh - 0.45, az + fx * sgn * 0.35 + fz * 0.3]], 0.02, hide, { sky: sk, edge: [0.6, 0.48, 0.32] }); }
           continue;
         }
+        if (id === B.RAIL) { // mine rails: two iron rails on plank sleepers, running the way the line goes
+          const sk = skyAt(lx, y + 1, lz); const iron = [0.42, 0.42, 0.46], sleeper = [0.4, 0.28, 0.14]; const gy = gnd(lx, y, lz);
+          const alongX = get(lx + 1, y, lz) === B.RAIL || get(lx - 1, y, lz) === B.RAIL || get(lx + 1, y, lz) === B.CART || get(lx - 1, y, lz) === B.CART;
+          for (const t of [0.2, 0.55, 0.9]) { if (alongX) op.box(lx + t - 0.08, gy, lz + 0.1, lx + t + 0.08, gy + 0.07, lz + 0.9, sleeper, sk, false); else op.box(lx + 0.1, gy, lz + t - 0.08, lx + 0.9, gy + 0.07, lz + t + 0.08, sleeper, sk, false); }
+          for (const r of [0.3, 0.7]) { if (alongX) op.box(lx, gy + 0.06, lz + r - 0.035, lx + 1, gy + 0.15, lz + r + 0.035, iron, sk, false); else op.box(lx + r - 0.035, gy + 0.06, lz, lx + r + 0.035, gy + 0.15, lz + 1, iron, sk, false); }
+          continue;
+        }
+        if (id === B.CART) { // a mine cart left on the rails: an iron tub on four wheels, a few rocks in it
+          const sk = skyAt(lx, y + 1, lz); const iron = [0.36, 0.37, 0.42], dark = [0.2, 0.2, 0.24]; const gy = gnd(lx, y, lz);
+          const alongX = get(lx + 1, y, lz) === B.RAIL || get(lx - 1, y, lz) === B.RAIL; const cx = lx + 0.5, cz = lz + 0.5;
+          op.push(); if (!alongX) op.rotate(0, Math.PI / 2, 0, [cx, gy, cz]);
+          op.blob(cx - 0.46, gy + 0.22, cz - 0.34, cx + 0.46, gy + 0.72, cz + 0.34, 0.12, iron, { sky: sk, n: 2, tap: [0.8, 1] });
+          op.box(cx - 0.42, gy + 0.68, cz - 0.3, cx + 0.42, gy + 0.72, cz + 0.3, dark, sk, false);
+          for (const ex of [-0.28, 0.28]) for (const ez of [-0.36, 0.36]) op.tube([[cx + ex, gy + 0.14, cz + ez - 0.02 * Math.sign(ez)], [cx + ex, gy + 0.14, cz + ez + 0.04 * Math.sign(ez)]], [0.14, 0.14], dark, { sky: sk, segs: 8, cap0: 'flat', cap1: 'flat' });
+          for (let k = 0; k < 4; k++) { const hx = U.hash3(wx, y, wz, 180 + k), hz = U.hash3(wx, y, wz, 184 + k); op.blob(cx - 0.3 + hx * 0.5, gy + 0.6, cz - 0.2 + hz * 0.3, cx - 0.14 + hx * 0.5, gy + 0.82, cz - 0.04 + hz * 0.3, 0.7, [0.5, 0.5, 0.54], { sky: sk, n: 1 }); }
+          op.pop();
+          continue;
+        }
         if (id === B.FENCE) { // a rail fence: a post, and two rails to each neighbouring fence or wall
           const sk = skyAt(lx, y + 1, lz); const wood = [0.5, 0.36, 0.2], rail = [0.56, 0.42, 0.24]; const gy = gnd(lx, y, lz);
           op.box(lx + 0.4, gy - 0.1, lz + 0.4, lx + 0.6, gy + 1.05, lz + 0.6, wood, sk, false); op.blob(lx + 0.38, gy + 1.0, lz + 0.38, lx + 0.62, gy + 1.14, lz + 0.62, 0.4, wood, { sky: sk, n: 1 });
