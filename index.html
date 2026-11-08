@@ -310,6 +310,20 @@ body.desktop #joy, body.desktop #btn-jump, body.desktop #btn-sneak { display: no
 #explain .x { display: block; text-align: right; font-size: 10px; opacity: .5; margin-top: 4px; }
 #explain.hidden { display: none; }
 
+#glide-hud { position: absolute; right: 12px; top: 34%; display: flex; flex-direction: column; align-items: center; gap: 4px; font-family: var(--pix); font-size: 11px; color: #fff; text-shadow: 0 1px 2px #000; pointer-events: none; }
+#glide-hud .gc { position: relative; width: 84px; height: 84px; }
+#glide-hud svg { width: 84px; height: 84px; }
+#glide-hud .ring { fill: rgba(10,20,30,.45); stroke: rgba(255,255,255,.55); stroke-width: 2; }
+#glide-hud .tick { stroke: #ffd36a; stroke-width: 3; } #glide-hud .tick.dim { stroke: rgba(255,255,255,.4); stroke-width: 2; }
+#glide-hud .arw { fill: #8fe3ff; stroke: #0b3546; stroke-width: 1.2; }
+#glide-hud .me { fill: none; stroke: #ffd36a; stroke-width: 2.5; }
+#glide-hud #glide-arrow { transition: transform .25s linear; }
+#glide-wind { position: absolute; left: 0; right: 0; bottom: -2px; text-align: center; font-size: 10px; }
+#glide-stats { background: rgba(0,0,0,.45); padding: 3px 7px; border-radius: 8px; white-space: nowrap; }
+#glide-flare { display: none; background: #ffb040; color: #2a1600; text-shadow: none; padding: 3px 8px; border-radius: 8px; font-weight: bold; animation: flarePulse .5s infinite alternate; }
+#glide-hud.flare #glide-flare { display: block; }
+@keyframes flarePulse { from { opacity: .65; } to { opacity: 1; } }
+
 </style>
 </head>
 <body>
@@ -342,6 +356,7 @@ body.desktop #joy, body.desktop #btn-jump, body.desktop #btn-sneak { display: no
   <div id="quest-hint"></div>
   <div id="look"></div>
   <div id="mine-bar" class="hidden"><div id="mine-fill"></div></div>
+  <div id="glide-hud" class="hidden"><div class="gc"><svg viewBox="-40 -40 80 80"><circle r="36" class="ring"/><path d="M0 -33 L0 -27" class="tick"/><path d="M33 0 L27 0 M-33 0 L-27 0 M0 33 L0 27" class="tick dim"/><g id="glide-arrow"><path d="M0 -22 L9 -6 L3 -8 L3 20 L-3 20 L-3 -8 L-9 -6 Z" class="arw"/></g><path d="M-6 6 L0 -4 L6 6" class="me"/></svg><b id="glide-wind">wind</b></div><div id="glide-stats"></div><div id="glide-flare">PULL BACK · FLARE</div></div>
   <div id="breath" class="hidden"><span>AIR</span><div class="track"><div id="breath-fill"></div></div></div>
   <div id="tutorial" class="hidden"></div>
   <div id="dialogue" class="hidden"></div>
@@ -2182,7 +2197,7 @@ const ITEMS = {
   snare: { name: 'Snare Cube', col: '#7fe0c0', snare: 0.40, desc: 'Unfolds into a crystal cage. Weaken a Kin first.' },
   snare2: { name: 'Void Snare', col: '#c07fe0', snare: 0.66, desc: 'A stronger snare laced with void crystal.' },
   bulb: { name: 'Breathing Bulb', col: '#9fd8ff', gear: true, desc: 'Breathe underwater for two minutes.' },
-  glider: { name: 'Glider', col: '#f0d090', gear: true, desc: 'Hold Jump while falling to glide.' },
+  glider: { name: 'Glider', col: '#f0d090', gear: true, desc: 'Hold ▲ while falling to glide. Stick sideways turns, forward dives, back brakes. Pull back just before the ground to flare and land soft.' },
   lavasuit: { name: 'Lava Suit', col: '#ff9050', gear: true, desc: 'Swim in lava. Without it, lava kills on touch. Needed for the Core.' },
   frostcloak: { name: 'Frost Cloak', col: '#bfe3ff', gear: true, desc: 'Keeps the cold out. Without it, snowfields and mountain tops slow you, then freeze you.' },
   spacesuit: { name: 'Space Suit', col: '#e8f0ff', gear: true, desc: 'Air and warmth beyond the sky. Without it the Moon freezes you in moments.' },
@@ -2276,6 +2291,7 @@ class Player {
     else if (mountShape === 'water' && this.inWater) speed = 6.5 * ride;
     else if (mountShape === 'air' && !inFluid) speed *= 1.3;
     // gliding
+    const wasGliding = this.gliding && !this.wingsOn;
     this.gliding = false;
     const birdFly = mountShape === 'air' && (this.mount.level >= 20 || this.mount.tamed);
     // Halo Wings: a jump in the air opens them, and then you fly like a bird mount
@@ -2288,12 +2304,25 @@ class Player {
       this.vy += (ty - this.vy) * Math.min(1, 6 * dt);
       const accel = 8; this.vx += (mx * speed - this.vx) * Math.min(1, accel * dt); this.vz += (mz * speed - this.vz) * Math.min(1, accel * dt);
     }
-    else if (!inFluid && !this.onGround && this.vy < -1 && (input.jump || mountShape === 'air') && (this.has('glider') || mountShape === 'air')) {
+    else if (!inFluid && !this.onGround && (this.vy < -1 || wasGliding) && (input.jump || mountShape === 'air') && (this.has('glider') || mountShape === 'air')) {
+      // the glider: the stick steers left and right, forward dives for speed, back brakes and flares; the wind carries you
       this.gliding = true; this.fallStart = null;
-      this.vy = Math.max(this.vy, -1.7);
-      const g = 7.5 * this.gearMul('glider');
-      mx = fwd[0] * g + right[0] * input.mx * 3; mz = fwd[1] * g + right[1] * input.mx * 3;
-      this.vx = mx; this.vz = mz;
+      const gm = mountShape === 'air' ? 1 : this.gearMul('glider');
+      if (!wasGliding) { this.glideS = Math.max(5.5, Math.min(9, Math.hypot(this.vx, this.vz))); this.vy = Math.max(this.vy, -3); }
+      this.yaw -= input.mx * 1.3 * dt;
+      const fy = Math.sin(this.yaw), fc = Math.cos(this.yaw);
+      const dive = Math.max(0, input.mz), brake = Math.max(0, -input.mz);
+      const cruise = 7.5 * gm, top = 14.5 * gm;
+      const target = dive > 0.05 ? cruise + (top - cruise) * dive : brake > 0.05 ? cruise + (2.4 - cruise) * brake : cruise;
+      const rate = dive > 0.05 ? 6.5 : brake > 0.05 ? 7.5 : 2.2;
+      let sp = this.glideS || cruise; sp += U.clamp(target - sp, -rate * dt, rate * dt); this.glideS = sp;
+      let sink = 1.55 / Math.sqrt(gm) + 4.2 * dive;
+      sink -= brake * U.clamp((sp - 4) / 5, 0, 1) * 3.3; // the flare: speed traded for lift, only while you have speed to trade
+      if (sp < 3.8) sink += (3.8 - sp) * 2.4; // too slow: she stalls and drops
+      this.vy += (-sink - this.vy) * Math.min(1, 4 * dt);
+      const wd = typeof Weather !== 'undefined' && Weather.wind ? Weather.wind(this.x, this.y, this.z) : { x: 0, z: 0 };
+      this.vx = -fy * sp + wd.x; this.vz = -fc * sp + wd.z;
+      this.glideImpact = { s: sp, vy: this.vy };
     } else {
       const accel = this.onGround || inFluid ? 14 : 5;
       this.vx += (mx * speed - this.vx) * Math.min(1, accel * dt);
@@ -2333,6 +2362,13 @@ class Player {
     const wasFalling = this.vy < 0;
     const hitY = this.moveAxis(1, this.vy * dt);
     if (hitY) {
+      if (wasFalling && this.gliding && !mountShape && this.glideImpact) {
+        const im = this.glideImpact; const hard = im.s > 10.5 && im.vy < -2.6, stall = im.s < 3.6 && im.vy < -4.4;
+        if (hard) { this.damage(Math.max(1, Math.floor((im.s - 9) / 1.4)), 'fall'); this.landMsg = 'hard'; }
+        else if (stall) { this.damage(1, 'fall'); this.landMsg = 'stall'; }
+        else this.landMsg = im.s < 6.5 ? 'soft' : 'ok';
+        this.glideImpact = null;
+      }
       if (wasFalling) {
         this.onGround = true;
         if (this.fallStart != null && !inFluid) {
@@ -3367,6 +3403,7 @@ const Weather = (() => {
     state.next = k === 'clear' ? 200 + rng() * 240 : 120 + rng() * 180;
   }
   function update(dt) {
+    windT += dt;
     if (G.world && !G.world.preset.weather) { state.kind = 'clear'; state.target = 0; state.intensity = 0; state.flash = 0; return; }
     state.next -= dt;
     if (state.next <= 0) pickNext();
@@ -3378,6 +3415,20 @@ const Weather = (() => {
     const w = ELEM_MUL[state.kind]; if (w && w[elem] && state.intensity > 0.3) m *= 1 + (w[elem] - 1) * state.intensity;
     if (isNight && NIGHT_MUL[elem]) m *= NIGHT_MUL[elem];
     return m;
+  }
+  // wind: a slow-turning direction and a strength that rises with wind and storm weather, with gusts, and more of it up high
+  let windT = 0;
+  function wind(x, y, z) {
+    const t = windT;
+    const ang = Math.sin(t * 0.0021) * 2.2 + Math.sin(t * 0.00053 + 1.7) * 1.6 + (G.world ? G.world.seed % 7 : 0);
+    const k = state.intensity > 0.2 ? state.kind : 'clear';
+    let str = 0.7 + 0.5 * Math.sin(t * 0.0031 + 0.4);
+    if (k === 'wind') str += 2.6 * state.intensity; else if (k === 'storm') str += 3.4 * state.intensity; else if (k === 'rain') str += 0.8 * state.intensity;
+    str *= 1 + 0.25 * Math.sin(performance.now() / 1000 * 0.9) * Math.sin(performance.now() / 1000 * 0.37);
+    if (y > 64) str *= 1 + Math.min(0.6, (y - 64) / 40);
+    if (G.world && !G.world.preset.weather) str *= 0.3;
+    str = Math.max(0, str);
+    return { x: Math.cos(ang) * str, z: Math.sin(ang) * str, str, ang };
   }
   function label() { return state.intensity > 0.4 ? state.kind : 'clear'; }
   // rain streaks as line segments around the camera, only where the sky is open
@@ -3397,7 +3448,7 @@ const Weather = (() => {
   }
   function serialize() { return { kind: state.kind, next: state.next, intensity: state.intensity, target: state.target }; }
   function load(d) { if (!d) return; Object.assign(state, d); }
-  return { init, update, elemMul, label, rainLines, serialize, load, state, KINDS };
+  return { init, update, elemMul, label, rainLines, serialize, load, state, KINDS, wind };
 })();
 
 </script>
@@ -6713,8 +6764,8 @@ const Campaign = (() => {
       return say(lines, () => { c[mine] = true; G.player.add(mine, 1); if (c.mapA && c.mapB) setTimeout(() => { G.player.take('mapA', 1); G.player.take('mapB', 1); G.explain('The Kindex reads the map', 'The two halves fit. The lines are Kin trails, and your Kindex knows them: they all lead to one jungle on the far side of the world.'); G.giveLostMap('the two halves'); c.zoo = 3; }, 1200); });
     }
     if (n.job === 'hermit') {
-      if (!c.glider) return say(['Up there, on the peak, a sky Kin keeps her nest on a pillar of rock. One egg every spring. Nobody has climbed the pillar: you cannot. You fall to it.', 'Take my glider. Climb the peak, jump, hold ▲ to glide, and come down on that pillar top. Walk the egg home and it will hatch into something that flies.', 'And no ladders, no digging. She knows.'], () => { c.glider = 1; give('glider'); });
-      if (c.glider === 1) return say(['The pillar, from the peak. Jump, hold ▲, steer. Lean into it.']);
+      if (!c.glider) return say(['Up there, on the peak, a sky Kin keeps her nest on a pillar of rock. One egg every spring. Nobody has climbed the pillar: you cannot. You fall to it.', 'Take my glider. Climb the peak, jump, hold ▲ to glide, and come down on that pillar top. Walk the egg home and it will hatch into something that flies.', 'Listen, because the pillar is small. Read the wind first: the little compass shows where it blows. Start upwind of the pillar and let it carry you in.', 'The stick: sideways to turn, forward to dive and gather speed, back to brake. Hold back too long and she stalls and drops like a stone.', 'Coming down, keep your speed until the last moment, then pull back. That is the flare: the speed turns into lift and you touch down like a leaf. Let go of ▲ only when your feet are almost on it.', 'And no ladders, no digging. She knows.'], () => { c.glider = 1; give('glider'); });
+      if (c.glider === 1) return say(['The pillar, from the peak. Start upwind, the compass shows it. Forward to dive, back to brake, and pull back just before you touch. Let go of ▲ only when you are almost down.']);
       return say(['Walk it until it hatches. Then it will carry you, below the clouds at least. Higher than that is for ships.']);
     }
   }
@@ -7809,6 +7860,21 @@ const UI = (() => {
     el.vignette.style.background = (p.chill || 0) > 0.05 ? `radial-gradient(ellipse at center, rgba(0,0,0,0) 45%, rgba(${p.coldKind === 'space' ? '120,140,255' : '150,210,255'},${0.5 + 0.5 * p.chill}) 100%)` : '';
     renderHotbar();
     renderCompass(p);
+    renderGlide(p);
+  }
+  function renderGlide(p) {
+    const box = document.getElementById('glide-hud'); if (!box) return;
+    const on = p.gliding && !p.wingsOn && !(p.mount && (p.mount.level >= 20 || p.mount.tamed));
+    box.classList.toggle('hidden', !on); if (!on) return;
+    const w = Weather.wind(p.x, p.y, p.z); const sy = Math.sin(p.yaw), cy = Math.cos(p.yaw);
+    const f = w.x * -sy + w.z * -cy, r = w.x * cy + w.z * -sy;
+    document.getElementById('glide-arrow').setAttribute('transform', `rotate(${(Math.atan2(r, f) * 180 / Math.PI).toFixed(1)})`);
+    const rel = w.str < 0.5 ? 'calm' : f > Math.abs(r) ? 'behind you' : -f > Math.abs(r) ? 'in your face' : 'across';
+    document.getElementById('glide-wind').textContent = w.str < 0.5 ? 'calm' : (w.str > 2.6 ? 'strong · ' : w.str > 1.4 ? '' : 'light · ') + rel;
+    const gy = G.world.groundY(Math.floor(p.x), Math.floor(p.z), Math.floor(p.y)); const agl = Math.max(0, p.y - gy - 1);
+    const sp = p.glideS || 0;
+    document.getElementById('glide-stats').textContent = `speed ${sp.toFixed(0)} · ${p.vy >= 0 ? '↑' : '↓'} ${Math.round(agl)}m`;
+    box.classList.toggle('flare', agl < 4.5 && sp > 8.5 && p.vy < -1.5);
   }
   // ---------- panels ----------
   function openPanel(name, data) {
@@ -9132,7 +9198,8 @@ G.loop = function (t) {
       Wild.ensureHeart(p, this.trainerLevel, this.mythicCaught); Wild.ensureLegend(p); Wild.ensureApex(p);
       if (trig && !trig.e.cool && !Dialogue.active() && !p.flying && !(this.fightGrace > performance.now())) Battle.start(trig.e, trig.ambush);
       for (const e of Wild.list) if (e.cool > 0) e.cool -= dt;
-      Hazards.update(dt, p, false); Npcs.update(dt, p, false); Campaign.update(dt, p, false); Taming.update(dt, p); if (p.gliding) this.lastGlide = performance.now();
+      Hazards.update(dt, p, false); Npcs.update(dt, p, false); Campaign.update(dt, p, false); Taming.update(dt, p); if (p.gliding) { this.lastGlide = performance.now(); if (!this.stats.glideTold && !p.mount && !p.wingsOn) { this.stats.glideTold = true; G.explain('Gliding', 'Left stick: push sideways to bank and turn. Push forward to dive and pick up speed, pull back to brake. The arrow on the glide compass is the wind: with it behind you, you go far; into it, you barely move over the ground. Coming in to land, pull back a moment before the ground to flare and you touch down soft. Too fast and too steep, and it hurts. Let go of ▲ to drop, best done low.'); } }
+      if (p.landMsg) { if (p.landMsg === 'hard') UI.toast('Hard landing. Pull back on the stick just before the ground to flare.', 'bad'); else if (p.landMsg === 'stall') UI.toast('You stalled her and dropped. Brake less: keep a little speed until the flare.', 'bad'); else if (p.landMsg === 'soft' && !this.stats.flareTold) { this.stats.flareTold = true; UI.toast('A clean flare. Feather-soft.', 'good'); } p.landMsg = null; }
       // passive healing
       for (const k of this.kin) { const mx = KIN.stats(k).hp; if (k.hp > 0 && k.hp < mx) k.hp = Math.min(mx, k.hp + mx * 0.012 * healMul * dt); }
       // layer stats
