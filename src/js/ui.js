@@ -155,6 +155,7 @@ const UI = (() => {
     else if (name === 'chest') renderChest(data);
     else if (name === 'destination') renderDestination();
     else if (name === 'incubator') renderIncubator();
+    else if (name === 'draught') renderDraught();
     else if (name === 'skins') renderSkins();
   }
   // ---------- skins: how you look from outside ----------
@@ -165,6 +166,13 @@ const UI = (() => {
     el['panel-body'].querySelectorAll('[data-skin-cv]').forEach(cv => Avatar.portrait(cv, Avatar.SKINS.find(s => s.id === cv.dataset.skinCv), 96));
     el['panel-body'].querySelectorAll('[data-skin]').forEach(b => b.addEventListener('click', () => { G.skin = b.dataset.skin; sfx('place'); renderSkins(); }));
     q('sk-close').addEventListener('click', closePanel);
+  }
+  // ---------- Sage's Draught: swap the lead Kin's fourth move for any technique ----------
+  function renderDraught() {
+    setTitle('Sage\'s Draught'); const k = G.kin[G.activeIdx]; if (!k) { closePanel(); return; }
+    el['panel-body'].innerHTML = `<p class="note">${KIN.name(k)} drinks, forgets ${k.tech ? k.tech : 'nothing yet'}, and learns the one you pick. Any element. The draught is gone once it is drunk.</p>` + Object.values(KIN.TECH).map(t => `<div class="shop-row"><div class="rinfo"><b>${t.name}</b> <span class="small">${t.elem} · ${t.kind === 'util' ? t.desc : t.kind + ' · power ' + t.power + ' · ' + t.desc}</span></div><button class="btn" data-tech="${t.name}" ${k.tech === t.name ? 'disabled' : ''}>Learn</button></div>`).join('') + `<div class="row"><button class="btn ghost" id="dr-close">Not now</button></div>`;
+    el['panel-body'].querySelectorAll('[data-tech]').forEach(b => b.addEventListener('click', () => { if (!G.player.has('draught')) return closePanel(); G.player.take('draught', 1); k.tech = b.dataset.tech; sfx('quest'); toast(`${KIN.name(k)} learned ${k.tech}.`, 'good'); renderHotbar(); closePanel(); }));
+    q('dr-close').addEventListener('click', closePanel);
   }
   // ---------- the incubator: three eggs hatch on play time ----------
   function renderIncubator() {
@@ -634,7 +642,7 @@ const UI = (() => {
     if (L.wall.founded) wall = `<p class="small">Wall: ${L.wall.name}, built by you (+${L.wall.bonus.toFixed(0)} defence). Stone, Iron Wall or Voidsteel Wall blocks around the edge raise it.</p>`;
     else if (v.type !== 'land') wall = `<p class="small">${L.wall.name} keeps most raiders out (+${L.wall.bonus.toFixed(0)} defence).</p>`;
     else if (L.dome) wall = `<p class="small">Wall: ${L.wall.name}, under a <b>Moon Dome</b>. Nothing gets in: no raid, no tyrant.</p>`;
-    else wall = `<p class="small">Wall: ${L.wall.name} (+${L.wall.bonus.toFixed(0)} defence)${L.wall.holes ? `, <span class="no">${L.wall.holes} holes</span>` : ''}.${L.canDome ? ` A Moon Dome kit (crafted from the Moon's selenite and tycho) makes it impenetrable.` : ''}</p>${L.canDome && L.hasDomeKit ? `<div class="row"><button class="btn" data-act="dome">Raise the Moon Dome</button></div>` : ''}<div class="row">${L.wall.holes ? `<button class="btn" data-act="repair">Repair · ◆ ${L.wall.repair}</button>` : ''}${L.wall.next ? `<button class="btn" data-act="wall" ${L.lvl >= L.wall.next.level && L.canPay(L.wall.next.cost) ? '' : 'disabled'}>${L.wall.next.name} wall · ${L.costText(L.wall.next.cost)}${L.lvl < L.wall.next.level ? ' · level ' + L.wall.next.level : ''}</button>` : ''}</div>`;
+    else wall = (L.st.income != null && v.R ? `<p class="small">Repair bills: ${(() => { const pr = Math.min(4, (L.st.wall || 0) + Math.min(2, (L.st.guards || []).length)); return pr >= 4 ? '<span class="ok">none, the walls and guards see to it</span>' : `about ${Math.round((1 - pr / 4) * 100)}% of the old cost. Each wall upgrade and each guard (up to two) takes a quarter off; iron walls and two guards and there are none.`; })()}</p>` : '') + `<p class="small">Wall: ${L.wall.name} (+${L.wall.bonus.toFixed(0)} defence)${L.wall.holes ? `, <span class="no">${L.wall.holes} holes</span>` : ''}.${L.canDome ? ` A Moon Dome kit (crafted from the Moon's selenite and tycho) makes it impenetrable.` : ''}</p>${L.canDome && L.hasDomeKit ? `<div class="row"><button class="btn" data-act="dome">Raise the Moon Dome</button></div>` : ''}<div class="row">${L.wall.holes ? `<button class="btn" data-act="repair">Repair · ◆ ${L.wall.repair}</button>` : ''}${L.wall.next ? `<button class="btn" data-act="wall" ${L.lvl >= L.wall.next.level && L.canPay(L.wall.next.cost) ? '' : 'disabled'}>${L.wall.next.name} wall · ${L.costText(L.wall.next.cost)}${L.lvl < L.wall.next.level ? ' · level ' + L.wall.next.level : ''}</button>` : ''}</div>`;
     let build = '';
     if (L.canExpand) build = `<h4>Grow</h4><p class="small">Push the walls out to make room for more shops. Levels the ground out to the new wall.</p><button class="btn" data-act="expand" ${L.lvl >= L.EXPAND.level && L.canPay(L.EXPAND.cost) ? '' : 'disabled'}>Expand · ${L.costText(L.EXPAND.cost)}${L.lvl < L.EXPAND.level ? ' · level ' + L.EXPAND.level : ''}</button>`;
     else if (L.canBuild) build = `<h4>Build · ${L.slotsLeft} sites left</h4><p class="small">Every shop adds ◆ 5 a day. A second bakery is still a bakery.</p>` + Object.keys(L.SHOP_BUILD).map(k => { const d = L.SHOP_BUILD[k]; const ok = L.slotsLeft > 0 && (!d.level || L.lvl >= d.level) && L.canPay(d.cost); return `<button class="btn ghost" data-build="${k}" ${ok ? '' : 'disabled'}>${d.name} · ${L.costText(d.cost)}${d.level && L.lvl < d.level ? ' · level ' + d.level : ''}</button>`; }).join(' ');

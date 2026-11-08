@@ -71,6 +71,17 @@ What he wants is a proper, good-looking Indian people, drawn with care: camps of
 
 - **Story order** (`quests.js`, three parallel arcs; `AFTER` and `NEEDS_ITEM` gate across them). Main: village, timber, foreman, snare, catch, ember, torch, mines, iron pick, party, fuse, fisher, diver, ranch, frost, glider, void, lava suit, core, job, lab, Highmere, then Moon and Halo after the ship. Kinmaster: kinmaster (after glider), the Twelve Holds, Stormspire (after Highmere), the Citadel, Finch, the ship. Old Ones: Lost World, Abyssaurus, the Tyrant, Legend (after the ship), the Heart (after Legend and the Halo Wings), Mantlewyrm.
 
+- **Fourth moves.** The Sanctuary teaches a Kin its element's technique (the fourth move). Sage's Draught, which can only be won (quests: Fusion, Hale's Ranch, the Splicer's Lab, Stormspire, the Tyrant; Brother Halloway on his cloud), swaps the lead Kin's fourth move for any technique from any element (`ui.js` `renderDraught`).
+- **Town defences.** The random wall-repair bills shrink with defences: each wall upgrade and each stationed guard (up to two) takes a quarter off; iron walls and two guards and there are no bills. In preset towns a wall upgrade does not stamp a new ring (their walls are part of `layout()`), so please show the upgrade on the town's own walls: stone facing, then iron bands and a gatehouse.
+
+## Still to do on Earth, and best done inside your town redesign
+
+These two touch `village.js` `layout()`, which is exactly what you are rebuilding, so they belong in your pass rather than being bolted on first:
+1. **City districts.** The four cities should have proper quarters: a market quarter, a craft quarter (armoury, armourer, enchanter, tailor), a noble quarter up by the castle, and a harbour or river quarter where it fits. Shops go in their quarter, not just round the plaza.
+2. **Sea towns.** They still use the old layout (`type: 'sea'`). Give them the new treatment: piers and boardwalks on stilts, houses over the water, the pier plots (`seaPlot`, `stampPier`) you can buy, no stone building on the water.
+
+The Moon and Halo are parked for now: Earth only.
+
 ## Systems you must not break
 
 - Quest arcs (`quests.js`): The Journey, The Dark Arc, The Old Ones, run in parallel with gates in `AFTER`.

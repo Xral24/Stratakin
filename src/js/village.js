@@ -74,7 +74,7 @@ const Village = (() => {
     armourer: { title: 'Armourer', keeper: 'Hilde', greet: 'Helms, plate, shields. Stand still, I need your size.', stock: [] },
     alchemist: { title: 'Alchemist', keeper: 'Ottoline', greet: 'Tonics, baits, and arrows that do more than stick in things.', stock: [{ item: 'tonic_heal', price: 14 }, { item: 'tonic_revive', price: 28 }, { item: 'tonic_vigor', price: 45 }, { item: 'tonic_might', price: 45 }, { item: 'tonic_swift', price: 45 }, { item: 'bait_berry', price: 10 }, { item: 'bait_glow', price: 25 }] },
     restaurant: { title: 'Restaurant', keeper: 'Chef Anselm', greet: 'Sit, eat. A proper meal stays with you: you will feel it for the next half hour.', stock: [{ service: 'meal', buff: 'hearts', amt: 2, mins: 30, name: 'Hearty Stew: two extra hearts for 30 minutes', price: 40 }, { service: 'meal', buff: 'mine', amt: 2, mins: 30, name: 'Miner\'s Breakfast: dig twice as fast for 30 minutes', price: 35 }, { service: 'meal', buff: 'speed', amt: 1.25, mins: 20, name: 'Swift Salad: quicker on your feet for 20 minutes', price: 30 }, { service: 'meal', buff: 'breath', amt: 2, mins: 30, name: 'Diver\'s Chowder: hold your breath twice as long for 30 minutes', price: 30 }] },
-    sanctuary: { title: 'Kin Sanctuary', keeper: 'Sister Imelda', greet: 'Bring me your lead Kin. Here they learn what their element can really do.', stock: [{ service: 'teach', name: 'Teach your lead Kin its element\'s technique', price: 0 }, { service: 'calm', name: 'A day of rest: your whole party healed and calmed', price: 25 }] },
+    sanctuary: { title: 'Kin Sanctuary', keeper: 'Sister Imelda', greet: 'Bring me your lead Kin. Here they learn what their element can really do.', stock: [{ service: 'teach', name: 'Teach your lead Kin a fourth move: its element\'s technique', price: 0 }, { service: 'calm', name: 'A day of rest: your whole party healed and calmed', price: 25 }] },
     stables: { title: 'Riding School', keeper: 'Wrangler Tess', greet: 'A Kin that trusts you runs faster under you. We can speed that up.', stock: [{ service: 'trust', name: 'A riding lesson: your lead Kin\'s trust goes up a good way', price: 120 }, { item: 'berry', price: 3, n: 6 }] },
     aerie: { title: 'Flying School', keeper: 'Captain Merrow', greet: 'Gliders, flight snares, and a lesson in reading the wind. And no, a glider will not get you to Highmere. Nothing gets you up there but wings.', stock: [{ service: 'tune', name: 'Tune your glider: it flies further and faster (once)', price: 400 }, { item: 'snare_sky', price: 60, n: 2 }, { item: 'feather', price: 12, n: 3 }] },
     tailor: { title: 'Tailor', keeper: 'Madame Orla', greet: 'New clothes, new you. Cut to measure, worn out of here.', stock: [{ service: 'skin', skin: 'noble', name: 'Noble: velvet and gold thread', price: 600 }, { service: 'skin', skin: 'knight', name: 'Knight: polished plate and a plumed helm', price: 900 }, { service: 'skin', skin: 'corsair', name: 'Corsair: sea coat and a red sash', price: 700 }, { service: 'skin', skin: 'sage', name: 'Sage: robes the colour of dusk', price: 800 }, { service: 'skin', skin: 'duelist', name: 'Duelist: black and silver', price: 1000 }, { service: 'skin', skin: 'royal', name: 'Royal: for those who have freed a kingdom', price: 5000 }] },
@@ -1440,11 +1440,12 @@ const Village = (() => {
       if (st.upkeepIn == null) st.upkeepIn = 2 + Math.floor(Math.random() * 3);
       if (--st.upkeepIn <= 0) {
         st.upkeepIn = 2 + Math.floor(Math.random() * 3);
-        const cut = Math.max(1, Math.round(st.income * (0.45 + Math.random() * 0.45)));
+        const prot = Math.min(4, (st.wall || 0) + Math.min(2, (st.guards || []).length)); // stone wall 1, iron wall 2, each guard 1 (two count)
+        const cut = prot >= 4 ? 0 : Math.max(1, Math.round(st.income * (0.45 + Math.random() * 0.45) * (1 - prot / 4)));
         const what = ['Something tried the east gate in the night', 'A pack of wild Kin went at the north wall', 'Raiders hit the stockade before dawn', 'A storm and a stray Kin brought down a stretch of fence', 'Bandits tested the walls and ran'][Math.floor(Math.random() * 5)];
         st.bank = Math.max(0, st.bank - cut); st.upkeepTotal = (st.upkeepTotal || 0) + cut;
-        st.report = { night, text: `${what}. The walls held; the repairs cost ◆ ${cut}, taken from the town's share.` };
-        out.lines.push(`${v.name}: ${what.toLowerCase()}. Repairs ◆ ${cut}.`);
+        st.report = { night, text: cut ? `${what}. The walls held; the repairs cost ◆ ${cut}, taken from the town's share.${prot ? ' Better walls and more guards would have saved some of that.' : ' Stone walls and a guard or two would cut this.'}` : `${what}. Iron walls and two guards: not a scratch. No repairs.` };
+        out.lines.push(cut ? `${v.name}: ${what.toLowerCase()}. Repairs ◆ ${cut}.` : `${v.name}: ${what.toLowerCase()}. No damage.`);
       } else st.report = { night, text: 'A quiet night.' };
       for (const n of v.npcs) if (n.role !== 'voodoo') n.hidden = false;
       // (towns used to fall back to their tyrant every seventh night; they do not any more)
@@ -1469,7 +1470,8 @@ const Village = (() => {
     if (!next || v.type !== 'land' || v.founded) return 'No wall to raise here.';
     if (levelOf(st) < next.level) return `${v.name} must reach level ${next.level} first.`;
     if (!canPay(next.cost)) return 'You cannot pay for that yet: ' + costText(next.cost) + '.';
-    pay(next.cost); clearWall(v, st); st.wall++; st.holeCols = []; stampWall(v, st);
+    pay(next.cost); if (v.R) { st.wall++; st.holeCols = []; return null; } // a preset town's walls are part of its layout: the upgrade is the masonry and the gatehouse, not a new ring
+    clearWall(v, st); st.wall++; st.holeCols = []; stampWall(v, st);
     return null;
   }
   function repairWall(v) {

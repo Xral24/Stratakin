@@ -90,6 +90,7 @@ const ITEMS = {
   pick_iron: { name: 'Iron Pick', col: '#d8d0c0', gear: true, keep: true, desc: 'From Foreman Garrick. Breaks everything on Earth, void crystal, gold and diamond included.' },
   berry: { name: 'Berries', col: '#c8334a', desc: 'Sweet and red. Tonics come from them, and bushes grow back.' },
   glowworm: { name: 'Glowworm', col: '#d8ff6a', elem: 'Light', desc: 'A fat little worm that glows in the grass at night. One worm and one wood make four torches.' },
+  draught: { name: 'Sage\'s Draught', col: '#b07aff', use: 'tech', keep: false, desc: 'Cannot be made, only won. Give it to your lead Kin and it forgets its fourth move and learns any technique you choose, from any element.' },
   bread: { name: 'Bread', col: '#d9a65b', use: 'player', desc: 'Restores all your health.' },
   smoothie: { name: 'Smoothie', col: '#ff8fb8', use: 'party', desc: 'Every Kin recovers half its health.' },
   tonic_heal: { name: 'Heal Tonic', col: '#ff5f7a', use: 'kin', desc: 'One Kin recovers 60% of its health. Does not wake a fainted Kin.' },
