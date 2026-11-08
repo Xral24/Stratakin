@@ -2666,10 +2666,20 @@ const KIN = (() => {
     let eff = 0; for (let i = 0; i < 9; i++) eff += defender.sp.elem[i] * row[i];
     return eff;
   }
+  const CAP_BODY = { earth: 40, moon: 80, halo: 120 }, CAP_RAR = [0, 15, 30, 45, 60], CAP_HAB = { Core: 20, Sky: 15, Water: 5, Mines: 10 };
+  function capOf(sp) {
+    if (sp.cap) return sp.cap;
+    if (sp.recipe) { const b = CAP_BODY[sp.recipe.body] || 40; const i = sp.recipe.i; return Math.min(MAX_LEVEL, b + (i >= 27 ? 120 : i >= 20 ? 100 : i >= 10 ? 80 : 60)); }
+    if (sp.legend || sp.apex || sp.mythic) return MAX_LEVEL;
+    if (!sp.home) return sp.noFuse ? 120 : 100; // starters and the odd ones: a long way to go
+    const h = sp.home; return Math.min(MAX_LEVEL, (CAP_BODY[h.body] || 40) + CAP_RAR[sp.rarity || 0] + (CAP_HAB[h.layer] || 0) + (h.biome === 'Lost World' ? 40 : 0) + ((sp.seed >>> 3) % 4) * 5);
+  }
   function gainXp(k, amount) {
     const events = [];
     k.xp += amount;
-    while (k.xp >= xpToNext(k.level) && k.level < MAX_LEVEL) {
+    const cap = Math.min(MAX_LEVEL, capOf(k.sp));
+    if (k.level >= cap) { if (!k.peaked) { k.peaked = true; events.push({ type: 'peak', level: k.level }); } k.xp = 0; return events; }
+    while (k.xp >= xpToNext(k.level) && k.level < cap) {
       k.xp -= xpToNext(k.level); k.level++;
       const before = stats(k).hp;
       events.push({ type: 'level', level: k.level });
@@ -2678,6 +2688,7 @@ const KIN = (() => {
       }
       const after = stats(k).hp; k.hp = Math.min(after, k.hp + (after - before));
     }
+    if (k.level >= cap) { k.xp = 0; if (!k.peaked) { k.peaked = true; events.push({ type: 'peak', level: k.level }); } }
     return events;
   }
   // ---- fusion ----
@@ -3008,7 +3019,7 @@ const KIN = (() => {
   function serialize(k) { return { id: k.id, sp: k.sp, level: k.level, xp: k.xp, iv: k.iv, stage: k.stage, hp: k.hp, nick: k.nick, equip: k.equip || null, tech: k.tech || null }; }
   function deserialize(d) { return Object.assign({ status: null }, d); }
 
-  return { E, EI, CHART, STAT_KEYS, STAT_NAMES, growth, xpToNext, dominant, species, speciesForContext, dex, bySeed, HABITATS, recipes, findRecipe, fuseRecipe, mythicSpecies, legendSpecies, apexSpecies, wardenSpecies, MAX_LEVEL, TECH, techFor, techByName, starters, create, stats, name, moves, effectiveness, gainXp, fuse, fusionLevel, TRAITS, RARITY, roster, buildUniverse, decorate, makeStatue, statueModel, shardsFor, model, buildMesh, meshKey, portrait, serialize, deserialize, UTIL_DESC };
+  return { E, EI, CHART, STAT_KEYS, STAT_NAMES, growth, xpToNext, dominant, species, speciesForContext, dex, bySeed, HABITATS, capOf, recipes, findRecipe, fuseRecipe, mythicSpecies, legendSpecies, apexSpecies, wardenSpecies, MAX_LEVEL, TECH, techFor, techByName, starters, create, stats, name, moves, effectiveness, gainXp, fuse, fusionLevel, TRAITS, RARITY, roster, buildUniverse, decorate, makeStatue, statueModel, shardsFor, model, buildMesh, meshKey, portrait, serialize, deserialize, UTIL_DESC };
 })();
 
 </script>
@@ -3146,7 +3157,7 @@ const Wild = (() => {
     const sp = list[idx];
     let level = zl + KIN.RARITY[sp.rarity].lvl + (elite ? 1 + Math.floor(Math.random() * 3) : -1 + Math.floor(Math.random() * 3));
     if (off && !elite) level += 1;
-    level = Math.max(1, level);
+    level = Math.max(1, Math.min(level, KIN.capOf(sp)));
     return { sp, level, elite: elite || sp.rarity >= 2, ctx };
   }
   function standable(x, y, z, aquatic) {
@@ -7487,7 +7498,7 @@ const UI = (() => {
   function drawPortraits(root) { root.querySelectorAll('canvas.portrait').forEach(cv => { const k = G.kin.find(x => x.id == cv.dataset.kid) || (fusionState && fusionState.preview && fusionState.preview.kin && fusionState.preview.kin.id == cv.dataset.kid ? fusionState.preview.kin : null); if (k) KIN.portrait(cv, k.sp, k.stage, +cv.dataset.size); }); }
   function kinCard(k, extra = '') {
     const st = KIN.stats(k); const frac = k.hp / st.hp;
-    return `<div class="kcard" data-kid="${k.id}">${portraitHtml(k)}<div class="kinfo"><div class="krow"><b>${KIN.name(k)}</b>${(k.sp.rarity || 0) > 0 ? `<span class="rar r${k.sp.rarity}">${KIN.RARITY[k.sp.rarity].name}</span>` : ''}${k === G.activeKin() ? '<span class="tag">active</span>' : ''}${k.sp.mythic ? '<span class="tag myth">mythic</span>' : ''}${k.hp <= 0 ? '<span class="tag down">fainted</span>' : ''}<span class="lv">Lv ${k.level}</span></div><div class="hpbar"><div class="hpfill" style="width:${frac * 100}%;background:${frac > 0.5 ? '#5ad66a' : frac > 0.22 ? '#f0c040' : '#f05040'}"></div></div><div class="krow small">${KIN.dominant(k.sp.elem, 2).map(e => `<span class="badge" style="background:${ELEM_COLOR[e]}">${e}</span>`).join('')}<span>${Math.round(k.hp)}/${st.hp}</span>${(k.sp.gen || 0) > 0 ? `<span class="gen">fusion g${k.sp.gen}</span>` : ''}</div>${extra}</div></div>`;
+    return `<div class="kcard" data-kid="${k.id}">${portraitHtml(k)}<div class="kinfo"><div class="krow"><b>${KIN.name(k)}</b>${(k.sp.rarity || 0) > 0 ? `<span class="rar r${k.sp.rarity}">${KIN.RARITY[k.sp.rarity].name}</span>` : ''}${k === G.activeKin() ? '<span class="tag">active</span>' : ''}${k.sp.mythic ? '<span class="tag myth">mythic</span>' : ''}${k.hp <= 0 ? '<span class="tag down">fainted</span>' : ''}<span class="lv">Lv ${k.level}<span style="opacity:.55">/${KIN.capOf(k.sp)}</span></span></div><div class="hpbar"><div class="hpfill" style="width:${frac * 100}%;background:${frac > 0.5 ? '#5ad66a' : frac > 0.22 ? '#f0c040' : '#f05040'}"></div></div><div class="krow small">${KIN.dominant(k.sp.elem, 2).map(e => `<span class="badge" style="background:${ELEM_COLOR[e]}">${e}</span>`).join('')}<span>${Math.round(k.hp)}/${st.hp}</span>${(k.sp.gen || 0) > 0 ? `<span class="gen">fusion g${k.sp.gen}</span>` : ''}</div>${extra}</div></div>`;
   }
   function healButton(k) {
     const p = G.player; const st = KIN.stats(k);
@@ -8515,7 +8526,7 @@ G.onBattleEnd = function (result, wildE, wild, mine, ambush) {
     if (mine && mine.hp > 0) {
       for (const o of this.kin) if (o !== mine && o.hp > 0) { const oe = KIN.gainXp(o, Math.floor(xp * 0.25)); for (const ev of oe) if (ev.type === 'level') UI.toast(`${KIN.name(o)} (watching) reached Lv ${ev.level}.`); } // the rest of the party learns a little by watching; the fainted learn nothing
       const evs = KIN.gainXp(mine, xp);
-      for (const ev of evs) { if (ev.type === 'level') UI.toast(`${KIN.name(mine)} reached Lv ${ev.level}.`, 'good'); if (ev.type === 'evolve') { UI.toast(`${ev.name}… it evolved into ${KIN.name(mine)}!`, 'good'); UI.sfx('level'); } }
+      for (const ev of evs) { if (ev.type === 'peak') this.explain(`${KIN.name(mine)} has peaked`, `Lv ${ev.level} is as far as its kind goes. Only a fusion recipe can take it further.`); if (ev.type === 'level') UI.toast(`${KIN.name(mine)} reached Lv ${ev.level}.`, 'good'); if (ev.type === 'evolve') { UI.toast(`${ev.name}… it evolved into ${KIN.name(mine)}!`, 'good'); UI.sfx('level'); } }
     }
     this.addTrainerXp(xp);
     this.stats.battlesWon++;
