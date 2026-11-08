@@ -9080,14 +9080,14 @@ const Keeps = (() => {
   let G = null, worldRef = null, tick = 0;
   const cache = new Map();
   const NAMES = ['Gloomhold', 'Blackspire', 'Ashkeep', 'Duskwatch', 'Nightrest', 'Grimward', 'Shadeholt', 'Ravenmoor', 'Cinderkeep', 'Hollowfang', 'Mournwall', 'Thornreach', 'Vilegate', 'Soothmark', 'Briarhelm', 'Cragmourn'];
-  // the Eight Holds: a fixed ring of them, nearer ones first, so you meet them as you push out
-  const RADII = [380, 520, 660, 800, 950, 1100, 1250, 1400], COUNT = 8;
+  // the Twelve Holds: eleven in a ring on the surface, nearer ones first, so you meet them as you push out; the twelfth is down in the Core, in the lava
+  const RADII = [380, 500, 620, 740, 860, 980, 1100, 1220, 1340, 1460, 1580], COUNT = 11; // eleven on the surface, and one more down in the Core
   function init(game) { G = game; cache.clear(); worldRef = null; }
   const W = () => G.world;
   function onEarth() { return W() && W().preset.id === 'earth'; }
   function sites() {
     if (!onEarth()) return [];
-    if (G.stats.holds && G.stats.holdsV === 4) return G.stats.holds;
+    if (G.stats.holds && G.stats.holdsV === 5) return G.stats.holds;
     const w = W(), out = []; const base = U.hash3(7, 7, 7, w.seed + 0xD4) * Math.PI * 2;
     for (let i = 0; i < COUNT; i++) {
       const a0 = base + i * 2.399; let k = null; // golden-angle spread round the compass
@@ -9115,8 +9115,9 @@ const Keeps = (() => {
       out.push({ id: 'hold' + out.length + 'b', i: out.length, x, z, y: Math.max(SEA + 2, Math.round(sum / n)) });
     }
     out.sort((p, q) => Math.hypot(p.x - w.spawn.x, p.z - w.spawn.z) - Math.hypot(q.x - w.spawn.x, q.z - w.spawn.z));
-    const used = new Set(); out.forEach((k, j) => { k.i = j; let ni = Math.floor(U.hash3(j, 93, 1, w.seed) * NAMES.length); while (used.has(ni)) ni = (ni + 1) % NAMES.length; used.add(ni); k.name = NAMES[ni]; });
-    G.stats.holds = out; G.stats.holdsV = 4; return out;
+    { const a = base + 1.1, r = 820; out.push({ id: 'holdcore', core: true, x: Math.round(w.spawn.x + Math.cos(a) * r), z: Math.round(w.spawn.z + Math.sin(a) * r), y: 5 }); }
+    const used = new Set(); out.forEach((k, j) => { k.i = k.core ? 9 : j; let ni = Math.floor(U.hash3(j, 93, 1, w.seed) * NAMES.length); while (used.has(ni)) ni = (ni + 1) % NAMES.length; used.add(ni); k.name = NAMES[ni]; });
+    G.stats.holds = out; G.stats.holdsV = 5; return out;
   }
   function near(px, pz, r) { return sites().filter(k => Math.hypot(k.x - px, k.z - pz) <= r); }
   function keepFor() { return null; }
@@ -9125,6 +9126,19 @@ const Keeps = (() => {
   function stamp(k) {
     const w = W(), set = (x, y, z, b) => w.setBlock(x, y, z, b); const y0 = k.y, X = k.x, Z = k.z;
     w.ensureAround(Math.floor(X / CH), Math.floor(Z / CH), 1, 99);
+    if (k.core) { // a basalt island in the lava sea, walled in, under the Core's ceiling
+      for (let dx = -13; dx <= 13; dx++) for (let dz = -13; dz <= 13; dz++) { const r = Math.max(Math.abs(dx), Math.abs(dz));
+        for (let y = 1; y <= y0 - 1; y++) set(X + dx, y, Z + dz, r <= 11 ? B.BASALT : B.LAVA); set(X + dx, y0, Z + dz, r <= 11 ? B.BASALT : B.AIR); for (let y = y0 + 1; y <= 12; y++) set(X + dx, y, Z + dz, B.AIR); set(X + dx, 13, Z + dz, B.BASALT); }
+      const F = B.FORTSTONE;
+      for (let d = -8; d <= 8; d++) for (let y = y0 + 1; y <= 11; y++) { set(X + d, y, Z - 8, F); set(X + d, y, Z + 8, F); set(X - 8, y, Z + d, F); set(X + 8, y, Z + d, F); }
+      for (let d = -1; d <= 1; d++) for (let y = y0 + 1; y <= y0 + 3; y++) set(X + d, y, Z - 8, B.AIR);
+      for (let i = -1; i <= 1; i++) for (let j = -1; j <= 1; j++) set(X + i, y0 + 1, Z + 3 + j, F); set(X, y0 + 2, Z + 3, B.DARKTABLE);
+      for (const [a, b] of [[-7, -4], [-7, 4], [7, -4], [7, 4]]) set(X + a, y0 + 4, Z + b, B.EMBER);
+      for (let z = Z - 7; z <= Z + 1; z++) set(X, y0, z, B.CORAL_R);
+      // a basalt causeway out across the lava, toward the nearest island
+      for (let d = 12; d <= 40; d++) for (let w2 = -1; w2 <= 1; w2++) { set(X + w2, y0, Z - d, B.BASALT); for (let y = 1; y < y0; y++) set(X + w2, y, Z - d, B.BASALT); for (let y = y0 + 1; y <= 9; y++) if (w.getBlock(X + w2, y, Z - d) !== B.AIR) set(X + w2, y, Z - d, B.AIR); }
+      G.meshPass(99); return;
+    }
     for (let dx = -11; dx <= 11; dx++) for (let dz = -11; dz <= 11; dz++) {
       for (let y = y0 - 4; y < y0; y++) if (!isSolid(w.getBlock(X + dx, y, Z + dz))) set(X + dx, y, Z + dz, B.STONE);
       const edge = Math.max(Math.abs(dx), Math.abs(dz)); set(X + dx, y0, Z + dz, edge <= 8 ? B.BASALT : B.GRAVEL);
@@ -9151,6 +9165,7 @@ const Keeps = (() => {
   function update(dt, p) {
     if (!onEarth()) return; tick += dt; if (tick < 0.5) return; tick = 0;
     for (const k of near(p.x, p.z, 130)) {
+      if (k.core && p.y > CORE_TOP + 8) continue; // the Core hold only wakes when you are down there
       const s = st();
       if (!s['stamped_' + k.id] && Math.hypot(k.x - p.x, k.z - p.z) < 110) { s['stamped_' + k.id] = true; stamp(k); }
       const d = Math.hypot(k.x - p.x, k.z - p.z);
@@ -9176,15 +9191,15 @@ const Keeps = (() => {
     const k = sites().find(x => x.id === id); UI.sfx('quest');
     const n = sites().filter(x => taken(x.id)).length; G.stats.crystal = n; const NEED = sites().length;
     UI.toast(`${k ? k.name : 'The hold'} is yours. The spell on its warriors breaks, the clouds over it thin, and a shard of the Binding Crystal is left on the dais (${n} of ${NEED}).`, 'good');
-    if (n >= NEED) setTimeout(() => G.explain('The Binding Crystal', 'All eight shards. The crystal the Kinmaster used to bind his warriors is whole again in your hands, and it pulls toward him. Take it to the throne room at Thornhold. Sable will know what to do.'), 1500);
+    if (n >= NEED) setTimeout(() => G.explain('The Binding Crystal', 'Every shard. The crystal the Kinmaster used to bind his warriors is whole again in your hands, and it pulls toward him. Take it to the throne room at Thornhold. Sable will know what to do.'), 1500);
     G.addTrainerXp(120); G.shards += 400;
-    if (!G.stats.keepTold) { G.stats.keepTold = true; G.explain('A hold taken', 'There are eight Holds, the Kinmaster\'s fortresses, spread out from home. Each one you take frees the warriors he bound with his crystal, clears the grey sky over it, opens its Dark Fusion Table (the only tables that take Void), and gives you one shard of the Binding Crystal. With all eight, the crystal is whole, and it will lead you to him.'); }
+    if (!G.stats.keepTold) { G.stats.keepTold = true; G.explain('A hold taken', 'There are twelve Holds, the Kinmaster\'s fortresses: eleven spread out from home, and one deep in the Core, out on the lava. Each one you take frees the warriors he bound with his crystal, clears the grey sky over it, opens its Dark Fusion Table (the only tables that take Void), and gives you one shard of the Binding Crystal. With all twelve, the crystal is whole, and it will lead you to him.'); }
   }
   // the gloom: grey sky and dim light around every hold you have not taken, fading out over a wide ring
   function gloom(px, pz) {
     if (!onEarth() || G.stats.lightReturned) return 0; let g = typeof Citadel !== 'undefined' ? Citadel.gloom(px, pz) : 0;
     const f = (Campaign.sites() || {}).fort; if (f && !Campaign.C().kinmaster) { const d = Math.hypot(f.x + 40 - px, f.z - pz); if (d < 220) g = 1 - U.clamp((d - 90) / 130, 0, 1); }
-    for (const k of sites()) { if (taken(k.id)) continue; const d = Math.hypot(k.x - px, k.z - pz); if (d < 190) g = Math.max(g, 1 - U.clamp((d - 70) / 120, 0, 1)); }
+    for (const k of sites()) { if (taken(k.id) || k.core) continue; const d = Math.hypot(k.x - px, k.z - pz); if (d < 190) g = Math.max(g, 1 - U.clamp((d - 70) / 120, 0, 1)); }
     return g;
   }
   const WARRIOR_COLS = [{ body: '#3a3448', belly: '#c9b48a', accent: '#7a2aa8', eye: '#c04cff' }, { body: '#2e2a3a', belly: '#a8835a', accent: '#5a2a8a', eye: '#c04cff' }, { body: '#40384a', belly: '#e0b08a', accent: '#8a3ab8', eye: '#c04cff' }];
@@ -9200,7 +9215,7 @@ const Keeps = (() => {
     for (const [kind, ox, oz] of use) { const x = k.x + ox + 0.5, z = k.z + oz + 0.5; Combat.spawn(kind, x, k.y + 1, z, k.id, lv); }
     if (!G.stats.holdFightTold) { G.stats.holdFightTold = true; G.explain('His warriors', 'Inside a hold you fight on foot. Hold a sword or an axe and tap to swing: a sword hits one, an axe cleaves everything in its arc. With a shield in your bag, hold to block; raise it just as a blow lands to parry and stagger them. Your bow works too, and every arrow type has its trick. Catch one from behind and the first hit counts double. No wild Kin come inside these walls. Put them all on their knees and the warlord comes down from the dais with his Kin.'); }
   }
-  function inHold(p) { return near(p.x, p.z, 12).some(k => !taken(k.id)); }
+  function inHold(p) { return near(p.x, p.z, 12).some(k => !taken(k.id) && Math.abs(p.y - k.y) < 12); }
   function talkWarrior(n, say) {
     const freed = taken(n.holdId); const k = sites().find(x => x.id === n.holdId) || {};
     if (!freed) return say(['...', 'The crystal... it hums... we hold the gate... we hold the gate...', 'His eyes are glazed and violet. He does not see you at all.']);
@@ -9224,14 +9239,14 @@ const Keeps = (() => {
     const f = (Campaign.sites() || {}).fort; if (f && Math.hypot(f.x + 72 - x, f.z - z) < 40) return !!Campaign.C().kinmaster;
     return true;
   }
-  function mapMarks() { if (!onEarth()) return []; const p = G.player; return Citadel.mapMarks().concat(sites().filter(k => st()['seen_' + k.id] || taken(k.id)).map(k => ({ x: k.x, z: k.z, t: taken(k.id) ? '♜' : '☠', name: k.name + (taken(k.id) ? ' (yours)' : '') }))); }
+  function mapMarks() { if (!onEarth()) return []; const p = G.player; return Citadel.mapMarks().concat(sites().filter(k => st()['seen_' + k.id] || taken(k.id)).map(k => ({ x: k.x, z: k.z, t: taken(k.id) ? '♜' : '☠', name: k.name + (k.core ? ' (deep in the Core)' : '') + (taken(k.id) ? ' (yours)' : '') }))); }
   return { inHold, init, update, onBattle, tableOpen, near, mapMarks, keepFor, sites, gloom, talkWarrior, finalReady, onFinal, COUNT };
 })();
 
 </script>
 <script>
 'use strict';
-// The Black Citadel: where the whole Binding Crystal leads. It rises far out on Earth once all eight Holds are free.
+// The Black Citadel: where the whole Binding Crystal leads. It rises far out on Earth once all twelve Holds are free.
 // A gauntlet that asks for everything you have learned, in order:
 //   a chasm you can only glide across, from a launch tower  ·  a thorn gate only a Flame Kin burns
 //   the outer court and his best warriors  ·  a dead gate only a Spark Kin wakes  ·  a long flooded hall (bring the bulb)
@@ -9330,7 +9345,7 @@ const Citadel = (() => {
   }
   // the end of it: two Kin, one after the other
   function talk(n, say) {
-    return say(['So. You put my crystal back together. Do you know how long it took me to break it?', 'Eight holds. Eight. And every one of those fools I bound, free again, singing about you in their villages.', 'No more puzzles, no more warlords. Just me, and what I have left.'], () => {
+    return say(['So. You put my crystal back together. Do you know how long it took me to break it?', 'Twelve holds. Twelve. Even the one in the Core. And every one of those fools I bound, free again, singing about you in their villages.', 'No more puzzles, no more warlords. Just me, and what I have left.'], () => {
       const t = C().throne; const lv = Math.max(90, Math.min(180, (G.trainerLevel || 1) + 18));
       const first = KIN.species(U.combine(0x0BAD, 2), ['Void'], 0, { primary: 'Flame', shape: 'quadruped', total: 680, rarity: 4 }); first.names = ['Gravemaw', 'Gravemaw', 'Gravemaw']; first.noFuse = true; first.colors = { body: '#2a0a10', belly: '#ff5a1f', accent: '#ff9f2a', dark: '#120408', eye: '#ffe08a' };
       const e1 = Wild.makeEntity(first, lv - 10, t.x - 5 + 0.5, t.y, t.z + 0.5, { senseR: 12, elite: true }); e1.citadelFirst = true; e1.kinmaster = false; Wild.list.push(e1);
