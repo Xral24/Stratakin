@@ -230,6 +230,7 @@ body.desktop #joy, body.desktop #btn-jump, body.desktop #btn-sneak { display: no
 #btn-ship.nomap { top: calc(118px + env(safe-area-inset-top)); }
 #btn-ship small { font-size: 9px; font-weight: 700; letter-spacing: .5px; margin-top: 1px; }
 #btn-ship.on { background: rgba(199,251,255,.85); color: #06202c; }
+#btn-ship.on.far { background: rgba(20,30,46,.82); color: rgba(255,255,255,.55); border-color: rgba(199,251,255,.3); }
 #drop-bar { position: absolute; right: 10px; bottom: calc(14px + env(safe-area-inset-bottom)); display: flex; flex-direction: column; gap: 4px; pointer-events: auto; }
 #drop-bar button { background: rgba(0,0,0,.55); border: 1px solid rgba(255,255,255,.3); border-radius: 8px; padding: 6px 8px; font-size: 11px; font-weight: 800; }
 .kcard .kheal { margin-left: 6px; padding: 4px 8px; font-size: 11px; border-radius: 8px; background: #ff5f7a; color: #111; border: 0; font-weight: 800; }
@@ -2026,14 +2027,16 @@ class Player {
     const fwd = [-sy, -cy], right = [cy, -sy];
     const speed = 13;
     let mx = fwd[0] * input.mz + right[0] * input.mx, mz = fwd[1] * input.mz + right[1] * input.mx;
-    this.vx += (mx * speed - this.vx) * Math.min(1, 3 * dt); this.vz += (mz * speed - this.vz) * Math.min(1, 3 * dt);
-    const ty = input.jump ? 7 : input.sneak ? -7 : 0;
+    if (this.autoLand && input.jump) this.autoLand = false; // ▲ calls the landing off
+    if (this.autoLand) { mx = mz = 0; } // landing: the ship holds still over its spot and lowers itself
+    this.vx += (mx * speed - this.vx) * Math.min(1, (this.autoLand ? 5 : 3) * dt); this.vz += (mz * speed - this.vz) * Math.min(1, (this.autoLand ? 5 : 3) * dt);
+    const ty = this.autoLand ? -3 : input.jump ? 7 : input.sneak ? -7 : 0;
     this.vy += (ty - this.vy) * Math.min(1, 3 * dt);
     const hsp = Math.hypot(this.vx, this.vz);
     const hx = this.moveAxis(0, this.vx * dt), hz = this.moveAxis(2, this.vz * dt), hy = this.moveAxis(1, this.vy * dt);
     // touching down is a landing, however fast you came down; only flying into something sideways at speed is a crash
-    if (hy && this.vy < 0) { if (hsp > 7.5) { this.crashed = true; this.flying = false; this.vx = this.vy = this.vz = 0; return; } this.flying = false; this.landed = true; this.vx = this.vy = this.vz = 0; this.onGround = true; return; }
-    if ((hx || hz) && hsp > 6) { this.crashed = true; this.flying = false; this.vx = this.vy = this.vz = 0; return; }
+    if (hy && this.vy < 0) { const auto = this.autoLand; this.autoLand = false; this.fallStart = null; if (hsp > 7.5 && !auto) { this.crashed = true; this.flying = false; this.vx = this.vy = this.vz = 0; return; } this.flying = false; this.landed = true; this.vx = this.vy = this.vz = 0; this.onGround = true; return; }
+    if ((hx || hz) && hsp > 6 && !this.autoLand) { this.crashed = true; this.flying = false; this.vx = this.vy = this.vz = 0; return; }
     if (hx) this.vx = 0; if (hz) this.vz = 0; if (hy) this.vy = 0;
     this.onGround = false; this.fallStart = null; this.breath = 1;
     if (this.y >= WH + 30) this.leftWorld = true;
@@ -7186,6 +7189,7 @@ const UI = (() => {
     if (st.snare !== undefined && st.snare !== btnState.snare) { b1.classList.toggle('hidden', !st.snare); btnState.snare = st.snare; }
     if (st.ride !== undefined && (st.ride !== btnState.ride || st.riding !== btnState.riding)) { b2.classList.toggle('hidden', !st.ride); b2.textContent = st.riding ? 'Off' : 'Ride'; b2.classList.toggle('on', !!st.riding); btnState.ride = st.ride; btnState.riding = !!st.riding; }
     const b3 = document.getElementById('btn-ship'); b3.classList.toggle('nomap', !MM.on);
+    if (st.ship !== undefined) b3.classList.toggle('far', !!st.flying && !st.canLand);
     if (st.ship !== undefined && (st.ship !== btnState.ship || st.flying !== btnState.flying)) { b3.classList.toggle('hidden', !st.ship); b3.innerHTML = st.flying ? '🛬<small>LAND</small>' : '🚀'; b3.classList.toggle('on', !!st.flying); btnState.ship = st.ship; btnState.flying = !!st.flying; }
   }
   // stars and planets as a cheap overlay: fixed directions projected against the camera
@@ -7721,13 +7725,15 @@ G.travel = function (targetId) {
   this.meshPass(99);
   this.save();
 };
+G.LAND_REACH = 6;
+G.landHeight = function () { const p = this.player; return p.y - (this.world.groundY(Math.floor(p.x), Math.floor(p.z), Math.floor(p.y) + 1) + 1); };
 G.boardShip = function () {
   const p = this.player;
   if (Battle.active || Dialogue.active()) return;
-  if (p.flying) { // land if close to the ground
-    const gy = this.world.groundY(Math.floor(p.x), Math.floor(p.z), Math.floor(p.y) + 1);
-    if (p.y - gy > 3) { UI.toast('Too high to land. Hold ▼ to go down first.'); return; }
-    p.flying = false; p.vx = p.vz = 0; UI.toast('Landed.');
+  if (p.flying) { // within reach of the ground: the ship stops and lowers itself down, no crash
+    if (p.autoLand) return;
+    if (this.landHeight() > G.LAND_REACH) { UI.toast(`Too high to land. Hold ▼ to get within ${G.LAND_REACH} blocks of the ground.`); return; }
+    p.autoLand = true; UI.toast('Landing. Hold ▲ to call it off.');
     return;
   }
   if (!p.has('ship')) return;
@@ -7898,7 +7904,7 @@ G.loop = function (t) {
   if ((this.frame & 7) === 0 && !inBattle) {
     const st = this.stealthTarget();
     const lead = this.activeKin();
-    UI.setButtons({ snare: !!st && (p.has('snare') || p.has('snare2')), ride: !p.flying && (!!p.mount || !!(lead && this.rideRequirement(lead) != null)), riding: !!p.mount, ship: p.has('ship') && (p.flying || this.world.layerAt(Math.floor(p.y), Math.floor(p.x), Math.floor(p.z)) !== 'Mines'), flying: p.flying });
+    UI.setButtons({ snare: !!st && (p.has('snare') || p.has('snare2')), ride: !p.flying && (!!p.mount || !!(lead && this.rideRequirement(lead) != null)), riding: !!p.mount, ship: p.has('ship') && (p.flying || this.world.layerAt(Math.floor(p.y), Math.floor(p.x), Math.floor(p.z)) !== 'Mines'), flying: p.flying, canLand: p.flying && (p.autoLand || this.landHeight() <= G.LAND_REACH) });
     if (p.mount && (p.mount.hp <= 0 || !this.kin.includes(p.mount))) { p.mount = null; UI.toast('Your mount is down.', 'bad'); }
     if (p.mount && p.mountMode === 'water' && !p.inWater && p.onGround) { p.mount = null; UI.toast('It cannot follow you onto land.'); }
   }
