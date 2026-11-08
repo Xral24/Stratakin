@@ -678,10 +678,10 @@ const PRESETS = {
   earth: { id: 'earth', name: 'Earth', gravity: 1, water: true, trees: true, skyIslands: true, weather: true, seedXor: 0, arrival: null, villages: { nc: 64, prefix: '', style: 'land' }, fisher: true, founding: true, zoneBase: 0, lostWorld: true, reefs: true },
   moon: { id: 'moon', name: 'the Moon', gravity: 0.38, water: false, trees: false, skyIslands: false, weather: false, seedXor: 0x100D, craters: true, spires: true, flatDay: 0.85, airless: true,
     palette: { [B.GRASS]: ['#a3a3ab', '#8b8b93'], [B.DIRT]: ['#80808a', '#76767f'], [B.STONE]: ['#8e8e97', '#85858e'], [B.SAND]: ['#bcbcc3', '#b0b0b7'], [B.GRAVEL]: ['#6f6f78', '#65656e'], [B.SNOW]: ['#e4e4ea', '#d4d4da'], [B.MOSS]: ['#9d9da6', '#8d8d96'] },
-    sky: [0.01, 0.01, 0.03], fogMul: 1, biomes: 'moon', villages: { nc: 96, prefix: 'm', style: 'alien' }, zoneBase: 28, legend: { name: 'Selenaut', level: 1500, elem: 'Light', shape: 'floater', zone: 60 }, worms: true, people: 'alien' },
+    sky: [0.01, 0.01, 0.03], fogMul: 1, biomes: 'moon', villages: { nc: 96, prefix: 'm', style: 'alien' }, zoneBase: 40, legend: { name: 'Selenaut', level: 180, elem: 'Light', shape: 'floater', zone: 20 }, worms: true, people: 'alien' },
   halo: { id: 'halo', name: 'Halo', gravity: 0.72, water: false, brine: true, brineLevel: 40, trees: false, skyIslands: false, weather: false, seedXor: 0x4A10, craters: false, spires: false, airless: true,
     palette: { [B.GRASS]: ['#d9b96a', '#b9955a'], [B.DIRT]: ['#b08a4c', '#9c7a42'], [B.STONE]: ['#b49a6a', '#a68c5e'], [B.SAND]: ['#e2c374', '#d4b468'], [B.GRAVEL]: ['#9a8458', '#8a7650'], [B.SNOW]: ['#f0ead8', '#d8d0b8'], [B.MOSS]: ['#b4a060', '#a08c54'], [B.BASALT]: ['#5a4a3a', '#4a3c30'] },
-    skyNoon: [0.95, 0.78, 0.42], skyNight: [0.08, 0.05, 0.03], skyDusk: [0.98, 0.55, 0.25], fogMul: 0.85, biomes: 'halo', villages: { nc: 80, prefix: 'h', style: 'halo' }, zoneBase: 110, legend: { name: 'Ringwarden', level: 2000, elem: 'Spark', shape: 'bird', zone: 160 }, ringfall: true, people: 'halo' },
+    skyNoon: [0.95, 0.78, 0.42], skyNight: [0.08, 0.05, 0.03], skyDusk: [0.98, 0.55, 0.25], fogMul: 0.85, biomes: 'halo', villages: { nc: 80, prefix: 'h', style: 'halo' }, zoneBase: 70, legend: { name: 'Ringwarden', level: 200, elem: 'Spark', shape: 'bird', zone: 30 }, ringfall: true, people: 'halo' },
 };
 let ACTIVE_PRESET = PRESETS.earth;
 
@@ -2356,11 +2356,11 @@ const KIN = (() => {
   const RARITY = [
     { name: 'common', w: 60, lvl: 0, stat: 0, catch: 1.0, xp: 1.0 },
     { name: 'uncommon', w: 25, lvl: 1, stat: 15, catch: 0.9, xp: 1.15 },
-    { name: 'rare', w: 10, lvl: 2, stat: 35, catch: 0.75, xp: 1.4 },
-    { name: 'epic', w: 2.5, lvl: 4, stat: 60, catch: 0.6, xp: 1.8 },
-    { name: 'legendary', w: 0.35, lvl: 10, stat: 130, catch: 0.3, xp: 3.5 },
+    { name: 'rare', w: 1.5, lvl: 2, stat: 35, catch: 0.75, xp: 1.4 },
+    { name: 'epic', w: 0.25, lvl: 4, stat: 60, catch: 0.6, xp: 1.8 },
+    { name: 'legendary', w: 0.03, lvl: 10, stat: 130, catch: 0.3, xp: 3.5 },
   ];
-  const MAX_LEVEL = 2000; // the planets go far past 99; a fusion keeps its levels too
+  const MAX_LEVEL = 200; // the ceiling: the Halo legendary sits right at it
   function growth(level) { return 1 + 0.06 * level + 0.0015 * level * level; }
   function xpToNext(level) { return Math.floor(20 + 12 * Math.pow(level, 1.4) * (1 + level / 150)); } // steeper the higher you go
   function dominant(elem, n = 2) { return elem.map((w, i) => [w, i]).sort((a, b) => b[0] - a[0]).slice(0, n).filter(x => x[0] > 0.12).map(x => E[x[1]]); }
@@ -2412,39 +2412,62 @@ const KIN = (() => {
   }
 
   const SPECIES_SEED = { earth: 0x5A7A0001, moon: 0x5A7A1001, halo: 0x5A7A2001 };
-  const rosterCache = new Map();
-  // Every (region, layer, biome, tier) has a fixed roster: three common, three uncommon, two rare, two epic, two legendary species.
-  // The species universe is fixed: the same Kin, with the same name, in every world. Regions no longer roll their own.
-  function roster(bodyId, regionX, regionZ, layer, biomeName, tier) {
-    const base = SPECIES_SEED[bodyId] || SPECIES_SEED.earth;
-    tier = Math.min(MAX_TIER, tier); if (layer !== 'Surface') biomeName = 'Plains';
-    const key = [bodyId, layer, biomeName, tier].join('|');
-    let list = rosterCache.get(key);
-    if (list) return list;
+  // ---- the Kindex: a fixed set of species per planet, about 200 each ----
+  // Every habitat (a surface biome, or the water, the mines, the core, the sky) has its own species and keeps them.
+  // Each area of about a kilometre favours a handful of the habitat's commons, so a forest here has its regulars and a forest
+  // over there has slightly different ones. The rare ones are rare.
+  const HABITATS = {
+    earth: [['Surface', 'Plains'], ['Surface', 'Forest'], ['Surface', 'Desert'], ['Surface', 'Snowfield'], ['Surface', 'Swamp'], ['Surface', 'Mountains'], ['Surface', 'Ocean'], ['Surface', 'Lost World'], ['Water', 'Plains'], ['Mines', 'Plains'], ['Core', 'Plains'], ['Sky', 'Plains']],
+    moon: [['Surface', 'Mare'], ['Surface', 'Highlands'], ['Surface', 'Crater'], ['Mines', 'Plains'], ['Core', 'Plains'], ['Sky', 'Plains']],
+    halo: [['Surface', 'Dunes'], ['Surface', 'Saltflats'], ['Surface', 'Mesa'], ['Water', 'Plains'], ['Mines', 'Plains'], ['Core', 'Plains'], ['Sky', 'Plains']],
+  };
+  const PLANET_SIZE = 200;
+  const LAYER_HARD = { Surface: 0, Water: 30, Mines: 50, Core: 120, Sky: 140 };
+  const BODY_HARD = { earth: 0, moon: 90, halo: 160 };
+  const habitatCache = new Map();
+  function habitatKey(bodyId, layer, biomeName) {
+    if (layer !== 'Surface') biomeName = 'Plains';
+    const hs = HABITATS[bodyId] || HABITATS.earth;
+    if (!hs.some(h => h[0] === layer && h[1] === biomeName)) { // anything unlisted borrows the nearest habitat
+      const alt = hs.find(h => h[0] === layer) || hs[0]; layer = alt[0]; biomeName = alt[1];
+    }
+    return [bodyId, layer, biomeName];
+  }
+  function habitat(bodyId, layer, biomeName) {
+    const [b, L, bn] = habitatKey(bodyId, layer, biomeName); const key = b + '|' + L + '|' + bn;
+    let list = habitatCache.get(key); if (list) return list;
+    const hs = HABITATS[b] || HABITATS.earth; const n = Math.round(PLANET_SIZE / hs.length);
+    const counts = [0, 0, 0, 0, 1]; counts[3] = Math.max(2, Math.round(n * 0.09)); counts[2] = Math.max(3, Math.round(n * 0.18)); counts[1] = Math.round(n * 0.3); counts[0] = n - counts[1] - counts[2] - counts[3] - counts[4];
+    const bias = L === 'Surface' ? (BIAS.Surface[bn] || BIAS.Surface.Plains) : (BIAS[L] || BIAS.Mines);
+    const Li = { Surface: 1, Mines: 2, Core: 3, Sky: 4, Water: 5 }[L] || 1;
     list = [];
-    const bias = layer === 'Surface' ? (BIAS.Surface[biomeName] || BIAS.Surface.Plains) : (BIAS[layer] || BIAS.Mines);
-    const L = layer === 'Surface' ? 1 : layer === 'Mines' ? 2 : layer === 'Core' ? 3 : layer === 'Sky' ? 4 : 5;
-    for (let rar = 0; rar < 5; rar++) for (let i = 0; i < (rar < 2 ? 3 : 2); i++) {
-      const seed = U.combine(base, L, tier, rar * 10 + i, U.strHash(biomeName || ''));
-      const sp = species(seed, bias, tier, { rarity: rar, shapes: layer === 'Water' ? WATER_SHAPES : (layer === 'Surface' && biomeName === 'Lost World') ? DINO_SHAPES : SHAPES, neon: bodyId !== 'earth' });
-      if (layer === 'Surface' && (biomeName === 'Mountains' || biomeName === 'Snowfield') && (sp.shape === 'quadruped' || sp.shape === 'biped')) sp.climber = true; // scales cliffs when ridden
-      if (biomeName === 'Lost World') { sp.dino = true; sp.size *= 1.25; }
+    for (let rar = 0; rar < 5; rar++) for (let i = 0; i < counts[rar]; i++) {
+      const seed = U.combine(SPECIES_SEED[b] || SPECIES_SEED.earth, Li, 77, rar * 100 + i, U.strHash(bn));
+      const sp = species(seed, bias, 0, { rarity: rar, total: 300 + LAYER_HARD[L] + BODY_HARD[b] + RARITY[rar].stat + (bn === 'Lost World' ? 120 : 0) + (i % 5) * 8, shapes: L === 'Water' ? WATER_SHAPES : bn === 'Lost World' ? DINO_SHAPES : SHAPES, neon: b !== 'earth' });
+      if (L === 'Surface' && (bn === 'Mountains' || bn === 'Snowfield' || bn === 'Highlands' || bn === 'Mesa') && (sp.shape === 'quadruped' || sp.shape === 'biped')) sp.climber = true;
+      if (bn === 'Lost World') { sp.dino = true; sp.size *= 1.25; }
+      sp.home = { body: b, layer: L, biome: bn }; sp.dex = 0;
       list.push(sp);
     }
-    rosterCache.set(key, list);
+    habitatCache.set(key, list);
     return list;
   }
-  function speciesForContext(bodyId, regionX, regionZ, layer, biomeName, tier, index) { return roster(bodyId, regionX, regionZ, layer, biomeName, tier)[index % 3]; }
-  // Build every roster once, in a fixed order, and make every species name unique across the universe.
+  // what lives in one place: the area's own commons and uncommons, and the habitat's rare ones
+  function roster(bodyId, regionX, regionZ, layer, biomeName) {
+    const all = habitat(bodyId, layer, biomeName);
+    const by = [0, 1, 2, 3, 4].map(r => all.filter(sp => sp.rarity === r));
+    const pickLocal = (arr, k, salt) => { if (arr.length <= k) return arr; const r = U.rng(U.combine(regionX, regionZ, salt, arr[0].seed)); const idx = arr.map((_, i) => i); for (let i = idx.length - 1; i > 0; i--) { const j = r.int(i + 1); [idx[i], idx[j]] = [idx[j], idx[i]]; } return idx.slice(0, k).sort((a, b) => a - b).map(i => arr[i]); };
+    return pickLocal(by[0], 4, 11).concat(pickLocal(by[1], 3, 12), by[2], by[3], by[4]);
+  }
+  function speciesForContext(bodyId, regionX, regionZ, layer, biomeName, tier, index) { return roster(bodyId, regionX, regionZ, layer, biomeName)[index % 3]; }
+  // Build every habitat once, in a fixed order: give every species a unique name and a Kindex number.
   const MAX_TIER = 9;
-  let universeBuilt = false;
+  let universeBuilt = false; const DEX = { earth: [], moon: [], halo: [] };
   function buildUniverse() {
     if (universeBuilt) return; universeBuilt = true;
     const taken = new Map();
-    const bodies = ['earth', 'moon', 'halo'];
-    const surfaceBiomes = { earth: ['Plains', 'Forest', 'Desert', 'Snowfield', 'Swamp', 'Mountains', 'Ocean', 'Lost World'], moon: ['Mare', 'Highlands', 'Crater'], halo: ['Dunes', 'Saltflats', 'Mesa'] };
-    for (const body of bodies) for (const layer of ['Surface', 'Water', 'Mines', 'Core', 'Sky']) for (const biome of (layer === 'Surface' ? surfaceBiomes[body] : ['Plains'])) for (let tier = 0; tier <= MAX_TIER; tier++) {
-      for (const sp of roster(body, 0, 0, layer, biome, tier)) {
+    for (const body of ['earth', 'moon', 'halo']) for (const [layer, biome] of HABITATS[body]) {
+      for (const sp of habitat(body, layer, biome)) {
         let nm = sp.names[0];
         if (taken.has(nm)) {
           const r = U.rng(sp.seed ^ 0x77);
@@ -2453,9 +2476,12 @@ const KIN = (() => {
           const stem = nm; sp.names = [stem, cap(stem + sp.names[1].slice(sp.names[0].length)), cap(stem + sp.names[2].slice(sp.names[0].length))];
         }
         taken.set(nm, sp.seed);
+        DEX[body].push(sp); sp.dex = DEX[body].length;
       }
     }
   }
+  function dex(body) { buildUniverse(); return DEX[body] || []; }
+  function bySeed(seed) { buildUniverse(); for (const b in DEX) { const sp = DEX[b].find(x => x.seed === seed); if (sp) return sp; } return null; }
   function mythicSpecies(worldSeed) {
     const sp = species(U.combine(SPECIES_SEED.earth, 777), ['Void'], 10, { primary: 'Void', shape: 'serpent', total: 760, evolveAt: [999, 999], mythic: true, size: 2.6 });
     sp.elem = normalize([0.35, 0, 0, 0.1, 0, 0, 0, 0.55, 0]);
@@ -2882,7 +2908,7 @@ const KIN = (() => {
   function serialize(k) { return { id: k.id, sp: k.sp, level: k.level, xp: k.xp, iv: k.iv, stage: k.stage, hp: k.hp, nick: k.nick, equip: k.equip || null, tech: k.tech || null }; }
   function deserialize(d) { return Object.assign({ status: null }, d); }
 
-  return { E, EI, CHART, STAT_KEYS, STAT_NAMES, growth, xpToNext, dominant, species, speciesForContext, mythicSpecies, legendSpecies, apexSpecies, wardenSpecies, MAX_LEVEL, TECH, techFor, techByName, starters, create, stats, name, moves, effectiveness, gainXp, fuse, fusionLevel, TRAITS, RARITY, roster, buildUniverse, decorate, makeStatue, statueModel, shardsFor, model, buildMesh, meshKey, portrait, serialize, deserialize, UTIL_DESC };
+  return { E, EI, CHART, STAT_KEYS, STAT_NAMES, growth, xpToNext, dominant, species, speciesForContext, dex, bySeed, HABITATS, mythicSpecies, legendSpecies, apexSpecies, wardenSpecies, MAX_LEVEL, TECH, techFor, techByName, starters, create, stats, name, moves, effectiveness, gainXp, fuse, fusionLevel, TRAITS, RARITY, roster, buildUniverse, decorate, makeStatue, statueModel, shardsFor, model, buildMesh, meshKey, portrait, serialize, deserialize, UTIL_DESC };
 })();
 
 </script>
@@ -2967,7 +2993,7 @@ const Wild = (() => {
     const pr = world.preset; const onEarth = pr.id === 'earth';
     const o = onEarth ? (G.village || world.spawn) : (world.pad || world.spawn);
     const d = Math.hypot(wdd(x - o.x), wdd(z - o.z));
-    let lv = onEarth ? 2 + d / 110 : (pr.zoneBase || 0) + d / 70;
+    let lv = onEarth ? 2 + d / 110 : (pr.zoneBase || 0) + d / 110;
     const v = Village.active;
     if (v) {
       const dv = Math.hypot(wdd(x - v.x), wdd(z - v.z)); const st = G.villageState && G.villageState[v.id];
@@ -2977,10 +3003,10 @@ const Wild = (() => {
     lv += layerBonus(ctx.layer, ctx.layer === 'Water' && (SEA - y) > 3);
     const biome = world.colInfo(Math.floor(x), Math.floor(z)).biome;
     if (onEarth && y >= 64 && biome === BIOME.MOUNTAIN && U.vnoise2(Math.floor(x), Math.floor(z), 256, WORLD_W, world.seed + 611) > 0.6) lv += 8; // the heart of a volcano
-    let cap = onEarth ? trainerLevel + 8 : (pr.zoneBase || 0) + 240;
+    let cap = onEarth ? trainerLevel + 8 : (pr.zoneBase || 0) + 110;
     if (biome === BIOME.LOSTWORLD) { lv = Math.max(lv, 38); cap = Math.max(cap, trainerLevel + 14); } // the Lost World: old and big
     if (world.legend) { const dl = Math.hypot(wdd(x - world.legend.x), wdd(z - world.legend.z)); if (dl < world.legend.r) { lv += pr.legend.zone * (1 - dl / world.legend.r * 0.4); cap += pr.legend.zone; } }
-    return U.clamp(Math.round(lv), 1, cap);
+    return U.clamp(Math.round(lv), 1, Math.min(cap, KIN.MAX_LEVEL));
   }
   function calmHere(player) { const v = Village.active; if (!v) return false; const st = G.villageState && G.villageState[v.id]; return !!(st && st.freed) && Math.hypot(wdd(player.x - v.x), wdd(player.z - v.z)) < 60; }
   // choose species + level for a spawn at this position: tier by trainer level, then rarity and weather weigh the roster
@@ -3119,7 +3145,7 @@ const Wild = (() => {
   }
   // the Lost World's giants: Tyrannorex walks the middle of the plateau, Abyssaurus circles the nearest deep water
   const apexRefs = { rex: null, mosa: null };
-  const APEX_LV = { rex: 1000, mosa: 850 };
+  const APEX_LV = { rex: 170, mosa: 160 };
   function apexSea() {
     const L = world.lost; if (!L) return null;
     if (L.sea !== undefined) return L.sea;
@@ -3302,7 +3328,7 @@ const Wild = (() => {
     return out;
   }
   function clear() { list.length = 0; mythicRef = null; legendRef = null; apexRefs.rex = apexRefs.mosa = null; }
-  const api = { init, update, list, remove, nearest, pick, rings, ensureHeart, ensureLegend, ensureApex, apexSea, apexLevel: APEX_LV, clear, makeEntity, zoneLevel, noSpawn: null, chaser: null, get mythic() { return mythicRef; }, get legend() { return legendRef; } };
+  const api = { init, update, list, remove, nearest, pick, rings, roll, ensureHeart, ensureLegend, ensureApex, apexSea, apexLevel: APEX_LV, clear, makeEntity, zoneLevel, noSpawn: null, chaser: null, get mythic() { return mythicRef; }, get legend() { return legendRef; } };
   return api;
 })();
 
@@ -5072,7 +5098,7 @@ const Battle = (() => {
     let c = stealth ? ITEMS[item].snare * (wildE && wildE.alert < 0.5 ? 0.6 : 0.45) : ITEMS[item].snare * (1 - frac * 0.8);
     if (wild.level > mine.level + 3) c *= 0.75;
     // the level gap: a little above you is fair, 20% above is a long shot, twice your level and nothing holds it
-    const grip = 4 * Math.max(1, G.trainerLevel || 1); // snare strength: four times your trainer level, not your Kin's level
+    const grip = 2 * Math.max(1, G.trainerLevel || 1); // snare strength: twice your trainer level, not your Kin's level
     const gap = wild.level / grip;
     if (gap >= 2) return { chance: 0, item, gap, grip, hopeless: true };
     if (gap > 1.2) c *= 0.55 * Math.pow((2 - gap) / 0.8, 3);
@@ -5102,7 +5128,7 @@ const Battle = (() => {
     el.snare.classList.remove('hidden'); el.root.classList.add('snaring'); el.root.scrollTop = 0;
     const pct = chance === 0 ? '0%' : chance < 0.01 ? 'under 1%' : Math.round(chance * 100) + '%';
     log(`You set a ${ITEMS[item].name} on the ground${stealth ? ', quietly' : ''}. Catch chance ${pct}.`);
-    if (hopeless) log(`${KIN.name(wild)} is more than twice your snare strength (${grip}, four times your trainer level). No snare made will hold it. Beat it, or come back stronger.`, 'bad');
+    if (hopeless) log(`${KIN.name(wild)} is more than twice your snare strength (${grip}, twice your trainer level). No snare made will hold it. Beat it, or come back stronger.`, 'bad');
     else if (gap > 1.2) log(`${KIN.name(wild)} is far above your snare strength (${grip}). It will fight the cage hard.`, 'bad');
     G.sfx('snare');
     requestAnimationFrame(snareFrame);
@@ -5303,8 +5329,8 @@ const QUESTS = [
   { id: 'moonfree', title: 'Under the Dome', desc: 'Every alien town on the Moon has a tyrant in its square, the same as on Earth. Free one and its people will open the dome to you and keep your Kin fed.', hint: 'Free a village on the Moon', check: G => Object.values(G.villageState || {}).some(st => st.freed && st.meta && st.meta.world === 'moon') ? 1 : 0, reward: { xp: 800 } },
   { id: 'halojobs', title: 'Caravan Work', desc: 'The caravan people on Halo pay well and talk even better. Three jobs for them and someone will mention the Ringwarden on the high mesa.', hint: 'Do 3 jobs for people on Halo', check: G => ((G.stats.jobsBy || {}).halo || 0) / 3, reward: { xp: 900, items: { snare2: 3 } } },
   { id: 'wings', title: 'Wings', desc: 'Ring shards fall out of the sky on Halo (mind your head). Three of them with amber, sulfur and cloudstone make Halo Wings: jump in the air to open them.', hint: 'Craft Halo Wings (3 ring shard, 6 amber, 4 sulfur, 4 cloud)', check: G => (G.player.has('wings') || (G.stats.crafted.wings || 0) > 0) ? 1 : 0, reward: { xp: 900 } },
-  { id: 'abyss', title: 'Abyssaurus', desc: 'Something circles the deep water outside the Lost World cliffs, level 850, and comes up for air now and then. A water mount helps.', hint: 'Beat or cage Abyssaurus in the sea by the Lost World', check: G => (G.stats.apex || {}).mosa ? 1 : 0, reward: { xp: 5000 } },
-  { id: 'rex', title: 'The Tyrant', desc: 'In the clearing at the middle of the Lost World stands Tyrannorex, level 1000. Beating it is not enough: it limps off and comes back in about ten days. Cage it. Your snare strength is four times your trainer level, and nothing above twice that will stay caged: you need trainer level 125 to have any chance, and more like 200 for real odds.', hint: 'Cage Tyrannorex in the Lost World', check: G => (G.stats.apex || {}).rex === true ? 1 : 0, reward: { xp: 5000 } },
+  { id: 'abyss', title: 'Abyssaurus', desc: 'Something circles the deep water outside the Lost World cliffs, level 160, and comes up for air now and then. A water mount helps.', hint: 'Beat or cage Abyssaurus in the sea by the Lost World', check: G => (G.stats.apex || {}).mosa ? 1 : 0, reward: { xp: 5000 } },
+  { id: 'rex', title: 'The Tyrant', desc: 'In the clearing at the middle of the Lost World stands Tyrannorex, level 170. Beating it is not enough: it limps off and comes back in about ten days. Cage it. Your snare strength is twice your trainer level, and nothing above twice that will stay caged: you need trainer level 43 to have any chance, and more like 70 for real odds.', hint: 'Cage Tyrannorex in the Lost World', check: G => (G.stats.apex || {}).rex === true ? 1 : 0, reward: { xp: 5000 } },
   { id: 'legend', title: 'Legend', desc: 'With the Tyrannorex in your bag, the old ones notice. Every world beyond Earth has one creature at a level even it does not reach: the Selenaut over the Moon, the Ringwarden on Halo. ✶ on the map. Beat or cage one and the portal arches reach across the sky.', hint: 'Beat or cage a world\'s legendary (✶ on the map)', check: G => Object.keys(G.stats.legends || {}).length ? 1 : 0, reward: { xp: 2000 } },
 ];
 
@@ -8287,7 +8313,7 @@ G.save = function () {
   if (!this.running || !this.world) return false;
   try {
     const data = {
-      v: 2, seed: this.baseSeed, worldId: this.worldId, worlds: Object.assign({}, this.worlds, { [this.worldId]: this.captureWorldState() }), player: this.player.serialize(), kin: this.kin.map(KIN.serialize), activeIdx: this.activeIdx, xp: this.xp,
+      v: 2, kinV: 2, seed: this.baseSeed, worldId: this.worldId, worlds: Object.assign({}, this.worlds, { [this.worldId]: this.captureWorldState() }), player: this.player.serialize(), kin: this.kin.map(KIN.serialize), activeIdx: this.activeIdx, xp: this.xp,
       stats: this.stats, questState: this.questState, edits: this.world.serializeEdits(), mythicCaught: this.mythicCaught, shards: this.shards, village: this.village, secure: this.secure, respawnPoint: this.respawnPoint, weather: Weather.serialize(),
       villageState: this.villageState, lastVillage: this.lastVillage, fisherSpot: this.fisherSpot, fisherTarget: this.fisherTarget, founded: this.founded, dayCount: this.dayCount, poiState: this.poiState || {}, pin: this.pin || null, chests: this.chests || {}, npcState: this.npcState || {}, labState: this.labState || {}, skin: this.skin || 'ranger', thirdPerson: !!this.thirdPerson, regrow: (this.world.regrow || []).map(r => ({ x: r.x, y: r.y, z: r.z, t: 0, leaf: !!r.leaf, id: r.id })),
       statues: [...this.world.statues.values()].map(o => { const c = Object.assign({}, o); delete c.model; delete c.mesh; return c; }),
@@ -8319,6 +8345,13 @@ G.load = function () {
   Weather.load(data.weather);
   this.kin = (data.kin || []).map(KIN.deserialize); this.activeIdx = data.activeIdx || 0;
   this.player.load(data.player);
+  if (data.kinV !== 2) { // the Kindex arrived: the old one-of-a-kind Kin are let go, everywhere; a fresh starter takes their place
+    this.kin = []; this.activeIdx = 0;
+    for (const id in (this.villageState || {})) if (this.villageState[id].guards) this.villageState[id].guards = [];
+    for (const id in (this.labState || {})) { this.labState[id].kin = []; this.labState[id].days = []; }
+    const st = KIN.create(KIN.starters(this.baseSeed)[0], 5); this.kin.push(st);
+    setTimeout(() => UI.toast(`The Kin have changed. Every Kin now belongs to a species you can find again, and your old ones have gone back to the wild. ${KIN.name(st)} is with you.`, 'good'), 1500);
+  }
   Quests.init(this);
   return true;
 };
