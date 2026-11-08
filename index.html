@@ -644,7 +644,7 @@ const B = {
   TORCH: 18, FUSION: 19, GRAVEL: 20, CACTUS: 21, STARMETAL: 22, MOSS: 23, STATUE: 24, PLANKS: 25, BERRY: 26, GLASS: 27, CAMPFIRE: 28, IRONWALL: 29, VOIDWALL: 30, GLOWWORM: 31, BERRYLEAF: 32, DOOR: 33, DOOR_OPEN: 34, PORTAL: 35,
   CHEST: 36, SELENITE: 37, TYCHO: 38, STARSALT: 39, MOONGLOW: 40, AMBER: 41, SULFUR: 42, RINGSHARD: 43, BRINE: 44, CORAL_R: 45, CORAL_B: 46, CORAL_Y: 47, PEARLCORAL: 48, GOLD: 49, DIAMOND: 50, FERN: 51, SELGLASS: 52, INCUBATOR: 53, REGOLITH: 54, DUNE: 55, SALTCRUST: 56, LADDER: 57, TARGET: 58, BALLOON: 59, FORTSTONE: 60, THORN: 61, DEADGATE: 62, RUBBLE: 63, DARKTABLE: 64,
   NEEDLES: 65, FROND: 66, BIRCHLOG: 67, BOULDER: 68, MUSHROOM: 69, FLOWERS: 70, PEBBLES: 71, PALMLOG: 72,
-  TILES: 73, SLATE: 74, THATCH: 75, PLASTER: 76, BEAM: 77, LAMP: 78, COBBLE: 79, FLOWERBOX: 80, PALISADE: 81, MASONRY: 82, FOUNTAIN: 83, BASIN: 84, AWNING: 85, BANNER: 86, SLIT: 87
+  TILES: 73, SLATE: 74, THATCH: 75, PLASTER: 76, BEAM: 77, LAMP: 78, COBBLE: 79, FLOWERBOX: 80, PALISADE: 81, MASONRY: 82, FOUNTAIN: 83, BASIN: 84, AWNING: 85, BANNER: 86, SLIT: 87, TIPI: 88, HIDE: 89, LODGE: 90, FENCE: 91, FIREPIT: 92, TOTEM: 93
 };
 
 // name, top colour, side colour, solid, hardness (seconds to mine), drop item id, emissive, fluid
@@ -741,6 +741,12 @@ defBlock(B.BASIN, 'Fountain Basin', '#9aa0a8', '#8a9098', { hard: Infinity, part
 defBlock(B.AWNING, 'Awning', '#d04a4a', '#e8e0d0', { hard: 0.3, drop: 'planks', partial: true, transparent: true });
 defBlock(B.BANNER, 'Banner', '#b8303a', '#8a2030', { solid: false, hard: 0.2, drop: 'planks', partial: true, transparent: true });
 defBlock(B.SLIT, 'Arrow Slit', '#aaa59b', '#9e9990', { hard: 1.0, drop: 'stone' }); // dressed stone with a slit cut in it
+defBlock(B.TIPI, 'Tipi', '#c8a878', '#b89868', { solid: false, hard: Infinity, partial: true, transparent: true }); // the centre of a tipi: the block draws the whole tent
+defBlock(B.LODGE, 'Lodge', '#c8a878', '#b89868', { solid: false, hard: Infinity, partial: true, transparent: true }); // the chief's lodge: a big tipi
+defBlock(B.HIDE, 'Hide Wall', '#c8a878', '#b89868', { hard: Infinity, partial: true, transparent: true }); // a tipi's footprint: solid to walk against, drawn by the tipi
+defBlock(B.FENCE, 'Rail Fence', '#a07a44', '#75522c', { hard: 0.5, drop: 'wood', partial: true, transparent: true });
+defBlock(B.FIREPIT, 'Fire Pit', '#ff9a3a', '#6a6a70', { solid: false, hard: Infinity, emissive: true, partial: true, transparent: true });
+defBlock(B.TOTEM, 'Totem', '#a07a44', '#75522c', { hard: Infinity, partial: true, transparent: true });
 defBlock(B.FLOWERBOX, 'Flower Box', '#d04a5a', '#6a4a2c', { solid: false, hard: 0.2, drop: 'frond', partial: true, transparent: true }); // the mesher draws a whole palm from the lowest trunk block: a curved trunk, a crown of fronds, coconuts
 defBlock(B.BOULDER, 'Boulder', '#8e9197', '#86898f', { hard: 0.9, drop: 'stone', partial: true, transparent: true });
 defBlock(B.MUSHROOM, 'Mushroom', '#c84a3a', '#e8dcc8', { solid: false, hard: 0.1, drop: 'berry', partial: true, transparent: true });
@@ -748,9 +754,9 @@ defBlock(B.FLOWERS, 'Wildflowers', '#e8d040', '#4f9c3f', { solid: false, hard: 0
 defBlock(B.PEBBLES, 'Pebbles', '#8e9197', '#86898f', { solid: false, hard: 0.2, drop: 'stone', partial: true, transparent: true });
 
 // blocks that light their surroundings, and how far
-const LIGHT_R = { [B.TORCH]: 10, [B.CAMPFIRE]: 14, [B.MOONGLOW]: 12, [B.RINGSHARD]: 10, [B.PEARLCORAL]: 8, [B.INCUBATOR]: 9, [B.LAMP]: 12 };
+const LIGHT_R = { [B.TORCH]: 10, [B.CAMPFIRE]: 14, [B.FIREPIT]: 13, [B.MOONGLOW]: 12, [B.RINGSHARD]: 10, [B.PEARLCORAL]: 8, [B.INCUBATOR]: 9, [B.LAMP]: 12 };
 // blocks the sky light passes through when working out how deep a column is
-const SKY_CLEAR = { [B.LAMP]: 1, [B.FLOWERBOX]: 1, [B.BANNER]: 1, [B.BASIN]: 1, [B.FOUNTAIN]: 1, [B.FROND]: 1, [B.MUSHROOM]: 1, [B.FLOWERS]: 1, [B.PEBBLES]: 1, [B.LADDER]: 1, [B.TORCH]: 1, [B.GLASS]: 1, [B.SELGLASS]: 1, [B.CAMPFIRE]: 1, [B.MOONGLOW]: 1, [B.GLOWWORM]: 1, [B.FERN]: 1, [B.PORTAL]: 1, [B.BERRY]: 1, [B.RINGSHARD]: 1 };
+const SKY_CLEAR = { [B.LAMP]: 1, [B.FLOWERBOX]: 1, [B.BANNER]: 1, [B.BASIN]: 1, [B.FOUNTAIN]: 1, [B.TIPI]: 1, [B.LODGE]: 1, [B.HIDE]: 1, [B.FENCE]: 1, [B.FIREPIT]: 1, [B.TOTEM]: 1, [B.FROND]: 1, [B.MUSHROOM]: 1, [B.FLOWERS]: 1, [B.PEBBLES]: 1, [B.LADDER]: 1, [B.TORCH]: 1, [B.GLASS]: 1, [B.SELGLASS]: 1, [B.CAMPFIRE]: 1, [B.MOONGLOW]: 1, [B.GLOWWORM]: 1, [B.FERN]: 1, [B.PORTAL]: 1, [B.BERRY]: 1, [B.RINGSHARD]: 1 };
 const isSolid = (id) => BLOCKS[id].solid;
 const isLeaf = (id) => id === B.LEAVES || id === B.BERRYLEAF || id === B.NEEDLES;
 const isTrunk = (id) => id === B.LOG || id === B.BIRCHLOG || id === B.PALMLOG;
@@ -2197,7 +2203,52 @@ const R = (() => {
           if (!isOpaque(get(lx, y - 1, lz))) face([[lx, y, lz], [lx + 1, y, lz], [lx + 1, y, lz + 1], [lx, y, lz + 1]], under, 6, [0, -1, 0]);
           continue;
         }
-        if (id === B.BASIN) continue; // drawn by its fountain
+        if (id === B.BASIN || id === B.HIDE) continue; // drawn by its fountain or tipi
+        if (id === B.TIPI || id === B.LODGE) { // a tipi: a cone of painted hide round a ring of poles that cross above the smoke hole, the door flap toward the fire
+          const big = id === B.LODGE; const sk = skyAt(lx, y + 2, lz); const cx = lx + 0.5, cz = lz + 0.5; const R0 = big ? 2.55 : 1.62, Hh = big ? 5.2 : 3.7;
+          let door = null; const ringR = big ? 2 : 1; for (const [a, b] of [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, -1], [1, -1], [-1, 1]]) if (get(lx + a * ringR, y, lz + b * ringR) !== B.HIDE) { door = Math.atan2(b, a); break; } if (door == null) door = 0.4;
+          const h0 = U.hash3(wx, y, wz, 170), h1 = U.hash3(wx, y, wz, 171); const hide = [0.88, 0.74, 0.52], paint = [[0.72, 0.2, 0.16], [0.16, 0.14, 0.12], [0.2, 0.36, 0.62], [0.9, 0.78, 0.3]][Math.floor(h0 * 4)], paint2 = h1 < 0.5 ? [0.16, 0.14, 0.12] : [0.72, 0.2, 0.16];
+          const N = 14;
+          const cpath = [], crad = []; for (let i = 0; i <= 10; i++) { const t = i / 10; cpath.push([cx, y - 0.05 + (Hh + 0.05) * t, cz]); crad.push(R0 + (0.3 - R0) * (t * 0.92 + t * t * 0.08)); } // the cone, in rings so the paint can follow it
+          op.tube(cpath, crad, hide, { sky: sk, segs: N, cap0: 'none', cap1: 'none', shade: (p, nx, ny, nz, t) => {
+            const ang = Math.atan2(p[2] - cz, p[0] - cx); let da = Math.abs(ang - door); if (da > Math.PI) da = 2 * Math.PI - da;
+            if (t < 0.4 && da < 0.3 * (1 - t / 0.4) + 0.06) return [0.12, 0.09, 0.06]; // the doorway, a dark triangle
+            const seg = Math.floor((ang / 6.2832 + 1) * N * 2) % 2; const band = (t > 0.1 && t < 0.2) ? paint : (t > 0.26 && t < 0.3 && seg) ? paint2 : (t > 0.78) ? [0.3, 0.26, 0.22] : null; // a painted band low down, a zigzag over it, smoke-darkened top
+            const weather = 0.92 + U.hash3(Math.floor(ang * 5), Math.floor(t * 9), wx + wz, 3) * 0.14; const c = band || hide; return [c[0] * weather, c[1] * weather, c[2] * weather]; } });
+          for (let k = 0; k < (big ? 9 : 7); k++) { const a = k / (big ? 9 : 7) * 6.2832 + h1; const bx = cx + Math.cos(a) * R0 * 0.98, bz = cz + Math.sin(a) * R0 * 0.98; const tx = cx - Math.cos(a) * 0.32, tz = cz - Math.sin(a) * 0.32; // poles lean in and cross past the apex
+            op.tube([[bx, y - 0.1, bz], [tx, y + Hh + 0.9 + U.hash3(k, wx, wz, 4) * 0.35, tz]], [0.05, 0.035], [0.46, 0.34, 0.2], { sky: sk, segs: 4, cap0: 'none', cap1: 'round' }); }
+          { const a = door + Math.PI; const fx = Math.cos(a), fz = Math.sin(a); const ax = cx + fx * 0.2, az = cz + fz * 0.2; // the smoke flaps, two ears at the top, turned from the door
+            for (const sgn of [-1, 1]) op.plate([[ax - fz * sgn * 0.1, y + Hh - 0.1, az + fx * sgn * 0.1], [ax - fz * sgn * 0.75 + fx * 0.2, y + Hh + 0.55, az + fx * sgn * 0.75 + fz * 0.2], [ax - fz * sgn * 0.35 + fx * 0.3, y + Hh - 0.45, az + fx * sgn * 0.35 + fz * 0.3]], 0.02, hide, { sky: sk, edge: [0.6, 0.48, 0.32] }); }
+          continue;
+        }
+        if (id === B.FENCE) { // a rail fence: a post, and two rails to each neighbouring fence or wall
+          const sk = skyAt(lx, y + 1, lz); const wood = [0.5, 0.36, 0.2], rail = [0.56, 0.42, 0.24]; const gy = gnd(lx, y, lz);
+          op.box(lx + 0.4, gy - 0.1, lz + 0.4, lx + 0.6, gy + 1.05, lz + 0.6, wood, sk, false); op.blob(lx + 0.38, gy + 1.0, lz + 0.38, lx + 0.62, gy + 1.14, lz + 0.62, 0.4, wood, { sky: sk, n: 1 });
+          for (const [a, b] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const nb = get(lx + a, y, lz + b); if (!(nb === B.FENCE || isOpaque(nb))) continue;
+            for (const ry of [0.38, 0.8]) { if (a) op.box(lx + 0.5 + Math.min(0, a * 0.5), gy + ry, lz + 0.44, lx + 0.5 + Math.max(0, a * 0.5), gy + ry + 0.1, lz + 0.56, rail, sk, false); else op.box(lx + 0.44, gy + ry, lz + 0.5 + Math.min(0, b * 0.5), lx + 0.56, gy + ry + 0.1, lz + 0.5 + Math.max(0, b * 0.5), rail, sk, false); } }
+          continue;
+        }
+        if (id === B.TOTEM) { // a carved pole: stacked faces in paint, a pair of wings near the top, feathers
+          const sk = skyAt(lx, y + 2, lz); const cx = lx + 0.5, cz = lz + 0.5; const wood = [0.48, 0.33, 0.18]; const h0 = U.hash3(wx, y, wz, 172);
+          const pal = [[0.72, 0.2, 0.16], [0.16, 0.14, 0.12], [0.2, 0.36, 0.62], [0.9, 0.78, 0.3], [0.92, 0.9, 0.84]];
+          op.tube([[cx, y - 0.1, cz], [cx, y + 2.6, cz]], [0.3, 0.26], wood, { sky: sk, segs: 10, cap0: 'none', cap1: 'flat', shade: (p, nx, ny, nz, t) => { const band = Math.floor(t * 7); const c = (band % 2) ? pal[(Math.floor(h0 * 5) + band) % 5] : wood; const k = 0.9 + U.hash3(band, Math.floor(Math.atan2(nz, nx) * 2), wx, 6) * 0.2; return [c[0] * k, c[1] * k, c[2] * k]; } });
+          let fd = [0, 1]; for (const [a, b] of [[0, 1], [0, -1], [1, 0], [-1, 0]]) { if (skyAt(lx + a, y + 1, lz + b) > 0.9 && !isOpaque(get(lx + a, y, lz + b))) { fd = [a, b]; break; } }
+          for (let f = 0; f < 3; f++) { const fy = y + 0.5 + f * 0.75; const fx = cx + fd[0] * 0.26, fz = cz + fd[1] * 0.26; const px = fd[1], pz = fd[0]; // faces turned to the open side: a brow, two eyes, a beak
+            op.blob(fx - px * 0.2 - fd[0] * 0.05, fy + 0.3, fz - pz * 0.2 - fd[1] * 0.05, fx + px * 0.2 + fd[0] * 0.08, fy + 0.4, fz + pz * 0.2 + fd[1] * 0.08, 0.5, pal[(f + 1) % 5], { sky: sk, n: 1 });
+            for (const sgn of [-1, 1]) op.ball(fx + px * sgn * 0.12, fy + 0.18, fz + pz * sgn * 0.12, 0.06, [0.95, 0.93, 0.88], { sky: sk, n: 1 });
+            op.tube([[fx, fy + 0.05, fz], [fx + fd[0] * 0.2, fy - 0.08, fz + fd[1] * 0.2]], [0.08, 0.02], pal[(f + 3) % 5], { sky: sk, segs: 4, cap0: 'none', cap1: 'none' }); }
+          for (const sgn of [-1, 1]) { const px = fd[1] * sgn, pz = fd[0] * sgn; op.plate([[cx + px * 0.25, y + 2.1, cz + pz * 0.25], [cx + px * 1.0, y + 2.55, cz + pz * 1.0], [cx + px * 0.95, y + 2.2, cz + pz * 0.95], [cx + px * 0.3, y + 1.85, cz + pz * 0.3]], 0.04, pal[2], { sky: sk, edge: [0.16, 0.14, 0.12] }); } // the wings
+          continue;
+        }
+        if (id === B.FIREPIT) { // the Indians' fire: a ring of stones, logs, orange flames and embers
+          const sk = skyAt(lx, y + 1, lz); const gy = gnd(lx, y, lz);
+          for (let k = 0; k < 9; k++) { const a = k / 9 * 6.283 + 0.2; const r = 0.46; const st = 0.1 + U.hash3(wx, y, wz, 30 + k) * 0.06; op.blob(lx + 0.5 + Math.cos(a) * r - st, gy - 0.02, lz + 0.5 + Math.sin(a) * r - st, lx + 0.5 + Math.cos(a) * r + st, gy + st * 1.5, lz + 0.5 + Math.sin(a) * r + st, 0.6, [0.42, 0.4, 0.42], { sky: sk, n: 2 }); }
+          for (let k = 0; k < 3; k++) { const a = k / 3 * 6.283 + 0.5; op.tube([[lx + 0.5 + Math.cos(a) * 0.36, gy + 0.08, lz + 0.5 + Math.sin(a) * 0.36], [lx + 0.5 - Math.cos(a) * 0.1, gy + 0.3, lz + 0.5 - Math.sin(a) * 0.1]], [0.07, 0.05], [0.25, 0.16, 0.08], { sky: sk, segs: 5, cap0: 'flat', cap1: 'round' }); }
+          op.blob(lx + 0.3, gy + 0.05, lz + 0.3, lx + 0.7, gy + 0.3, lz + 0.7, 0.9, [1.0, 0.45, 0.1], { emis: true, n: 2 }); // the embers
+          op.blob(lx + 0.3, gy + 0.2, lz + 0.3, lx + 0.7, gy + 0.95, lz + 0.7, 1, [1.0, 0.6, 0.15], { emis: true, n: 3, tap: [1, 0.2] });
+          op.blob(lx + 0.4, gy + 0.3, lz + 0.4, lx + 0.6, gy + 1.15, lz + 0.6, 1, [1.0, 0.9, 0.5], { emis: true, n: 2, tap: [1, 0.15] });
+          continue;
+        }
         if (id === B.FOUNTAIN) { // a city fountain: a round basin of dressed stone, water in it, a column with an upper bowl, a jet, and the water falling back
           const sk = skyAt(lx, y + 1, lz); const cx = lx + 0.5, cz = lz + 0.5; const stone = [0.6, 0.62, 0.66], dark = [0.46, 0.48, 0.52];
           const ring = (r, segs) => { const pts = []; for (let i = 0; i <= segs; i++) { const a = i / segs * 6.2832; pts.push([cx + Math.cos(a) * r, y, cz + Math.sin(a) * r]); } return pts; };
@@ -8925,35 +8976,36 @@ const Camps = (() => {
       else if (y === vy - 1) { if (!isSolid(b) || isLeaf(b) || isTrunk(b)) set(vx + dx, y, vz + dz, B.GRASS); }
       else if (b !== B.AIR) set(vx + dx, y, vz + dz, B.AIR);
     }
-    // the fire
-    for (let dx = -1; dx <= 1; dx++) for (let dz = -1; dz <= 1; dz++) set(vx + dx, vy - 1, vz + dz, B.STONE);
-    set(vx, vy, vz, B.TORCH); set(vx, vy - 1, vz, B.EMBER);
-    // six tents on a ring: hide walls (leaves), a log pole, an opening toward the fire
+    // the fire: a pit of stones on bare earth, logs round it to sit on
+    for (let dx = -2; dx <= 2; dx++) for (let dz = -2; dz <= 2; dz++) if (Math.hypot(dx, dz) < 2.3) set(vx + dx, vy - 1, vz + dz, B.DIRT);
+    set(vx, vy, vz, B.FIREPIT);
+    for (const [dx, dz] of [[-3, 0], [3, 0], [0, -3], [0, 3]]) set(vx + dx, vy, vz + dz, B.LOG);
+    // ten tipis on a ring, their doors toward the fire: the centre block draws the tent, a ring of hide blocks keeps you out of its walls
     for (let i = 0; i < 10; i++) {
       const a = i / 10 * Math.PI * 2 + 0.3; const tx = vx + Math.round(Math.cos(a) * 13), tz = vz + Math.round(Math.sin(a) * 13);
       const fx = Math.sign(vx - tx), fz = Math.sign(vz - tz);
-      for (let dx = -1; dx <= 1; dx++) for (let dz = -1; dz <= 1; dz++) { const wall = Math.abs(dx) === 1 || Math.abs(dz) === 1; for (let y = vy; y <= vy + 1; y++) set(tx + dx, y, tz + dz, wall ? B.LEAVES : B.AIR); set(tx + dx, vy + 2, tz + dz, B.LEAVES); }
-      set(tx, vy + 3, tz, B.LOG); set(tx + fx, vy, tz + fz, B.AIR); set(tx + fx, vy + 1, tz + fz, B.AIR);
+      for (let dx = -1; dx <= 1; dx++) for (let dz = -1; dz <= 1; dz++) { const wall = Math.abs(dx) === 1 || Math.abs(dz) === 1; set(tx + dx, vy, tz + dz, wall ? B.HIDE : B.TIPI); set(tx + dx, vy + 1, tz + dz, wall ? B.HIDE : B.AIR); for (let y = vy + 2; y <= vy + 5; y++) set(tx + dx, y, tz + dz, B.AIR); }
+      set(tx + fx, vy, tz + fz, B.AIR); set(tx + fx, vy + 1, tz + fz, B.AIR);
       c['tent' + i] = { x: tx, z: tz };
     }
     { const t = c['tent' + (c.seedN % 10)]; if (t) { set(t.x, vy, t.z, B.CHEST); c.pieceChest = { x: t.x, y: vy, z: t.z }; const pst = poi(c.id); if (!pst.pieceSet) { const ch = G.chestAt(t.x, vy, t.z, true); ch.items = { painted_piece: 1, berry: 3 }; pst.pieceSet = true; } } }
     // the weapon tent: the Indians always keep a store of plain arrows, spears and bows, refilled every night
     { const t = c['tent' + ((c.seedN + 5) % 10)]; if (t) { set(t.x, vy, t.z, B.CHEST); c.armsChest = { x: t.x, y: vy, z: t.z }; const ast = poi(c.id); if (!ast.armsSet) { const ch = G.chestAt(t.x, vy, t.z, true); ch.items = stockArms(c, 0); ch.arms = true; ast.armsSet = true; } } }
-    // the chief's hut, north of the fire: plank walls, a totem at the door, the hoard at the back
-    const hx = vx, hz = vz - 6;
-    for (let dx = -2; dx <= 2; dx++) for (let dz = -2; dz <= 2; dz++) { set(hx + dx, vy - 1, hz + dz, B.PLANKS); const wall = Math.abs(dx) === 2 || Math.abs(dz) === 2; for (let y = vy; y <= vy + 2; y++) set(hx + dx, y, hz + dz, wall ? B.PLANKS : B.AIR); set(hx + dx, vy + 3, hz + dz, B.LOG); }
+    // the chief's lodge, north of the fire: a great tipi, totems either side of its door, the hoard at the back
+    const hx = vx, hz = vz - 7;
+    for (let dx = -2; dx <= 2; dx++) for (let dz = -2; dz <= 2; dz++) { const wall = Math.abs(dx) === 2 || Math.abs(dz) === 2; set(hx + dx, vy, hz + dz, wall ? B.HIDE : (dx === 0 && dz === 0) ? B.LODGE : B.AIR); set(hx + dx, vy + 1, hz + dz, wall ? B.HIDE : B.AIR); for (let y = vy + 2; y <= vy + 7; y++) set(hx + dx, y, hz + dz, B.AIR); }
     set(hx, vy, hz + 2, B.AIR); set(hx, vy + 1, hz + 2, B.AIR); // door toward the fire
-    set(hx - 3, vy, hz + 3, B.LOG); set(hx - 3, vy + 1, hz + 3, B.LOG); set(hx - 3, vy + 2, hz + 3, B.TORCH); set(hx + 3, vy, hz + 3, B.LOG); set(hx + 3, vy + 1, hz + 3, B.LOG); set(hx + 3, vy + 2, hz + 3, B.TORCH); // totems
+    set(hx - 3, vy, hz + 3, B.TOTEM); set(hx + 3, vy, hz + 3, B.TOTEM); set(hx - 3, vy + 1, hz + 3, B.AIR); set(hx + 3, vy + 1, hz + 3, B.AIR); set(hx - 3, vy + 2, hz + 3, B.AIR); set(hx + 3, vy + 2, hz + 3, B.AIR); // totems
     set(hx, vy, hz - 1, B.CHEST); c.chest = { x: hx, y: vy, z: hz - 1 };
     const st = poi(c.id);
     if (!st.looted) { const ch = G.chestAt(hx, vy, hz - 1, true); const r = U.rng(c.seedN ^ 0x60); ch.items = { gold: 5 + r.int(4), diamond: r.int(2) }; ch.treasure = true; st.looted = true; st.refillDay = G.dayCount || 0; }
     // the corral, east: fence posts round a patch of gravel, the Duststrider inside
     const kx = vx + 6, kz = vz + 7;
-    for (let dx = -3; dx <= 3; dx++) for (let dz = -3; dz <= 3; dz++) { set(kx + dx, vy - 1, kz + dz, B.GRAVEL); if ((Math.abs(dx) === 3 || Math.abs(dz) === 3) && (dx + dz) % 2 === 0) set(kx + dx, vy, kz + dz, B.LOG); }
+    for (let dx = -3; dx <= 3; dx++) for (let dz = -3; dz <= 3; dz++) { set(kx + dx, vy - 1, kz + dz, B.GRAVEL); if ((Math.abs(dx) === 3 || Math.abs(dz) === 3) && !(dz === -3 && Math.abs(dx) <= 1)) set(kx + dx, vy, kz + dz, B.FENCE); } // a rail fence with a gap toward the camp
     c.corral = { x: kx, z: kz };
     // the horse paddock, west: grass inside a ring of posts, where the camp keeps its Windmanes
     const qx = vx - 9, qz = vz + 4;
-    for (let dx = -3; dx <= 3; dx++) for (let dz = -3; dz <= 3; dz++) { set(qx + dx, vy - 1, qz + dz, B.GRASS); if ((Math.abs(dx) === 3 || Math.abs(dz) === 3) && (dx + dz) % 2 === 0) set(qx + dx, vy, qz + dz, B.LOG); }
+    for (let dx = -3; dx <= 3; dx++) for (let dz = -3; dz <= 3; dz++) { set(qx + dx, vy - 1, qz + dz, B.GRASS); if ((Math.abs(dx) === 3 || Math.abs(dz) === 3) && !(dx === 3 && Math.abs(dz) <= 1)) set(qx + dx, vy, qz + dz, B.FENCE); }
     c.paddock = { x: qx, z: qz };
   }
   function warriorSpecies(i, seedN) {
@@ -9006,7 +9058,7 @@ const Camps = (() => {
     if (!lent) return; const { horse } = lent; lent = null; horse.out = false; horse.x = horse.hx; horse.z = horse.hz;
     UI.toast('The Windmane wheels round and gallops back to its camp. Gone.');
   }
-  function standY(x, y, z) { const bx = Math.floor(x), bz = Math.floor(z); for (const dy of [0, 1, -1, 2, -2]) { const yy = Math.floor(y) + dy; const b0 = world.getBlock(bx, yy, bz), b1 = world.getBlock(bx, yy + 1, bz), below = world.getBlock(bx, yy - 1, bz); if ((b0 === B.AIR || BLOCKS[b0].partial) && b1 === B.AIR && isSolid(below) && !isLeaf(below)) return yy; } return null; }
+  function standY(x, y, z) { const bx = Math.floor(x), bz = Math.floor(z); for (const dy of [0, 1, -1, 2, -2]) { const yy = Math.floor(y) + dy; const b0 = world.getBlock(bx, yy, bz), b1 = world.getBlock(bx, yy + 1, bz), below = world.getBlock(bx, yy - 1, bz); if ((b0 === B.AIR || (BLOCKS[b0].partial && !BLOCKS[b0].solid)) && (b1 === B.AIR || (BLOCKS[b1].partial && !BLOCKS[b1].solid)) && isSolid(below) && !isLeaf(below)) return yy; } return null; }
   const isNight = () => Math.cos(world.time * Math.PI * 2) > 0.17;
   function frame(c, px, pz) { const sx = Math.round((px - c.x) / WORLD_W) * WORLD_W, sz = Math.round((pz - c.z) / WORLD_W) * WORLD_W; if (!sx && !sz) return; c.x += sx; c.z += sz; for (const w of c.warriors) { w.x += sx; w.z += sz; } if (c.strider) { c.strider.x += sx; c.strider.z += sz; } for (const h of c.horses || []) { h.x += sx; h.z += sz; h.hx += sx; h.hz += sz; } if (c.corral) { c.corral.x += sx; c.corral.z += sz; } if (c.chest) { c.chest.x += sx; c.chest.z += sz; } for (let i = 0; i < 6; i++) if (c['tent' + i]) { c['tent' + i].x += sx; c['tent' + i].z += sz; } }
   // ---- per frame ----

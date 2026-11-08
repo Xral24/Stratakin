@@ -803,7 +803,52 @@ const R = (() => {
           if (!isOpaque(get(lx, y - 1, lz))) face([[lx, y, lz], [lx + 1, y, lz], [lx + 1, y, lz + 1], [lx, y, lz + 1]], under, 6, [0, -1, 0]);
           continue;
         }
-        if (id === B.BASIN) continue; // drawn by its fountain
+        if (id === B.BASIN || id === B.HIDE) continue; // drawn by its fountain or tipi
+        if (id === B.TIPI || id === B.LODGE) { // a tipi: a cone of painted hide round a ring of poles that cross above the smoke hole, the door flap toward the fire
+          const big = id === B.LODGE; const sk = skyAt(lx, y + 2, lz); const cx = lx + 0.5, cz = lz + 0.5; const R0 = big ? 2.55 : 1.62, Hh = big ? 5.2 : 3.7;
+          let door = null; const ringR = big ? 2 : 1; for (const [a, b] of [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, -1], [1, -1], [-1, 1]]) if (get(lx + a * ringR, y, lz + b * ringR) !== B.HIDE) { door = Math.atan2(b, a); break; } if (door == null) door = 0.4;
+          const h0 = U.hash3(wx, y, wz, 170), h1 = U.hash3(wx, y, wz, 171); const hide = [0.88, 0.74, 0.52], paint = [[0.72, 0.2, 0.16], [0.16, 0.14, 0.12], [0.2, 0.36, 0.62], [0.9, 0.78, 0.3]][Math.floor(h0 * 4)], paint2 = h1 < 0.5 ? [0.16, 0.14, 0.12] : [0.72, 0.2, 0.16];
+          const N = 14;
+          const cpath = [], crad = []; for (let i = 0; i <= 10; i++) { const t = i / 10; cpath.push([cx, y - 0.05 + (Hh + 0.05) * t, cz]); crad.push(R0 + (0.3 - R0) * (t * 0.92 + t * t * 0.08)); } // the cone, in rings so the paint can follow it
+          op.tube(cpath, crad, hide, { sky: sk, segs: N, cap0: 'none', cap1: 'none', shade: (p, nx, ny, nz, t) => {
+            const ang = Math.atan2(p[2] - cz, p[0] - cx); let da = Math.abs(ang - door); if (da > Math.PI) da = 2 * Math.PI - da;
+            if (t < 0.4 && da < 0.3 * (1 - t / 0.4) + 0.06) return [0.12, 0.09, 0.06]; // the doorway, a dark triangle
+            const seg = Math.floor((ang / 6.2832 + 1) * N * 2) % 2; const band = (t > 0.1 && t < 0.2) ? paint : (t > 0.26 && t < 0.3 && seg) ? paint2 : (t > 0.78) ? [0.3, 0.26, 0.22] : null; // a painted band low down, a zigzag over it, smoke-darkened top
+            const weather = 0.92 + U.hash3(Math.floor(ang * 5), Math.floor(t * 9), wx + wz, 3) * 0.14; const c = band || hide; return [c[0] * weather, c[1] * weather, c[2] * weather]; } });
+          for (let k = 0; k < (big ? 9 : 7); k++) { const a = k / (big ? 9 : 7) * 6.2832 + h1; const bx = cx + Math.cos(a) * R0 * 0.98, bz = cz + Math.sin(a) * R0 * 0.98; const tx = cx - Math.cos(a) * 0.32, tz = cz - Math.sin(a) * 0.32; // poles lean in and cross past the apex
+            op.tube([[bx, y - 0.1, bz], [tx, y + Hh + 0.9 + U.hash3(k, wx, wz, 4) * 0.35, tz]], [0.05, 0.035], [0.46, 0.34, 0.2], { sky: sk, segs: 4, cap0: 'none', cap1: 'round' }); }
+          { const a = door + Math.PI; const fx = Math.cos(a), fz = Math.sin(a); const ax = cx + fx * 0.2, az = cz + fz * 0.2; // the smoke flaps, two ears at the top, turned from the door
+            for (const sgn of [-1, 1]) op.plate([[ax - fz * sgn * 0.1, y + Hh - 0.1, az + fx * sgn * 0.1], [ax - fz * sgn * 0.75 + fx * 0.2, y + Hh + 0.55, az + fx * sgn * 0.75 + fz * 0.2], [ax - fz * sgn * 0.35 + fx * 0.3, y + Hh - 0.45, az + fx * sgn * 0.35 + fz * 0.3]], 0.02, hide, { sky: sk, edge: [0.6, 0.48, 0.32] }); }
+          continue;
+        }
+        if (id === B.FENCE) { // a rail fence: a post, and two rails to each neighbouring fence or wall
+          const sk = skyAt(lx, y + 1, lz); const wood = [0.5, 0.36, 0.2], rail = [0.56, 0.42, 0.24]; const gy = gnd(lx, y, lz);
+          op.box(lx + 0.4, gy - 0.1, lz + 0.4, lx + 0.6, gy + 1.05, lz + 0.6, wood, sk, false); op.blob(lx + 0.38, gy + 1.0, lz + 0.38, lx + 0.62, gy + 1.14, lz + 0.62, 0.4, wood, { sky: sk, n: 1 });
+          for (const [a, b] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const nb = get(lx + a, y, lz + b); if (!(nb === B.FENCE || isOpaque(nb))) continue;
+            for (const ry of [0.38, 0.8]) { if (a) op.box(lx + 0.5 + Math.min(0, a * 0.5), gy + ry, lz + 0.44, lx + 0.5 + Math.max(0, a * 0.5), gy + ry + 0.1, lz + 0.56, rail, sk, false); else op.box(lx + 0.44, gy + ry, lz + 0.5 + Math.min(0, b * 0.5), lx + 0.56, gy + ry + 0.1, lz + 0.5 + Math.max(0, b * 0.5), rail, sk, false); } }
+          continue;
+        }
+        if (id === B.TOTEM) { // a carved pole: stacked faces in paint, a pair of wings near the top, feathers
+          const sk = skyAt(lx, y + 2, lz); const cx = lx + 0.5, cz = lz + 0.5; const wood = [0.48, 0.33, 0.18]; const h0 = U.hash3(wx, y, wz, 172);
+          const pal = [[0.72, 0.2, 0.16], [0.16, 0.14, 0.12], [0.2, 0.36, 0.62], [0.9, 0.78, 0.3], [0.92, 0.9, 0.84]];
+          op.tube([[cx, y - 0.1, cz], [cx, y + 2.6, cz]], [0.3, 0.26], wood, { sky: sk, segs: 10, cap0: 'none', cap1: 'flat', shade: (p, nx, ny, nz, t) => { const band = Math.floor(t * 7); const c = (band % 2) ? pal[(Math.floor(h0 * 5) + band) % 5] : wood; const k = 0.9 + U.hash3(band, Math.floor(Math.atan2(nz, nx) * 2), wx, 6) * 0.2; return [c[0] * k, c[1] * k, c[2] * k]; } });
+          let fd = [0, 1]; for (const [a, b] of [[0, 1], [0, -1], [1, 0], [-1, 0]]) { if (skyAt(lx + a, y + 1, lz + b) > 0.9 && !isOpaque(get(lx + a, y, lz + b))) { fd = [a, b]; break; } }
+          for (let f = 0; f < 3; f++) { const fy = y + 0.5 + f * 0.75; const fx = cx + fd[0] * 0.26, fz = cz + fd[1] * 0.26; const px = fd[1], pz = fd[0]; // faces turned to the open side: a brow, two eyes, a beak
+            op.blob(fx - px * 0.2 - fd[0] * 0.05, fy + 0.3, fz - pz * 0.2 - fd[1] * 0.05, fx + px * 0.2 + fd[0] * 0.08, fy + 0.4, fz + pz * 0.2 + fd[1] * 0.08, 0.5, pal[(f + 1) % 5], { sky: sk, n: 1 });
+            for (const sgn of [-1, 1]) op.ball(fx + px * sgn * 0.12, fy + 0.18, fz + pz * sgn * 0.12, 0.06, [0.95, 0.93, 0.88], { sky: sk, n: 1 });
+            op.tube([[fx, fy + 0.05, fz], [fx + fd[0] * 0.2, fy - 0.08, fz + fd[1] * 0.2]], [0.08, 0.02], pal[(f + 3) % 5], { sky: sk, segs: 4, cap0: 'none', cap1: 'none' }); }
+          for (const sgn of [-1, 1]) { const px = fd[1] * sgn, pz = fd[0] * sgn; op.plate([[cx + px * 0.25, y + 2.1, cz + pz * 0.25], [cx + px * 1.0, y + 2.55, cz + pz * 1.0], [cx + px * 0.95, y + 2.2, cz + pz * 0.95], [cx + px * 0.3, y + 1.85, cz + pz * 0.3]], 0.04, pal[2], { sky: sk, edge: [0.16, 0.14, 0.12] }); } // the wings
+          continue;
+        }
+        if (id === B.FIREPIT) { // the Indians' fire: a ring of stones, logs, orange flames and embers
+          const sk = skyAt(lx, y + 1, lz); const gy = gnd(lx, y, lz);
+          for (let k = 0; k < 9; k++) { const a = k / 9 * 6.283 + 0.2; const r = 0.46; const st = 0.1 + U.hash3(wx, y, wz, 30 + k) * 0.06; op.blob(lx + 0.5 + Math.cos(a) * r - st, gy - 0.02, lz + 0.5 + Math.sin(a) * r - st, lx + 0.5 + Math.cos(a) * r + st, gy + st * 1.5, lz + 0.5 + Math.sin(a) * r + st, 0.6, [0.42, 0.4, 0.42], { sky: sk, n: 2 }); }
+          for (let k = 0; k < 3; k++) { const a = k / 3 * 6.283 + 0.5; op.tube([[lx + 0.5 + Math.cos(a) * 0.36, gy + 0.08, lz + 0.5 + Math.sin(a) * 0.36], [lx + 0.5 - Math.cos(a) * 0.1, gy + 0.3, lz + 0.5 - Math.sin(a) * 0.1]], [0.07, 0.05], [0.25, 0.16, 0.08], { sky: sk, segs: 5, cap0: 'flat', cap1: 'round' }); }
+          op.blob(lx + 0.3, gy + 0.05, lz + 0.3, lx + 0.7, gy + 0.3, lz + 0.7, 0.9, [1.0, 0.45, 0.1], { emis: true, n: 2 }); // the embers
+          op.blob(lx + 0.3, gy + 0.2, lz + 0.3, lx + 0.7, gy + 0.95, lz + 0.7, 1, [1.0, 0.6, 0.15], { emis: true, n: 3, tap: [1, 0.2] });
+          op.blob(lx + 0.4, gy + 0.3, lz + 0.4, lx + 0.6, gy + 1.15, lz + 0.6, 1, [1.0, 0.9, 0.5], { emis: true, n: 2, tap: [1, 0.15] });
+          continue;
+        }
         if (id === B.FOUNTAIN) { // a city fountain: a round basin of dressed stone, water in it, a column with an upper bowl, a jet, and the water falling back
           const sk = skyAt(lx, y + 1, lz); const cx = lx + 0.5, cz = lz + 0.5; const stone = [0.6, 0.62, 0.66], dark = [0.46, 0.48, 0.52];
           const ring = (r, segs) => { const pts = []; for (let i = 0; i <= segs; i++) { const a = i / segs * 6.2832; pts.push([cx + Math.cos(a) * r, y, cz + Math.sin(a) * r]); } return pts; };

@@ -54,35 +54,36 @@ const Camps = (() => {
       else if (y === vy - 1) { if (!isSolid(b) || isLeaf(b) || isTrunk(b)) set(vx + dx, y, vz + dz, B.GRASS); }
       else if (b !== B.AIR) set(vx + dx, y, vz + dz, B.AIR);
     }
-    // the fire
-    for (let dx = -1; dx <= 1; dx++) for (let dz = -1; dz <= 1; dz++) set(vx + dx, vy - 1, vz + dz, B.STONE);
-    set(vx, vy, vz, B.TORCH); set(vx, vy - 1, vz, B.EMBER);
-    // six tents on a ring: hide walls (leaves), a log pole, an opening toward the fire
+    // the fire: a pit of stones on bare earth, logs round it to sit on
+    for (let dx = -2; dx <= 2; dx++) for (let dz = -2; dz <= 2; dz++) if (Math.hypot(dx, dz) < 2.3) set(vx + dx, vy - 1, vz + dz, B.DIRT);
+    set(vx, vy, vz, B.FIREPIT);
+    for (const [dx, dz] of [[-3, 0], [3, 0], [0, -3], [0, 3]]) set(vx + dx, vy, vz + dz, B.LOG);
+    // ten tipis on a ring, their doors toward the fire: the centre block draws the tent, a ring of hide blocks keeps you out of its walls
     for (let i = 0; i < 10; i++) {
       const a = i / 10 * Math.PI * 2 + 0.3; const tx = vx + Math.round(Math.cos(a) * 13), tz = vz + Math.round(Math.sin(a) * 13);
       const fx = Math.sign(vx - tx), fz = Math.sign(vz - tz);
-      for (let dx = -1; dx <= 1; dx++) for (let dz = -1; dz <= 1; dz++) { const wall = Math.abs(dx) === 1 || Math.abs(dz) === 1; for (let y = vy; y <= vy + 1; y++) set(tx + dx, y, tz + dz, wall ? B.LEAVES : B.AIR); set(tx + dx, vy + 2, tz + dz, B.LEAVES); }
-      set(tx, vy + 3, tz, B.LOG); set(tx + fx, vy, tz + fz, B.AIR); set(tx + fx, vy + 1, tz + fz, B.AIR);
+      for (let dx = -1; dx <= 1; dx++) for (let dz = -1; dz <= 1; dz++) { const wall = Math.abs(dx) === 1 || Math.abs(dz) === 1; set(tx + dx, vy, tz + dz, wall ? B.HIDE : B.TIPI); set(tx + dx, vy + 1, tz + dz, wall ? B.HIDE : B.AIR); for (let y = vy + 2; y <= vy + 5; y++) set(tx + dx, y, tz + dz, B.AIR); }
+      set(tx + fx, vy, tz + fz, B.AIR); set(tx + fx, vy + 1, tz + fz, B.AIR);
       c['tent' + i] = { x: tx, z: tz };
     }
     { const t = c['tent' + (c.seedN % 10)]; if (t) { set(t.x, vy, t.z, B.CHEST); c.pieceChest = { x: t.x, y: vy, z: t.z }; const pst = poi(c.id); if (!pst.pieceSet) { const ch = G.chestAt(t.x, vy, t.z, true); ch.items = { painted_piece: 1, berry: 3 }; pst.pieceSet = true; } } }
     // the weapon tent: the Indians always keep a store of plain arrows, spears and bows, refilled every night
     { const t = c['tent' + ((c.seedN + 5) % 10)]; if (t) { set(t.x, vy, t.z, B.CHEST); c.armsChest = { x: t.x, y: vy, z: t.z }; const ast = poi(c.id); if (!ast.armsSet) { const ch = G.chestAt(t.x, vy, t.z, true); ch.items = stockArms(c, 0); ch.arms = true; ast.armsSet = true; } } }
-    // the chief's hut, north of the fire: plank walls, a totem at the door, the hoard at the back
-    const hx = vx, hz = vz - 6;
-    for (let dx = -2; dx <= 2; dx++) for (let dz = -2; dz <= 2; dz++) { set(hx + dx, vy - 1, hz + dz, B.PLANKS); const wall = Math.abs(dx) === 2 || Math.abs(dz) === 2; for (let y = vy; y <= vy + 2; y++) set(hx + dx, y, hz + dz, wall ? B.PLANKS : B.AIR); set(hx + dx, vy + 3, hz + dz, B.LOG); }
+    // the chief's lodge, north of the fire: a great tipi, totems either side of its door, the hoard at the back
+    const hx = vx, hz = vz - 7;
+    for (let dx = -2; dx <= 2; dx++) for (let dz = -2; dz <= 2; dz++) { const wall = Math.abs(dx) === 2 || Math.abs(dz) === 2; set(hx + dx, vy, hz + dz, wall ? B.HIDE : (dx === 0 && dz === 0) ? B.LODGE : B.AIR); set(hx + dx, vy + 1, hz + dz, wall ? B.HIDE : B.AIR); for (let y = vy + 2; y <= vy + 7; y++) set(hx + dx, y, hz + dz, B.AIR); }
     set(hx, vy, hz + 2, B.AIR); set(hx, vy + 1, hz + 2, B.AIR); // door toward the fire
-    set(hx - 3, vy, hz + 3, B.LOG); set(hx - 3, vy + 1, hz + 3, B.LOG); set(hx - 3, vy + 2, hz + 3, B.TORCH); set(hx + 3, vy, hz + 3, B.LOG); set(hx + 3, vy + 1, hz + 3, B.LOG); set(hx + 3, vy + 2, hz + 3, B.TORCH); // totems
+    set(hx - 3, vy, hz + 3, B.TOTEM); set(hx + 3, vy, hz + 3, B.TOTEM); set(hx - 3, vy + 1, hz + 3, B.AIR); set(hx + 3, vy + 1, hz + 3, B.AIR); set(hx - 3, vy + 2, hz + 3, B.AIR); set(hx + 3, vy + 2, hz + 3, B.AIR); // totems
     set(hx, vy, hz - 1, B.CHEST); c.chest = { x: hx, y: vy, z: hz - 1 };
     const st = poi(c.id);
     if (!st.looted) { const ch = G.chestAt(hx, vy, hz - 1, true); const r = U.rng(c.seedN ^ 0x60); ch.items = { gold: 5 + r.int(4), diamond: r.int(2) }; ch.treasure = true; st.looted = true; st.refillDay = G.dayCount || 0; }
     // the corral, east: fence posts round a patch of gravel, the Duststrider inside
     const kx = vx + 6, kz = vz + 7;
-    for (let dx = -3; dx <= 3; dx++) for (let dz = -3; dz <= 3; dz++) { set(kx + dx, vy - 1, kz + dz, B.GRAVEL); if ((Math.abs(dx) === 3 || Math.abs(dz) === 3) && (dx + dz) % 2 === 0) set(kx + dx, vy, kz + dz, B.LOG); }
+    for (let dx = -3; dx <= 3; dx++) for (let dz = -3; dz <= 3; dz++) { set(kx + dx, vy - 1, kz + dz, B.GRAVEL); if ((Math.abs(dx) === 3 || Math.abs(dz) === 3) && !(dz === -3 && Math.abs(dx) <= 1)) set(kx + dx, vy, kz + dz, B.FENCE); } // a rail fence with a gap toward the camp
     c.corral = { x: kx, z: kz };
     // the horse paddock, west: grass inside a ring of posts, where the camp keeps its Windmanes
     const qx = vx - 9, qz = vz + 4;
-    for (let dx = -3; dx <= 3; dx++) for (let dz = -3; dz <= 3; dz++) { set(qx + dx, vy - 1, qz + dz, B.GRASS); if ((Math.abs(dx) === 3 || Math.abs(dz) === 3) && (dx + dz) % 2 === 0) set(qx + dx, vy, qz + dz, B.LOG); }
+    for (let dx = -3; dx <= 3; dx++) for (let dz = -3; dz <= 3; dz++) { set(qx + dx, vy - 1, qz + dz, B.GRASS); if ((Math.abs(dx) === 3 || Math.abs(dz) === 3) && !(dx === 3 && Math.abs(dz) <= 1)) set(qx + dx, vy, qz + dz, B.FENCE); }
     c.paddock = { x: qx, z: qz };
   }
   function warriorSpecies(i, seedN) {
@@ -135,7 +136,7 @@ const Camps = (() => {
     if (!lent) return; const { horse } = lent; lent = null; horse.out = false; horse.x = horse.hx; horse.z = horse.hz;
     UI.toast('The Windmane wheels round and gallops back to its camp. Gone.');
   }
-  function standY(x, y, z) { const bx = Math.floor(x), bz = Math.floor(z); for (const dy of [0, 1, -1, 2, -2]) { const yy = Math.floor(y) + dy; const b0 = world.getBlock(bx, yy, bz), b1 = world.getBlock(bx, yy + 1, bz), below = world.getBlock(bx, yy - 1, bz); if ((b0 === B.AIR || BLOCKS[b0].partial) && b1 === B.AIR && isSolid(below) && !isLeaf(below)) return yy; } return null; }
+  function standY(x, y, z) { const bx = Math.floor(x), bz = Math.floor(z); for (const dy of [0, 1, -1, 2, -2]) { const yy = Math.floor(y) + dy; const b0 = world.getBlock(bx, yy, bz), b1 = world.getBlock(bx, yy + 1, bz), below = world.getBlock(bx, yy - 1, bz); if ((b0 === B.AIR || (BLOCKS[b0].partial && !BLOCKS[b0].solid)) && (b1 === B.AIR || (BLOCKS[b1].partial && !BLOCKS[b1].solid)) && isSolid(below) && !isLeaf(below)) return yy; } return null; }
   const isNight = () => Math.cos(world.time * Math.PI * 2) > 0.17;
   function frame(c, px, pz) { const sx = Math.round((px - c.x) / WORLD_W) * WORLD_W, sz = Math.round((pz - c.z) / WORLD_W) * WORLD_W; if (!sx && !sz) return; c.x += sx; c.z += sz; for (const w of c.warriors) { w.x += sx; w.z += sz; } if (c.strider) { c.strider.x += sx; c.strider.z += sz; } for (const h of c.horses || []) { h.x += sx; h.z += sz; h.hx += sx; h.hz += sz; } if (c.corral) { c.corral.x += sx; c.corral.z += sz; } if (c.chest) { c.chest.x += sx; c.chest.z += sz; } for (let i = 0; i < 6; i++) if (c['tent' + i]) { c['tent' + i].x += sx; c['tent' + i].z += sz; } }
   // ---- per frame ----
