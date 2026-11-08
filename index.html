@@ -2552,6 +2552,7 @@ class Player {
     if (!hit || BLOCKS[hit.id].hard === Infinity) { this.mineTarget = null; this.mineProgress = 0; return null; }
     const key = hit.x + ',' + hit.y + ',' + hit.z;
     if (this.mineTarget !== key) { this.mineTarget = key; this.mineProgress = 0; }
+    if (typeof G !== 'undefined' && G.protectedAt) { const pr = G.protectedAt(hit); if (pr) { this.mineProgress = 0; this.mineTarget = null; this.cantMine = null; G.onProtectedMine(pr, hit); return null; } }
     const tm = this.toolMul(hit.id);
     if (tm <= 0) { this.mineProgress = 0; this.cantMine = hit.id; return null; }
     this.cantMine = null;
@@ -7285,7 +7286,7 @@ const Campaign = (() => {
   function talkable() { return people; }
   function entities() { return people.map(n => ({ x: n.x, y: n.y, z: n.z, yaw: n.yaw, model: n.model, mesh: n.mesh, scale: 1, hover: 0, skyMul: 1 })); }
   function onRogueTamed(k) { C().rogueTamed = true; C().ranch = 3; if (rogue) { Wild.remove(rogue); rogue = null; } }
-  return { removePerson: (id) => { const i = people.findIndex(n => n.id === id); if (i >= 0) people.splice(i, 1); return i; }, kinmasterSp: () => kinmasterSpecies(), spawnPerson: (...a) => person(...a), hasPerson: (id) => people.some(n => n.id === id), init, update, talk, fisherHook, tryGate, onBoss, target, talkable, entities, locked, give, sites, mapMarks, onRogueTamed, stampPosts, get rogue() { return rogue; }, C };
+  return { getPerson: (id) => people.find(n => n.id === id) || null, removePerson: (id) => { const i = people.findIndex(n => n.id === id); if (i >= 0) people.splice(i, 1); return i; }, kinmasterSp: () => kinmasterSpecies(), spawnPerson: (...a) => person(...a), hasPerson: (id) => people.some(n => n.id === id), init, update, talk, fisherHook, tryGate, onBoss, target, talkable, entities, locked, give, sites, mapMarks, onRogueTamed, stampPosts, get rogue() { return rogue; }, C };
 })();
 
 // ---------- taming: you press Ride on an unbroken Kin and it bucks; tap when it lands its weight ----------
@@ -10935,6 +10936,30 @@ G.giveLostMap = function (from) {
   this.stats.lostMap = true; UI.sfx('quest');
   Dialogue.show(from, ['Here. An old map, older than me. There is a ring of cliffs on the far side of the world with a jungle inside, and things in it that walked here before anything else did.', 'There is one way in, a tunnel through the rock. I have marked it. It is a long road; take a mount and plenty of tonics.'], () => UI.toast('The Lost World is on your map and your compass now: 🦖.', 'good'));
   return true;
+};
+// towns and farms are not yours to dig up: the first knock on a wall brings someone running
+G.protectedAt = function (hit) {
+  if (this.worldId !== 'earth') return null; const p = this.player;
+  const kind = p.toolKind(hit.id);
+  for (const f of Farms.sites()) if (Math.abs(hit.x - f.x) <= 13 && Math.abs(hit.z - f.z) <= 13) { if (hit.id === B.CHEST) return null; return { kind: 'farm', f }; }
+  const v = Village.active; if (v && v.type === 'land') { const R = (v.R || ((this.villageState[v.id] || {}).expanded ? 18 : 12)) + 3; if (Math.abs(hit.x - v.x) <= R && Math.abs(hit.z - v.z) <= R) { if (kind === 'hand') return null; return { kind: 'town', v }; } }
+  return null;
+};
+G.onProtectedMine = function (pr, hit) {
+  const now = performance.now(); if (this.protT && now - this.protT < 5000) return; this.protT = now;
+  const p = this.player; const fx = -Math.sin(p.yaw), fz = -Math.cos(p.yaw);
+  const bring = (n) => { if (!n) return; n.x = p.x - fx * 1.8; n.z = p.z - fz * 1.8; const gy = this.world.groundY(Math.floor(n.x), Math.floor(n.z), Math.floor(p.y) + 2); if (gy != null) n.y = gy + 1; n.yaw = Math.atan2(p.x - n.x, p.z - n.z); if (n.home) n.home = { x: n.x, z: n.z }; this.talkNpc = n; };
+  let who = null, lines;
+  if (pr.kind === 'farm') {
+    who = Campaign.getPerson('farmer_' + pr.f.id); bring(who);
+    lines = ['Oi! Not my fences, not my field, not my house. Put that down.', 'You want something from this farm, you ask me.'];
+  } else {
+    const v = pr.v; const st = this.villageState[v.id] || {}; const big = v.size === 'town' || v.size === 'city';
+    const npcs = (v.npcs || []).filter(n => !n.hidden && n.role !== 'keeper'); let best = null, bd = 1e9; for (const n of npcs) { if (!big && n !== v.elder) continue; const d = Math.hypot(n.x - p.x, n.z - p.z); if (d < bd) { bd = d; best = n; } }
+    who = best || v.elder || npcs[0]; bring(who);
+    lines = big ? [st.freed ? 'Hey! HEY. Hands off the walls. This is a town, not a quarry.' : 'Halt! What do you think you are doing to our walls?', 'Try that again and you will spend the night in the cells. Dig outside the gates if you must dig.'] : ['Whoa, whoa! What are you doing? Those are people\'s homes.', 'You want stone, there is a whole hillside out past the gate.'];
+  }
+  UI.sfx('miss'); Dialogue.show(who ? who.name : 'A voice behind you', lines);
 };
 // meals and the like: a buff runs on play time, not the clock on the wall
 G.addBuff = function (k, amt, mins) { if (!this.stats.buffs) this.stats.buffs = {}; this.stats.buffs[k] = { amt, until: (this.stats.playT || 0) + mins * 60 }; };
