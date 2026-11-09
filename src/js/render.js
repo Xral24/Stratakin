@@ -1500,6 +1500,41 @@ const R = (() => {
       }
     }
     gl.disable(gl.BLEND);
+    drawHeld(extras.held, cam, aspect, L, LR);
+  }
+  // ---------- what you hold, drawn in front of everything from your own eyes ----------
+  const m4rot = (rx, ry, rz) => { // the same order as MeshBuilder.rotate: yaw, then pitch, then roll
+    let m = U.m4identity();
+    if (ry) { const c = Math.cos(ry), sn = Math.sin(ry); const r = U.m4identity(); r[0] = c; r[2] = -sn; r[8] = sn; r[10] = c; m = U.m4mul(m, r); }
+    if (rx) { const c = Math.cos(rx), sn = Math.sin(rx); const r = U.m4identity(); r[5] = c; r[6] = sn; r[9] = -sn; r[10] = c; m = U.m4mul(m, r); }
+    if (rz) { const c = Math.cos(rz), sn = Math.sin(rz); const r = U.m4identity(); r[0] = c; r[1] = sn; r[4] = -sn; r[5] = c; m = U.m4mul(m, r); }
+    return m;
+  };
+  function drawHeld(h, cam, aspect, L, LR) {
+    if (!h || !h.mesh || !h.mesh.count || !eprog) return;
+    gl.clear(gl.DEPTH_BUFFER_BIT); // never clipped by a wall you stand against
+    const f = U.forwardVec(cam.yaw, cam.pitch); const r = [Math.cos(cam.yaw), 0, -Math.sin(cam.yaw)];
+    const u = [r[1] * f[2] - r[2] * f[1], r[2] * f[0] - r[0] * f[2], r[0] * f[1] - r[1] * f[0]];
+    const t = performance.now() / 1000; const tanH = Math.tan(cam.fov / 2);
+    const d = 0.66; const hx = d * tanH * aspect, hy = d * tanH; // the visible half-extents at the hand's distance
+    const sw = h.swing || 0, bump = h.bump || 0, drop = h.drop || 0, mv = h.moving || 0, blk = h.block || 0;
+    const bobX = Math.sin(h.bob) * 0.035 * mv, bobY = -Math.abs(Math.cos(h.bob)) * 0.03 * mv;
+    const idleY = Math.sin(t * 1.7) * 0.006, idleX = Math.cos(t * 1.1) * 0.004;
+    // where the fist sits: low right (low left for a shield), pulled up and across in a swing, lifted square in front when blocking
+    let px = (h.shieldy ? -0.55 : 0.6) * hx + bobX + idleX - sw * 0.16 * hx, py = -0.74 * hy + bobY + idleY - drop * 0.4 - bump * 0.03 + sw * 0.1 * hy, pz = d - bump * 0.04;
+    if (h.shieldy && blk) { px = -0.1 * hx; py = -0.3 * hy; pz = d - 0.1; }
+    const pos = [cam.x + r[0] * px + u[0] * py + f[0] * pz, cam.y + r[1] * px + u[1] * py + f[1] * pz, cam.z + r[2] * px + u[2] * py + f[2] * pz];
+    const base = new Float32Array([r[0], r[1], r[2], 0, u[0], u[1], u[2], 0, -f[0], -f[1], -f[2], 0, pos[0], pos[1], pos[2], 1]);
+    const local = m4rot(-sw * 1.3 - drop * 0.8 + (h.shieldy && blk ? 0.25 : 0), sw * 0.6 + (h.shieldy ? 0.35 : -0.25) + (h.shieldy && blk ? -0.6 : 0), sw * 0.35);
+    const S = U.m4identity(); S[0] = S[5] = S[10] = 0.36; // the hand and what is in it, at a size that leaves the view clear
+    const M = U.m4mul(U.m4mul(base, local), S);
+    setEntityUniforms(U.m4mul(U.m4perspective(cam.fov, aspect, 0.03, 60), U.m4view(cam.x, cam.y, cam.z, cam.yaw, cam.pitch)), cam, L, LR);
+    gl.uniformMatrix4fv(eloc.uBones, false, IDENT_BONES); gl.uniformMatrix4fv(eloc.uModel, false, M);
+    gl.uniform1f(eloc.uSkyMul, h.skyMul == null ? 1 : h.skyMul);
+    drawEntityMesh(h.mesh);
+    const outlineW = state.outlines === false ? 0 : (isMobile ? 0.022 : 0.026);
+    if (outlineW > 0) { gl.enable(gl.CULL_FACE); gl.cullFace(gl.FRONT); gl.uniform1f(eloc.uOutline, outlineW * 0.6); drawEntityMesh(h.mesh); gl.disable(gl.CULL_FACE); gl.uniform1f(eloc.uOutline, 0); }
+    gl.useProgram(prog);
   }
 
   // helpers to build line sets

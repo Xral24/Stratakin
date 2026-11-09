@@ -765,7 +765,8 @@ G.loop = function (t) {
     ents.push({ x: o.x + 0.5, y: o.y, z: o.z + 0.5, yaw: o.yaw || 0, model: o.model, mesh: o.mesh, scale: o.scale || 1, hover: 0, skyMul: sky, isStatue: true });
   }
   for (const e of ents) if (e.isStatue || e.isFx || e.isMount || e.isBuddy || e.isFoe || !e.model) { /* static */ } else if (e.hitT > 0) { e.hover = (e.model.hover || 0) + Math.sin(e.hitT * 60) * 0.08; } else if (e.breach == null) e.hover = e.model.hover + (e.flying ? Math.sin((e.bob || 0) * 2) * 0.08 : 0);
-  R.render(w, p, ents, cam, { lights, lines });
+  const held = (!inBattle && !this.thirdPerson && !p.mount && !p.flying && this.talkK <= 0 && !this.grassCamOn) ? Held.describe(p, dt, input) : null; if (held) { const top = w.topAt(Math.floor(p.x), Math.floor(p.z)); held.skyMul = eye.y >= top ? 1 : Math.max(0.2, 1 - (top - eye.y) * 0.11); }
+  R.render(w, p, ents, cam, { lights, lines, held });
   if ((this.frame & 3) === 0) UI.renderHud(dt);
   if ((this.frame & 31) === 0 && !inBattle) UI.renderMinimap(p);
   if ((this.frame & 15) === 0) this.updateMusic(inBattle);
@@ -827,7 +828,7 @@ G.onTap = function () {
     if (this.stats.mythicDone) { if (!this.stats.hollowTold) { this.stats.hollowTold = true; this.explain('The hollow Starmetal', 'The pedestal is hollow. Something was torn out of the middle of it: a heart of living metal, the kind that could drive a ship between worlds. Only one person was down here before you. The Kinmaster has it, and he has had someone build something with it.'); } else UI.toast('Hollow. He took its heart for his ship.'); return; }
     UI.toast('Starmetal. Too heavy to lift while the Mythic sleeps on it.'); return;
   }
-  if (ev.placed != null) { UI.sfx('place'); UI.renderHotbar(); }
+  if (ev.placed != null) { UI.sfx('place'); UI.renderHotbar(); p.placedT = 0.18; }
 };
 
 // the Starship above the clouds: where to?
