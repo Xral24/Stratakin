@@ -85,7 +85,7 @@ const Citadel = (() => {
       if (!C().wave2 && !Combat.forHold('cit2').length) spawnWave('cit2', C().stair, [['captain', 0, -4], ['captain', 0, 4], ['archer', 2, -7], ['archer', 2, 7], ['axeman', -2, 0]]);
       if (!C().wave1 && Combat.forHold('cit1').length && Combat.standingIn('cit1') === 0) { C().wave1 = true; UI.toast('The outer court is quiet. On to the dead gate.', 'good'); }
       if (!C().wave2 && Combat.forHold('cit2').length && Combat.standingIn('cit2') === 0) { C().wave2 = true; UI.toast('His captains are down. He is waiting at the throne.', 'good'); }
-      if (C().cell && !C().profFree && !Campaign.hasPerson('prof_cell')) { const cl = C().cell; const n = Campaign.spawnPerson('prof_cell', 'Professor Aldous Finch', 'professor', cl.x, cl.z, { body: '#e8e8e0', belly: '#c9a87a', accent: '#4a8ad0', eye: '#222222' }, ['scientist']); n.y = cl.y; n.yaw = Math.PI; }
+      if (C().cell && !C().profFree && !Campaign.hasPerson('prof_cell')) { const cl = C().cell; const n = Campaign.spawnPerson('prof_cell', 'Professor Aldous Finch', 'professor', cl.x, cl.z, { body: '#e8e8e0', belly: '#c9a87a', accent: '#4a8ad0', eye: '#222222' }, ['scientist', 'professor']); n.y = cl.y; n.yaw = Math.PI; }
       if (C().wave2 && !km && !Campaign.hasPerson('km_final')) { const t = C().throne; km = Campaign.spawnPerson('km_final', 'The Kinmaster', 'kinmaster_final', t.x - 2, t.z, { body: '#3a1a4a', belly: '#c9b48a', accent: '#b026ff', dark: '#120818', eye: '#ff3a3a' }, ['crown', 'mask']); km.y = t.y; km.yaw = -Math.PI / 2; }
     } else if (d > 200) { Combat.clearHold('cit1'); Combat.clearHold('cit2'); }
   }

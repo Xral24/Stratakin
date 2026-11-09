@@ -5059,6 +5059,24 @@ const KIN = (() => {
       setB(1); plate([[0, 1.84, 0.16], [0, 2.14, 0.0], [0, 2.1, -0.24], [0, 1.82, -0.32]], 0.035, '#6fd0c8', { emis: true }); setB(0);
       setB(2); plate([[-0.42, 1.1, 0], [-0.68, 0.95, -0.05], [-0.66, 0.7, -0.05], [-0.44, 0.75, 0]], 0.025, '#4aa8b8'); setB(3); plate([[0.42, 1.1, 0], [0.68, 0.95, -0.05], [0.66, 0.7, -0.05], [0.44, 0.75, 0]], 0.025, '#4aa8b8'); setB(0);
       for (let i = 0; i < 4; i++) plate([[-0.06, 0.62 + i * 0.16, -0.21], [0.06, 0.62 + i * 0.16, -0.21], [0, 0.74 + i * 0.16, -0.25]], 0.02, '#8fe0d0');
+    } else if (kind === 'silas') { // Silas Pennywise: a tall hat with a gold band, a monocle on a chain, a waxed moustache, a brocade waistcoat with a watch chain, a cravat, a cane and a fat purse
+      setB(1); disc(0, 1.87, 0, 0.44, 0.04, '#17171f'); blob(-0.29, 1.88, -0.29, 0.29, 2.42, 0.29, 0.4, '#1d1d28', { tap: [1, 1.04] }); ring(0, 1.98, 0, 0.3, 0.3, 0.03, '#d9b24a');
+      ring(0.11, 1.6, faceZ(0.11, 1.6) + 0.03, 0.075, 0.075, 0.014, '#d9b24a', null, 'z'); tube([[0.18, 1.56, faceZ(0.18, 1.56) + 0.02], [0.26, 1.42, 0.24], [0.3, 1.3, 0.2]], [0.008, 0.008, 0.008], '#d9b24a', { segs: 4 }); // monocle and chain
+      for (const sd of [-1, 1]) tube([[sd * 0.02, 1.49, faceZ(0.02, 1.49) + 0.012], [sd * 0.1, 1.5, faceZ(0.1, 1.5) + 0.012], [sd * 0.17, 1.55, faceZ(0.17, 1.55) + 0.01]], [0.022, 0.018, 0.008], '#2a1a10', { segs: 5, cap0: 'round' }); // the moustache
+      setB(0);
+      blob(-0.2, 1.2, 0.12, 0.2, 1.34, 0.3, 0.6, '#f1e8d8'); ball(0, 1.26, 0.3, 0.05, '#c9243a'); // cravat and pin
+      for (const sd of [-1, 1]) plate([[sd * 0.05, 0.72, 0.29], [sd * 0.32, 0.78, 0.22], [sd * 0.34, 1.2, 0.22], [sd * 0.06, 1.22, 0.29]], 0.02, '#b8963c'); // the waistcoat fronts
+      for (const y of [0.85, 0.98, 1.11]) ball(0.0, y, 0.3, 0.025, '#ffe08a');
+      tube([[0.02, 1.0, 0.3], [0.15, 0.92, 0.3], [0.28, 0.86, 0.26]], [0.009, 0.009, 0.009], '#ffd75a', { segs: 4 }); ball(0.29, 0.84, 0.26, 0.04, '#ffd75a'); // watch chain and watch
+      blob(-0.4, 0.5, 0.02, -0.18, 0.72, 0.26, 0.6, '#5a3a22'); ring(-0.29, 0.7, 0.14, 0.09, 0.1, 0.02, '#c9a45a'); // the purse on the hip
+      setB(3); tube([[0.46, 0.55, 0.12], [0.52, 0.0, 0.22]], [0.022, 0.02], '#2a1a10', { segs: 6 }); ball(0.45, 0.58, 0.11, 0.05, '#d9b24a'); setB(0); // the cane
+    } else if (kind === 'professor') { // Professor Finch, on top of the scientist's coat: wild white hair, round spectacles, a bow tie, pens in the pocket, a wrench in hand
+      setB(1); for (const [x, y, z] of [[-0.26, 1.72, -0.06], [0.26, 1.7, -0.08], [-0.14, 1.84, -0.2], [0.16, 1.86, -0.18], [0, 1.9, -0.26]]) blob(x - 0.1, y - 0.07, z - 0.1, x + 0.1, y + 0.1, z + 0.1, 0.9, '#f2f2ee', { n: 1 });
+      for (const sd of [-1, 1]) ring(sd * 0.11, 1.6, faceZ(0.11, 1.6) + 0.03, 0.08, 0.075, 0.012, '#8a7a4a', null, 'z'); tube([[-0.03, 1.6, faceZ(0.03, 1.6) + 0.03], [0.03, 1.6, faceZ(0.03, 1.6) + 0.03]], [0.008, 0.008], '#8a7a4a', { segs: 4 });
+      setB(0);
+      for (const sd of [-1, 1]) blob(sd * 0.02, 1.2, 0.26, sd * 0.16, 1.3, 0.3, 0.6, '#3a5fb0'); ball(0, 1.25, 0.29, 0.03, '#2a3a70'); // bow tie
+      for (let i = 0; i < 3; i++) tube([[-0.24 + i * 0.05, 1.02, 0.29], [-0.24 + i * 0.05, 1.16, 0.29]], [0.012, 0.012], ['#c9243a', '#2a6fc0', '#2a2a30'][i], { segs: 4 }); // pens
+      setB(3); tube([[0.46, 0.55, 0.14], [0.5, 0.3, 0.3]], [0.025, 0.02], '#8a8a94', { segs: 6 }); plate([[0.46, 0.3, 0.3], [0.56, 0.22, 0.36], [0.5, 0.12, 0.3], [0.42, 0.18, 0.26]], 0.03, '#8a8a94'); setB(0); // the wrench
     } else if (kind === 'hat') { brimHat('#5a3a22', '#2a1a10', 0.3, 0.28, 0.55);
     } else if (kind === 'star') { ball(-0.2, 1.05, 0.2, 0.06, '#ffd75a', { emis: true });
     } else if (kind === 'warrior') { // war paint, a feathered band, a bead necklace, a spear
@@ -5087,6 +5105,49 @@ const KIN = (() => {
     }
     return H.done();
   }
+  // ---- what a Kin wears: scarves, coats, hats and prizes, cut to its own shape and bound to its bones so they move with it ----
+  // landmarks come from the parts themselves: the head's box (bone 1) and the body's (bone 0); a shape without a head uses the top of its body
+  function landmarks(m) {
+    const bb = (pred) => { let x0 = 1e9, y0 = 1e9, z0 = 1e9, x1 = -1e9, y1 = -1e9, z1 = -1e9, n = 0; for (const b of m.boxes) { if (!pred(b)) continue; n++; x0 = Math.min(x0, b.x); y0 = Math.min(y0, b.y); z0 = Math.min(z0, b.z); x1 = Math.max(x1, b.x + b.w); y1 = Math.max(y1, b.y + b.h); z1 = Math.max(z1, b.z + b.d); } return n ? { x0, y0, z0, x1, y1, z1, cx: (x0 + x1) / 2, cy: (y0 + y1) / 2, cz: (z0 + z1) / 2, w: x1 - x0, h: y1 - y0, d: z1 - z0 } : null; };
+    const headIdx = m.bones.findIndex(b => b && b.kind === 'head');
+    const body = bb(b => (b.bone || 0) === 0) || bb(() => true); let head = headIdx > 0 ? bb(b => b.bone === headIdx) : null;
+    if (!head || head.w < 0.08) { // no head of its own: the top of the body's main mass stands in for it (horns and spines do not count)
+      const bp = m.boxes.filter(b => (b.bone || 0) === 0); const big = Math.max(...bp.map(b => b.w * b.d)); let t = body.y1; { let tt = -1e9; for (const b of bp) if (b.w * b.d >= big * 0.3) tt = Math.max(tt, b.y + b.h); if (tt > -1e8) t = tt; }
+      head = { x0: body.cx - body.w * 0.3, x1: body.cx + body.w * 0.3, y0: t - body.h * 0.35, y1: t, z0: body.cz, z1: body.z1, cx: body.cx, cy: t - body.h * 0.17, cz: body.cz + body.d * 0.25, w: body.w * 0.6, h: body.h * 0.35, d: body.d * 0.5, bone: 0, fake: true }; } else head.bone = headIdx;
+    // the crown of the head: the top of its main mass, not of a horn, an ear or a halo. Parts with a small footprint do not count
+    if (!head.fake) { const hp = m.boxes.filter(b => b.bone === headIdx); const big = Math.max(...hp.map(b => b.w * b.d)); let t = -1e9, x0 = 1e9, x1 = -1e9, z0 = 1e9, z1 = -1e9; for (const b of hp) if (b.w * b.d >= big * 0.3) { t = Math.max(t, b.y + b.h); x0 = Math.min(x0, b.x); x1 = Math.max(x1, b.x + b.w); z0 = Math.min(z0, b.z); z1 = Math.max(z1, b.z + b.d); } if (t > -1e8) { head.y1 = t; head.x0 = x0; head.x1 = x1; head.z0 = z0; head.z1 = z1; head.w = x1 - x0; head.d = z1 - z0; head.cx = (x0 + x1) / 2; head.cz = (z0 + z1) / 2; head.h = head.y1 - head.y0; head.cy = (head.y0 + head.y1) / 2; } }
+    const hr = Math.max(0.08, Math.max(head.w, head.d) / 2); // the head's radius
+    const neck = head.fake ? { x: body.cx, y: body.y1 - body.h * 0.3, z: body.cz + body.d * 0.1 } : { x: head.cx, y: Math.max(head.y0, body.y1 - 0.08), z: head.cz - head.d * 0.15 }; // where a collar sits
+    const nr = head.fake ? Math.max(body.w, body.d) * 0.42 : Math.max(0.08, Math.min(hr * 0.95, Math.max(body.w, body.d) * 0.45)); // and how wide
+    return { body, head, hr, neck, nr };
+  }
+  function dress(m, wear) {
+    if (!wear || !wear.item || wear.item === 'none') return m;
+    const L = landmarks(m); const { body, head, hr, neck, nr } = L; const col = wear.col || '#c94c4c'; const dark = U.rgbToHex(U.hexToRgb(col).map(c => c * 0.6)); // parts carry hex colours
+    const gold = '#ffd14d', green = '#4d853d', red = '#c73833', blue = '#4d75cc';
+    const H = partHelpers({ scale: 1, boxes: m.boxes, height: m.height }); const { blob, ball, tube, plate, ring, cone, disc, ribbon } = H;
+    const discZ = (x, y, z, r, th, c, o) => blob(x - r, y - r, z - th / 2, x + r, y + r, z + th / 2, 1, c, Object.assign({ n: 4 }, o || {})); // a disc standing up, facing forward (a badge on the chest)
+    const onHead = () => { H.bone = head.bone; }, onBody = () => { H.bone = 0; };
+    const top = head.y1 + 0.005, front = body.z1;
+    switch (wear.item) {
+      case 'scarf': { onBody(); ring(neck.x, neck.y, neck.z, nr * 1.08, nr * 1.08, nr * 0.24, col); // a wound ring at the neck and a tail hanging down the back
+        ribbon([[neck.x + nr * 0.1, neck.y, neck.z - nr * 0.9], [neck.x + nr * 0.3, neck.y - nr * 0.9, neck.z - nr * 1.1], [neck.x + nr * 0.45, neck.y - nr * 1.9, neck.z - nr * 0.95]], [nr * 0.5, nr * 0.55, nr * 0.42], col, { droop: 0.3 }); break; }
+      case 'coat': { onBody(); const capY = head.fake ? body.y0 + body.h * 0.78 : Math.min(body.y1 + 0.035, neck.y + 0.03); const t = Math.min(capY - 0.12, body.y0 + body.h * 0.42); blob(body.x0 - 0.03, t, body.z0 - 0.02, body.x1 + 0.03, capY, body.cz + body.d * 0.3, 0.6, col, { n: 3 }); // a little coat over the back and shoulders, up to the neck and no further
+        if (!head.fake && neck.y < head.cy) ring(neck.x, neck.y + 0.01, neck.z, nr * 1.12, nr * 1.12, nr * 0.16, dark); ball(body.cx, body.cy + body.h * 0.1, front + 0.015, 0.03, gold); break; }
+      case 'hat': { onHead(); disc(head.cx, top + 0.02, head.cz, hr * 1.15, 0.04, dark); blob(head.cx - hr * 0.68, top + 0.03, head.cz - hr * 0.68, head.cx + hr * 0.68, top + 0.03 + hr * 0.95, head.cz + hr * 0.68, 0.55, col, { tap: [1, 0.86] }); ring(head.cx, top + 0.03 + hr * 0.22, head.cz, hr * 0.69, hr * 0.69, 0.022, gold); break; }
+      case 'bow': { onHead(); const y = top + hr * 0.12, x = head.cx + hr * 0.35, z = head.cz; for (const sx of [-1, 1]) blob(x + (sx < 0 ? -hr * 0.42 : 0.02), y - hr * 0.16, z - hr * 0.22, x + (sx < 0 ? -0.02 : hr * 0.42), y + hr * 0.16, z + hr * 0.22, 0.7, col, { n: 2 }); ball(x, y, z, hr * 0.12, dark); break; }
+      case 'crown': { onHead(); ring(head.cx, top + 0.01, head.cz, hr * 0.72, hr * 0.72, 0.035, gold); for (let i = 0; i < 6; i++) { const a = i / 6 * Math.PI * 2; cone([head.cx + Math.cos(a) * hr * 0.72, top + 0.03, head.cz + Math.sin(a) * hr * 0.72], [0, 1, 0], hr * 0.4, 0.035, gold); } ball(head.cx, top + 0.02 + hr * 0.1, head.cz + hr * 0.72, 0.035, col, { emis: true }); break; }
+      case 'collar': { onBody(); ring(neck.x, neck.y, neck.z, nr * 1.05, nr * 1.05, nr * 0.12, col); discZ(neck.x, neck.y - nr * 0.2, neck.z + nr * 1.02, 0.045, 0.02, gold); break; }
+      case 'rosette': { onBody(); const y = body.cy + body.h * 0.15; discZ(body.cx, y, front + 0.02, 0.09, 0.03, blue); discZ(body.cx, y, front + 0.045, 0.045, 0.02, gold); // a show rosette on the chest, two tails below
+        for (const sx of [-1, 1]) ribbon([[body.cx + sx * 0.03, y - 0.06, front + 0.03], [body.cx + sx * 0.05, y - 0.22, front + 0.03]], [0.035, 0.03], blue, {}); break; }
+      case 'sash': { onBody(); ribbon([[body.x1 * 0.75, body.y1 - 0.03, body.cz], [body.x1 * 0.6, body.y1 - 0.05, front + 0.02], [body.cx, body.cy, front + 0.025], [body.x0 * 0.6, body.y0 + body.h * 0.2, front + 0.02]], [0.08, 0.1, 0.11, 0.09], red, {}); ball(body.x0 * 0.55, body.y0 + body.h * 0.2, front + 0.03, 0.04, gold); break; }
+      case 'laurelk': { onHead(); ring(head.cx, top + 0.01, head.cz, hr * 0.78, hr * 0.78, 0.03, green); for (let i = 0; i < 10; i++) { const a = i / 10 * Math.PI * 2 + 0.3; const x = head.cx + Math.cos(a) * hr * 0.78, z = head.cz + Math.sin(a) * hr * 0.78; plate([[x, top + 0.01, z], [x + Math.cos(a + 1.2) * 0.07, top + 0.05, z + Math.sin(a + 1.2) * 0.07], [x + Math.cos(a + 0.5) * 0.12, top + 0.02, z + Math.sin(a + 0.5) * 0.12]], 0.012, green); } break; }
+      case 'medal': { onBody(); const y = body.cy + body.h * 0.05; tube([[neck.x - nr * 0.7, neck.y, neck.z + nr * 0.3], [body.cx, y + 0.02, front + 0.02], [neck.x + nr * 0.7, neck.y, neck.z + nr * 0.3]], [0.018, 0.018, 0.018], red, { segs: 5 }); discZ(body.cx, y - 0.03, front + 0.03, 0.055, 0.02, gold); ball(body.cx, y - 0.03, front + 0.045, 0.02, '#fffbe6', { emis: true }); break; }
+    }
+    m.height = Math.max(m.height, ...m.boxes.map(b => b.y + b.h));
+    return m;
+  }
+  function wearKey(wear) { return wear && wear.item && wear.item !== 'none' ? ':w' + wear.item + (wear.col || '') : ''; }
   function buildMesh(mb, m) {
     for (const b of m.boxes) {
       mb.setBone(b.bone || 0); const col = U.hexToRgb(b.c); const o = Object.assign({ emis: !!b.emis }, b.o || {});
@@ -5134,7 +5195,7 @@ const KIN = (() => {
   function serialize(k) { return { id: k.id, sp: k.sp, level: k.level, xp: k.xp, iv: k.iv, stage: k.stage, hp: k.hp, nick: k.nick, equip: k.equip || null, tech: k.tech || null, wear: k.wear || null, trust: k.trust || 0, tamed: k.tamed || false }; }
   function deserialize(d) { return Object.assign({ status: null }, d); }
 
-  return { partHelpers, E, EI, CHART, STAT_KEYS, STAT_NAMES, growth, xpToNext, dominant, species, speciesForContext, dex, bySeed, HABITATS, capOf, recipes, findRecipe, fuseRecipe, mythicSpecies, legendSpecies, apexSpecies, wardenSpecies, MAX_LEVEL, TECH, techFor, techByName, starters, create, stats, name, moves, effectiveness, gainXp, fuse, fusionLevel, TRAITS, RARITY, roster, buildUniverse, decorate, makeStatue, statueModel, shardsFor, model, buildMesh, meshKey, portrait, serialize, deserialize, UTIL_DESC, eggModel, eggPortrait };
+  return { partHelpers, dress, wearKey, E, EI, CHART, STAT_KEYS, STAT_NAMES, growth, xpToNext, dominant, species, speciesForContext, dex, bySeed, HABITATS, capOf, recipes, findRecipe, fuseRecipe, mythicSpecies, legendSpecies, apexSpecies, wardenSpecies, MAX_LEVEL, TECH, techFor, techByName, starters, create, stats, name, moves, effectiveness, gainXp, fuse, fusionLevel, TRAITS, RARITY, roster, buildUniverse, decorate, makeStatue, statueModel, shardsFor, model, buildMesh, meshKey, portrait, serialize, deserialize, UTIL_DESC, eggModel, eggPortrait };
 })();
 
 </script>
@@ -7839,7 +7900,7 @@ const Battle = (() => {
     const dx = wildE.x - p.x, dz = wildE.z - p.z, d = Math.hypot(dx, dz) || 1;
     const px = p.x + dx / d * Math.min(2.0, d * 0.4), pz = p.z + dz / d * Math.min(2.0, d * 0.4);
     const gy = G.world.groundY(Math.floor(px), Math.floor(pz), Math.floor(Math.max(wildE.y, p.y)) + 3);
-    mineE = { x: px, y: Math.max(gy + 1, wildE.y - 2), z: pz, yaw: Math.atan2(wildE.x - px, wildE.z - pz), model: m, scale: 1, hover: m.hover, mesh: R.entityMesh(KIN.meshKey(mine.sp, mine.stage), (mb) => KIN.buildMesh(mb, m)), skyMul: wildE.skyMul };
+    mineE = { x: px, y: Math.max(gy + 1, wildE.y - 2), z: pz, yaw: Math.atan2(wildE.x - px, wildE.z - pz), model: m, scale: 1, hover: m.hover, mesh: R.entityMesh(KIN.meshKey(mine.sp, mine.stage) + KIN.wearKey(mine.wear), (mb) => KIN.buildMesh(mb, KIN.dress(m, mine.wear))), skyMul: wildE.skyMul };
     wildE.yaw = Math.atan2(px - wildE.x, pz - wildE.z);
   }
   function elemBadges(k) {
@@ -9118,7 +9179,7 @@ const Campaign = (() => {
   }
   function spawnPeople(S, p) {
     const has = (id) => people.some(n => n.id === id);
-    if (near(S.mine, p, 80) && C().st_mine && (G.stats.citadel || {}).profFree && !has('prof_camp')) { const s = S.mine; person('prof_camp', 'Professor Aldous Finch', 'professor', s.x + 6, s.z - 3, { body: '#e8e8e0', belly: '#c9a87a', accent: '#4a8ad0', eye: '#222222' }, ['scientist']); }
+    if (near(S.mine, p, 80) && C().st_mine && (G.stats.citadel || {}).profFree && !has('prof_camp')) { const s = S.mine; person('prof_camp', 'Professor Aldous Finch', 'professor', s.x + 6, s.z - 3, { body: '#e8e8e0', belly: '#c9a87a', accent: '#4a8ad0', eye: '#222222' }, ['scientist', 'professor']); }
     if (near(S.mine, p, 80) && C().st_mine && !has('foreman')) {
       const s = S.mine;
       person('foreman', 'Foreman Garrick', 'foreman', s.x + 4, s.z + 3, { body: '#5a4a3a', belly: '#c68642' }, ['miner']);
@@ -9135,7 +9196,7 @@ const Campaign = (() => {
       if (!zooDino) { const sp = KIN.dex('earth').find(x => x.dino && x.shape === 'raptor') || KIN.dex('earth').find(x => x.dino); if (sp) { const gy = world.groundY(s.dino.x, s.dino.z) + 1; zooDino = Wild.makeEntity(sp, 40, s.dino.x + 0.5, gy, s.dino.z + 0.5, { senseR: 0 }); zooDino.peaceful = true; zooDino.exhibit = true; zooDino.patrol = { ax: s.dino.x - 2, az: s.dino.z + 0.5, bx: s.dino.x + 2.5, bz: s.dino.z + 0.5, period: 9, phase: 0 }; Wild.list.push(zooDino); } } }
     if (S.fort && C().st_fort && near(S.fort, p, 130)) {
       const f = S.fort;
-      if (!has('silas')) person('silas', 'Silas Pennywise', 'merchant', f.merchant.x, f.merchant.z, { body: '#2a2a3a', belly: '#d8a060', accent: '#e0b84a' }, ['hat', 'star']);
+      if (!has('silas')) person('silas', 'Silas Pennywise', 'merchant', f.merchant.x, f.merchant.z, { body: '#232334', belly: '#d8a060', accent: '#e0b84a', dark: '#17171f' }, ['silas']);
       if (C().kinmaster && !has('sable') && f.throne) { const n = person('sable', 'Sable the Hexwright', 'runesmith', f.throne.x - 3, f.throne.z + 5, { body: '#4a1a3a', belly: '#f1d3b3', accent: '#ff3a8a', dark: '#120818' }, ['hat', 'star']); n.y = f.floorY + 1; }
       if (C().kinmaster && !has('turncoat') && f.throne) { const n = person('turncoat', 'Vesper the Turncoat', 'turncoat', f.throne.x - 5, f.throne.z - 3, { body: '#1e1a2a', belly: '#c9b48a', accent: '#7a2aa8', dark: '#0a0812', eye: '#b0f0ff' }, ['mask']); n.y = f.floorY + 1; }
       if (!C().kinmaster && !has('kinmaster') && f.throne) { const n = person('kinmaster', 'The Kinmaster', 'kinmaster', f.throne.x, f.throne.z, { body: '#3a1a4a', belly: '#c9b48a', accent: '#b026ff', dark: '#120818', eye: '#ff3a3a' }, ['crown', 'mask']); n.y = f.floorY + 1; }
@@ -11921,7 +11982,7 @@ const Citadel = (() => {
       if (!C().wave2 && !Combat.forHold('cit2').length) spawnWave('cit2', C().stair, [['captain', 0, -4], ['captain', 0, 4], ['archer', 2, -7], ['archer', 2, 7], ['axeman', -2, 0]]);
       if (!C().wave1 && Combat.forHold('cit1').length && Combat.standingIn('cit1') === 0) { C().wave1 = true; UI.toast('The outer court is quiet. On to the dead gate.', 'good'); }
       if (!C().wave2 && Combat.forHold('cit2').length && Combat.standingIn('cit2') === 0) { C().wave2 = true; UI.toast('His captains are down. He is waiting at the throne.', 'good'); }
-      if (C().cell && !C().profFree && !Campaign.hasPerson('prof_cell')) { const cl = C().cell; const n = Campaign.spawnPerson('prof_cell', 'Professor Aldous Finch', 'professor', cl.x, cl.z, { body: '#e8e8e0', belly: '#c9a87a', accent: '#4a8ad0', eye: '#222222' }, ['scientist']); n.y = cl.y; n.yaw = Math.PI; }
+      if (C().cell && !C().profFree && !Campaign.hasPerson('prof_cell')) { const cl = C().cell; const n = Campaign.spawnPerson('prof_cell', 'Professor Aldous Finch', 'professor', cl.x, cl.z, { body: '#e8e8e0', belly: '#c9a87a', accent: '#4a8ad0', eye: '#222222' }, ['scientist', 'professor']); n.y = cl.y; n.yaw = Math.PI; }
       if (C().wave2 && !km && !Campaign.hasPerson('km_final')) { const t = C().throne; km = Campaign.spawnPerson('km_final', 'The Kinmaster', 'kinmaster_final', t.x - 2, t.z, { body: '#3a1a4a', belly: '#c9b48a', accent: '#b026ff', dark: '#120818', eye: '#ff3a3a' }, ['crown', 'mask']); km.y = t.y; km.yaw = -Math.PI / 2; }
     } else if (d > 200) { Combat.clearHold('cit1'); Combat.clearHold('cit2'); }
   }
@@ -12316,7 +12377,7 @@ const Sky = (() => {
 // Your lead Kin walks with you, a step behind at your shoulder. Fliers keep up in the air, swimmers in the water.
 // Now and then, as you walk, it noses out something that suits its element and brings it to you.
 const Buddy = (() => {
-  let G = null, e = null, key = null, walked = 0, nextFind = 160, hopT = 0, gyT = 0, gy = 0, lastX = 0, lastZ = 0, helpT = 4, dash = null;
+  let G = null, e = null, key = null, wearSeen = '', walked = 0, nextFind = 160, hopT = 0, gyT = 0, gy = 0, lastX = 0, lastZ = 0, helpT = 4, dash = null;
   const FINDS = {
     Stone: [['copper', 1], ['iron', 1], ['stone', 3]], Bloom: [['berry', 3], ['frond', 2]], Flame: [['ember', 1]], Tide: [['pearl', 1], ['bait_berry', 1]],
     Gale: [['feather', 1]], Frost: [['snow', 3], ['broth', 1]], Spark: [['copper', 2]], Void: [['void', 1]], Light: [['glowworm', 2]],
@@ -12359,12 +12420,12 @@ const Buddy = (() => {
     return false;
   }
   function make(k, p) {
-    const m = KIN.model(k.sp, k.stage);
+    const m = KIN.dress(KIN.model(k.sp, k.stage), k.wear);
     const fly = k.sp.shape === 'bird' || k.sp.shape === 'floater';
     const big = Math.max(m.height, m.radius * 1.6);
     e = { kin: k, x: p.x, y: p.y, z: p.z, yaw: p.yaw, model: m, scale: big > 2.6 ? 2.6 / big : 1, hover: m.hover, bob: Math.random() * 6, flying: fly, aquatic: k.sp.shape === 'serpent' && KIN.dominant(k.sp.elem, 1)[0] === 'Tide', skyMul: 1, isBuddy: true,
-      mesh: R.entityMesh(KIN.meshKey(k.sp, k.stage), (mb) => KIN.buildMesh(mb, m)) };
-    key = k.id || k; place(p, true);
+      mesh: R.entityMesh(KIN.meshKey(k.sp, k.stage) + KIN.wearKey(k.wear), (mb) => KIN.buildMesh(mb, m)) };
+    key = k.id || k; wearSeen = KIN.wearKey(k.wear); place(p, true);
   }
   function spot(p) { const sy = Math.sin(p.yaw), cy = Math.cos(p.yaw); const back = -0.3, side = 1.6 + (e.model.radius || 0.6) * e.scale; return { x: p.x + sy * back + cy * side, z: p.z + cy * back - sy * side }; }
   function ground(x, z, fromY) { const w = G.world; const y = w.groundY(Math.floor(x), Math.floor(z), Math.floor(fromY) + 3); return y == null ? fromY : y + 1; }
@@ -12372,7 +12433,7 @@ const Buddy = (() => {
   function update(dt, p) {
     const k = lead();
     if (!k) { e = null; return; }
-    if (!e || e.kin !== k) make(k, p);
+    if (!e || e.kin !== k || KIN.wearKey(k.wear) !== wearSeen) make(k, p); // a change of outfit rebuilds it
     if (hidden(p)) { e.away = true; return; }
     if (e.away) { e.away = false; place(p, true); }
     e.bob += dt;
@@ -12405,26 +12466,7 @@ const Buddy = (() => {
     UI.toast(`${KIN.name(k)} ${SAY[el] || 'finds'} ${n > 1 ? n + ' ' : ''}${ITEMS[item].name}.`, 'good');
     if (!G.stats.buddyTold) { G.stats.buddyTold = true; G.explain('Your Kin walks with you', `Your lead Kin follows you around the world. Walk together and it finds things that suit its element: a Stone Kin turns up ore, a Bloom Kin berries, a Gale Kin feathers, and any of them now and then an essence of their own kind for fusion stones. Change your lead Kin in the Kin panel to change what it finds. Tap it to see how it is doing.`); }
   }
-  const WEAR = {
-    scarf: (h, r, c) => [[-r * 0.8, h * 0.62, -r * 0.8, r * 1.6, h * 0.1, r * 1.6, c], [r * 0.5, h * 0.4, r * 0.6, r * 0.25, h * 0.22, r * 0.12, c]],
-    coat: (h, r, c) => [[-r * 0.85, h * 0.3, -r * 0.85, r * 1.7, h * 0.36, r * 1.7, c]],
-    hat: (h, r, c) => [[-r * 0.45, h * 0.98, -r * 0.45, r * 0.9, h * 0.05, r * 0.9, c], [-r * 0.28, h * 1.02, -r * 0.28, r * 0.56, h * 0.22, r * 0.56, c]],
-    bow: (h, r, c) => [[-r * 0.35, h * 0.98, -r * 0.08, r * 0.7, h * 0.12, r * 0.16, c]],
-    crown: (h, r, c) => [[-r * 0.3, h * 0.98, -r * 0.3, r * 0.6, h * 0.1, r * 0.6, '#ffd040'], [-r * 0.3, h * 1.06, -r * 0.3, r * 0.12, h * 0.1, r * 0.12, c], [r * 0.18, h * 1.06, r * 0.18, r * 0.12, h * 0.1, r * 0.12, c]],
-    rosette: (h, r, c) => [[-r * 0.2, h * 0.55, r * 0.7, r * 0.4, r * 0.4, r * 0.06, '#4a7ad0'], [-r * 0.08, h * 0.38, r * 0.72, r * 0.16, h * 0.18, r * 0.04, '#4a7ad0']],
-    sash: (h, r, c) => [[-r * 0.9, h * 0.45, -r * 0.1, r * 1.8, h * 0.08, r * 0.2, '#c94c4c'], [-r * 0.15, h * 0.4, r * 0.7, r * 0.3, h * 0.3, r * 0.05, '#ffd040']],
-    laurelk: (h, r, c) => [[-r * 0.4, h * 0.98, -r * 0.4, r * 0.8, h * 0.05, r * 0.08, '#4f7a3a'], [-r * 0.4, h * 0.98, r * 0.32, r * 0.8, h * 0.05, r * 0.08, '#4f7a3a'], [-r * 0.4, h * 0.98, -r * 0.4, r * 0.08, h * 0.05, r * 0.8, '#4f7a3a'], [r * 0.32, h * 0.98, -r * 0.4, r * 0.08, h * 0.05, r * 0.8, '#4f7a3a']],
-    medal: (h, r, c) => [[-r * 0.7, h * 0.6, -r * 0.7, r * 1.4, h * 0.05, r * 1.4, '#c94c4c'], [-r * 0.12, h * 0.42, r * 0.7, r * 0.24, r * 0.24, r * 0.05, '#ffd040']],
-    collar: (h, r, c) => [[-r * 0.7, h * 0.6, -r * 0.7, r * 1.4, h * 0.06, r * 1.4, c], [-r * 0.06, h * 0.52, r * 0.68, r * 0.12, h * 0.1, r * 0.06, '#ffd040']],
-  };
-  function wearEntity() {
-    const W = e && e.kin.wear; if (!W || !W.item || !WEAR[W.item]) return null;
-    const h = e.model.height * e.scale, r = Math.max(0.35, (e.model.radius || 0.6) * e.scale * 0.8); const col = W.col || '#c94c4c';
-    const key = `kinwear:${W.item}:${col}:${h.toFixed(2)}:${r.toFixed(2)}`;
-    const mesh = R.entityMesh(key, (mb) => { for (const b of WEAR[W.item](h, r, col)) { const c = U.hexToRgb(b[6]); mb.box(b[0], b[1], b[2], b[0] + b[3], b[1] + b[4], b[2] + b[5], c, 1, false); } });
-    return { x: e.x, y: e.y + (e.hover || 0), z: e.z, yaw: e.yaw, scale: 1, hover: 0, skyMul: 1, isFx: true, mesh };
-  }
-  function entities() { if (!e || e.away || hidden(G.player)) return []; const w = wearEntity(); return w ? [e, w] : [e]; }
+  function entities() { if (!e || e.away || hidden(G.player)) return []; return [e]; }
   function pick(p) {
     if (!e || e.away) return null;
     const eye = p.eye(); const f = U.forwardVec(p.yaw, p.pitch); const h = e.model.height * e.scale;
@@ -13256,7 +13298,7 @@ G.loop = function (t) {
   }
   const showMe = inBattle || this.thirdPerson || this.talkK > 0 || !!p.mount || this.grassCamOn;
   if (showMe) { const me = Avatar.entity(p, Math.hypot(p.vx, p.vz) > 0.6); if (p.mount) { const mm = KIN.model(p.mount.sp, p.mount.stage); me.y = p.y - 0.75 + mm.height * 0.62; } ents.push(me); }
-  if (p.mount) { const k = p.mount; const m = KIN.model(k.sp, k.stage); const fwd = U.forwardVec(p.yaw, 0); if (!k._an) k._an = { ph: 0, mv: 0, lx: p.x, lz: p.z, ly: p.y, lt: performance.now(), vy: 0, seed: 5, air: 0 }; k._an.swim = p.mountMode === 'water' ? 1 : 0; ents.push({ x: p.x + fwd[0] * 0.5, y: p.y - 0.75 + (p.inWater ? -0.2 : 0), z: p.z + fwd[2] * 0.5, yaw: p.yaw + Math.PI, model: m, mesh: R.entityMesh(KIN.meshKey(k.sp, k.stage), (mb) => KIN.buildMesh(mb, m)), scale: 1, hover: 0, skyMul: 1, isMount: true, flying: p.mountMode === 'air' && !p.onGround, _an: k._an }); }
+  if (p.mount) { const k = p.mount; const m = KIN.dress(KIN.model(k.sp, k.stage), k.wear); const fwd = U.forwardVec(p.yaw, 0); if (!k._an) k._an = { ph: 0, mv: 0, lx: p.x, lz: p.z, ly: p.y, lt: performance.now(), vy: 0, seed: 5, air: 0 }; k._an.swim = p.mountMode === 'water' ? 1 : 0; ents.push({ x: p.x + fwd[0] * 0.5, y: p.y - 0.75 + (p.inWater ? -0.2 : 0), z: p.z + fwd[2] * 0.5, yaw: p.yaw + Math.PI, model: m, mesh: R.entityMesh(KIN.meshKey(k.sp, k.stage) + KIN.wearKey(k.wear), (mb) => KIN.buildMesh(mb, m)), scale: 1, hover: 0, skyMul: 1, isMount: true, flying: p.mountMode === 'air' && !p.onGround, _an: k._an }); }
   ents.push(...Battle.fxEntities()); ents.push(...Sky.puffEntities()); ents.push(...Wild.dropEntities()); ents.push(...Buddy.entities()); ents.push(...Combat.entities()); ents.push(...Hazards.entities()); ents.push(...Npcs.entities());
   for (const o of w.statues.values()) {
     if ((o.x - p.x) ** 2 + (o.z - p.z) ** 2 > 4000) continue;

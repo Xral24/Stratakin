@@ -52,7 +52,7 @@ const Battle = (() => {
     const dx = wildE.x - p.x, dz = wildE.z - p.z, d = Math.hypot(dx, dz) || 1;
     const px = p.x + dx / d * Math.min(2.0, d * 0.4), pz = p.z + dz / d * Math.min(2.0, d * 0.4);
     const gy = G.world.groundY(Math.floor(px), Math.floor(pz), Math.floor(Math.max(wildE.y, p.y)) + 3);
-    mineE = { x: px, y: Math.max(gy + 1, wildE.y - 2), z: pz, yaw: Math.atan2(wildE.x - px, wildE.z - pz), model: m, scale: 1, hover: m.hover, mesh: R.entityMesh(KIN.meshKey(mine.sp, mine.stage), (mb) => KIN.buildMesh(mb, m)), skyMul: wildE.skyMul };
+    mineE = { x: px, y: Math.max(gy + 1, wildE.y - 2), z: pz, yaw: Math.atan2(wildE.x - px, wildE.z - pz), model: m, scale: 1, hover: m.hover, mesh: R.entityMesh(KIN.meshKey(mine.sp, mine.stage) + KIN.wearKey(mine.wear), (mb) => KIN.buildMesh(mb, KIN.dress(m, mine.wear))), skyMul: wildE.skyMul };
     wildE.yaw = Math.atan2(px - wildE.x, pz - wildE.z);
   }
   function elemBadges(k) {

@@ -787,6 +787,24 @@ const KIN = (() => {
       setB(1); plate([[0, 1.84, 0.16], [0, 2.14, 0.0], [0, 2.1, -0.24], [0, 1.82, -0.32]], 0.035, '#6fd0c8', { emis: true }); setB(0);
       setB(2); plate([[-0.42, 1.1, 0], [-0.68, 0.95, -0.05], [-0.66, 0.7, -0.05], [-0.44, 0.75, 0]], 0.025, '#4aa8b8'); setB(3); plate([[0.42, 1.1, 0], [0.68, 0.95, -0.05], [0.66, 0.7, -0.05], [0.44, 0.75, 0]], 0.025, '#4aa8b8'); setB(0);
       for (let i = 0; i < 4; i++) plate([[-0.06, 0.62 + i * 0.16, -0.21], [0.06, 0.62 + i * 0.16, -0.21], [0, 0.74 + i * 0.16, -0.25]], 0.02, '#8fe0d0');
+    } else if (kind === 'silas') { // Silas Pennywise: a tall hat with a gold band, a monocle on a chain, a waxed moustache, a brocade waistcoat with a watch chain, a cravat, a cane and a fat purse
+      setB(1); disc(0, 1.87, 0, 0.44, 0.04, '#17171f'); blob(-0.29, 1.88, -0.29, 0.29, 2.42, 0.29, 0.4, '#1d1d28', { tap: [1, 1.04] }); ring(0, 1.98, 0, 0.3, 0.3, 0.03, '#d9b24a');
+      ring(0.11, 1.6, faceZ(0.11, 1.6) + 0.03, 0.075, 0.075, 0.014, '#d9b24a', null, 'z'); tube([[0.18, 1.56, faceZ(0.18, 1.56) + 0.02], [0.26, 1.42, 0.24], [0.3, 1.3, 0.2]], [0.008, 0.008, 0.008], '#d9b24a', { segs: 4 }); // monocle and chain
+      for (const sd of [-1, 1]) tube([[sd * 0.02, 1.49, faceZ(0.02, 1.49) + 0.012], [sd * 0.1, 1.5, faceZ(0.1, 1.5) + 0.012], [sd * 0.17, 1.55, faceZ(0.17, 1.55) + 0.01]], [0.022, 0.018, 0.008], '#2a1a10', { segs: 5, cap0: 'round' }); // the moustache
+      setB(0);
+      blob(-0.2, 1.2, 0.12, 0.2, 1.34, 0.3, 0.6, '#f1e8d8'); ball(0, 1.26, 0.3, 0.05, '#c9243a'); // cravat and pin
+      for (const sd of [-1, 1]) plate([[sd * 0.05, 0.72, 0.29], [sd * 0.32, 0.78, 0.22], [sd * 0.34, 1.2, 0.22], [sd * 0.06, 1.22, 0.29]], 0.02, '#b8963c'); // the waistcoat fronts
+      for (const y of [0.85, 0.98, 1.11]) ball(0.0, y, 0.3, 0.025, '#ffe08a');
+      tube([[0.02, 1.0, 0.3], [0.15, 0.92, 0.3], [0.28, 0.86, 0.26]], [0.009, 0.009, 0.009], '#ffd75a', { segs: 4 }); ball(0.29, 0.84, 0.26, 0.04, '#ffd75a'); // watch chain and watch
+      blob(-0.4, 0.5, 0.02, -0.18, 0.72, 0.26, 0.6, '#5a3a22'); ring(-0.29, 0.7, 0.14, 0.09, 0.1, 0.02, '#c9a45a'); // the purse on the hip
+      setB(3); tube([[0.46, 0.55, 0.12], [0.52, 0.0, 0.22]], [0.022, 0.02], '#2a1a10', { segs: 6 }); ball(0.45, 0.58, 0.11, 0.05, '#d9b24a'); setB(0); // the cane
+    } else if (kind === 'professor') { // Professor Finch, on top of the scientist's coat: wild white hair, round spectacles, a bow tie, pens in the pocket, a wrench in hand
+      setB(1); for (const [x, y, z] of [[-0.26, 1.72, -0.06], [0.26, 1.7, -0.08], [-0.14, 1.84, -0.2], [0.16, 1.86, -0.18], [0, 1.9, -0.26]]) blob(x - 0.1, y - 0.07, z - 0.1, x + 0.1, y + 0.1, z + 0.1, 0.9, '#f2f2ee', { n: 1 });
+      for (const sd of [-1, 1]) ring(sd * 0.11, 1.6, faceZ(0.11, 1.6) + 0.03, 0.08, 0.075, 0.012, '#8a7a4a', null, 'z'); tube([[-0.03, 1.6, faceZ(0.03, 1.6) + 0.03], [0.03, 1.6, faceZ(0.03, 1.6) + 0.03]], [0.008, 0.008], '#8a7a4a', { segs: 4 });
+      setB(0);
+      for (const sd of [-1, 1]) blob(sd * 0.02, 1.2, 0.26, sd * 0.16, 1.3, 0.3, 0.6, '#3a5fb0'); ball(0, 1.25, 0.29, 0.03, '#2a3a70'); // bow tie
+      for (let i = 0; i < 3; i++) tube([[-0.24 + i * 0.05, 1.02, 0.29], [-0.24 + i * 0.05, 1.16, 0.29]], [0.012, 0.012], ['#c9243a', '#2a6fc0', '#2a2a30'][i], { segs: 4 }); // pens
+      setB(3); tube([[0.46, 0.55, 0.14], [0.5, 0.3, 0.3]], [0.025, 0.02], '#8a8a94', { segs: 6 }); plate([[0.46, 0.3, 0.3], [0.56, 0.22, 0.36], [0.5, 0.12, 0.3], [0.42, 0.18, 0.26]], 0.03, '#8a8a94'); setB(0); // the wrench
     } else if (kind === 'hat') { brimHat('#5a3a22', '#2a1a10', 0.3, 0.28, 0.55);
     } else if (kind === 'star') { ball(-0.2, 1.05, 0.2, 0.06, '#ffd75a', { emis: true });
     } else if (kind === 'warrior') { // war paint, a feathered band, a bead necklace, a spear
@@ -815,6 +833,49 @@ const KIN = (() => {
     }
     return H.done();
   }
+  // ---- what a Kin wears: scarves, coats, hats and prizes, cut to its own shape and bound to its bones so they move with it ----
+  // landmarks come from the parts themselves: the head's box (bone 1) and the body's (bone 0); a shape without a head uses the top of its body
+  function landmarks(m) {
+    const bb = (pred) => { let x0 = 1e9, y0 = 1e9, z0 = 1e9, x1 = -1e9, y1 = -1e9, z1 = -1e9, n = 0; for (const b of m.boxes) { if (!pred(b)) continue; n++; x0 = Math.min(x0, b.x); y0 = Math.min(y0, b.y); z0 = Math.min(z0, b.z); x1 = Math.max(x1, b.x + b.w); y1 = Math.max(y1, b.y + b.h); z1 = Math.max(z1, b.z + b.d); } return n ? { x0, y0, z0, x1, y1, z1, cx: (x0 + x1) / 2, cy: (y0 + y1) / 2, cz: (z0 + z1) / 2, w: x1 - x0, h: y1 - y0, d: z1 - z0 } : null; };
+    const headIdx = m.bones.findIndex(b => b && b.kind === 'head');
+    const body = bb(b => (b.bone || 0) === 0) || bb(() => true); let head = headIdx > 0 ? bb(b => b.bone === headIdx) : null;
+    if (!head || head.w < 0.08) { // no head of its own: the top of the body's main mass stands in for it (horns and spines do not count)
+      const bp = m.boxes.filter(b => (b.bone || 0) === 0); const big = Math.max(...bp.map(b => b.w * b.d)); let t = body.y1; { let tt = -1e9; for (const b of bp) if (b.w * b.d >= big * 0.3) tt = Math.max(tt, b.y + b.h); if (tt > -1e8) t = tt; }
+      head = { x0: body.cx - body.w * 0.3, x1: body.cx + body.w * 0.3, y0: t - body.h * 0.35, y1: t, z0: body.cz, z1: body.z1, cx: body.cx, cy: t - body.h * 0.17, cz: body.cz + body.d * 0.25, w: body.w * 0.6, h: body.h * 0.35, d: body.d * 0.5, bone: 0, fake: true }; } else head.bone = headIdx;
+    // the crown of the head: the top of its main mass, not of a horn, an ear or a halo. Parts with a small footprint do not count
+    if (!head.fake) { const hp = m.boxes.filter(b => b.bone === headIdx); const big = Math.max(...hp.map(b => b.w * b.d)); let t = -1e9, x0 = 1e9, x1 = -1e9, z0 = 1e9, z1 = -1e9; for (const b of hp) if (b.w * b.d >= big * 0.3) { t = Math.max(t, b.y + b.h); x0 = Math.min(x0, b.x); x1 = Math.max(x1, b.x + b.w); z0 = Math.min(z0, b.z); z1 = Math.max(z1, b.z + b.d); } if (t > -1e8) { head.y1 = t; head.x0 = x0; head.x1 = x1; head.z0 = z0; head.z1 = z1; head.w = x1 - x0; head.d = z1 - z0; head.cx = (x0 + x1) / 2; head.cz = (z0 + z1) / 2; head.h = head.y1 - head.y0; head.cy = (head.y0 + head.y1) / 2; } }
+    const hr = Math.max(0.08, Math.max(head.w, head.d) / 2); // the head's radius
+    const neck = head.fake ? { x: body.cx, y: body.y1 - body.h * 0.3, z: body.cz + body.d * 0.1 } : { x: head.cx, y: Math.max(head.y0, body.y1 - 0.08), z: head.cz - head.d * 0.15 }; // where a collar sits
+    const nr = head.fake ? Math.max(body.w, body.d) * 0.42 : Math.max(0.08, Math.min(hr * 0.95, Math.max(body.w, body.d) * 0.45)); // and how wide
+    return { body, head, hr, neck, nr };
+  }
+  function dress(m, wear) {
+    if (!wear || !wear.item || wear.item === 'none') return m;
+    const L = landmarks(m); const { body, head, hr, neck, nr } = L; const col = wear.col || '#c94c4c'; const dark = U.rgbToHex(U.hexToRgb(col).map(c => c * 0.6)); // parts carry hex colours
+    const gold = '#ffd14d', green = '#4d853d', red = '#c73833', blue = '#4d75cc';
+    const H = partHelpers({ scale: 1, boxes: m.boxes, height: m.height }); const { blob, ball, tube, plate, ring, cone, disc, ribbon } = H;
+    const discZ = (x, y, z, r, th, c, o) => blob(x - r, y - r, z - th / 2, x + r, y + r, z + th / 2, 1, c, Object.assign({ n: 4 }, o || {})); // a disc standing up, facing forward (a badge on the chest)
+    const onHead = () => { H.bone = head.bone; }, onBody = () => { H.bone = 0; };
+    const top = head.y1 + 0.005, front = body.z1;
+    switch (wear.item) {
+      case 'scarf': { onBody(); ring(neck.x, neck.y, neck.z, nr * 1.08, nr * 1.08, nr * 0.24, col); // a wound ring at the neck and a tail hanging down the back
+        ribbon([[neck.x + nr * 0.1, neck.y, neck.z - nr * 0.9], [neck.x + nr * 0.3, neck.y - nr * 0.9, neck.z - nr * 1.1], [neck.x + nr * 0.45, neck.y - nr * 1.9, neck.z - nr * 0.95]], [nr * 0.5, nr * 0.55, nr * 0.42], col, { droop: 0.3 }); break; }
+      case 'coat': { onBody(); const capY = head.fake ? body.y0 + body.h * 0.78 : Math.min(body.y1 + 0.035, neck.y + 0.03); const t = Math.min(capY - 0.12, body.y0 + body.h * 0.42); blob(body.x0 - 0.03, t, body.z0 - 0.02, body.x1 + 0.03, capY, body.cz + body.d * 0.3, 0.6, col, { n: 3 }); // a little coat over the back and shoulders, up to the neck and no further
+        if (!head.fake && neck.y < head.cy) ring(neck.x, neck.y + 0.01, neck.z, nr * 1.12, nr * 1.12, nr * 0.16, dark); ball(body.cx, body.cy + body.h * 0.1, front + 0.015, 0.03, gold); break; }
+      case 'hat': { onHead(); disc(head.cx, top + 0.02, head.cz, hr * 1.15, 0.04, dark); blob(head.cx - hr * 0.68, top + 0.03, head.cz - hr * 0.68, head.cx + hr * 0.68, top + 0.03 + hr * 0.95, head.cz + hr * 0.68, 0.55, col, { tap: [1, 0.86] }); ring(head.cx, top + 0.03 + hr * 0.22, head.cz, hr * 0.69, hr * 0.69, 0.022, gold); break; }
+      case 'bow': { onHead(); const y = top + hr * 0.12, x = head.cx + hr * 0.35, z = head.cz; for (const sx of [-1, 1]) blob(x + (sx < 0 ? -hr * 0.42 : 0.02), y - hr * 0.16, z - hr * 0.22, x + (sx < 0 ? -0.02 : hr * 0.42), y + hr * 0.16, z + hr * 0.22, 0.7, col, { n: 2 }); ball(x, y, z, hr * 0.12, dark); break; }
+      case 'crown': { onHead(); ring(head.cx, top + 0.01, head.cz, hr * 0.72, hr * 0.72, 0.035, gold); for (let i = 0; i < 6; i++) { const a = i / 6 * Math.PI * 2; cone([head.cx + Math.cos(a) * hr * 0.72, top + 0.03, head.cz + Math.sin(a) * hr * 0.72], [0, 1, 0], hr * 0.4, 0.035, gold); } ball(head.cx, top + 0.02 + hr * 0.1, head.cz + hr * 0.72, 0.035, col, { emis: true }); break; }
+      case 'collar': { onBody(); ring(neck.x, neck.y, neck.z, nr * 1.05, nr * 1.05, nr * 0.12, col); discZ(neck.x, neck.y - nr * 0.2, neck.z + nr * 1.02, 0.045, 0.02, gold); break; }
+      case 'rosette': { onBody(); const y = body.cy + body.h * 0.15; discZ(body.cx, y, front + 0.02, 0.09, 0.03, blue); discZ(body.cx, y, front + 0.045, 0.045, 0.02, gold); // a show rosette on the chest, two tails below
+        for (const sx of [-1, 1]) ribbon([[body.cx + sx * 0.03, y - 0.06, front + 0.03], [body.cx + sx * 0.05, y - 0.22, front + 0.03]], [0.035, 0.03], blue, {}); break; }
+      case 'sash': { onBody(); ribbon([[body.x1 * 0.75, body.y1 - 0.03, body.cz], [body.x1 * 0.6, body.y1 - 0.05, front + 0.02], [body.cx, body.cy, front + 0.025], [body.x0 * 0.6, body.y0 + body.h * 0.2, front + 0.02]], [0.08, 0.1, 0.11, 0.09], red, {}); ball(body.x0 * 0.55, body.y0 + body.h * 0.2, front + 0.03, 0.04, gold); break; }
+      case 'laurelk': { onHead(); ring(head.cx, top + 0.01, head.cz, hr * 0.78, hr * 0.78, 0.03, green); for (let i = 0; i < 10; i++) { const a = i / 10 * Math.PI * 2 + 0.3; const x = head.cx + Math.cos(a) * hr * 0.78, z = head.cz + Math.sin(a) * hr * 0.78; plate([[x, top + 0.01, z], [x + Math.cos(a + 1.2) * 0.07, top + 0.05, z + Math.sin(a + 1.2) * 0.07], [x + Math.cos(a + 0.5) * 0.12, top + 0.02, z + Math.sin(a + 0.5) * 0.12]], 0.012, green); } break; }
+      case 'medal': { onBody(); const y = body.cy + body.h * 0.05; tube([[neck.x - nr * 0.7, neck.y, neck.z + nr * 0.3], [body.cx, y + 0.02, front + 0.02], [neck.x + nr * 0.7, neck.y, neck.z + nr * 0.3]], [0.018, 0.018, 0.018], red, { segs: 5 }); discZ(body.cx, y - 0.03, front + 0.03, 0.055, 0.02, gold); ball(body.cx, y - 0.03, front + 0.045, 0.02, '#fffbe6', { emis: true }); break; }
+    }
+    m.height = Math.max(m.height, ...m.boxes.map(b => b.y + b.h));
+    return m;
+  }
+  function wearKey(wear) { return wear && wear.item && wear.item !== 'none' ? ':w' + wear.item + (wear.col || '') : ''; }
   function buildMesh(mb, m) {
     for (const b of m.boxes) {
       mb.setBone(b.bone || 0); const col = U.hexToRgb(b.c); const o = Object.assign({ emis: !!b.emis }, b.o || {});
@@ -862,5 +923,5 @@ const KIN = (() => {
   function serialize(k) { return { id: k.id, sp: k.sp, level: k.level, xp: k.xp, iv: k.iv, stage: k.stage, hp: k.hp, nick: k.nick, equip: k.equip || null, tech: k.tech || null, wear: k.wear || null, trust: k.trust || 0, tamed: k.tamed || false }; }
   function deserialize(d) { return Object.assign({ status: null }, d); }
 
-  return { partHelpers, E, EI, CHART, STAT_KEYS, STAT_NAMES, growth, xpToNext, dominant, species, speciesForContext, dex, bySeed, HABITATS, capOf, recipes, findRecipe, fuseRecipe, mythicSpecies, legendSpecies, apexSpecies, wardenSpecies, MAX_LEVEL, TECH, techFor, techByName, starters, create, stats, name, moves, effectiveness, gainXp, fuse, fusionLevel, TRAITS, RARITY, roster, buildUniverse, decorate, makeStatue, statueModel, shardsFor, model, buildMesh, meshKey, portrait, serialize, deserialize, UTIL_DESC, eggModel, eggPortrait };
+  return { partHelpers, dress, wearKey, E, EI, CHART, STAT_KEYS, STAT_NAMES, growth, xpToNext, dominant, species, speciesForContext, dex, bySeed, HABITATS, capOf, recipes, findRecipe, fuseRecipe, mythicSpecies, legendSpecies, apexSpecies, wardenSpecies, MAX_LEVEL, TECH, techFor, techByName, starters, create, stats, name, moves, effectiveness, gainXp, fuse, fusionLevel, TRAITS, RARITY, roster, buildUniverse, decorate, makeStatue, statueModel, shardsFor, model, buildMesh, meshKey, portrait, serialize, deserialize, UTIL_DESC, eggModel, eggPortrait };
 })();

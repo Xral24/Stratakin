@@ -253,7 +253,7 @@ const Campaign = (() => {
   }
   function spawnPeople(S, p) {
     const has = (id) => people.some(n => n.id === id);
-    if (near(S.mine, p, 80) && C().st_mine && (G.stats.citadel || {}).profFree && !has('prof_camp')) { const s = S.mine; person('prof_camp', 'Professor Aldous Finch', 'professor', s.x + 6, s.z - 3, { body: '#e8e8e0', belly: '#c9a87a', accent: '#4a8ad0', eye: '#222222' }, ['scientist']); }
+    if (near(S.mine, p, 80) && C().st_mine && (G.stats.citadel || {}).profFree && !has('prof_camp')) { const s = S.mine; person('prof_camp', 'Professor Aldous Finch', 'professor', s.x + 6, s.z - 3, { body: '#e8e8e0', belly: '#c9a87a', accent: '#4a8ad0', eye: '#222222' }, ['scientist', 'professor']); }
     if (near(S.mine, p, 80) && C().st_mine && !has('foreman')) {
       const s = S.mine;
       person('foreman', 'Foreman Garrick', 'foreman', s.x + 4, s.z + 3, { body: '#5a4a3a', belly: '#c68642' }, ['miner']);
@@ -270,7 +270,7 @@ const Campaign = (() => {
       if (!zooDino) { const sp = KIN.dex('earth').find(x => x.dino && x.shape === 'raptor') || KIN.dex('earth').find(x => x.dino); if (sp) { const gy = world.groundY(s.dino.x, s.dino.z) + 1; zooDino = Wild.makeEntity(sp, 40, s.dino.x + 0.5, gy, s.dino.z + 0.5, { senseR: 0 }); zooDino.peaceful = true; zooDino.exhibit = true; zooDino.patrol = { ax: s.dino.x - 2, az: s.dino.z + 0.5, bx: s.dino.x + 2.5, bz: s.dino.z + 0.5, period: 9, phase: 0 }; Wild.list.push(zooDino); } } }
     if (S.fort && C().st_fort && near(S.fort, p, 130)) {
       const f = S.fort;
-      if (!has('silas')) person('silas', 'Silas Pennywise', 'merchant', f.merchant.x, f.merchant.z, { body: '#2a2a3a', belly: '#d8a060', accent: '#e0b84a' }, ['hat', 'star']);
+      if (!has('silas')) person('silas', 'Silas Pennywise', 'merchant', f.merchant.x, f.merchant.z, { body: '#232334', belly: '#d8a060', accent: '#e0b84a', dark: '#17171f' }, ['silas']);
       if (C().kinmaster && !has('sable') && f.throne) { const n = person('sable', 'Sable the Hexwright', 'runesmith', f.throne.x - 3, f.throne.z + 5, { body: '#4a1a3a', belly: '#f1d3b3', accent: '#ff3a8a', dark: '#120818' }, ['hat', 'star']); n.y = f.floorY + 1; }
       if (C().kinmaster && !has('turncoat') && f.throne) { const n = person('turncoat', 'Vesper the Turncoat', 'turncoat', f.throne.x - 5, f.throne.z - 3, { body: '#1e1a2a', belly: '#c9b48a', accent: '#7a2aa8', dark: '#0a0812', eye: '#b0f0ff' }, ['mask']); n.y = f.floorY + 1; }
       if (!C().kinmaster && !has('kinmaster') && f.throne) { const n = person('kinmaster', 'The Kinmaster', 'kinmaster', f.throne.x, f.throne.z, { body: '#3a1a4a', belly: '#c9b48a', accent: '#b026ff', dark: '#120818', eye: '#ff3a3a' }, ['crown', 'mask']); n.y = f.floorY + 1; }
