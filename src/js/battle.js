@@ -358,5 +358,9 @@ const Battle = (() => {
     if (wildE && wildE.hitT > 0) wildE.hitT -= dt;
   }
   function abort() { if (!active) return; const e = wildE; end('ran'); if (e) e.cool = 60; } // test hook: walk away from a fight
-  return { init, start, tick, camera, fxEntities, spawnFx, abort, get active() { return active; }, get mineEntity() { return mineE; }, get wildEntity() { return wildE; } };
+  // the same arithmetic for fights in the open: the live skirmish between your Kin and a wild one uses the battle's numbers
+  function calcDamage(att, def, move) { att.buffs = att.buffs || buffs(); def.buffs = def.buffs || buffs(); return damage(att, def, move); }
+  function dodges(att, def) { att.buffs = att.buffs || buffs(); def.buffs = def.buffs || buffs(); return Math.random() > (move0(att).acc || 0.95) || Math.random() < dodgeChance(att, def); }
+  function move0(k) { return KIN.moves(k)[0]; }
+  return { init, start, tick, camera, fxEntities, spawnFx, calcDamage, dodges, abort, get active() { return active; }, get mineEntity() { return mineE; }, get wildEntity() { return wildE; } };
 })();

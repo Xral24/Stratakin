@@ -160,6 +160,7 @@ const UI = (() => {
     else if (name === 'incubator') renderIncubator();
     else if (name === 'draught') renderDraught();
     else if (name === 'skins') renderSkins();
+    else if (name === 'deploy') renderDeploy(data);
   }
   // ---------- skins: how you look from outside ----------
   function renderSkins() {
@@ -227,6 +228,18 @@ const UI = (() => {
   function kinCard(k, extra = '') {
     const st = KIN.stats(k); const frac = k.hp / st.hp;
     return `<div class="kcard" data-kid="${k.id}">${portraitHtml(k)}<div class="kinfo"><div class="krow"><b>${KIN.name(k)}</b>${(k.sp.rarity || 0) > 0 ? `<span class="rar r${k.sp.rarity}">${KIN.RARITY[k.sp.rarity].name}</span>` : ''}${k === G.activeKin() ? '<span class="tag">active</span>' : ''}${k.sp.mythic ? '<span class="tag myth">mythic</span>' : ''}${k.hp <= 0 ? '<span class="tag down">fainted</span>' : ''}<span class="lv">Lv ${k.level}<span style="opacity:.55">/${KIN.capOf(k.sp)}</span></span>${(k.tamed || k.sp.tame) ? `<span class="tag" title="trust">♞ ${Math.round((k.trust || 0) * 100)}%</span>` : ""}</div><div class="hpbar"><div class="hpfill" style="width:${frac * 100}%;background:${frac > 0.5 ? '#5ad66a' : frac > 0.22 ? '#f0c040' : '#f05040'}"></div></div><div class="krow small">${KIN.dominant(k.sp.elem, 2).map(e => `<span class="badge" style="background:${ELEM_COLOR[e]}">${e}</span>`).join('')}<span>${Math.round(k.hp)}/${st.hp}</span>${(k.sp.gen || 0) > 0 ? `<span class="gen">fusion g${k.sp.gen}</span>` : ''}</div>${extra}</div></div>`;
+  }
+  // Deploy: which Kin fights beside you. Tap one and it is at your side and on the foe
+  function renderDeploy(foe) {
+    setTitle('Deploy');
+    const who = foe && foe.kin ? `${KIN.name(foe.kin)} Lv ${foe.kin.level}` : 'the one on you';
+    const lead = G.activeKin(); const out = Buddy.current();
+    el['panel-body'].innerHTML = `<p class="note">Who takes on ${who}? Your lead Kin fights beside you on its own; pick another to send it in instead.</p>` +
+      G.kin.map(k => kinCard(k, k.hp > 0 ? `<div class="row"><button class="btn ${k === lead ? 'ghost' : ''}" data-send="${k.id}">${k === lead ? (out ? 'Already at your side · rally' : 'Call it to your side') : 'Send in'}</button></div>` : '')).join('') +
+      `<div class="row"><button class="btn ghost" id="dp-close">Not now</button></div>`;
+    drawPortraits(el['panel-body']);
+    el['panel-body'].querySelectorAll('[data-send]').forEach(b => b.addEventListener('click', () => { const k = G.kin.find(x => x.id == b.dataset.send); closePanel(); if (k) G.sendIn(k, foe); }));
+    q('dp-close').addEventListener('click', closePanel);
   }
   function healButton(k) {
     const p = G.player; const st = KIN.stats(k);
@@ -400,7 +413,7 @@ const UI = (() => {
       <h4>How to play</h4>
       <p class="small">${Controls.isTouch ? 'Left stick walks; drag anywhere on the right of the screen to turn the camera. <b>Hold</b> to mine, or to block when you hold a weapon; <b>tap</b> to place a block, swing, talk, or use a Fusion Table. ▲ jumps, ▼ crouches, hold ▲ in the air with a Glider to glide. In third person the camera orbits you: swing it round to see your face, or your Kin\'s.' : 'WASD to move, mouse to look, <b>hold left click</b> to mine or block, <b>right click</b> to place or use. Space jumps, Shift sneaks, 1-9 or the wheel pick an item. E opens Craft, Q opens Kin, J opens Quests, V switches the camera, F deploys a Kin or sets a snare. Esc releases the mouse.'}</p>
       <p class="small">Chests (Craft › Blocks) keep what you store in them through anything. Amulets come from the people by the fires on the road; nobody sells them. Third person shows your skin: unlock more by playing.</p>
-      <p class="small">Wild Kin have a sense ring. Walk into it from the front and they come for you, live: they crouch, then lunge. Hold a weapon and hold the screen to block with your shield; raise it, or swing, just as the lunge lands to parry. Swords and axes chip a Kin's health (a wooden sword a twentieth a blow, Starmetal about a seventh), arrows more but never the last point. <b>Deploy</b> sends your Kin in for the proper battle: they hit far harder, and the big ones only fall to Kin. Beat a common Kin by hand and it lies dazed for ten seconds: snare it, or let it go. Sneak up from behind, stay still when the ring flashes, and Deploy for an ambush: first strike and a better catch chance. Your buddy darts in for a bite of its own now and then.</p>
+      <p class="small">Wild Kin have a sense ring. Walk into it from the front and they come for you, live: they crouch, then lunge. Hold a weapon and hold the screen to block with your shield; raise it, or swing, just as the lunge lands to parry. Swords and axes chip a Kin's health (a wooden sword a twentieth a blow, Starmetal about a seventh), arrows more but never the last point. Your lead Kin fights beside you on its own, with its real moves and strength: far harder than any blade, and the big ones only fall to Kin. It takes lunges too and goes down if they are too much. <b>Deploy</b> picks which Kin is at your side, or sends one in when nobody is; with no Kin beside you it is just you. Beat a common Kin and it lies dazed for ten seconds: snare it, or let it go. Sneak up from behind and stay still when the ring flashes for a better catch.</p>
       <p class="small">Layers, top to bottom: Sky islands (Light, Gale), Surface, the Mines (dark, bring a torch), and the Core: lava, Flame and Void, the Mythic. The world wraps after about an hour of walking in one direction; the further you go from camp, the stranger the Kin.</p>
       <p class="small">Shards (◆) are the currency: you earn them by dismantling objects and gear that had a Kin in them. Shops to spend them in come later.</p>
       <p class="small">The Fusion Table: a fusion is a recipe, two particular Kin and an element stone (three essences and an iron), and the table lists the recipes you know. Quest people and beaten tyrants teach more; some fusions fork, and the table you use decides which way. Items alone craft gear, and the table keeps your spare Kin.</p>

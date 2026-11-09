@@ -64,11 +64,42 @@ const Avatar = (() => {
     }
     H.done(); return m;
   }
-  function mesh(s) { const key = s.id + ':' + JSON.stringify(look()); let m = meshes.get(key); if (!m) { const mdl = model(s); m = { model: mdl, mesh: R.entityMesh('avatar:' + key, (mb) => KIN.buildMesh(mb, mdl)) }; meshes.set(key, m); } return m; }
+  // what you hold, when you are seen from outside: the same item shapes as the first-person hand, gripped by the right hand (a shield
+  // on the left forearm), built onto the arm's bone so they swing with it. The hands hang at (±0.45, 0.55, 0.06)
+  function heldKeys(p) {
+    const key = p && p.selected ? p.selected() : null; const item = key ? ITEMS[key] : null;
+    let main = item ? key : null, off = null;
+    if (main && main.startsWith('sh_')) { off = main; main = null; }
+    if (p && p.blocking && !off && typeof Combat !== 'undefined' && Combat.shield) { const sh = Combat.shield(); if (sh && ITEMS[sh.id]) off = sh.id; }
+    return { main, off };
+  }
+  function gripOut(key, item) { // where the item sits in the right hand (offset in hand units) and how it is tilted: rx > 0 leans the tip forward, rz > 0 away from the body
+    if (key === 'torch') return { off: [0, 0.22, 0.02], rot: [0.3, 0, 0.1] };
+    if (item.block != null && item.block !== B.STATUE) return { off: [0, 0.02, 0.1], rot: [0.3, -0.6, 0] };
+    if (key === 'bow' || key.startsWith('bow_')) return { off: [0, 0.05, 0.04], rot: [0.12, 0.7, 0.05] };
+    if (key.startsWith('sw_') || key.startsWith('ax_')) return { off: [0, 0.16, 0.02], rot: [0.25, 0, 0.42] }; // carried upright, blade out from the hip, so the swing brings it down and through
+    if (key.startsWith('sp_')) return { off: [0, 0.3, 0.04], rot: [0.3, 0, 0.12] };
+    if (key.startsWith('pick') || key === 'hatchet' || key.startsWith('axe') || key === 'shovel') return { off: [0, 0.2, 0.04], rot: [0.6, -0.4, 0.2] };
+    if (key.startsWith('rod')) return { off: [0, 0.3, 0.04], rot: [1.1, 0, 0.1] };
+    if (key.startsWith('snare')) return { off: [0, 0.02, 0.12], rot: [0.2, -0.4, 0] };
+    return { off: [0, 0.02, 0.1], rot: [0.4, -0.4, 0] };
+  }
+  // the figure faces +z, so its right hand is the -x one (bone 2) and its left the +x one (bone 3)
+  function addHeld(mb, main, off) {
+    const S = 0.95;
+    if (main && ITEMS[main]) { const g = gripOut(main, ITEMS[main]); mb.setBone(2); mb.push(); mb.translate(-0.45, 0.55, 0.06); mb.scale(S, S, S); mb.translate(g.off[0], g.off[1], g.off[2]); mb.rotate(g.rot[0], g.rot[1], g.rot[2]); Held.build(mb, main, ITEMS[main]); mb.pop(); mb.setBone(0); }
+    if (off && ITEMS[off]) { mb.setBone(3); mb.push(); mb.translate(0.5, 0.68, 0.14); mb.scale(S, S, S); mb.rotate(0.1, -0.2, -0.1); Held.build(mb, off, ITEMS[off]); mb.pop(); mb.setBone(0); }
+  }
+  function mesh(s, held) {
+    const key = s.id + ':' + JSON.stringify(look()) + ':' + (held ? (held.main || '') + '/' + (held.off || '') : '');
+    let m = meshes.get(key);
+    if (!m) { const mdl = model(s); m = { model: mdl, mesh: R.entityMesh('avatar:' + key, (mb) => { KIN.buildMesh(mb, mdl); if (held) addHeld(mb, held.main, held.off); }) }; meshes.set(key, m); }
+    return m;
+  }
   // the entity for the render list: standing where you stand, facing where you face, bobbing when you walk, seated on a mount
   const an = { ph: 0, mv: 0, lx: 0, lz: 0, ly: 0, lt: 0, vy: 0, seed: 3, air: 0 };
   function entity(p, moving) {
-    const s = skin(); const mm = mesh(s);
+    const s = skin(); const mm = mesh(s, heldKeys(p));
     const seat = p.mount ? 0.75 : p.flying ? 0.35 : 0;
     an.attack = p.swingT > 0 ? Math.sin(Math.min(1, p.swingT / 0.25) * Math.PI) : 0; an.block = p.blocking ? 1 : 0;
     if (p.mount || p.flying) { an.mv = 0; an.sit = 1; } else an.sit = 0;

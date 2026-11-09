@@ -289,7 +289,7 @@ const Wild = (() => {
     const moving = Math.hypot(player.vx, player.vz) > 0.6 || Math.abs(player.vy) > 0.5;
     for (let i = list.length - 1; i >= 0; i--) {
       const e = list[i];
-      const dx = px - e.x, dz = pz - e.z, dy = (py + 0.9) - (e.y + 0.6);
+      let dx = px - e.x, dz = pz - e.z, dy = (py + 0.9) - (e.y + 0.6);
       const dist = Math.hypot(dx, dz, dy * 0.8);
       if (dist > 58 && !e.high && !e.finalBoss && !e.isMythic && !e.isWarden && !e.raider && !e.lieutenant && !e.isLegend && !e.isApex) { list.splice(i, 1); continue; }
       if ((e.isMythic || e.isWarden || e.isLegend || e.isApex) && dist > 100) { list.splice(i, 1); if (e.isMythic) mythicRef = null; if (e.isLegend) legendRef = null; if (e.isApex) apexRefs[e.isApex] = null; continue; }
@@ -312,11 +312,16 @@ const Wild = (() => {
         for (const da of [0, 0.7, -0.7, 1.4, -1.4]) { const a = a0 + da; const nx = e.x + Math.sin(a) * step, nz = e.z + Math.cos(a) * step; const gy = findGround(nx, e.y, nz, e); if (gy != null) { e.x = nx; e.z = nz; settleY(e, (e.flying && !e.aquatic ? gy + 0.6 : gy), dt, 6); e.yaw = a; went = true; break; } }
         if (!went) e.flee = 0; continue;
       }
-      // ---- the live fight: it has turned on you, and comes for you until one of you gives up ----
+      // ---- the live fight: it has turned on you, and comes for you (or the Kin at your side) until one of you gives up ----
       if (e.chase) {
-        const c = e.chase; c.t -= dt; c.hitCd -= dt; if (c.pt > 0) c.pt -= dt;
+        const c = e.chase; c.t -= dt; c.hitCd -= dt; if (c.pt > 0) c.pt -= dt; if (c.foeT > 0) c.foeT -= dt;
+        const bud = (typeof Buddy !== 'undefined' && Buddy.current) ? Buddy.current() : null;
+        const bd = bud ? Math.hypot(bud.x - e.x, bud.z - e.z) : 1e9, pd0 = Math.hypot(dx, dz);
+        const atBuddy = !!bud && (c.foe === 'buddy' && c.foeT > 0 ? bd < 14 : bd < pd0 * 0.8); // it remembers who hit it for a few seconds, else takes the nearer
+        const tg = atBuddy ? { x: bud.x, y: bud.y + 0.5, z: bud.z } : { x: px, y: py, z: pz }; c.atBuddy = atBuddy;
+        if (atBuddy) { dx = tg.x - e.x; dz = tg.z - e.z; dy = tg.y - (e.y + 0.6); }
         const hd = Math.hypot(dx, dz);
-        if (c.t <= 0 || hd > (c.rage ? 34 : 30)) { disengage(e, c.rage ? 20 : 12); continue; }
+        if (c.t <= 0 || pd0 > (c.rage ? 34 : 30)) { disengage(e, c.rage ? 20 : 12); continue; }
         const an = e._an || (e._an = Anim.fresh(e, performance.now()));
         if (e.stunT > 0) { e.stunT -= dt; e.hover = (e.model.hover || 0) + Math.sin(e.bob * 14) * 0.04; e.jawOpen = 0; an.nod = Math.sin(e.bob * 12) * 0.25; an.lean = 0.15; c.phase = 'close'; c.hitCd = Math.max(c.hitCd, 0.5); continue; }
         an.nod = 0; an.lean = 0; an.sit = 0;
@@ -333,7 +338,7 @@ const Wild = (() => {
         } else if (c.phase === 'lunge') {
           const k = 1 - c.pt / 0.24; e.hover = (e.model.hover || 0) + Math.sin(k * Math.PI) * 0.35; e.jawOpen = 1 - k * 0.6; an.lean = 0.35 * Math.sin(k * Math.PI); an.nod = 0.3 * Math.sin(k * Math.PI);
           if (hd > near * 0.7) { const step = Math.min(hd - near * 0.7, 2.6 * dt); const nx = e.x + dx / hd * step, nz = e.z + dz / hd * step; const gy = findGround(nx, e.y, nz, e); if (gy != null) { e.x = nx; e.z = nz; } }
-          if (!c.hit && k > 0.45) { c.hit = true; if (hd <= near + 0.9 && Math.abs(dy) < 2.4) bite(e, player); }
+          if (!c.hit && k > 0.45) { c.hit = true; if (hd <= near + 0.9 && Math.abs(dy) < 2.4) { if (c.atBuddy) biteBuddy(e); else bite(e, player); } }
           if (c.pt <= 0) { c.phase = 'rest'; c.pt = 0.6 + Math.random() * 0.5; c.hitCd = c.pt + 0.1; }
         }
         continue;
@@ -429,7 +434,7 @@ const Wild = (() => {
     e.chase = { t: opts.rage ? 14 : 18, hitCd: ambush ? 1.4 : 0.8, phase: 'close', pt: 0, rage: !!opts.rage };
     e.alert = 1; e.hunt = 0; e.sleep = false; e.cool = 0; e.ringT = 0; e.flee = 0; e.moving = false;
     api.chaser = e;
-    if (!opts.quiet) { UI.sfx('miss'); if (G.stats && !G.stats.liveTold) { G.stats.liveTold = true; G.explain('A wild Kin turns on you', 'It is a live fight now. Hold your shield up to block, raise it or swing just as it lunges to parry, hit back with your weapon, or run. Tap DEPLOY to send your Kin in instead: they are far stronger than any blade, and only a Kin can finish the big ones.'); } else UI.toast(`${KIN.name(e.kin)} comes for you. Fight, run, or Deploy.`, 'bad'); }
+    if (!opts.quiet) { UI.sfx('miss'); if (G.stats && !G.stats.liveTold) { G.stats.liveTold = true; G.explain('A wild Kin turns on you', 'It is a live fight now. Your lead Kin beside you takes it on with its own moves, far stronger than any blade; help with your weapon, hold your shield up to block, raise it or swing just as it lunges to parry, or run. DEPLOY picks which Kin fights, or sends one in when nobody is at your side.'); } else UI.toast(`${KIN.name(e.kin)} comes for you.`, 'bad'); }
   }
   function disengage(e, cool = 12) {
     if (!e.chase) return; e.chase = null; e.cool = cool; e.alert = 0; e.hunt = 0; e.jawOpen = 0; e.hover = e.model.hover; e.stunT = 0; if (e._an) { e._an.lean = 0; e._an.nod = 0; }
@@ -445,6 +450,7 @@ const Wild = (() => {
     e.kin.hp = keepOne ? Math.max(1, e.kin.hp - dmg) : e.kin.hp - dmg;
     e.hitT = 0.3; e.sleep = false;
     if (!e.chase) engage(e, false, { quiet: !!opts.quiet }); else e.chase.t = Math.max(e.chase.t, 18);
+    if (e.chase && !opts.arrow) { e.chase.foe = 'player'; e.chase.foeT = 4; }
     if (opts.fromX != null && (e.model.radius || 0.6) * e.scale < 1.3 && !opts.arrow) { const ddx = e.x - opts.fromX, ddz = e.z - opts.fromZ, dl = Math.hypot(ddx, ddz) || 1; const push = opts.push == null ? 0.35 : opts.push; const nx = e.x + ddx / dl * push, nz = e.z + ddz / dl * push; const gy = findGround(nx, e.y, nz, e); if (gy != null && Math.abs(gy - e.y) < 1.6) { e.x = nx; e.z = nz; } }
     if (e.chase && e.chase.phase === 'wind' && (opts.heavy || Math.random() < 0.5)) { e.chase.phase = 'rest'; e.chase.pt = 0.5; e.chase.hitCd = 0.6; } // a hit in the wind-up puts it off its stroke
     G.kinFocus = e; G.kinFocusT = 3.5;
@@ -452,10 +458,10 @@ const Wild = (() => {
     if (e.kin.hp <= 0) { daze(e); return { dmg: before, pct: 0, dazed: true }; }
     return { dmg: before - e.kin.hp, pct: Math.round(e.kin.hp / st.hp * 100), dazed: false };
   }
-  function daze(e) {
+  function daze(e, k) {
     e.kin.hp = 1; e.dazed = 10; disengage(e, 0); e.cool = 0; e.alert = 0; e.stunT = 0;
     UI.sfx('win'); UI.toast(`${KIN.name(e.kin)} goes down, dazed. Snare it now, or let it go.`, 'good');
-    const xp = Math.floor(5 * e.kin.level * (1 + 0.4 * (e.kin.stage - 1)) * KIN.RARITY[e.kin.sp.rarity || 0].xp); G.addTrainerXp(xp); G.stats.liveWins = (G.stats.liveWins || 0) + 1;
+    rewardWin(e, k || null); G.stats.liveWins = (G.stats.liveWins || 0) + 1;
     const dom = KIN.dominant(e.kin.sp.elem, 1)[0]; if (Math.random() < 0.35) { G.player.add('ess_' + dom, 1); UI.toast(`${dom} Essence collected.`); }
   }
   // its lunge reaches you: a shield in its face blocks most of it, a shield raised or a swing timed as it lands turns it away
@@ -463,6 +469,33 @@ const Wild = (() => {
     const dmg = biteDmg(e); const r = Combat.takeBlow(dmg, e.x, e.z, 'kin', e);
     if (r.result === 'parry') { e.stunT = 1.4; e.hitT = 0.3; e.chase.hitCd = 1.6; }
     else { e.chase.t = Math.max(e.chase.t, 18); e.chase.hitCd = 1.0; }
+  }
+  // your Kin's blow lands: full battle damage, and a Kin can finish anything. A common Kin goes down dazed (your snare window); the scripted ones (tyrants, legends, bosses, quest Kin) are beaten outright
+  function scripted(e) { return !!(e.lieutenant || e.isBoss || e.isLegend || e.isApex || e.isLabBoss || e.isMythic || e.isWarden || e.lairQuest || e.nightQuest || e.kinmaster || e.keepBoss || e.finalBoss || e.skyBoss || e.tangleBoss || e.citadelFirst || e.thief || e.pest || e.rogue || e.raider || e.siege || e.kin.sp.mythic); }
+  function hitByKin(e, dmg, k) {
+    if (e.dazed > 0 || !list.includes(e)) return 0;
+    const before = e.kin.hp; e.kin.hp = Math.max(0, e.kin.hp - dmg); e.hitT = 0.35; e.sleep = false;
+    if (!e.chase) engage(e, false, { quiet: true }); if (e.chase) { e.chase.t = Math.max(e.chase.t, 18); e.chase.foe = 'buddy'; e.chase.foeT = 5; if (e.chase.phase === 'wind' && Math.random() < 0.4) { e.chase.phase = 'rest'; e.chase.pt = 0.5; e.chase.hitCd = 0.6; } }
+    G.kinFocus = e; G.kinFocusT = 3.5;
+    if (e.kin.hp <= 0) { if (scripted(e)) { G.onBattleEnd('won', e, e.kin, k, false); } else daze(e, k); }
+    return before - Math.max(0, e.kin.hp);
+  }
+  // its lunge reaches your Kin: the battle's numbers, no shield to hide behind
+  function biteBuddy(e) {
+    const bud = Buddy.current(); if (!bud) return; const k = bud.kin; const mv = KIN.moves(e.kin)[0];
+    if (Battle.dodges(e.kin, k)) { e.chase.hitCd = 0.9; return; }
+    const r = Battle.calcDamage(e.kin, k, mv); Buddy.hurt(r.dmg, e, r.eff); e.chase.t = Math.max(e.chase.t, 18); e.chase.hitCd = 1.0;
+  }
+  // what a win in the open pays: the battle's experience to the Kin that fought and a little to the rest, trainer experience, a count
+  function rewardWin(e, k) {
+    const wild = e.kin; const baseXp = Math.floor(9 * wild.level * (1 + 0.4 * (wild.stage - 1)) * KIN.RARITY[wild.sp.rarity || 0].xp);
+    if (k && k.hp > 0) {
+      for (const o of G.kin) if (o !== k && o.hp > 0) { const oe = KIN.gainXp(o, Math.floor(baseXp * 0.25)); for (const ev of oe) if (ev.type === 'level') UI.toast(`${KIN.name(o)} (watching) reached Lv ${ev.level}.`); }
+      const evs = KIN.gainXp(k, baseXp);
+      for (const ev of evs) { if (ev.type === 'peak') G.explain(`${KIN.name(k)} has peaked`, `Lv ${ev.level} is as far as its kind goes. Only a fusion recipe can take it further.`); if (ev.type === 'level') UI.toast(`${KIN.name(k)} reached Lv ${ev.level}.`, 'good'); if (ev.type === 'evolve') { UI.toast(`${ev.name}… it evolved into ${KIN.name(k)}!`, 'good'); UI.sfx('level'); } }
+      G.addTrainerXp(baseXp);
+    } else G.addTrainerXp(Math.floor(baseXp * 0.5));
+    G.stats.battlesWon++; { const dom0 = KIN.dominant(wild.sp.elem, 1)[0]; if (!G.stats.beatElem) G.stats.beatElem = {}; G.stats.beatElem[dom0] = (G.stats.beatElem[dom0] || 0) + 1; }
   }
   function focusText() { const e = G.kinFocus; if (!e || !(G.kinFocusT > 0)) return null; if (e.dazed > 0) return `${KIN.name(e.kin)}: dazed`; return `${KIN.name(e.kin)} Lv ${e.kin.level}: ${Math.max(0, Math.round(e.kin.hp / KIN.stats(e.kin).hp * 100))}%`; }
   // the hostile Kin nearest you, for the Deploy button
@@ -505,6 +538,6 @@ const Wild = (() => {
     return out;
   }
   function clear() { drops.length = 0; list.length = 0; mythicRef = null; legendRef = null; apexRefs.rex = apexRefs.mosa = null; }
-  const api = { inTallGrass, isHigh, dropEntities, init, update, list, remove, nearest, pick, rings, roll, ensureHeart, ensureLegend, ensureApex, apexSea, apexLevel: APEX_LV, clear, makeEntity, zoneLevel, noSpawn: null, chaser: null, engage, disengage, strike, daze, focusText, engagedNear, unfinishable, get mythic() { return mythicRef; }, get legend() { return legendRef; } };
+  const api = { inTallGrass, isHigh, dropEntities, init, update, list, remove, nearest, pick, rings, roll, ensureHeart, ensureLegend, ensureApex, apexSea, apexLevel: APEX_LV, clear, makeEntity, zoneLevel, noSpawn: null, chaser: null, engage, disengage, strike, hitByKin, daze, focusText, engagedNear, unfinishable, scripted, get mythic() { return mythicRef; }, get legend() { return legendRef; } };
   return api;
 })();

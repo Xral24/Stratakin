@@ -12,7 +12,7 @@ G.init = function () {
   this.mobile = ('ontouchstart' in window) && (navigator.maxTouchPoints > 0) && window.innerWidth < 1100;
   const cv = document.getElementById('gl');
   R.init(cv, this.mobile);
-  this.viewR = this.mobile ? 3 : 5;
+  this.viewR = this.mobile ? 3 : 5; R.state.landReach = this.viewR * CH; // land is built this far in every direction at the least (more when you stand near the far side of your chunk)
   Controls.init(cv, { touch: this.mobile, onAction: (kind, v) => this.onKey(kind, v) });
   UI.init(this); Battle.init(this); Dialogue.init(); Fishing.init(this);
   KIN.buildUniverse();
@@ -135,11 +135,19 @@ G.stealthSnare = function () {
   Battle.start(e, true, { stealth: true });
 };
 // ---------- deploy: send your Kin in against the one that is on you ----------
+// Your lead Kin already fights beside you; Deploy is how you pick which one does, or send one in when nobody is at your side
 G.deployKin = function () {
   const p = this.player; if (Battle.active) return;
   const e = Wild.engagedNear(p) || Wild.pick(p); if (!e) { UI.toast('Nothing is on you.'); return; }
-  if (!this.healthyKin().length) { UI.toast('All your Kin are down. Revive them at the Voodoo Hut or with a tonic.', 'bad'); return; }
-  Battle.start(e, e.dazed > 0 || (e.alert || 0) < 0.6);
+  const healthy = this.healthyKin(); if (!healthy.length) { UI.toast('All your Kin are down. Revive them at the Voodoo Hut or with a tonic.', 'bad'); return; }
+  if (healthy.length === 1) { this.sendIn(healthy[0], e); return; }
+  UI.openPanel('deploy', e);
+};
+G.sendIn = function (k, e) {
+  if (!k || k.hp <= 0 || !this.kin.includes(k)) return;
+  this.stats.buddyOff = false;
+  const was = this.kin[this.activeIdx]; this.activeIdx = this.kin.indexOf(k); if (k !== was) UI.toast(`${KIN.name(k)} leads.`); else UI.toast(`${KIN.name(k)} goes in.`);
+  Buddy.rally(e);
 };
 // ---------- riding ----------
 // what a Kin's body lets it carry you through: legs on land, fins in water, wings or hovering in the air
@@ -830,7 +838,7 @@ G.loop = function (t) {
     const st = this.stealthTarget();
     const lead = this.activeKin();
     const eng = Wild.engagedNear(p);
-    UI.setButtons({ deploy: !!eng && !p.flying, snare: !!st && (p.has('snare') || p.has('snare2')) && !(eng && !(eng.dazed > 0)), ride: !p.flying && (!!p.mount || !!(this._rideable = this.rideable())), rideLabel: p.mount ? 'Off' : (this._rideable ? this._rideable.label : 'Ride'), riding: !!p.mount, ship: p.has('ship') && (p.flying || this.world.layerAt(Math.floor(p.y), Math.floor(p.x), Math.floor(p.z)) !== 'Mines'), flying: p.flying, canLand: p.flying && (p.autoLand || this.landHeight() <= G.LAND_REACH) });
+    UI.setButtons({ deploy: !!eng && !(eng.dazed > 0) && !p.flying, snare: !!st && (p.has('snare') || p.has('snare2')) && !(eng && !(eng.dazed > 0)), ride: !p.flying && (!!p.mount || !!(this._rideable = this.rideable())), rideLabel: p.mount ? 'Off' : (this._rideable ? this._rideable.label : 'Ride'), riding: !!p.mount, ship: p.has('ship') && (p.flying || this.world.layerAt(Math.floor(p.y), Math.floor(p.x), Math.floor(p.z)) !== 'Mines'), flying: p.flying, canLand: p.flying && (p.autoLand || this.landHeight() <= G.LAND_REACH) });
     if (p.mount && !p.mount.borrowed && (p.mount.hp <= 0 || !this.kin.includes(p.mount))) { p.mount = null; UI.toast('Your mount is down.', 'bad'); }
     if (p.mount && p.mountMode === 'water' && !p.inWater && p.onGround) { p.mount = null; UI.toast('It cannot follow you onto land.'); }
     if (p.mount && p.mountMode === 'air' && (this.frame & 15) === 0 && this.noKinFlight()) { p.mount = null; UI.toast('No room down here for wings that size. You climb off.'); }

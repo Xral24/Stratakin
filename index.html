@@ -2102,14 +2102,14 @@ const R = (() => {
     lloc.aPos = gl.getAttribLocation(lineProg, 'aPos'); lloc.uPV = gl.getUniformLocation(lineProg, 'uPV'); lloc.uColor = gl.getUniformLocation(lineProg, 'uColor');
     lineBuf = gl.createBuffer();
     gl.enable(gl.DEPTH_TEST); gl.disable(gl.CULL_FACE);
-    state.viewDist = mobile ? 56 : 96;
+    state.viewDist = mobile ? 48 : 80; // as far as the land is built around you (3 chunks on a phone, 5 on a desktop)
     resize();
   }
   // graphics presets: what the phone can afford. full: everything; balanced: lighter grass, fewer pixels; light: no shadows, sparse grass, screen pixels
   const QUALITY = { full: { shadows: true, grassQuality: 1, dprCap: null, outlines: true, viewMul: 1 }, balanced: { shadows: true, grassQuality: 0.7, dprCap: 1.4, outlines: true, viewMul: 0.9 }, light: { shadows: false, grassQuality: 0.5, dprCap: 1.0, outlines: true, viewMul: 0.75 } };
   function setQuality(name) {
     const Q = QUALITY[name] || QUALITY.full; state.quality = QUALITY[name] ? name : 'full';
-    state.shadows = Q.shadows; state.grassQuality = Q.grassQuality; state.dprCap = Q.dprCap; state.outlines = Q.outlines; state.viewDist = Math.round((isMobile ? 56 : 96) * Q.viewMul);
+    state.shadows = Q.shadows; state.grassQuality = Q.grassQuality; state.dprCap = Q.dprCap; state.outlines = Q.outlines; state.viewDist = Math.round((isMobile ? 48 : 80) * Q.viewMul);
     try { localStorage.setItem('stratakin-gfx', state.quality); } catch (e) {}
     resize();
   }
@@ -2161,6 +2161,20 @@ const R = (() => {
   const SOIL = new Set([B.GRASS, B.DIRT, B.SAND, B.SNOW, B.GRAVEL, B.STONE, B.MOSS, B.GLOWGRASS, B.REGOLITH, B.DUNE, B.SALTCRUST]);
   // things that stand on the ground without stopping it from sloping: air, leaves, trunks, bushes, flowers, pebbles, torches, chests...
   const DECOR = (b) => b === B.AIR || isLeaf(b) || isTrunk(b) || b === B.BERRY || BLOCKS[b].partial;
+  // the exposed soil top of a column, and the water surface over it if any. Anything hanging overhead with air under it (a sky island,
+  // a bridge, a gate lintel, a cloud city) is looked through: it is the ground below that is the land and gets smoothed. A solid block
+  // sitting right on the soil covers it, and covered soil stays square so whatever stands on it has a flat footing.
+  function soilScan(get, x, z) {
+    let t = -1, wt = -1;
+    for (let y = WH - 1; y > 0; y--) {
+      const b = get(x, y, z);
+      if (DECOR(b)) continue;
+      if (b === B.WATER || b === B.BRINE) { if (wt < 0) wt = y + 1; continue; }
+      if (SOIL.has(b)) { t = y; break; }
+      if (y <= 1 || SOIL.has(get(x, y - 1, z))) break; // standing on the ground: it covers the soil. Otherwise it floats over it: keep looking down
+    }
+    return [t, wt];
+  }
   const ROOFB = (b) => b === B.TILES || b === B.SLATE || b === B.THATCH;
   const SIGNABLE = new Set([B.EMBER, B.BERRY, B.COPPER, B.VOID, B.IRON, B.GOLD, B.GLOWWORM, B.LOG, B.MOONGLOW, B.CLOUD, B.SELENITE, B.BERRYLEAF, B.AMBER]);
   const WALLY = (b) => b === B.PLANKS || b === B.PLASTER || b === B.BEAM || b === B.MASONRY || b === B.IRONWALL || b === B.VOIDWALL || b === B.SELGLASS;
@@ -2188,7 +2202,7 @@ const R = (() => {
     // smooth land: every column's exposed soil top, then a height for each corner shared by four columns.
     // Steps of one or two blocks become slopes; anything steeper stays a sharp edge.
     for (let x = -1; x <= 16; x++) for (let z = -1; z <= 16; z++) {
-      let t = -1, wt = -1; for (let y = WH - 1; y > 0; y--) { const b = get(x, y, z); if (DECOR(b)) continue; if (b === B.WATER || b === B.BRINE) { if (wt < 0) wt = y + 1; continue; } if (SOIL.has(b)) t = y; break; }
+      const [t, wt] = soilScan(get, x, z);
       surfTop[(x + 1) * 18 + (z + 1)] = t; surfWet[(x + 1) * 18 + (z + 1)] = wt; // the seabed counts as land: shores slope in under the water
     }
     for (let cx = 0; cx <= 16; cx++) for (let cz = 0; cz <= 16; cz++) {
@@ -2940,7 +2954,10 @@ const R = (() => {
     state.skyPass = true; state.night = 1 - day;
     sky = horizon;
     state.skyColor = sky; state.fogColor = sky; state.ambient = 0.06; state.fogSky = true;
-    state.fogNear = state.viewDist * 0.55 * (world.preset.fogMul || 1); state.fogFar = state.viewDist * 0.98 * (world.preset.fogMul || 1);
+    // the fog has to be solid before the meshed land runs out (landReach: the chunks around you that are built, in blocks), or looking
+    // between near trees at a far hillside shows sky where its top should be: a patch of blue in the middle of the land
+    const fogMul = world.preset.fogMul || 1; const reach = state.landReach ? state.landReach - 1.5 : 1e9;
+    state.fogFar = Math.min(state.viewDist * 0.98, reach) * fogMul; state.fogNear = state.fogFar * 0.56;
     if (wi > 0.02 && wk === 'fog') { state.fogNear = U.lerp(state.fogNear, 4, wi); state.fogFar = U.lerp(state.fogFar, 26, wi); }
     if (gl0 > 0.01) { state.fogNear = U.lerp(state.fogNear, state.viewDist * 0.32, gl0); state.fogFar = U.lerp(state.fogFar, state.viewDist * 0.88, gl0); }
     else if (wi > 0.02 && (wk === 'rain' || wk === 'storm')) { state.fogNear = U.lerp(state.fogNear, state.viewDist * 0.3, wi); state.fogFar = U.lerp(state.fogFar, state.viewDist * 0.75, wi); }
@@ -3091,7 +3108,7 @@ const R = (() => {
     return new Float32Array([a, b, c, d, b, c, d, b, c, d, b, f, d, b, f, a, b, f, a, b, f, a, b, c, a, e, c, d, e, c, d, e, c, d, e, f, d, e, f, a, e, f, a, e, f, a, e, c, a, b, c, a, e, c, d, b, c, d, e, c, d, b, f, d, e, f, a, b, f, a, e, f]);
   }
   // the block outline under the crosshair. Soil on smoothed ground gets a box whose top follows the slope, by the same rule the mesher uses
-  function soilTopAt(world, x, z) { let t = -1, wt = -1; for (let y = WH - 1; y > 0; y--) { const b = world.getBlock(x, y, z); if (DECOR(b)) continue; if (b === B.WATER || b === B.BRINE) { if (wt < 0) wt = y + 1; continue; } if (SOIL.has(b)) t = y; break; } return [t, wt]; }
+  function soilTopAt(world, x, z) { return soilScan((x, y, z) => world.getBlock(x, y, z), x, z); }
   function cornerHeight(world, cx, cz) { // the same rule as the mesher, for the targeting outline
     let dry = false, wl = -1; const ts = [], ws = [];
     for (const [a, b] of [[-1, -1], [0, -1], [-1, 0], [0, 0]]) { const [t, wt] = soilTopAt(world, cx + a, cz + b); if (t < 0) return -1; ts.push(t); ws.push(wt); if (wt < 0) dry = true; else wl = Math.max(wl, wt); }
@@ -3344,7 +3361,8 @@ const R = (() => {
         const k = b.kind, phs = b.phase || 0;
         switch (k) {
           case 'leg': { const sw = Math.sin(ph + phs); const amp = (b.amp || 0.55) * mv * (1 - air * 0.8); const sit = a.sit || 0; set(i, b.piv, (-sw * amp) * (1 - sit) - 1.25 * sit, 0, (b.phase ? -1 : 1) * 0.25 * sit, 0, bob + Math.max(0, -Math.cos(ph + phs)) * 0.03 * mv * sc * (b.len || 1), 0); break; }
-          case 'arm': { const sw = Math.sin(ph + phs + Math.PI); const amp = (b.amp || 0.4) * mv; const atk = a.attack || 0; const sit = a.sit || 0; const rx = (-sw * amp - atk * 1.9 + idle * Math.sin(t * 1.3 + seed + phs) * 0.03) * (1 - sit) - 0.55 * sit; set(i, b.piv, rx, 0, (b.side || 0) * (0.08 + air * 1.1 + (a.block || 0) * 0.5), 0, bob, 0); break; }
+          case 'arm': { const sw = Math.sin(ph + phs + Math.PI); const amp = (b.amp || 0.4) * mv; const atk = a.attack || 0; const sit = a.sit || 0; const blk = a.block || 0; const shieldArm = (b.side || 0) > 0; // blocking: the left arm (+x: the figure faces +z) comes up square in front with the shield, the right stays low and a little out
+            const rx = (-sw * amp - atk * 1.9 + idle * Math.sin(t * 1.3 + seed + phs) * 0.03) * (1 - sit) - 0.55 * sit - (shieldArm ? blk * 1.0 : 0); set(i, b.piv, rx, shieldArm ? blk * 0.5 : 0, (b.side || 0) * (0.08 + air * 1.1 + blk * (shieldArm ? 0.1 : 0.4)), 0, bob, 0); break; }
           case 'head': { const look = a.look || 0; set(i, b.piv, Math.sin(ph * 2) * 0.05 * mv + idle * Math.sin(t * 0.9 + seed) * 0.03 + (a.nod || 0), idle * Math.sin(t * 0.55 + seed * 2) * 0.16 + look, 0, 0, bob, 0); break; }
           case 'tail': { const sw = Math.sin(ph + 1.1) * 0.25 * mv + Math.sin(t * 1.6 + seed) * (0.09 + 0.1 * idle); set(i, b.piv, Math.sin(t * 1.1 + seed) * 0.04, sw * (b.amp || 1), 0, 0, bob, 0); break; }
           case 'tailfin': { const sw = Math.sin(t * (5 + 3 * mv) + seed) * (0.3 + 0.2 * mv); set(i, b.piv, 0, sw, 0, 0, bob, 0); break; }
@@ -4121,7 +4139,7 @@ const Held = (() => {
     let off = null; if (st.blockK > 0.02 && typeof Combat !== 'undefined') { const sh = Combat.shield(); if (sh && ITEMS[sh.id]) off = mesh(sh.id, ITEMS[sh.id], tone).mesh; }
     return { mesh: m.mesh, bob: st.bobT, moving: moving ? 1 : 0, swing: st.swing, bump: st.bump, drop: st.switchT, block: p.blocking ? 1 : 0, shieldy: key.startsWith('sh_'), offhand: off, offK: st.blockK };
   }
-  return { describe, mesh };
+  return { describe, mesh, build };
 })();
 
 </script>
@@ -5571,7 +5589,7 @@ const Wild = (() => {
     const moving = Math.hypot(player.vx, player.vz) > 0.6 || Math.abs(player.vy) > 0.5;
     for (let i = list.length - 1; i >= 0; i--) {
       const e = list[i];
-      const dx = px - e.x, dz = pz - e.z, dy = (py + 0.9) - (e.y + 0.6);
+      let dx = px - e.x, dz = pz - e.z, dy = (py + 0.9) - (e.y + 0.6);
       const dist = Math.hypot(dx, dz, dy * 0.8);
       if (dist > 58 && !e.high && !e.finalBoss && !e.isMythic && !e.isWarden && !e.raider && !e.lieutenant && !e.isLegend && !e.isApex) { list.splice(i, 1); continue; }
       if ((e.isMythic || e.isWarden || e.isLegend || e.isApex) && dist > 100) { list.splice(i, 1); if (e.isMythic) mythicRef = null; if (e.isLegend) legendRef = null; if (e.isApex) apexRefs[e.isApex] = null; continue; }
@@ -5594,11 +5612,16 @@ const Wild = (() => {
         for (const da of [0, 0.7, -0.7, 1.4, -1.4]) { const a = a0 + da; const nx = e.x + Math.sin(a) * step, nz = e.z + Math.cos(a) * step; const gy = findGround(nx, e.y, nz, e); if (gy != null) { e.x = nx; e.z = nz; settleY(e, (e.flying && !e.aquatic ? gy + 0.6 : gy), dt, 6); e.yaw = a; went = true; break; } }
         if (!went) e.flee = 0; continue;
       }
-      // ---- the live fight: it has turned on you, and comes for you until one of you gives up ----
+      // ---- the live fight: it has turned on you, and comes for you (or the Kin at your side) until one of you gives up ----
       if (e.chase) {
-        const c = e.chase; c.t -= dt; c.hitCd -= dt; if (c.pt > 0) c.pt -= dt;
+        const c = e.chase; c.t -= dt; c.hitCd -= dt; if (c.pt > 0) c.pt -= dt; if (c.foeT > 0) c.foeT -= dt;
+        const bud = (typeof Buddy !== 'undefined' && Buddy.current) ? Buddy.current() : null;
+        const bd = bud ? Math.hypot(bud.x - e.x, bud.z - e.z) : 1e9, pd0 = Math.hypot(dx, dz);
+        const atBuddy = !!bud && (c.foe === 'buddy' && c.foeT > 0 ? bd < 14 : bd < pd0 * 0.8); // it remembers who hit it for a few seconds, else takes the nearer
+        const tg = atBuddy ? { x: bud.x, y: bud.y + 0.5, z: bud.z } : { x: px, y: py, z: pz }; c.atBuddy = atBuddy;
+        if (atBuddy) { dx = tg.x - e.x; dz = tg.z - e.z; dy = tg.y - (e.y + 0.6); }
         const hd = Math.hypot(dx, dz);
-        if (c.t <= 0 || hd > (c.rage ? 34 : 30)) { disengage(e, c.rage ? 20 : 12); continue; }
+        if (c.t <= 0 || pd0 > (c.rage ? 34 : 30)) { disengage(e, c.rage ? 20 : 12); continue; }
         const an = e._an || (e._an = Anim.fresh(e, performance.now()));
         if (e.stunT > 0) { e.stunT -= dt; e.hover = (e.model.hover || 0) + Math.sin(e.bob * 14) * 0.04; e.jawOpen = 0; an.nod = Math.sin(e.bob * 12) * 0.25; an.lean = 0.15; c.phase = 'close'; c.hitCd = Math.max(c.hitCd, 0.5); continue; }
         an.nod = 0; an.lean = 0; an.sit = 0;
@@ -5615,7 +5638,7 @@ const Wild = (() => {
         } else if (c.phase === 'lunge') {
           const k = 1 - c.pt / 0.24; e.hover = (e.model.hover || 0) + Math.sin(k * Math.PI) * 0.35; e.jawOpen = 1 - k * 0.6; an.lean = 0.35 * Math.sin(k * Math.PI); an.nod = 0.3 * Math.sin(k * Math.PI);
           if (hd > near * 0.7) { const step = Math.min(hd - near * 0.7, 2.6 * dt); const nx = e.x + dx / hd * step, nz = e.z + dz / hd * step; const gy = findGround(nx, e.y, nz, e); if (gy != null) { e.x = nx; e.z = nz; } }
-          if (!c.hit && k > 0.45) { c.hit = true; if (hd <= near + 0.9 && Math.abs(dy) < 2.4) bite(e, player); }
+          if (!c.hit && k > 0.45) { c.hit = true; if (hd <= near + 0.9 && Math.abs(dy) < 2.4) { if (c.atBuddy) biteBuddy(e); else bite(e, player); } }
           if (c.pt <= 0) { c.phase = 'rest'; c.pt = 0.6 + Math.random() * 0.5; c.hitCd = c.pt + 0.1; }
         }
         continue;
@@ -5711,7 +5734,7 @@ const Wild = (() => {
     e.chase = { t: opts.rage ? 14 : 18, hitCd: ambush ? 1.4 : 0.8, phase: 'close', pt: 0, rage: !!opts.rage };
     e.alert = 1; e.hunt = 0; e.sleep = false; e.cool = 0; e.ringT = 0; e.flee = 0; e.moving = false;
     api.chaser = e;
-    if (!opts.quiet) { UI.sfx('miss'); if (G.stats && !G.stats.liveTold) { G.stats.liveTold = true; G.explain('A wild Kin turns on you', 'It is a live fight now. Hold your shield up to block, raise it or swing just as it lunges to parry, hit back with your weapon, or run. Tap DEPLOY to send your Kin in instead: they are far stronger than any blade, and only a Kin can finish the big ones.'); } else UI.toast(`${KIN.name(e.kin)} comes for you. Fight, run, or Deploy.`, 'bad'); }
+    if (!opts.quiet) { UI.sfx('miss'); if (G.stats && !G.stats.liveTold) { G.stats.liveTold = true; G.explain('A wild Kin turns on you', 'It is a live fight now. Your lead Kin beside you takes it on with its own moves, far stronger than any blade; help with your weapon, hold your shield up to block, raise it or swing just as it lunges to parry, or run. DEPLOY picks which Kin fights, or sends one in when nobody is at your side.'); } else UI.toast(`${KIN.name(e.kin)} comes for you.`, 'bad'); }
   }
   function disengage(e, cool = 12) {
     if (!e.chase) return; e.chase = null; e.cool = cool; e.alert = 0; e.hunt = 0; e.jawOpen = 0; e.hover = e.model.hover; e.stunT = 0; if (e._an) { e._an.lean = 0; e._an.nod = 0; }
@@ -5727,6 +5750,7 @@ const Wild = (() => {
     e.kin.hp = keepOne ? Math.max(1, e.kin.hp - dmg) : e.kin.hp - dmg;
     e.hitT = 0.3; e.sleep = false;
     if (!e.chase) engage(e, false, { quiet: !!opts.quiet }); else e.chase.t = Math.max(e.chase.t, 18);
+    if (e.chase && !opts.arrow) { e.chase.foe = 'player'; e.chase.foeT = 4; }
     if (opts.fromX != null && (e.model.radius || 0.6) * e.scale < 1.3 && !opts.arrow) { const ddx = e.x - opts.fromX, ddz = e.z - opts.fromZ, dl = Math.hypot(ddx, ddz) || 1; const push = opts.push == null ? 0.35 : opts.push; const nx = e.x + ddx / dl * push, nz = e.z + ddz / dl * push; const gy = findGround(nx, e.y, nz, e); if (gy != null && Math.abs(gy - e.y) < 1.6) { e.x = nx; e.z = nz; } }
     if (e.chase && e.chase.phase === 'wind' && (opts.heavy || Math.random() < 0.5)) { e.chase.phase = 'rest'; e.chase.pt = 0.5; e.chase.hitCd = 0.6; } // a hit in the wind-up puts it off its stroke
     G.kinFocus = e; G.kinFocusT = 3.5;
@@ -5734,10 +5758,10 @@ const Wild = (() => {
     if (e.kin.hp <= 0) { daze(e); return { dmg: before, pct: 0, dazed: true }; }
     return { dmg: before - e.kin.hp, pct: Math.round(e.kin.hp / st.hp * 100), dazed: false };
   }
-  function daze(e) {
+  function daze(e, k) {
     e.kin.hp = 1; e.dazed = 10; disengage(e, 0); e.cool = 0; e.alert = 0; e.stunT = 0;
     UI.sfx('win'); UI.toast(`${KIN.name(e.kin)} goes down, dazed. Snare it now, or let it go.`, 'good');
-    const xp = Math.floor(5 * e.kin.level * (1 + 0.4 * (e.kin.stage - 1)) * KIN.RARITY[e.kin.sp.rarity || 0].xp); G.addTrainerXp(xp); G.stats.liveWins = (G.stats.liveWins || 0) + 1;
+    rewardWin(e, k || null); G.stats.liveWins = (G.stats.liveWins || 0) + 1;
     const dom = KIN.dominant(e.kin.sp.elem, 1)[0]; if (Math.random() < 0.35) { G.player.add('ess_' + dom, 1); UI.toast(`${dom} Essence collected.`); }
   }
   // its lunge reaches you: a shield in its face blocks most of it, a shield raised or a swing timed as it lands turns it away
@@ -5745,6 +5769,33 @@ const Wild = (() => {
     const dmg = biteDmg(e); const r = Combat.takeBlow(dmg, e.x, e.z, 'kin', e);
     if (r.result === 'parry') { e.stunT = 1.4; e.hitT = 0.3; e.chase.hitCd = 1.6; }
     else { e.chase.t = Math.max(e.chase.t, 18); e.chase.hitCd = 1.0; }
+  }
+  // your Kin's blow lands: full battle damage, and a Kin can finish anything. A common Kin goes down dazed (your snare window); the scripted ones (tyrants, legends, bosses, quest Kin) are beaten outright
+  function scripted(e) { return !!(e.lieutenant || e.isBoss || e.isLegend || e.isApex || e.isLabBoss || e.isMythic || e.isWarden || e.lairQuest || e.nightQuest || e.kinmaster || e.keepBoss || e.finalBoss || e.skyBoss || e.tangleBoss || e.citadelFirst || e.thief || e.pest || e.rogue || e.raider || e.siege || e.kin.sp.mythic); }
+  function hitByKin(e, dmg, k) {
+    if (e.dazed > 0 || !list.includes(e)) return 0;
+    const before = e.kin.hp; e.kin.hp = Math.max(0, e.kin.hp - dmg); e.hitT = 0.35; e.sleep = false;
+    if (!e.chase) engage(e, false, { quiet: true }); if (e.chase) { e.chase.t = Math.max(e.chase.t, 18); e.chase.foe = 'buddy'; e.chase.foeT = 5; if (e.chase.phase === 'wind' && Math.random() < 0.4) { e.chase.phase = 'rest'; e.chase.pt = 0.5; e.chase.hitCd = 0.6; } }
+    G.kinFocus = e; G.kinFocusT = 3.5;
+    if (e.kin.hp <= 0) { if (scripted(e)) { G.onBattleEnd('won', e, e.kin, k, false); } else daze(e, k); }
+    return before - Math.max(0, e.kin.hp);
+  }
+  // its lunge reaches your Kin: the battle's numbers, no shield to hide behind
+  function biteBuddy(e) {
+    const bud = Buddy.current(); if (!bud) return; const k = bud.kin; const mv = KIN.moves(e.kin)[0];
+    if (Battle.dodges(e.kin, k)) { e.chase.hitCd = 0.9; return; }
+    const r = Battle.calcDamage(e.kin, k, mv); Buddy.hurt(r.dmg, e, r.eff); e.chase.t = Math.max(e.chase.t, 18); e.chase.hitCd = 1.0;
+  }
+  // what a win in the open pays: the battle's experience to the Kin that fought and a little to the rest, trainer experience, a count
+  function rewardWin(e, k) {
+    const wild = e.kin; const baseXp = Math.floor(9 * wild.level * (1 + 0.4 * (wild.stage - 1)) * KIN.RARITY[wild.sp.rarity || 0].xp);
+    if (k && k.hp > 0) {
+      for (const o of G.kin) if (o !== k && o.hp > 0) { const oe = KIN.gainXp(o, Math.floor(baseXp * 0.25)); for (const ev of oe) if (ev.type === 'level') UI.toast(`${KIN.name(o)} (watching) reached Lv ${ev.level}.`); }
+      const evs = KIN.gainXp(k, baseXp);
+      for (const ev of evs) { if (ev.type === 'peak') G.explain(`${KIN.name(k)} has peaked`, `Lv ${ev.level} is as far as its kind goes. Only a fusion recipe can take it further.`); if (ev.type === 'level') UI.toast(`${KIN.name(k)} reached Lv ${ev.level}.`, 'good'); if (ev.type === 'evolve') { UI.toast(`${ev.name}… it evolved into ${KIN.name(k)}!`, 'good'); UI.sfx('level'); } }
+      G.addTrainerXp(baseXp);
+    } else G.addTrainerXp(Math.floor(baseXp * 0.5));
+    G.stats.battlesWon++; { const dom0 = KIN.dominant(wild.sp.elem, 1)[0]; if (!G.stats.beatElem) G.stats.beatElem = {}; G.stats.beatElem[dom0] = (G.stats.beatElem[dom0] || 0) + 1; }
   }
   function focusText() { const e = G.kinFocus; if (!e || !(G.kinFocusT > 0)) return null; if (e.dazed > 0) return `${KIN.name(e.kin)}: dazed`; return `${KIN.name(e.kin)} Lv ${e.kin.level}: ${Math.max(0, Math.round(e.kin.hp / KIN.stats(e.kin).hp * 100))}%`; }
   // the hostile Kin nearest you, for the Deploy button
@@ -5787,7 +5838,7 @@ const Wild = (() => {
     return out;
   }
   function clear() { drops.length = 0; list.length = 0; mythicRef = null; legendRef = null; apexRefs.rex = apexRefs.mosa = null; }
-  const api = { inTallGrass, isHigh, dropEntities, init, update, list, remove, nearest, pick, rings, roll, ensureHeart, ensureLegend, ensureApex, apexSea, apexLevel: APEX_LV, clear, makeEntity, zoneLevel, noSpawn: null, chaser: null, engage, disengage, strike, daze, focusText, engagedNear, unfinishable, get mythic() { return mythicRef; }, get legend() { return legendRef; } };
+  const api = { inTallGrass, isHigh, dropEntities, init, update, list, remove, nearest, pick, rings, roll, ensureHeart, ensureLegend, ensureApex, apexSea, apexLevel: APEX_LV, clear, makeEntity, zoneLevel, noSpawn: null, chaser: null, engage, disengage, strike, hitByKin, daze, focusText, engagedNear, unfinishable, scripted, get mythic() { return mythicRef; }, get legend() { return legendRef; } };
   return api;
 })();
 
@@ -8213,7 +8264,11 @@ const Battle = (() => {
     if (wildE && wildE.hitT > 0) wildE.hitT -= dt;
   }
   function abort() { if (!active) return; const e = wildE; end('ran'); if (e) e.cool = 60; } // test hook: walk away from a fight
-  return { init, start, tick, camera, fxEntities, spawnFx, abort, get active() { return active; }, get mineEntity() { return mineE; }, get wildEntity() { return wildE; } };
+  // the same arithmetic for fights in the open: the live skirmish between your Kin and a wild one uses the battle's numbers
+  function calcDamage(att, def, move) { att.buffs = att.buffs || buffs(); def.buffs = def.buffs || buffs(); return damage(att, def, move); }
+  function dodges(att, def) { att.buffs = att.buffs || buffs(); def.buffs = def.buffs || buffs(); return Math.random() > (move0(att).acc || 0.95) || Math.random() < dodgeChance(att, def); }
+  function move0(k) { return KIN.moves(k)[0]; }
+  return { init, start, tick, camera, fxEntities, spawnFx, calcDamage, dodges, abort, get active() { return active; }, get mineEntity() { return mineE; }, get wildEntity() { return wildE; } };
 })();
 
 </script>
@@ -10255,11 +10310,42 @@ const Avatar = (() => {
     }
     H.done(); return m;
   }
-  function mesh(s) { const key = s.id + ':' + JSON.stringify(look()); let m = meshes.get(key); if (!m) { const mdl = model(s); m = { model: mdl, mesh: R.entityMesh('avatar:' + key, (mb) => KIN.buildMesh(mb, mdl)) }; meshes.set(key, m); } return m; }
+  // what you hold, when you are seen from outside: the same item shapes as the first-person hand, gripped by the right hand (a shield
+  // on the left forearm), built onto the arm's bone so they swing with it. The hands hang at (±0.45, 0.55, 0.06)
+  function heldKeys(p) {
+    const key = p && p.selected ? p.selected() : null; const item = key ? ITEMS[key] : null;
+    let main = item ? key : null, off = null;
+    if (main && main.startsWith('sh_')) { off = main; main = null; }
+    if (p && p.blocking && !off && typeof Combat !== 'undefined' && Combat.shield) { const sh = Combat.shield(); if (sh && ITEMS[sh.id]) off = sh.id; }
+    return { main, off };
+  }
+  function gripOut(key, item) { // where the item sits in the right hand (offset in hand units) and how it is tilted: rx > 0 leans the tip forward, rz > 0 away from the body
+    if (key === 'torch') return { off: [0, 0.22, 0.02], rot: [0.3, 0, 0.1] };
+    if (item.block != null && item.block !== B.STATUE) return { off: [0, 0.02, 0.1], rot: [0.3, -0.6, 0] };
+    if (key === 'bow' || key.startsWith('bow_')) return { off: [0, 0.05, 0.04], rot: [0.12, 0.7, 0.05] };
+    if (key.startsWith('sw_') || key.startsWith('ax_')) return { off: [0, 0.16, 0.02], rot: [0.25, 0, 0.42] }; // carried upright, blade out from the hip, so the swing brings it down and through
+    if (key.startsWith('sp_')) return { off: [0, 0.3, 0.04], rot: [0.3, 0, 0.12] };
+    if (key.startsWith('pick') || key === 'hatchet' || key.startsWith('axe') || key === 'shovel') return { off: [0, 0.2, 0.04], rot: [0.6, -0.4, 0.2] };
+    if (key.startsWith('rod')) return { off: [0, 0.3, 0.04], rot: [1.1, 0, 0.1] };
+    if (key.startsWith('snare')) return { off: [0, 0.02, 0.12], rot: [0.2, -0.4, 0] };
+    return { off: [0, 0.02, 0.1], rot: [0.4, -0.4, 0] };
+  }
+  // the figure faces +z, so its right hand is the -x one (bone 2) and its left the +x one (bone 3)
+  function addHeld(mb, main, off) {
+    const S = 0.95;
+    if (main && ITEMS[main]) { const g = gripOut(main, ITEMS[main]); mb.setBone(2); mb.push(); mb.translate(-0.45, 0.55, 0.06); mb.scale(S, S, S); mb.translate(g.off[0], g.off[1], g.off[2]); mb.rotate(g.rot[0], g.rot[1], g.rot[2]); Held.build(mb, main, ITEMS[main]); mb.pop(); mb.setBone(0); }
+    if (off && ITEMS[off]) { mb.setBone(3); mb.push(); mb.translate(0.5, 0.68, 0.14); mb.scale(S, S, S); mb.rotate(0.1, -0.2, -0.1); Held.build(mb, off, ITEMS[off]); mb.pop(); mb.setBone(0); }
+  }
+  function mesh(s, held) {
+    const key = s.id + ':' + JSON.stringify(look()) + ':' + (held ? (held.main || '') + '/' + (held.off || '') : '');
+    let m = meshes.get(key);
+    if (!m) { const mdl = model(s); m = { model: mdl, mesh: R.entityMesh('avatar:' + key, (mb) => { KIN.buildMesh(mb, mdl); if (held) addHeld(mb, held.main, held.off); }) }; meshes.set(key, m); }
+    return m;
+  }
   // the entity for the render list: standing where you stand, facing where you face, bobbing when you walk, seated on a mount
   const an = { ph: 0, mv: 0, lx: 0, lz: 0, ly: 0, lt: 0, vy: 0, seed: 3, air: 0 };
   function entity(p, moving) {
-    const s = skin(); const mm = mesh(s);
+    const s = skin(); const mm = mesh(s, heldKeys(p));
     const seat = p.mount ? 0.75 : p.flying ? 0.35 : 0;
     an.attack = p.swingT > 0 ? Math.sin(Math.min(1, p.swingT / 0.25) * Math.PI) : 0; an.block = p.blocking ? 1 : 0;
     if (p.mount || p.flying) { an.mv = 0; an.sit = 1; } else an.sit = 0;
@@ -10592,6 +10678,7 @@ const UI = (() => {
     else if (name === 'incubator') renderIncubator();
     else if (name === 'draught') renderDraught();
     else if (name === 'skins') renderSkins();
+    else if (name === 'deploy') renderDeploy(data);
   }
   // ---------- skins: how you look from outside ----------
   function renderSkins() {
@@ -10659,6 +10746,18 @@ const UI = (() => {
   function kinCard(k, extra = '') {
     const st = KIN.stats(k); const frac = k.hp / st.hp;
     return `<div class="kcard" data-kid="${k.id}">${portraitHtml(k)}<div class="kinfo"><div class="krow"><b>${KIN.name(k)}</b>${(k.sp.rarity || 0) > 0 ? `<span class="rar r${k.sp.rarity}">${KIN.RARITY[k.sp.rarity].name}</span>` : ''}${k === G.activeKin() ? '<span class="tag">active</span>' : ''}${k.sp.mythic ? '<span class="tag myth">mythic</span>' : ''}${k.hp <= 0 ? '<span class="tag down">fainted</span>' : ''}<span class="lv">Lv ${k.level}<span style="opacity:.55">/${KIN.capOf(k.sp)}</span></span>${(k.tamed || k.sp.tame) ? `<span class="tag" title="trust">♞ ${Math.round((k.trust || 0) * 100)}%</span>` : ""}</div><div class="hpbar"><div class="hpfill" style="width:${frac * 100}%;background:${frac > 0.5 ? '#5ad66a' : frac > 0.22 ? '#f0c040' : '#f05040'}"></div></div><div class="krow small">${KIN.dominant(k.sp.elem, 2).map(e => `<span class="badge" style="background:${ELEM_COLOR[e]}">${e}</span>`).join('')}<span>${Math.round(k.hp)}/${st.hp}</span>${(k.sp.gen || 0) > 0 ? `<span class="gen">fusion g${k.sp.gen}</span>` : ''}</div>${extra}</div></div>`;
+  }
+  // Deploy: which Kin fights beside you. Tap one and it is at your side and on the foe
+  function renderDeploy(foe) {
+    setTitle('Deploy');
+    const who = foe && foe.kin ? `${KIN.name(foe.kin)} Lv ${foe.kin.level}` : 'the one on you';
+    const lead = G.activeKin(); const out = Buddy.current();
+    el['panel-body'].innerHTML = `<p class="note">Who takes on ${who}? Your lead Kin fights beside you on its own; pick another to send it in instead.</p>` +
+      G.kin.map(k => kinCard(k, k.hp > 0 ? `<div class="row"><button class="btn ${k === lead ? 'ghost' : ''}" data-send="${k.id}">${k === lead ? (out ? 'Already at your side · rally' : 'Call it to your side') : 'Send in'}</button></div>` : '')).join('') +
+      `<div class="row"><button class="btn ghost" id="dp-close">Not now</button></div>`;
+    drawPortraits(el['panel-body']);
+    el['panel-body'].querySelectorAll('[data-send]').forEach(b => b.addEventListener('click', () => { const k = G.kin.find(x => x.id == b.dataset.send); closePanel(); if (k) G.sendIn(k, foe); }));
+    q('dp-close').addEventListener('click', closePanel);
   }
   function healButton(k) {
     const p = G.player; const st = KIN.stats(k);
@@ -10832,7 +10931,7 @@ const UI = (() => {
       <h4>How to play</h4>
       <p class="small">${Controls.isTouch ? 'Left stick walks; drag anywhere on the right of the screen to turn the camera. <b>Hold</b> to mine, or to block when you hold a weapon; <b>tap</b> to place a block, swing, talk, or use a Fusion Table. ▲ jumps, ▼ crouches, hold ▲ in the air with a Glider to glide. In third person the camera orbits you: swing it round to see your face, or your Kin\'s.' : 'WASD to move, mouse to look, <b>hold left click</b> to mine or block, <b>right click</b> to place or use. Space jumps, Shift sneaks, 1-9 or the wheel pick an item. E opens Craft, Q opens Kin, J opens Quests, V switches the camera, F deploys a Kin or sets a snare. Esc releases the mouse.'}</p>
       <p class="small">Chests (Craft › Blocks) keep what you store in them through anything. Amulets come from the people by the fires on the road; nobody sells them. Third person shows your skin: unlock more by playing.</p>
-      <p class="small">Wild Kin have a sense ring. Walk into it from the front and they come for you, live: they crouch, then lunge. Hold a weapon and hold the screen to block with your shield; raise it, or swing, just as the lunge lands to parry. Swords and axes chip a Kin's health (a wooden sword a twentieth a blow, Starmetal about a seventh), arrows more but never the last point. <b>Deploy</b> sends your Kin in for the proper battle: they hit far harder, and the big ones only fall to Kin. Beat a common Kin by hand and it lies dazed for ten seconds: snare it, or let it go. Sneak up from behind, stay still when the ring flashes, and Deploy for an ambush: first strike and a better catch chance. Your buddy darts in for a bite of its own now and then.</p>
+      <p class="small">Wild Kin have a sense ring. Walk into it from the front and they come for you, live: they crouch, then lunge. Hold a weapon and hold the screen to block with your shield; raise it, or swing, just as the lunge lands to parry. Swords and axes chip a Kin's health (a wooden sword a twentieth a blow, Starmetal about a seventh), arrows more but never the last point. Your lead Kin fights beside you on its own, with its real moves and strength: far harder than any blade, and the big ones only fall to Kin. It takes lunges too and goes down if they are too much. <b>Deploy</b> picks which Kin is at your side, or sends one in when nobody is; with no Kin beside you it is just you. Beat a common Kin and it lies dazed for ten seconds: snare it, or let it go. Sneak up from behind and stay still when the ring flashes for a better catch.</p>
       <p class="small">Layers, top to bottom: Sky islands (Light, Gale), Surface, the Mines (dark, bring a torch), and the Core: lava, Flame and Void, the Mythic. The world wraps after about an hour of walking in one direction; the further you go from camp, the stranger the Kin.</p>
       <p class="small">Shards (◆) are the currency: you earn them by dismantling objects and gear that had a Kin in them. Shops to spend them in come later.</p>
       <p class="small">The Fusion Table: a fusion is a recipe, two particular Kin and an element stone (three essences and an iron), and the table lists the recipes you know. Quest people and beaten tyrants teach more; some fusions fork, and the table you use decides which way. Items alone craft gear, and the table keeps your spare Kin.</p>
@@ -12393,7 +12492,7 @@ const Sky = (() => {
 // Your lead Kin walks with you, a step behind at your shoulder. Fliers keep up in the air, swimmers in the water.
 // Now and then, as you walk, it noses out something that suits its element and brings it to you.
 const Buddy = (() => {
-  let G = null, e = null, key = null, wearSeen = '', walked = 0, nextFind = 160, hopT = 0, gyT = 0, gy = 0, lastX = 0, lastZ = 0, helpT = 4, dash = null;
+  let G = null, e = null, key = null, wearSeen = '', walked = 0, nextFind = 160, hopT = 0, gyT = 0, gy = 0, lastX = 0, lastZ = 0, dash = null;
   const FINDS = {
     Stone: [['copper', 1], ['iron', 1], ['stone', 3]], Bloom: [['berry', 3], ['frond', 2]], Flame: [['ember', 1]], Tide: [['pearl', 1], ['bait_berry', 1]],
     Gale: [['feather', 1]], Frost: [['snow', 3], ['broth', 1]], Spark: [['copper', 2]], Void: [['void', 1]], Light: [['glowworm', 2]],
@@ -12402,35 +12501,63 @@ const Buddy = (() => {
     Stone: 'scrapes at the ground and turns up', Bloom: 'roots under a bush and comes back with', Flame: 'sniffs out something warm:', Tide: 'paddles back with',
     Gale: 'snatches something out of the air:', Frost: 'digs in the cold and finds', Spark: 'crackles at a rock and knocks loose', Void: 'stares into a crack in the ground and pulls out', Light: 'glows brighter and leads you to',
   };
-  function init(game) { G = game; e = null; key = null; walked = 0; helpT = 4; dash = null; }
-  // ---- the fight: it pitches in. Now and then it darts at whatever you are fighting, lands one, and trots back to your shoulder ----
+  function init(game) { G = game; e = null; key = null; walked = 0; dash = null; pending = null; lastFoe = null; }
+  // ---- the fight: your Kin fights beside you. Whatever turns on you, it squares up to with its own moves and its battle strength,
+  // far more than any blade of yours. It takes the lunges too, and goes down if they are too much. ----
+  let foe = null, atkCd = 1.2, pending = null, flinchT = 0, lastFoe = null;
   function foeNear(p) {
-    let best = null, bd = 9;
-    const h = Wild.engagedNear(p, 9); if (h && !(h.dazed > 0)) { best = h; bd = Math.hypot(h.x - p.x, h.z - p.z); }
-    const f = typeof Combat !== 'undefined' && Combat.nearestFoe ? Combat.nearestFoe(p, bd) : null; if (f) best = f;
+    let best = null, bd = 12;
+    const h = Wild.engagedNear(p, 12); if (h && !(h.dazed > 0) && h.chase) { best = h; bd = Math.hypot(h.x - p.x, h.z - p.z); }
+    const f = typeof Combat !== 'undefined' && Combat.nearestFoe ? Combat.nearestFoe(p, Math.min(bd, 9)) : null; if (f) best = f;
     return best;
   }
-  function gone(T) { return !T || (T.isFoe ? T.state === 'down' : (T.dazed > 0 || !T.chase)); }
-  function land(k, T) {
-    const lvl = k.level || 1; const hx = T.x - (T.x - e.x) * 0.25, hz = T.z - (T.z - e.z) * 0.25, hy = T.y + (T.isFoe ? 1 : (T.model ? T.model.height * T.scale * 0.5 : 0.8));
-    if (T.isFoe) Combat.hurtFoe(T, Math.round(3 + lvl * 0.15), e.x, e.z); else Wild.strike(T, 0.06 + Math.min(0.08, lvl * 0.0012), { fromX: e.x, fromZ: e.z, push: 0.3, quiet: true });
-    Hazards.sparks(hx, hy, hz, 8, [1.0, 0.95, 0.8]); UI.sfx('hit'); hopT = 0.4;
-    if (G.stats && !G.stats.buddyFightTold) { G.stats.buddyFightTold = true; UI.toast(`${KIN.name(k)} gets a bite in.`, 'good'); }
+  function gone(T) { return !T || (T.isFoe ? T.state === 'down' : (T.dazed > 0 || !T.chase || !Wild.list.includes(T))); }
+  function elemCol(elem) { const c = (typeof ELEM_COLOR !== 'undefined' && ELEM_COLOR[elem]) || '#ffffff'; return U.hexToRgb(c); }
+  function land(k, T, move) {
+    if (gone(T)) return;
+    const hx = T.x - (T.x - e.x) * 0.3, hz = T.z - (T.z - e.z) * 0.3, hy = T.y + (T.isFoe ? 1.0 : (T.model ? T.model.height * T.scale * 0.55 : 0.8));
+    if (T.isFoe) { const st = KIN.stats(k); const dmg = Math.max(2, Math.round(st.atk * 0.35 + k.level * 0.25)); Combat.hurtFoe(T, dmg, e.x, e.z); Hazards.sparks(hx, hy, hz, 8, elemCol(move.elem)); UI.sfx('hit'); return; }
+    if (Battle.dodges(k, T.kin)) { UI.sfx('miss'); return; }
+    const r = Battle.calcDamage(k, T.kin, move); const dealt = Wild.hitByKin(T, r.dmg, k);
+    Hazards.sparks(hx, hy, hz, r.crit ? 16 : 10, elemCol(move.elem), r.eff > 1.25 ? 4.5 : 3.2); UI.sfx(r.eff > 1.25 ? 'hit2' : 'hit');
+    if (r.crit && dealt > 0) UI.toast(`${KIN.name(k)}: critical!`);
+    if (move.drain) { const st = KIN.stats(k); k.hp = Math.min(st.hp, k.hp + Math.round(dealt / 3)); }
   }
   function fight(dt, p, k) {
-    if (dash) {
-      dash.t += dt; const T = dash.target;
-      if (gone(T) && !dash.hit) { dash = null; return false; }
-      const u = Math.min(1, dash.t / 0.32); // in over a third of a second, the blow, then back
-      if (!dash.hit) { e.x = dash.x0 + (T.x - dash.x0) * u * 0.8; e.z = dash.z0 + (T.z - dash.z0) * u * 0.8; e.yaw = Math.atan2(T.x - e.x, T.z - e.z); e.hover = (e.model.hover || 0) + Math.sin(u * Math.PI) * 0.45 * Math.min(1.5, e.model.height); if (u >= 1) { dash.hit = true; land(k, T); } }
-      else if (dash.t > 0.75) dash = null;
-      gyT = 0; return !dash || !dash.hit ? true : false;
-    }
-    helpT -= dt; if (helpT > 0) return false;
-    const T = foeNear(p); if (!T) { helpT = 1; return false; }
-    helpT = 4.5 + Math.random() * 3; dash = { target: T, t: 0, x0: e.x, z0: e.z, hit: false }; return true;
+    if (flinchT > 0) flinchT -= dt;
+    if (pending) { pending.t -= dt; if (pending.t <= 0) { land(k, pending.T, pending.move); pending = null; } }
+    const T = foeNear(p);
+    if (!T || gone(T)) { if (dash) dash = null; if (lastFoe && !T) { atkCd = 1.0; } lastFoe = null; return false; }
+    if (lastFoe !== T) { lastFoe = T; atkCd = Math.min(atkCd, 0.6); if (G.stats && !G.stats.buddyFightTold) { G.stats.buddyFightTold = true; G.explain(`${KIN.name(k)} fights beside you`, 'Your lead Kin takes on whatever turns on you, with its own moves and the strength it has in a battle: far more than any blade of yours. It takes the lunges too, and goes down if they are too much; Deploy picks another to send in, and with nobody at your side it is just you.'); } }
+    const r0 = (T.isFoe ? 0.5 : (T.model.radius || 0.6) * T.scale) + (e.model.radius || 0.6) * e.scale + 0.35;
+    const dx = T.x - e.x, dz = T.z - e.z, d = Math.hypot(dx, dz); atkCd -= dt;
+    const pd = Math.hypot(p.x - e.x, p.z - e.z);
+    if (dash) { dash.t += dt; const u = Math.min(1, dash.t / 0.26);
+      if (!dash.hit) { e.x = dash.x0 + (T.x - dash.x0) * u * 0.78; e.z = dash.z0 + (T.z - dash.z0) * u * 0.78; e.hover = (e.model.hover || 0) + Math.sin(u * Math.PI) * 0.4 * Math.min(1.5, e.model.height); if (u >= 1) { dash.hit = true; land(k, T, dash.move); } }
+      else { const back = Math.min(1, (dash.t - 0.26) / 0.3); e.x = T.x - (dx / (d || 1)) * (r0 * (0.6 + back * 0.6)); e.z = T.z - (dz / (d || 1)) * (r0 * (0.6 + back * 0.6)); if (dash.t > 0.56) dash = null; }
+      e.yaw = Math.atan2(T.x - e.x, T.z - e.z); e.y += ((e.flying ? p.y + 1.0 : ground(e.x, e.z, Math.max(p.y, e.y))) - e.y) * Math.min(1, dt * 12); return true; }
+    e.yaw = Math.atan2(dx, dz);
+    if (d > r0 + 0.25 && pd < 16) { const sp = Math.max(3.2, (e.speed || 0) * 1.2); const step = Math.min(d - r0, sp * dt); const nx = e.x + dx / d * step, nz = e.z + dz / d * step;
+      const gy = e.flying ? p.y + 1.0 : ground(nx, nz, Math.max(p.y, e.y)); if (e.flying || Math.abs(gy - e.y) < 1.6) { e.x = nx; e.z = nz; if (gy > e.y) e.y = gy; else e.y += (gy - e.y) * Math.min(1, dt * 10); }
+      e.hover = (e.model.hover || 0) + (e.flying ? Math.sin(e.bob * 2) * 0.08 : 0); return true; }
+    e.hover = (e.model.hover || 0) + (flinchT > 0 ? Math.sin(flinchT * 40) * 0.06 : 0) + (e.flying ? Math.sin(e.bob * 2) * 0.08 : 0);
+    if (atkCd <= 0 && !pending) { const st = KIN.stats(k); const mv = KIN.moves(k).filter(m => m.kind !== 'util'); const move = mv[Math.random() < 0.65 ? 0 : Math.min(1, mv.length - 1)];
+      if (k.hp < st.hp * 0.4 && Math.random() < 0.2) { k.hp = Math.min(st.hp, k.hp + Math.round(st.hp * 0.22)); Hazards.sparks(e.x, e.y + e.model.height * e.scale * 0.7, e.z, 10, [0.6, 1.0, 0.6], 1.5); UI.sfx('util'); atkCd = 1.4; }
+      else if (move.kind === 'phys') { dash = { t: 0, x0: e.x, z0: e.z, hit: false, move }; atkCd = U.clamp(2.3 - st.agi / 90, 1.1, 2.3); }
+      else { Battle.spawnFx(e, T, move.elem); pending = { t: 0.34, T, move }; atkCd = U.clamp(2.5 - st.agi / 90, 1.2, 2.5); } }
+    return true;
   }
-  function lead() { const k = G.kin && G.kin[G.activeIdx]; return k && k.hp > 0 ? k : null; }
+  function hurt(dmg, from, eff) {
+    const k = e && e.kin; if (!k) return; k.hp = Math.max(0, k.hp - dmg); e.hitT = 0.35; flinchT = 0.35; hopT = 0.25;
+    if (from) { const ddx = e.x - from.x, ddz = e.z - from.z, dl = Math.hypot(ddx, ddz) || 1; const nx = e.x + ddx / dl * 0.35, nz = e.z + ddz / dl * 0.35; const gy = ground(nx, nz, e.y); if (Math.abs(gy - e.y) < 1.5) { e.x = nx; e.z = nz; } }
+    Hazards.sparks(e.x, e.y + e.model.height * e.scale * 0.6, e.z, 6, [1.0, 0.6, 0.5]); UI.sfx(eff > 1.25 ? 'hit2' : 'hurt');
+    if (k.hp <= 0) down();
+  }
+  function down() { const k = e.kin; UI.sfx('down'); UI.toast(`${KIN.name(k)} is down. Deploy another, or it is just you.`, 'bad'); Hazards.puff(e.x, e.y + 0.3, e.z, 10, [0.9, 0.9, 0.95]); pending = null; dash = null; e = null; }
+  function current() { return e && !e.away && !hidden(G.player) ? e : null; }
+  // sent in by hand: at your side at once, and straight at whatever is on you
+  function rally(T) { atkCd = 0; lastFoe = null; pending = null; dash = null; hopT = 0.5; if (e) { e.away = false; place(G.player, true); } if (T && T.chase) T.chase.foe = 'buddy', T.chase.foeT = 4; }
+  function lead() { const k = G.activeKin ? G.activeKin() : (G.kin && G.kin[G.activeIdx]); return k && k.hp > 0 ? k : null; } // the same Kin the rest of the game calls the lead (the next healthy one when the chosen one is down)
   function hidden(p) {
     if (Battle.active || p.flying || p.mount || (G.stats && G.stats.buddyOff)) return true;
     return false;
@@ -12496,7 +12623,7 @@ const Buddy = (() => {
     const mood = hp < 35 ? 'is hurt and leans on you' : trust > 0.6 ? 'nuzzles your hand' : k.level >= KIN.capOf(k.sp) ? 'looks as strong as it will ever be' : 'bounces at your feet';
     UI.toast(`${KIN.name(k)}, Lv ${k.level} · ${hp}% health. It ${mood}.`);
   }
-  return { init, update, entities, pick, tap, get entity() { return e; } };
+  return { init, update, entities, pick, tap, current, hurt, rally, get entity() { return e; } };
 })();
 
 </script>
@@ -12515,7 +12642,7 @@ G.init = function () {
   this.mobile = ('ontouchstart' in window) && (navigator.maxTouchPoints > 0) && window.innerWidth < 1100;
   const cv = document.getElementById('gl');
   R.init(cv, this.mobile);
-  this.viewR = this.mobile ? 3 : 5;
+  this.viewR = this.mobile ? 3 : 5; R.state.landReach = this.viewR * CH; // land is built this far in every direction at the least (more when you stand near the far side of your chunk)
   Controls.init(cv, { touch: this.mobile, onAction: (kind, v) => this.onKey(kind, v) });
   UI.init(this); Battle.init(this); Dialogue.init(); Fishing.init(this);
   KIN.buildUniverse();
@@ -12638,11 +12765,19 @@ G.stealthSnare = function () {
   Battle.start(e, true, { stealth: true });
 };
 // ---------- deploy: send your Kin in against the one that is on you ----------
+// Your lead Kin already fights beside you; Deploy is how you pick which one does, or send one in when nobody is at your side
 G.deployKin = function () {
   const p = this.player; if (Battle.active) return;
   const e = Wild.engagedNear(p) || Wild.pick(p); if (!e) { UI.toast('Nothing is on you.'); return; }
-  if (!this.healthyKin().length) { UI.toast('All your Kin are down. Revive them at the Voodoo Hut or with a tonic.', 'bad'); return; }
-  Battle.start(e, e.dazed > 0 || (e.alert || 0) < 0.6);
+  const healthy = this.healthyKin(); if (!healthy.length) { UI.toast('All your Kin are down. Revive them at the Voodoo Hut or with a tonic.', 'bad'); return; }
+  if (healthy.length === 1) { this.sendIn(healthy[0], e); return; }
+  UI.openPanel('deploy', e);
+};
+G.sendIn = function (k, e) {
+  if (!k || k.hp <= 0 || !this.kin.includes(k)) return;
+  this.stats.buddyOff = false;
+  const was = this.kin[this.activeIdx]; this.activeIdx = this.kin.indexOf(k); if (k !== was) UI.toast(`${KIN.name(k)} leads.`); else UI.toast(`${KIN.name(k)} goes in.`);
+  Buddy.rally(e);
 };
 // ---------- riding ----------
 // what a Kin's body lets it carry you through: legs on land, fins in water, wings or hovering in the air
@@ -13333,7 +13468,7 @@ G.loop = function (t) {
     const st = this.stealthTarget();
     const lead = this.activeKin();
     const eng = Wild.engagedNear(p);
-    UI.setButtons({ deploy: !!eng && !p.flying, snare: !!st && (p.has('snare') || p.has('snare2')) && !(eng && !(eng.dazed > 0)), ride: !p.flying && (!!p.mount || !!(this._rideable = this.rideable())), rideLabel: p.mount ? 'Off' : (this._rideable ? this._rideable.label : 'Ride'), riding: !!p.mount, ship: p.has('ship') && (p.flying || this.world.layerAt(Math.floor(p.y), Math.floor(p.x), Math.floor(p.z)) !== 'Mines'), flying: p.flying, canLand: p.flying && (p.autoLand || this.landHeight() <= G.LAND_REACH) });
+    UI.setButtons({ deploy: !!eng && !(eng.dazed > 0) && !p.flying, snare: !!st && (p.has('snare') || p.has('snare2')) && !(eng && !(eng.dazed > 0)), ride: !p.flying && (!!p.mount || !!(this._rideable = this.rideable())), rideLabel: p.mount ? 'Off' : (this._rideable ? this._rideable.label : 'Ride'), riding: !!p.mount, ship: p.has('ship') && (p.flying || this.world.layerAt(Math.floor(p.y), Math.floor(p.x), Math.floor(p.z)) !== 'Mines'), flying: p.flying, canLand: p.flying && (p.autoLand || this.landHeight() <= G.LAND_REACH) });
     if (p.mount && !p.mount.borrowed && (p.mount.hp <= 0 || !this.kin.includes(p.mount))) { p.mount = null; UI.toast('Your mount is down.', 'bad'); }
     if (p.mount && p.mountMode === 'water' && !p.inWater && p.onGround) { p.mount = null; UI.toast('It cannot follow you onto land.'); }
     if (p.mount && p.mountMode === 'air' && (this.frame & 15) === 0 && this.noKinFlight()) { p.mount = null; UI.toast('No room down here for wings that size. You climb off.'); }

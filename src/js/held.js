@@ -100,5 +100,5 @@ const Held = (() => {
     let off = null; if (st.blockK > 0.02 && typeof Combat !== 'undefined') { const sh = Combat.shield(); if (sh && ITEMS[sh.id]) off = mesh(sh.id, ITEMS[sh.id], tone).mesh; }
     return { mesh: m.mesh, bob: st.bobT, moving: moving ? 1 : 0, swing: st.swing, bump: st.bump, drop: st.switchT, block: p.blocking ? 1 : 0, shieldy: key.startsWith('sh_'), offhand: off, offK: st.blockK };
   }
-  return { describe, mesh };
+  return { describe, mesh, build };
 })();

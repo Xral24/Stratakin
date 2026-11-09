@@ -657,14 +657,14 @@ const R = (() => {
     lloc.aPos = gl.getAttribLocation(lineProg, 'aPos'); lloc.uPV = gl.getUniformLocation(lineProg, 'uPV'); lloc.uColor = gl.getUniformLocation(lineProg, 'uColor');
     lineBuf = gl.createBuffer();
     gl.enable(gl.DEPTH_TEST); gl.disable(gl.CULL_FACE);
-    state.viewDist = mobile ? 56 : 96;
+    state.viewDist = mobile ? 48 : 80; // as far as the land is built around you (3 chunks on a phone, 5 on a desktop)
     resize();
   }
   // graphics presets: what the phone can afford. full: everything; balanced: lighter grass, fewer pixels; light: no shadows, sparse grass, screen pixels
   const QUALITY = { full: { shadows: true, grassQuality: 1, dprCap: null, outlines: true, viewMul: 1 }, balanced: { shadows: true, grassQuality: 0.7, dprCap: 1.4, outlines: true, viewMul: 0.9 }, light: { shadows: false, grassQuality: 0.5, dprCap: 1.0, outlines: true, viewMul: 0.75 } };
   function setQuality(name) {
     const Q = QUALITY[name] || QUALITY.full; state.quality = QUALITY[name] ? name : 'full';
-    state.shadows = Q.shadows; state.grassQuality = Q.grassQuality; state.dprCap = Q.dprCap; state.outlines = Q.outlines; state.viewDist = Math.round((isMobile ? 56 : 96) * Q.viewMul);
+    state.shadows = Q.shadows; state.grassQuality = Q.grassQuality; state.dprCap = Q.dprCap; state.outlines = Q.outlines; state.viewDist = Math.round((isMobile ? 48 : 80) * Q.viewMul);
     try { localStorage.setItem('stratakin-gfx', state.quality); } catch (e) {}
     resize();
   }
@@ -716,6 +716,20 @@ const R = (() => {
   const SOIL = new Set([B.GRASS, B.DIRT, B.SAND, B.SNOW, B.GRAVEL, B.STONE, B.MOSS, B.GLOWGRASS, B.REGOLITH, B.DUNE, B.SALTCRUST]);
   // things that stand on the ground without stopping it from sloping: air, leaves, trunks, bushes, flowers, pebbles, torches, chests...
   const DECOR = (b) => b === B.AIR || isLeaf(b) || isTrunk(b) || b === B.BERRY || BLOCKS[b].partial;
+  // the exposed soil top of a column, and the water surface over it if any. Anything hanging overhead with air under it (a sky island,
+  // a bridge, a gate lintel, a cloud city) is looked through: it is the ground below that is the land and gets smoothed. A solid block
+  // sitting right on the soil covers it, and covered soil stays square so whatever stands on it has a flat footing.
+  function soilScan(get, x, z) {
+    let t = -1, wt = -1;
+    for (let y = WH - 1; y > 0; y--) {
+      const b = get(x, y, z);
+      if (DECOR(b)) continue;
+      if (b === B.WATER || b === B.BRINE) { if (wt < 0) wt = y + 1; continue; }
+      if (SOIL.has(b)) { t = y; break; }
+      if (y <= 1 || SOIL.has(get(x, y - 1, z))) break; // standing on the ground: it covers the soil. Otherwise it floats over it: keep looking down
+    }
+    return [t, wt];
+  }
   const ROOFB = (b) => b === B.TILES || b === B.SLATE || b === B.THATCH;
   const SIGNABLE = new Set([B.EMBER, B.BERRY, B.COPPER, B.VOID, B.IRON, B.GOLD, B.GLOWWORM, B.LOG, B.MOONGLOW, B.CLOUD, B.SELENITE, B.BERRYLEAF, B.AMBER]);
   const WALLY = (b) => b === B.PLANKS || b === B.PLASTER || b === B.BEAM || b === B.MASONRY || b === B.IRONWALL || b === B.VOIDWALL || b === B.SELGLASS;
@@ -743,7 +757,7 @@ const R = (() => {
     // smooth land: every column's exposed soil top, then a height for each corner shared by four columns.
     // Steps of one or two blocks become slopes; anything steeper stays a sharp edge.
     for (let x = -1; x <= 16; x++) for (let z = -1; z <= 16; z++) {
-      let t = -1, wt = -1; for (let y = WH - 1; y > 0; y--) { const b = get(x, y, z); if (DECOR(b)) continue; if (b === B.WATER || b === B.BRINE) { if (wt < 0) wt = y + 1; continue; } if (SOIL.has(b)) t = y; break; }
+      const [t, wt] = soilScan(get, x, z);
       surfTop[(x + 1) * 18 + (z + 1)] = t; surfWet[(x + 1) * 18 + (z + 1)] = wt; // the seabed counts as land: shores slope in under the water
     }
     for (let cx = 0; cx <= 16; cx++) for (let cz = 0; cz <= 16; cz++) {
@@ -1495,7 +1509,10 @@ const R = (() => {
     state.skyPass = true; state.night = 1 - day;
     sky = horizon;
     state.skyColor = sky; state.fogColor = sky; state.ambient = 0.06; state.fogSky = true;
-    state.fogNear = state.viewDist * 0.55 * (world.preset.fogMul || 1); state.fogFar = state.viewDist * 0.98 * (world.preset.fogMul || 1);
+    // the fog has to be solid before the meshed land runs out (landReach: the chunks around you that are built, in blocks), or looking
+    // between near trees at a far hillside shows sky where its top should be: a patch of blue in the middle of the land
+    const fogMul = world.preset.fogMul || 1; const reach = state.landReach ? state.landReach - 1.5 : 1e9;
+    state.fogFar = Math.min(state.viewDist * 0.98, reach) * fogMul; state.fogNear = state.fogFar * 0.56;
     if (wi > 0.02 && wk === 'fog') { state.fogNear = U.lerp(state.fogNear, 4, wi); state.fogFar = U.lerp(state.fogFar, 26, wi); }
     if (gl0 > 0.01) { state.fogNear = U.lerp(state.fogNear, state.viewDist * 0.32, gl0); state.fogFar = U.lerp(state.fogFar, state.viewDist * 0.88, gl0); }
     else if (wi > 0.02 && (wk === 'rain' || wk === 'storm')) { state.fogNear = U.lerp(state.fogNear, state.viewDist * 0.3, wi); state.fogFar = U.lerp(state.fogFar, state.viewDist * 0.75, wi); }
@@ -1646,7 +1663,7 @@ const R = (() => {
     return new Float32Array([a, b, c, d, b, c, d, b, c, d, b, f, d, b, f, a, b, f, a, b, f, a, b, c, a, e, c, d, e, c, d, e, c, d, e, f, d, e, f, a, e, f, a, e, f, a, e, c, a, b, c, a, e, c, d, b, c, d, e, c, d, b, f, d, e, f, a, b, f, a, e, f]);
   }
   // the block outline under the crosshair. Soil on smoothed ground gets a box whose top follows the slope, by the same rule the mesher uses
-  function soilTopAt(world, x, z) { let t = -1, wt = -1; for (let y = WH - 1; y > 0; y--) { const b = world.getBlock(x, y, z); if (DECOR(b)) continue; if (b === B.WATER || b === B.BRINE) { if (wt < 0) wt = y + 1; continue; } if (SOIL.has(b)) t = y; break; } return [t, wt]; }
+  function soilTopAt(world, x, z) { return soilScan((x, y, z) => world.getBlock(x, y, z), x, z); }
   function cornerHeight(world, cx, cz) { // the same rule as the mesher, for the targeting outline
     let dry = false, wl = -1; const ts = [], ws = [];
     for (const [a, b] of [[-1, -1], [0, -1], [-1, 0], [0, 0]]) { const [t, wt] = soilTopAt(world, cx + a, cz + b); if (t < 0) return -1; ts.push(t); ws.push(wt); if (wt < 0) dry = true; else wl = Math.max(wl, wt); }
