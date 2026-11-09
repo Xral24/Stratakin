@@ -60,8 +60,12 @@ button { font-family: var(--font); color: var(--ui); }
 #joy.active { background: rgba(255,255,255,.14); border-color: rgba(255,255,255,.6); }
 #joy-knob { position: absolute; left: 33px; top: 33px; width: 40px; height: 40px; border-radius: 50%; background: rgba(255,255,255,.55); box-shadow: 0 2px 6px rgba(0,0,0,.4); }
 #joy::after { content: '◀ ▶'; position: absolute; left: 0; right: 0; top: 46px; text-align: center; font-size: 10px; letter-spacing: 36px; padding-left: 36px; opacity: .35; pointer-events: none; }
-#btn-jump { position: absolute; right: 18px; bottom: calc(96px + env(safe-area-inset-bottom)); width: 68px; height: 68px; border-radius: 50%; background: rgba(255,255,255,.14); border: 2px solid rgba(255,255,255,.4); font-size: 24px; pointer-events: auto; }
-#btn-sneak { position: absolute; right: 96px; bottom: calc(96px + env(safe-area-inset-bottom)); width: 56px; height: 56px; border-radius: 50%; background: rgba(255,255,255,.12); border: 2px solid rgba(255,255,255,.4); font-size: 20px; pointer-events: auto; }
+#joy2 { position: absolute; right: 26px; bottom: calc(96px + env(safe-area-inset-bottom)); width: 110px; height: 110px; border-radius: 50%; background: rgba(255,255,255,.08); border: 2px solid rgba(255,255,255,.35); pointer-events: none; }
+#joy2.active { background: rgba(255,255,255,.14); border-color: rgba(255,255,255,.6); }
+#joy2-knob { position: absolute; left: 33px; top: 33px; width: 40px; height: 40px; border-radius: 50%; background: rgba(255,255,255,.55); box-shadow: 0 2px 6px rgba(0,0,0,.4); }
+#joy2::after { content: 'look'; position: absolute; left: 0; right: 0; top: 7px; text-align: center; font-size: 9px; letter-spacing: 1px; text-transform: uppercase; opacity: .4; pointer-events: none; }
+#btn-jump { position: absolute; right: 148px; bottom: calc(160px + env(safe-area-inset-bottom)); width: 56px; height: 56px; border-radius: 50%; background: rgba(255,255,255,.14); border: 2px solid rgba(255,255,255,.4); font-size: 22px; pointer-events: auto; }
+#btn-sneak { position: absolute; right: 148px; bottom: calc(96px + env(safe-area-inset-bottom)); width: 56px; height: 56px; border-radius: 50%; background: rgba(255,255,255,.12); border: 2px solid rgba(255,255,255,.4); font-size: 20px; pointer-events: auto; }
 #btn-sneak.on { background: rgba(122,215,255,.5); }
 #hud.in-battle #hotbar, #hud.in-battle #item-name, #hud.in-battle #touch-ui, #hud.in-battle #quest-hint, #hud.in-battle #mine-bar, #hud.in-battle #drop-bar, #hud.in-battle #look { display: none; }
 #toasts { position: absolute; left: 50%; top: 80px; transform: translateX(-50%); display: flex; flex-direction: column; gap: 6px; align-items: center; width: 90vw; }
@@ -211,12 +215,13 @@ code { font-family: var(--pix); font-size: 11px; }
 #look { position: absolute; left: 50%; top: calc(50% + 22px); transform: translateX(-50%); font-size: 12px; background: rgba(0,0,0,.55); padding: 3px 9px; border-radius: 8px; white-space: nowrap; pointer-events: none; }
 #look:empty { display: none; }
 .tag.down { background: #ff6b5a; }
-#btn-snare { position: absolute; left: 50%; bottom: calc(176px + env(safe-area-inset-bottom)); transform: translateX(-50%); padding: 12px 22px; border-radius: 24px; background: #7fe0c0; color: #0a2a22; border: 0; font-weight: 800; font-size: 16px; pointer-events: auto; box-shadow: 0 4px 14px rgba(0,0,0,.4); animation: pulse 1.2s infinite; }
+#btn-snare { position: absolute; left: 50%; top: calc(152px + env(safe-area-inset-top)); transform: translateX(-50%); padding: 7px 15px; border-radius: 16px; background: rgba(60, 200, 160, .45); color: #fff; border: 1.5px solid rgba(200, 255, 235, .6); font-weight: 800; font-size: 13px; pointer-events: auto; box-shadow: 0 2px 10px rgba(0,0,0,.25); text-shadow: 0 1px 2px rgba(0,0,0,.4); backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px); }
+#btn-deploy:not(.hidden) ~ #btn-snare { top: calc(194px + env(safe-area-inset-top)); }
 @keyframes pulse { 50% { transform: translateX(-50%) scale(1.06); } }
 #btn-deploy { position: absolute; left: 50%; top: calc(152px + env(safe-area-inset-top)); transform: translateX(-50%); padding: 7px 15px; border-radius: 16px; background: rgba(226, 84, 44, .42); color: rgba(255,255,255,.92); border: 1.5px solid rgba(255, 214, 184, .55); font-weight: 800; font-size: 13px; letter-spacing: .3px; pointer-events: auto; box-shadow: 0 2px 10px rgba(0,0,0,.25); text-shadow: 0 1px 2px rgba(0,0,0,.45); backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px); }
 #btn-deploy:active { background: rgba(226, 84, 44, .8); }
 #btn-deploy.hidden, #btn-snare.hidden { display: none; }
-#btn-ride { position: absolute; right: 97px; bottom: calc(160px + env(safe-area-inset-bottom)); width: 54px; height: 40px; border-radius: 20px; background: rgba(255,255,255,.1); border: 2px solid rgba(255,255,255,.3); font-size: 12px; pointer-events: auto; }
+#btn-ride { position: absolute; right: 149px; bottom: calc(224px + env(safe-area-inset-bottom)); width: 54px; height: 36px; border-radius: 20px; background: rgba(255,255,255,.1); border: 2px solid rgba(255,255,255,.3); font-size: 12px; pointer-events: auto; }
 #btn-ride.on { background: rgba(240,208,144,.5); }
 body.desktop #joy, body.desktop #btn-jump, body.desktop #btn-sneak { display: none; }
 #sky { position: fixed; inset: 0; pointer-events: none; overflow: hidden; z-index: 2; transition: opacity .8s; }
@@ -391,10 +396,11 @@ body.desktop #joy, body.desktop #btn-jump, body.desktop #btn-sneak { display: no
   <div id="drop-bar" class="hidden"></div>
   <div id="touch-ui">
     <div id="joy"><div id="joy-knob"></div></div>
+    <div id="joy2"><div id="joy2-knob"></div></div>
     <button id="btn-jump">▲</button>
     <button id="btn-sneak" aria-label="Down">▼</button>
-    <button id="btn-snare" class="hidden">Set snare</button>
     <button id="btn-deploy" class="hidden">Deploy Kin</button>
+    <button id="btn-snare" class="hidden">Set snare</button>
     <div id="fishbar" class="hidden"><div class="snare-tip">A bite! Tap when the marker is in the glow.</div><div class="snare-track"><div class="snare-zone"></div><div class="snare-marker"></div></div></div>
     <button id="btn-ride" class="hidden">Ride</button>
     <button id="btn-ship" class="hidden" aria-label="Starship">🚀</button>
@@ -1920,6 +1926,7 @@ const R = (() => {
     float flowerP = smoothstep(0.55, 0.8, sin(p.x * 0.11 + 1.3) * sin(p.y * 0.13 + 0.7) * 0.5 + 0.5 + h3 * 0.2) * (1.0 - tall); bool flower = carpet < 0.5 && hash(cell + 5.13) < 0.03 + flowerP * 0.09;
     if (flower) hm2 = max(hm2, 0.8);
     float hgt = 0.44 * sc * uScale * hm2 * (1.0 + (h2 - 0.5) * 0.5 * tall); float wid = uWidth * (1.0 - aBlade.y * 0.8) * mix(1.0, 0.8, tall) * (flower ? 0.6 : 1.0);
+    hgt *= 1.0 - (1.0 - smoothstep(0.4, 1.7, d)) * step(uCam.y, y + hgt + 0.3); // blades that would cross the lens when the camera sits low in the grass bow out of its way
     float gust = sin(dot(p, vec2(0.37, 0.2)) - uTime * 1.6) * 0.5 + 0.5; gust = gust * gust;
     float bend = (sin(uTime * 2.6 + h2 * 6.2831 + p.x * 0.7) * 0.05 + gust * 0.2 + 0.06 + tall * (0.1 + gust * 0.25)) * aBlade.y * aBlade.y;
     vec3 w = vec3(p.x + dir.x * aBlade.x * wid, y + aBlade.y * hgt, p.y + dir.y * aBlade.x * wid);
@@ -4100,11 +4107,11 @@ const Held = (() => {
 'use strict';
 // Keyboard, mouse and touch input -> a single input state object consumed by the game loop.
 const Controls = (() => {
-  const input = { mx: 0, mz: 0, jump: false, jumpPressed: false, sneak: false, lookDX: 0, lookDY: 0, mine: false, placePressed: false, hotbarDelta: 0, hotbarSelect: -1 };
+  const input = { mx: 0, mz: 0, jump: false, jumpPressed: false, sneak: false, lookDX: 0, lookDY: 0, mine: false, placePressed: false, hotbarDelta: 0, hotbarSelect: -1, camX: 0, camY: 0 };
   const keys = new Set();
   let canvas, isTouch = false, pointerLocked = false, enabled = true, onAction = null;
-  let touchLook = null, touchMove = null, joyOrigin = null;
-  const joy = { el: null, knob: null };
+  let touchLook = null, touchMove = null, joyOrigin = null, touchCam = null, camOrigin = null, lastPoll = 0;
+  const joy = { el: null, knob: null }, cam = { el: null, knob: null }; // the left stick walks, the right one turns the camera
   let holdTimer = null, holdActive = false, tapStart = 0, lookMoved = false;
 
   function init(cv, opts) {
@@ -4140,7 +4147,7 @@ const Controls = (() => {
     cv.addEventListener('touchmove', onTouchMove, { passive: false });
     cv.addEventListener('touchend', onTouchEnd, { passive: false });
     cv.addEventListener('touchcancel', onTouchEnd, { passive: false });
-    joy.el = document.getElementById('joy'); joy.knob = document.getElementById('joy-knob');
+    joy.el = document.getElementById('joy'); joy.knob = document.getElementById('joy-knob'); cam.el = document.getElementById('joy2'); cam.knob = document.getElementById('joy2-knob');
     // safety: when no finger is on the screen, nothing can be held
     const allUp = (e) => { if (e.touches && e.touches.length === 0) { input.touchJump = false; input.mine = false; if (touchMove) { touchMove = null; input.mx = 0; input.mz = 0; resetJoy(); } if (touchLook) { clearTimeout(holdTimer); touchLook = null; holdActive = false; } } };
     document.addEventListener('touchend', allUp, { passive: true }); document.addEventListener('touchcancel', allUp, { passive: true });
@@ -4149,13 +4156,18 @@ const Controls = (() => {
     try { const p = canvas.requestPointerLock(); if (p && p.catch) p.catch(() => {}); } catch (e) { /* pointer lock refused: fall back to drag look */ }
   }
   function unlock() { try { if (document.pointerLockElement) document.exitPointerLock(); } catch (e) {} }
-  function setEnabled(v) { enabled = v; if (!v) { keys.clear(); input.mine = false; input.mx = input.mz = 0; touchLook = touchMove = null; resetJoy(); clearTimeout(holdTimer); holdActive = false; } }
+  function setEnabled(v) { enabled = v; if (!v) { keys.clear(); input.mine = false; input.mx = input.mz = 0; input.camX = input.camY = 0; touchLook = touchMove = touchCam = null; resetJoy(); resetCam(); clearTimeout(holdTimer); holdActive = false; } }
 
   function onTouchStart(e) {
     if (!enabled) return;
     e.preventDefault();
     for (const t of e.changedTouches) {
       const leftSide = t.clientX < window.innerWidth * 0.42;
+      const cr = cam.el && !cam.el.classList.contains('hidden') ? cam.el.getBoundingClientRect() : null;
+      const onCam = cr && t.clientX >= cr.left - 14 && t.clientX <= cr.right + 14 && t.clientY >= cr.top - 14 && t.clientY <= cr.bottom + 14;
+      if (onCam && !touchCam) { // the camera stick: how far you push it is how fast the view turns
+        touchCam = { id: t.identifier }; camOrigin = { x: cr.left + cr.width / 2, y: cr.top + cr.height / 2 }; cam.el.classList.add('active'); onTouchMove(e); continue;
+      }
       if (leftSide && !touchMove) {
         touchMove = { id: t.identifier, x: t.clientX, y: t.clientY };
         // if the finger lands on the stick itself, steer from its centre; otherwise the stick jumps to the finger
@@ -4184,6 +4196,12 @@ const Controls = (() => {
         if (l > max) { dx *= max / l; dy *= max / l; }
         input.mx = dx / max; input.mz = -dy / max;
         if (joy.knob) joy.knob.style.transform = `translate(${dx}px,${dy}px)`;
+      } else if (touchCam && t.identifier === touchCam.id) {
+        let dx = t.clientX - camOrigin.x, dy = t.clientY - camOrigin.y; const l = Math.hypot(dx, dy), max = 44;
+        if (l > max) { dx *= max / l; dy *= max / l; }
+        const dead = (v) => Math.abs(v) < 0.1 ? 0 : (v - Math.sign(v) * 0.1) / 0.9;
+        input.camX = dead(dx / max); input.camY = dead(dy / max);
+        if (cam.knob) cam.knob.style.transform = `translate(${dx}px,${dy}px)`;
       } else if (touchLook && t.identifier === touchLook.id) {
         const dx = t.clientX - touchLook.x, dy = t.clientY - touchLook.y;
         if (!holdActive) {
@@ -4197,12 +4215,14 @@ const Controls = (() => {
       }
     }
   }
+  function resetCam() { if (!cam.el) return; cam.el.classList.remove('active'); if (cam.knob) cam.knob.style.transform = 'translate(0px,0px)'; }
   function resetJoy() { if (!joy.el) return; joy.el.classList.remove('active'); joy.el.style.left = ''; joy.el.style.top = ''; joy.el.style.bottom = ''; joy.knob.style.transform = 'translate(0px,0px)'; }
   function onTouchEnd(e) {
     if (!enabled) return;
     e.preventDefault();
     for (const t of e.changedTouches) {
       if (touchMove && t.identifier === touchMove.id) { touchMove = null; input.mx = 0; input.mz = 0; resetJoy(); }
+      else if (touchCam && t.identifier === touchCam.id) { touchCam = null; input.camX = 0; input.camY = 0; resetCam(); }
       else if (touchLook && t.identifier === touchLook.id) {
         clearTimeout(holdTimer);
         const dur = performance.now() - tapStart;
@@ -4223,6 +4243,9 @@ const Controls = (() => {
       input.jump = keys.has('Space') || input.touchJump;
       input.sneak = keys.has('ShiftLeft') || keys.has('ShiftRight') || input.touchSneak;
     } else { input.jump = !!input.touchJump; input.sneak = !!input.touchSneak; }
+    { const now = performance.now(); const dt = lastPoll ? Math.min(0.05, (now - lastPoll) / 1000) : 0; lastPoll = now;
+      const curve = (v) => Math.sign(v) * Math.pow(Math.abs(v), 1.6);
+      if (input.camX || input.camY) { input.lookDX += curve(input.camX) * 3.4 * dt; input.lookDY += curve(input.camY) * 2.4 * dt; } }
     const snapshot = Object.assign({}, input);
     input.jumpPressed = false; input.placePressed = false; input.lookDX = 0; input.lookDY = 0; input.hotbarDelta = 0; input.hotbarSelect = -1;
     return snapshot;
@@ -10048,7 +10071,7 @@ const Avatar = (() => {
   }
   // a camera behind and a little above you, pulled in when something is in the way
   function thirdCam(cam, p, world, back = 4.2, lift = 0) {
-    const f = U.forwardVec(p.yaw, p.pitch); cam = Object.assign({}, cam, { y: cam.y + lift });
+    const f = U.forwardVec(cam.yaw, cam.pitch); cam = Object.assign({}, cam, { y: cam.y + lift });
     const free = (x, y, z) => { const b = world.getBlock(Math.floor(x), Math.floor(y), Math.floor(z)); return !isSolid(b) || BLOCKS[b].partial; };
     let d = back;
     for (let t = 0.3; t <= back; t += 0.25) { const x = cam.x - f[0] * t, y = cam.y - f[1] * t + 0.45 * (t / back), z = cam.z - f[2] * t; if (!free(x, y, z)) { d = Math.max(0.3, t - 0.3); break; } }
@@ -12472,7 +12495,7 @@ G.toggleRide = function () {
 G.noKinFlight = function () { const p = this.player, w = this.world; if (w.preset.airless) return true; const L = w.layerAt(Math.floor(p.y), Math.floor(p.x), Math.floor(p.z)); return L === 'Mines' || L === 'Core'; };
 G.mountKin = function (k) { const p = this.player; const mode = this.rideMode(k); if (!mode) return; p.mount = k; p.mountMode = mode; UI.sfx('util'); UI.toast(`You climb onto ${KIN.name(k)}.`); };
 G.toast = function (m, c) { UI.toast(m, c); };
-G.toggleCamera = function () { this.thirdPerson = !this.thirdPerson; UI.toast(this.thirdPerson ? 'Third person. You can see yourself now; V or the menu switches back.' : 'First person.'); };
+G.toggleCamera = function () { this.thirdPerson = !this.thirdPerson; if (this.orbit) { if (this.thirdPerson) { this.orbit.yaw = this.player.yaw; this.orbit.pitch = this.player.pitch; } else this.player.yaw = this.orbit.yaw; } UI.toast(this.thirdPerson ? 'Third person. You can see yourself now; V or the menu switches back.' : 'First person.'); };
 
 // ---------- progression ----------
 G.activeKin = function () { const k = this.kin[this.activeIdx]; return (k && k.hp > 0) ? k : this.healthyKin()[0] || null; };
@@ -12934,7 +12957,7 @@ G.loop = function (t) {
   requestAnimationFrame((tt) => this.loop(tt));
   let dt = Math.min(0.05, (t - this.lastT) / 1000); this.lastT = t; this.frame++;
   const w = this.world, p = this.player;
-  const input = Controls.poll();
+  let input = Controls.poll();
   const inBattle = Battle.active;
   if (!this.paused) {
     const t0 = w.time; w.time = (w.time + dt / 1500) % 1; // 25-minute days
@@ -12945,7 +12968,22 @@ G.loop = function (t) {
     Weather.update(dt); this.stats.playT = (this.stats.playT || 0) + dt; if (((this.frame || 0) & 31) === 0) Lab.tickEggs();
     if (this.buffOn('train')) { this.trainT = (this.trainT || 0) + dt; if (this.trainT >= 60) { this.trainT = 0; for (const k of this.kin) if (k.hp > 0) KIN.gainXp(k, 15 + k.level * 6); } }
     if (!inBattle) {
-      p.yaw -= input.lookDX; p.pitch = U.clamp(p.pitch - input.lookDY, -1.55, 1.55);
+      // the camera: in first person the look turns you; in third person (and in the saddle) it orbits round you, and the stick walks you relative to it
+      if (!this.orbit) this.orbit = { yaw: p.yaw, pitch: p.pitch, idle: 0 };
+      const orbit = this.orbitMode(p);
+      if (orbit) {
+        this.orbit.yaw -= input.lookDX; this.orbit.pitch = U.clamp(this.orbit.pitch - input.lookDY, -1.25, 1.3); p.pitch = this.orbit.pitch;
+        this.orbit.idle = (input.lookDX || input.lookDY) ? 0 : this.orbit.idle + dt;
+        const m = Math.hypot(input.mx, input.mz);
+        if (m > 0.04) {
+          const oy = this.orbit.yaw; const ddx = -Math.sin(oy) * input.mz + Math.cos(oy) * input.mx, ddz = -Math.cos(oy) * input.mz - Math.sin(oy) * input.mx;
+          const want = Math.atan2(-ddx, -ddz); let d = want - p.yaw; while (d > Math.PI) d -= Math.PI * 2; while (d < -Math.PI) d += Math.PI * 2;
+          p.yaw += d * Math.min(1, dt * 14); // he turns to face the way he walks
+          input = Object.assign({}, input, { mx: 0, mz: Math.min(1, m) });
+          if (this.orbit.idle > 1.5 && !p.mount) { let od = p.yaw - this.orbit.yaw; while (od > Math.PI) od -= Math.PI * 2; while (od < -Math.PI) od += Math.PI * 2; this.orbit.yaw += od * Math.min(1, dt * 0.8); } // left alone on the move, the camera drifts round behind you
+        }
+        if (input.mine) this.faceCamera(); // digging or blocking: square up to where the camera looks
+      } else { p.yaw -= input.lookDX; p.pitch = U.clamp(p.pitch - input.lookDY, -1.55, 1.55); this.orbit.yaw = p.yaw; this.orbit.pitch = p.pitch; this.orbit.idle = 0; }
       if (input.hotbarDelta) { p.sel += input.hotbarDelta; UI.renderHotbar(); }
       if (input.hotbarSelect >= 0) { p.sel = input.hotbarSelect; UI.renderHotbar(); }
       p.trainerLevel = this.trainerLevel;
@@ -13023,7 +13061,8 @@ G.loop = function (t) {
   }
   // render
   const eye = p.eye();
-  let cam = { x: eye.x, y: eye.y, z: eye.z, yaw: p.yaw, pitch: p.pitch, fov: (this.mobile ? 75 : 70) * Math.PI / 180 };
+  const orbitCam = !inBattle && this.orbit && this.orbitMode(p);
+  let cam = { x: eye.x, y: eye.y, z: eye.z, yaw: orbitCam ? this.orbit.yaw : p.yaw, pitch: orbitCam ? this.orbit.pitch : p.pitch, fov: (this.mobile ? 75 : 70) * Math.PI / 180 };
   if (!inBattle && p.mount) { // riding: the camera sits back and up, further for bigger mounts, so the mount never fills the view
     const mm = KIN.model(p.mount.sp, p.mount.stage); const size = Math.max(mm.height, mm.radius * 1.4);
     cam = Avatar.thirdCam(cam, p, w, 4.5 + size * 1.6, 0.6 + mm.height * 0.45);
@@ -13082,7 +13121,11 @@ G.loop = function (t) {
   if ((this.frame & 7) === 0 && !inBattle) { const npc = Village.pick(p); const rn = npc ? null : Npcs.pick(p); const we = (npc || rn) ? null : Wild.pick(p); const hit = (!npc && !we && !rn) ? p.raycast(5.5) : null; const campHit = hit && hit.id === B.CAMPFIRE;
     UI.lookLabel(rn ? Npcs.label(rn) + ' · tap' : npc ? `${npc.name}${npc.shop ? ' · ' + (npc.shopTitle || Village.SHOPS[npc.shop].title) : npc.role === 'voodoo' ? ' · healer' : npc.role === 'elder' ? ' · village ledger' : npc.role === 'traveller' ? ' · has something to trade' : npc.role === 'hermit' ? ' · hermit, has a job for you' : ''} · tap to talk` : we ? `${KIN.name(we.kin)} · Lv ${we.kin.level}${(we.kin.sp.rarity || 0) > 0 ? ' · ' + KIN.RARITY[we.kin.sp.rarity].name : ''}${we.raider ? ' · RAIDER' : we.isBoss ? ' · tyrant' : we.lieutenant ? " · the tyrant's guard" : ''}` : campHit ? 'Camp fire · tap to rest' : (hit && hit.id === B.STARMETAL) ? (this.worldId === 'moon' ? 'Return pad · tap to fly home' : 'Starmetal') : (hit && hit.id === B.FUSION) ? 'Fusion Table · tap' : (hit && hit.id === B.PORTAL) ? 'Portal · tap to travel' : (hit && hit.id === B.CHEST) ? 'Chest · tap to open' : (hit && hit.id === B.INCUBATOR) ? 'Incubator · tap' : (hit && (hit.id === B.DOOR || hit.id === B.DOOR_OPEN)) ? 'Door · tap' : (hit && hit.id === B.SNOW) ? 'Snow · hold to take (Frost Cloak needs 8)' : (hit && (hit.id === B.IRON || hit.id === B.COPPER || hit.id === B.EMBER || hit.id === B.VOID)) ? BLOCKS[hit.id].name + ' · hold to mine' : ''); }
 };
+// third person and the saddle orbit the camera round you; the air, the glider, a fight and a chat do not
+G.orbitMode = function (p) { return (this.thirdPerson || !!p.mount) && !Battle.active && !p.gliding && !p.flying && !p.wingsOn && !(this.talkK > 0); };
+G.faceCamera = function () { const p = this.player; if (this.orbit && this.orbitMode(p)) p.yaw = this.orbit.yaw; };
 G.onTap = function () {
+  this.faceCamera();
   const p = this.player;
   if (Dialogue.active()) return;
   if (Fishing.active) { Fishing.tap(); return; }

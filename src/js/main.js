@@ -179,7 +179,7 @@ G.toggleRide = function () {
 G.noKinFlight = function () { const p = this.player, w = this.world; if (w.preset.airless) return true; const L = w.layerAt(Math.floor(p.y), Math.floor(p.x), Math.floor(p.z)); return L === 'Mines' || L === 'Core'; };
 G.mountKin = function (k) { const p = this.player; const mode = this.rideMode(k); if (!mode) return; p.mount = k; p.mountMode = mode; UI.sfx('util'); UI.toast(`You climb onto ${KIN.name(k)}.`); };
 G.toast = function (m, c) { UI.toast(m, c); };
-G.toggleCamera = function () { this.thirdPerson = !this.thirdPerson; UI.toast(this.thirdPerson ? 'Third person. You can see yourself now; V or the menu switches back.' : 'First person.'); };
+G.toggleCamera = function () { this.thirdPerson = !this.thirdPerson; if (this.orbit) { if (this.thirdPerson) { this.orbit.yaw = this.player.yaw; this.orbit.pitch = this.player.pitch; } else this.player.yaw = this.orbit.yaw; } UI.toast(this.thirdPerson ? 'Third person. You can see yourself now; V or the menu switches back.' : 'First person.'); };
 
 // ---------- progression ----------
 G.activeKin = function () { const k = this.kin[this.activeIdx]; return (k && k.hp > 0) ? k : this.healthyKin()[0] || null; };
@@ -641,7 +641,7 @@ G.loop = function (t) {
   requestAnimationFrame((tt) => this.loop(tt));
   let dt = Math.min(0.05, (t - this.lastT) / 1000); this.lastT = t; this.frame++;
   const w = this.world, p = this.player;
-  const input = Controls.poll();
+  let input = Controls.poll();
   const inBattle = Battle.active;
   if (!this.paused) {
     const t0 = w.time; w.time = (w.time + dt / 1500) % 1; // 25-minute days
@@ -652,7 +652,22 @@ G.loop = function (t) {
     Weather.update(dt); this.stats.playT = (this.stats.playT || 0) + dt; if (((this.frame || 0) & 31) === 0) Lab.tickEggs();
     if (this.buffOn('train')) { this.trainT = (this.trainT || 0) + dt; if (this.trainT >= 60) { this.trainT = 0; for (const k of this.kin) if (k.hp > 0) KIN.gainXp(k, 15 + k.level * 6); } }
     if (!inBattle) {
-      p.yaw -= input.lookDX; p.pitch = U.clamp(p.pitch - input.lookDY, -1.55, 1.55);
+      // the camera: in first person the look turns you; in third person (and in the saddle) it orbits round you, and the stick walks you relative to it
+      if (!this.orbit) this.orbit = { yaw: p.yaw, pitch: p.pitch, idle: 0 };
+      const orbit = this.orbitMode(p);
+      if (orbit) {
+        this.orbit.yaw -= input.lookDX; this.orbit.pitch = U.clamp(this.orbit.pitch - input.lookDY, -1.25, 1.3); p.pitch = this.orbit.pitch;
+        this.orbit.idle = (input.lookDX || input.lookDY) ? 0 : this.orbit.idle + dt;
+        const m = Math.hypot(input.mx, input.mz);
+        if (m > 0.04) {
+          const oy = this.orbit.yaw; const ddx = -Math.sin(oy) * input.mz + Math.cos(oy) * input.mx, ddz = -Math.cos(oy) * input.mz - Math.sin(oy) * input.mx;
+          const want = Math.atan2(-ddx, -ddz); let d = want - p.yaw; while (d > Math.PI) d -= Math.PI * 2; while (d < -Math.PI) d += Math.PI * 2;
+          p.yaw += d * Math.min(1, dt * 14); // he turns to face the way he walks
+          input = Object.assign({}, input, { mx: 0, mz: Math.min(1, m) });
+          if (this.orbit.idle > 1.5 && !p.mount) { let od = p.yaw - this.orbit.yaw; while (od > Math.PI) od -= Math.PI * 2; while (od < -Math.PI) od += Math.PI * 2; this.orbit.yaw += od * Math.min(1, dt * 0.8); } // left alone on the move, the camera drifts round behind you
+        }
+        if (input.mine) this.faceCamera(); // digging or blocking: square up to where the camera looks
+      } else { p.yaw -= input.lookDX; p.pitch = U.clamp(p.pitch - input.lookDY, -1.55, 1.55); this.orbit.yaw = p.yaw; this.orbit.pitch = p.pitch; this.orbit.idle = 0; }
       if (input.hotbarDelta) { p.sel += input.hotbarDelta; UI.renderHotbar(); }
       if (input.hotbarSelect >= 0) { p.sel = input.hotbarSelect; UI.renderHotbar(); }
       p.trainerLevel = this.trainerLevel;
@@ -730,7 +745,8 @@ G.loop = function (t) {
   }
   // render
   const eye = p.eye();
-  let cam = { x: eye.x, y: eye.y, z: eye.z, yaw: p.yaw, pitch: p.pitch, fov: (this.mobile ? 75 : 70) * Math.PI / 180 };
+  const orbitCam = !inBattle && this.orbit && this.orbitMode(p);
+  let cam = { x: eye.x, y: eye.y, z: eye.z, yaw: orbitCam ? this.orbit.yaw : p.yaw, pitch: orbitCam ? this.orbit.pitch : p.pitch, fov: (this.mobile ? 75 : 70) * Math.PI / 180 };
   if (!inBattle && p.mount) { // riding: the camera sits back and up, further for bigger mounts, so the mount never fills the view
     const mm = KIN.model(p.mount.sp, p.mount.stage); const size = Math.max(mm.height, mm.radius * 1.4);
     cam = Avatar.thirdCam(cam, p, w, 4.5 + size * 1.6, 0.6 + mm.height * 0.45);
@@ -789,7 +805,11 @@ G.loop = function (t) {
   if ((this.frame & 7) === 0 && !inBattle) { const npc = Village.pick(p); const rn = npc ? null : Npcs.pick(p); const we = (npc || rn) ? null : Wild.pick(p); const hit = (!npc && !we && !rn) ? p.raycast(5.5) : null; const campHit = hit && hit.id === B.CAMPFIRE;
     UI.lookLabel(rn ? Npcs.label(rn) + ' · tap' : npc ? `${npc.name}${npc.shop ? ' · ' + (npc.shopTitle || Village.SHOPS[npc.shop].title) : npc.role === 'voodoo' ? ' · healer' : npc.role === 'elder' ? ' · village ledger' : npc.role === 'traveller' ? ' · has something to trade' : npc.role === 'hermit' ? ' · hermit, has a job for you' : ''} · tap to talk` : we ? `${KIN.name(we.kin)} · Lv ${we.kin.level}${(we.kin.sp.rarity || 0) > 0 ? ' · ' + KIN.RARITY[we.kin.sp.rarity].name : ''}${we.raider ? ' · RAIDER' : we.isBoss ? ' · tyrant' : we.lieutenant ? " · the tyrant's guard" : ''}` : campHit ? 'Camp fire · tap to rest' : (hit && hit.id === B.STARMETAL) ? (this.worldId === 'moon' ? 'Return pad · tap to fly home' : 'Starmetal') : (hit && hit.id === B.FUSION) ? 'Fusion Table · tap' : (hit && hit.id === B.PORTAL) ? 'Portal · tap to travel' : (hit && hit.id === B.CHEST) ? 'Chest · tap to open' : (hit && hit.id === B.INCUBATOR) ? 'Incubator · tap' : (hit && (hit.id === B.DOOR || hit.id === B.DOOR_OPEN)) ? 'Door · tap' : (hit && hit.id === B.SNOW) ? 'Snow · hold to take (Frost Cloak needs 8)' : (hit && (hit.id === B.IRON || hit.id === B.COPPER || hit.id === B.EMBER || hit.id === B.VOID)) ? BLOCKS[hit.id].name + ' · hold to mine' : ''); }
 };
+// third person and the saddle orbit the camera round you; the air, the glider, a fight and a chat do not
+G.orbitMode = function (p) { return (this.thirdPerson || !!p.mount) && !Battle.active && !p.gliding && !p.flying && !p.wingsOn && !(this.talkK > 0); };
+G.faceCamera = function () { const p = this.player; if (this.orbit && this.orbitMode(p)) p.yaw = this.orbit.yaw; };
 G.onTap = function () {
+  this.faceCamera();
   const p = this.player;
   if (Dialogue.active()) return;
   if (Fishing.active) { Fishing.tap(); return; }

@@ -494,6 +494,7 @@ const R = (() => {
     float flowerP = smoothstep(0.55, 0.8, sin(p.x * 0.11 + 1.3) * sin(p.y * 0.13 + 0.7) * 0.5 + 0.5 + h3 * 0.2) * (1.0 - tall); bool flower = carpet < 0.5 && hash(cell + 5.13) < 0.03 + flowerP * 0.09;
     if (flower) hm2 = max(hm2, 0.8);
     float hgt = 0.44 * sc * uScale * hm2 * (1.0 + (h2 - 0.5) * 0.5 * tall); float wid = uWidth * (1.0 - aBlade.y * 0.8) * mix(1.0, 0.8, tall) * (flower ? 0.6 : 1.0);
+    hgt *= 1.0 - (1.0 - smoothstep(0.4, 1.7, d)) * step(uCam.y, y + hgt + 0.3); // blades that would cross the lens when the camera sits low in the grass bow out of its way
     float gust = sin(dot(p, vec2(0.37, 0.2)) - uTime * 1.6) * 0.5 + 0.5; gust = gust * gust;
     float bend = (sin(uTime * 2.6 + h2 * 6.2831 + p.x * 0.7) * 0.05 + gust * 0.2 + 0.06 + tall * (0.1 + gust * 0.25)) * aBlade.y * aBlade.y;
     vec3 w = vec3(p.x + dir.x * aBlade.x * wid, y + aBlade.y * hgt, p.y + dir.y * aBlade.x * wid);
