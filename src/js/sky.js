@@ -44,25 +44,51 @@ const Sky = (() => {
       const th = Math.max(2, Math.round((1 - d / R) * (k.kind === 'city' ? 9 : 6)) + 1);
       for (let y = Y - th; y < Y; y++) put(X + dx, y, Z + dz, B.CLOUD); put(X + dx, Y, Z + dz, k.kind === 'fort' ? B.BASALT : B.GLOWGRASS);
     }
-    const box = (x0, z0, w, d, h, wall, roof, door) => { for (let dx = 0; dx < w; dx++) for (let dz = 0; dz < d; dz++) { const edge = dx === 0 || dz === 0 || dx === w - 1 || dz === d - 1; for (let y = Y + 1; y <= Y + h; y++) put(x0 + dx, y, z0 + dz, edge ? wall : B.AIR); put(x0 + dx, Y + h + 1, z0 + dz, roof); } if (door) { put(door[0], Y + 1, door[1], B.AIR); put(door[0], Y + 2, door[1], B.AIR); } };
+    // a sky house: plaster walls on a stone footing with timber at the corners, framed windows with flower boxes, a slate roof pitched so the
+    // gable faces the door, a lamp inside. (hx, hz) is the centre, the door opens toward (dirX, dirZ)
+    const house = (hx, hz, dirX, dirZ, wallB, roofB) => {
+      const alongX = dirX !== 0; const sgn = alongX ? dirX : dirZ; const A = (dx, dz) => alongX ? dx : dz, Bc = (dx, dz) => alongX ? dz : dx;
+      for (let dx = -3; dx <= 3; dx++) for (let dz = -3; dz <= 3; dz++) {
+        const x = hx + dx, z = hz + dz, a = A(dx, dz), bb = Bc(dx, dz); const inside = Math.abs(dx) <= 2 && Math.abs(dz) <= 2;
+        for (let y = Y + 1; y <= Y + 8; y++) put(x, y, z, B.AIR);
+        if (inside) {
+          put(x, Y, z, B.MASONRY);
+          const wall = Math.abs(dx) === 2 || Math.abs(dz) === 2, corner = Math.abs(dx) === 2 && Math.abs(dz) === 2;
+          const win = (Math.abs(dx) === 2 && dz === 0) || (Math.abs(dz) === 2 && dx === 0); const doorway = a === 2 * sgn && bb === 0;
+          for (let y = Y + 1; y <= Y + 3; y++) { let id = B.AIR; if (wall) { id = corner ? B.BEAM : wallB; if (win && y === Y + 2) id = B.GLASS; if (doorway) id = y === Y + 3 ? B.BEAM : B.AIR; } put(x, y, z, id); }
+          if (Math.abs(a) === 2 && Math.abs(bb) <= 1) for (let y = Y + 4; y < Y + 3 + (3 - Math.abs(bb)); y++) put(x, y, z, bb === 0 && y === Y + 5 ? B.GLASS : wallB); // the gables, a little window in each
+        }
+        put(x, Y + 3 + (3 - Math.abs(bb)), z, roofB);
+      }
+      for (const [wa, wb] of [[0, 3], [0, -3]]) { const dx = alongX ? wa : wb, dz = alongX ? wb : wa; put(hx + dx, Y + 2, hz + dz, B.FLOWERBOX); }
+      put(hx, Y + 3, hz, B.LAMP);
+    };
     if (k.kind === 'city') {
-      for (let dx = -5; dx <= 5; dx++) for (let dz = -5; dz <= 5; dz++) if (Math.hypot(dx, dz) <= 5.5) put(X + dx, Y, Z + dz, B.STONE); // the plaza
-      for (let dx = -1; dx <= 1; dx++) for (let dz = -1; dz <= 1; dz++) { put(X + dx, Y + 1, Z + dz, B.GLASS); } put(X, Y + 2, Z, B.SELGLASS); put(X, Y + 3, Z, B.TORCH); // the wind-fountain
-      for (let i = 0; i < 8; i++) { const a = i / 8 * Math.PI * 2 + 0.2, r = 15; const hx = Math.round(X + Math.cos(a) * r) - 2, hz = Math.round(Z + Math.sin(a) * r) - 2; const fx = Math.cos(a) < 0 ? hx + 4 : hx, fz = hz + 2; box(hx, hz, 5, 5, 3, i % 2 ? B.PLANKS : B.CLOUD, i % 3 ? B.SELGLASS : B.PLANKS, [Math.abs(Math.cos(a)) > 0.5 ? (Math.cos(a) < 0 ? hx + 4 : hx) : hx + 2, Math.abs(Math.cos(a)) > 0.5 ? fz : (Math.sin(a) < 0 ? hz + 4 : hz)]); put(hx + 2, Y + 2, hz + 2, B.TORCH); }
-      for (let y = Y + 1; y <= Y + 10; y++) for (let dx = -1; dx <= 1; dx++) for (let dz = -1; dz <= 1; dz++) put(X + dx, y, Z - 10 + dz, (dx || dz) ? B.CLOUD : B.AIR); // the spire
-      put(X, Y + 1, Z - 9, B.AIR); put(X, Y + 2, Z - 9, B.AIR); for (let y = Y + 1; y <= Y + 10; y++) put(X, y, Z - 10, B.LADDER); put(X, Y + 11, Z - 10, B.SELGLASS); put(X, Y + 12, Z - 10, B.TORCH);
-      for (let i = 0; i < 24; i++) { const a = i / 24 * Math.PI * 2; put(Math.round(X + Math.cos(a) * (R - 2)), Y + 1, Math.round(Z + Math.sin(a) * (R - 2)), i % 6 ? B.LOG : B.TORCH); } // the rail round the edge
+      for (let dx = -6; dx <= 6; dx++) for (let dz = -6; dz <= 6; dz++) if (Math.hypot(dx, dz) <= 6.5) put(X + dx, Y, Z + dz, B.COBBLE); // the plaza
+      for (let a = -2; a <= 2; a++) for (let b = -2; b <= 2; b++) if (Math.hypot(a, b) <= 2.5) put(X + a, Y + 1, Z + b, (a || b) ? B.BASIN : B.FOUNTAIN); // the wind-fountain
+      for (let i = 0; i < 8; i++) { const a = i / 8 * Math.PI * 2 + 0.2, r = 15; const hx = Math.round(X + Math.cos(a) * r), hz = Math.round(Z + Math.sin(a) * r); const dirX = Math.abs(Math.cos(a)) > 0.5 ? -Math.sign(Math.cos(a)) : 0, dirZ = dirX ? 0 : -Math.sign(Math.sin(a)); house(hx, hz, dirX, dirZ, i % 3 === 2 ? B.PLANKS : B.PLASTER, i % 2 ? B.SLATE : B.TILES); }
+      // the spire: a round tower of dressed stone, ten high, a slate cap, banners, a lamp at the top; the ladder inside
+      const sx = X, sz = Z - 10;
+      for (let y = Y + 1; y <= Y + 10; y++) for (let dx = -2; dx <= 2; dx++) for (let dz = -2; dz <= 2; dz++) { const d = Math.hypot(dx, dz); if (d > 2.6) continue; put(sx + dx, y, sz + dz, d > 1.6 ? ((y === Y + 4 || y === Y + 8) && (dx === 0 || dz === 0) ? B.GLASS : B.MASONRY) : B.AIR); }
+      for (let dx = -3; dx <= 3; dx++) for (let dz = -3; dz <= 3; dz++) { const m = Math.max(Math.abs(dx), Math.abs(dz)); if (Math.hypot(dx, dz) <= 3.6) put(sx + dx, Y + 11 + (3 - m), sz + dz, B.SLATE); } // the cap, a pyramid with eaves
+      put(sx, Y + 1, sz + 2, B.AIR); put(sx, Y + 2, sz + 2, B.AIR); for (let y = Y + 1; y <= Y + 10; y++) put(sx, y, sz - 1, B.LADDER); put(sx, Y + 10, sz, B.AIR); put(sx, Y + 15, sz, B.LAMP);
+      for (const [a, b] of [[3, 0], [-3, 0], [0, 3]]) put(sx + a, Y + 6, sz + b, B.BANNER);
+      // the rail round the edge, lamps at intervals, flowers in the grass
+      for (let i = 0; i < 72; i++) { const a = i / 72 * Math.PI * 2; const x = Math.round(X + Math.cos(a) * (R - 2)), z = Math.round(Z + Math.sin(a) * (R - 2)); if (Math.abs(x - X) < 3 && z > Z + R - 6) continue; put(x, Y + 1, z, i % 9 ? B.FENCE : B.LAMP); }
+      for (let dx = -R; dx <= R; dx++) for (let dz = -R; dz <= R; dz++) if (Math.hypot(dx, dz) < R - 4 && Math.hypot(dx, dz) > 8 && U.hash3(X + dx, 405, Z + dz, 3) < 0.06) put(X + dx, Y + 1, Z + dz, B.FLOWERS);
     } else if (k.kind === 'fort') {
       const F = B.FORTSTONE;
-      for (let d = -11; d <= 11; d++) for (let y = Y + 1; y <= Y + 6; y++) { put(X + d, y, Z - 11, F); put(X + d, y, Z + 11, F); put(X - 11, y, Z + d, F); put(X + 11, y, Z + d, F); }
-      for (const [a, b] of [[-11, -11], [11, -11], [-11, 11], [11, 11]]) { for (let i = -1; i <= 1; i++) for (let j = -1; j <= 1; j++) for (let y = Y + 1; y <= Y + 8; y++) put(X + a + i, y, Z + b + j, F); put(X + a, Y + 9, Z + b, B.VOID); }
+      for (let d = -11; d <= 11; d++) for (let y = Y + 1; y <= Y + 6; y++) { const slit = y === Y + 4 && d % 3 === 0 && Math.abs(d) < 10; put(X + d, y, Z - 11, slit ? B.SLIT : F); put(X + d, y, Z + 11, slit ? B.SLIT : F); put(X - 11, y, Z + d, slit ? B.SLIT : F); put(X + 11, y, Z + d, slit ? B.SLIT : F); if (y === Y + 6 && d % 2 === 0) { put(X + d, Y + 7, Z - 11, F); put(X + d, Y + 7, Z + 11, F); put(X - 11, Y + 7, Z + d, F); put(X + 11, Y + 7, Z + d, F); } }
+      for (const [a, b] of [[-11, -11], [11, -11], [-11, 11], [11, 11]]) { for (let i = -1; i <= 1; i++) for (let j = -1; j <= 1; j++) for (let y = Y + 1; y <= Y + 8; y++) put(X + a + i, y, Z + b + j, F); put(X + a, Y + 9, Z + b, B.VOID); put(X + a - Math.sign(a) * 2, Y + 6, Z + b, B.BANNER); }
       for (let d = -1; d <= 1; d++) for (let y = Y + 1; y <= Y + 3; y++) put(X + d, y, Z - 11, B.AIR);
       for (let i = -1; i <= 1; i++) for (let j = -1; j <= 1; j++) put(X + i, Y + 1, Z + 4 + j, F); put(X, Y + 2, Z + 4, B.VOID);
       for (let z = Z - 10; z <= Z + 2; z++) put(X, Y, z, B.CORAL_R);
-      for (const [a, b] of [[-9, -5], [9, -5], [-9, 5], [9, 5]]) put(X + a, Y + 4, Z + b, B.TORCH);
+      for (const [a, b] of [[-9, -5], [9, -5], [-9, 5], [9, 5]]) put(X + a, Y + 1, Z + b, B.FIREPIT);
     } else {
-      box(X - 2, Z - 2, 4, 4, 3, B.PLANKS, B.CLOUD, [X - 2, Z]); put(X - 1, Y + 2, Z - 1, B.TORCH);
-      put(X + 3, Y + 1, Z + 3, B.LOG); put(X + 3, Y + 2, Z + 3, B.LOG); put(X + 3, Y + 3, Z + 3, B.TORCH);
+      house(X, Z, -1, 0, B.PLASTER, B.THATCH);
+      for (const [a, b] of [[-6, -4], [-6, 4]]) put(X + a, Y + 1, Z + b, B.LAMP);
+      for (let d = -4; d <= 4; d++) { put(X + 5, Y + 1, Z + d, B.FENCE); } for (let d = 1; d <= 4; d++) { put(X + d, Y + 1, Z - 4, B.FENCE); put(X + d, Y + 1, Z + 4, B.FENCE); }
+      for (let dx = 1; dx <= 4; dx++) for (let dz = -3; dz <= 3; dz++) if (U.hash3(X + dx, 406, Z + dz, 4) < 0.5) put(X + dx, Y + 1, Z + dz, B.FLOWERS); // a flower garden behind
     }
     const L = { buckets }; LAY.set(k.id, L); return L;
   }

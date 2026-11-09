@@ -223,6 +223,10 @@ const R = (() => {
       light = mix(light, vec3(1.0), emis);
       vec3 vc = vCol.rgb; float lum = dot(vc, vec3(0.3, 0.59, 0.11)); vc = mix(vec3(lum), vc, 0.78); if (vc.g > vc.r * 1.1 && vc.g > vc.b * 1.2) vc *= vec3(1.04, 1.0, 0.86);
       col = vc * light;
+      if (mat0 == 16) { // cloudstone: soft, bright, a little blue in the hollows
+        float puff = vn(vWorld.xz * 0.5 + vWorld.y * 0.3) * 0.6 + vn(vWorld.xz * 1.7 + 4.0) * 0.4;
+        col *= 0.9 + 0.16 * puff; col = mix(col, col * vec3(0.82, 0.88, 1.0), (1.0 - max(n.y, 0.0)) * 0.45 + (1.0 - puff) * 0.2);
+      }
       if (mat0 == 15) { // basalt: columns packed side by side (a cell pattern on the sides), a cooled crust on top with ember cracks low down
         bool topF = n.y > 0.5; vec2 q = vWorld.xz * 1.3; vec2 ci = floor(q), cf = fract(q); float f1 = 9.0, f2 = 9.0, idc = 0.0;
         for (int i = -1; i <= 1; i++) for (int j = -1; j <= 1; j++) { vec2 g = vec2(float(i), float(j)); vec2 o = vec2(hash3(vec3(ci + g, 11.0)), hash3(vec3(ci + g, 12.0))) * 0.8 + 0.1; float d = length(g + o - cf); if (d < f1) { f2 = f1; f1 = d; idc = hash3(vec3(ci + g, 13.0)); } else if (d < f2) f2 = d; }
@@ -693,8 +697,8 @@ const R = (() => {
   }
 
   // ---------- chunk meshing ----------
-  // material classes for the fragment shader: 1 grass top, 2 sand, 3 rock, 4 earth, 5 snow, 6 wood, 7 leaves, 8 lava, 9 tiles, 10 plaster, 11 cobbles, 12 thatch, 13 slate, 14 dressed stone, 15 basalt
-  const MAT_OF = {}; for (const [ids, m] of [[[B.SAND, B.DUNE, B.SALTCRUST], 2], [[B.STONE, B.GRAVEL, B.MOSS, B.COPPER, B.IRON, B.EMBER, B.GOLD, B.DIAMOND, B.BEDROCK, B.RUBBLE, B.SELENITE, B.TYCHO, B.AMBER, B.REGOLITH, B.BOULDER], 3], [[B.DIRT], 4], [[B.SNOW], 5], [[B.PLANKS, B.LOG, B.BIRCHLOG, B.PALMLOG, B.BEAM, B.DOOR, B.DOOR_OPEN, B.LADDER, B.CHEST], 6], [[B.LEAVES, B.BERRYLEAF, B.NEEDLES, B.CACTUS], 7], [[B.LAVA], 8], [[B.TILES], 9], [[B.PLASTER], 10], [[B.COBBLE], 11], [[B.THATCH], 12], [[B.SLATE], 13], [[B.MASONRY, B.SLIT, B.FORTSTONE], 14], [[B.BASALT], 15]]) for (const id of ids) MAT_OF[id] = m;
+  // material classes for the fragment shader: 1 grass top, 2 sand, 3 rock, 4 earth, 5 snow, 6 wood, 7 leaves, 8 lava, 9 tiles, 10 plaster, 11 cobbles, 12 thatch, 13 slate, 14 dressed stone, 15 basalt, 16 cloud
+  const MAT_OF = {}; for (const [ids, m] of [[[B.SAND, B.DUNE, B.SALTCRUST], 2], [[B.STONE, B.GRAVEL, B.MOSS, B.COPPER, B.IRON, B.EMBER, B.GOLD, B.DIAMOND, B.BEDROCK, B.RUBBLE, B.SELENITE, B.TYCHO, B.AMBER, B.REGOLITH, B.BOULDER], 3], [[B.DIRT], 4], [[B.SNOW], 5], [[B.PLANKS, B.LOG, B.BIRCHLOG, B.PALMLOG, B.BEAM, B.DOOR, B.DOOR_OPEN, B.LADDER, B.CHEST], 6], [[B.LEAVES, B.BERRYLEAF, B.NEEDLES, B.CACTUS], 7], [[B.LAVA], 8], [[B.TILES], 9], [[B.PLASTER], 10], [[B.COBBLE], 11], [[B.THATCH], 12], [[B.SLATE], 13], [[B.MASONRY, B.SLIT, B.FORTSTONE], 14], [[B.BASALT], 15], [[B.CLOUD], 16]]) for (const id of ids) MAT_OF[id] = m;
   const scratchOpaque = new MeshBuilder(16384, false, true), scratchWater = new MeshBuilder(2048, false, true), scratchGlass = new MeshBuilder(512, false, true), scratchGrass = new MeshBuilder(8192, false, true);
   const SOIL = new Set([B.GRASS, B.DIRT, B.SAND, B.SNOW, B.GRAVEL, B.STONE, B.MOSS, B.GLOWGRASS, B.REGOLITH, B.DUNE, B.SALTCRUST]);
   // things that stand on the ground without stopping it from sloping: air, leaves, trunks, bushes, flowers, pebbles, torches, chests...
@@ -945,6 +949,16 @@ const R = (() => {
             if (hang && h0 > 0.5) op.ball(cx, y + 1 - len - 0.03, cz, 0.06, [1.0, 0.5, 0.15], { emis: true, n: 1 }); // a drip of lava at the tip
             continue;
           }
+        }
+        if (id === B.CLOUD || id === B.GLOWGRASS) { // a cloud billows: puffs hang under it and bulge from its rim, one per 2x2 cell, drawn by the cell's first block
+          const below = get(lx, y - 1, lz); const rim = [[1, 0], [-1, 0], [0, 1], [0, -1]].filter(([a, b]) => !isOpaque(get(lx + a, y, lz + b)));
+          const under = !isOpaque(below) && below !== B.CLOUD; const top = !isOpaque(get(lx, y + 1, lz));
+          if ((under || rim.length) && ((wx & 1) === 0) && ((wz & 1) === 0 || rim.length)) {
+            const sk = skyAt(lx, y + 1, lz); const h0 = U.hash3(wx, y, wz, 220), h1 = U.hash3(wx, y, wz, 221); const white = [0.95, 0.96, 1.0], shade = [0.72, 0.78, 0.92];
+            if (under && (wz & 1) === 0) { const r = 1.15 + h0 * 0.35; op.blob(lx + 1 - r, y - r * 0.55, lz + 1 - r, lx + 1 + r, y + 0.3, lz + 1 + r, 1, white, { sky: sk * 0.8, n: 3, under: shade, soft: 0.6 }); }
+            for (const [a, b] of rim) { const r = 0.75 + h1 * 0.3; const cx = lx + 0.5 + a * 0.5, cz = lz + 0.5 + b * 0.5; op.blob(cx - r, y - r * 0.5 + (top ? 0.1 : 0), cz - r, cx + r, y + (top ? 1.0 : 0.9), cz + r, 1, white, { sky: sk, n: 3, under: shade, soft: 0.6 }); }
+          }
+          // the block itself still draws as a block below (falls through)
         }
         if (id === B.INCUBATOR) { // the incubator: a riveted brass drum with a warm glow in its vents, a glass bell on top, three brass cups for the eggs
           const sk = skyAt(lx, y + 1, lz); const cx = lx + 0.5, cz = lz + 0.5; const brass = [0.7, 0.55, 0.28], dark = [0.3, 0.25, 0.18], glow = [1.0, 0.72, 0.35];
@@ -1239,7 +1253,7 @@ const R = (() => {
         const matSide = MAT_OF[id] || 0;
         for (let f = 0; f < 6; f++) {
           const F = FACES[f], n = F.n;
-          op.curMat = (id === B.GRASS || id === B.GLOWGRASS) ? (f === 2 ? 1 : 4) : matSide;
+          op.curMat = id === B.GRASS ? (f === 2 ? 1 : 4) : id === B.GLOWGRASS ? (f === 2 ? 1 : 16) : matSide;
           const nx = lx + n[0], ny = y + n[1], nz = lz + n[2];
           const nid = get(nx, ny, nz);
           if (isWater) { if (nid !== B.AIR && nid !== B.TORCH && nid !== B.GLASS && nid !== B.SELGLASS && !(BLOCKS[nid].partial && !BLOCKS[nid].solid)) continue; }
@@ -1251,7 +1265,7 @@ const R = (() => {
           let c;
           const pal = world.preset.paletteRgb && world.preset.paletteRgb[id];
           const topC = pal ? pal[0] : info.top, sideC = pal ? pal[1] : info.side;
-          if (f === 2) c = topC; else if (f === 3) c = (id === B.GRASS || id === B.GLOWGRASS) ? BLOCKS[B.DIRT].side : sideC; else c = sideC;
+          if (f === 2) c = topC; else if (f === 3) c = id === B.GRASS ? BLOCKS[B.DIRT].side : sideC; else c = sideC;
           if (id === B.GRASS) { if (f === 2) c = tint; else c = BLOCKS[B.DIRT].side; }
           if (id === B.LEAVES) c = [tint[0] * 0.9, tint[1] * 0.98, tint[2] * 0.8];
           else if (id === B.BERRYLEAF) c = f === 2 ? [tint[0] * 0.7 + 0.3, tint[1] * 0.8, tint[2] * 0.6] : [0.62, 0.22, 0.26];
