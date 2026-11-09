@@ -1027,10 +1027,13 @@ class World {
         } else {
           const island = islandN > 0.6;
           const islandH = island ? 3 + (islandN - 0.6) * 28 : 0;
+          const ceil = 11 + Math.floor(ceilN * 2.5);
           if (y <= 3) b = island ? B.BASALT : B.LAVA;
           else if (y <= islandH) b = B.BASALT;
-          else if (y >= 11 + Math.floor(ceilN * 2.5)) b = B.BASALT;
+          else if (y >= ceil) b = B.BASALT;
           else b = B.AIR;
+          // dripstone: tips hanging from the roof (one, sometimes two blocks), spikes rising from the islands; the mesher draws lone tips as cones
+          if (b === B.AIR) { const dr = U.hash3(x, 0, z, s + 603); if (y === ceil - 1 && dr < 0.07) b = B.BASALT; else if (y === ceil - 2 && dr < 0.02) b = B.BASALT; else if (island && y === Math.floor(islandH) + 1 && islandH > 3.5 && dr > 0.95) b = B.BASALT; }
           if (b === B.BASALT && U.hash3(x, y, z, s + 601) < 0.03) b = B.VOID;
           if (b === B.BASALT && y > 4 && y < 10 && U.hash3(x, y, z, s + 602) < 0.02) b = B.EMBER;
         }
@@ -1580,7 +1583,7 @@ const R = (() => {
   ${TONE}
   /*SHADOW*/
   varying vec4 vCol; varying vec3 vWorld; varying float vMat; varying vec3 vN;
-  uniform vec3 uCam; uniform float uDay; uniform vec3 uFog; uniform float uFogNear; uniform float uFogFar; uniform float uAmbient; uniform float uFogSky;
+  uniform vec3 uCam; uniform float uDay; uniform vec3 uFog; uniform float uFogNear; uniform float uFogFar; uniform float uAmbient; uniform float uFogSky; uniform float uCoreGlow;
   uniform vec3 uLights[8]; uniform float uLightR[8]; uniform float uAlpha; uniform vec3 uTint; uniform float uSkyMul;
   uniform vec3 uSun; uniform vec3 uSunCol; uniform vec3 uZenith; uniform float uGrid; uniform float uWave; uniform float uTime; uniform float uSunAmt; uniform float uQuality; uniform vec3 uPlayer; uniform float uBladeShade;
   float h21(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
@@ -1633,9 +1636,21 @@ const R = (() => {
       vec3 amb = vec3(0.78, 0.86, 1.05) * (0.4 + 0.3 * uDay) * (0.86 + 0.14 * n.y);
       vec3 light = skyL * (amb * (0.88 + 0.12 * sh) + uSunCol * lam * sh * 0.78 * uDay);
       light = max(light, vec3(uAmbient)); light = max(light, vec3(1.0, 0.78, 0.52) * torch * 0.95);
+      if (vWorld.y < 14.5 && uCoreGlow > 0.5) { // the Core: the lava sea lights everything from below, orange on the undersides, fading up toward the roof
+        float up = clamp((vWorld.y - 3.5) / 9.0, 0.0, 1.0); float under = 0.55 - 0.45 * n.y;
+        float flick = 0.9 + 0.1 * sin(uTime * 2.3 + vWorld.x * 0.7 + vWorld.z * 0.9);
+        light = max(light, vec3(1.0, 0.42, 0.1) * (1.0 - up * 0.75) * under * 1.1 * flick + vec3(0.6, 0.16, 0.05) * 0.45);
+      }
       light = mix(light, vec3(1.0), emis);
       vec3 vc = vCol.rgb; float lum = dot(vc, vec3(0.3, 0.59, 0.11)); vc = mix(vec3(lum), vc, 0.78); if (vc.g > vc.r * 1.1 && vc.g > vc.b * 1.2) vc *= vec3(1.04, 1.0, 0.86);
       col = vc * light;
+      if (mat0 == 15) { // basalt: columns packed side by side (a cell pattern on the sides), a cooled crust on top with ember cracks low down
+        bool topF = n.y > 0.5; vec2 q = vWorld.xz * 1.3; vec2 ci = floor(q), cf = fract(q); float f1 = 9.0, f2 = 9.0, idc = 0.0;
+        for (int i = -1; i <= 1; i++) for (int j = -1; j <= 1; j++) { vec2 g = vec2(float(i), float(j)); vec2 o = vec2(hash3(vec3(ci + g, 11.0)), hash3(vec3(ci + g, 12.0))) * 0.8 + 0.1; float d = length(g + o - cf); if (d < f1) { f2 = f1; f1 = d; idc = hash3(vec3(ci + g, 13.0)); } else if (d < f2) f2 = d; }
+        float seam = smoothstep(0.0, 0.1, f2 - f1);
+        if (topF) { col *= mix(0.55, 1.0, seam) * (0.85 + 0.3 * idc); float cr = smoothstep(0.03, 0.0, f2 - f1) * (1.0 - clamp((vWorld.y - 4.0) / 5.0, 0.0, 1.0)); col += vec3(1.0, 0.45, 0.1) * cr * (0.6 + 0.4 * sin(uTime * 1.7 + idc * 9.0)); }
+        else { float seamV = smoothstep(0.0, 0.08, f2 - f1); col *= mix(0.5, 1.0, seamV) * (0.88 + 0.24 * idc) * (0.9 + 0.2 * vn(vec2(vWorld.y * 1.5, idc * 20.0))); }
+      }
       if (mat0 == 8) { // lava: a dark crust drifting over a bright glow (emissive, so it skips the paint below)
         vec2 q = vWorld.xz * 0.6; float flow = vn(q + vec2(uTime * 0.05, uTime * 0.03)) * 0.6 + vn(q * 2.3 - vec2(uTime * 0.04, 0.0)) * 0.4;
         float crust = smoothstep(0.42, 0.62, flow); vec3 hot = vec3(1.0, 0.72, 0.18), cool = vec3(0.42, 0.1, 0.03);
@@ -1745,7 +1760,7 @@ const R = (() => {
   ${TONE}
   /*SHADOW*/
   varying vec4 vCol; varying vec3 vWorld; varying vec3 vNorm; varying vec3 vLocal;
-  uniform vec3 uCam; uniform float uDay; uniform vec3 uFog; uniform float uFogNear; uniform float uFogFar; uniform float uAmbient; uniform float uFogSky;
+  uniform vec3 uCam; uniform float uDay; uniform vec3 uFog; uniform float uFogNear; uniform float uFogFar; uniform float uAmbient; uniform float uFogSky; uniform float uCoreGlow;
   uniform vec3 uLights[8]; uniform float uLightR[8]; uniform float uAlpha; uniform vec3 uTint; uniform float uSkyMul;
   uniform vec3 uSun; uniform vec3 uSunCol; uniform vec3 uZenith; uniform float uSunAmt; uniform float uOutline; uniform float uFlash;
   float hash3(vec3 p){ p = fract(p * vec3(0.1031, 0.1030, 0.0973)); p += dot(p, p.yxz + 33.33); return fract((p.x + p.y) * p.z); }
@@ -1766,6 +1781,7 @@ const R = (() => {
     vec3 amb = vec3(0.86, 0.9, 1.02) * (0.42 + 0.24 * uDay) * (0.84 + 0.2 * n.y);
     vec3 light = skyL * (amb * (0.88 + 0.12 * sh) + uSunCol * ramp * 0.78 * uDay);
     light = max(light, vec3(uAmbient)); light = max(light, vec3(1.0, 0.78, 0.52) * torch * 0.95);
+    if (vWorld.y < 14.5 && uCoreGlow > 0.5) { float up = clamp((vWorld.y - 3.5) / 9.0, 0.0, 1.0); light = max(light, vec3(1.0, 0.42, 0.1) * (1.0 - up * 0.75) * (0.55 - 0.45 * n.y) * 1.1 + vec3(0.6, 0.16, 0.05) * 0.45); }
     light = mix(light, vec3(1.0), emis);
     vec3 vc = vCol.rgb; float lum = dot(vc, vec3(0.3, 0.59, 0.11)); vc = mix(vec3(lum), vc, 0.84);
     float g = hash3(floor(vLocal * 11.0 + 0.5)); vc *= 0.955 + 0.09 * g;
@@ -1856,7 +1872,7 @@ const R = (() => {
   function initEntityProg() {
     eprog = compile(EVS, EFS);
     for (const n of ['aPos', 'aCol', 'aNorm', 'aBone']) eloc[n] = gl.getAttribLocation(eprog, n);
-    for (const n of ['uPV', 'uModel', 'uBones', 'uOutline', 'uSway', 'uTime', 'uCam', 'uDay', 'uFog', 'uFogNear', 'uFogFar', 'uAmbient', 'uLights', 'uLightR', 'uAlpha', 'uTint', 'uSkyMul', 'uSun', 'uSunCol', 'uZenith', 'uSunAmt', 'uFlash', 'uShadow', 'uLightPV', 'uShadowOn', 'uShadowTexel', 'uFogSky']) eloc[n] = gl.getUniformLocation(eprog, n);
+    for (const n of ['uPV', 'uModel', 'uBones', 'uOutline', 'uSway', 'uTime', 'uCam', 'uDay', 'uFog', 'uFogNear', 'uFogFar', 'uAmbient', 'uLights', 'uLightR', 'uAlpha', 'uTint', 'uSkyMul', 'uSun', 'uSunCol', 'uZenith', 'uSunAmt', 'uFlash', 'uShadow', 'uLightPV', 'uShadowOn', 'uShadowTexel', 'uFogSky', 'uCoreGlow']) eloc[n] = gl.getUniformLocation(eprog, n);
   }
   // ---- the meadow: one blade shape drawn tens of thousands of times around you (WebGL2 instancing) ----
   const GVS = `#version 300 es
@@ -2049,7 +2065,7 @@ const R = (() => {
     if (!gl) { gl = cv.getContext('webgl', opts) || cv.getContext('experimental-webgl', opts); if (!gl) throw new Error('WebGL is not available'); if (!gl.getExtension('OES_element_index_uint')) throw new Error('32-bit indices unsupported'); }
     prog = compile(VS, FS);
     for (const n of ['aPos', 'aCol', 'aMat', 'aNorm']) loc[n] = gl.getAttribLocation(prog, n);
-    for (const n of ['uPV', 'uModel', 'uTime', 'uWave', 'uCam', 'uDay', 'uFog', 'uFogNear', 'uFogFar', 'uAmbient', 'uLights', 'uLightR', 'uAlpha', 'uTint', 'uSkyMul', 'uSun', 'uSunCol', 'uZenith', 'uGrid', 'uSunAmt', 'uQuality', 'uPlayer', 'uBladeShade', 'uShadow', 'uLightPV', 'uShadowOn', 'uShadowTexel', 'uFogSky']) loc[n] = gl.getUniformLocation(prog, n);
+    for (const n of ['uPV', 'uModel', 'uTime', 'uWave', 'uCam', 'uDay', 'uFog', 'uFogNear', 'uFogFar', 'uAmbient', 'uLights', 'uLightR', 'uAlpha', 'uTint', 'uSkyMul', 'uSun', 'uSunCol', 'uZenith', 'uGrid', 'uSunAmt', 'uQuality', 'uPlayer', 'uBladeShade', 'uShadow', 'uLightPV', 'uShadowOn', 'uShadowTexel', 'uFogSky', 'uCoreGlow']) loc[n] = gl.getUniformLocation(prog, n);
     skyProg = compile(SVS, SFS); sloc.aPos = gl.getAttribLocation(skyProg, 'aPos'); for (const n of ['uFwd', 'uRight', 'uUp', 'uTan', 'uAspect', 'uHorizon', 'uZenith', 'uSun', 'uSunCol', 'uSunAmt', 'uTime', 'uClouds', 'uNight']) sloc[n] = gl.getUniformLocation(skyProg, n);
     initGrass(); initEntityProg(); initShadows();
     skyBuf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, skyBuf); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
@@ -2098,8 +2114,8 @@ const R = (() => {
   }
 
   // ---------- chunk meshing ----------
-  // material classes for the fragment shader: 1 grass top, 2 sand, 3 rock, 4 earth, 5 snow, 6 wood, 7 leaves, 8 lava, 9 tiles, 10 plaster, 11 cobbles, 12 thatch, 13 slate, 14 dressed stone
-  const MAT_OF = {}; for (const [ids, m] of [[[B.SAND, B.DUNE, B.SALTCRUST], 2], [[B.STONE, B.GRAVEL, B.MOSS, B.COPPER, B.IRON, B.EMBER, B.GOLD, B.DIAMOND, B.BASALT, B.BEDROCK, B.RUBBLE, B.SELENITE, B.TYCHO, B.AMBER, B.REGOLITH, B.BOULDER], 3], [[B.DIRT], 4], [[B.SNOW], 5], [[B.PLANKS, B.LOG, B.BIRCHLOG, B.PALMLOG, B.BEAM, B.DOOR, B.DOOR_OPEN, B.LADDER, B.CHEST], 6], [[B.LEAVES, B.BERRYLEAF, B.NEEDLES, B.CACTUS], 7], [[B.LAVA], 8], [[B.TILES], 9], [[B.PLASTER], 10], [[B.COBBLE], 11], [[B.THATCH], 12], [[B.SLATE], 13], [[B.MASONRY, B.SLIT, B.FORTSTONE], 14]]) for (const id of ids) MAT_OF[id] = m;
+  // material classes for the fragment shader: 1 grass top, 2 sand, 3 rock, 4 earth, 5 snow, 6 wood, 7 leaves, 8 lava, 9 tiles, 10 plaster, 11 cobbles, 12 thatch, 13 slate, 14 dressed stone, 15 basalt
+  const MAT_OF = {}; for (const [ids, m] of [[[B.SAND, B.DUNE, B.SALTCRUST], 2], [[B.STONE, B.GRAVEL, B.MOSS, B.COPPER, B.IRON, B.EMBER, B.GOLD, B.DIAMOND, B.BEDROCK, B.RUBBLE, B.SELENITE, B.TYCHO, B.AMBER, B.REGOLITH, B.BOULDER], 3], [[B.DIRT], 4], [[B.SNOW], 5], [[B.PLANKS, B.LOG, B.BIRCHLOG, B.PALMLOG, B.BEAM, B.DOOR, B.DOOR_OPEN, B.LADDER, B.CHEST], 6], [[B.LEAVES, B.BERRYLEAF, B.NEEDLES, B.CACTUS], 7], [[B.LAVA], 8], [[B.TILES], 9], [[B.PLASTER], 10], [[B.COBBLE], 11], [[B.THATCH], 12], [[B.SLATE], 13], [[B.MASONRY, B.SLIT, B.FORTSTONE], 14], [[B.BASALT], 15]]) for (const id of ids) MAT_OF[id] = m;
   const scratchOpaque = new MeshBuilder(16384, false, true), scratchWater = new MeshBuilder(2048, false, true), scratchGlass = new MeshBuilder(512, false, true), scratchGrass = new MeshBuilder(8192, false, true);
   const SOIL = new Set([B.GRASS, B.DIRT, B.SAND, B.SNOW, B.GRAVEL, B.STONE, B.MOSS, B.GLOWGRASS, B.REGOLITH, B.DUNE, B.SALTCRUST]);
   // things that stand on the ground without stopping it from sloping: air, leaves, trunks, bushes, flowers, pebbles, torches, chests...
@@ -2336,6 +2352,20 @@ const R = (() => {
           for (let k = 0; k < 6; k++) { const r = 0.18 + hp(k) * 0.22; const cx = lx + 0.15 + hp(k + 6) * 0.7, cz = lz + 0.15 + hp(k + 12) * 0.7, cy = y + 0.1 + hp(k + 18) * 0.55 * (1 - r); const m = 0.8 + hp(k + 24) * 0.4;
             op.push(); op.rotate(hp(k + 30) * 1.2, hp(k + 36) * 6.283, hp(k + 42) * 1.2, [cx, cy, cz]); op.blob(cx - r, cy - r * 0.7, cz - r * 0.8, cx + r, cy + r * 0.7, cz + r * 0.8, 0.5, [base[0] * m, base[1] * m, base[2] * m], { sky: sk, n: 2 }); op.pop(); }
           continue;
+        }
+        if (id === B.BASALT && y < CORE_TOP) { // dripstone: a lone basalt block hanging under the roof or standing on an island is a cone, not a cube
+          const up = get(lx, y + 1, lz), dn = get(lx, y - 1, lz); const sidesFree = !isOpaque(get(lx + 1, y, lz)) && !isOpaque(get(lx - 1, y, lz)) && !isOpaque(get(lx, y, lz + 1)) && !isOpaque(get(lx, y, lz - 1));
+          const hang = sidesFree && isOpaque(up) && !isOpaque(dn), stand = sidesFree && !isOpaque(up) && isOpaque(dn) && dn !== B.LAVA;
+          if (hang || stand) {
+            const sk = skyAt(lx, y + 1, lz); const h0 = U.hash3(wx, y, wz, 210), h1 = U.hash3(wx, y, wz, 211); const col = [0.3, 0.28, 0.3]; const cx = lx + 0.5 + (h0 - 0.5) * 0.2, cz = lz + 0.5 + (h1 - 0.5) * 0.2;
+            const two = hang ? get(lx, y - 2, lz) === B.BASALT || get(lx, y - 1, lz) === B.BASALT : false; // (a two-block tip: the upper block is wide, the lower one draws its own point)
+            const len = hang ? (get(lx, y - 1, lz) === B.BASALT ? 1.0 : 1.0 + h0 * 0.5) : 1.0 + h1 * 0.4;
+            const path = hang ? [[lx + 0.5, y + 1.0, lz + 0.5], [cx, y + 1 - len * 0.6, cz], [cx, y + 1 - len, cz]] : [[lx + 0.5, y, lz + 0.5], [cx, y + len * 0.6, cz], [cx, y + len, cz]];
+            const rad = hang ? [0.44, 0.22, 0.01] : [0.42, 0.2, 0.01];
+            op.curMat = 15; op.tube(path, rad, col, { sky: sk, segs: 7, cap0: 'none', cap1: 'none', shade: (p, nx, ny, nz, t) => { const k = 0.85 + U.hash3(Math.floor(Math.atan2(nz, nx) * 2), wx, wz, 9) * 0.3; return [col[0] * k, col[1] * k, col[2] * k]; } }); op.curMat = 0;
+            if (hang && h0 > 0.5) op.ball(cx, y + 1 - len - 0.03, cz, 0.06, [1.0, 0.5, 0.15], { emis: true, n: 1 }); // a drip of lava at the tip
+            continue;
+          }
         }
         if (id === B.INCUBATOR) { // the incubator: a riveted brass drum with a warm glow in its vents, a glass bell on top, three brass cups for the eggs
           const sk = skyAt(lx, y + 1, lz); const cx = lx + 0.5, cz = lz + 0.5; const brass = [0.7, 0.55, 0.28], dark = [0.3, 0.25, 0.18], glow = [1.0, 0.72, 0.35];
@@ -2733,7 +2763,7 @@ const R = (() => {
   function setEntityUniforms(pv, cam, lightsL, lightsR) {
     gl.useProgram(eprog);
     gl.uniformMatrix4fv(eloc.uPV, false, pv); gl.uniform1f(eloc.uTime, performance.now() / 1000);
-    gl.uniform3f(eloc.uCam, cam.x, cam.y, cam.z); gl.uniform1f(eloc.uDay, state.dayLight); gl.uniform3fv(eloc.uFog, state.fogColor); gl.uniform1f(eloc.uFogSky, state.fogSky ? 1 : 0);
+    gl.uniform3f(eloc.uCam, cam.x, cam.y, cam.z); gl.uniform1f(eloc.uDay, state.dayLight); gl.uniform3fv(eloc.uFog, state.fogColor); gl.uniform1f(eloc.uFogSky, state.fogSky ? 1 : 0); gl.uniform1f(eloc.uCoreGlow, state.coreGlow ? 1 : 0);
     gl.uniform1f(eloc.uFogNear, state.fogNear); gl.uniform1f(eloc.uFogFar, state.fogFar); gl.uniform1f(eloc.uAmbient, state.ambient); gl.uniform3fv(eloc.uTint, state.tint);
     gl.uniform3fv(eloc.uSun, state.sun || [0, 1, 0]); gl.uniform3fv(eloc.uSunCol, state.sunCol || [1, 1, 1]); gl.uniform3fv(eloc.uZenith, state.zenith || state.fogColor); gl.uniform1f(eloc.uSunAmt, state.skyPass ? state.sunAmt : 0);
     gl.uniform3fv(eloc.uLights, lightsL); gl.uniform1fv(eloc.uLightR, lightsR); gl.uniform1f(eloc.uAlpha, 1); gl.uniform1f(eloc.uSkyMul, 1); gl.uniform1f(eloc.uOutline, 0); gl.uniform4f(eloc.uSway, 0, 0, 0, 0); gl.uniform1f(eloc.uFlash, 0);
@@ -2838,13 +2868,13 @@ const R = (() => {
     if (wi > 0.02 && wk === 'fog') { state.fogNear = U.lerp(state.fogNear, 4, wi); state.fogFar = U.lerp(state.fogFar, 26, wi); }
     if (gl0 > 0.01) { state.fogNear = U.lerp(state.fogNear, state.viewDist * 0.32, gl0); state.fogFar = U.lerp(state.fogFar, state.viewDist * 0.88, gl0); }
     else if (wi > 0.02 && (wk === 'rain' || wk === 'storm')) { state.fogNear = U.lerp(state.fogNear, state.viewDist * 0.3, wi); state.fogFar = U.lerp(state.fogFar, state.viewDist * 0.75, wi); }
-    state.tint = [1, 1, 1]; state.underwater = false; state.inCore = false;
+    state.tint = [1, 1, 1]; state.underwater = false; state.inCore = false; state.coreGlow = world.preset.id === 'earth';
     const eyeBlock = world.getBlock(Math.floor(player.x), Math.floor(player.y + 1.62), Math.floor(player.z));
     if (eyeBlock === B.WATER || eyeBlock === B.BRINE || eyeBlock === B.LAVA || player.y < CORE_TOP || player.y < world.topAt(Math.floor(player.x), Math.floor(player.z)) - 2) state.skyPass = false;
     if (eyeBlock === B.WATER) { state.underwater = true; state.fogSky = false; state.fogColor = [0.05, 0.2, 0.45]; state.skyColor = state.fogColor; state.fogNear = 2; state.fogFar = 18; state.tint = [0.6, 0.8, 1.0]; }
     else if (eyeBlock === B.BRINE) { state.underwater = true; state.fogSky = false; state.fogColor = [0.35, 0.42, 0.08]; state.skyColor = state.fogColor; state.fogNear = 1; state.fogFar = 9; state.tint = [0.9, 1.0, 0.5]; }
     else if (eyeBlock === B.LAVA) { state.fogSky = false; state.fogColor = [0.9, 0.3, 0.05]; state.skyColor = state.fogColor; state.fogNear = 0.5; state.fogFar = 4; state.tint = [1.2, 0.6, 0.3]; }
-    else if (player.y < CORE_TOP) { state.inCore = true; state.fogSky = false; state.fogColor = [0.16, 0.04, 0.01]; state.skyColor = state.fogColor; state.fogNear = 8; state.fogFar = 46; state.ambient = 0.46; state.tint = [1.1, 0.88, 0.8]; }
+    else if (player.y < CORE_TOP) { state.inCore = true; state.fogSky = false; state.fogColor = [0.2, 0.05, 0.015]; state.skyColor = state.fogColor; state.fogNear = 10; state.fogFar = 56; state.ambient = 0.3; state.tint = [1.08, 0.9, 0.82]; }
     else if (player.y < world.topAt(Math.floor(player.x), Math.floor(player.z)) - 2) { state.fogSky = false; state.fogColor = [0.0, 0.0, 0.0]; state.skyColor = state.fogColor; state.fogNear = 10; state.fogFar = 48; }
   }
 
@@ -2871,7 +2901,7 @@ const R = (() => {
     gl.uniform1f(loc.uTime, performance.now() / 1000);
     gl.uniform3f(loc.uCam, cam.x, cam.y, cam.z);
     gl.uniform1f(loc.uDay, state.dayLight);
-    gl.uniform3fv(loc.uFog, state.fogColor); gl.uniform1f(loc.uFogSky, state.fogSky ? 1 : 0);
+    gl.uniform3fv(loc.uFog, state.fogColor); gl.uniform1f(loc.uFogSky, state.fogSky ? 1 : 0); gl.uniform1f(loc.uCoreGlow, world.preset.id === 'earth' ? 1 : 0);
     gl.uniform1f(loc.uFogNear, state.fogNear); gl.uniform1f(loc.uFogFar, state.fogFar);
     gl.uniform1f(loc.uAmbient, state.ambient);
     gl.uniform3fv(loc.uTint, state.tint);

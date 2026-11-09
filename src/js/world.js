@@ -396,10 +396,13 @@ class World {
         } else {
           const island = islandN > 0.6;
           const islandH = island ? 3 + (islandN - 0.6) * 28 : 0;
+          const ceil = 11 + Math.floor(ceilN * 2.5);
           if (y <= 3) b = island ? B.BASALT : B.LAVA;
           else if (y <= islandH) b = B.BASALT;
-          else if (y >= 11 + Math.floor(ceilN * 2.5)) b = B.BASALT;
+          else if (y >= ceil) b = B.BASALT;
           else b = B.AIR;
+          // dripstone: tips hanging from the roof (one, sometimes two blocks), spikes rising from the islands; the mesher draws lone tips as cones
+          if (b === B.AIR) { const dr = U.hash3(x, 0, z, s + 603); if (y === ceil - 1 && dr < 0.07) b = B.BASALT; else if (y === ceil - 2 && dr < 0.02) b = B.BASALT; else if (island && y === Math.floor(islandH) + 1 && islandH > 3.5 && dr > 0.95) b = B.BASALT; }
           if (b === B.BASALT && U.hash3(x, y, z, s + 601) < 0.03) b = B.VOID;
           if (b === B.BASALT && y > 4 && y < 10 && U.hash3(x, y, z, s + 602) < 0.02) b = B.EMBER;
         }
