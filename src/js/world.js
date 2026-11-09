@@ -14,7 +14,7 @@ const B = {
   TORCH: 18, FUSION: 19, GRAVEL: 20, CACTUS: 21, STARMETAL: 22, MOSS: 23, STATUE: 24, PLANKS: 25, BERRY: 26, GLASS: 27, CAMPFIRE: 28, IRONWALL: 29, VOIDWALL: 30, GLOWWORM: 31, BERRYLEAF: 32, DOOR: 33, DOOR_OPEN: 34, PORTAL: 35,
   CHEST: 36, SELENITE: 37, TYCHO: 38, STARSALT: 39, MOONGLOW: 40, AMBER: 41, SULFUR: 42, RINGSHARD: 43, BRINE: 44, CORAL_R: 45, CORAL_B: 46, CORAL_Y: 47, PEARLCORAL: 48, GOLD: 49, DIAMOND: 50, FERN: 51, SELGLASS: 52, INCUBATOR: 53, REGOLITH: 54, DUNE: 55, SALTCRUST: 56, LADDER: 57, TARGET: 58, BALLOON: 59, FORTSTONE: 60, THORN: 61, DEADGATE: 62, RUBBLE: 63, DARKTABLE: 64,
   NEEDLES: 65, FROND: 66, BIRCHLOG: 67, BOULDER: 68, MUSHROOM: 69, FLOWERS: 70, PEBBLES: 71, PALMLOG: 72,
-  TILES: 73, SLATE: 74, THATCH: 75, PLASTER: 76, BEAM: 77, LAMP: 78, COBBLE: 79, FLOWERBOX: 80, PALISADE: 81, MASONRY: 82, FOUNTAIN: 83, BASIN: 84, AWNING: 85, BANNER: 86, SLIT: 87, TIPI: 88, HIDE: 89, LODGE: 90, FENCE: 91, FIREPIT: 92, TOTEM: 93, RAIL: 94, CART: 95
+  TILES: 73, SLATE: 74, THATCH: 75, PLASTER: 76, BEAM: 77, LAMP: 78, COBBLE: 79, FLOWERBOX: 80, PALISADE: 81, MASONRY: 82, FOUNTAIN: 83, BASIN: 84, AWNING: 85, BANNER: 86, SLIT: 87, TIPI: 88, HIDE: 89, LODGE: 90, FENCE: 91, FIREPIT: 92, TOTEM: 93, RAIL: 94, CART: 95, ROPEBRIDGE: 96
 };
 
 // name, top colour, side colour, solid, hardness (seconds to mine), drop item id, emissive, fluid
@@ -39,7 +39,7 @@ defBlock(B.VOID, 'Void Crystal', '#9a4de0', '#8a3fd0', { hard: 1.6, drop: 'void'
 defBlock(B.BASALT, 'Basalt', '#45404a', '#3d3842', { hard: 1.4, drop: 'basalt' });
 defBlock(B.LAVA, 'Lava', '#ff7a1a', '#ff6a12', { solid: false, fluid: true, emissive: true, transparent: true });
 defBlock(B.CLOUD, 'Cloudstone', '#e9ecf6', '#d7dcea', { hard: 0.4, drop: 'cloud' });
-defBlock(B.GLOWGRASS, 'Glowgrass', '#d7f5a1', '#d7dcea', { hard: 0.4, drop: 'cloud', emissive: true });
+defBlock(B.GLOWGRASS, 'Glowcloud', '#f4f6fc', '#e8ecf6', { hard: 0.4, drop: 'cloud', emissive: true }); // cloud that glows at night (older sky places have it on top)
 defBlock(B.TORCH, 'Torch', '#ffd36a', '#8a6a3c', { solid: false, hard: 0.05, drop: 'torch', emissive: true, partial: true, transparent: true });
 defBlock(B.FUSION, 'Fusion Table', '#7ad7ff', '#3b3f5c', { hard: 1.0, drop: 'fusion', transparent: true }); // drawn as a pedestal, not a cube: whatever stands behind or under it keeps its faces
 defBlock(B.DARKTABLE, 'Dark Fusion Table', '#4a1a6a', '#1a0a26', { hard: Infinity, transparent: true });
@@ -119,6 +119,7 @@ defBlock(B.FIREPIT, 'Fire Pit', '#ff9a3a', '#6a6a70', { solid: false, hard: Infi
 defBlock(B.TOTEM, 'Totem', '#a07a44', '#75522c', { hard: Infinity, partial: true, transparent: true });
 defBlock(B.RAIL, 'Rail', '#6a6a70', '#5a4a30', { solid: false, hard: 0.4, drop: 'iron', partial: true, transparent: true });
 defBlock(B.CART, 'Mine Cart', '#5a5a60', '#4a4a50', { hard: 0.8, drop: 'iron', partial: true, transparent: true });
+defBlock(B.ROPEBRIDGE, 'Rope Bridge', '#a8824a', '#8a6a3c', { hard: Infinity, transparent: true }); // a walkway of slats with rope rails, drawn at the top of its block
 defBlock(B.FLOWERBOX, 'Flower Box', '#d04a5a', '#6a4a2c', { solid: false, hard: 0.2, drop: 'frond', partial: true, transparent: true }); // the mesher draws a whole palm from the lowest trunk block: a curved trunk, a crown of fronds, coconuts
 defBlock(B.BOULDER, 'Boulder', '#8e9197', '#86898f', { hard: 0.9, drop: 'stone', partial: true, transparent: true });
 defBlock(B.MUSHROOM, 'Mushroom', '#c84a3a', '#e8dcc8', { solid: false, hard: 0.1, drop: 'berry', partial: true, transparent: true });
@@ -496,7 +497,7 @@ class World {
         const t = Math.min(8, Math.floor((info.sky - 0.615) * 70) + 1);
         const topI = SKY_BASE + Math.floor(U.vnoise2(x, z, 16, P, s + 901) * 4);
         for (let y = topI - t; y <= topI; y++) {
-          if (y < WH) blocks[base + y] = (y === topI) ? B.GLOWGRASS : B.CLOUD;
+          if (y < WH) blocks[base + y] = B.CLOUD;
         }
       }
     }

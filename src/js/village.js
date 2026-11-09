@@ -1826,6 +1826,7 @@ const Village = (() => {
       const st = state(v.id);
       if (typeof Npcs !== 'undefined' && Npcs.onElderTalk(v)) { Dialogue.show(n.name, ['A parcel, for me? From the road? Well. Tell them it arrived.']); return; }
       if (!st.freed) { Dialogue.show(n.name, ['The tyrant is back in the square. Beat him and we are yours again.']); return; }
+      if (typeof Sky !== 'undefined' && Sky.rootHint && Sky.rootHint(n, v)) return; // the first freed elder tells you about the Skyroot
       const inc = collect(v);
       if (inc > 0) { G.shards += inc; UI.sfx('caught'); UI.toast(`${v.name} set aside ◆ ${inc} for you.`, 'good'); }
       UI.openPanel('village', v);

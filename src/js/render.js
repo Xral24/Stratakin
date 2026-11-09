@@ -225,7 +225,7 @@ const R = (() => {
       col = vc * light;
       if (mat0 == 16) { // cloudstone: soft, bright, a little blue in the hollows
         float puff = vn(vWorld.xz * 0.5 + vWorld.y * 0.3) * 0.6 + vn(vWorld.xz * 1.7 + 4.0) * 0.4;
-        col *= 0.9 + 0.16 * puff; col = mix(col, col * vec3(0.82, 0.88, 1.0), (1.0 - max(n.y, 0.0)) * 0.45 + (1.0 - puff) * 0.2);
+        col *= 0.93 + 0.12 * puff; col = mix(col, col * vec3(0.9, 0.94, 1.0), (1.0 - max(n.y, 0.0)) * 0.3 + (1.0 - puff) * 0.12);
       }
       if (mat0 == 15) { // basalt: columns packed side by side (a cell pattern on the sides), a cooled crust on top with ember cracks low down
         bool topF = n.y > 0.5; vec2 q = vWorld.xz * 1.3; vec2 ci = floor(q), cf = fract(q); float f1 = 9.0, f2 = 9.0, idc = 0.0;
@@ -567,7 +567,7 @@ const R = (() => {
       // down through the canopy, bushes and flowers to the ground itself
       let y = ch.tops[lx * CH + lz]; let id = ch.blocks[(lx * CH + lz) * WH + y]; while (y > 0 && (id === B.AIR || isLeaf(id) || id === B.BERRY || (BLOCKS[id].partial && !BLOCKS[id].solid))) { y--; id = ch.blocks[(lx * CH + lz) * WH + y]; }
       const above = ch.blocks[(lx * CH + lz) * WH + y + 1];
-      const grass = (id === B.GRASS || id === B.GLOWGRASS) && (above === B.AIR || (BLOCKS[above].partial && !BLOCKS[above].solid)); // blades grow through flowers and pebbles, not through a bush or a boulder
+      const grass = id === B.GRASS && (above === B.AIR || (BLOCKS[above].partial && !BLOCKS[above].solid)); // blades grow through flowers and pebbles, not through a bush or a boulder
       const ti = (lx * CH + lz) * 3;
       // red, green: the grass colour (0 where no grass grows); blue: the kind of grass, or 255 for bare soil; alpha: the height of the top.
       // Blades read their height from the four texels around them, and only from soil ones: a wall or a trunk is not ground they should climb
@@ -953,12 +953,29 @@ const R = (() => {
         if (id === B.CLOUD || id === B.GLOWGRASS) { // a cloud billows: puffs hang under it and bulge from its rim, one per 2x2 cell, drawn by the cell's first block
           const below = get(lx, y - 1, lz); const rim = [[1, 0], [-1, 0], [0, 1], [0, -1]].filter(([a, b]) => !isOpaque(get(lx + a, y, lz + b)));
           const under = !isOpaque(below) && below !== B.CLOUD; const top = !isOpaque(get(lx, y + 1, lz));
-          if ((under || rim.length) && ((wx & 1) === 0) && ((wz & 1) === 0 || rim.length)) {
-            const sk = skyAt(lx, y + 1, lz); const h0 = U.hash3(wx, y, wz, 220), h1 = U.hash3(wx, y, wz, 221); const white = [0.95, 0.96, 1.0], shade = [0.72, 0.78, 0.92];
-            if (under && (wz & 1) === 0) { const r = 1.15 + h0 * 0.35; op.blob(lx + 1 - r, y - r * 0.55, lz + 1 - r, lx + 1 + r, y + 0.3, lz + 1 + r, 1, white, { sky: sk * 0.8, n: 3, under: shade, soft: 0.6 }); }
-            for (const [a, b] of rim) { const r = 0.75 + h1 * 0.3; const cx = lx + 0.5 + a * 0.5, cz = lz + 0.5 + b * 0.5; op.blob(cx - r, y - r * 0.5 + (top ? 0.1 : 0), cz - r, cx + r, y + (top ? 1.0 : 0.9), cz + r, 1, white, { sky: sk, n: 3, under: shade, soft: 0.6 }); }
+          const cell = ((wx & 1) === 0) && ((wz & 1) === 0);
+          if ((under && cell) || rim.length || (top && cell)) {
+            const sk = skyAt(lx, y + 1, lz); const h0 = U.hash3(wx, y, wz, 220), h1 = U.hash3(wx, y, wz, 221); const white = id === B.GLOWGRASS ? [0.98, 0.99, 1.0] : [0.96, 0.97, 1.0], shade = [0.84, 0.88, 0.97]; const em = id === B.GLOWGRASS;
+            if (under && cell) { const r = 1.15 + h0 * 0.35; op.blob(lx + 1 - r, y - r * 0.55, lz + 1 - r, lx + 1 + r, y + 0.3, lz + 1 + r, 1, white, { sky: sk * 0.85, n: 3, under: shade, soft: 0.6, emis: em }); }
+            if (top && cell) { const r = 1.05 + h1 * 0.3, hgt = 0.22 + h0 * 0.18; op.blob(lx + 1 - r, y + 0.75, lz + 1 - r, lx + 1 + r, y + 1 + hgt, lz + 1 + r, 1, white, { sky: sk, n: 3, under: shade, soft: 0.7, emis: em }); } // the fluffy cover you walk on
+            for (const [a, b] of rim) { const r = 0.75 + h1 * 0.3; const cx = lx + 0.5 + a * 0.5, cz = lz + 0.5 + b * 0.5; op.blob(cx - r, y - r * 0.5 + (top ? 0.1 : 0), cz - r, cx + r, y + (top ? 1.0 : 0.9), cz + r, 1, white, { sky: sk, n: 3, under: shade, soft: 0.6, emis: em }); }
           }
           // the block itself still draws as a block below (falls through)
+        }
+        if (id === B.ROPEBRIDGE) { // a rickety rope bridge: plank slats across the top of the block, a few missing, rope rails sagging between posts, two ropes under
+          const sk = skyAt(lx, y + 1, lz); const isB = (b) => b === B.ROPEBRIDGE; const alongX = isB(get(lx + 1, y, lz)) || isB(get(lx - 1, y, lz)) || isB(get(lx + 1, y + 1, lz)) || isB(get(lx - 1, y + 1, lz)) || isB(get(lx + 1, y - 1, lz)) || isB(get(lx - 1, y - 1, lz));
+          const wood = [0.6, 0.46, 0.26], rope = [0.72, 0.62, 0.42]; const hp = (k) => U.hash3(wx, y, wz, 230 + k);
+          const top = y + 1.0; const S = (u, v) => alongX ? [lx + u, lz + v] : [lx + v, lz + u]; // u along the bridge, v across
+          for (let i = 0; i < 4; i++) { if (hp(i) < 0.14) continue; const u0 = i * 0.25 + 0.02, u1 = u0 + 0.21; const [ax, az] = S(u0, 0.08), [bx, bz] = S(u1, 0.92); const m = 0.85 + hp(i + 4) * 0.3; const tilt = (hp(i + 8) - 0.5) * 0.05;
+            op.box(Math.min(ax, bx), top - 0.1 + tilt, Math.min(az, bz), Math.max(ax, bx), top + tilt, Math.max(az, bz), [wood[0] * m, wood[1] * m, wood[2] * m], sk, false); }
+          for (const v of [0.06, 0.94]) { const [ax, az] = S(0, v), [bx, bz] = S(1, v); op.tube([[ax, top - 0.14, az], [bx, top - 0.14, bz]], [0.03, 0.03], rope, { sky: sk, segs: 4, cap0: 'none', cap1: 'none' }); } // the ropes the slats hang on
+          for (const v of [0.02, 0.98]) { // posts and the hand ropes, sagging between posts
+            const [px, pz] = S(0.5, v); op.tube([[px, top - 0.05, pz], [px, top + 0.72, pz]], [0.028, 0.022], wood, { sky: sk, segs: 4, cap0: 'none', cap1: 'round' });
+            const [ax, az] = S(0, v), [bx, bz] = S(1, v); op.tube([[ax, top + 0.62, az], [px, top + 0.56 + hp(12) * 0.04, pz], [bx, top + 0.62, bz]], [0.02, 0.02, 0.02], rope, { sky: sk, segs: 4, cap0: 'none', cap1: 'none' });
+            const [cx, cz] = S(0, v), [dx, dz] = S(0.5, v); op.tube([[cx, top + 0.3, cz], [dx, top + 0.26, dz]], [0.012, 0.012], rope, { sky: sk, segs: 3, cap0: 'none', cap1: 'none' }); // a lower rope on the near half (the far half comes from the next block)
+            const [ex, ez] = S(0.5, v), [fx, fz] = S(1, v); op.tube([[ex, top + 0.26, ez], [fx, top + 0.3, fz]], [0.012, 0.012], rope, { sky: sk, segs: 3, cap0: 'none', cap1: 'none' });
+          }
+          continue;
         }
         if (id === B.INCUBATOR) { // the incubator: a riveted brass drum with a warm glow in its vents, a glass bell on top, three brass cups for the eggs
           const sk = skyAt(lx, y + 1, lz); const cx = lx + 0.5, cz = lz + 0.5; const brass = [0.7, 0.55, 0.28], dark = [0.3, 0.25, 0.18], glow = [1.0, 0.72, 0.35];
@@ -1012,7 +1029,7 @@ const R = (() => {
           continue;
         }
         // grass: a tuft of blades on every open grass top, and now and then a flower
-        if ((id === B.GRASS || id === B.GLOWGRASS) && y + 1 < WH && blocks[base + y + 1] === B.AIR) {
+        if (id === B.GRASS && y + 1 < WH && blocks[base + y + 1] === B.AIR) {
           const sk = skyAt(lx, y + 1, lz); const top0 = y + 1.0; const c00 = CHt(lx, lz) >= 0 ? CHt(lx, lz) : top0, c10 = CHt(lx + 1, lz) >= 0 ? CHt(lx + 1, lz) : top0, c01 = CHt(lx, lz + 1) >= 0 ? CHt(lx, lz + 1) : top0, c11 = CHt(lx + 1, lz + 1) >= 0 ? CHt(lx + 1, lz + 1) : top0;
           for (let i = 0; i < blades; i++) {
             const hx = U.hash3(wx, y, wz, 101 + i), hz = U.hash3(wx, y, wz, 201 + i), hh = U.hash3(wx, y, wz, 301 + i), ha = U.hash3(wx, y, wz, 401 + i);
@@ -1253,7 +1270,7 @@ const R = (() => {
         const matSide = MAT_OF[id] || 0;
         for (let f = 0; f < 6; f++) {
           const F = FACES[f], n = F.n;
-          op.curMat = id === B.GRASS ? (f === 2 ? 1 : 4) : id === B.GLOWGRASS ? (f === 2 ? 1 : 16) : matSide;
+          op.curMat = id === B.GRASS ? (f === 2 ? 1 : 4) : id === B.GLOWGRASS ? 16 : matSide;
           const nx = lx + n[0], ny = y + n[1], nz = lz + n[2];
           const nid = get(nx, ny, nz);
           if (isWater) { if (nid !== B.AIR && nid !== B.TORCH && nid !== B.GLASS && nid !== B.SELGLASS && !(BLOCKS[nid].partial && !BLOCKS[nid].solid)) continue; }

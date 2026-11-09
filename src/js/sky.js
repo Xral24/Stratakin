@@ -31,6 +31,10 @@ const Sky = (() => {
     const fit = (a, d, y) => { for (let t = 0; t < 14; t++) { const D = d + t * 70, x = Math.round(sp.x + Math.cos(a) * D), z = Math.round(sp.z + Math.sin(a) * D); if (clear(x, z, y)) return { x, z }; } return { x: Math.round(sp.x + Math.cos(a) * d), z: Math.round(sp.z + Math.sin(a) * d) }; };
     const out = [Object.assign({ id: 'highmere', kind: 'city', name: 'Highmere', y: 92, R: 26 }, fit(a0, 560, 92)), Object.assign({ id: 'stormspire', kind: 'fort', name: 'Stormspire', y: 94, R: 17 }, fit(a0 + 2.6, 1350, 94))];
     for (let i = 0; i < 6; i++) { const a = a0 + 0.7 + i * 1.03 + U.hash3(i, 402, 1, s) * 0.4, d = 280 + i * 210 + U.hash3(i, 403, 2, s) * 90; const y = 88 + (i % 3) * 2; out.push(Object.assign({ id: 'isle' + i, kind: 'isle', name: ISLE_FOLK[i].name.split(' ').slice(-1)[0] + '\'s Cloud', folk: ISLE_FOLK[i], y, R: 9 + (i % 3) }, fit(a, d, y))); }
+    // the Skyroot: a giant tree on low ground, with nothing high within reach of the cloud chain above it
+    { let tree = null; for (let t = 0; t < 24 && !tree; t++) { const a = a0 + 4.4 + t * 0.13, D = 360 + t * 35; const x = Math.round(sp.x + Math.cos(a) * D), z = Math.round(sp.z + Math.sin(a) * D); const h = world.colInfo(x, z).h; if (h <= SEA + 1 || h > 58) continue; let ok = true; for (let dx = -150; dx <= 150 && ok; dx += 15) for (let dz = -150; dz <= 150; dz += 15) if (world.colInfo(x + dx, z + dz).h > 64) { ok = false; break; } if (ok) tree = { x, z, h }; }
+      if (!tree) { const x = Math.round(sp.x + Math.cos(a0 + 4.4) * 360), z = Math.round(sp.z + Math.sin(a0 + 4.4) * 360); tree = { x, z, h: world.colInfo(x, z).h }; }
+      out.push({ id: 'skyroot', kind: 'tree', name: 'the Skyroot', x: tree.x, z: tree.z, h: tree.h, y: Math.min(72, tree.h + 30), R: 12 }); }
     return (SITES = out);
   }
   // ---------- drawing ----------
@@ -39,10 +43,10 @@ const Sky = (() => {
     const put = (x, y, z, id) => { if (y < 1 || y >= WH) return; const key = U.mod(Math.floor(x / CH), NCH) + ',' + U.mod(Math.floor(z / CH), NCH); let b = buckets.get(key); if (!b) buckets.set(key, b = []); b.push(U.mod(x, CH), y, U.mod(z, CH), id); };
     const X = k.x, Z = k.z, Y = k.y, R = k.R;
     // the cloud: a rounded slab, thicker in the middle, glowgrass on top
-    for (let dx = -R - 2; dx <= R + 2; dx++) for (let dz = -R - 2; dz <= R + 2; dz++) {
+    if (k.kind !== 'tree') for (let dx = -R - 2; dx <= R + 2; dx++) for (let dz = -R - 2; dz <= R + 2; dz++) {
       const d = Math.hypot(dx, dz) + U.hash3(X + dx, 404, Z + dz, 9) * 2.2; if (d > R) continue;
       const th = Math.max(2, Math.round((1 - d / R) * (k.kind === 'city' ? 9 : 6)) + 1);
-      for (let y = Y - th; y < Y; y++) put(X + dx, y, Z + dz, B.CLOUD); put(X + dx, Y, Z + dz, k.kind === 'fort' ? B.BASALT : B.GLOWGRASS);
+      for (let y = Y - th; y < Y; y++) put(X + dx, y, Z + dz, B.CLOUD); put(X + dx, Y, Z + dz, k.kind === 'fort' ? B.BASALT : B.CLOUD);
     }
     // a sky house: plaster walls on a stone footing with timber at the corners, framed windows with flower boxes, a slate roof pitched so the
     // gable faces the door, a lamp inside. (hx, hz) is the centre, the door opens toward (dirX, dirZ)
@@ -84,6 +88,33 @@ const Sky = (() => {
       for (let i = -1; i <= 1; i++) for (let j = -1; j <= 1; j++) put(X + i, Y + 1, Z + 4 + j, F); put(X, Y + 2, Z + 4, B.VOID);
       for (let z = Z - 10; z <= Z + 2; z++) put(X, Y, z, B.CORAL_R);
       for (const [a, b] of [[-9, -5], [9, -5], [-9, 5], [9, 5]]) put(X + a, Y + 1, Z + b, B.FIREPIT);
+    } else if (k.kind === 'tree') {
+      const H = k.h, T = Y, s = world.seed || 1;
+      // the trunk, five wide with the corners off, and roots spreading at the foot
+      for (let y = H - 2; y <= T; y++) for (let dx = -2; dx <= 2; dx++) for (let dz = -2; dz <= 2; dz++) { if (Math.abs(dx) === 2 && Math.abs(dz) === 2) continue; put(X + dx, y, Z + dz, B.LOG); }
+      for (const [a, b] of [[3, 0], [-3, 0], [0, 3], [0, -3], [3, 2], [-3, -2], [2, -3], [-2, 3]]) { const gy = world.colInfo(X + a, Z + b).h; for (let y = gy; y <= Math.max(gy, H + 1); y++) put(X + a, y, Z + b, B.LOG); if (Math.abs(a) === 3 && !b) put(X + a + Math.sign(a), gy, Z + b, B.LOG); if (Math.abs(b) === 3 && !a) put(X + a, gy, Z + b + Math.sign(b), B.LOG); }
+      for (let dx = -3; dx <= 3; dx++) for (let dz = -3; dz <= 3; dz++) { const gy = world.colInfo(X + dx, Z + dz).h; for (let y = gy + 1; y <= H + 6; y++) if (Math.abs(dx) + Math.abs(dz) > 2 && !(Math.abs(dx) <= 2 && Math.abs(dz) <= 2)) put(X + dx, y, Z + dz, B.AIR); } // clear the brush round the foot
+      // the ladder up the south face, a plank perch every ten rungs
+      for (let y = H - 1; y <= T + 2; y++) { put(X, y, Z + 3, B.LADDER); for (let dx = -1; dx <= 1; dx++) for (let dz = 3; dz <= 5; dz++) if (y > H + 1 && y < T - 3) put(X + dx, y, Z + dz, B.AIR); if ((y - H) % 10 === 0 && y > H + 1 && y < T - 3) { for (const dx of [-1, 1]) put(X + dx, y, Z + 3, B.PLANKS); put(X, y, Z + 4, B.PLANKS); for (const dx of [-1, 1]) put(X + dx, y, Z + 4, B.PLANKS); } }
+      // branches at three heights, each a limb out from the trunk with a ball of leaves at the end
+      for (let i = 0; i < 6; i++) { const a = i * 1.05 + 0.6, by = T - 16 + i * 2.6; const L = 6 + (i % 3); const ux = Math.cos(a), uz = Math.sin(a); for (let d = 2; d <= L; d++) put(Math.round(X + ux * d), Math.round(by + d * 0.25), Math.round(Z + uz * d), B.LOG); const ex = Math.round(X + ux * L), ey = Math.round(by + L * 0.25), ez = Math.round(Z + uz * L); for (let dx = -3; dx <= 3; dx++) for (let dy = -2; dy <= 3; dy++) for (let dz = -3; dz <= 3; dz++) if (Math.hypot(dx, dy * 1.2, dz) <= 3.2 && U.hash3(ex + dx, ey + dy, ez + dz, 7) > 0.15) put(ex + dx, ey + dy, ez + dz, B.LEAVES); }
+      // the crown: a dome of leaves over the top, hollowed over the platform
+      for (let dx = -10; dx <= 10; dx++) for (let dy = -3; dy <= 8; dy++) for (let dz = -10; dz <= 10; dz++) { const r = Math.hypot(dx / 10, (dy - 2) / 6, dz / 10); if (r > 1) continue; const flat = Math.hypot(dx, dz); if (dy >= 1 && dy <= 4 && flat <= 5.5) continue; if (Math.abs(dx) <= 2 && Math.abs(dz) <= 2 && dy <= 0) continue; if (dx === 0 && dz >= 3 && dz <= 5 && dy <= 4) continue; if (r > 0.78 && U.hash3(X + dx, T + dy, Z + dz, 8) < 0.25) continue; put(X + dx, T + dy, Z + dz, B.LEAVES); }
+      for (let dx = -5; dx <= 5; dx++) for (let dz = -5; dz <= 5; dz++) { const d = Math.hypot(dx, dz); if (d > 5.2) continue; if (dx === 0 && dz === 3) continue; put(X + dx, T + 1, Z + dz, d > 4.4 ? B.FENCE : B.PLANKS); for (let y = T + 2; y <= T + 4; y++) put(X + dx, y, Z + dz, B.AIR); }
+      put(X, T + 1, Z + 3, B.LADDER); put(X, T + 2, Z + 3, B.LADDER); put(X - 2, T + 2, Z - 2, B.LAMP); put(X + 2, T + 2, Z + 2, B.LAMP);
+      // the Tangle: scraps of cloud strung out from the crown on rickety bridges, up and down, doubling back, with dead ends
+      const P = tangle(k); const slab = (c) => { const rr = c.r; for (let dx = -Math.ceil(rr); dx <= Math.ceil(rr); dx++) for (let dz = -Math.ceil(rr); dz <= Math.ceil(rr); dz++) { const d = Math.hypot(dx, dz) + (U.hash3(c.x + dx, 409, c.z + dz, 2) - 0.5) * 0.8; if (d > rr) continue; put(c.x + dx, c.y, c.z + dz, B.CLOUD); put(c.x + dx, c.y - 1, c.z + dz, B.CLOUD); if (d < rr - 1.2) put(c.x + dx, c.y - 2, c.z + dz, B.CLOUD); for (let y = c.y + 1; y <= c.y + 4; y++) put(c.x + dx, y, c.z + dz, B.AIR); } };
+      for (const c of P.pieces) slab(c);
+      const bridge = (A, Bp) => { // a four-connected run of bridge blocks from inside A's edge to inside B's, the height stepping one block at a time
+        const dx = Bp.x - A.x, dz = Bp.z - A.z, L = Math.hypot(dx, dz) || 1; const ux = dx / L, uz = dz / L; const t0 = A.r - 1.3, t1 = L - Bp.r + 1.3; const n = Math.ceil((t1 - t0) * 2);
+        const cells = []; for (let i = 0; i <= n; i++) { const t = t0 + (t1 - t0) * i / n; const x = Math.round(A.x + ux * t), z = Math.round(A.z + uz * t); const last = cells[cells.length - 1]; if (last && last[0] === x && last[1] === z) continue; if (last && last[0] !== x && last[1] !== z) cells.push([x, last[1]]); cells.push([x, z]); }
+        for (let i = 0; i < cells.length; i++) { const [x, z] = cells[i]; const y = Math.round(A.y + (Bp.y - A.y) * i / (cells.length - 1)); put(x, y, z, B.ROPEBRIDGE); for (let yy = y + 1; yy <= y + 3; yy++) put(x, yy, z, B.AIR); } };
+      for (const [a, b] of P.links) bridge(P.pieces[a], P.pieces[b]);
+      // the gate in the crown's rail where the first bridge leaves, the far cloud's chest, lamp and flowers
+      const first = P.pieces[0]; const ga = Math.atan2(first.z - Z, first.x - X); put(X + Math.round(Math.cos(ga) * 4.7), T + 1, Z + Math.round(Math.sin(ga) * 4.7), B.PLANKS); put(X + Math.round(Math.cos(ga) * 5), T + 1, Z + Math.round(Math.sin(ga) * 5), B.PLANKS);
+      for (let d = 4; d <= 12; d += 0.5) for (let off = -1.5; off <= 1.5; off += 0.5) for (let dy = 1; dy <= 4; dy++) put(Math.round(X + Math.cos(ga) * d - Math.sin(ga) * off), T + dy, Math.round(Z + Math.sin(ga) * d + Math.cos(ga) * off), B.AIR); // the way out through the leaves
+      for (const [a, b] of P.links) { const A = P.pieces[a], Bp = P.pieces[b]; const dx = Bp.x - A.x, dz = Bp.z - A.z, L = Math.hypot(dx, dz) || 1; for (let t = 0; t <= L; t += 0.5) { const x = Math.round(A.x + dx / L * t), z = Math.round(A.z + dz / L * t), y = Math.round(A.y + (Bp.y - A.y) * t / L); for (let yy = y + 1; yy <= y + 3; yy++) for (const [ox, oz] of [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1]]) if (world.getBlock(x + ox, yy, z + oz) === B.LEAVES) put(x + ox, yy, z + oz, B.AIR); } }
+      const end = P.pieces[P.end]; put(end.x + 3, end.y + 1, end.z + 3, B.CHEST); put(end.x - 3, end.y + 1, end.z - 3, B.LAMP); for (let dx = -5; dx <= 5; dx++) for (let dz = -5; dz <= 5; dz++) if (Math.hypot(dx, dz) < 5 && U.hash3(end.x + dx, 410, end.z + dz, 5) < 0.12) put(end.x + dx, end.y + 1, end.z + dz, B.FLOWERS);
     } else {
       house(X, Z, -1, 0, B.PLASTER, B.THATCH);
       for (const [a, b] of [[-6, -4], [-6, 4]]) put(X + a, Y + 1, Z + b, B.LAMP);
@@ -91,6 +122,28 @@ const Sky = (() => {
       for (let dx = 1; dx <= 4; dx++) for (let dz = -3; dz <= 3; dz++) if (U.hash3(X + dx, 406, Z + dz, 4) < 0.5) put(X + dx, Y + 1, Z + dz, B.FLOWERS); // a flower garden behind
     }
     const L = { buckets }; LAY.set(k.id, L); return L;
+  }
+  // the plan of the Tangle: a chain of a dozen scraps from the crown, each bridge turning, climbing or dropping, with dead-end spurs
+  const TANGLES = new Map();
+  function tangle(k) {
+    if (TANGLES.has(k.id)) return TANGLES.get(k.id);
+    const s = world.seed || 1; const hp = (i, j) => U.hash3(i, j, 411, s); const sp = world.spawn || { x: 0, z: 0 };
+    let ang = Math.atan2(k.z - sp.z, k.x - sp.x) + (hp(0, 0) - 0.5) * 1.2; // out, away from the start
+    const pieces = [], links = []; let px = k.x + Math.cos(ang) * 13, pz = k.z + Math.sin(ang) * 13, py = k.y + 1;
+    pieces.push({ x: Math.round(px), y: py, z: Math.round(pz), r: 2.6 });
+    const N = 12; let lastMain = 0;
+    for (let i = 1; i <= N; i++) {
+      ang += (hp(i, 1) - 0.5) * 2.2; const len = 9 + hp(i, 2) * 5; let dy = Math.floor((hp(i, 3) - 0.3) * 5); // -2..3
+      if (py + dy > k.y + 12) dy = -2; if (py + dy < k.y - 2) dy = 2;
+      px += Math.cos(ang) * len; pz += Math.sin(ang) * len; py += dy;
+      const last = i === N; pieces.push({ x: Math.round(px), y: py, z: Math.round(pz), r: last ? 6 : 1.8 + hp(i, 4) * 1.4 });
+      links.push([lastMain, pieces.length - 1]); lastMain = pieces.length - 1;
+      if (!last && i >= 2 && hp(i, 5) < 0.35) { // a dead end off to one side
+        const sa = ang + (hp(i, 6) < 0.5 ? 1.5 : -1.5); const sl = 7 + hp(i, 7) * 4; const sy = py + Math.floor((hp(i, 8) - 0.5) * 4);
+        pieces.push({ x: Math.round(px + Math.cos(sa) * sl), y: sy, z: Math.round(pz + Math.sin(sa) * sl), r: 1.6, spur: true }); links.push([lastMain, pieces.length - 1]);
+      }
+    }
+    const plan = { pieces, links, end: lastMain }; TANGLES.set(k.id, plan); return plan;
   }
   function overlay(chunk) {
     if (!onEarth()) return; const key = U.mod(chunk.cx, NCH) + ',' + U.mod(chunk.cz, NCH);
@@ -123,7 +176,29 @@ const Sky = (() => {
       UI.toast('His warriors are down. The Storm Warden sends out his Kin.', 'bad');
     }
   }
-  function onBattle(result) {
+  // ---------- the Skyroot and the Tangle ----------
+  let tangleBoss = null;
+  function tangleSpecies() { const pool = KIN.dex('earth').filter(sp => !sp.fusion && sp.home && sp.home.layer === 'Sky' && (sp.rarity || 0) >= 1); const any = pool.length ? pool : KIN.dex('earth').filter(sp => !sp.fusion && (sp.rarity || 0) >= 2); return any[Math.floor(U.hash3(6, 412, 6, world.seed || 1) * any.length)]; }
+  function treeTick(k, p, d) {
+    const s = st(); const P = tangle(k); const end = P.pieces[P.end];
+    if (!s.seen_skyroot && d < 70) { s.seen_skyroot = true; UI.toast('The Skyroot. A ladder runs up its trunk, and something is strung out from its crown.', 'good'); }
+    if (!s.tangleSeen && Math.hypot(p.x - P.pieces[0].x, p.z - P.pieces[0].z) < 6 && Math.abs(p.y - P.pieces[0].y) < 4) { s.tangleSeen = true; UI.toast('The Tangle. Scraps of cloud on rope bridges, one block wide. Mind the drop.', 'bad'); }
+    if (s.tangleDone) return;
+    const de = Math.hypot(p.x - end.x, p.z - end.z);
+    if (de < 10 && Math.abs(p.y - end.y) < 6 && (!tangleBoss || !Wild.list.includes(tangleBoss))) {
+      const sp = tangleSpecies(); if (!sp) return; const lv = Math.max(24, (G.trainerLevel || 1) + 7);
+      const e = Wild.makeEntity(sp, lv, end.x + 0.5, end.y + 1, end.z - 2.5, { senseR: 6 }); e.tangleBoss = true; e.elite = true; e.speed = 0; Wild.list.push(e); tangleBoss = e;
+      UI.toast('Something has made its nest at the end of the Tangle, and it does not want company.', 'bad');
+    }
+  }
+  function rootHint(n, v) {
+    const k = sites().find(x => x.kind === 'tree'); if (!k) return false; const s = st(); if (s.rootTold) return false; s.rootTold = true;
+    const dx = k.x - v.x, dz = k.z - v.z; const dist = Math.round(Math.hypot(dx, dz)); const dirs = ['east', 'south-east', 'south', 'south-west', 'west', 'north-west', 'north', 'north-east']; const dir = dirs[Math.round(((Math.atan2(dz, dx) / Math.PI) * 4 + 8)) % 8];
+    Dialogue.show(n.name, ['Now the square is ours again, a thing I was keeping to myself. There is a tree out there taller than the hills, the Skyroot, about ' + dist + ' paces ' + dir + ' of here. Somebody nailed a ladder up it, long ago.', 'The ones who climbed it came back talking about bridges in the sky, scraps of cloud strung together, and something living at the far end. None of them went twice. I have marked it on your map; the ledger can wait until you are back.']);
+    return true;
+  }
+  function onBattle(result, ent) {
+    if (ent && ent.tangleBoss) { if (result !== 'won' && result !== 'caught') return; const s = st(); s.tangleDone = true; tangleBoss = null; G.shards += 1500; G.addTrainerXp(350); G.player.add('feather', 6); G.player.add('cloud', 12); UI.sfx('quest'); G.explain('The end of the Tangle', 'The nest is yours. 1500 shards, six Sky Feathers and an armful of cloudstone, and the long way back is a stroll now you know it.'); return; }
     if (result !== 'won' && result !== 'caught') return; const s = st(); s.fortTaken = true; boss = null; G.shards += 3000; G.addTrainerXp(600); G.player.add('feather', 10); UI.sfx('quest');
     G.explain('Stormspire falls', 'The Storm Warden\'s Kin goes down and the storm over Stormspire tears open. His sky-guards blink at the sun like men waking up. 3000 shards, and the sky over it is clear for good.');
   }
@@ -149,17 +224,27 @@ const Sky = (() => {
     if (n.job === 'skyfreed') return say(['He held us with a storm in our heads. It is gone. Thank you, whoever you are.']);
     return false;
   }
+  // ---------- puffs: walking on cloud kicks up little wisps that drift and fade ----------
+  const puffs = []; let puffT = 0;
+  function stepPuffs(dt, p) {
+    for (let i = puffs.length - 1; i >= 0; i--) { const f = puffs[i]; f.t += dt; f.x += f.vx * dt; f.y += 0.35 * dt; f.z += f.vz * dt; if (f.t > f.dur) puffs.splice(i, 1); }
+    puffT -= dt; if (puffT > 0 || !p.onGround || p.mount || p.flying) return; const sp = Math.hypot(p.vx, p.vz); if (sp < 0.8) return;
+    const under = G.world.getBlock(Math.floor(p.x), Math.floor(p.y - 0.1), Math.floor(p.z)); if (under !== B.CLOUD && under !== B.GLOWGRASS) return;
+    puffT = 0.16; for (let i = 0; i < 3; i++) { const a = Math.random() * 6.283; puffs.push({ x: p.x + Math.cos(a) * 0.25, y: p.y + 0.05, z: p.z + Math.sin(a) * 0.25, vx: Math.cos(a) * 0.5 - p.vx * 0.15, vz: Math.sin(a) * 0.5 - p.vz * 0.15, t: 0, dur: 0.6 + Math.random() * 0.4, s: 0.5 + Math.random() * 0.5 }); }
+  }
+  function puffEntities() { if (!puffs.length) return []; const mesh = R.entityMesh('cloudpuff', (mb) => mb.blob(-0.5, -0.35, -0.5, 0.5, 0.35, 0.5, 1, [0.97, 0.98, 1.0], { n: 3, soft: 0.8, under: [0.86, 0.9, 0.98] })); return puffs.map(f => { const u = f.t / f.dur; return { x: f.x, y: f.y, z: f.z, yaw: 0, scale: f.s * (0.25 + u * 0.55), hover: 0, skyMul: 1, isFx: true, noOutline: true, alpha: (1 - u) * 0.85, mesh }; }); }
   // ---------- the loop ----------
   function update(dt, p) {
-    if (!onEarth()) return; tick += dt; if (tick < 0.5) return; tick = 0;
+    if (!onEarth()) return; stepPuffs(dt, p); tick += dt; if (tick < 0.5) return; tick = 0;
     for (const k of sites()) {
       const d = dist(k, p); if (d > 170) continue;
       patchLoaded(k);
       if (d < 120) people(k);
-      if (!st()['seen_' + k.id] && d < 60 && p.y > k.y - 12) { st()['seen_' + k.id] = true; if (k.kind === 'city') UI.toast('Highmere, the city in the clouds.', 'good'); else if (k.kind === 'isle') UI.toast(`A little cloud with a hut on it. Someone lives up here.`); }
+      if (k.kind !== 'tree' && !st()['seen_' + k.id] && d < 60 && p.y > k.y - 12) { st()['seen_' + k.id] = true; if (k.kind === 'city') UI.toast('Highmere, the city in the clouds.', 'good'); else if (k.kind === 'isle') UI.toast(`A little cloud with a hut on it. Someone lives up here.`); }
       if (k.kind === 'fort') fortTick(k, p, d);
+      if (k.kind === 'tree') treeTick(k, p, d);
     }
   }
-  function mapMarks() { if (!onEarth()) return []; return sites().filter(k => (k.kind === 'city' && G.questState && Quests.isDone && (Quests.isDone('glider'))) || st()['seen_' + k.id] || (k.kind === 'fort' && st().fortSeen)).map(k => ({ x: k.x, z: k.z, t: k.kind === 'city' ? '☁' : k.kind === 'fort' ? (st().fortTaken ? '♜' : '⛈') : '☁', name: k.name + (k.kind === 'fort' && !st().fortTaken ? ' (the Storm Warden)' : '') })); }
-  return { init, sites, overlay, update, talk, onBattle, inFort, gloom, mapMarks, layout };
+  function mapMarks() { if (!onEarth()) return []; return sites().filter(k => (k.kind === 'tree' && (st().rootTold || st().seen_skyroot)) || (k.kind === 'city' && G.questState && Quests.isDone && (Quests.isDone('glider'))) || st()['seen_' + k.id] || (k.kind === 'fort' && st().fortSeen)).map(k => ({ x: k.x, z: k.z, t: k.kind === 'tree' ? '🌳' : k.kind === 'city' ? '☁' : k.kind === 'fort' ? (st().fortTaken ? '♜' : '⛈') : '☁', name: k.name + (k.kind === 'fort' && !st().fortTaken ? ' (the Storm Warden)' : '') })); }
+  return { init, sites, overlay, update, talk, onBattle, inFort, gloom, mapMarks, layout, tangle, rootHint, puffEntities };
 })();
