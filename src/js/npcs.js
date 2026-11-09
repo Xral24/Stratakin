@@ -249,7 +249,7 @@ const Npcs = (() => {
   }
   function entities() {
     const out = [];
-    for (const w of activeW) if (w.npc) out.push({ x: w.npc.x, y: w.npc.y, z: w.npc.z, yaw: w.npc.yaw, model: w.npc.model, mesh: w.npc.mesh, scale: 1, hover: 0, skyMul: 1 });
+    for (const w of activeW) if (w.npc) out.push({ x: w.npc.x, y: w.npc.y, z: w.npc.z, yaw: w.npc.yaw, model: w.npc.model, mesh: w.npc.mesh, scale: 1, hover: 0, skyMul: 1, src: w.npc });
     out.push(...Camps.entities(), ...Mer.entities(), ...Lab.entities(), ...Campaign.entities());
     return out;
   }

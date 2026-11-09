@@ -1836,12 +1836,12 @@ const Village = (() => {
   function entities() {
     const out = [];
     if (active) {
-      for (const n of active.npcs) if (!n.hidden) out.push({ x: n.x, y: n.y, z: n.z, yaw: n.yaw, model: n.model, mesh: n.mesh, scale: 1, hover: n.moving ? Math.abs(Math.sin((n.bob || 0) * 9)) * 0.08 : 0, skyMul: 1 });
-      for (const g of active.guardEnts) if (g.kin.hp > 0) out.push({ x: g.x, y: g.y, z: g.z, yaw: g.yaw, model: g.model, mesh: g.mesh, scale: 1, hover: (g.model.hover || 0) + (g.leap || 0) + (g.moving ? Math.abs(Math.sin(g.bob * 9)) * 0.1 : 0) + (g.hitT > 0 ? Math.sin(g.hitT * 60) * 0.08 : 0), skyMul: 1, isMount: true });
+      for (const n of active.npcs) if (!n.hidden) out.push({ x: n.x, y: n.y, z: n.z, yaw: n.yaw, model: n.model, mesh: n.mesh, scale: 1, hover: 0, skyMul: 1, src: n });
+      for (const g of active.guardEnts) if (g.kin.hp > 0) out.push({ x: g.x, y: g.y, z: g.z, yaw: g.yaw, model: g.model, mesh: g.mesh, scale: 1, hover: (g.model.hover || 0) + (g.leap || 0) + (g.hitT > 0 ? Math.sin(g.hitT * 60) * 0.08 : 0), skyMul: 1, isMount: true, src: g });
       for (const g of active.guardEnts) if (g.hitT > 0) g.hitT -= 0.016;
     }
-    if (fisher && world.preset.fisher) out.push({ x: fisher.x, y: fisher.y, z: fisher.z, yaw: fisher.yaw, model: fisher.model, mesh: fisher.mesh, scale: 1, hover: 0, skyMul: 1 });
-    if (activeHermit && activeHermit.npcs) for (const n of activeHermit.npcs) out.push({ x: n.x, y: n.y, z: n.z, yaw: n.yaw, model: n.model, mesh: n.mesh, scale: 1, hover: 0, skyMul: 1 });
+    if (fisher && world.preset.fisher) out.push({ x: fisher.x, y: fisher.y, z: fisher.z, yaw: fisher.yaw, model: fisher.model, mesh: fisher.mesh, scale: 1, hover: 0, skyMul: 1, src: fisher });
+    if (activeHermit && activeHermit.npcs) for (const n of activeHermit.npcs) out.push({ x: n.x, y: n.y, z: n.z, yaw: n.yaw, model: n.model, mesh: n.mesh, scale: 1, hover: 0, skyMul: 1, src: n });
     return out;
   }
   function buy(shop, entry) {

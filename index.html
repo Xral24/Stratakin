@@ -3153,10 +3153,11 @@ const R = (() => {
       mats[o + 8] = r20 * sz; mats[o + 9] = r21 * sz; mats[o + 10] = r22 * sz; mats[o + 11] = 0;
       mats[o + 12] = px + tx - (mats[o] * px + mats[o + 4] * py + mats[o + 8] * pz); mats[o + 13] = py + ty - (mats[o + 1] * px + mats[o + 5] * py + mats[o + 9] * pz); mats[o + 14] = pz + tz - (mats[o + 2] * px + mats[o + 6] * py + mats[o + 10] * pz); mats[o + 15] = 1;
     }
+    const fresh = (e, now) => ({ ph: Math.random() * 6.28, mv: 0, lx: e.x, lz: e.z, ly: e.y, lt: now, vy: 0, seed: Math.random() * 100, air: 0 });
     function pose(e, now) {
       const m = e.model; const bones = m.bones; if (!bones || !bones.length) return null;
       let a = e.anim;
-      if (!a) { a = e._an; if (!a) a = e._an = { ph: Math.random() * 6.28, mv: 0, lx: e.x, lz: e.z, ly: e.y, lt: now, vy: 0, seed: Math.random() * 100, air: 0 };
+      if (!a) { a = e._an; if (!a && e.src) a = e.src._an || (e.src._an = fresh(e, now)); if (!a) a = e._an = fresh(e, now); // a per-frame wrapper (village folk, camp warriors...) keeps its state on the object it was made from, or the phase and seed would be new every frame and the figure would shiver
         const dt = Math.min(0.1, Math.max(0.001, (now - a.lt) / 1000)); a.lt = now;
         const dx = e.x - a.lx, dz = e.z - a.lz, dy = e.y - a.ly; a.lx = e.x; a.lz = e.z; a.ly = e.y;
         const d = Math.hypot(dx, dz); const jump = d > 2.5;
@@ -3193,7 +3194,7 @@ const R = (() => {
       else { sway[0] = 0; sway[1] = 0; sway[2] = 0; sway[3] = 0; }
       return { mats, sway };
     }
-    return { pose };
+    return { pose, fresh };
   })();
   window.Anim = Anim;
 })();
@@ -7173,12 +7174,12 @@ const Village = (() => {
   function entities() {
     const out = [];
     if (active) {
-      for (const n of active.npcs) if (!n.hidden) out.push({ x: n.x, y: n.y, z: n.z, yaw: n.yaw, model: n.model, mesh: n.mesh, scale: 1, hover: n.moving ? Math.abs(Math.sin((n.bob || 0) * 9)) * 0.08 : 0, skyMul: 1 });
-      for (const g of active.guardEnts) if (g.kin.hp > 0) out.push({ x: g.x, y: g.y, z: g.z, yaw: g.yaw, model: g.model, mesh: g.mesh, scale: 1, hover: (g.model.hover || 0) + (g.leap || 0) + (g.moving ? Math.abs(Math.sin(g.bob * 9)) * 0.1 : 0) + (g.hitT > 0 ? Math.sin(g.hitT * 60) * 0.08 : 0), skyMul: 1, isMount: true });
+      for (const n of active.npcs) if (!n.hidden) out.push({ x: n.x, y: n.y, z: n.z, yaw: n.yaw, model: n.model, mesh: n.mesh, scale: 1, hover: 0, skyMul: 1, src: n });
+      for (const g of active.guardEnts) if (g.kin.hp > 0) out.push({ x: g.x, y: g.y, z: g.z, yaw: g.yaw, model: g.model, mesh: g.mesh, scale: 1, hover: (g.model.hover || 0) + (g.leap || 0) + (g.hitT > 0 ? Math.sin(g.hitT * 60) * 0.08 : 0), skyMul: 1, isMount: true, src: g });
       for (const g of active.guardEnts) if (g.hitT > 0) g.hitT -= 0.016;
     }
-    if (fisher && world.preset.fisher) out.push({ x: fisher.x, y: fisher.y, z: fisher.z, yaw: fisher.yaw, model: fisher.model, mesh: fisher.mesh, scale: 1, hover: 0, skyMul: 1 });
-    if (activeHermit && activeHermit.npcs) for (const n of activeHermit.npcs) out.push({ x: n.x, y: n.y, z: n.z, yaw: n.yaw, model: n.model, mesh: n.mesh, scale: 1, hover: 0, skyMul: 1 });
+    if (fisher && world.preset.fisher) out.push({ x: fisher.x, y: fisher.y, z: fisher.z, yaw: fisher.yaw, model: fisher.model, mesh: fisher.mesh, scale: 1, hover: 0, skyMul: 1, src: fisher });
+    if (activeHermit && activeHermit.npcs) for (const n of activeHermit.npcs) out.push({ x: n.x, y: n.y, z: n.z, yaw: n.yaw, model: n.model, mesh: n.mesh, scale: 1, hover: 0, skyMul: 1, src: n });
     return out;
   }
   function buy(shop, entry) {
@@ -8779,7 +8780,7 @@ const Campaign = (() => {
   function stampPosts() { const S = sites(); if (!S.ranch) return; const pen = S.ranch.pen; for (const [a, b] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) { const x = pen.x + a * 5, z = pen.z + b * 5; const g = world.groundY(x, z); world.setBlock(x, g + 1, z, B.BASALT); world.setBlock(x, g + 2, z, B.TORCH); } }
   function mapMarks() { if (!onEarth()) return []; const S = sites(); const out = []; if (S.mine) out.push({ x: S.mine.x, z: S.mine.z, t: '⛏', name: 'Mining Camp' }); if (S.diver) out.push({ x: S.diver.x, z: S.diver.z, t: '◍', name: 'Marisol\'s Pier' }); if (S.ranch) out.push({ x: S.ranch.x, z: S.ranch.z, t: '♞', name: 'Hale\'s Ranch' }); if (C().frost >= 0 && S.snow && C().snowKnown) out.push({ x: S.snow.x, z: S.snow.z, t: '❄', name: 'Snow Camp' }); if (S.peak && C().peakKnown) out.push({ x: S.peak.x, z: S.peak.z, t: '▲', name: 'Wren\'s Peak' }); if (S.fort && (C().kinmaster || (G.questState && Quests.current() && Quests.current().id === 'kinmaster'))) out.push({ x: S.fort.x + 30, z: S.fort.z, t: '♜', name: 'Thornhold' }); if (S.zoo && C().zooHeard) out.push({ x: S.zoo.x, z: S.zoo.z, t: '🦎', name: 'Quill\'s Menagerie' }); return out; }
   function talkable() { return people; }
-  function entities() { return people.map(n => ({ x: n.x, y: n.y, z: n.z, yaw: n.yaw, model: n.model, mesh: n.mesh, scale: 1, hover: 0, skyMul: 1 })); }
+  function entities() { return people.map(n => ({ x: n.x, y: n.y, z: n.z, yaw: n.yaw, model: n.model, mesh: n.mesh, scale: 1, hover: 0, skyMul: 1, src: n })); }
   function onRogueTamed(k) { C().rogueTamed = true; C().ranch = 3; if (rogue) { Wild.remove(rogue); rogue = null; } }
   return { getPerson: (id) => people.find(n => n.id === id) || null, removePerson: (id) => { const i = people.findIndex(n => n.id === id); if (i >= 0) people.splice(i, 1); return i; }, kinmasterSp: () => kinmasterSpecies(), spawnPerson: (...a) => person(...a), hasPerson: (id) => people.some(n => n.id === id), init, update, talk, fisherHook, tryGate, onBoss, target, talkable, entities, locked, give, sites, mapMarks, onRogueTamed, stampPosts, get rogue() { return rogue; }, C };
 })();
@@ -9061,7 +9062,7 @@ const Npcs = (() => {
   }
   function entities() {
     const out = [];
-    for (const w of activeW) if (w.npc) out.push({ x: w.npc.x, y: w.npc.y, z: w.npc.z, yaw: w.npc.yaw, model: w.npc.model, mesh: w.npc.mesh, scale: 1, hover: 0, skyMul: 1 });
+    for (const w of activeW) if (w.npc) out.push({ x: w.npc.x, y: w.npc.y, z: w.npc.z, yaw: w.npc.yaw, model: w.npc.model, mesh: w.npc.mesh, scale: 1, hover: 0, skyMul: 1, src: w.npc });
     out.push(...Camps.entities(), ...Mer.entities(), ...Lab.entities(), ...Campaign.entities());
     return out;
   }
@@ -9326,9 +9327,9 @@ const Camps = (() => {
   function entities() {
     if (!active) return [];
     const out = [];
-    for (const w of active.warriors) { if (w.sleeping) continue; out.push({ x: w.x, y: w.y, z: w.z, yaw: w.yaw, model: w.model, mesh: w.mesh, scale: w.scale || 1, hover: w.moving ? Math.abs(Math.sin(w.bob * 9)) * 0.08 : 0, skyMul: 1 }); }
-    for (const h of active.horses || []) if (!h.out) out.push({ x: h.x, y: h.y, z: h.z, yaw: h.yaw, model: h.model, mesh: h.mesh, scale: 1, hover: Math.sin(h.bob * 2) * 0.02, skyMul: 1 });
-    if (active.strider) { const s = active.strider; out.push({ x: s.x, y: s.y, z: s.z, yaw: s.yaw, model: s.model, mesh: s.mesh, scale: 1, hover: Math.sin(s.bob * 2) * 0.03, skyMul: 1 }); }
+    for (const w of active.warriors) { if (w.sleeping) continue; out.push({ x: w.x, y: w.y, z: w.z, yaw: w.yaw, model: w.model, mesh: w.mesh, scale: w.scale || 1, hover: 0, skyMul: 1, src: w }); }
+    for (const h of active.horses || []) if (!h.out) out.push({ x: h.x, y: h.y, z: h.z, yaw: h.yaw, model: h.model, mesh: h.mesh, scale: 1, hover: 0, skyMul: 1, src: h });
+    if (active.strider) { const s = active.strider; out.push({ x: s.x, y: s.y, z: s.z, yaw: s.yaw, model: s.model, mesh: s.mesh, scale: 1, hover: 0, skyMul: 1, src: s }); }
     return out;
   }
   function onTake(chest, item) {
@@ -9399,7 +9400,7 @@ const Mer = (() => {
       if (mounted && d < 4.5 && s.slow <= 0) { s.slow = 25; UI.toast(`${m.name} turns in the water and waits for you. Tap to speak.`, 'good'); }
     }
   }
-  function entities() { if (!school) return []; return school.mers.map(m => ({ x: m.x, y: m.y, z: m.z, yaw: m.yaw, model: m.model, mesh: m.mesh, scale: 1, hover: 0, skyMul: 1 })); }
+  function entities() { if (!school) return []; return school.mers.map(m => ({ x: m.x, y: m.y, z: m.z, yaw: m.yaw, model: m.model, mesh: m.mesh, scale: 1, hover: 0, skyMul: 1, src: m, swim: 1 })); }
   function talkable() { return school && school.slow > 0 ? school.mers : []; }
   function talk(n) {
     const s = school; if (!s) return; const S = st(s.id); G.talkNpc = n;
@@ -9576,8 +9577,8 @@ const Lab = (() => {
     if (s.room) { const sp = Object.assign({}, ros[0]); sp.size = 0.8; const m = KIN.model(sp, 2); out.push({ t: { x: s.room.x + 3.5, y: s.room.y + 1, z: s.room.z }, mesh: R.entityMesh('spec:table:' + world.preset.id, (mb) => KIN.buildMesh(mb, m)), model: m, yaw: Math.PI / 2, spin: 0, ph: 0, scale: 0.45, lie: true }); }
     return out;
   }
-  function entities() { const out = []; const put = (n) => out.push({ x: n.x, y: n.y, z: n.z, yaw: n.yaw, model: n.model, mesh: n.mesh, scale: 1, hover: n.moving ? Math.abs(Math.sin(n.bob * 9)) * 0.08 : 0, skyMul: 1 }); if (apprentice) put(apprentice); if (scientist) put(scientist);
-    if (site && site.room && scientist) { if (!specimens) specimens = makeSpecimens(site); const now = performance.now() / 1000; for (const sp of specimens) out.push({ x: sp.t.x + 0.5, y: sp.t.y + (sp.lie ? 0 : 0.35 + Math.sin(now * 0.8 + sp.ph) * 0.12), z: sp.t.z + 0.5, yaw: sp.yaw + now * sp.spin, model: sp.model, mesh: sp.mesh, scale: sp.scale, hover: 0, skyMul: 1, isFx: true }); }
+  function entities() { const out = []; const put = (n) => out.push({ x: n.x, y: n.y, z: n.z, yaw: n.yaw, model: n.model, mesh: n.mesh, scale: 1, hover: 0, skyMul: 1, src: n }); if (apprentice) put(apprentice); if (scientist) put(scientist);
+    if (site && site.room && scientist) { if (!specimens) specimens = makeSpecimens(site); const now = performance.now() / 1000; for (const sp of specimens) out.push({ x: sp.t.x + 0.5, y: sp.t.y + (sp.lie ? 0 : 0.35 + Math.sin(now * 0.8 + sp.ph) * 0.12), z: sp.t.z + 0.5, yaw: sp.yaw + now * sp.spin, model: sp.model, mesh: sp.mesh, scale: sp.scale, hover: 0, skyMul: 1, isFx: true, src: sp }); }
     return out; }
   function talkable() { const l = []; if (apprentice) l.push(apprentice); if (scientist) l.push(scientist); return l; }
   function marks(p) { const L = S(); const s = site; if (!s) return []; const out = []; if (L.told && !L.rescued) out.push({ t: '⚗', x: p.x + wd(s.hatch.x - p.x), z: p.z + wd(s.hatch.z - p.z), name: story().place }); return out; }

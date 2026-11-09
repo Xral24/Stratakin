@@ -217,9 +217,9 @@ const Camps = (() => {
   function entities() {
     if (!active) return [];
     const out = [];
-    for (const w of active.warriors) { if (w.sleeping) continue; out.push({ x: w.x, y: w.y, z: w.z, yaw: w.yaw, model: w.model, mesh: w.mesh, scale: w.scale || 1, hover: w.moving ? Math.abs(Math.sin(w.bob * 9)) * 0.08 : 0, skyMul: 1 }); }
-    for (const h of active.horses || []) if (!h.out) out.push({ x: h.x, y: h.y, z: h.z, yaw: h.yaw, model: h.model, mesh: h.mesh, scale: 1, hover: Math.sin(h.bob * 2) * 0.02, skyMul: 1 });
-    if (active.strider) { const s = active.strider; out.push({ x: s.x, y: s.y, z: s.z, yaw: s.yaw, model: s.model, mesh: s.mesh, scale: 1, hover: Math.sin(s.bob * 2) * 0.03, skyMul: 1 }); }
+    for (const w of active.warriors) { if (w.sleeping) continue; out.push({ x: w.x, y: w.y, z: w.z, yaw: w.yaw, model: w.model, mesh: w.mesh, scale: w.scale || 1, hover: 0, skyMul: 1, src: w }); }
+    for (const h of active.horses || []) if (!h.out) out.push({ x: h.x, y: h.y, z: h.z, yaw: h.yaw, model: h.model, mesh: h.mesh, scale: 1, hover: 0, skyMul: 1, src: h });
+    if (active.strider) { const s = active.strider; out.push({ x: s.x, y: s.y, z: s.z, yaw: s.yaw, model: s.model, mesh: s.mesh, scale: 1, hover: 0, skyMul: 1, src: s }); }
     return out;
   }
   function onTake(chest, item) {

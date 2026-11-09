@@ -196,10 +196,11 @@
       mats[o + 8] = r20 * sz; mats[o + 9] = r21 * sz; mats[o + 10] = r22 * sz; mats[o + 11] = 0;
       mats[o + 12] = px + tx - (mats[o] * px + mats[o + 4] * py + mats[o + 8] * pz); mats[o + 13] = py + ty - (mats[o + 1] * px + mats[o + 5] * py + mats[o + 9] * pz); mats[o + 14] = pz + tz - (mats[o + 2] * px + mats[o + 6] * py + mats[o + 10] * pz); mats[o + 15] = 1;
     }
+    const fresh = (e, now) => ({ ph: Math.random() * 6.28, mv: 0, lx: e.x, lz: e.z, ly: e.y, lt: now, vy: 0, seed: Math.random() * 100, air: 0 });
     function pose(e, now) {
       const m = e.model; const bones = m.bones; if (!bones || !bones.length) return null;
       let a = e.anim;
-      if (!a) { a = e._an; if (!a) a = e._an = { ph: Math.random() * 6.28, mv: 0, lx: e.x, lz: e.z, ly: e.y, lt: now, vy: 0, seed: Math.random() * 100, air: 0 };
+      if (!a) { a = e._an; if (!a && e.src) a = e.src._an || (e.src._an = fresh(e, now)); if (!a) a = e._an = fresh(e, now); // a per-frame wrapper (village folk, camp warriors...) keeps its state on the object it was made from, or the phase and seed would be new every frame and the figure would shiver
         const dt = Math.min(0.1, Math.max(0.001, (now - a.lt) / 1000)); a.lt = now;
         const dx = e.x - a.lx, dz = e.z - a.lz, dy = e.y - a.ly; a.lx = e.x; a.lz = e.z; a.ly = e.y;
         const d = Math.hypot(dx, dz); const jump = d > 2.5;
@@ -236,7 +237,7 @@
       else { sway[0] = 0; sway[1] = 0; sway[2] = 0; sway[3] = 0; }
       return { mats, sway };
     }
-    return { pose };
+    return { pose, fresh };
   })();
   window.Anim = Anim;
 })();

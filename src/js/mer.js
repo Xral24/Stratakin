@@ -37,7 +37,7 @@ const Mer = (() => {
       if (mounted && d < 4.5 && s.slow <= 0) { s.slow = 25; UI.toast(`${m.name} turns in the water and waits for you. Tap to speak.`, 'good'); }
     }
   }
-  function entities() { if (!school) return []; return school.mers.map(m => ({ x: m.x, y: m.y, z: m.z, yaw: m.yaw, model: m.model, mesh: m.mesh, scale: 1, hover: 0, skyMul: 1 })); }
+  function entities() { if (!school) return []; return school.mers.map(m => ({ x: m.x, y: m.y, z: m.z, yaw: m.yaw, model: m.model, mesh: m.mesh, scale: 1, hover: 0, skyMul: 1, src: m, swim: 1 })); }
   function talkable() { return school && school.slow > 0 ? school.mers : []; }
   function talk(n) {
     const s = school; if (!s) return; const S = st(s.id); G.talkNpc = n;

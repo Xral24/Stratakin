@@ -156,8 +156,8 @@ const Lab = (() => {
     if (s.room) { const sp = Object.assign({}, ros[0]); sp.size = 0.8; const m = KIN.model(sp, 2); out.push({ t: { x: s.room.x + 3.5, y: s.room.y + 1, z: s.room.z }, mesh: R.entityMesh('spec:table:' + world.preset.id, (mb) => KIN.buildMesh(mb, m)), model: m, yaw: Math.PI / 2, spin: 0, ph: 0, scale: 0.45, lie: true }); }
     return out;
   }
-  function entities() { const out = []; const put = (n) => out.push({ x: n.x, y: n.y, z: n.z, yaw: n.yaw, model: n.model, mesh: n.mesh, scale: 1, hover: n.moving ? Math.abs(Math.sin(n.bob * 9)) * 0.08 : 0, skyMul: 1 }); if (apprentice) put(apprentice); if (scientist) put(scientist);
-    if (site && site.room && scientist) { if (!specimens) specimens = makeSpecimens(site); const now = performance.now() / 1000; for (const sp of specimens) out.push({ x: sp.t.x + 0.5, y: sp.t.y + (sp.lie ? 0 : 0.35 + Math.sin(now * 0.8 + sp.ph) * 0.12), z: sp.t.z + 0.5, yaw: sp.yaw + now * sp.spin, model: sp.model, mesh: sp.mesh, scale: sp.scale, hover: 0, skyMul: 1, isFx: true }); }
+  function entities() { const out = []; const put = (n) => out.push({ x: n.x, y: n.y, z: n.z, yaw: n.yaw, model: n.model, mesh: n.mesh, scale: 1, hover: 0, skyMul: 1, src: n }); if (apprentice) put(apprentice); if (scientist) put(scientist);
+    if (site && site.room && scientist) { if (!specimens) specimens = makeSpecimens(site); const now = performance.now() / 1000; for (const sp of specimens) out.push({ x: sp.t.x + 0.5, y: sp.t.y + (sp.lie ? 0 : 0.35 + Math.sin(now * 0.8 + sp.ph) * 0.12), z: sp.t.z + 0.5, yaw: sp.yaw + now * sp.spin, model: sp.model, mesh: sp.mesh, scale: sp.scale, hover: 0, skyMul: 1, isFx: true, src: sp }); }
     return out; }
   function talkable() { const l = []; if (apprentice) l.push(apprentice); if (scientist) l.push(scientist); return l; }
   function marks(p) { const L = S(); const s = site; if (!s) return []; const out = []; if (L.told && !L.rescued) out.push({ t: '⚗', x: p.x + wd(s.hatch.x - p.x), z: p.z + wd(s.hatch.z - p.z), name: story().place }); return out; }
