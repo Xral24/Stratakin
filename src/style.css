@@ -196,10 +196,16 @@ code { font-family: var(--pix); font-size: 11px; }
 #look { position: absolute; left: 50%; top: calc(50% + 22px); transform: translateX(-50%); font-size: 12px; background: rgba(0,0,0,.55); padding: 3px 9px; border-radius: 8px; white-space: nowrap; pointer-events: none; }
 #look:empty { display: none; }
 .tag.down { background: #ff6b5a; }
-#btn-snare { position: absolute; left: 50%; top: calc(152px + env(safe-area-inset-top)); transform: translateX(-50%); padding: 7px 15px; border-radius: 16px; background: rgba(60, 200, 160, .45); color: #fff; border: 1.5px solid rgba(200, 255, 235, .6); font-weight: 800; font-size: 13px; pointer-events: auto; box-shadow: 0 2px 10px rgba(0,0,0,.25); text-shadow: 0 1px 2px rgba(0,0,0,.4); backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px); }
-#btn-deploy:not(.hidden) ~ #btn-snare { top: calc(194px + env(safe-area-inset-top)); }
+#btn-snare { position: absolute; left: 50%; top: calc(214px + env(safe-area-inset-top)); transform: translateX(-50%); padding: 7px 15px; border-radius: 16px; background: rgba(60, 200, 160, .45); color: #fff; border: 1.5px solid rgba(200, 255, 235, .6); font-weight: 800; font-size: 13px; pointer-events: auto; box-shadow: 0 2px 10px rgba(0,0,0,.25); text-shadow: 0 1px 2px rgba(0,0,0,.4); backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px); }
+#btn-deploy:not(.hidden) ~ #btn-snare { top: calc(256px + env(safe-area-inset-top)); }
 @keyframes pulse { 50% { transform: translateX(-50%) scale(1.06); } }
-#btn-deploy { position: absolute; left: 50%; top: calc(152px + env(safe-area-inset-top)); transform: translateX(-50%); padding: 7px 15px; border-radius: 16px; background: rgba(226, 84, 44, .42); color: rgba(255,255,255,.92); border: 1.5px solid rgba(255, 214, 184, .55); font-weight: 800; font-size: 13px; letter-spacing: .3px; pointer-events: auto; box-shadow: 0 2px 10px rgba(0,0,0,.25); text-shadow: 0 1px 2px rgba(0,0,0,.45); backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px); }
+#target { position: absolute; left: 50%; top: calc(168px + env(safe-area-inset-top)); transform: translateX(-50%); width: 170px; background: rgba(12, 14, 22, .55); border: 1px solid rgba(255,255,255,.18); border-radius: 10px; padding: 5px 9px 7px; pointer-events: none; backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px); }
+#target.hidden { display: none; }
+#target .t-name { font-size: 12px; font-weight: 700; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,.6); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 4px; }
+#target .t-bar { height: 7px; border-radius: 4px; background: rgba(255,255,255,.14); overflow: hidden; }
+#target .t-fill { height: 100%; width: 100%; border-radius: 4px; background: #5fd36a; transition: width .15s ease-out, background .3s; }
+#hud.in-battle #target { display: none; }
+#btn-deploy { position: absolute; left: 50%; top: calc(214px + env(safe-area-inset-top)); transform: translateX(-50%); padding: 7px 15px; border-radius: 16px; background: rgba(226, 84, 44, .42); color: rgba(255,255,255,.92); border: 1.5px solid rgba(255, 214, 184, .55); font-weight: 800; font-size: 13px; letter-spacing: .3px; pointer-events: auto; box-shadow: 0 2px 10px rgba(0,0,0,.25); text-shadow: 0 1px 2px rgba(0,0,0,.45); backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px); }
 #btn-deploy:active { background: rgba(226, 84, 44, .8); }
 #btn-deploy.fresh { animation: deployFlash .45s ease-in-out 6; }
 @keyframes deployFlash { 0%, 100% { background: rgba(226, 84, 44, .42); transform: translateX(-50%) scale(1); box-shadow: 0 2px 10px rgba(0,0,0,.25); } 50% { background: rgba(255, 140, 70, .95); transform: translateX(-50%) scale(1.12); box-shadow: 0 0 22px rgba(255, 150, 80, .8); } }

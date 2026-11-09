@@ -319,6 +319,12 @@ const Combat = (() => {
   function clearHold(id) { for (let i = foes.length - 1; i >= 0; i--) if (foes[i].holdId === id) foes.splice(i, 1); }
   function standingIn(id) { return foes.filter(f => f.holdId === id && f.state !== 'down').length; }
   function focusText() { const f = G.foeFocus; if (!f || !(G.foeFocusT > 0)) return Wild.focusText ? Wild.focusText() : null; return f.state === 'down' ? `${f.name}: down` : `${f.name}: ${Math.max(0, Math.round(f.hp / f.max * 100))}%`; }
+  // the same, as a target: name, state word and a 0..1 health fraction for the HUD bar
+  function focus() {
+    const f = G.foeFocus; if (f && G.foeFocusT > 0) return { name: f.name, note: f.state === 'down' ? 'down' : '', frac: Math.max(0, Math.min(1, f.hp / f.max)), kind: 'foe' };
+    const e = G.kinFocus; if (e && G.kinFocusT > 0) { const st = KIN.stats(e.kin); return { name: `${KIN.name(e.kin)} Lv ${e.kin.level}`, note: e.dazed > 0 ? 'dazed' : (Wild.unfinishable && Wild.unfinishable(e) ? 'only a Kin can finish it' : ''), frac: Math.max(0, Math.min(1, e.kin.hp / st.hp)), kind: 'kin' }; }
+    return null;
+  }
   function reset() { foes.length = 0; shots.length = 0; }
-  return { cond, broken, use, bow, anyBow, mend, mendQuote, lifeOf, BOWS, rack, ARMOUR, worn, armourPts, armourCut, wornPerk, init, GEAR, ARROWS, armoury, weapon, shield, chopTier, spawn, swing, arrowHit, takeBlow, nearestFoe, hurtFoe, update, entities, forHold, clearHold, standingIn, focusText, reset, blocking, KINDS };
+  return { cond, broken, use, bow, anyBow, mend, mendQuote, lifeOf, BOWS, rack, ARMOUR, worn, armourPts, armourCut, wornPerk, init, GEAR, ARROWS, armoury, weapon, shield, chopTier, spawn, swing, arrowHit, takeBlow, nearestFoe, hurtFoe, update, entities, forHold, clearHold, standingIn, focusText, focus, reset, blocking, KINDS };
 })();

@@ -211,10 +211,16 @@ code { font-family: var(--pix); font-size: 11px; }
 #look { position: absolute; left: 50%; top: calc(50% + 22px); transform: translateX(-50%); font-size: 12px; background: rgba(0,0,0,.55); padding: 3px 9px; border-radius: 8px; white-space: nowrap; pointer-events: none; }
 #look:empty { display: none; }
 .tag.down { background: #ff6b5a; }
-#btn-snare { position: absolute; left: 50%; top: calc(152px + env(safe-area-inset-top)); transform: translateX(-50%); padding: 7px 15px; border-radius: 16px; background: rgba(60, 200, 160, .45); color: #fff; border: 1.5px solid rgba(200, 255, 235, .6); font-weight: 800; font-size: 13px; pointer-events: auto; box-shadow: 0 2px 10px rgba(0,0,0,.25); text-shadow: 0 1px 2px rgba(0,0,0,.4); backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px); }
-#btn-deploy:not(.hidden) ~ #btn-snare { top: calc(194px + env(safe-area-inset-top)); }
+#btn-snare { position: absolute; left: 50%; top: calc(214px + env(safe-area-inset-top)); transform: translateX(-50%); padding: 7px 15px; border-radius: 16px; background: rgba(60, 200, 160, .45); color: #fff; border: 1.5px solid rgba(200, 255, 235, .6); font-weight: 800; font-size: 13px; pointer-events: auto; box-shadow: 0 2px 10px rgba(0,0,0,.25); text-shadow: 0 1px 2px rgba(0,0,0,.4); backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px); }
+#btn-deploy:not(.hidden) ~ #btn-snare { top: calc(256px + env(safe-area-inset-top)); }
 @keyframes pulse { 50% { transform: translateX(-50%) scale(1.06); } }
-#btn-deploy { position: absolute; left: 50%; top: calc(152px + env(safe-area-inset-top)); transform: translateX(-50%); padding: 7px 15px; border-radius: 16px; background: rgba(226, 84, 44, .42); color: rgba(255,255,255,.92); border: 1.5px solid rgba(255, 214, 184, .55); font-weight: 800; font-size: 13px; letter-spacing: .3px; pointer-events: auto; box-shadow: 0 2px 10px rgba(0,0,0,.25); text-shadow: 0 1px 2px rgba(0,0,0,.45); backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px); }
+#target { position: absolute; left: 50%; top: calc(168px + env(safe-area-inset-top)); transform: translateX(-50%); width: 170px; background: rgba(12, 14, 22, .55); border: 1px solid rgba(255,255,255,.18); border-radius: 10px; padding: 5px 9px 7px; pointer-events: none; backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px); }
+#target.hidden { display: none; }
+#target .t-name { font-size: 12px; font-weight: 700; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,.6); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 4px; }
+#target .t-bar { height: 7px; border-radius: 4px; background: rgba(255,255,255,.14); overflow: hidden; }
+#target .t-fill { height: 100%; width: 100%; border-radius: 4px; background: #5fd36a; transition: width .15s ease-out, background .3s; }
+#hud.in-battle #target { display: none; }
+#btn-deploy { position: absolute; left: 50%; top: calc(214px + env(safe-area-inset-top)); transform: translateX(-50%); padding: 7px 15px; border-radius: 16px; background: rgba(226, 84, 44, .42); color: rgba(255,255,255,.92); border: 1.5px solid rgba(255, 214, 184, .55); font-weight: 800; font-size: 13px; letter-spacing: .3px; pointer-events: auto; box-shadow: 0 2px 10px rgba(0,0,0,.25); text-shadow: 0 1px 2px rgba(0,0,0,.45); backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px); }
 #btn-deploy:active { background: rgba(226, 84, 44, .8); }
 #btn-deploy.fresh { animation: deployFlash .45s ease-in-out 6; }
 @keyframes deployFlash { 0%, 100% { background: rgba(226, 84, 44, .42); transform: translateX(-50%) scale(1); box-shadow: 0 2px 10px rgba(0,0,0,.25); } 50% { background: rgba(255, 140, 70, .95); transform: translateX(-50%) scale(1.12); box-shadow: 0 0 22px rgba(255, 150, 80, .8); } }
@@ -381,6 +387,7 @@ body.desktop #joy, body.desktop #btn-jump, body.desktop #btn-sneak { display: no
   </div>
   <canvas id="minimap" width="192" height="192"></canvas>
   <div id="quest-hint"></div>
+  <div id="target" class="hidden"><div class="t-name"></div><div class="t-bar"><div class="t-fill"></div></div></div>
   <div id="look"></div>
   <div id="mine-bar" class="hidden"><div id="mine-fill"></div></div>
   <div id="glide-hud" class="hidden"><div class="gc"><svg viewBox="-40 -40 80 80"><circle r="36" class="ring"/><path d="M0 -33 L0 -27" class="tick"/><path d="M33 0 L27 0 M-33 0 L-27 0 M0 33 L0 27" class="tick dim"/><g id="glide-arrow"><path d="M0 -22 L9 -6 L3 -8 L3 20 L-3 20 L-3 -8 L-9 -6 Z" class="arw"/></g><path d="M-6 6 L0 -4 L6 6" class="me"/></svg><b id="glide-wind">wind</b></div><div id="glide-stats"></div><div id="glide-flare">PULL BACK · FLARE</div></div>
@@ -10530,7 +10537,10 @@ const UI = (() => {
     const bt = G.buffText ? G.buffText() : ''; const wl = Weather.label(); el.weather.textContent = (bt ? bt + ' · ' : '') + ((p.chill || 0) > 0.05 ? (p.coldKind === 'space' ? 'FREEZING · no air · ' : p.coldKind === 'heat' ? 'SCORCHING · get a Lava Suit · ' : 'FREEZING · ') : '') + (layer === 'Surface' || layer === 'Sky' || layer === 'Water' ? (wl === 'clear' ? ((R.state.day || 0) < 0.3 ? 'night' : 'clear') : wl + ((R.state.day || 0) < 0.3 ? ' · night' : '')) : '');
     const pinTxt = (() => { if (!G.pin) return ''; const dx = U.mod(G.pin.x - p.x + WORLD_W / 2, WORLD_W) - WORLD_W / 2, dz = U.mod(G.pin.z - p.z + WORLD_W / 2, WORLD_W) - WORLD_W / 2; const d = Math.round(Math.hypot(dx, dz)); if (d < 6) { G.pin = null; toast('You are at your pin.'); return ''; } const dirs = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW']; const ang = Math.atan2(dx, -dz); return ` · ◎ pin ${d}m ${dirs[Math.round(((ang / (Math.PI * 2)) + 1) * 8) % 8]}`; })();
     const now = performance.now(); const fx = (G.repelUntil > now ? ` · hush ${Math.ceil((G.repelUntil - now) / 1000)}s` : G.lure && G.lure.until > now ? ` · ${G.lure.elem} lure ${Math.ceil((G.lure.until - now) / 1000)}s` : '') + Npcs.hudText();
-    { const ft = Combat.focusText(); el['quest-hint'].textContent = ft ? '⚔ ' + ft : Quests.hintText() + pinTxt + fx; }
+    { const tf = Combat.focus ? Combat.focus() : null; const tb = document.getElementById('target');
+      if (tf) { tb.classList.remove('hidden'); tb.querySelector('.t-name').textContent = tf.name + (tf.note ? ' · ' + tf.note : ''); const fill = tb.querySelector('.t-fill'); fill.style.width = (tf.frac * 100) + '%'; fill.style.background = tf.frac > 0.5 ? '#5fd36a' : tf.frac > 0.25 ? '#f0c030' : '#e8502a'; }
+      else tb.classList.add('hidden');
+      el['quest-hint'].textContent = Quests.hintText() + pinTxt + fx; }
     if (p.mineTarget) { el['mine-bar'].classList.remove('hidden'); el['mine-fill'].style.width = (p.mineProgress * 100) + '%'; } else el['mine-bar'].classList.add('hidden');
     el['kin-count'].textContent = `${G.kin.length + G.eggs.length}/${G.MAX_KIN}`;
     el.hurt.style.opacity = p.hurtFlash > 0 ? Math.min(0.6, p.hurtFlash * 1.5) : 0;
@@ -11715,8 +11725,14 @@ const Combat = (() => {
   function clearHold(id) { for (let i = foes.length - 1; i >= 0; i--) if (foes[i].holdId === id) foes.splice(i, 1); }
   function standingIn(id) { return foes.filter(f => f.holdId === id && f.state !== 'down').length; }
   function focusText() { const f = G.foeFocus; if (!f || !(G.foeFocusT > 0)) return Wild.focusText ? Wild.focusText() : null; return f.state === 'down' ? `${f.name}: down` : `${f.name}: ${Math.max(0, Math.round(f.hp / f.max * 100))}%`; }
+  // the same, as a target: name, state word and a 0..1 health fraction for the HUD bar
+  function focus() {
+    const f = G.foeFocus; if (f && G.foeFocusT > 0) return { name: f.name, note: f.state === 'down' ? 'down' : '', frac: Math.max(0, Math.min(1, f.hp / f.max)), kind: 'foe' };
+    const e = G.kinFocus; if (e && G.kinFocusT > 0) { const st = KIN.stats(e.kin); return { name: `${KIN.name(e.kin)} Lv ${e.kin.level}`, note: e.dazed > 0 ? 'dazed' : (Wild.unfinishable && Wild.unfinishable(e) ? 'only a Kin can finish it' : ''), frac: Math.max(0, Math.min(1, e.kin.hp / st.hp)), kind: 'kin' }; }
+    return null;
+  }
   function reset() { foes.length = 0; shots.length = 0; }
-  return { cond, broken, use, bow, anyBow, mend, mendQuote, lifeOf, BOWS, rack, ARMOUR, worn, armourPts, armourCut, wornPerk, init, GEAR, ARROWS, armoury, weapon, shield, chopTier, spawn, swing, arrowHit, takeBlow, nearestFoe, hurtFoe, update, entities, forHold, clearHold, standingIn, focusText, reset, blocking, KINDS };
+  return { cond, broken, use, bow, anyBow, mend, mendQuote, lifeOf, BOWS, rack, ARMOUR, worn, armourPts, armourCut, wornPerk, init, GEAR, ARROWS, armoury, weapon, shield, chopTier, spawn, swing, arrowHit, takeBlow, nearestFoe, hurtFoe, update, entities, forHold, clearHold, standingIn, focusText, focus, reset, blocking, KINDS };
 })();
 
 </script>

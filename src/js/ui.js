@@ -105,7 +105,10 @@ const UI = (() => {
     const bt = G.buffText ? G.buffText() : ''; const wl = Weather.label(); el.weather.textContent = (bt ? bt + ' · ' : '') + ((p.chill || 0) > 0.05 ? (p.coldKind === 'space' ? 'FREEZING · no air · ' : p.coldKind === 'heat' ? 'SCORCHING · get a Lava Suit · ' : 'FREEZING · ') : '') + (layer === 'Surface' || layer === 'Sky' || layer === 'Water' ? (wl === 'clear' ? ((R.state.day || 0) < 0.3 ? 'night' : 'clear') : wl + ((R.state.day || 0) < 0.3 ? ' · night' : '')) : '');
     const pinTxt = (() => { if (!G.pin) return ''; const dx = U.mod(G.pin.x - p.x + WORLD_W / 2, WORLD_W) - WORLD_W / 2, dz = U.mod(G.pin.z - p.z + WORLD_W / 2, WORLD_W) - WORLD_W / 2; const d = Math.round(Math.hypot(dx, dz)); if (d < 6) { G.pin = null; toast('You are at your pin.'); return ''; } const dirs = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW']; const ang = Math.atan2(dx, -dz); return ` · ◎ pin ${d}m ${dirs[Math.round(((ang / (Math.PI * 2)) + 1) * 8) % 8]}`; })();
     const now = performance.now(); const fx = (G.repelUntil > now ? ` · hush ${Math.ceil((G.repelUntil - now) / 1000)}s` : G.lure && G.lure.until > now ? ` · ${G.lure.elem} lure ${Math.ceil((G.lure.until - now) / 1000)}s` : '') + Npcs.hudText();
-    { const ft = Combat.focusText(); el['quest-hint'].textContent = ft ? '⚔ ' + ft : Quests.hintText() + pinTxt + fx; }
+    { const tf = Combat.focus ? Combat.focus() : null; const tb = document.getElementById('target');
+      if (tf) { tb.classList.remove('hidden'); tb.querySelector('.t-name').textContent = tf.name + (tf.note ? ' · ' + tf.note : ''); const fill = tb.querySelector('.t-fill'); fill.style.width = (tf.frac * 100) + '%'; fill.style.background = tf.frac > 0.5 ? '#5fd36a' : tf.frac > 0.25 ? '#f0c030' : '#e8502a'; }
+      else tb.classList.add('hidden');
+      el['quest-hint'].textContent = Quests.hintText() + pinTxt + fx; }
     if (p.mineTarget) { el['mine-bar'].classList.remove('hidden'); el['mine-fill'].style.width = (p.mineProgress * 100) + '%'; } else el['mine-bar'].classList.add('hidden');
     el['kin-count'].textContent = `${G.kin.length + G.eggs.length}/${G.MAX_KIN}`;
     el.hurt.style.opacity = p.hurtFlash > 0 ? Math.min(0.6, p.hurtFlash * 1.5) : 0;
