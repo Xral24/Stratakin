@@ -8,7 +8,13 @@ const UI = (() => {
     G = game;
     ['hud', 'hearts', 'breath', 'breath-fill', 'trainer-lvl', 'trainer-xp', 'where', 'weather', 'quest-hint', 'mine-bar', 'mine-fill', 'hotbar', 'item-name', 'touch-ui', 'toasts', 'panel', 'panel-title', 'panel-body', 'panel-close', 'start', 'start-buttons', 'starter-pick', 'starters', 'how', 'loading', 'kin-count', 'quest-dot', 'btn-jump', 'btn-sneak', 'vignette', 'hurt', 'crosshair'].forEach(id => el[id] = q(id));
     document.querySelectorAll('.hbtn').forEach(b => b.addEventListener('click', () => openPanel(b.dataset.panel)));
-    q('btn-bag').addEventListener('click', () => openPanel('bag'));
+    { // the bag pill: tap opens the bag, a swipe left or right moves to the next or previous thing you carry, no panel needed
+      const bb = q('btn-bag'); let sx = null, swiped = false;
+      bb.addEventListener('pointerdown', (e) => { sx = e.clientX; swiped = false; });
+      bb.addEventListener('pointerup', (e) => { if (sx == null) return; const dx = e.clientX - sx; sx = null; if (Math.abs(dx) < 28) return; swiped = true; const p = G.player; const hb = p.hotbar(); if (hb.length < 2) return; p.sel = (U.clamp(p.sel, 0, hb.length - 1) + (dx < 0 ? 1 : hb.length - 1)) % hb.length; renderHotbar(); sfx('click'); bb.classList.remove('slide-l', 'slide-r'); void bb.offsetWidth; bb.classList.add(dx < 0 ? 'slide-l' : 'slide-r'); });
+      bb.addEventListener('pointercancel', () => { sx = null; });
+      bb.addEventListener('click', () => { if (swiped) { swiped = false; return; } openPanel('bag'); });
+    }
     el['panel-close'].addEventListener('click', closePanel);
     el.panel.addEventListener('click', (e) => { if (e.target === el.panel) closePanel(); });
     el.hotbar.addEventListener('click', (e) => { const s = e.target.closest('.slot'); if (s) { G.player.sel = +s.dataset.i; renderHotbar(); } });
@@ -101,8 +107,12 @@ const UI = (() => {
     const va = Village.active; const inV = va && Math.hypot(va.x - p.x, va.z - p.z) < 22;
     const inDome = inV && va.type === 'deep' && Math.hypot(va.x - p.x, va.z - p.z) < 11 && p.y < SEA;
     const zl = Wild.zoneLevel ? Wild.zoneLevel(p.x, p.y, p.z, { layer }, G.trainerLevel) : null;
-    el.where.textContent = `${inV ? va.name + ' · ' : ''}${inDome ? 'Dome' : layer} · ${layer === 'Surface' || layer === 'Water' ? biome + ' · ' : ''}y ${Math.floor(p.y)}${zl != null ? ' · wild Lv ~' + zl : ''}${R.state.fps ? ' · ' + R.state.fps + ' fps' : ''}`;
-    const bt = G.buffText ? G.buffText() : ''; const wl = Weather.label(); el.weather.textContent = (bt ? bt + ' · ' : '') + ((p.chill || 0) > 0.05 ? (p.coldKind === 'space' ? 'FREEZING · no air · ' : p.coldKind === 'heat' ? 'SCORCHING · get a Lava Suit · ' : 'FREEZING · ') : '') + (layer === 'Surface' || layer === 'Sky' || layer === 'Water' ? (wl === 'clear' ? ((R.state.day || 0) < 0.3 ? 'night' : 'clear') : wl + ((R.state.day || 0) < 0.3 ? ' · night' : '')) : '');
+    el.where.textContent = `${inV ? va.name + ' · ' : ''}${inDome ? 'Dome · ' : layer === 'Surface' ? '' : layer + ' · '}${layer === 'Surface' || layer === 'Water' ? biome + ' · ' : ''}y ${Math.floor(p.y)}${zl != null ? ' · wild ~' + zl : ''}${R.state.fps ? ' · ' + R.state.fps + ' fps' : ''}`;
+    const bt = G.buffText ? G.buffText() : ''; const wl = Weather.label();
+    const sky = layer === 'Surface' || layer === 'Sky' || layer === 'Water' ? (wl === 'clear' ? ((R.state.day || 0) < 0.3 ? 'night' : 'clear') : wl + ((R.state.day || 0) < 0.3 ? ' · night' : '')) : '';
+    if (sky) el.where.textContent += ' · ' + sky; // the weather rides on the end of the place line; the pill below is only for things that need your attention
+    el.weather.textContent = (bt ? bt + (p.chill > 0.05 ? ' · ' : '') : '') + ((p.chill || 0) > 0.05 ? (p.coldKind === 'space' ? 'FREEZING · no air' : p.coldKind === 'heat' ? 'SCORCHING · get a Lava Suit' : 'FREEZING') : '');
+    el.weather.classList.toggle('warn', (p.chill || 0) > 0.05);
     const pinTxt = (() => { if (!G.pin) return ''; const dx = U.mod(G.pin.x - p.x + WORLD_W / 2, WORLD_W) - WORLD_W / 2, dz = U.mod(G.pin.z - p.z + WORLD_W / 2, WORLD_W) - WORLD_W / 2; const d = Math.round(Math.hypot(dx, dz)); if (d < 6) { G.pin = null; toast('You are at your pin.'); return ''; } const dirs = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW']; const ang = Math.atan2(dx, -dz); return ` · ◎ pin ${d}m ${dirs[Math.round(((ang / (Math.PI * 2)) + 1) * 8) % 8]}`; })();
     const now = performance.now(); const fx = (G.repelUntil > now ? ` · hush ${Math.ceil((G.repelUntil - now) / 1000)}s` : G.lure && G.lure.until > now ? ` · ${G.lure.elem} lure ${Math.ceil((G.lure.until - now) / 1000)}s` : '') + Npcs.hudText();
     { const tf = Combat.focus ? Combat.focus() : null; const tb = document.getElementById('target');
@@ -373,12 +383,12 @@ const UI = (() => {
     }
     const CATS = [['arms', 'Weapons and shields'], ['gear', 'Tools and gear'], ['tonics', 'Tonics'], ['blocks', 'Blocks'], ['builds', 'Buildings'], ['kin', 'Kin gear']];
     const catOf = (r) => r.cat || (r.out.startsWith('tonic_') ? 'tonics' : ITEMS[r.out].block ? 'blocks' : 'gear');
-    el['panel-body'].innerHTML = secureHtml() + `<p class="note">No table needed for these. Ingredients come from mining, leaves, berries and essences. Kits raise a whole building where you tap; Kin gear is put on from a Kin's page.</p>` + CATS.map(([c, title]) => `<h4>${title}</h4>` + RECIPES.filter(r => catOf(r) === c && !(r.when && !r.when(G))).map(r => {
+    el['panel-body'].innerHTML = `<p class="note">No table needed for these. Ingredients come from mining, leaves, berries and essences. Kits raise a whole building where you tap; Kin gear is put on from a Kin's page.</p>` + CATS.map(([c, title]) => `<h4>${title}</h4>` + RECIPES.filter(r => catOf(r) === c && !(r.when && !r.when(G))).map(r => {
       const owned = ITEMS[r.out].gear && p.has(r.out);
       const darkOff = G.darkRecipe(r) && !G.nearDarkTable();
       const can = !owned && !darkOff && Object.keys(r.needs).every(k => p.count(k) >= r.needs[k]);
       return `<div class="recipe ${can ? 'can' : ''}"><div class="ico big" style="${Icons.style(r.out)}"></div><div class="rinfo"><b>${ITEMS[r.out].name}${r.n > 1 ? ' ×' + r.n : ''}</b>${G.darkRecipe(r) ? ' <span class="darktag">Dark Table</span>' : ''}<div class="small">${ITEMS[r.out].desc}${p.gearPower[r.out] ? ' Marked by ' + p.gearPower[r.out].mark + ': +' + Math.round((p.gearPower[r.out].power - 1) * 100) + '%.' : ''}</div><div class="needs">${Object.keys(r.needs).map(k => `<span class="${p.count(k) >= r.needs[k] ? 'ok' : 'no'}">${ITEMS[k].name} ${p.count(k)}/${r.needs[k]}</span>`).join('')}</div></div><button class="btn" data-r="${r.id}" ${can ? '' : 'disabled'}>${owned ? 'Owned' : 'Craft'}</button></div>`;
-    }).join('')).join('');
+    }).join('')).join('') + secureHtml(); // the safe slots last: recipes are what you came for
     el['panel-body'].querySelectorAll('button[data-r]').forEach(b => b.addEventListener('click', () => { if (!G.craft(b.dataset.r)) renderCraft(); }));
     el['panel-body'].querySelectorAll('[data-sec]').forEach(c => c.addEventListener('click', () => { if (Object.keys(G.secure).length >= 5) return; securePicking = true; renderCraft(); }));
     el['panel-body'].querySelectorAll('[data-unsec]').forEach(c => c.addEventListener('click', () => { delete G.secure[c.dataset.unsec]; renderCraft(); }));
@@ -405,11 +415,12 @@ const UI = (() => {
     el['panel-body'].innerHTML = `<div class="menu">
       <div class="row"><button class="btn" id="m-save">Save game</button><button class="btn ghost" id="m-games">Games</button><button class="btn ghost" id="m-new">New world</button></div>
       <p class="small">Saving happens on its own every minute and whenever you leave. <b>Games</b> saves this one and shows every world you have, so you can play another; <b>New world</b> starts a fresh game alongside this one. Nothing is erased unless you delete a game from the list.</p>
-      <button class="btn" id="m-sound">Sound: ${soundOn ? 'on' : 'off'}</button><button class="btn" id="m-music">Music: ${Music.enabled ? 'on' : 'off'}${Music.enabled && Music.current ? ' · ' + Music.current : ''}</button><button class="btn" id="m-map">Minimap: ${MM.on ? 'on' : 'off'}</button>
-      <button class="btn" id="m-autojump">Auto-jump: ${G.player.autoJump ? 'on' : 'off'}</button>
-      <div class="row"><button class="btn" id="m-gfx">Graphics: ${({ full: 'full', balanced: 'balanced', light: 'light' })[R.state.quality || 'full']}</button><button class="btn ghost" id="m-shadows">Shadows: ${R.state.shadows === false ? 'off' : 'on'}</button></div>
+      <h4>Settings</h4>
+      <div class="settings"><button class="btn ghost tog ${soundOn ? 'on' : ''}" id="m-sound">Sound <span>${soundOn ? 'on' : 'off'}</span></button><button class="btn ghost tog ${Music.enabled ? 'on' : ''}" id="m-music">Music <span>${Music.enabled ? 'on' : 'off'}${Music.enabled && Music.current ? ' · ' + Music.current : ''}</span></button><button class="btn ghost tog ${MM.on ? 'on' : ''}" id="m-map">Minimap <span>${MM.on ? 'on' : 'off'}</span></button>
+      <button class="btn ghost tog ${G.player.autoJump ? 'on' : ''}" id="m-autojump">Auto-jump <span>${G.player.autoJump ? 'on' : 'off'}</span></button>
+      <button class="btn ghost tog on" id="m-gfx">Graphics <span>${({ full: 'full', balanced: 'balanced', light: 'light' })[R.state.quality || 'full']}</span></button><button class="btn ghost tog ${R.state.shadows === false ? '' : 'on'}" id="m-shadows">Shadows <span>${R.state.shadows === false ? 'off' : 'on'}</span></button></div>
       <p class="small">Graphics: <b>full</b> is shadows, dense grass and a sharp picture; <b>balanced</b> thins the grass and the pixels; <b>light</b> drops the shadows and most of the grass for a steadier frame rate. The number in the corner of the screen is frames per second.</p>
-      <div class="row"><button class="btn" id="m-camera">Camera: ${G.thirdPerson ? 'third person' : 'first person'}</button><button class="btn" id="m-skins">Skin: ${Avatar.skin().name}</button></div>
+      <div class="settings"><button class="btn ghost tog on" id="m-camera">Camera <span>${G.thirdPerson ? 'third person' : 'first person'}</span></button><button class="btn ghost tog on" id="m-skins">Skin <span>${Avatar.skin().name}</span></button></div>
       <h4>How to play</h4>
       <p class="small">${Controls.isTouch ? 'Left stick walks; drag anywhere on the right of the screen to turn the camera. <b>Hold</b> to mine, or to block when you hold a weapon; <b>tap</b> to place a block, swing, talk, or use a Fusion Table. ▲ jumps, ▼ crouches, hold ▲ in the air with a Glider to glide. In third person the camera orbits you: swing it round to see your face, or your Kin\'s.' : 'WASD to move, mouse to look, <b>hold left click</b> to mine or block, <b>right click</b> to place or use. Space jumps, Shift sneaks, 1-9 or the wheel pick an item. E opens Craft, Q opens Kin, J opens Quests, V switches the camera, F deploys a Kin or sets a snare. Esc releases the mouse.'}</p>
       <p class="small">Chests (Craft › Blocks) keep what you store in them through anything. Amulets come from the people by the fires on the road; nobody sells them. Third person shows your skin: unlock more by playing.</p>
