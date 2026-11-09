@@ -266,6 +266,8 @@ const Wild = (() => {
       UI.toast(mosa ? `Something huge moves under the water. ${sp.names[0]}, Lv ${APEX_LV[kind]}.` : `The ground shakes. ${sp.names[0]}, Lv ${APEX_LV[kind]}, rules the Lost World.`, 'bad');
     }
   }
+  // settle a walker's height: a step up is taken at once (no foot sunk in bare rock while it catches up), a step down is eased
+  function settleY(e, ty, dt, rate) { if (!e.flying && !e.aquatic && ty > e.y) e.y = ty; else e.y += (ty - e.y) * Math.min(1, dt * rate); }
   function findGround(x, y, z, e) {
     const bx = Math.floor(x), bz = Math.floor(z);
     if (e.aquatic) { for (const dy of [0, 1, -1, 2, -2]) { if (world.getBlock(bx, Math.floor(y) + dy, bz) === B.WATER) return Math.floor(y) + dy; } return null; }
@@ -307,7 +309,7 @@ const Wild = (() => {
       }
       if (e.flee > 0) { // away from you, fast, until it is out of sight
         e.flee -= dt; const hd = Math.hypot(dx, dz) || 1; const step = Math.max(e.speed, 3.4) * dt; const a0 = Math.atan2(-dx, -dz); let went = false;
-        for (const da of [0, 0.7, -0.7, 1.4, -1.4]) { const a = a0 + da; const nx = e.x + Math.sin(a) * step, nz = e.z + Math.cos(a) * step; const gy = findGround(nx, e.y, nz, e); if (gy != null) { e.x = nx; e.z = nz; e.y += ((e.flying && !e.aquatic ? gy + 0.6 : gy) - e.y) * Math.min(1, dt * 6); e.yaw = a; went = true; break; } }
+        for (const da of [0, 0.7, -0.7, 1.4, -1.4]) { const a = a0 + da; const nx = e.x + Math.sin(a) * step, nz = e.z + Math.cos(a) * step; const gy = findGround(nx, e.y, nz, e); if (gy != null) { e.x = nx; e.z = nz; settleY(e, (e.flying && !e.aquatic ? gy + 0.6 : gy), dt, 6); e.yaw = a; went = true; break; } }
         if (!went) e.flee = 0; continue;
       }
       // ---- the live fight: it has turned on you, and comes for you until one of you gives up ----
@@ -321,7 +323,7 @@ const Wild = (() => {
         const near = 1.1 + Math.min(2.2, (e.model.radius || 0.6) * e.scale * 0.7);
         const want = e.flying && !e.aquatic ? py + 0.8 : null;
         if (c.phase === 'close' || c.phase === 'rest') {
-          if (hd > near) { const step = Math.min(hd - near * 0.8, e.speed * dt); const nx = e.x + dx / hd * step, nz = e.z + dz / hd * step; const gy = findGround(nx, e.y, nz, e); if (gy != null) { e.x = nx; e.z = nz; e.y += ((want != null ? Math.max(gy + 0.6, want) : gy) - e.y) * Math.min(1, dt * 8); } else { const gy2 = findGround(e.x, e.y, nz, e); if (gy2 != null) { e.z = nz; e.y += (gy2 - e.y) * Math.min(1, dt * 8); } } }
+          if (hd > near) { const step = Math.min(hd - near * 0.8, e.speed * dt); const nx = e.x + dx / hd * step, nz = e.z + dz / hd * step; const gy = findGround(nx, e.y, nz, e); if (gy != null) { e.x = nx; e.z = nz; settleY(e, (want != null ? Math.max(gy + 0.6, want) : gy), dt, 8); } else { const gy2 = findGround(e.x, e.y, nz, e); if (gy2 != null) { e.z = nz; settleY(e, gy2, dt, 8); } } }
           e.yaw = Math.atan2(dx, dz); e.hover = (e.model.hover || 0) + (e.flying ? Math.sin(e.bob * 2) * 0.08 : 0); e.jawOpen = 0;
           if (c.phase === 'rest' && c.pt <= 0) c.phase = 'close';
           if (c.phase === 'close' && hd <= near + 0.5 && Math.abs(dy) < 2.4 && c.hitCd <= 0) { c.phase = 'wind'; c.pt = 0.42; }
@@ -344,10 +346,10 @@ const Wild = (() => {
         const mdx = nx - e.x, mdz = nz - e.z;
         if (Math.hypot(mdx, mdz) > 0.02) e.yaw = Math.atan2(mdx, mdz);
         const gy = findGround(nx, e.y, nz, e);
-        if (gy != null) { e.x = nx; e.z = nz; e.y += (gy - e.y) * Math.min(1, dt * 8); }
+        if (gy != null) { e.x = nx; e.z = nz; settleY(e, gy, dt, 8); }
       } else if (e.hunt > 0 && !e.sleep) {
         e.hunt -= dt; const hd = Math.hypot(dx, dz) || 1; const step = Math.min(hd, e.speed * 0.9 * dt);
-        if (hd > 2.2 + Math.min(2, (e.model.radius || 0.6) * 0.6)) { const nx = e.x + dx / hd * step, nz = e.z + dz / hd * step; const gy = findGround(nx, e.y, nz, e); if (gy != null) { e.x = nx; e.z = nz; e.y += (gy - e.y) * Math.min(1, dt * 6); } else e.hunt = 0; }
+        if (hd > 2.2 + Math.min(2, (e.model.radius || 0.6) * 0.6)) { const nx = e.x + dx / hd * step, nz = e.z + dz / hd * step; const gy = findGround(nx, e.y, nz, e); if (gy != null) { e.x = nx; e.z = nz; settleY(e, gy, dt, 6); } else e.hunt = 0; }
         e.yaw = Math.atan2(dx, dz);
       } else if (!e.sleep) {
         e.wait -= dt;
@@ -363,7 +365,7 @@ const Wild = (() => {
             else {
               e.x = nx; e.z = nz;
               const targetY = e.flying && !e.aquatic ? gy + 0.6 + Math.sin(e.bob * 1.3) * 0.3 : gy;
-              e.y += (targetY - e.y) * Math.min(1, dt * 6);
+              settleY(e, targetY, dt, 6);
               const ty = Math.atan2(mdx, mdz); let d = ty - e.yaw; while (d > Math.PI) d -= Math.PI * 2; while (d < -Math.PI) d += Math.PI * 2; e.yaw += d * Math.min(1, dt * 6);
             }
           }

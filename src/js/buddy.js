@@ -72,8 +72,9 @@ const Buddy = (() => {
       e.x += dx / d * sp; e.z += dz / d * sp;
       const ty = Math.atan2(dx, dz); let dy = ty - e.yaw; while (dy > Math.PI) dy -= Math.PI * 2; while (dy < -Math.PI) dy += Math.PI * 2; e.yaw += dy * Math.min(1, dt * 8);
     } else { const ty = Math.atan2(p.x - e.x, p.z - e.z); let dy = ty - e.yaw; while (dy > Math.PI) dy -= Math.PI * 2; while (dy < -Math.PI) dy += Math.PI * 2; e.yaw += dy * Math.min(1, dt * 3); }
-    gyT -= dt; if (gyT <= 0) { gyT = 0.15; gy = e.flying ? p.y + 1.3 + Math.sin(e.bob * 1.4) * 0.25 : ground(e.x, e.z, Math.max(p.y, e.y)); }
-    e.y += (gy - e.y) * Math.min(1, dt * (e.flying ? 3 : 10));
+    gyT -= dt; if (gyT <= 0 || !e.flying) { gyT = 0.15; gy = e.flying ? p.y + 1.3 + Math.sin(e.bob * 1.4) * 0.25 : ground(e.x, e.z, Math.max(p.y, e.y)); }
+    if (!e.flying && gy > e.y) e.y = gy; // a step up is taken at once: on bare rock there is no grass to hide a foot sunk in the ground
+    else e.y += (gy - e.y) * Math.min(1, dt * (e.flying ? 3 : 10));
     if (hopT > 0) { hopT -= dt; e.hover = (e.model.hover || 0) + Math.abs(Math.sin(hopT * 9)) * 0.5; } else e.hover = (e.model.hover || 0) + (e.flying ? Math.sin(e.bob * 2) * 0.08 : 0);
     // finds: walking together turns things up
     const step = Math.hypot(p.x - lastX, p.z - lastZ); lastX = p.x; lastZ = p.z;
