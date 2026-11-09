@@ -787,7 +787,28 @@ G.loop = function (t) {
   const ents = Wild.list.slice();
   if (Battle.mineEntity) ents.push(Battle.mineEntity);
   ents.push(...Village.entities());
-  if (p.flying) ents.push({ x: p.x, y: p.y - 0.85, z: p.z, yaw: p.yaw + Math.PI, model: { height: 1 }, mesh: R.entityMesh('ship', (mb) => { const c = [0.75, 0.9, 0.95], d = [0.35, 0.4, 0.5], g = [0.4, 0.95, 1.0]; mb.box(-0.8, 0, -1.3, 0.8, 0.5, 1.4, c); mb.box(-0.4, 0.5, -0.2, 0.4, 0.9, 0.7, d); mb.box(-2.2, 0.15, -0.9, -0.8, 0.25, 0.1, c); mb.box(0.8, 0.15, -0.9, 2.2, 0.25, 0.1, c); mb.box(-0.6, 0.1, -1.6, -0.2, 0.4, -1.3, g, 1, true); mb.box(0.2, 0.1, -1.6, 0.6, 0.4, -1.3, g, 1, true); mb.box(-0.15, 0.15, 1.4, 0.15, 0.35, 1.9, g, 1, true); }), scale: 1, hover: Math.sin(performance.now() / 300) * 0.05, skyMul: 1, isMount: true });
+  if (p.flying) { // the Starship: a pale swept hull with a glass canopy, twin engine pods glowing blue, a tail fin, and a wash of sparks behind it when it moves
+    ents.push({ x: p.x, y: p.y - 0.85, z: p.z, yaw: p.yaw + Math.PI, model: { height: 1.2, radius: 2.3 }, mesh: R.entityMesh('ship2', (mb) => {
+      const hull = [0.8, 0.9, 0.95], trim = [0.3, 0.36, 0.48], glass = [0.5, 0.78, 0.95], glow = [0.45, 0.95, 1.0], dark = [0.16, 0.18, 0.24];
+      mb.blob(-0.75, 0.05, -1.5, 0.75, 0.6, 1.9, 1, hull, { n: 3 });                           // the hull, long and low
+      mb.blob(-0.55, 0.15, 1.3, 0.55, 0.5, 2.3, 1, trim, { n: 2 });                             // the nose
+      mb.blob(-0.42, 0.5, 0.45, 0.42, 0.98, 1.6, 1, glass, { n: 3 });                           // the windscreen, ahead of the seat
+      mb.blob(-0.45, 0.5, -1.2, 0.45, 0.95, -0.55, 1, hull, { n: 2 });                            // the seat back fairing
+      mb.box(-0.8, 0.28, -1.0, 0.8, 0.36, 0.9, trim);                                            // a waist stripe
+      for (const sx of [-1, 1]) {
+        mb.plate([[sx * 0.7, 0.3, 0.6], [sx * 2.4, 0.26, -0.9], [sx * 2.5, 0.26, -1.4], [sx * 0.7, 0.3, -1.3]], 0.07, hull); // swept wings
+        mb.plate([[sx * 1.9, 0.3, -0.75], [sx * 2.3, 0.3, -1.3], [sx * 2.3, 0.8, -1.5], [sx * 1.9, 0.8, -1.0]], 0.05, trim);   // winglets
+        mb.tube([[sx * 1.15, 0.42, 0.4], [sx * 1.15, 0.42, -1.45]], [0.3, 0.26], trim, { segs: 10, cap0: 'round', cap1: 'flat' }); // engine pods
+        mb.tube([[sx * 1.15, 0.42, -1.45], [sx * 1.15, 0.42, -1.6]], [0.22, 0.2], glow, { segs: 10, emis: true, cap0: 'none', cap1: 'flat' }); // the exhaust ring
+        mb.box(sx * 0.5 - 0.05, -0.2, -0.9, sx * 0.5 + 0.05, 0.1, 0.9, dark); mb.box(sx * 0.5 - 0.04, -0.28, -1.0, sx * 0.5 + 0.04, -0.2, 1.0, dark); // landing skids
+        mb.box(sx * 0.12 - 0.02, 0.38, 2.25, sx * 0.12 + 0.02, 0.44, 2.45, glow, 1, true); // running lights in the nose
+      }
+      mb.plate([[0, 0.55, -0.9], [0, 1.25, -1.5], [0, 1.25, -1.75], [0, 0.55, -1.5]], 0.06, trim); // the tail fin
+      mb.box(-0.02, 1.2, -1.7, 0.02, 1.3, -1.6, [1.0, 0.4, 0.3], 1, true);                      // its beacon
+      mb.tube([[0, 0.5, -1.45], [0, 0.5, -1.62]], [0.2, 0.18], glow, { segs: 10, emis: true, cap0: 'none', cap1: 'flat' }); // the centre exhaust
+    }), scale: 1, hover: Math.sin(performance.now() / 300) * 0.05, skyMul: 1, isMount: true });
+    const sp = Math.hypot(p.vx, p.vz, p.vy || 0); if (sp > 1.5 && Math.random() < Math.min(0.9, sp * 0.08)) { const b = U.forwardVec(p.yaw, 0); Hazards.sparks(p.x - b[0] * 1.7, p.y - 0.4, p.z - b[2] * 1.7, 2, [0.5, 0.9, 1.0], 1.2); }
+  }
   const showMe = inBattle || this.thirdPerson || this.talkK > 0 || !!p.mount || this.grassCamOn;
   if (showMe) { const me = Avatar.entity(p, Math.hypot(p.vx, p.vz) > 0.6); if (p.mount) { const mm = KIN.model(p.mount.sp, p.mount.stage); me.y = p.y - 0.75 + mm.height * 0.62; } ents.push(me); }
   if (p.mount) { const k = p.mount; const m = KIN.model(k.sp, k.stage); const fwd = U.forwardVec(p.yaw, 0); if (!k._an) k._an = { ph: 0, mv: 0, lx: p.x, lz: p.z, ly: p.y, lt: performance.now(), vy: 0, seed: 5, air: 0 }; k._an.swim = p.mountMode === 'water' ? 1 : 0; ents.push({ x: p.x + fwd[0] * 0.5, y: p.y - 0.75 + (p.inWater ? -0.2 : 0), z: p.z + fwd[2] * 0.5, yaw: p.yaw + Math.PI, model: m, mesh: R.entityMesh(KIN.meshKey(k.sp, k.stage), (mb) => KIN.buildMesh(mb, m)), scale: 1, hover: 0, skyMul: 1, isMount: true, flying: p.mountMode === 'air' && !p.onGround, _an: k._an }); }
@@ -901,13 +922,17 @@ G.flyTo = function (id) {
   if (!r || !here || r.id === here.id || (r.world || 'earth') !== this.worldId) return;
   const cost = this.roostCost(r); if (this.shards < cost) { UI.toast(`The fare is ${cost} shards.`, 'bad'); return; }
   this.shards -= cost; UI.closePanel();
-  const f = document.getElementById('fade'); f.style.opacity = 1; this.paused = true; Controls.setEnabled(false); UI.sfx('quest');
-  setTimeout(() => {
-    const p = this.player, w = this.world; w.ensureAround(Math.floor(r.x / CH), Math.floor(r.z / CH), 3, 9999);
-    p.x = r.x; p.z = r.z; const gy = w.groundY(Math.floor(r.x), Math.floor(r.z)); p.y = Math.max(Number.isFinite(gy) ? gy + 1 : -1, Number.isFinite(r.y) ? r.y : -1, SEA + 1) + 0.05; p.vx = p.vy = p.vz = 0; p.fallStart = null; p.gliding = false;
-    this.meshPass(999); this.paused = false; Controls.setEnabled(true);
-    setTimeout(() => { f.style.opacity = 0; UI.toast(`The train pulls into ${r.name}.`, 'good'); }, 300);
-  }, 1100);
+  const go = () => {
+    const f = document.getElementById('fade'); f.style.opacity = 1; this.paused = true; Controls.setEnabled(false);
+    setTimeout(() => {
+      const p = this.player, w = this.world; w.ensureAround(Math.floor(r.x / CH), Math.floor(r.z / CH), 3, 9999);
+      p.x = r.x; p.z = r.z; const gy = w.groundY(Math.floor(r.x), Math.floor(r.z)); p.y = Math.max(Number.isFinite(gy) ? gy + 1 : -1, Number.isFinite(r.y) ? r.y : -1, SEA + 1) + 0.05; p.vx = p.vy = p.vz = 0; p.fallStart = null; p.gliding = false; p.frozen = false;
+      Village.trainArrive(Village.active); this.meshPass(999); this.paused = false; Controls.setEnabled(true);
+      setTimeout(() => { f.style.opacity = 0; UI.toast(`The train pulls into ${r.name}.`, 'good'); }, 300);
+    }, 1100);
+  };
+  // where a train stands at the platform you ride out on it first; elsewhere (the old stations) the fade alone
+  if (!Village.boardTrain(Village.active, go)) { UI.sfx('quest'); go(); }
 };
 // ---------- save / load ----------
 G.save = function () {

@@ -16,6 +16,8 @@ const Hazards = (() => {
     G.shake = 0.6;
   }
   function puff(x, y, z, n, col) { for (let i = 0; i < n; i++) fx.push({ x: x + (Math.random() - 0.5) * 1.6, y, z: z + (Math.random() - 0.5) * 1.6, vx: (Math.random() - 0.5) * 3, vy: 2 + Math.random() * 4, vz: (Math.random() - 0.5) * 3, t: 0, dur: 0.6 + Math.random() * 0.5, col, size: 0.12 + Math.random() * 0.14 }); }
+  // smoke: a soft grey puff that rises slowly and thins out (chimneys, the train)
+  function smoke(x, y, z, n, col = [0.72, 0.72, 0.75], size = 0.3) { for (let i = 0; i < n; i++) fx.push({ x: x + (Math.random() - 0.5) * 0.25, y: y + (Math.random() - 0.5) * 0.2, z: z + (Math.random() - 0.5) * 0.25, vx: (Math.random() - 0.5) * 0.6, vy: 0.9 + Math.random() * 0.8, vz: (Math.random() - 0.5) * 0.6, t: 0, dur: 1.3 + Math.random() * 0.9, col, size: size * (0.8 + Math.random() * 0.5) }); }
   // sparks: a tight burst from a hit, bright and short, every way at once with a little lift
   function sparks(x, y, z, n, col, spread = 3.5) { for (let i = 0; i < n; i++) { const a = Math.random() * 6.283, el = (Math.random() - 0.3) * 1.2; const sp = spread * (0.5 + Math.random()); fx.push({ x: x + (Math.random() - 0.5) * 0.2, y: y + (Math.random() - 0.5) * 0.2, z: z + (Math.random() - 0.5) * 0.2, vx: Math.cos(a) * Math.cos(el) * sp, vy: Math.sin(el) * sp + 1.5, vz: Math.sin(a) * Math.cos(el) * sp, t: 0, dur: 0.18 + Math.random() * 0.2, col, size: 0.06 + Math.random() * 0.06, emis: true }); } }
 
@@ -120,5 +122,5 @@ const Hazards = (() => {
     for (const s of shards) if (!s.done) { const u = s.t / s.warn; out.push({ data: R.ringLines(s.x, s.gy + 0.05, s.z, 2.6), color: [1, 0.55, 0.1, 0.9] }); out.push({ data: R.ringLines(s.x, s.gy + 0.08, s.z, 2.6 * (1 - u) + 0.2), color: [1, 0.2, 0.1, 0.95] }); }
     return out;
   }
-  return { init, update, entities, lines, sparks, puff, get worms() { return worms; }, get shards() { return shards; } };
+  return { init, update, entities, lines, sparks, puff, smoke, get worms() { return worms; }, get shards() { return shards; } };
 })();
