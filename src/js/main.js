@@ -175,6 +175,18 @@ G.toggleRide = function () {
   p.mount = k; p.mountMode = mode; UI.sfx('util');
   UI.toast(mode === 'air' ? (k.level >= 20 ? `You climb onto ${KIN.name(k)}. Jump, then hold ▲ to climb, hold ▼ to come down, let go to hover. It lands you softly.` : `You climb onto ${KIN.name(k)}. It glides; at Lv 20 it will fly.`) : mode === 'water' ? `You climb onto ${KIN.name(k)}. It floats you; hold ▼ to dive.` : `You climb onto ${KIN.name(k)}.`, 'good');
 };
+// can your buddy carry you right now? The button only shows when the answer is yes (or when breaking it in is the next step), and says how: Ride, Fly or Swim
+G.rideable = function () {
+  const p = this.player; const k = this.activeKin(); if (!k || k.hp <= 0 || p.flying) return null;
+  if (!(this.stats.camp || {}).rogueTamed && !k.sp.tame && !k.sp.fast) return null;
+  const mode = this.rideMode(k); if (!mode) return null;
+  if (mode === 'land' && !(k.sp.steed || k.sp.fast || k.sp.tame || k.sp.legend || k.sp.apex)) return null;
+  const req = this.rideRequirement(k); if (req == null || this.trainerLevel < req) return null;
+  if (k.level < 8 && !k.sp.tame) return null;
+  if (mode === 'water' && !p.inWater) return null;
+  if (mode === 'air' && this.noKinFlight()) return null;
+  return { k, mode, label: mode === 'air' ? 'Fly' : mode === 'water' ? 'Swim' : 'Ride' };
+};
 // flying Kin need open sky and air: not in the Mines, not in the Core, not on the airless worlds
 G.noKinFlight = function () { const p = this.player, w = this.world; if (w.preset.airless) return true; const L = w.layerAt(Math.floor(p.y), Math.floor(p.x), Math.floor(p.z)); return L === 'Mines' || L === 'Core'; };
 G.mountKin = function (k) { const p = this.player; const mode = this.rideMode(k); if (!mode) return; p.mount = k; p.mountMode = mode; UI.sfx('util'); UI.toast(`You climb onto ${KIN.name(k)}.`); };
@@ -797,7 +809,7 @@ G.loop = function (t) {
     const st = this.stealthTarget();
     const lead = this.activeKin();
     const eng = Wild.engagedNear(p);
-    UI.setButtons({ deploy: !!eng && !p.flying, snare: !!st && (p.has('snare') || p.has('snare2')) && !(eng && !(eng.dazed > 0)), ride: !p.flying && (!!p.mount || !!(lead && this.rideRequirement(lead) != null)), riding: !!p.mount, ship: p.has('ship') && (p.flying || this.world.layerAt(Math.floor(p.y), Math.floor(p.x), Math.floor(p.z)) !== 'Mines'), flying: p.flying, canLand: p.flying && (p.autoLand || this.landHeight() <= G.LAND_REACH) });
+    UI.setButtons({ deploy: !!eng && !p.flying, snare: !!st && (p.has('snare') || p.has('snare2')) && !(eng && !(eng.dazed > 0)), ride: !p.flying && (!!p.mount || !!(this._rideable = this.rideable())), rideLabel: p.mount ? 'Off' : (this._rideable ? this._rideable.label : 'Ride'), riding: !!p.mount, ship: p.has('ship') && (p.flying || this.world.layerAt(Math.floor(p.y), Math.floor(p.x), Math.floor(p.z)) !== 'Mines'), flying: p.flying, canLand: p.flying && (p.autoLand || this.landHeight() <= G.LAND_REACH) });
     if (p.mount && !p.mount.borrowed && (p.mount.hp <= 0 || !this.kin.includes(p.mount))) { p.mount = null; UI.toast('Your mount is down.', 'bad'); }
     if (p.mount && p.mountMode === 'water' && !p.inWater && p.onGround) { p.mount = null; UI.toast('It cannot follow you onto land.'); }
     if (p.mount && p.mountMode === 'air' && (this.frame & 15) === 0 && this.noKinFlight()) { p.mount = null; UI.toast('No room down here for wings that size. You climb off.'); }

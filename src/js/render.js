@@ -152,7 +152,7 @@ const R = (() => {
     vWorld = w.xyz; vCol = aCol;
     gl_Position = uPV * w;
   }`;
-  const TONE = `vec3 tonemap(vec3 c){ c = max(c, 0.0); c = mix(c, c * c * (3.0 - 2.0 * c), 0.22); vec3 hi = 0.82 + (1.0 - exp(-(c - 0.82) * 2.6)) * 0.18; c = mix(c, hi, step(0.82, c)); float l = dot(c, vec3(0.3, 0.59, 0.11)); return clamp(mix(vec3(l), c, 1.1), 0.0, 1.0); }`; // a gentle S for contrast, a soft shoulder above 0.82 so bright things do not clip flat, a touch more colour
+  const TONE = `vec3 tonemap(vec3 c){ c = max(c, 0.0); vec3 s = min(c, 1.0); c += (s * s * (3.0 - 2.0 * s) - s) * 0.22; vec3 hi = 0.82 + (1.0 - exp(-(c - 0.82) * 2.6)) * 0.18; c = mix(c, hi, step(0.82, c)); float l = dot(c, vec3(0.3, 0.59, 0.11)); return clamp(mix(vec3(l), c, 1.1), 0.0, 1.0); }`; // a gentle S for contrast (on the 0..1 part only: above 1 the old smoothstep went negative and sun glitter on water came out black and magenta), a soft shoulder above 0.82 so bright things do not clip flat, a touch more colour
   const FS = `
   #ifdef GL_FRAGMENT_PRECISION_HIGH
   precision highp float;
@@ -747,11 +747,16 @@ const R = (() => {
       surfTop[(x + 1) * 18 + (z + 1)] = t; surfWet[(x + 1) * 18 + (z + 1)] = wt; // the seabed counts as land: shores slope in under the water
     }
     for (let cx = 0; cx <= 16; cx++) for (let cz = 0; cz <= 16; cz++) {
-      let n = 0, sum = 0, lo = 999, hi = -999;
-      let dry = false, wl = -1;
-      for (const [a, b] of [[-1, -1], [0, -1], [-1, 0], [0, 0]]) { const i = (cx + a + 1) * 18 + (cz + b + 1); const t = surfTop[i]; if (t < 0) { n = 0; break; } n++; sum += t; lo = Math.min(lo, t); hi = Math.max(hi, t); const wt = surfWet[i]; if (wt < 0) dry = true; else wl = Math.max(wl, wt); }
-      let v = (n && hi - lo <= 2) ? sum / n + 1 : -1;
-      if (v >= 0 && dry && wl >= 0) v = Math.max(v, wl - 0.12); // where sand meets water the ground comes up to the waterline, never sinks below it in the open air
+      let n = 0, dry = false, wl = -1; const ts = [], ws = [];
+      for (const [a, b] of [[-1, -1], [0, -1], [-1, 0], [0, 0]]) { const i = (cx + a + 1) * 18 + (cz + b + 1); const t = surfTop[i]; if (t < 0) { n = 0; break; } n++; ts.push(t); const wt = surfWet[i]; ws.push(wt); if (wt < 0) dry = true; else wl = Math.max(wl, wt); }
+      let v = -1;
+      if (n) {
+        // at the water's edge a wet column counts as ground at the surface, however deep the seabed really is: a bank up to two blocks above the water slopes down to it instead of standing as cubes over a drop
+        const shore = dry && wl >= 0; let sum = 0, lo = 999, hi = -999;
+        for (let i = 0; i < 4; i++) { const t = shore && ws[i] >= 0 ? Math.max(ts[i], ws[i] - 1) : ts[i]; sum += t; lo = Math.min(lo, t); hi = Math.max(hi, t); }
+        if (hi - lo <= 2) v = sum / 4 + 1;
+        if (v >= 0 && shore) v = Math.max(v, wl - 0.02); // and comes up just clear of the waterline (the surface sits 0.12 down and waves 0.07): never a dry pit below the sea, never a seabed fighting the surface for the same pixels
+      }
       cornerH[cx * 17 + cz] = v;
     }
     const ST = (x, z) => surfTop[(x + 1) * 18 + (z + 1)];
@@ -1316,7 +1321,9 @@ const R = (() => {
           const sink = (f !== 2 && f !== 3 && isTrunk(id) && ST(lx, lz) === y - 1) ? 0.5 : 0; // a square trunk standing on sloping ground reaches down into it
           for (let i = 0; i < 4; i++) {
             const v = F.v[i];
-            verts.push([lx + v[0], sloped && CHt(lx + v[0], lz + v[2]) >= 0 ? CHt(lx + v[0], lz + v[2]) : y + v[1] - (v[1] === 0 ? sink : 0), lz + v[2]]);
+            let vy = sloped && CHt(lx + v[0], lz + v[2]) >= 0 ? CHt(lx + v[0], lz + v[2]) : y + v[1] - (v[1] === 0 ? sink : 0);
+            if (surf && f !== 2 && f !== 3) { const ch = CHt(lx + v[0], lz + v[2]); if (ch >= 0) vy = Math.min(vy, ch); } // a side face of smoothed ground stops at the slope: nothing stands up out of it as a fin
+            verts.push([lx + v[0], vy, lz + v[2]]);
             // ambient occlusion
             let ao = 1;
             if (!isWater && id !== B.LAVA) {
@@ -1640,10 +1647,12 @@ const R = (() => {
   }
   // the block outline under the crosshair. Soil on smoothed ground gets a box whose top follows the slope, by the same rule the mesher uses
   function soilTopAt(world, x, z) { let t = -1, wt = -1; for (let y = WH - 1; y > 0; y--) { const b = world.getBlock(x, y, z); if (DECOR(b)) continue; if (b === B.WATER || b === B.BRINE) { if (wt < 0) wt = y + 1; continue; } if (SOIL.has(b)) t = y; break; } return [t, wt]; }
-  function cornerHeight(world, cx, cz) {
-    let n = 0, sum = 0, lo = 999, hi = -999, dry = false, wl = -1;
-    for (const [a, b] of [[-1, -1], [0, -1], [-1, 0], [0, 0]]) { const [t, wt] = soilTopAt(world, cx + a, cz + b); if (t < 0) return -1; n++; sum += t; lo = Math.min(lo, t); hi = Math.max(hi, t); if (wt < 0) dry = true; else wl = Math.max(wl, wt); }
-    let v = hi - lo <= 2 ? sum / n + 1 : -1; if (v >= 0 && dry && wl >= 0) v = Math.max(v, wl - 0.12); return v;
+  function cornerHeight(world, cx, cz) { // the same rule as the mesher, for the targeting outline
+    let dry = false, wl = -1; const ts = [], ws = [];
+    for (const [a, b] of [[-1, -1], [0, -1], [-1, 0], [0, 0]]) { const [t, wt] = soilTopAt(world, cx + a, cz + b); if (t < 0) return -1; ts.push(t); ws.push(wt); if (wt < 0) dry = true; else wl = Math.max(wl, wt); }
+    const shore = dry && wl >= 0; let sum = 0, lo = 999, hi = -999;
+    for (let i = 0; i < 4; i++) { const t = shore && ws[i] >= 0 ? Math.max(ts[i], ws[i] - 1) : ts[i]; sum += t; lo = Math.min(lo, t); hi = Math.max(hi, t); }
+    let v = hi - lo <= 2 ? sum / 4 + 1 : -1; if (v >= 0 && shore) v = Math.max(v, wl - 0.02); return v;
   }
   function targetLines(world, x, y, z, pad = 0.003) {
     const id = world.getBlock(x, y, z); const [t] = soilTopAt(world, x, z);

@@ -802,7 +802,7 @@ const UI = (() => {
     const b1 = document.getElementById('btn-snare'), b2 = document.getElementById('btn-ride');
     if (st.deploy !== undefined && st.deploy !== btnState.deploy) { document.getElementById('btn-deploy').classList.toggle('hidden', !st.deploy); btnState.deploy = st.deploy; }
     if (st.snare !== undefined && st.snare !== btnState.snare) { b1.classList.toggle('hidden', !st.snare); btnState.snare = st.snare; }
-    if (st.ride !== undefined && (st.ride !== btnState.ride || st.riding !== btnState.riding)) { b2.classList.toggle('hidden', !st.ride); b2.textContent = st.riding ? 'Off' : 'Ride'; b2.classList.toggle('on', !!st.riding); btnState.ride = st.ride; btnState.riding = !!st.riding; }
+    if (st.ride !== undefined && (st.ride !== btnState.ride || st.riding !== btnState.riding || st.rideLabel !== btnState.rideLabel)) { b2.classList.toggle('hidden', !st.ride); b2.textContent = st.riding ? 'Off' : (st.rideLabel || 'Ride'); b2.classList.toggle('on', !!st.riding); btnState.ride = st.ride; btnState.riding = !!st.riding; btnState.rideLabel = st.rideLabel; }
     const b3 = document.getElementById('btn-ship'); b3.classList.toggle('nomap', !MM.on);
     if (st.ship !== undefined) b3.classList.toggle('far', !!st.flying && !st.canLand);
     if (st.ship !== undefined && (st.ship !== btnState.ship || st.flying !== btnState.flying)) { b3.classList.toggle('hidden', !st.ship); b3.innerHTML = st.flying ? '🛬<small>LAND</small>' : '🚀'; b3.classList.toggle('on', !!st.flying); btnState.ship = st.ship; btnState.flying = !!st.flying; }
