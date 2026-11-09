@@ -216,6 +216,8 @@ code { font-family: var(--pix); font-size: 11px; }
 @keyframes pulse { 50% { transform: translateX(-50%) scale(1.06); } }
 #btn-deploy { position: absolute; left: 50%; top: calc(152px + env(safe-area-inset-top)); transform: translateX(-50%); padding: 7px 15px; border-radius: 16px; background: rgba(226, 84, 44, .42); color: rgba(255,255,255,.92); border: 1.5px solid rgba(255, 214, 184, .55); font-weight: 800; font-size: 13px; letter-spacing: .3px; pointer-events: auto; box-shadow: 0 2px 10px rgba(0,0,0,.25); text-shadow: 0 1px 2px rgba(0,0,0,.45); backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px); }
 #btn-deploy:active { background: rgba(226, 84, 44, .8); }
+#btn-deploy.fresh { animation: deployFlash .45s ease-in-out 6; }
+@keyframes deployFlash { 0%, 100% { background: rgba(226, 84, 44, .42); transform: translateX(-50%) scale(1); box-shadow: 0 2px 10px rgba(0,0,0,.25); } 50% { background: rgba(255, 140, 70, .95); transform: translateX(-50%) scale(1.12); box-shadow: 0 0 22px rgba(255, 150, 80, .8); } }
 #btn-deploy.hidden, #btn-snare.hidden { display: none; }
 #btn-ride { position: absolute; right: 28px; bottom: calc(232px + env(safe-area-inset-bottom)); width: 54px; height: 36px; border-radius: 20px; background: rgba(255,255,255,.1); border: 2px solid rgba(255,255,255,.3); font-size: 12px; pointer-events: auto; }
 #btn-ride.on { background: rgba(240,208,144,.5); }
@@ -11058,7 +11060,7 @@ const UI = (() => {
   let btnState = { snare: false, ride: false, riding: false, ship: false, flying: false, deploy: false };
   function setButtons(st) {
     const b1 = document.getElementById('btn-snare'), b2 = document.getElementById('btn-ride');
-    if (st.deploy !== undefined && st.deploy !== btnState.deploy) { document.getElementById('btn-deploy').classList.toggle('hidden', !st.deploy); btnState.deploy = st.deploy; }
+    if (st.deploy !== undefined && st.deploy !== btnState.deploy) { const bd = document.getElementById('btn-deploy'); bd.classList.toggle('hidden', !st.deploy); btnState.deploy = st.deploy; if (st.deploy) { bd.classList.add('fresh'); clearTimeout(bd._freshT); bd._freshT = setTimeout(() => bd.classList.remove('fresh'), 2600); } } // it flashes for a couple of seconds when it comes up, then settles to see-through
     if (st.snare !== undefined && st.snare !== btnState.snare) { b1.classList.toggle('hidden', !st.snare); btnState.snare = st.snare; }
     if (st.ride !== undefined && (st.ride !== btnState.ride || st.riding !== btnState.riding || st.rideLabel !== btnState.rideLabel)) { b2.classList.toggle('hidden', !st.ride); b2.textContent = st.riding ? 'Off' : (st.rideLabel || 'Ride'); b2.classList.toggle('on', !!st.riding); btnState.ride = st.ride; btnState.riding = !!st.riding; btnState.rideLabel = st.rideLabel; }
     const b3 = document.getElementById('btn-ship'); b3.classList.toggle('nomap', !MM.on);
