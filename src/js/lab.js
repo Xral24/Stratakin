@@ -157,6 +157,9 @@ const Lab = (() => {
     return out;
   }
   function entities() { const out = []; const put = (n) => out.push({ x: n.x, y: n.y, z: n.z, yaw: n.yaw, model: n.model, mesh: n.mesh, scale: 1, hover: 0, skyMul: 1, src: n }); if (apprentice) put(apprentice); if (scientist) put(scientist);
+    if (site && site.incubator) { const sl = slots(); const now = performance.now() / 1000; for (let i = 0; i < sl.length; i++) { const x = sl[i]; const sp = KIN.bySeed(x.egg.seed); if (!sp) continue; const a = i / 3 * 6.283 + 1.57; const wob = x.pct > 0.85 ? Math.sin(now * 14 + i) * 0.06 * (x.pct - 0.85) / 0.15 : 0; const crack = x.pct > 0.9 ? Math.min(1, (x.pct - 0.9) / 0.1) : 0; const key = 'egg:' + sp.seed + ':' + (sp.rarity || 0) + ':' + Math.round(crack * 4);
+      if (!x._m || x._key !== key) { x._key = key; x._m = KIN.eggModel(sp, { crack }); x._mesh = R.entityMesh('inc' + key, (mb) => KIN.buildMesh(mb, x._m)); }
+      out.push({ x: site.incubator.x + 0.5 + Math.cos(a) * 0.2, y: site.incubator.y + 0.5, z: site.incubator.z + 0.5 + Math.sin(a) * 0.2, yaw: a + wob, model: x._m, mesh: x._mesh, scale: 0.42, hover: 0, skyMul: 1, isFx: true, noOutline: true }); } }
     if (site && site.room && scientist) { if (!specimens) specimens = makeSpecimens(site); const now = performance.now() / 1000; for (const sp of specimens) out.push({ x: sp.t.x + 0.5, y: sp.t.y + (sp.lie ? 0 : 0.35 + Math.sin(now * 0.8 + sp.ph) * 0.12), z: sp.t.z + 0.5, yaw: sp.yaw + now * sp.spin, model: sp.model, mesh: sp.mesh, scale: sp.scale, hover: 0, skyMul: 1, isFx: true, src: sp }); }
     return out; }
   function talkable() { const l = []; if (apprentice) l.push(apprentice); if (scientist) l.push(scientist); return l; }
@@ -179,5 +182,5 @@ const Lab = (() => {
   function tickEggs() { if (!G.labState) return; const now = G.stats.playT || 0; for (const id in G.labState) { const L = G.labState[id]; if (!L || !L.eggs) continue; for (const x of L.eggs.slice()) if (now - x.start >= x.dur) { L.eggs.splice(L.eggs.indexOf(x), 1); G.hatchEgg(x.egg, 'Hatched in the incubator. It came out warm and it is already looking for you.'); } } }
   function slots() { const now = G.stats.playT || 0; return incEggs().map(x => ({ egg: x.egg, left: Math.max(0, x.dur - (now - x.start)), pct: Math.min(1, (now - x.start) / x.dur) })); }
   function dawn() { return []; }
-  return { init, update, entities, talkable, talk, marks, mapMarks, onBossBeaten, canUse, putEgg, takeEgg, tickEggs, dawn, slots, get site() { return site; }, get boss() { return bossRef; }, get state() { return S(); } };
+  return { init, update, entities, talkable, talk, marks, mapMarks, onBossBeaten, canUse, putEgg, takeEgg, tickEggs, dawn, slots, get site() { return site; }, set site(v) { site = v; }, get boss() { return bossRef; }, get state() { return S(); } };
 })();

@@ -130,7 +130,6 @@ PATTERNS[B.AMBER] = { all: SPECK([0.95, 0.7, 0.3], false) };
 PATTERNS[B.GOLD] = { all: SPECK([1.0, 0.84, 0.3], false) };
 PATTERNS[B.DIAMOND] = { all: SPECK([0.6, 1.0, 1.0], true) };
 PATTERNS[B.SELGLASS] = { all: { rects: strips(0.05, 0.8, [0.85, 0.95, 1.0]).concat([{ u0: 0.05, v0: 0.05, u1: 0.95, v1: 0.95, mul: 1, glass: true }]) } };
-PATTERNS[B.INCUBATOR] = { all: PLATE(0.6, { mul: 1, col: [0.45, 0.9, 1.0], emis: true }) };
 
 const R = (() => {
   let gl, canvas, prog, lineProg, loc = {}, lloc = {};
@@ -918,6 +917,19 @@ const R = (() => {
           const sk = skyAt(lx, y + 1, lz); const hp = (k) => U.hash3(wx, y, wz, 200 + k); const base = [0.5, 0.46, 0.4];
           for (let k = 0; k < 6; k++) { const r = 0.18 + hp(k) * 0.22; const cx = lx + 0.15 + hp(k + 6) * 0.7, cz = lz + 0.15 + hp(k + 12) * 0.7, cy = y + 0.1 + hp(k + 18) * 0.55 * (1 - r); const m = 0.8 + hp(k + 24) * 0.4;
             op.push(); op.rotate(hp(k + 30) * 1.2, hp(k + 36) * 6.283, hp(k + 42) * 1.2, [cx, cy, cz]); op.blob(cx - r, cy - r * 0.7, cz - r * 0.8, cx + r, cy + r * 0.7, cz + r * 0.8, 0.5, [base[0] * m, base[1] * m, base[2] * m], { sky: sk, n: 2 }); op.pop(); }
+          continue;
+        }
+        if (id === B.INCUBATOR) { // the incubator: a riveted brass drum with a warm glow in its vents, a glass bell on top, three brass cups for the eggs
+          const sk = skyAt(lx, y + 1, lz); const cx = lx + 0.5, cz = lz + 0.5; const brass = [0.7, 0.55, 0.28], dark = [0.3, 0.25, 0.18], glow = [1.0, 0.72, 0.35];
+          op.tube([[cx, y, cz], [cx, y + 0.06, cz], [cx, y + 0.4, cz], [cx, y + 0.46, cz]], [0.46, 0.48, 0.44, 0.4], brass, { sky: sk, segs: 16, cap0: 'flat', cap1: 'flat', shade: (p, nx, ny, nz, t) => { const v = (t > 0.3 && t < 0.7 && Math.floor((Math.atan2(nz, nx) / 6.283 + 1) * 24) % 3 === 0) ? 1 : 0; return v ? glow : [brass[0] * (0.85 + 0.15 * ny), brass[1] * (0.85 + 0.15 * ny), brass[2] * (0.85 + 0.15 * ny)]; } });
+          for (let k = 0; k < 8; k++) { const a = k / 8 * 6.283; op.ball(cx + Math.cos(a) * 0.45, y + 0.12, cz + Math.sin(a) * 0.45, 0.025, dark, { sky: sk, n: 1 }); op.ball(cx + Math.cos(a) * 0.43, y + 0.36, cz + Math.sin(a) * 0.43, 0.025, dark, { sky: sk, n: 1 }); } // rivets
+          op.blob(cx - 0.3, y + 0.42, cz - 0.3, cx + 0.3, y + 0.52, cz + 0.3, 0.3, glow, { emis: true, n: 2 }); // the warm plate the eggs sit on
+          for (let k = 0; k < 3; k++) { const a = k / 3 * 6.283 + 1.57; op.tube([[cx + Math.cos(a) * 0.2, y + 0.46, cz + Math.sin(a) * 0.2], [cx + Math.cos(a) * 0.2, y + 0.54, cz + Math.sin(a) * 0.2]], [0.1, 0.12], brass, { sky: sk, segs: 8, cap0: 'none', cap1: 'none' }); } // the cups
+          op.tube([[cx, y + 0.98, cz], [cx, y + 1.08, cz]], [0.06, 0.03], brass, { sky: sk, segs: 8, cap0: 'none', cap1: 'round' }); // the knob on the bell
+          // the bell: on the glass mesh, a dome of rings
+          const R0 = 0.44; const rings = 7, segs = 16; const base = gs.nv; const gc = [0.8, 0.95, 1.0];
+          for (let i = 0; i <= rings; i++) { const t = i / rings; const yy = y + 0.46 + Math.sin(t * 1.5708) * 0.52; const rr = R0 * Math.cos(t * 1.5708) + (i === rings ? 0.001 : 0); for (let j = 0; j <= segs; j++) { const a = j / segs * 6.283; const nx = Math.cos(a) * Math.cos(t * 1.5708), ny = Math.sin(t * 1.5708), nz = Math.sin(a) * Math.cos(t * 1.5708); gs.vert(cx + Math.cos(a) * rr, yy, cz + Math.sin(a) * rr, nx, ny, nz, gc[0], gc[1], gc[2], sk, false); } }
+          for (let i = 0; i < rings; i++) for (let j = 0; j < segs; j++) { const a = base + i * (segs + 1) + j, b = a + 1, c = a + segs + 1, d = c + 1; gs.tri(a, c, b); gs.tri(b, c, d); }
           continue;
         }
         if (id === B.PALISADE) { // a palisade: two stout posts per block, pointed where the wall ends above

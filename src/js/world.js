@@ -90,7 +90,7 @@ defBlock(B.RUBBLE, 'Rubble', '#8a7a66', '#6e6050', { hard: Infinity, transparent
 defBlock(B.TARGET, 'Target', '#f2ede0', '#f2ede0', { hard: 0.5, drop: 'target' });
 defBlock(B.BALLOON, 'Balloon', '#e8323c', '#d42a34', { hard: 0.05, drop: null });
 defBlock(B.LADDER, 'Ladder', '#a07a44', '#8a6a3c', { solid: false, hard: 0.3, drop: 'ladder', partial: true, transparent: true });
-defBlock(B.INCUBATOR, 'Incubator', '#7ad7ff', '#2c3e50', { hard: Infinity, emissive: true });
+defBlock(B.INCUBATOR, 'Incubator', '#7ad7ff', '#2c3e50', { hard: Infinity, emissive: true, transparent: true }); // a brass drum under a glass bell: drawn as a shape
 // the living world: conifer needles, palm fronds, birch bark, boulders, mushrooms, wildflowers, pebbles
 defBlock(B.NEEDLES, 'Needles', '#2f6a4a', '#2a5e42', { hard: 0.2, drop: 'frond', transparent: true });
 defBlock(B.FROND, 'Palm Frond', '#4f9c3f', '#479038', { hard: 0.2, drop: 'frond', partial: true, transparent: true });

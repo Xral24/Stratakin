@@ -828,6 +828,27 @@ const KIN = (() => {
     }
     mb.setBone(0);
   }
+  // an egg: the shell in the Kin's body colour with its accent in spots, rings or a zigzag by rarity, a glint, resting on a little nest of straw.
+  // A hatching egg (crack 0..1) shows a crack growing round it and light inside
+  function eggModel(sp, opts = {}) {
+    const C = sp.colors || { body: '#e8d6a8', accent: '#b89a60', dark: '#5a4a30' }; const r = Math.max(0, Math.min(4, sp.rarity || 0)); const crack = opts.crack || 0;
+    const shell = hexMix(C.body, '#ffffff', 0.25), mark = C.accent, dark = hexMix(C.dark || '#333333', '#000000', 0.2);
+    const m = { kind: 'egg', scale: 1, boxes: [], height: 0.62, radius: 0.24, hover: 0, bones: [{ kind: 'body', piv: [0, 0, 0] }] };
+    const H = partHelpers(m);
+    H.blob(-0.22, 0.06, -0.22, 0.22, 0.6, 0.22, 1, shell, { n: 5, tap: [1, 0.72] });
+    const sd = (sp.seed || 1) * 7;
+    if (r === 0) for (let i = 0; i < 7; i++) { const a = U.hash3(sd, i, 1, 3) * 6.283, y = 0.16 + U.hash3(sd, i, 2, 3) * 0.34; const rr = 0.215 * (1 - Math.pow(Math.abs(y - 0.33) / 0.3, 2) * 0.6); H.ball(Math.cos(a) * rr, y, Math.sin(a) * rr, 0.035 + U.hash3(sd, i, 3, 3) * 0.02, mark, { n: 1 }); } // spots
+    else if (r === 1) for (const y of [0.22, 0.4]) H.ring(0, y, 0, 0.222 * (1 - Math.pow(Math.abs(y - 0.33) / 0.3, 2) * 0.6), 0.222 * (1 - Math.pow(Math.abs(y - 0.33) / 0.3, 2) * 0.6), 0.02, mark); // bands
+    else if (r === 2) for (let i = 0; i < 10; i++) { const a0 = i / 10 * 6.283, a1 = (i + 1) / 10 * 6.283; const up = i % 2; const rr = 0.225; H.plate([[Math.cos(a0) * rr, up ? 0.26 : 0.36, Math.sin(a0) * rr], [Math.cos(a1) * rr, up ? 0.36 : 0.26, Math.sin(a1) * rr], [Math.cos(a1) * rr * 0.98, (up ? 0.36 : 0.26) - 0.05, Math.sin(a1) * rr * 0.98], [Math.cos(a0) * rr * 0.98, (up ? 0.26 : 0.36) - 0.05, Math.sin(a0) * rr * 0.98]], 0.006, mark); } // zigzag
+    else if (r === 3) { for (let i = 0; i < 5; i++) { const a = i / 5 * 6.283; const x = Math.cos(a) * 0.2, z = Math.sin(a) * 0.2; H.plate([[x * 1.05, 0.44, z * 1.05], [x * 0.8 + Math.sin(a) * 0.06, 0.3, z * 0.8 - Math.cos(a) * 0.06], [x * 1.1, 0.2, z * 1.1], [x * 0.8 - Math.sin(a) * 0.06, 0.3, z * 0.8 + Math.cos(a) * 0.06]], 0.006, mark); } } // leaves
+    else { for (let i = 0; i < 6; i++) { const a = i / 6 * 6.283 + 0.3; H.ball(Math.cos(a) * 0.2, 0.33 + Math.sin(i * 1.9) * 0.1, Math.sin(a) * 0.2, 0.03, mark, { n: 1, emis: true }); } H.ring(0, 0.33, 0, 0.228, 0.228, 0.012, mark, { emis: true }); } // the rarest glow
+    H.ball(-0.09, 0.48, 0.14, 0.03, '#ffffff', { n: 1, emis: true }); // glint
+    if (crack > 0) { const n = Math.floor(2 + crack * 10); const pts = []; for (let i = 0; i <= n; i++) { const a = i / 12 * 6.283 - 0.5; const y = 0.36 + (i % 2 ? 0.04 : -0.03); pts.push([Math.cos(a) * 0.226, y, Math.sin(a) * 0.226]); } for (let i = 0; i < pts.length - 1; i++) H.tube([pts[i], pts[i + 1]], [0.012, 0.012], crack > 0.6 ? '#fff6c0' : dark, { segs: 4, cap0: 'none', cap1: 'none', emis: crack > 0.6 }); }
+    // the nest
+    for (let i = 0; i < 14; i++) { const a = i / 14 * 6.283, a2 = a + 0.9; const rr = 0.3; H.tube([[Math.cos(a) * rr, 0.03, Math.sin(a) * rr], [Math.cos(a2) * rr * 0.8, 0.07, Math.sin(a2) * rr * 0.8]], [0.016, 0.012], i % 2 ? '#c9a84c' : '#a8893c', { segs: 4, cap0: 'round', cap1: 'round' }); }
+    H.done(); return m;
+  }
+  function eggPortrait(cv, sp, size) { const key = 'egg:' + sp.seed + ':' + (sp.rarity || 0); const m = eggModel(sp); const mesh = R.entityMesh(key, (mb) => buildMesh(mb, m)); if (!R.renderPortrait(cv, mesh, m, size)) { const ctx = cv.getContext('2d'); cv.width = cv.height = size; ctx.fillStyle = sp.colors.body; ctx.beginPath(); ctx.ellipse(size / 2, size / 2, size * 0.25, size * 0.32, 0, 0, Math.PI * 2); ctx.fill(); } }
   function meshKey(sp, stage) { return sp.seed + ':' + stage + ':' + (sp.gen || 0) + ':' + sp.names[0]; }
 
   // ---- portrait: the real mesh, drawn by the renderer into a small canvas ----
@@ -841,5 +862,5 @@ const KIN = (() => {
   function serialize(k) { return { id: k.id, sp: k.sp, level: k.level, xp: k.xp, iv: k.iv, stage: k.stage, hp: k.hp, nick: k.nick, equip: k.equip || null, tech: k.tech || null, wear: k.wear || null, trust: k.trust || 0, tamed: k.tamed || false }; }
   function deserialize(d) { return Object.assign({ status: null }, d); }
 
-  return { partHelpers, E, EI, CHART, STAT_KEYS, STAT_NAMES, growth, xpToNext, dominant, species, speciesForContext, dex, bySeed, HABITATS, capOf, recipes, findRecipe, fuseRecipe, mythicSpecies, legendSpecies, apexSpecies, wardenSpecies, MAX_LEVEL, TECH, techFor, techByName, starters, create, stats, name, moves, effectiveness, gainXp, fuse, fusionLevel, TRAITS, RARITY, roster, buildUniverse, decorate, makeStatue, statueModel, shardsFor, model, buildMesh, meshKey, portrait, serialize, deserialize, UTIL_DESC };
+  return { partHelpers, E, EI, CHART, STAT_KEYS, STAT_NAMES, growth, xpToNext, dominant, species, speciesForContext, dex, bySeed, HABITATS, capOf, recipes, findRecipe, fuseRecipe, mythicSpecies, legendSpecies, apexSpecies, wardenSpecies, MAX_LEVEL, TECH, techFor, techByName, starters, create, stats, name, moves, effectiveness, gainXp, fuse, fusionLevel, TRAITS, RARITY, roster, buildUniverse, decorate, makeStatue, statueModel, shardsFor, model, buildMesh, meshKey, portrait, serialize, deserialize, UTIL_DESC, eggModel, eggPortrait };
 })();

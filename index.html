@@ -303,7 +303,8 @@ body.desktop #joy, body.desktop #btn-jump, body.desktop #btn-sneak { display: no
 .dexn { font-size: 10px; opacity: .6; margin-top: 2px; }
 .dexname { font-size: 12px; font-weight: 700; }
 .dexwhere { font-size: 10px; opacity: .8; }
-.kcard.egg .eggico { width: 52px; height: 64px; border-radius: 50% 50% 46% 46% / 60% 60% 40% 40%; background: radial-gradient(circle at 35% 30%, #fff8e0, #e8d6a8 55%, #b89a60); margin-right: 10px; flex: none; }
+.kcard.egg .eggpic { width: 64px; height: 64px; margin-right: 10px; flex: none; border-radius: 12px; background: rgba(0,0,0,.25); }
+.shop-row .eggpic { width: 56px; height: 56px; margin-right: 10px; flex: none; border-radius: 10px; background: rgba(0,0,0,.25); }
 
 #explain { position: absolute; left: 50%; transform: translateX(-50%); bottom: calc(190px + env(safe-area-inset-bottom)); width: min(86vw, 360px); background: rgba(16,24,38,.94); border: 2px solid rgba(122,215,255,.6); border-radius: 14px; padding: 10px 12px 8px; font-size: 13px; line-height: 1.35; pointer-events: auto; box-shadow: 0 4px 18px rgba(0,0,0,.5); z-index: 30; }
 #explain b { display: block; color: #9fe6ff; margin-bottom: 3px; }
@@ -720,7 +721,7 @@ defBlock(B.RUBBLE, 'Rubble', '#8a7a66', '#6e6050', { hard: Infinity, transparent
 defBlock(B.TARGET, 'Target', '#f2ede0', '#f2ede0', { hard: 0.5, drop: 'target' });
 defBlock(B.BALLOON, 'Balloon', '#e8323c', '#d42a34', { hard: 0.05, drop: null });
 defBlock(B.LADDER, 'Ladder', '#a07a44', '#8a6a3c', { solid: false, hard: 0.3, drop: 'ladder', partial: true, transparent: true });
-defBlock(B.INCUBATOR, 'Incubator', '#7ad7ff', '#2c3e50', { hard: Infinity, emissive: true });
+defBlock(B.INCUBATOR, 'Incubator', '#7ad7ff', '#2c3e50', { hard: Infinity, emissive: true, transparent: true }); // a brass drum under a glass bell: drawn as a shape
 // the living world: conifer needles, palm fronds, birch bark, boulders, mushrooms, wildflowers, pebbles
 defBlock(B.NEEDLES, 'Needles', '#2f6a4a', '#2a5e42', { hard: 0.2, drop: 'frond', transparent: true });
 defBlock(B.FROND, 'Palm Frond', '#4f9c3f', '#479038', { hard: 0.2, drop: 'frond', partial: true, transparent: true });
@@ -1547,7 +1548,6 @@ PATTERNS[B.AMBER] = { all: SPECK([0.95, 0.7, 0.3], false) };
 PATTERNS[B.GOLD] = { all: SPECK([1.0, 0.84, 0.3], false) };
 PATTERNS[B.DIAMOND] = { all: SPECK([0.6, 1.0, 1.0], true) };
 PATTERNS[B.SELGLASS] = { all: { rects: strips(0.05, 0.8, [0.85, 0.95, 1.0]).concat([{ u0: 0.05, v0: 0.05, u1: 0.95, v1: 0.95, mul: 1, glass: true }]) } };
-PATTERNS[B.INCUBATOR] = { all: PLATE(0.6, { mul: 1, col: [0.45, 0.9, 1.0], emis: true }) };
 
 const R = (() => {
   let gl, canvas, prog, lineProg, loc = {}, lloc = {};
@@ -2335,6 +2335,19 @@ const R = (() => {
           const sk = skyAt(lx, y + 1, lz); const hp = (k) => U.hash3(wx, y, wz, 200 + k); const base = [0.5, 0.46, 0.4];
           for (let k = 0; k < 6; k++) { const r = 0.18 + hp(k) * 0.22; const cx = lx + 0.15 + hp(k + 6) * 0.7, cz = lz + 0.15 + hp(k + 12) * 0.7, cy = y + 0.1 + hp(k + 18) * 0.55 * (1 - r); const m = 0.8 + hp(k + 24) * 0.4;
             op.push(); op.rotate(hp(k + 30) * 1.2, hp(k + 36) * 6.283, hp(k + 42) * 1.2, [cx, cy, cz]); op.blob(cx - r, cy - r * 0.7, cz - r * 0.8, cx + r, cy + r * 0.7, cz + r * 0.8, 0.5, [base[0] * m, base[1] * m, base[2] * m], { sky: sk, n: 2 }); op.pop(); }
+          continue;
+        }
+        if (id === B.INCUBATOR) { // the incubator: a riveted brass drum with a warm glow in its vents, a glass bell on top, three brass cups for the eggs
+          const sk = skyAt(lx, y + 1, lz); const cx = lx + 0.5, cz = lz + 0.5; const brass = [0.7, 0.55, 0.28], dark = [0.3, 0.25, 0.18], glow = [1.0, 0.72, 0.35];
+          op.tube([[cx, y, cz], [cx, y + 0.06, cz], [cx, y + 0.4, cz], [cx, y + 0.46, cz]], [0.46, 0.48, 0.44, 0.4], brass, { sky: sk, segs: 16, cap0: 'flat', cap1: 'flat', shade: (p, nx, ny, nz, t) => { const v = (t > 0.3 && t < 0.7 && Math.floor((Math.atan2(nz, nx) / 6.283 + 1) * 24) % 3 === 0) ? 1 : 0; return v ? glow : [brass[0] * (0.85 + 0.15 * ny), brass[1] * (0.85 + 0.15 * ny), brass[2] * (0.85 + 0.15 * ny)]; } });
+          for (let k = 0; k < 8; k++) { const a = k / 8 * 6.283; op.ball(cx + Math.cos(a) * 0.45, y + 0.12, cz + Math.sin(a) * 0.45, 0.025, dark, { sky: sk, n: 1 }); op.ball(cx + Math.cos(a) * 0.43, y + 0.36, cz + Math.sin(a) * 0.43, 0.025, dark, { sky: sk, n: 1 }); } // rivets
+          op.blob(cx - 0.3, y + 0.42, cz - 0.3, cx + 0.3, y + 0.52, cz + 0.3, 0.3, glow, { emis: true, n: 2 }); // the warm plate the eggs sit on
+          for (let k = 0; k < 3; k++) { const a = k / 3 * 6.283 + 1.57; op.tube([[cx + Math.cos(a) * 0.2, y + 0.46, cz + Math.sin(a) * 0.2], [cx + Math.cos(a) * 0.2, y + 0.54, cz + Math.sin(a) * 0.2]], [0.1, 0.12], brass, { sky: sk, segs: 8, cap0: 'none', cap1: 'none' }); } // the cups
+          op.tube([[cx, y + 0.98, cz], [cx, y + 1.08, cz]], [0.06, 0.03], brass, { sky: sk, segs: 8, cap0: 'none', cap1: 'round' }); // the knob on the bell
+          // the bell: on the glass mesh, a dome of rings
+          const R0 = 0.44; const rings = 7, segs = 16; const base = gs.nv; const gc = [0.8, 0.95, 1.0];
+          for (let i = 0; i <= rings; i++) { const t = i / rings; const yy = y + 0.46 + Math.sin(t * 1.5708) * 0.52; const rr = R0 * Math.cos(t * 1.5708) + (i === rings ? 0.001 : 0); for (let j = 0; j <= segs; j++) { const a = j / segs * 6.283; const nx = Math.cos(a) * Math.cos(t * 1.5708), ny = Math.sin(t * 1.5708), nz = Math.sin(a) * Math.cos(t * 1.5708); gs.vert(cx + Math.cos(a) * rr, yy, cz + Math.sin(a) * rr, nx, ny, nz, gc[0], gc[1], gc[2], sk, false); } }
+          for (let i = 0; i < rings; i++) for (let j = 0; j < segs; j++) { const a = base + i * (segs + 1) + j, b = a + 1, c = a + segs + 1, d = c + 1; gs.tri(a, c, b); gs.tri(b, c, d); }
           continue;
         }
         if (id === B.PALISADE) { // a palisade: two stout posts per block, pointed where the wall ends above
@@ -4955,6 +4968,27 @@ const KIN = (() => {
     }
     mb.setBone(0);
   }
+  // an egg: the shell in the Kin's body colour with its accent in spots, rings or a zigzag by rarity, a glint, resting on a little nest of straw.
+  // A hatching egg (crack 0..1) shows a crack growing round it and light inside
+  function eggModel(sp, opts = {}) {
+    const C = sp.colors || { body: '#e8d6a8', accent: '#b89a60', dark: '#5a4a30' }; const r = Math.max(0, Math.min(4, sp.rarity || 0)); const crack = opts.crack || 0;
+    const shell = hexMix(C.body, '#ffffff', 0.25), mark = C.accent, dark = hexMix(C.dark || '#333333', '#000000', 0.2);
+    const m = { kind: 'egg', scale: 1, boxes: [], height: 0.62, radius: 0.24, hover: 0, bones: [{ kind: 'body', piv: [0, 0, 0] }] };
+    const H = partHelpers(m);
+    H.blob(-0.22, 0.06, -0.22, 0.22, 0.6, 0.22, 1, shell, { n: 5, tap: [1, 0.72] });
+    const sd = (sp.seed || 1) * 7;
+    if (r === 0) for (let i = 0; i < 7; i++) { const a = U.hash3(sd, i, 1, 3) * 6.283, y = 0.16 + U.hash3(sd, i, 2, 3) * 0.34; const rr = 0.215 * (1 - Math.pow(Math.abs(y - 0.33) / 0.3, 2) * 0.6); H.ball(Math.cos(a) * rr, y, Math.sin(a) * rr, 0.035 + U.hash3(sd, i, 3, 3) * 0.02, mark, { n: 1 }); } // spots
+    else if (r === 1) for (const y of [0.22, 0.4]) H.ring(0, y, 0, 0.222 * (1 - Math.pow(Math.abs(y - 0.33) / 0.3, 2) * 0.6), 0.222 * (1 - Math.pow(Math.abs(y - 0.33) / 0.3, 2) * 0.6), 0.02, mark); // bands
+    else if (r === 2) for (let i = 0; i < 10; i++) { const a0 = i / 10 * 6.283, a1 = (i + 1) / 10 * 6.283; const up = i % 2; const rr = 0.225; H.plate([[Math.cos(a0) * rr, up ? 0.26 : 0.36, Math.sin(a0) * rr], [Math.cos(a1) * rr, up ? 0.36 : 0.26, Math.sin(a1) * rr], [Math.cos(a1) * rr * 0.98, (up ? 0.36 : 0.26) - 0.05, Math.sin(a1) * rr * 0.98], [Math.cos(a0) * rr * 0.98, (up ? 0.26 : 0.36) - 0.05, Math.sin(a0) * rr * 0.98]], 0.006, mark); } // zigzag
+    else if (r === 3) { for (let i = 0; i < 5; i++) { const a = i / 5 * 6.283; const x = Math.cos(a) * 0.2, z = Math.sin(a) * 0.2; H.plate([[x * 1.05, 0.44, z * 1.05], [x * 0.8 + Math.sin(a) * 0.06, 0.3, z * 0.8 - Math.cos(a) * 0.06], [x * 1.1, 0.2, z * 1.1], [x * 0.8 - Math.sin(a) * 0.06, 0.3, z * 0.8 + Math.cos(a) * 0.06]], 0.006, mark); } } // leaves
+    else { for (let i = 0; i < 6; i++) { const a = i / 6 * 6.283 + 0.3; H.ball(Math.cos(a) * 0.2, 0.33 + Math.sin(i * 1.9) * 0.1, Math.sin(a) * 0.2, 0.03, mark, { n: 1, emis: true }); } H.ring(0, 0.33, 0, 0.228, 0.228, 0.012, mark, { emis: true }); } // the rarest glow
+    H.ball(-0.09, 0.48, 0.14, 0.03, '#ffffff', { n: 1, emis: true }); // glint
+    if (crack > 0) { const n = Math.floor(2 + crack * 10); const pts = []; for (let i = 0; i <= n; i++) { const a = i / 12 * 6.283 - 0.5; const y = 0.36 + (i % 2 ? 0.04 : -0.03); pts.push([Math.cos(a) * 0.226, y, Math.sin(a) * 0.226]); } for (let i = 0; i < pts.length - 1; i++) H.tube([pts[i], pts[i + 1]], [0.012, 0.012], crack > 0.6 ? '#fff6c0' : dark, { segs: 4, cap0: 'none', cap1: 'none', emis: crack > 0.6 }); }
+    // the nest
+    for (let i = 0; i < 14; i++) { const a = i / 14 * 6.283, a2 = a + 0.9; const rr = 0.3; H.tube([[Math.cos(a) * rr, 0.03, Math.sin(a) * rr], [Math.cos(a2) * rr * 0.8, 0.07, Math.sin(a2) * rr * 0.8]], [0.016, 0.012], i % 2 ? '#c9a84c' : '#a8893c', { segs: 4, cap0: 'round', cap1: 'round' }); }
+    H.done(); return m;
+  }
+  function eggPortrait(cv, sp, size) { const key = 'egg:' + sp.seed + ':' + (sp.rarity || 0); const m = eggModel(sp); const mesh = R.entityMesh(key, (mb) => buildMesh(mb, m)); if (!R.renderPortrait(cv, mesh, m, size)) { const ctx = cv.getContext('2d'); cv.width = cv.height = size; ctx.fillStyle = sp.colors.body; ctx.beginPath(); ctx.ellipse(size / 2, size / 2, size * 0.25, size * 0.32, 0, 0, Math.PI * 2); ctx.fill(); } }
   function meshKey(sp, stage) { return sp.seed + ':' + stage + ':' + (sp.gen || 0) + ':' + sp.names[0]; }
 
   // ---- portrait: the real mesh, drawn by the renderer into a small canvas ----
@@ -4968,7 +5002,7 @@ const KIN = (() => {
   function serialize(k) { return { id: k.id, sp: k.sp, level: k.level, xp: k.xp, iv: k.iv, stage: k.stage, hp: k.hp, nick: k.nick, equip: k.equip || null, tech: k.tech || null, wear: k.wear || null, trust: k.trust || 0, tamed: k.tamed || false }; }
   function deserialize(d) { return Object.assign({ status: null }, d); }
 
-  return { partHelpers, E, EI, CHART, STAT_KEYS, STAT_NAMES, growth, xpToNext, dominant, species, speciesForContext, dex, bySeed, HABITATS, capOf, recipes, findRecipe, fuseRecipe, mythicSpecies, legendSpecies, apexSpecies, wardenSpecies, MAX_LEVEL, TECH, techFor, techByName, starters, create, stats, name, moves, effectiveness, gainXp, fuse, fusionLevel, TRAITS, RARITY, roster, buildUniverse, decorate, makeStatue, statueModel, shardsFor, model, buildMesh, meshKey, portrait, serialize, deserialize, UTIL_DESC };
+  return { partHelpers, E, EI, CHART, STAT_KEYS, STAT_NAMES, growth, xpToNext, dominant, species, speciesForContext, dex, bySeed, HABITATS, capOf, recipes, findRecipe, fuseRecipe, mythicSpecies, legendSpecies, apexSpecies, wardenSpecies, MAX_LEVEL, TECH, techFor, techByName, starters, create, stats, name, moves, effectiveness, gainXp, fuse, fusionLevel, TRAITS, RARITY, roster, buildUniverse, decorate, makeStatue, statueModel, shardsFor, model, buildMesh, meshKey, portrait, serialize, deserialize, UTIL_DESC, eggModel, eggPortrait };
 })();
 
 </script>
@@ -9719,6 +9753,9 @@ const Lab = (() => {
     return out;
   }
   function entities() { const out = []; const put = (n) => out.push({ x: n.x, y: n.y, z: n.z, yaw: n.yaw, model: n.model, mesh: n.mesh, scale: 1, hover: 0, skyMul: 1, src: n }); if (apprentice) put(apprentice); if (scientist) put(scientist);
+    if (site && site.incubator) { const sl = slots(); const now = performance.now() / 1000; for (let i = 0; i < sl.length; i++) { const x = sl[i]; const sp = KIN.bySeed(x.egg.seed); if (!sp) continue; const a = i / 3 * 6.283 + 1.57; const wob = x.pct > 0.85 ? Math.sin(now * 14 + i) * 0.06 * (x.pct - 0.85) / 0.15 : 0; const crack = x.pct > 0.9 ? Math.min(1, (x.pct - 0.9) / 0.1) : 0; const key = 'egg:' + sp.seed + ':' + (sp.rarity || 0) + ':' + Math.round(crack * 4);
+      if (!x._m || x._key !== key) { x._key = key; x._m = KIN.eggModel(sp, { crack }); x._mesh = R.entityMesh('inc' + key, (mb) => KIN.buildMesh(mb, x._m)); }
+      out.push({ x: site.incubator.x + 0.5 + Math.cos(a) * 0.2, y: site.incubator.y + 0.5, z: site.incubator.z + 0.5 + Math.sin(a) * 0.2, yaw: a + wob, model: x._m, mesh: x._mesh, scale: 0.42, hover: 0, skyMul: 1, isFx: true, noOutline: true }); } }
     if (site && site.room && scientist) { if (!specimens) specimens = makeSpecimens(site); const now = performance.now() / 1000; for (const sp of specimens) out.push({ x: sp.t.x + 0.5, y: sp.t.y + (sp.lie ? 0 : 0.35 + Math.sin(now * 0.8 + sp.ph) * 0.12), z: sp.t.z + 0.5, yaw: sp.yaw + now * sp.spin, model: sp.model, mesh: sp.mesh, scale: sp.scale, hover: 0, skyMul: 1, isFx: true, src: sp }); }
     return out; }
   function talkable() { const l = []; if (apprentice) l.push(apprentice); if (scientist) l.push(scientist); return l; }
@@ -9741,7 +9778,7 @@ const Lab = (() => {
   function tickEggs() { if (!G.labState) return; const now = G.stats.playT || 0; for (const id in G.labState) { const L = G.labState[id]; if (!L || !L.eggs) continue; for (const x of L.eggs.slice()) if (now - x.start >= x.dur) { L.eggs.splice(L.eggs.indexOf(x), 1); G.hatchEgg(x.egg, 'Hatched in the incubator. It came out warm and it is already looking for you.'); } } }
   function slots() { const now = G.stats.playT || 0; return incEggs().map(x => ({ egg: x.egg, left: Math.max(0, x.dur - (now - x.start)), pct: Math.min(1, (now - x.start) / x.dur) })); }
   function dawn() { return []; }
-  return { init, update, entities, talkable, talk, marks, mapMarks, onBossBeaten, canUse, putEgg, takeEgg, tickEggs, dawn, slots, get site() { return site; }, get boss() { return bossRef; }, get state() { return S(); } };
+  return { init, update, entities, talkable, talk, marks, mapMarks, onBossBeaten, canUse, putEgg, takeEgg, tickEggs, dawn, slots, get site() { return site; }, set site(v) { site = v; }, get boss() { return bossRef; }, get state() { return S(); } };
 })();
 
 </script>
@@ -10169,9 +10206,10 @@ const UI = (() => {
     const slots = Lab.slots(); const fmt = (sec) => { const m = Math.ceil(sec / 60); return m >= 60 ? `${Math.floor(m / 60)}h ${m % 60}m` : `${m}m`; };
     const eggName = (e) => (e.label ? e.label.charAt(0).toUpperCase() + e.label.slice(1) : 'Egg') + (e.from ? ' from ' + e.from : '');
     el['panel-body'].innerHTML = `<p class="note">Eggs only. Three at a time; they hatch on play time while you are anywhere, no walking needed. A common egg takes about 40 minutes, a rare one a couple of hours, the rarest five. Steps you already walked with an egg still count.</p>
-      <h4>Warming · ${slots.length}/3</h4>${slots.length ? slots.map((s, i) => `<div class="shop-row"><div class="rinfo"><b>${eggName(s.egg)}</b><div class="condbar"><i style="width:${Math.round(s.pct * 100)}%;background:#ffd27a"></i></div><span class="small">hatches in about ${fmt(s.left)}</span></div><button class="btn ghost" data-out="${i}">Take out</button></div>`).join('') : '<p class="small">Empty and warm.</p>'}
-      ${slots.length < 3 && G.eggs.length ? `<h4>Your eggs</h4>${G.eggs.map((e, i) => `<div class="shop-row"><div class="rinfo"><b>${eggName(e)}</b> <span class="small">${Math.ceil(e.need - e.walked)} steps left on foot</span></div><button class="btn" data-in="${i}">Put in</button></div>`).join('')}` : (G.eggs.length ? '' : '<p class="small">You are not carrying any eggs.</p>')}
+      <h4>Warming · ${slots.length}/3</h4>${slots.length ? slots.map((s, i) => `<div class="shop-row"><canvas class="eggpic" data-seed="${s.egg.seed}" width="56" height="56"></canvas><div class="rinfo"><b>${eggName(s.egg)}</b><div class="condbar"><i style="width:${Math.round(s.pct * 100)}%;background:#ffd27a"></i></div><span class="small">hatches in about ${fmt(s.left)}</span></div><button class="btn ghost" data-out="${i}">Take out</button></div>`).join('') : '<p class="small">Empty and warm.</p>'}
+      ${slots.length < 3 && G.eggs.length ? `<h4>Your eggs</h4>${G.eggs.map((e, i) => `<div class="shop-row"><canvas class="eggpic" data-seed="${e.seed}" width="56" height="56"></canvas><div class="rinfo"><b>${eggName(e)}</b> <span class="small">${Math.ceil(e.need - e.walked)} steps left on foot</span></div><button class="btn" data-in="${i}">Put in</button></div>`).join('')}` : (G.eggs.length ? '' : '<p class="small">You are not carrying any eggs.</p>')}
       <div class="row"><button class="btn ghost" id="inc-close">Close</button></div>`;
+    drawPortraits(el['panel-body']);
     el['panel-body'].querySelectorAll('[data-in]').forEach(b => b.addEventListener('click', () => { const err = Lab.putEgg(G.eggs[+b.dataset.in]); if (err) toast(err, 'bad'); else { sfx('place'); renderIncubator(); } }));
     el['panel-body'].querySelectorAll('[data-out]').forEach(b => b.addEventListener('click', () => { const err = Lab.takeEgg(+b.dataset.out); if (err) toast(err, 'bad'); else { sfx('caught'); renderIncubator(); } }));
     q('inc-close').addEventListener('click', closePanel);
@@ -10208,7 +10246,7 @@ const UI = (() => {
   function closePanel() { const was = panelOpen; panelOpen = null; fusionState = null; securePicking = false; el.panel.classList.add('hidden'); G.setPaused(false); if (was === 'destination' && G.player && !G.player.flying) { G.player.flying = true; G.player.y = WH + 10; G.player.vy = -2; } }
   function setTitle(t) { el['panel-title'].textContent = t; }
   function portraitHtml(k, size = 64) { return `<canvas class="portrait" width="${size}" height="${size}" data-kid="${k.id}" data-size="${size}"></canvas>`; }
-  function drawPortraits(root) { root.querySelectorAll('canvas.portrait').forEach(cv => { const k = G.kin.find(x => x.id == cv.dataset.kid) || (fusionState && fusionState.preview && fusionState.preview.kin && fusionState.preview.kin.id == cv.dataset.kid ? fusionState.preview.kin : null); if (k) KIN.portrait(cv, k.sp, k.stage, +cv.dataset.size); }); }
+  function drawPortraits(root) { root.querySelectorAll('canvas.eggpic').forEach(cv => { const sp = KIN.bySeed(+cv.dataset.seed); if (sp) KIN.eggPortrait(cv, sp, 64); }); root.querySelectorAll('canvas.portrait').forEach(cv => { const k = G.kin.find(x => x.id == cv.dataset.kid) || (fusionState && fusionState.preview && fusionState.preview.kin && fusionState.preview.kin.id == cv.dataset.kid ? fusionState.preview.kin : null); if (k) KIN.portrait(cv, k.sp, k.stage, +cv.dataset.size); }); }
   function kinCard(k, extra = '') {
     const st = KIN.stats(k); const frac = k.hp / st.hp;
     return `<div class="kcard" data-kid="${k.id}">${portraitHtml(k)}<div class="kinfo"><div class="krow"><b>${KIN.name(k)}</b>${(k.sp.rarity || 0) > 0 ? `<span class="rar r${k.sp.rarity}">${KIN.RARITY[k.sp.rarity].name}</span>` : ''}${k === G.activeKin() ? '<span class="tag">active</span>' : ''}${k.sp.mythic ? '<span class="tag myth">mythic</span>' : ''}${k.hp <= 0 ? '<span class="tag down">fainted</span>' : ''}<span class="lv">Lv ${k.level}<span style="opacity:.55">/${KIN.capOf(k.sp)}</span></span>${(k.tamed || k.sp.tame) ? `<span class="tag" title="trust">♞ ${Math.round((k.trust || 0) * 100)}%</span>` : ""}</div><div class="hpbar"><div class="hpfill" style="width:${frac * 100}%;background:${frac > 0.5 ? '#5ad66a' : frac > 0.22 ? '#f0c040' : '#f05040'}"></div></div><div class="krow small">${KIN.dominant(k.sp.elem, 2).map(e => `<span class="badge" style="background:${ELEM_COLOR[e]}">${e}</span>`).join('')}<span>${Math.round(k.hp)}/${st.hp}</span>${(k.sp.gen || 0) > 0 ? `<span class="gen">fusion g${k.sp.gen}</span>` : ''}</div>${extra}</div></div>`;
@@ -10225,7 +10263,7 @@ const UI = (() => {
     const body = el['panel-body'];
     const tonics = ['tonic_revive', 'tonic_heal'].map(t => `${ITEMS[t].name} ×${G.player.count(t)}`).join(' · ');
     const atTable = G.nearTable();
-    const eggs = G.eggs.map(e => `<div class="kcard egg"><div class="eggico"></div><div class="kinfo"><b>Egg${e.label ? ': ' + e.label : ''}</b><div class="small">${e.from ? 'From ' + e.from + '. ' : ''}Keep walking with it: about ${Math.max(0, Math.ceil(e.need - e.walked))} steps to go.</div><div class="qbar"><div style="width:${Math.round(100 * Math.min(1, e.walked / e.need))}%"></div></div></div></div>`).join('');
+    const eggs = G.eggs.map(e => `<div class="kcard egg"><canvas class="eggpic" data-seed="${e.seed}" width="64" height="64"></canvas><div class="kinfo"><b>Egg${e.label ? ': ' + e.label : ''}</b><div class="small">${e.from ? 'From ' + e.from + '. ' : ''}Keep walking with it: about ${Math.max(0, Math.ceil(e.need - e.walked))} steps to go.</div><div class="qbar"><div style="width:${Math.round(100 * Math.min(1, e.walked / e.need))}%"></div></div></div></div>`).join('');
     const box = G.box.length ? `<h4>Storage (${G.box.length})</h4>` + (atTable ? G.box.map((d, i) => `<div class="recipe"><div class="rinfo"><b>${d.nick || d.sp.names[(d.stage || 1) - 1]}</b> <span class="small">Lv ${d.level}</span></div><button class="btn" data-unbox="${i}" ${G.partyFull() ? 'disabled' : ''}>Take</button></div>`).join('') : '<p class="note">Your stored Kin wait at the Fusion Tables. Stand at any table to swap.</p>') : '';
     body.innerHTML = `<p class="note">You carry eight, and an egg takes a slot. Everyone awake learns a little from every win; the one that fights learns most.<br>${tonics}</p><div class="row"><button class="btn" id="k-dex">Kindex</button></div>` + G.kin.map(k => kinCard(k, healButton(k) + (atTable && G.kin.length > 1 ? `<button class="kheal" data-store="${k.id}">Store</button>` : ''))).join('') + eggs + box;
     drawPortraits(body);

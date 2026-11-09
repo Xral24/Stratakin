@@ -288,7 +288,8 @@ body.desktop #joy, body.desktop #btn-jump, body.desktop #btn-sneak { display: no
 .dexn { font-size: 10px; opacity: .6; margin-top: 2px; }
 .dexname { font-size: 12px; font-weight: 700; }
 .dexwhere { font-size: 10px; opacity: .8; }
-.kcard.egg .eggico { width: 52px; height: 64px; border-radius: 50% 50% 46% 46% / 60% 60% 40% 40%; background: radial-gradient(circle at 35% 30%, #fff8e0, #e8d6a8 55%, #b89a60); margin-right: 10px; flex: none; }
+.kcard.egg .eggpic { width: 64px; height: 64px; margin-right: 10px; flex: none; border-radius: 12px; background: rgba(0,0,0,.25); }
+.shop-row .eggpic { width: 56px; height: 56px; margin-right: 10px; flex: none; border-radius: 10px; background: rgba(0,0,0,.25); }
 
 #explain { position: absolute; left: 50%; transform: translateX(-50%); bottom: calc(190px + env(safe-area-inset-bottom)); width: min(86vw, 360px); background: rgba(16,24,38,.94); border: 2px solid rgba(122,215,255,.6); border-radius: 14px; padding: 10px 12px 8px; font-size: 13px; line-height: 1.35; pointer-events: auto; box-shadow: 0 4px 18px rgba(0,0,0,.5); z-index: 30; }
 #explain b { display: block; color: #9fe6ff; margin-bottom: 3px; }
