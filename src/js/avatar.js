@@ -26,21 +26,43 @@ const Avatar = (() => {
   function species(s) { return { shape: 'human', feat: { crest: false, ears: false, horns: false, spikes: false, tail: false, wings: false, bigEyes: s.id === 'neon' }, colors: s.colors, size: 1, gen: 0, names: [s.name], neon: !!s.neon }; }
   // your look: hair, skin tone, height, face paint, a cape, your own outfit colours (from the barber, the mirror hall and the designer)
   const look = () => (G && G.stats && G.stats.look) || {};
+  // hair, face paint and a cape, built with the same primitives as the folk. Head centre (0, 1.58, 0), radius 0.27, crown 1.88; shoulders (±0.33, 1.2)
   const HAIR = {
-    short: [[-0.32, 1.78, -0.3, 0.64, 0.12, 0.6]], long: [[-0.33, 1.78, -0.31, 0.66, 0.12, 0.62], [-0.33, 1.05, -0.33, 0.66, 0.8, 0.1]], mohawk: [[-0.06, 1.8, -0.32, 0.12, 0.32, 0.64]],
-    bun: [[-0.32, 1.78, -0.3, 0.64, 0.1, 0.6], [-0.12, 1.88, -0.36, 0.24, 0.24, 0.22]], spiky: [[-0.3, 1.8, -0.28, 0.14, 0.24, 0.14], [-0.07, 1.8, -0.1, 0.14, 0.3, 0.14], [0.16, 1.8, -0.28, 0.14, 0.22, 0.14], [-0.2, 1.8, 0.1, 0.14, 0.26, 0.14], [0.1, 1.8, 0.12, 0.14, 0.2, 0.14]],
-    braids: [[-0.32, 1.78, -0.3, 0.64, 0.1, 0.6], [-0.42, 0.9, -0.05, 0.1, 0.9, 0.1], [0.32, 0.9, -0.05, 0.1, 0.9, 0.1]], curls: [[-0.36, 1.74, -0.34, 0.72, 0.2, 0.7], [-0.4, 1.4, -0.36, 0.1, 0.36, 0.5], [0.3, 1.4, -0.36, 0.1, 0.36, 0.5]],
-    laurel: [[-0.34, 1.76, -0.32, 0.68, 0.1, 0.64], [-0.36, 1.82, -0.34, 0.72, 0.06, 0.06], [-0.36, 1.82, 0.28, 0.72, 0.06, 0.06], [-0.36, 1.82, -0.34, 0.06, 0.06, 0.68], [0.3, 1.82, -0.34, 0.06, 0.06, 0.68]], plume: [[-0.32, 1.78, -0.3, 0.64, 0.12, 0.6], [-0.04, 1.88, -0.3, 0.08, 0.55, 0.08], [-0.04, 2.3, -0.4, 0.08, 0.14, 0.2]],
-    topknot: [[-0.32, 1.78, -0.3, 0.64, 0.1, 0.6], [-0.1, 1.88, -0.1, 0.2, 0.36, 0.2]], crownbraid: [[-0.34, 1.76, -0.32, 0.68, 0.14, 0.64], [-0.36, 1.8, -0.34, 0.72, 0.1, 0.1], [-0.36, 1.8, 0.24, 0.72, 0.1, 0.1]],
+    short: (H, c) => { H.blob(-0.3, 1.55, -0.31, 0.3, 1.94, 0.2, 0.9, c, { n: 4, tap: [0.98, 0.9] }); H.blob(-0.26, 1.72, 0.1, 0.26, 1.9, 0.29, 0.8, c, { n: 3 }); },
+    long: (H, c) => { H.blob(-0.3, 1.55, -0.31, 0.3, 1.94, 0.2, 0.9, c, { n: 4, tap: [0.98, 0.9] }); H.blob(-0.24, 1.74, 0.1, 0.24, 1.9, 0.29, 0.8, c, { n: 3 }); for (const sd of [-1, 1]) H.tube([[sd * 0.27, 1.75, -0.08], [sd * 0.3, 1.4, -0.1], [sd * 0.3, 1.05, -0.08]], [0.09, 0.09, 0.07], c, { segs: 6, cap0: 'none', cap1: 'round' }); H.blob(-0.26, 1.0, -0.34, 0.26, 1.7, -0.14, 0.7, c, { n: 3, tap: [1, 0.8] }); },
+    mohawk: (H, c) => { for (let i = 0; i < 6; i++) { const z = 0.24 - i * 0.1; H.cone([0, 1.8 + Math.sin(i / 5 * Math.PI) * 0.03, z], [0, 1, 0.1 - i * 0.04], 0.32 + Math.sin(i / 5 * Math.PI) * 0.12, 0.065, c, { segs: 5 }); } H.blob(-0.08, 1.74, -0.3, 0.08, 1.9, 0.3, 0.8, c, { n: 2 }); },
+    bun: (H, c) => { H.blob(-0.3, 1.55, -0.31, 0.3, 1.93, 0.2, 0.9, c, { n: 4, tap: [0.98, 0.9] }); H.ball(0, 1.92, -0.14, 0.14, c, { n: 3 }); H.ring(0, 1.92, -0.14, 0.13, 0.13, 0.02, '#c9a84c', { emis: true }, 'z'); },
+    spiky: (H, c) => { H.blob(-0.29, 1.56, -0.3, 0.29, 1.9, 0.2, 0.9, c, { n: 3, tap: [0.98, 0.9] }); for (const [x, z, lx, lz] of [[-0.18, -0.12, -0.5, -0.2], [0, -0.16, 0, -0.5], [0.18, -0.12, 0.5, -0.2], [-0.12, 0.08, -0.4, 0.3], [0.12, 0.08, 0.4, 0.3], [0, 0.0, 0, 0.1]]) H.cone([x, 1.84, z], [lx, 1, lz], 0.3, 0.07, c, { segs: 5 }); },
+    braids: (H, c) => { H.blob(-0.3, 1.55, -0.31, 0.3, 1.93, 0.2, 0.9, c, { n: 4, tap: [0.98, 0.9] }); for (const sd of [-1, 1]) { H.tube([[sd * 0.26, 1.7, -0.1], [sd * 0.36, 1.4, -0.02], [sd * 0.38, 1.0, 0.04], [sd * 0.38, 0.86, 0.06]], [0.06, 0.055, 0.05, 0.02], c, { segs: 6, cap0: 'none', cap1: 'round' }); for (let i = 0; i < 3; i++) H.ring(sd * (0.3 + i * 0.03), 1.56 - i * 0.2, -0.05 + i * 0.03, 0.07, 0.07, 0.015, '#c94c4c'); } },
+    curls: (H, c) => { H.blob(-0.34, 1.52, -0.35, 0.34, 1.98, 0.24, 1, c, { n: 4 }); for (let i = 0; i < 9; i++) { const a = i / 9 * 6.283; H.ball(Math.cos(a) * 0.3, 1.78 + Math.sin(i * 2.1) * 0.08, Math.sin(a) * 0.3 - 0.05, 0.1, c, { n: 2 }); } },
+    laurel: (H, c) => { H.blob(-0.29, 1.56, -0.3, 0.29, 1.9, 0.2, 0.9, c, { n: 3, tap: [0.98, 0.9] }); for (let i = 0; i < 12; i++) { const a = i / 12 * 6.283 + 0.26; const x = Math.cos(a) * 0.29, z = Math.sin(a) * 0.29; H.plate([[x, 1.76, z], [x * 1.25 + Math.sin(a) * 0.06, 1.84, z * 1.25 - Math.cos(a) * 0.06], [x * 1.1, 1.9, z * 1.1], [x * 1.25 - Math.sin(a) * 0.06, 1.84, z * 1.25 + Math.cos(a) * 0.06]], 0.012, i % 2 ? '#5a9a3a' : '#c9a84c'); } },
+    plume: (H, c) => { H.blob(-0.3, 1.55, -0.31, 0.3, 1.93, 0.2, 0.9, c, { n: 4, tap: [0.98, 0.9] }); H.feather(0, 1.9, -0.1, 0.55, c, 0.1); H.feather(0.04, 1.88, -0.12, 0.45, '#e0302a', -0.2); },
+    topknot: (H, c) => { H.blob(-0.3, 1.55, -0.31, 0.3, 1.93, 0.2, 0.9, c, { n: 4, tap: [0.98, 0.9] }); H.tube([[0, 1.9, 0], [0, 2.12, 0]], [0.09, 0.07], c, { segs: 6, cap0: 'none', cap1: 'none' }); H.ball(0, 2.18, 0, 0.11, c, { n: 3 }); H.ring(0, 2.06, 0, 0.085, 0.085, 0.015, '#c94c4c'); },
+    crownbraid: (H, c) => { H.blob(-0.3, 1.55, -0.31, 0.3, 1.93, 0.2, 0.9, c, { n: 4, tap: [0.98, 0.9] }); const pts = []; for (let i = 0; i <= 16; i++) { const a = i / 16 * 6.283; pts.push([Math.cos(a) * 0.3, 1.8 + Math.sin(a * 8) * 0.012, Math.sin(a) * 0.3]); } H.tube(pts, pts.map((p, i) => 0.05 + 0.015 * Math.sin(i * 2.4)), c, { segs: 6, cap0: 'none', cap1: 'none' }); },
   };
-  const PAINT = { stripes: [[-0.3, 1.5, 0.24, 0.6, 0.05, 0.03], [-0.3, 1.38, 0.24, 0.6, 0.05, 0.03]], dots: [[-0.25, 1.45, 0.24, 0.08, 0.08, 0.03], [0.17, 1.45, 0.24, 0.08, 0.08, 0.03], [-0.04, 1.33, 0.24, 0.08, 0.08, 0.03]], mask: [[-0.32, 1.42, 0.24, 0.64, 0.14, 0.03]], tribal: [[-0.04, 1.3, 0.24, 0.08, 0.35, 0.03], [-0.28, 1.48, 0.24, 0.2, 0.05, 0.03], [0.08, 1.48, 0.24, 0.2, 0.05, 0.03]], star: [[0.1, 1.42, 0.24, 0.14, 0.14, 0.03], [0.13, 1.39, 0.24, 0.08, 0.2, 0.03]] };
+  // face paint: patches laid on the face, following its curve
+  const PAINT = {
+    stripes: (H, c) => { for (const y of [1.52, 1.42]) H.plate([[-0.22, y, H.faceZ(-0.22, y) + 0.006], [0.22, y, H.faceZ(0.22, y) + 0.006], [0.22, y - 0.045, H.faceZ(0.22, y - 0.045) + 0.006], [-0.22, y - 0.045, H.faceZ(-0.22, y - 0.045) + 0.006]], 0.004, c); },
+    dots: (H, c) => { for (const [x, y] of [[-0.2, 1.47], [0.2, 1.47], [0, 1.36], [-0.12, 1.7], [0.12, 1.7]]) H.ball(x, y, H.faceZ(x, y) + 0.004, 0.028, c, { n: 1 }); },
+    mask: (H, c) => H.plate([[-0.25, 1.56, H.faceZ(-0.25, 1.56) + 0.006], [-0.1, 1.68, H.faceZ(-0.1, 1.68) + 0.006], [0.1, 1.68, H.faceZ(0.1, 1.68) + 0.006], [0.25, 1.56, H.faceZ(0.25, 1.56) + 0.006], [0.25, 1.5, H.faceZ(0.25, 1.5) + 0.006], [0.0, 1.46, H.faceZ(0, 1.46) + 0.006], [-0.25, 1.5, H.faceZ(-0.25, 1.5) + 0.006]], 0.004, c),
+    tribal: (H, c) => { H.plate([[-0.025, 1.3, H.faceZ(-0.025, 1.3) + 0.006], [0.025, 1.3, H.faceZ(0.025, 1.3) + 0.006], [0.02, 1.47, H.faceZ(0.02, 1.47) + 0.006], [-0.02, 1.47, H.faceZ(-0.02, 1.47) + 0.006]], 0.004, c); for (const sd of [-1, 1]) H.plate([[sd * 0.1, 1.5, H.faceZ(sd * 0.1, 1.5) + 0.006], [sd * 0.25, 1.46, H.faceZ(sd * 0.25, 1.46) + 0.006], [sd * 0.25, 1.42, H.faceZ(sd * 0.25, 1.42) + 0.006], [sd * 0.1, 1.46, H.faceZ(sd * 0.1, 1.46) + 0.006]], 0.004, c); },
+    star: (H, c) => { const x0 = 0.16, y0 = 1.44; const pts = []; for (let i = 0; i < 10; i++) { const a = i / 10 * 6.283 - 1.57; const r = i % 2 ? 0.03 : 0.07; const x = x0 + Math.cos(a) * r, y = y0 + Math.sin(a) * r; pts.push([x, y, H.faceZ(x, y) + 0.006]); } H.plate(pts, 0.004, c); },
+  };
   function model(s) {
     const L = look(); const sp = species(s); sp.colors = Object.assign({}, sp.colors); if (L.tone) sp.colors.belly = L.tone; if (L.outfit) sp.colors.body = L.outfit; if (L.trim) sp.colors.accent = L.trim;
-    const m = KIN.model(sp, 2); for (const d of s.deco) KIN.decorate(m, d); const sc = m.scale; const add = (b, c, emis) => m.boxes.push({ x: b[0] * sc, y: b[1] * sc, z: b[2] * sc, w: b[3] * sc, h: b[4] * sc, d: b[5] * sc, c, emis });
-    if (L.hair && HAIR[L.hair] && !s.deco.some(d => d === 'crown' || d === 'visor' || d === 'hat')) for (const b of HAIR[L.hair]) add(b, L.hairCol || '#3a2a1a');
-    if (L.paint && PAINT[L.paint]) for (const b of PAINT[L.paint]) add(b, L.paintCol || '#e0302a');
-    if (L.cape) add([-0.38, 0.35, -0.36, 0.76, 1.25, 0.05], L.cape);
-    return m;
+    const styled = L.hair && HAIR[L.hair] && !s.deco.some(d => d === 'crown' || d === 'visor' || d === 'hat');
+    if (styled) sp.bald = true; else if (L.hairCol) sp.hair = L.hairCol;
+    const m = KIN.model(sp, 2); for (const d of s.deco) KIN.decorate(m, d);
+    const H = KIN.partHelpers(m); H.bone = 1;
+    if (styled) HAIR[L.hair](H, L.hairCol || '#3a2a1a');
+    if (L.paint && PAINT[L.paint]) PAINT[L.paint](H, L.paintCol || '#e0302a');
+    H.bone = 0;
+    if (L.cape) { // a cape from the shoulders, falling behind to the calves, flaring a little
+      const spine = []; const widths = []; for (let i = 0; i <= 6; i++) { const t = i / 6; spine.push([0, 1.22 - t * 0.98, -0.2 - Math.sin(t * 2.4) * 0.14 - t * 0.04]); widths.push(0.3 + t * 0.14); }
+      H.ribbon(spine, widths, L.cape, { droop: 0.25, tip: U.rgbToHex(U.mixColor(U.hexToRgb(L.cape), [0, 0, 0], 0.25)) });
+      H.tube([[-0.3, 1.24, -0.12], [0, 1.22, -0.2], [0.3, 1.24, -0.12]], [0.03, 0.035, 0.03], '#c9a84c', { segs: 5, cap0: 'round', cap1: 'round' }); // the clasp cord
+    }
+    H.done(); return m;
   }
   function mesh(s) { const key = s.id + ':' + JSON.stringify(look()); let m = meshes.get(key); if (!m) { const mdl = model(s); m = { model: mdl, mesh: R.entityMesh('avatar:' + key, (mb) => KIN.buildMesh(mb, mdl)) }; meshes.set(key, m); } return m; }
   // the entity for the render list: standing where you stand, facing where you face, bobbing when you walk, seated on a mount
