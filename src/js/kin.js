@@ -647,7 +647,7 @@ const KIN = (() => {
         kind = 'human';
         const skin = C.belly, cloth = C.body, dark = C.dark, hair = sp.hair || hexMix(C.dark, '#2a1a10', 0.5), skin2 = hexMix(skin, '#c8604a', 0.22);
         blob(-0.32, 0.6, -0.21, 0.32, 1.26, 0.21, 0.7, cloth, { tap: [1.0, 0.9], bulge: 0.05, n: 4 });
-        ring(0, 0.67, 0, 0.3, 0.19, 0.03, dark); blob(-0.12, 0.6, -0.2, 0.12, 0.74, 0.2, 0.5, hexMix(C.accent, '#000000', 0.15), { n: 2 }); // belt and buckle
+        ring(0, 0.67, 0, 0.3, 0.19, 0.03, dark); blob(-0.1, 0.6, 0.12, 0.1, 0.74, 0.24, 0.5, hexMix(C.accent, '#000000', 0.15), { n: 2 }); // belt, and the buckle on the front only (it used to poke out of the back too, so from behind he seemed to face you)
         tube([[0, 1.18, 0], [0, 1.36, 0]], [0.09, 0.09], skin, { cap0: 'none', cap1: 'none', segs: 6 });
         B(1, 'head', [0, 1.3, 0]);
         blob(-0.27, 1.28, -0.28, 0.27, 1.88, 0.28, 0.92, skin, { n: 5, tap: [0.86, 1.0] }); // egg head: narrower jaw, wide crown
