@@ -1407,7 +1407,8 @@ const R = (() => {
     };
     const list = [];
     for (const e of entities) { if (!e.mesh || !e.mesh.count) continue; const d2 = (e.x - cam.x) ** 2 + (e.z - cam.z) ** 2; if (d2 > state.viewDist * state.viewDist) continue; e._d2 = d2; list.push(e); }
-    for (const e of list) drawOne(e, false);
+    const seeThru = []; for (const e of list) { if (e.alpha != null && e.alpha < 1) seeThru.push(e); else drawOne(e, false); }
+    if (seeThru.length) { gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA); gl.depthMask(false); for (const e of seeThru) drawOne(e, false); gl.depthMask(true); gl.disable(gl.BLEND); }
     if (outlineW > 0) { gl.enable(gl.CULL_FACE); gl.cullFace(gl.FRONT); for (const e of list) { if (e.isFx || e.noOutline || e._d2 > 1600) continue; drawOne(e, true); } gl.disable(gl.CULL_FACE); }
     gl.uniform1f(eloc.uOutline, 0); gl.uniform1f(eloc.uSkyMul, 1); gl.uniform1f(eloc.uAlpha, 1);
   }
@@ -1617,6 +1618,17 @@ const R = (() => {
     drawEntityMesh(h.mesh);
     const outlineW = state.outlines === false ? 0 : (isMobile ? 0.022 : 0.026);
     if (outlineW > 0) { gl.enable(gl.CULL_FACE); gl.cullFace(gl.FRONT); gl.uniform1f(eloc.uOutline, outlineW * 0.6); drawEntityMesh(h.mesh); gl.disable(gl.CULL_FACE); gl.uniform1f(eloc.uOutline, 0); }
+    // the other hand: the shield rising square in front as you block, mirrored so the strap arm is the left one
+    if (h.offhand && h.offhand.count && h.offK > 0.02) {
+      const k = h.offK; const opx = (-0.62 + 0.46 * k) * hx + bobX * 0.5, opy = (-0.95 + 0.5 * k) * hy + bobY * 0.5, opz = d - 0.06 * k;
+      const opos = [cam.x + r[0] * opx + u[0] * opy + f[0] * opz, cam.y + r[1] * opx + u[1] * opy + f[1] * opz, cam.z + r[2] * opx + u[2] * opy + f[2] * opz];
+      const obase = new Float32Array([r[0], r[1], r[2], 0, u[0], u[1], u[2], 0, -f[0], -f[1], -f[2], 0, opos[0], opos[1], opos[2], 1]);
+      const olocal = m4rot(0.25 * k, 0.35 - 0.6 * k, 0); const OS = U.m4identity(); OS[0] = -0.36; OS[5] = OS[10] = 0.36;
+      gl.uniformMatrix4fv(eloc.uModel, false, U.m4mul(U.m4mul(obase, olocal), OS));
+      gl.frontFace(gl.CW); drawEntityMesh(h.offhand);
+      if (outlineW > 0) { gl.enable(gl.CULL_FACE); gl.cullFace(gl.FRONT); gl.uniform1f(eloc.uOutline, outlineW * 0.6); drawEntityMesh(h.offhand); gl.disable(gl.CULL_FACE); gl.uniform1f(eloc.uOutline, 0); }
+      gl.frontFace(gl.CCW);
+    }
     gl.useProgram(prog);
   }
 

@@ -198,6 +198,9 @@ code { font-family: var(--pix); font-size: 11px; }
 .tag.down { background: #ff6b5a; }
 #btn-snare { position: absolute; left: 50%; bottom: calc(176px + env(safe-area-inset-bottom)); transform: translateX(-50%); padding: 12px 22px; border-radius: 24px; background: #7fe0c0; color: #0a2a22; border: 0; font-weight: 800; font-size: 16px; pointer-events: auto; box-shadow: 0 4px 14px rgba(0,0,0,.4); animation: pulse 1.2s infinite; }
 @keyframes pulse { 50% { transform: translateX(-50%) scale(1.06); } }
+#btn-deploy { position: absolute; left: 50%; top: calc(152px + env(safe-area-inset-top)); transform: translateX(-50%); padding: 7px 15px; border-radius: 16px; background: rgba(226, 84, 44, .42); color: rgba(255,255,255,.92); border: 1.5px solid rgba(255, 214, 184, .55); font-weight: 800; font-size: 13px; letter-spacing: .3px; pointer-events: auto; box-shadow: 0 2px 10px rgba(0,0,0,.25); text-shadow: 0 1px 2px rgba(0,0,0,.45); backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px); }
+#btn-deploy:active { background: rgba(226, 84, 44, .8); }
+#btn-deploy.hidden, #btn-snare.hidden { display: none; }
 #btn-ride { position: absolute; right: 97px; bottom: calc(160px + env(safe-area-inset-bottom)); width: 54px; height: 40px; border-radius: 20px; background: rgba(255,255,255,.1); border: 2px solid rgba(255,255,255,.3); font-size: 12px; pointer-events: auto; }
 #btn-ride.on { background: rgba(240,208,144,.5); }
 body.desktop #joy, body.desktop #btn-jump, body.desktop #btn-sneak { display: none; }

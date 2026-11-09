@@ -95,7 +95,10 @@ const Held = (() => {
     if (!item) return null;
     const tone = (G.stats && G.stats.look && G.stats.look.tone) ? C(G.stats.look.tone) : null;
     const m = mesh(key, item, tone);
-    return { mesh: m.mesh, bob: st.bobT, moving: moving ? 1 : 0, swing: st.swing, bump: st.bump, drop: st.switchT, block: p.blocking ? 1 : 0, shieldy: key.startsWith('sh_') };
+    // blocking with a weapon in hand: the shield from your bag comes up in the other hand
+    st.blockK = st.blockK == null ? 0 : st.blockK + ((p.blocking && !key.startsWith('sh_') ? 1 : 0) - st.blockK) * Math.min(1, dt * 14);
+    let off = null; if (st.blockK > 0.02 && typeof Combat !== 'undefined') { const sh = Combat.shield(); if (sh && ITEMS[sh.id]) off = mesh(sh.id, ITEMS[sh.id], tone).mesh; }
+    return { mesh: m.mesh, bob: st.bobT, moving: moving ? 1 : 0, swing: st.swing, bump: st.bump, drop: st.switchT, block: p.blocking ? 1 : 0, shieldy: key.startsWith('sh_'), offhand: off, offK: st.blockK };
   }
   return { describe, mesh };
 })();

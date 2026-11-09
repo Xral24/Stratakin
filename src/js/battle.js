@@ -18,7 +18,9 @@ const Battle = (() => {
     if (active) return;
     const party = G.healthyKin();
     if (!party.length) { G.toast('All your Kin are down. Revive them at the Voodoo Hut or with a tonic.'); e.alert = 0; e.wait = 4; if (!e.chase) e.cool = 6; return; }
-    if (e.chase) { e.chase = null; e.cool = 0; if (Wild.chaser === e) Wild.chaser = null; }
+    if (e.chase) { Wild.disengage(e, 0); e.alert = 1; }
+    if (e.dazed > 0) { e.dazed = 0; e.hover = e.model.hover; e.jawOpen = 0; }
+    e.stunT = 0; e.flee = 0;
     active = true; busy = true; wildE = e; wild = e.kin; ambush = isAmbush; turn = 0;
     wild.buffs = buffs(); wild.hp = Math.min(wild.hp, KIN.stats(wild).hp); if (G.seenDex) G.seenDex(wild.sp, "seen");
     mine = G.activeKin() || party[0]; mine.buffs = buffs();

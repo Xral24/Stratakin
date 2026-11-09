@@ -2,7 +2,7 @@
 // Your lead Kin walks with you, a step behind at your shoulder. Fliers keep up in the air, swimmers in the water.
 // Now and then, as you walk, it noses out something that suits its element and brings it to you.
 const Buddy = (() => {
-  let G = null, e = null, key = null, walked = 0, nextFind = 160, hopT = 0, gyT = 0, gy = 0, lastX = 0, lastZ = 0;
+  let G = null, e = null, key = null, walked = 0, nextFind = 160, hopT = 0, gyT = 0, gy = 0, lastX = 0, lastZ = 0, helpT = 4, dash = null;
   const FINDS = {
     Stone: [['copper', 1], ['iron', 1], ['stone', 3]], Bloom: [['berry', 3], ['frond', 2]], Flame: [['ember', 1]], Tide: [['pearl', 1], ['bait_berry', 1]],
     Gale: [['feather', 1]], Frost: [['snow', 3], ['broth', 1]], Spark: [['copper', 2]], Void: [['void', 1]], Light: [['glowworm', 2]],
@@ -11,7 +11,34 @@ const Buddy = (() => {
     Stone: 'scrapes at the ground and turns up', Bloom: 'roots under a bush and comes back with', Flame: 'sniffs out something warm:', Tide: 'paddles back with',
     Gale: 'snatches something out of the air:', Frost: 'digs in the cold and finds', Spark: 'crackles at a rock and knocks loose', Void: 'stares into a crack in the ground and pulls out', Light: 'glows brighter and leads you to',
   };
-  function init(game) { G = game; e = null; key = null; walked = 0; }
+  function init(game) { G = game; e = null; key = null; walked = 0; helpT = 4; dash = null; }
+  // ---- the fight: it pitches in. Now and then it darts at whatever you are fighting, lands one, and trots back to your shoulder ----
+  function foeNear(p) {
+    let best = null, bd = 9;
+    const h = Wild.engagedNear(p, 9); if (h && !(h.dazed > 0)) { best = h; bd = Math.hypot(h.x - p.x, h.z - p.z); }
+    const f = typeof Combat !== 'undefined' && Combat.nearestFoe ? Combat.nearestFoe(p, bd) : null; if (f) best = f;
+    return best;
+  }
+  function gone(T) { return !T || (T.isFoe ? T.state === 'down' : (T.dazed > 0 || !T.chase)); }
+  function land(k, T) {
+    const lvl = k.level || 1; const hx = T.x - (T.x - e.x) * 0.25, hz = T.z - (T.z - e.z) * 0.25, hy = T.y + (T.isFoe ? 1 : (T.model ? T.model.height * T.scale * 0.5 : 0.8));
+    if (T.isFoe) Combat.hurtFoe(T, Math.round(3 + lvl * 0.15), e.x, e.z); else Wild.strike(T, 0.06 + Math.min(0.08, lvl * 0.0012), { fromX: e.x, fromZ: e.z, push: 0.3, quiet: true });
+    Hazards.sparks(hx, hy, hz, 8, [1.0, 0.95, 0.8]); UI.sfx('hit'); hopT = 0.4;
+    if (G.stats && !G.stats.buddyFightTold) { G.stats.buddyFightTold = true; UI.toast(`${KIN.name(k)} gets a bite in.`, 'good'); }
+  }
+  function fight(dt, p, k) {
+    if (dash) {
+      dash.t += dt; const T = dash.target;
+      if (gone(T) && !dash.hit) { dash = null; return false; }
+      const u = Math.min(1, dash.t / 0.32); // in over a third of a second, the blow, then back
+      if (!dash.hit) { e.x = dash.x0 + (T.x - dash.x0) * u * 0.8; e.z = dash.z0 + (T.z - dash.z0) * u * 0.8; e.yaw = Math.atan2(T.x - e.x, T.z - e.z); e.hover = (e.model.hover || 0) + Math.sin(u * Math.PI) * 0.45 * Math.min(1.5, e.model.height); if (u >= 1) { dash.hit = true; land(k, T); } }
+      else if (dash.t > 0.75) dash = null;
+      gyT = 0; return !dash || !dash.hit ? true : false;
+    }
+    helpT -= dt; if (helpT > 0) return false;
+    const T = foeNear(p); if (!T) { helpT = 1; return false; }
+    helpT = 4.5 + Math.random() * 3; dash = { target: T, t: 0, x0: e.x, z0: e.z, hit: false }; return true;
+  }
   function lead() { const k = G.kin && G.kin[G.activeIdx]; return k && k.hp > 0 ? k : null; }
   function hidden(p) {
     if (Battle.active || p.flying || p.mount || (G.stats && G.stats.buddyOff)) return true;
@@ -35,6 +62,7 @@ const Buddy = (() => {
     if (hidden(p)) { e.away = true; return; }
     if (e.away) { e.away = false; place(p, true); }
     e.bob += dt;
+    if (fight(dt, p, k)) { e.y += ((e.flying ? p.y + 1.0 : ground(e.x, e.z, Math.max(p.y, e.y))) - e.y) * Math.min(1, dt * 10); return; }
     const s = spot(p); const dx = s.x - e.x, dz = s.z - e.z, d = Math.hypot(dx, dz);
     const gliding = p.gliding;
     if (d > 18 || Math.abs(p.y - e.y) > 8 || (gliding && !e.flying)) { if (gliding && !e.flying) { e.away = true; return; } place(p, true); return; }

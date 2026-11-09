@@ -16,6 +16,8 @@ const Hazards = (() => {
     G.shake = 0.6;
   }
   function puff(x, y, z, n, col) { for (let i = 0; i < n; i++) fx.push({ x: x + (Math.random() - 0.5) * 1.6, y, z: z + (Math.random() - 0.5) * 1.6, vx: (Math.random() - 0.5) * 3, vy: 2 + Math.random() * 4, vz: (Math.random() - 0.5) * 3, t: 0, dur: 0.6 + Math.random() * 0.5, col, size: 0.12 + Math.random() * 0.14 }); }
+  // sparks: a tight burst from a hit, bright and short, every way at once with a little lift
+  function sparks(x, y, z, n, col, spread = 3.5) { for (let i = 0; i < n; i++) { const a = Math.random() * 6.283, el = (Math.random() - 0.3) * 1.2; const sp = spread * (0.5 + Math.random()); fx.push({ x: x + (Math.random() - 0.5) * 0.2, y: y + (Math.random() - 0.5) * 0.2, z: z + (Math.random() - 0.5) * 0.2, vx: Math.cos(a) * Math.cos(el) * sp, vy: Math.sin(el) * sp + 1.5, vz: Math.sin(a) * Math.cos(el) * sp, t: 0, dur: 0.18 + Math.random() * 0.2, col, size: 0.06 + Math.random() * 0.06, emis: true }); } }
 
   // ---- the worms of the Mare ----
   function inMare(p) { if (!world.preset.worms) return false; const info = world.colInfo(Math.floor(p.x), Math.floor(p.z)); return info.biome === BIOME.MARE && p.y < info.h + 6 && p.y > info.h - 3; }
@@ -103,7 +105,13 @@ const Hazards = (() => {
       }
     }
     for (const s of shards) if (s.t > s.warn - 1.2 && !s.done) out.push({ x: s.x, y: s.y, z: s.z, yaw: s.t * 7, scale: 1.2, hover: 0, skyMul: 1, isFx: true, mesh: R.entityMesh('shard', (mb) => { mb.box(-0.3, -0.5, -0.3, 0.3, 0.5, 0.3, [1.0, 0.94, 0.75], 1, true); mb.box(-0.15, 0.5, -0.15, 0.15, 1.6, 0.15, [1.0, 0.8, 0.4], 1, true); }), model: { height: 1 } });
-    for (const f of fx) out.push({ x: f.x, y: f.y, z: f.z, yaw: f.t * 5, scale: Math.max(0.01, f.size * 6 * (1 - f.t / f.dur)), hover: 0, skyMul: 1, isFx: true, mesh: R.entityMesh('hfx:' + f.col.join(','), (mb) => mb.box(-0.08, -0.08, -0.08, 0.08, 0.08, 0.08, f.col, 1, f.col[0] > 0.9)), model: { height: 1 } });
+    for (const f of fx) {
+      if (f.emis) { // a spark: a bright streak along its flight, gone in a blink
+        out.push({ x: f.x, y: f.y, z: f.z, yaw: Math.atan2(f.vx, f.vz), scale: Math.max(0.01, f.size * 6 * (1 - f.t / f.dur)), hover: 0, skyMul: 1, isFx: true, noOutline: true, noShadow: true, mesh: R.entityMesh('hspark:' + f.col.join(','), (mb) => { mb.box(-0.03, -0.03, -0.16, 0.03, 0.03, 0.16, f.col, 1, true); mb.box(-0.06, -0.06, -0.05, 0.06, 0.06, 0.05, [1, 1, 1], 1, true); }), model: { height: 1 } });
+        continue;
+      }
+      out.push({ x: f.x, y: f.y, z: f.z, yaw: f.t * 5, scale: Math.max(0.01, f.size * 6 * (1 - f.t / f.dur)), hover: 0, skyMul: 1, isFx: true, mesh: R.entityMesh('hfx:' + f.col.join(','), (mb) => mb.box(-0.08, -0.08, -0.08, 0.08, 0.08, 0.08, f.col, 1, f.col[0] > 0.9)), model: { height: 1 } });
+    }
     return out;
   }
   function lines() {
@@ -112,5 +120,5 @@ const Hazards = (() => {
     for (const s of shards) if (!s.done) { const u = s.t / s.warn; out.push({ data: R.ringLines(s.x, s.gy + 0.05, s.z, 2.6), color: [1, 0.55, 0.1, 0.9] }); out.push({ data: R.ringLines(s.x, s.gy + 0.08, s.z, 2.6 * (1 - u) + 0.2), color: [1, 0.2, 0.1, 0.95] }); }
     return out;
   }
-  return { init, update, entities, lines, get worms() { return worms; }, get shards() { return shards; } };
+  return { init, update, entities, lines, sparks, puff, get worms() { return worms; }, get shards() { return shards; } };
 })();

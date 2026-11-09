@@ -213,6 +213,9 @@ code { font-family: var(--pix); font-size: 11px; }
 .tag.down { background: #ff6b5a; }
 #btn-snare { position: absolute; left: 50%; bottom: calc(176px + env(safe-area-inset-bottom)); transform: translateX(-50%); padding: 12px 22px; border-radius: 24px; background: #7fe0c0; color: #0a2a22; border: 0; font-weight: 800; font-size: 16px; pointer-events: auto; box-shadow: 0 4px 14px rgba(0,0,0,.4); animation: pulse 1.2s infinite; }
 @keyframes pulse { 50% { transform: translateX(-50%) scale(1.06); } }
+#btn-deploy { position: absolute; left: 50%; top: calc(152px + env(safe-area-inset-top)); transform: translateX(-50%); padding: 7px 15px; border-radius: 16px; background: rgba(226, 84, 44, .42); color: rgba(255,255,255,.92); border: 1.5px solid rgba(255, 214, 184, .55); font-weight: 800; font-size: 13px; letter-spacing: .3px; pointer-events: auto; box-shadow: 0 2px 10px rgba(0,0,0,.25); text-shadow: 0 1px 2px rgba(0,0,0,.45); backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px); }
+#btn-deploy:active { background: rgba(226, 84, 44, .8); }
+#btn-deploy.hidden, #btn-snare.hidden { display: none; }
 #btn-ride { position: absolute; right: 97px; bottom: calc(160px + env(safe-area-inset-bottom)); width: 54px; height: 40px; border-radius: 20px; background: rgba(255,255,255,.1); border: 2px solid rgba(255,255,255,.3); font-size: 12px; pointer-events: auto; }
 #btn-ride.on { background: rgba(240,208,144,.5); }
 body.desktop #joy, body.desktop #btn-jump, body.desktop #btn-sneak { display: none; }
@@ -391,6 +394,7 @@ body.desktop #joy, body.desktop #btn-jump, body.desktop #btn-sneak { display: no
     <button id="btn-jump">▲</button>
     <button id="btn-sneak" aria-label="Down">▼</button>
     <button id="btn-snare" class="hidden">Set snare</button>
+    <button id="btn-deploy" class="hidden">Deploy Kin</button>
     <div id="fishbar" class="hidden"><div class="snare-tip">A bite! Tap when the marker is in the glow.</div><div class="snare-track"><div class="snare-zone"></div><div class="snare-marker"></div></div></div>
     <button id="btn-ride" class="hidden">Ride</button>
     <button id="btn-ship" class="hidden" aria-label="Starship">🚀</button>
@@ -2829,7 +2833,8 @@ const R = (() => {
     };
     const list = [];
     for (const e of entities) { if (!e.mesh || !e.mesh.count) continue; const d2 = (e.x - cam.x) ** 2 + (e.z - cam.z) ** 2; if (d2 > state.viewDist * state.viewDist) continue; e._d2 = d2; list.push(e); }
-    for (const e of list) drawOne(e, false);
+    const seeThru = []; for (const e of list) { if (e.alpha != null && e.alpha < 1) seeThru.push(e); else drawOne(e, false); }
+    if (seeThru.length) { gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA); gl.depthMask(false); for (const e of seeThru) drawOne(e, false); gl.depthMask(true); gl.disable(gl.BLEND); }
     if (outlineW > 0) { gl.enable(gl.CULL_FACE); gl.cullFace(gl.FRONT); for (const e of list) { if (e.isFx || e.noOutline || e._d2 > 1600) continue; drawOne(e, true); } gl.disable(gl.CULL_FACE); }
     gl.uniform1f(eloc.uOutline, 0); gl.uniform1f(eloc.uSkyMul, 1); gl.uniform1f(eloc.uAlpha, 1);
   }
@@ -3039,6 +3044,17 @@ const R = (() => {
     drawEntityMesh(h.mesh);
     const outlineW = state.outlines === false ? 0 : (isMobile ? 0.022 : 0.026);
     if (outlineW > 0) { gl.enable(gl.CULL_FACE); gl.cullFace(gl.FRONT); gl.uniform1f(eloc.uOutline, outlineW * 0.6); drawEntityMesh(h.mesh); gl.disable(gl.CULL_FACE); gl.uniform1f(eloc.uOutline, 0); }
+    // the other hand: the shield rising square in front as you block, mirrored so the strap arm is the left one
+    if (h.offhand && h.offhand.count && h.offK > 0.02) {
+      const k = h.offK; const opx = (-0.62 + 0.46 * k) * hx + bobX * 0.5, opy = (-0.95 + 0.5 * k) * hy + bobY * 0.5, opz = d - 0.06 * k;
+      const opos = [cam.x + r[0] * opx + u[0] * opy + f[0] * opz, cam.y + r[1] * opx + u[1] * opy + f[1] * opz, cam.z + r[2] * opx + u[2] * opy + f[2] * opz];
+      const obase = new Float32Array([r[0], r[1], r[2], 0, u[0], u[1], u[2], 0, -f[0], -f[1], -f[2], 0, opos[0], opos[1], opos[2], 1]);
+      const olocal = m4rot(0.25 * k, 0.35 - 0.6 * k, 0); const OS = U.m4identity(); OS[0] = -0.36; OS[5] = OS[10] = 0.36;
+      gl.uniformMatrix4fv(eloc.uModel, false, U.m4mul(U.m4mul(obase, olocal), OS));
+      gl.frontFace(gl.CW); drawEntityMesh(h.offhand);
+      if (outlineW > 0) { gl.enable(gl.CULL_FACE); gl.cullFace(gl.FRONT); gl.uniform1f(eloc.uOutline, outlineW * 0.6); drawEntityMesh(h.offhand); gl.disable(gl.CULL_FACE); gl.uniform1f(eloc.uOutline, 0); }
+      gl.frontFace(gl.CCW);
+    }
     gl.useProgram(prog);
   }
 
@@ -4071,7 +4087,10 @@ const Held = (() => {
     if (!item) return null;
     const tone = (G.stats && G.stats.look && G.stats.look.tone) ? C(G.stats.look.tone) : null;
     const m = mesh(key, item, tone);
-    return { mesh: m.mesh, bob: st.bobT, moving: moving ? 1 : 0, swing: st.swing, bump: st.bump, drop: st.switchT, block: p.blocking ? 1 : 0, shieldy: key.startsWith('sh_') };
+    // blocking with a weapon in hand: the shield from your bag comes up in the other hand
+    st.blockK = st.blockK == null ? 0 : st.blockK + ((p.blocking && !key.startsWith('sh_') ? 1 : 0) - st.blockK) * Math.min(1, dt * 14);
+    let off = null; if (st.blockK > 0.02 && typeof Combat !== 'undefined') { const sh = Combat.shield(); if (sh && ITEMS[sh.id]) off = mesh(sh.id, ITEMS[sh.id], tone).mesh; }
+    return { mesh: m.mesh, bob: st.bobT, moving: moving ? 1 : 0, swing: st.swing, bump: st.bump, drop: st.switchT, block: p.blocking ? 1 : 0, shieldy: key.startsWith('sh_'), offhand: off, offK: st.blockK };
   }
   return { describe, mesh };
 })();
@@ -5452,16 +5471,45 @@ const Wild = (() => {
       if (e.breach != null) { e.breach += dt; const c = e.breach % 11; e.hover = c < 2.2 ? Math.sin(c / 2.2 * Math.PI) * 3.0 : 0; }
       e.skyT -= dt; if (e.skyT <= 0) { e.skyT = 0.4; e.skyMul = skyExposure(e); }
       if (battleActive) continue;
+      if (e.hitT > 0) e.hitT -= dt;
       if (e.high) { if (dist > 90) { list.splice(i, 1); continue; } updateHigh(e, dt, player); continue; } // never triggers a fight on its own: you go up to it
-      // ---- chase: after it beat your last Kin it comes for you ----
+      // ---- dazed: beaten by hand, it lies there for a while, then crawls off ----
+      if (e.dazed > 0) {
+        e.dazed -= dt; e.hover = (e.model.hover || 0) - Math.min(0.12, e.model.height * 0.08); e.jawOpen = 0.5; e.yaw += Math.sin(e.bob * 2.2) * dt * 0.6;
+        { const an = e._an || (e._an = Anim.fresh(e, performance.now())); an.sit = 1; an.lean = 0.3; an.nod = 0.45 + Math.sin(e.bob * 2.2) * 0.1; }
+        if (((e.bob * 6) | 0) % 5 === 0 && Math.random() < 0.3) Hazards.sparks(e.x + Math.sin(e.bob * 3) * 0.5, e.y + e.model.height * 0.9 + (e.hover || 0), e.z + Math.cos(e.bob * 3) * 0.5, 1, [1, 0.95, 0.6], 0.3);
+        if (e.dazed <= 0) { const st = KIN.stats(e.kin); e.kin.hp = Math.max(1, Math.round(st.hp * 0.25)); e.hover = e.model.hover; e.jawOpen = 0; e.cool = 40; e.alert = 0; e.hunt = 0; e.flee = 7; if (e._an) { e._an.sit = 0; e._an.lean = 0; e._an.nod = 0; } UI.toast(`${KIN.name(e.kin)} shakes itself and slinks off.`); }
+        continue;
+      }
+      if (e.flee > 0) { // away from you, fast, until it is out of sight
+        e.flee -= dt; const hd = Math.hypot(dx, dz) || 1; const step = Math.max(e.speed, 3.4) * dt; const a0 = Math.atan2(-dx, -dz); let went = false;
+        for (const da of [0, 0.7, -0.7, 1.4, -1.4]) { const a = a0 + da; const nx = e.x + Math.sin(a) * step, nz = e.z + Math.cos(a) * step; const gy = findGround(nx, e.y, nz, e); if (gy != null) { e.x = nx; e.z = nz; e.y += ((e.flying && !e.aquatic ? gy + 0.6 : gy) - e.y) * Math.min(1, dt * 6); e.yaw = a; went = true; break; } }
+        if (!went) e.flee = 0; continue;
+      }
+      // ---- the live fight: it has turned on you, and comes for you until one of you gives up ----
       if (e.chase) {
-        e.chase.t -= dt; e.chase.hitCd -= dt;
+        const c = e.chase; c.t -= dt; c.hitCd -= dt; if (c.pt > 0) c.pt -= dt;
         const hd = Math.hypot(dx, dz);
-        if (e.chase.t <= 0 || hd > 34) { e.chase = null; e.cool = 20; e.speed = 0.9 + KIN.stats(e.kin).spd / 90; if (api.chaser === e) api.chaser = null; continue; }
-        const step = Math.min(hd, e.speed * dt);
-        if (hd > 1.0) { const nx = e.x + dx / hd * step, nz = e.z + dz / hd * step; const gy = findGround(nx, e.y, nz, e); if (gy != null) { e.x = nx; e.z = nz; e.y += (gy - e.y) * Math.min(1, dt * 8); } else { const gy2 = findGround(e.x, e.y, nz, e); if (gy2 != null) { e.z = nz; e.y += (gy2 - e.y) * Math.min(1, dt * 8); } } }
-        e.yaw = Math.atan2(dx, dz);
-        if (hd < 1.6 && Math.abs(dy) < 2 && e.chase.hitCd <= 0) { e.chase.hitCd = 1.1; player.damage(3, 'kin'); e.hitT = 0.3; }
+        if (c.t <= 0 || hd > (c.rage ? 34 : 30)) { disengage(e, c.rage ? 20 : 12); continue; }
+        const an = e._an || (e._an = Anim.fresh(e, performance.now()));
+        if (e.stunT > 0) { e.stunT -= dt; e.hover = (e.model.hover || 0) + Math.sin(e.bob * 14) * 0.04; e.jawOpen = 0; an.nod = Math.sin(e.bob * 12) * 0.25; an.lean = 0.15; c.phase = 'close'; c.hitCd = Math.max(c.hitCd, 0.5); continue; }
+        an.nod = 0; an.lean = 0; an.sit = 0;
+        const near = 1.1 + Math.min(2.2, (e.model.radius || 0.6) * e.scale * 0.7);
+        const want = e.flying && !e.aquatic ? py + 0.8 : null;
+        if (c.phase === 'close' || c.phase === 'rest') {
+          if (hd > near) { const step = Math.min(hd - near * 0.8, e.speed * dt); const nx = e.x + dx / hd * step, nz = e.z + dz / hd * step; const gy = findGround(nx, e.y, nz, e); if (gy != null) { e.x = nx; e.z = nz; e.y += ((want != null ? Math.max(gy + 0.6, want) : gy) - e.y) * Math.min(1, dt * 8); } else { const gy2 = findGround(e.x, e.y, nz, e); if (gy2 != null) { e.z = nz; e.y += (gy2 - e.y) * Math.min(1, dt * 8); } } }
+          e.yaw = Math.atan2(dx, dz); e.hover = (e.model.hover || 0) + (e.flying ? Math.sin(e.bob * 2) * 0.08 : 0); e.jawOpen = 0;
+          if (c.phase === 'rest' && c.pt <= 0) c.phase = 'close';
+          if (c.phase === 'close' && hd <= near + 0.5 && Math.abs(dy) < 2.4 && c.hitCd <= 0) { c.phase = 'wind'; c.pt = 0.42; }
+        } else if (c.phase === 'wind') { // crouched, jaws open: your cue to raise the shield or step aside
+          const k = 1 - c.pt / 0.42; e.hover = (e.model.hover || 0) - 0.1 * k; e.jawOpen = Math.min(1, k * 1.4); e.yaw = Math.atan2(dx, dz); an.lean = -0.25 * k; an.nod = -0.2 * k;
+          if (c.pt <= 0) { c.phase = 'lunge'; c.pt = 0.24; c.hit = false; }
+        } else if (c.phase === 'lunge') {
+          const k = 1 - c.pt / 0.24; e.hover = (e.model.hover || 0) + Math.sin(k * Math.PI) * 0.35; e.jawOpen = 1 - k * 0.6; an.lean = 0.35 * Math.sin(k * Math.PI); an.nod = 0.3 * Math.sin(k * Math.PI);
+          if (hd > near * 0.7) { const step = Math.min(hd - near * 0.7, 2.6 * dt); const nx = e.x + dx / hd * step, nz = e.z + dz / hd * step; const gy = findGround(nx, e.y, nz, e); if (gy != null) { e.x = nx; e.z = nz; } }
+          if (!c.hit && k > 0.45) { c.hit = true; if (hd <= near + 0.9 && Math.abs(dy) < 2.4) bite(e, player); }
+          if (c.pt <= 0) { c.phase = 'rest'; c.pt = 0.6 + Math.random() * 0.5; c.hitCd = c.pt + 0.1; }
+        }
         continue;
       }
       if (e.raider || e.siege) continue; // raiders and besiegers are steered by their village
@@ -5542,6 +5590,57 @@ const Wild = (() => {
     }
     return trigger;
   }
+  // ---- the live fight ----
+  // the ones steel cannot finish: tyrants and their guards, legends, apexes, the lab's splice, anything a quest hangs on, and the truly rare
+  function unfinishable(e) { return (e.kin.sp.rarity || 0) >= 3 || e.lieutenant || e.isBoss || e.isLegend || e.isApex || e.isLabBoss || e.isMythic || e.isWarden || e.lairQuest || e.nightQuest || e.kinmaster || e.keepBoss || e.finalBoss || e.skyBoss || e.tangleBoss || e.citadelFirst || e.thief || e.pest || e.rogue || e.raider || e.siege || e.kin.sp.mythic; }
+  function biteDmg(e) { const big = e.isBoss || e.isLegend || e.isApex || e.keepBoss || e.finalBoss || e.lieutenant; return Math.max(1, Math.round((1 + e.kin.level / 15 + (e.chase && e.chase.rage ? 1 : 0)) * (big ? 1.5 : 1))); } // you have ten hearts: a Lv 30 Kin takes three a bite, armour and a shield take the edge off
+  // it turns on you: from here it is a live fight until you deploy a Kin, beat it by hand, or get away
+  function engage(e, ambush, opts = {}) {
+    if (e.chase || e.dazed > 0) { if (e.chase) e.chase.t = Math.max(e.chase.t, 18); return; }
+    const st = KIN.stats(e.kin);
+    if (e.speed0 == null) e.speed0 = e.speed; if (e.patrol) { e.patrol0 = e.patrol; e.patrol = null; }
+    e.speed = Math.max(e.speed, (opts.rage ? 3.9 : 2.4) + st.spd / 45);
+    e.chase = { t: opts.rage ? 14 : 18, hitCd: ambush ? 1.4 : 0.8, phase: 'close', pt: 0, rage: !!opts.rage };
+    e.alert = 1; e.hunt = 0; e.sleep = false; e.cool = 0; e.ringT = 0; e.flee = 0; e.moving = false;
+    api.chaser = e;
+    if (!opts.quiet) { UI.sfx('miss'); if (G.stats && !G.stats.liveTold) { G.stats.liveTold = true; G.explain('A wild Kin turns on you', 'It is a live fight now. Hold your shield up to block, raise it or swing just as it lunges to parry, hit back with your weapon, or run. Tap DEPLOY to send your Kin in instead: they are far stronger than any blade, and only a Kin can finish the big ones.'); } else UI.toast(`${KIN.name(e.kin)} comes for you. Fight, run, or Deploy.`, 'bad'); }
+  }
+  function disengage(e, cool = 12) {
+    if (!e.chase) return; e.chase = null; e.cool = cool; e.alert = 0; e.hunt = 0; e.jawOpen = 0; e.hover = e.model.hover; e.stunT = 0; if (e._an) { e._an.lean = 0; e._an.nod = 0; }
+    if (e.speed0 != null) { e.speed = e.speed0; e.speed0 = null; } if (e.patrol0) { e.patrol = e.patrol0; e.patrol0 = null; }
+    if (api.chaser === e) api.chaser = list.find(o => o.chase) || null;
+  }
+  // a blow from you (or your buddy) lands: frac of its full health, never the last point for the big ones; a common Kin can be beaten by hand and lies dazed
+  function strike(e, frac, opts = {}) {
+    if (e.dazed > 0) return { dmg: 0, pct: 0, dazed: true };
+    const st = KIN.stats(e.kin); let dmg = Math.max(1, Math.round(st.hp * frac));
+    const hard = unfinishable(e); if (hard) dmg = Math.max(1, Math.round(dmg * 0.35)); // the big ones shrug most of it off
+    const keepOne = hard || opts.keepOne; const before = e.kin.hp;
+    e.kin.hp = keepOne ? Math.max(1, e.kin.hp - dmg) : e.kin.hp - dmg;
+    e.hitT = 0.3; e.sleep = false;
+    if (!e.chase) engage(e, false, { quiet: !!opts.quiet }); else e.chase.t = Math.max(e.chase.t, 18);
+    if (opts.fromX != null && (e.model.radius || 0.6) * e.scale < 1.3 && !opts.arrow) { const ddx = e.x - opts.fromX, ddz = e.z - opts.fromZ, dl = Math.hypot(ddx, ddz) || 1; const push = opts.push == null ? 0.35 : opts.push; const nx = e.x + ddx / dl * push, nz = e.z + ddz / dl * push; const gy = findGround(nx, e.y, nz, e); if (gy != null && Math.abs(gy - e.y) < 1.6) { e.x = nx; e.z = nz; } }
+    if (e.chase && e.chase.phase === 'wind' && (opts.heavy || Math.random() < 0.5)) { e.chase.phase = 'rest'; e.chase.pt = 0.5; e.chase.hitCd = 0.6; } // a hit in the wind-up puts it off its stroke
+    G.kinFocus = e; G.kinFocusT = 3.5;
+    if (keepOne && before - dmg < 1 && hard && !e.shrugTold) { e.shrugTold = true; UI.toast(`${KIN.name(e.kin)} shrugs off your steel. Only a Kin can finish it: Deploy.`, 'bad'); }
+    if (e.kin.hp <= 0) { daze(e); return { dmg: before, pct: 0, dazed: true }; }
+    return { dmg: before - e.kin.hp, pct: Math.round(e.kin.hp / st.hp * 100), dazed: false };
+  }
+  function daze(e) {
+    e.kin.hp = 1; e.dazed = 10; disengage(e, 0); e.cool = 0; e.alert = 0; e.stunT = 0;
+    UI.sfx('win'); UI.toast(`${KIN.name(e.kin)} goes down, dazed. Snare it now, or let it go.`, 'good');
+    const xp = Math.floor(5 * e.kin.level * (1 + 0.4 * (e.kin.stage - 1)) * KIN.RARITY[e.kin.sp.rarity || 0].xp); G.addTrainerXp(xp); G.stats.liveWins = (G.stats.liveWins || 0) + 1;
+    const dom = KIN.dominant(e.kin.sp.elem, 1)[0]; if (Math.random() < 0.35) { G.player.add('ess_' + dom, 1); UI.toast(`${dom} Essence collected.`); }
+  }
+  // its lunge reaches you: a shield in its face blocks most of it, a shield raised or a swing timed as it lands turns it away
+  function bite(e, player) {
+    const dmg = biteDmg(e); const r = Combat.takeBlow(dmg, e.x, e.z, 'kin', e);
+    if (r.result === 'parry') { e.stunT = 1.4; e.hitT = 0.3; e.chase.hitCd = 1.6; }
+    else { e.chase.t = Math.max(e.chase.t, 18); e.chase.hitCd = 1.0; }
+  }
+  function focusText() { const e = G.kinFocus; if (!e || !(G.kinFocusT > 0)) return null; if (e.dazed > 0) return `${KIN.name(e.kin)}: dazed`; return `${KIN.name(e.kin)} Lv ${e.kin.level}: ${Math.max(0, Math.round(e.kin.hp / KIN.stats(e.kin).hp * 100))}%`; }
+  // the hostile Kin nearest you, for the Deploy button
+  function engagedNear(player, maxD = 16) { let best = null, bd = maxD; for (const e of list) { if (!e.chase && !(e.dazed > 0)) continue; const d = Math.hypot(e.x - player.x, e.z - player.z); if (d < bd) { bd = d; best = e; } } return best; }
   function remove(e) { const i = list.indexOf(e); if (i >= 0) list.splice(i, 1); if (e === mythicRef) mythicRef = null; if (e === legendRef) legendRef = null; if (e.isApex && apexRefs[e.isApex] === e) apexRefs[e.isApex] = null; }
   function nearest(player, maxD = 6) {
     let best = null, bd = maxD;
@@ -5580,7 +5679,7 @@ const Wild = (() => {
     return out;
   }
   function clear() { drops.length = 0; list.length = 0; mythicRef = null; legendRef = null; apexRefs.rex = apexRefs.mosa = null; }
-  const api = { inTallGrass, isHigh, dropEntities, init, update, list, remove, nearest, pick, rings, roll, ensureHeart, ensureLegend, ensureApex, apexSea, apexLevel: APEX_LV, clear, makeEntity, zoneLevel, noSpawn: null, chaser: null, get mythic() { return mythicRef; }, get legend() { return legendRef; } };
+  const api = { inTallGrass, isHigh, dropEntities, init, update, list, remove, nearest, pick, rings, roll, ensureHeart, ensureLegend, ensureApex, apexSea, apexLevel: APEX_LV, clear, makeEntity, zoneLevel, noSpawn: null, chaser: null, engage, disengage, strike, daze, focusText, engagedNear, unfinishable, get mythic() { return mythicRef; }, get legend() { return legendRef; } };
   return api;
 })();
 
@@ -7558,7 +7657,9 @@ const Battle = (() => {
     if (active) return;
     const party = G.healthyKin();
     if (!party.length) { G.toast('All your Kin are down. Revive them at the Voodoo Hut or with a tonic.'); e.alert = 0; e.wait = 4; if (!e.chase) e.cool = 6; return; }
-    if (e.chase) { e.chase = null; e.cool = 0; if (Wild.chaser === e) Wild.chaser = null; }
+    if (e.chase) { Wild.disengage(e, 0); e.alert = 1; }
+    if (e.dazed > 0) { e.dazed = 0; e.hover = e.model.hover; e.jawOpen = 0; }
+    e.stunT = 0; e.flee = 0;
     active = true; busy = true; wildE = e; wild = e.kin; ambush = isAmbush; turn = 0;
     wild.buffs = buffs(); wild.hp = Math.min(wild.hp, KIN.stats(wild).hp); if (G.seenDex) G.seenDex(wild.sp, "seen");
     mine = G.activeKin() || party[0]; mine.buffs = buffs();
@@ -8236,6 +8337,8 @@ const Hazards = (() => {
     G.shake = 0.6;
   }
   function puff(x, y, z, n, col) { for (let i = 0; i < n; i++) fx.push({ x: x + (Math.random() - 0.5) * 1.6, y, z: z + (Math.random() - 0.5) * 1.6, vx: (Math.random() - 0.5) * 3, vy: 2 + Math.random() * 4, vz: (Math.random() - 0.5) * 3, t: 0, dur: 0.6 + Math.random() * 0.5, col, size: 0.12 + Math.random() * 0.14 }); }
+  // sparks: a tight burst from a hit, bright and short, every way at once with a little lift
+  function sparks(x, y, z, n, col, spread = 3.5) { for (let i = 0; i < n; i++) { const a = Math.random() * 6.283, el = (Math.random() - 0.3) * 1.2; const sp = spread * (0.5 + Math.random()); fx.push({ x: x + (Math.random() - 0.5) * 0.2, y: y + (Math.random() - 0.5) * 0.2, z: z + (Math.random() - 0.5) * 0.2, vx: Math.cos(a) * Math.cos(el) * sp, vy: Math.sin(el) * sp + 1.5, vz: Math.sin(a) * Math.cos(el) * sp, t: 0, dur: 0.18 + Math.random() * 0.2, col, size: 0.06 + Math.random() * 0.06, emis: true }); } }
 
   // ---- the worms of the Mare ----
   function inMare(p) { if (!world.preset.worms) return false; const info = world.colInfo(Math.floor(p.x), Math.floor(p.z)); return info.biome === BIOME.MARE && p.y < info.h + 6 && p.y > info.h - 3; }
@@ -8323,7 +8426,13 @@ const Hazards = (() => {
       }
     }
     for (const s of shards) if (s.t > s.warn - 1.2 && !s.done) out.push({ x: s.x, y: s.y, z: s.z, yaw: s.t * 7, scale: 1.2, hover: 0, skyMul: 1, isFx: true, mesh: R.entityMesh('shard', (mb) => { mb.box(-0.3, -0.5, -0.3, 0.3, 0.5, 0.3, [1.0, 0.94, 0.75], 1, true); mb.box(-0.15, 0.5, -0.15, 0.15, 1.6, 0.15, [1.0, 0.8, 0.4], 1, true); }), model: { height: 1 } });
-    for (const f of fx) out.push({ x: f.x, y: f.y, z: f.z, yaw: f.t * 5, scale: Math.max(0.01, f.size * 6 * (1 - f.t / f.dur)), hover: 0, skyMul: 1, isFx: true, mesh: R.entityMesh('hfx:' + f.col.join(','), (mb) => mb.box(-0.08, -0.08, -0.08, 0.08, 0.08, 0.08, f.col, 1, f.col[0] > 0.9)), model: { height: 1 } });
+    for (const f of fx) {
+      if (f.emis) { // a spark: a bright streak along its flight, gone in a blink
+        out.push({ x: f.x, y: f.y, z: f.z, yaw: Math.atan2(f.vx, f.vz), scale: Math.max(0.01, f.size * 6 * (1 - f.t / f.dur)), hover: 0, skyMul: 1, isFx: true, noOutline: true, noShadow: true, mesh: R.entityMesh('hspark:' + f.col.join(','), (mb) => { mb.box(-0.03, -0.03, -0.16, 0.03, 0.03, 0.16, f.col, 1, true); mb.box(-0.06, -0.06, -0.05, 0.06, 0.06, 0.05, [1, 1, 1], 1, true); }), model: { height: 1 } });
+        continue;
+      }
+      out.push({ x: f.x, y: f.y, z: f.z, yaw: f.t * 5, scale: Math.max(0.01, f.size * 6 * (1 - f.t / f.dur)), hover: 0, skyMul: 1, isFx: true, mesh: R.entityMesh('hfx:' + f.col.join(','), (mb) => mb.box(-0.08, -0.08, -0.08, 0.08, 0.08, 0.08, f.col, 1, f.col[0] > 0.9)), model: { height: 1 } });
+    }
     return out;
   }
   function lines() {
@@ -8332,7 +8441,7 @@ const Hazards = (() => {
     for (const s of shards) if (!s.done) { const u = s.t / s.warn; out.push({ data: R.ringLines(s.x, s.gy + 0.05, s.z, 2.6), color: [1, 0.55, 0.1, 0.9] }); out.push({ data: R.ringLines(s.x, s.gy + 0.08, s.z, 2.6 * (1 - u) + 0.2), color: [1, 0.2, 0.1, 0.95] }); }
     return out;
   }
-  return { init, update, entities, lines, get worms() { return worms; }, get shards() { return shards; } };
+  return { init, update, entities, lines, sparks, puff, get worms() { return worms; }, get shards() { return shards; } };
 })();
 
 </script>
@@ -10132,7 +10241,7 @@ const UI = (() => {
     sb.addEventListener('mousedown', downStart); sb.addEventListener('mouseup', downEnd);
     const bs = q('btn-snare'), br = q('btn-ride');
     const tap = (el, fn) => { el.addEventListener('touchstart', (e) => { e.preventDefault(); fn(); }, { passive: false }); el.addEventListener('click', fn); };
-    tap(bs, () => G.stealthSnare()); tap(br, () => G.toggleRide()); tap(q('btn-ship'), () => G.boardShip());
+    tap(bs, () => G.stealthSnare()); tap(q('btn-deploy'), () => G.deployKin()); tap(br, () => G.toggleRide()); tap(q('btn-ship'), () => G.boardShip());
 
   }
   // ---------- sounds ----------
@@ -10901,9 +11010,10 @@ const UI = (() => {
     q('tut-ok').addEventListener('click', close);
     setTimeout(close, 25000);
   }
-  let btnState = { snare: false, ride: false, riding: false, ship: false, flying: false };
+  let btnState = { snare: false, ride: false, riding: false, ship: false, flying: false, deploy: false };
   function setButtons(st) {
     const b1 = document.getElementById('btn-snare'), b2 = document.getElementById('btn-ride');
+    if (st.deploy !== undefined && st.deploy !== btnState.deploy) { document.getElementById('btn-deploy').classList.toggle('hidden', !st.deploy); btnState.deploy = st.deploy; }
     if (st.snare !== undefined && st.snare !== btnState.snare) { b1.classList.toggle('hidden', !st.snare); btnState.snare = st.snare; }
     if (st.ride !== undefined && (st.ride !== btnState.ride || st.riding !== btnState.riding)) { b2.classList.toggle('hidden', !st.ride); b2.textContent = st.riding ? 'Off' : 'Ride'; b2.classList.toggle('on', !!st.riding); btnState.ride = st.ride; btnState.riding = !!st.riding; }
     const b3 = document.getElementById('btn-ship'); b3.classList.toggle('nomap', !MM.on);
@@ -11269,7 +11379,7 @@ const Combat = (() => {
     G.foeFocus = f; G.foeFocusT = 4;
   }
   // tap with a weapon in hand: swing it
-  let swingCd = 0, blockT = 0, armT = 0;
+  let swingCd = 0, blockT = 0, armT = 0, swoosh = null;
   function swing() {
     const sk = G.player.selected(); if (sk && GEAR[sk] && broken(sk)) { if (swingCd <= 0) { swingCd = 1; UI.toast(`Your ${GEAR[sk].name} is broken. An armoury will mend it.`, 'bad'); } return true; }
     const w = weapon(); if (!w || swingCd > 0) return false;
@@ -11281,10 +11391,44 @@ const Combat = (() => {
       const crit = Math.random() < w.crit; const dmg = Math.round(w.dmg * (0.9 + Math.random() * 0.2) * (crit ? 1.8 : 1) * (G.buffMul ? G.buffMul('blade') : 1));
       f.wasAware = f.aware;
       hurt(f, dmg, { burn: w.fx === 'burn' || w.fx === 'all' ? 3 : 0, slow: w.fx === 'slow' || w.fx === 'all' ? 2.5 : 0, halfPierce: w.fx === 'pierce' || w.fx === 'all' });
-      if (crit) UI.toast('Critical!'); hit = true; if (w.kind !== 'axe') break; // a sword hits one, an axe cleaves through all in its arc
+      if (crit) UI.toast('Critical!'); hit = true;
+      // the blow lands: sparks where it struck, the man rocks back, a kick in the camera
+      const hx = f.x - dx / (d || 1) * 0.35, hz = f.z - dz / (d || 1) * 0.35; Hazards.sparks(hx, f.y + 1.1, hz, crit ? 14 : 8, crit ? [1.0, 0.85, 0.4] : [1.0, 0.95, 0.8]);
+      const push = (w.kind === 'axe' ? 0.5 : 0.3) * (crit ? 1.6 : 1); const nx = f.x + dx / (d || 1) * push, nz = f.z + dz / (d || 1) * push; const gy = G.world.groundY(Math.floor(nx), Math.floor(nz), Math.floor(f.y) + 2); if (gy != null && Math.abs(gy + 1 - f.y) < 1.2) { f.x = nx; f.z = nz; } f.rockT = 0.3; f.rockDir = Math.atan2(dx, dz);
+      G.shake = Math.max(G.shake || 0, crit ? 0.25 : 0.12);
+      if (w.kind !== 'axe') break; // a sword hits one, an axe cleaves through all in its arc
     }
+    // wild Kin in the arc: a fraction of their health a blow, the big weapons about a seventh, a wooden sword a twentieth. Your Kin hit far harder.
+    if (!hit || w.kind === 'axe') {
+      const near = Wild.list.filter(e => !e.high && !(e.dazed > 0)).map(e => { const dx = e.x - p.x, dz = e.z - p.z, d = Math.hypot(dx, dz); return { e, dx, dz, d }; }).filter(o => o.d <= w.reach + 0.4 + (o.e.model.radius || 0.6) * o.e.scale * 0.6 && Math.abs(o.e.y - p.y) < 2.6).sort((a, b) => a.d - b.d);
+      for (const o of near) {
+        const { e, dx, dz, d } = o; const ang = Math.acos(U.clamp((dx * fx + dz * fz) / (d || 1), -1, 1)); if (ang > w.arc * 0.5 + 0.3) continue;
+        const crit = Math.random() < w.crit; const unaware = !e.chase && (e.alert || 0) < 0.6;
+        const frac = (0.025 + 0.12 * (1 - Math.exp(-w.dmg / 25))) * (crit ? 1.6 : 1) * (unaware ? 2 : 1) * (G.buffMul ? G.buffMul('blade') : 1);
+        const r = Wild.strike(e, frac, { fromX: p.x, fromZ: p.z, push: w.kind === 'axe' ? 0.5 : 0.35, heavy: w.kind === 'axe' });
+        const hx = e.x - dx / (d || 1) * Math.max(0.3, (e.model.radius || 0.6) * e.scale * 0.8), hz = e.z - dz / (d || 1) * Math.max(0.3, (e.model.radius || 0.6) * e.scale * 0.8);
+        Hazards.sparks(hx, e.y + (e.hover || 0) + e.model.height * e.scale * 0.6, hz, crit ? 14 : 8, crit ? [1.0, 0.85, 0.4] : [1.0, 0.95, 0.8]);
+        G.shake = Math.max(G.shake || 0, crit ? 0.25 : 0.12); hit = true;
+        if (crit) UI.toast('Critical!'); else if (unaware) UI.toast('Clean hit!');
+        if (w.kind !== 'axe') break;
+      }
+    }
+    swoosh = { t: 0, dur: 0.22, yaw: p.yaw, pitch: p.pitch, wide: w.kind === 'axe' ? 1.9 : 1.3, reach: w.reach };
     if (hit) { UI.sfx('hit'); use(w.id, 1); }
     return true;
+  }
+  // a blow aimed at you, from a warrior or a Kin: a shield in its way takes most of it, a shield raised or a swing timed as it lands turns it away
+  function takeBlow(dmg, fromX, fromZ, cause, src) {
+    const p = G.player; const fac = Math.cos(Math.atan2(fromX - p.x, fromZ - p.z) - (p.yaw + Math.PI)) > 0.2; const sh2 = shield(); const w = weapon();
+    const spx = p.x + Math.sin(p.yaw + Math.PI) * -0.5, spz = p.z + Math.cos(p.yaw + Math.PI) * -0.5;
+    if (p.blocking && sh2 && fac) {
+      use(sh2.id, 1);
+      if (blockT < sh2.parry + 0.08) { UI.sfx('hit'); UI.toast('Parried!'); Hazards.sparks(spx, p.y + 1.1, spz, 12, [1.0, 0.98, 0.8], 3.5); G.shake = Math.max(G.shake || 0, 0.1); return { result: 'parry', dealt: 0 }; }
+      const left = Math.round(dmg * (1 - sh2.block) * 10) / 10; let dealt = 0; if (left >= 1 || Math.random() < left) { dealt = Math.max(1, Math.round(left)); p.damage(dealt, cause); }
+      UI.sfx('place'); Hazards.sparks(spx, p.y + 1.1, spz, 6, [0.9, 0.95, 1.0], 2.5); G.shake = Math.max(G.shake || 0, 0.15); return { result: 'block', dealt };
+    }
+    if (w && fac && p.swingT > 0.1 && p.swingT < 0.24) { UI.sfx('hit'); UI.toast('Parried!'); Hazards.sparks(spx, p.y + 1.1, spz, 12, [1.0, 0.98, 0.8], 3.5); G.shake = Math.max(G.shake || 0, 0.1); use(w.id, 1); return { result: 'parry', dealt: 0 }; }
+    p.damage(dmg, cause); G.shake = Math.max(G.shake || 0, 0.35); return { result: 'hit', dealt: dmg };
   }
   // an arrow from your bow: does it hit a warrior before anything else?
   function arrowHit(ammo, maxDist) {
@@ -11296,8 +11440,11 @@ const Combat = (() => {
     return { foe: best, dist: bt };
   }
   function blocking() { return !!(G.player.blocking && shield()); }
+  // for your buddy: the nearest warrior who is up and has seen you
+  function nearestFoe(p, maxD = 10) { let best = null, bd = maxD; for (const f of foes) { if (f.state === 'down' || !f.aware) continue; const d = Math.hypot(f.x - p.x, f.z - p.z); if (d < bd && Math.abs(f.y - p.y) < 3) { bd = d; best = f; } } return best; }
+  function hurtFoe(f, dmg, fromX, fromZ) { if (f.state === 'down') return; f.wasAware = f.aware; hurt(f, dmg, {}); const dx = f.x - fromX, dz = f.z - fromZ, d = Math.hypot(dx, dz) || 1; f.rockT = 0.3; f.rockDir = Math.atan2(-dx, -dz); const nx = f.x + dx / d * 0.3, nz = f.z + dz / d * 0.3; const gy = G.world.groundY(Math.floor(nx), Math.floor(nz), Math.floor(f.y) + 2); if (gy != null && Math.abs(gy + 1 - f.y) < 1.2) { f.x = nx; f.z = nz; } }
   function update(dt, p, input) {
-    swingCd = Math.max(0, swingCd - dt); if (p.swingT > 0) p.swingT -= dt;
+    swingCd = Math.max(0, swingCd - dt); if (p.swingT > 0) p.swingT -= dt; if (G.kinFocusT > 0) G.kinFocusT -= dt;
     armT -= dt; if (armT <= 0) { armT = 1; const hb = G.buffOn ? G.buffOn('hearts') : null; const mx = 10 + (wornPerk('heart', true) ? 2 : 0) + (hb ? hb.amt : 0); if (p.maxHp !== mx) { p.maxHp = mx; if (p.hp > mx) p.hp = mx; } }
     // holding a weapon with a shield in the bag: hold means block, not dig
     const w = weapon(); const sh = shield();
@@ -11307,8 +11454,16 @@ const Combat = (() => {
     for (let i = shots.length - 1; i >= 0; i--) { const s = shots[i]; s.t += dt; s.x += s.vx * dt; s.y += s.vy * dt; s.z += s.vz * dt; s.vy -= 6 * dt;
       if (Math.abs(s.x - p.x) < 0.5 && Math.abs(s.z - p.z) < 0.5 && s.y > p.y && s.y < p.y + 1.9) { const fac = Math.cos(Math.atan2(s.x - p.x, s.z - p.z) - (p.yaw + Math.PI)) > 0.2; if (blocking() && fac) { UI.sfx('place'); use(shield().id, 1); } else { p.lastArrow = true; p.damage(s.dmg, 'warrior'); p.lastArrow = false; } shots.splice(i, 1); continue; }
       if (s.t > 3 || isSolid(G.world.getBlock(Math.floor(s.x), Math.floor(s.y), Math.floor(s.z)))) shots.splice(i, 1); }
+    if (swoosh) { swoosh.t += dt; if (swoosh.t > swoosh.dur) swoosh = null; }
     for (const f of foes) {
-      f.t -= dt; if (f.hitT > 0) f.hitT -= dt;
+      f.t -= dt; if (f.hitT > 0) f.hitT -= dt; if (f.rockT > 0) f.rockT -= dt; if (f.strikeT > 0) f.strikeT -= dt;
+      // the pose: arm drawn back while he winds up, the blow when it lands, the shield up when he faces you, a stagger when hit
+      { const an = f._an || (f._an = Anim.fresh(f, performance.now())); const windK = f.state === 'wind' ? 1 - Math.max(0, f.t) / (f.wind || 1) : 0;
+        an.attack = f.strikeT > 0 ? Math.sin(Math.min(1, f.strikeT / 0.22) * Math.PI) : -0.3 * windK;
+        an.block = (f.block && f.state !== 'stun' && f.state !== 'down' && f.aware) ? 1 : 0;
+        an.sit = f.state === 'down' ? 1 : 0;
+        an.lean = (f.rockT > 0 ? -0.35 * Math.sin(Math.min(1, f.rockT / 0.3) * Math.PI) : 0) + (f.state === 'wind' ? 0.12 * windK : 0) + (f.state === 'stun' ? 0.25 : 0) + (f.state === 'down' ? 0.3 : 0);
+        an.nod = f.state === 'stun' ? Math.sin(performance.now() / 90) * 0.15 : (f.state === 'down' ? 0.45 : 0); }
       if (f.state === 'down') continue;
       if (f.burn > 0) { f.burn -= dt; if (Math.random() < dt * 1.2) { f.hp -= 2; if (f.hp <= 0) { down(f); continue; } } }
       if (f.bleed > 0) { f.bleed -= dt; if (Math.random() < dt * 1.5) { f.hp -= 2; if (f.hp <= 0) { down(f); continue; } } }
@@ -11328,26 +11483,28 @@ const Combat = (() => {
       } else if (f.state === 'wind') {
         if (f.t <= 0) {
           f.hover = 0;
+          f.strikeT = 0.22;
           if (f.archer) { const tt = d / 16; shots.push({ x: f.x, y: f.y + 1.4, z: f.z, vx: dx / tt, vy: (p.y + 1.2 - f.y - 1.4) / tt + 3 * tt, vz: dz / tt, t: 0, dmg: f.dmg }); UI.sfx('miss'); }
           else if (d <= f.reach + 0.5) {
-            const fac = Math.cos(Math.atan2(f.x - p.x, f.z - p.z) - (p.yaw + Math.PI)) > 0.2; const sh2 = shield();
-            if (p.blocking && sh2 && fac) {
-              use(sh2.id, 1); if (blockT < sh2.parry + 0.08) { f.state = 'stun'; f.t = 1.2; UI.sfx('hit'); UI.toast('Parried!'); continue; }
-              const left = Math.round(f.dmg * (1 - sh2.block) * 10) / 10; if (left >= 1 || Math.random() < left) p.damage(Math.max(1, Math.round(left)), 'warrior'); UI.sfx('place');
-            } else p.damage(f.dmg, 'warrior');
+            const r = takeBlow(f.dmg, f.x, f.z, 'warrior', f);
+            if (r.result === 'parry') { f.state = 'stun'; f.t = 1.2; continue; }
           }
           f.state = 'chase'; f.t = f.rest;
         }
       }
     }
   }
-  function entities() { return foes.concat(shots.map(s => ({ x: s.x, y: s.y, z: s.z, yaw: Math.atan2(s.vx, s.vz), scale: 1, hover: 0, skyMul: 1, isFx: true, mesh: R.entityMesh('fx:foearrow', (mb) => mb.box(-0.03, -0.03, -0.35, 0.03, 0.03, 0.35, [0.5, 0.35, 0.2], 1, false)) }))); }
+  function entities() {
+    const out = foes.concat(shots.map(s => ({ x: s.x, y: s.y, z: s.z, yaw: Math.atan2(s.vx, s.vz), scale: 1, hover: 0, skyMul: 1, isFx: true, noOutline: true, mesh: R.entityMesh('fx:foearrow2', (mb) => { mb.tube([[0, 0, -0.4], [0, 0, 0.36]], [0.02, 0.02], [0.55, 0.4, 0.22], { segs: 5, cap0: 'none', cap1: 'none' }); mb.plate([[0, 0.0, 0.36], [0.04, 0, 0.3], [0, 0, 0.5], [-0.04, 0, 0.3]], 0.01, [0.6, 0.62, 0.66]); for (const sgn of [-1, 1]) mb.plate([[0, 0, -0.4], [sgn * 0.06, 0.02, -0.3], [0, 0, -0.2]], 0.006, [0.9, 0.9, 0.92]); }) })));
+    if (swoosh) { const p = G.player; const u = swoosh.t / swoosh.dur; const f0 = U.forwardVec(swoosh.yaw, 0); out.push({ x: p.x + f0[0] * 0.3, y: p.y + 1.0 + swoosh.pitch * 0.6, z: p.z + f0[2] * 0.3, yaw: swoosh.yaw + (u - 0.5) * swoosh.wide * 0.6, scale: 1, hover: 0, skyMul: 1, isFx: true, noOutline: true, alpha: (1 - u) * 0.55,
+      mesh: R.entityMesh('swoosh:' + Math.round(swoosh.wide * 10) + ':' + Math.round(swoosh.reach * 10), (mb) => { const r0 = Math.max(0.3, swoosh.reach - 0.7), r1 = swoosh.reach + 0.2, W = swoosh.wide; const pts = []; const N = 9; for (let i = 0; i <= N; i++) { const a = -W / 2 + W * i / N; pts.push([Math.sin(a) * r1, (i / N - 0.5) * -0.25, -Math.cos(a) * r1]); } for (let i = N; i >= 0; i--) { const a = -W / 2 + W * i / N; pts.push([Math.sin(a) * r0, (i / N - 0.5) * -0.25, -Math.cos(a) * r0]); } mb.plate(pts, 0.01, [1.0, 0.98, 0.9], { emis: true }); }) }); }
+    return out; }
   function forHold(id) { return foes.filter(f => f.holdId === id); }
   function clearHold(id) { for (let i = foes.length - 1; i >= 0; i--) if (foes[i].holdId === id) foes.splice(i, 1); }
   function standingIn(id) { return foes.filter(f => f.holdId === id && f.state !== 'down').length; }
-  function focusText() { const f = G.foeFocus; if (!f || !(G.foeFocusT > 0)) return null; return f.state === 'down' ? `${f.name}: down` : `${f.name}: ${Math.max(0, Math.round(f.hp / f.max * 100))}%`; }
+  function focusText() { const f = G.foeFocus; if (!f || !(G.foeFocusT > 0)) return Wild.focusText ? Wild.focusText() : null; return f.state === 'down' ? `${f.name}: down` : `${f.name}: ${Math.max(0, Math.round(f.hp / f.max * 100))}%`; }
   function reset() { foes.length = 0; shots.length = 0; }
-  return { cond, broken, use, bow, anyBow, mend, mendQuote, lifeOf, BOWS, rack, ARMOUR, worn, armourPts, armourCut, wornPerk, init, GEAR, ARROWS, armoury, weapon, shield, chopTier, spawn, swing, arrowHit, update, entities, forHold, clearHold, standingIn, focusText, reset, blocking, KINDS };
+  return { cond, broken, use, bow, anyBow, mend, mendQuote, lifeOf, BOWS, rack, ARMOUR, worn, armourPts, armourCut, wornPerk, init, GEAR, ARROWS, armoury, weapon, shield, chopTier, spawn, swing, arrowHit, takeBlow, nearestFoe, hurtFoe, update, entities, forHold, clearHold, standingIn, focusText, reset, blocking, KINDS };
 })();
 
 </script>
@@ -12008,7 +12165,7 @@ const Sky = (() => {
 // Your lead Kin walks with you, a step behind at your shoulder. Fliers keep up in the air, swimmers in the water.
 // Now and then, as you walk, it noses out something that suits its element and brings it to you.
 const Buddy = (() => {
-  let G = null, e = null, key = null, walked = 0, nextFind = 160, hopT = 0, gyT = 0, gy = 0, lastX = 0, lastZ = 0;
+  let G = null, e = null, key = null, walked = 0, nextFind = 160, hopT = 0, gyT = 0, gy = 0, lastX = 0, lastZ = 0, helpT = 4, dash = null;
   const FINDS = {
     Stone: [['copper', 1], ['iron', 1], ['stone', 3]], Bloom: [['berry', 3], ['frond', 2]], Flame: [['ember', 1]], Tide: [['pearl', 1], ['bait_berry', 1]],
     Gale: [['feather', 1]], Frost: [['snow', 3], ['broth', 1]], Spark: [['copper', 2]], Void: [['void', 1]], Light: [['glowworm', 2]],
@@ -12017,7 +12174,34 @@ const Buddy = (() => {
     Stone: 'scrapes at the ground and turns up', Bloom: 'roots under a bush and comes back with', Flame: 'sniffs out something warm:', Tide: 'paddles back with',
     Gale: 'snatches something out of the air:', Frost: 'digs in the cold and finds', Spark: 'crackles at a rock and knocks loose', Void: 'stares into a crack in the ground and pulls out', Light: 'glows brighter and leads you to',
   };
-  function init(game) { G = game; e = null; key = null; walked = 0; }
+  function init(game) { G = game; e = null; key = null; walked = 0; helpT = 4; dash = null; }
+  // ---- the fight: it pitches in. Now and then it darts at whatever you are fighting, lands one, and trots back to your shoulder ----
+  function foeNear(p) {
+    let best = null, bd = 9;
+    const h = Wild.engagedNear(p, 9); if (h && !(h.dazed > 0)) { best = h; bd = Math.hypot(h.x - p.x, h.z - p.z); }
+    const f = typeof Combat !== 'undefined' && Combat.nearestFoe ? Combat.nearestFoe(p, bd) : null; if (f) best = f;
+    return best;
+  }
+  function gone(T) { return !T || (T.isFoe ? T.state === 'down' : (T.dazed > 0 || !T.chase)); }
+  function land(k, T) {
+    const lvl = k.level || 1; const hx = T.x - (T.x - e.x) * 0.25, hz = T.z - (T.z - e.z) * 0.25, hy = T.y + (T.isFoe ? 1 : (T.model ? T.model.height * T.scale * 0.5 : 0.8));
+    if (T.isFoe) Combat.hurtFoe(T, Math.round(3 + lvl * 0.15), e.x, e.z); else Wild.strike(T, 0.06 + Math.min(0.08, lvl * 0.0012), { fromX: e.x, fromZ: e.z, push: 0.3, quiet: true });
+    Hazards.sparks(hx, hy, hz, 8, [1.0, 0.95, 0.8]); UI.sfx('hit'); hopT = 0.4;
+    if (G.stats && !G.stats.buddyFightTold) { G.stats.buddyFightTold = true; UI.toast(`${KIN.name(k)} gets a bite in.`, 'good'); }
+  }
+  function fight(dt, p, k) {
+    if (dash) {
+      dash.t += dt; const T = dash.target;
+      if (gone(T) && !dash.hit) { dash = null; return false; }
+      const u = Math.min(1, dash.t / 0.32); // in over a third of a second, the blow, then back
+      if (!dash.hit) { e.x = dash.x0 + (T.x - dash.x0) * u * 0.8; e.z = dash.z0 + (T.z - dash.z0) * u * 0.8; e.yaw = Math.atan2(T.x - e.x, T.z - e.z); e.hover = (e.model.hover || 0) + Math.sin(u * Math.PI) * 0.45 * Math.min(1.5, e.model.height); if (u >= 1) { dash.hit = true; land(k, T); } }
+      else if (dash.t > 0.75) dash = null;
+      gyT = 0; return !dash || !dash.hit ? true : false;
+    }
+    helpT -= dt; if (helpT > 0) return false;
+    const T = foeNear(p); if (!T) { helpT = 1; return false; }
+    helpT = 4.5 + Math.random() * 3; dash = { target: T, t: 0, x0: e.x, z0: e.z, hit: false }; return true;
+  }
   function lead() { const k = G.kin && G.kin[G.activeIdx]; return k && k.hp > 0 ? k : null; }
   function hidden(p) {
     if (Battle.active || p.flying || p.mount || (G.stats && G.stats.buddyOff)) return true;
@@ -12041,6 +12225,7 @@ const Buddy = (() => {
     if (hidden(p)) { e.away = true; return; }
     if (e.away) { e.away = false; place(p, true); }
     e.bob += dt;
+    if (fight(dt, p, k)) { e.y += ((e.flying ? p.y + 1.0 : ground(e.x, e.z, Math.max(p.y, e.y))) - e.y) * Math.min(1, dt * 10); return; }
     const s = spot(p); const dx = s.x - e.x, dz = s.z - e.z, d = Math.hypot(dx, dz);
     const gliding = p.gliding;
     if (d > 18 || Math.abs(p.y - e.y) > 8 || (gliding && !e.flying)) { if (gliding && !e.flying) { e.away = true; return; } place(p, true); return; }
@@ -12135,7 +12320,7 @@ G.onKey = function (kind, code) {
   if (code === 'Escape') { if (UI.panelOpen) UI.closePanel(); return; }
   if (Battle.active) return;
   if (code === 'KeyR') this.toggleRide();
-  if (code === 'KeyF') this.stealthSnare();
+  if (code === 'KeyF') { if (Wild.engagedNear(this.player)) this.deployKin(); else this.stealthSnare(); }
   if (code === 'KeyE') UI.panelOpen === 'craft' ? UI.closePanel() : UI.openPanel('craft');
   if (code === 'KeyQ') UI.panelOpen === 'kin' ? UI.closePanel() : UI.openPanel('kin');
   if (code === 'KeyJ') UI.panelOpen === 'quest' ? UI.closePanel() : UI.openPanel('quest');
@@ -12228,6 +12413,7 @@ G.dropSelected = function (n) { this.dropItem(this.player.selected(), n); };
 G.stealthTarget = function () {
   const p = this.player; let best = null, bd = Infinity;
   for (const e of Wild.list) {
+    if (e.dazed > 0) { const d0 = Math.hypot(e.x - p.x, e.z - p.z, (e.y - p.y) * 0.7); if (d0 < 4 + Math.min(4, (e.model.radius || 0.6)) && d0 - 8 < bd) { bd = d0 - 8; best = e; } continue; }
     if (e.chase || e.cool > 0 || e.alert >= 0.98 || e.isBoss || e.lieutenant) continue;
     const reach = 3.2 + Math.min(4, (e.model.radius || 0.6)); // close to its body, not its middle: big Kin can be snared from their side
     const d = Math.hypot(e.x - p.x, e.z - p.z, (e.y - p.y) * 0.7);
@@ -12240,6 +12426,13 @@ G.stealthSnare = function () {
   if (!this.player.has('snare') && !this.player.has('snare2')) { UI.toast('No snares. Craft one: 2 wood, 2 stone.'); return; }
   if (!this.healthyKin().length) { UI.toast('You need an awake Kin with you to set a snare.'); return; }
   Battle.start(e, true, { stealth: true });
+};
+// ---------- deploy: send your Kin in against the one that is on you ----------
+G.deployKin = function () {
+  const p = this.player; if (Battle.active) return;
+  const e = Wild.engagedNear(p) || Wild.pick(p); if (!e) { UI.toast('Nothing is on you.'); return; }
+  if (!this.healthyKin().length) { UI.toast('All your Kin are down. Revive them at the Voodoo Hut or with a tonic.', 'bad'); return; }
+  Battle.start(e, e.dazed > 0 || (e.alert || 0) < 0.6);
 };
 // ---------- riding ----------
 // what a Kin's body lets it carry you through: legs on land, fins in water, wings or hovering in the air
@@ -12518,12 +12711,11 @@ G.shoot = function (pick) {
     UI.toast('The arrow thunks into the ground.'); return;
   }
   if (!e) { UI.toast('Missed.'); return; }
-  const st = KIN.stats(e.kin); const unaware = (e.alert || 0) < 0.6;
-  let bite = ITEMS[ammo].arrow * (unaware ? 2 : 1);
-  if (e.isApex || e.isLegend || e.isBoss || e.isLabBoss || e.lieutenant) bite *= 0.35; // the big ones shrug most of it off
-  const dmg = Math.max(1, Math.round(st.hp * bite)); const before = e.kin.hp;
-  e.kin.hp = Math.max(1, e.kin.hp - dmg); e.alert = 1; e.ringT = 3; e.cool = 0; if (e.sleep) e.sleep = false;
-  if (ammo === 'arrow_sleep' || ammo === 'arrow_frost') { e.alert = 0; e.ringT = 0; e.hunt = 0; e.cool = ammo === 'arrow_sleep' ? 12 : 5; }
+  const st = KIN.stats(e.kin); const unaware = !e.chase && (e.alert || 0) < 0.6;
+  const bite = ITEMS[ammo].arrow * (unaware ? 2 : 1); const before = e.kin.hp;
+  const calm = ammo === 'arrow_sleep' || ammo === 'arrow_frost';
+  Wild.strike(e, bite, { arrow: true, keepOne: true, quiet: calm }); // an arrow never takes the last point: it softens, and brings the Kin to you
+  if (calm) { Wild.disengage(e, ammo === 'arrow_sleep' ? 12 : 5); e.ringT = 0; if (ammo === 'arrow_sleep') e.sleep = true; }
   this.stats.arrowHits = (this.stats.arrowHits || 0) + 1;
   if (e.high && Math.random() < 0.6) { p.add('feather', 1); setTimeout(() => UI.toast('A Sky Feather spins down to you.', 'good'), 400); }
   const pct = Math.round(e.kin.hp / st.hp * 100);
@@ -12616,8 +12808,7 @@ G.onBattleEnd = function (result, wildE, wild, mine, ambush) {
   } else if (result === 'lost') {
     // the winner comes after you: run, or it knocks you out
     UI.toast('Your Kin are down. RUN!', 'bad');
-    wildE.alert = 0; wildE.cool = 999; wildE.chase = { t: 14, hitCd: 0 }; wildE.speed = Math.max(wildE.speed, 3.9); wildE.patrol = null; wildE.sleep = false;
-    Wild.chaser = wildE;
+    Wild.engage(wildE, false, { rage: true, quiet: true }); wildE.cool = 0;
   }
   p.frozen = false;
   this.fightGrace = performance.now() + 8000; // a breather: nothing jumps you for eight seconds after a fight
@@ -12800,7 +12991,7 @@ G.loop = function (t) {
       const trig = (Dialogue.active() || Village.walking) ? null : Wild.update(dt, p, performance.now() / 1000, false);
       Buddy.update(dt, p); Keeps.update(dt, p); Citadel.update(dt, p); Farms.update(dt, p); Sky.update(dt, p); Combat.update(dt, p, input);
       Wild.ensureHeart(p, this.trainerLevel, this.mythicCaught); Wild.ensureLegend(p); Wild.ensureApex(p);
-      if (trig && !trig.e.cool && !Dialogue.active() && !p.flying && !(this.fightGrace > performance.now()) && !((Keeps.inHold(p) || Citadel.inside(p) || Sky.inFort(p)) && !trig.e.keepBoss && !trig.e.skyBoss)) Battle.start(trig.e, trig.ambush);
+      if (trig && !trig.e.cool && !Dialogue.active() && !p.flying && !(this.fightGrace > performance.now()) && !((Keeps.inHold(p) || Citadel.inside(p) || Sky.inFort(p)) && !trig.e.keepBoss && !trig.e.skyBoss)) Wild.engage(trig.e, trig.ambush);
       for (const e of Wild.list) if (e.cool > 0) e.cool -= dt;
       Hazards.update(dt, p, false); Npcs.update(dt, p, false); Campaign.update(dt, p, false); Taming.update(dt, p); if (p.gliding) { this.lastGlide = performance.now(); if (!this.stats.glideTold && !p.mount && !p.wingsOn) { this.stats.glideTold = true; G.explain('Gliding', 'Left stick: push sideways to bank and turn. Push forward to dive and pick up speed, pull back to brake. The arrow on the glide compass is the wind: with it behind you, you go far; into it, you barely move over the ground. Coming in to land, pull back a moment before the ground to flare and you touch down soft. Too fast and too steep, and it hurts. Let go of ▲ to drop, best done low.'); } }
       if (p.landMsg) { if (p.landMsg === 'hard') UI.toast('Hard landing. Pull back on the stick just before the ground to flare.', 'bad'); else if (p.landMsg === 'stall') UI.toast('You stalled her and dropped. Brake less: keep a little speed until the flare.', 'bad'); else if (p.landMsg === 'soft' && !this.stats.flareTold) { this.stats.flareTold = true; UI.toast('A clean flare. Feather-soft.', 'good'); } p.landMsg = null; }
@@ -12872,7 +13063,7 @@ G.loop = function (t) {
     const top = w.topAt(o.x, o.z); const sky = o.y >= SKY_SPLIT ? 1 : (o.y >= top ? 1 : Math.max(0, 1 - (top - o.y) * 0.11));
     ents.push({ x: o.x + 0.5, y: o.y, z: o.z + 0.5, yaw: o.yaw || 0, model: o.model, mesh: o.mesh, scale: o.scale || 1, hover: 0, skyMul: sky, isStatue: true });
   }
-  for (const e of ents) if (e.isStatue || e.isFx || e.isMount || e.isBuddy || e.isFoe || !e.model) { /* static */ } else if (e.hitT > 0) { e.hover = (e.model.hover || 0) + Math.sin(e.hitT * 60) * 0.08; } else if (e.breach == null) e.hover = e.model.hover + (e.flying ? Math.sin((e.bob || 0) * 2) * 0.08 : 0);
+  for (const e of ents) if (e.isStatue || e.isFx || e.isMount || e.isBuddy || e.isFoe || !e.model) { /* static */ } else if (e.chase || e.dazed > 0 || e.stunT > 0 || e.flee > 0) { /* the live fight sets its own stance */ } else if (e.hitT > 0) { e.hover = (e.model.hover || 0) + Math.sin(e.hitT * 60) * 0.08; } else if (e.breach == null) e.hover = e.model.hover + (e.flying ? Math.sin((e.bob || 0) * 2) * 0.08 : 0);
   const held = (!inBattle && !this.thirdPerson && !p.mount && !p.flying && this.talkK <= 0 && !this.grassCamOn) ? Held.describe(p, dt, input) : null; if (held) { const top = w.topAt(Math.floor(p.x), Math.floor(p.z)); held.skyMul = eye.y >= top ? 1 : Math.max(0.2, 1 - (top - eye.y) * 0.11); }
   R.render(w, p, ents, cam, { lights, lines, held });
   if ((this.frame & 3) === 0) UI.renderHud(dt);
@@ -12882,7 +13073,8 @@ G.loop = function (t) {
   if ((this.frame & 7) === 0 && !inBattle) {
     const st = this.stealthTarget();
     const lead = this.activeKin();
-    UI.setButtons({ snare: !!st && (p.has('snare') || p.has('snare2')), ride: !p.flying && (!!p.mount || !!(lead && this.rideRequirement(lead) != null)), riding: !!p.mount, ship: p.has('ship') && (p.flying || this.world.layerAt(Math.floor(p.y), Math.floor(p.x), Math.floor(p.z)) !== 'Mines'), flying: p.flying, canLand: p.flying && (p.autoLand || this.landHeight() <= G.LAND_REACH) });
+    const eng = Wild.engagedNear(p);
+    UI.setButtons({ deploy: !!eng && !p.flying, snare: !!st && (p.has('snare') || p.has('snare2')) && !(eng && !(eng.dazed > 0)), ride: !p.flying && (!!p.mount || !!(lead && this.rideRequirement(lead) != null)), riding: !!p.mount, ship: p.has('ship') && (p.flying || this.world.layerAt(Math.floor(p.y), Math.floor(p.x), Math.floor(p.z)) !== 'Mines'), flying: p.flying, canLand: p.flying && (p.autoLand || this.landHeight() <= G.LAND_REACH) });
     if (p.mount && !p.mount.borrowed && (p.mount.hp <= 0 || !this.kin.includes(p.mount))) { p.mount = null; UI.toast('Your mount is down.', 'bad'); }
     if (p.mount && p.mountMode === 'water' && !p.inWater && p.onGround) { p.mount = null; UI.toast('It cannot follow you onto land.'); }
     if (p.mount && p.mountMode === 'air' && (this.frame & 15) === 0 && this.noKinFlight()) { p.mount = null; UI.toast('No room down here for wings that size. You climb off.'); }
@@ -12901,9 +13093,10 @@ G.onTap = function () {
   if (rn) { Npcs.talk(rn); return; }
   if (Buddy.pick(p) && !Wild.pick(p)) { Buddy.tap(); return; }
   { const sel0 = p.selected(); const ai = sel0 && ITEMS[sel0]; if (ai && ai.arrow && Combat.anyBow()) { this.shoot(sel0); return; } }
-  if (Combat.weapon() && (Keeps.inHold(p) || Citadel.inside(p) || Sky.inFort(p) || !Wild.pick(p))) { Combat.swing(); return; }
   const e = (p.selected() && (p.itemInfo(p.selected()) || {}).bow) ? null : Wild.pick(p);
   const hit = p.raycast(5.5);
+  if (Combat.weapon() && !(e && e.rogue) && !(e && e.dazed > 0)) { Combat.swing(); return; }
+  if (e && e.dazed > 0) { if (p.has('snare') || p.has('snare2')) { this.stealthSnare(); } else UI.toast('It is dazed. A snare would take it now: 2 wood, 2 stone.'); return; }
   if (e && e.rogue) { const c = Campaign.C(); if (c.ranch !== 2) { UI.toast('Thunderhoof flattens his ears at you. Talk to Dusty Hale first.'); return; } const k = KIN.create(e.kin.sp, e.kin.level); Taming.start(k, { hard: true, onDone: (kk) => { kk.tamed = true; this.addKin(kk); Campaign.onRogueTamed(kk); UI.toast('Thunderhoof is yours, and you can ride now. Every Kin still has to be broken in once: press Ride and hold on.', 'good'); } }); return; }
   if (e && (!hit || Math.hypot(e.x - p.x, e.z - p.z, e.y - p.y) < hit.dist + 0.5)) {
     if (e.cool > 0) e.cool = 0;

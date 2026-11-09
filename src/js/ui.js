@@ -28,7 +28,7 @@ const UI = (() => {
     sb.addEventListener('mousedown', downStart); sb.addEventListener('mouseup', downEnd);
     const bs = q('btn-snare'), br = q('btn-ride');
     const tap = (el, fn) => { el.addEventListener('touchstart', (e) => { e.preventDefault(); fn(); }, { passive: false }); el.addEventListener('click', fn); };
-    tap(bs, () => G.stealthSnare()); tap(br, () => G.toggleRide()); tap(q('btn-ship'), () => G.boardShip());
+    tap(bs, () => G.stealthSnare()); tap(q('btn-deploy'), () => G.deployKin()); tap(br, () => G.toggleRide()); tap(q('btn-ship'), () => G.boardShip());
 
   }
   // ---------- sounds ----------
@@ -797,9 +797,10 @@ const UI = (() => {
     q('tut-ok').addEventListener('click', close);
     setTimeout(close, 25000);
   }
-  let btnState = { snare: false, ride: false, riding: false, ship: false, flying: false };
+  let btnState = { snare: false, ride: false, riding: false, ship: false, flying: false, deploy: false };
   function setButtons(st) {
     const b1 = document.getElementById('btn-snare'), b2 = document.getElementById('btn-ride');
+    if (st.deploy !== undefined && st.deploy !== btnState.deploy) { document.getElementById('btn-deploy').classList.toggle('hidden', !st.deploy); btnState.deploy = st.deploy; }
     if (st.snare !== undefined && st.snare !== btnState.snare) { b1.classList.toggle('hidden', !st.snare); btnState.snare = st.snare; }
     if (st.ride !== undefined && (st.ride !== btnState.ride || st.riding !== btnState.riding)) { b2.classList.toggle('hidden', !st.ride); b2.textContent = st.riding ? 'Off' : 'Ride'; b2.classList.toggle('on', !!st.riding); btnState.ride = st.ride; btnState.riding = !!st.riding; }
     const b3 = document.getElementById('btn-ship'); b3.classList.toggle('nomap', !MM.on);

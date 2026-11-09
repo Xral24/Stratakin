@@ -27,7 +27,7 @@ G.onKey = function (kind, code) {
   if (code === 'Escape') { if (UI.panelOpen) UI.closePanel(); return; }
   if (Battle.active) return;
   if (code === 'KeyR') this.toggleRide();
-  if (code === 'KeyF') this.stealthSnare();
+  if (code === 'KeyF') { if (Wild.engagedNear(this.player)) this.deployKin(); else this.stealthSnare(); }
   if (code === 'KeyE') UI.panelOpen === 'craft' ? UI.closePanel() : UI.openPanel('craft');
   if (code === 'KeyQ') UI.panelOpen === 'kin' ? UI.closePanel() : UI.openPanel('kin');
   if (code === 'KeyJ') UI.panelOpen === 'quest' ? UI.closePanel() : UI.openPanel('quest');
@@ -120,6 +120,7 @@ G.dropSelected = function (n) { this.dropItem(this.player.selected(), n); };
 G.stealthTarget = function () {
   const p = this.player; let best = null, bd = Infinity;
   for (const e of Wild.list) {
+    if (e.dazed > 0) { const d0 = Math.hypot(e.x - p.x, e.z - p.z, (e.y - p.y) * 0.7); if (d0 < 4 + Math.min(4, (e.model.radius || 0.6)) && d0 - 8 < bd) { bd = d0 - 8; best = e; } continue; }
     if (e.chase || e.cool > 0 || e.alert >= 0.98 || e.isBoss || e.lieutenant) continue;
     const reach = 3.2 + Math.min(4, (e.model.radius || 0.6)); // close to its body, not its middle: big Kin can be snared from their side
     const d = Math.hypot(e.x - p.x, e.z - p.z, (e.y - p.y) * 0.7);
@@ -132,6 +133,13 @@ G.stealthSnare = function () {
   if (!this.player.has('snare') && !this.player.has('snare2')) { UI.toast('No snares. Craft one: 2 wood, 2 stone.'); return; }
   if (!this.healthyKin().length) { UI.toast('You need an awake Kin with you to set a snare.'); return; }
   Battle.start(e, true, { stealth: true });
+};
+// ---------- deploy: send your Kin in against the one that is on you ----------
+G.deployKin = function () {
+  const p = this.player; if (Battle.active) return;
+  const e = Wild.engagedNear(p) || Wild.pick(p); if (!e) { UI.toast('Nothing is on you.'); return; }
+  if (!this.healthyKin().length) { UI.toast('All your Kin are down. Revive them at the Voodoo Hut or with a tonic.', 'bad'); return; }
+  Battle.start(e, e.dazed > 0 || (e.alert || 0) < 0.6);
 };
 // ---------- riding ----------
 // what a Kin's body lets it carry you through: legs on land, fins in water, wings or hovering in the air
@@ -410,12 +418,11 @@ G.shoot = function (pick) {
     UI.toast('The arrow thunks into the ground.'); return;
   }
   if (!e) { UI.toast('Missed.'); return; }
-  const st = KIN.stats(e.kin); const unaware = (e.alert || 0) < 0.6;
-  let bite = ITEMS[ammo].arrow * (unaware ? 2 : 1);
-  if (e.isApex || e.isLegend || e.isBoss || e.isLabBoss || e.lieutenant) bite *= 0.35; // the big ones shrug most of it off
-  const dmg = Math.max(1, Math.round(st.hp * bite)); const before = e.kin.hp;
-  e.kin.hp = Math.max(1, e.kin.hp - dmg); e.alert = 1; e.ringT = 3; e.cool = 0; if (e.sleep) e.sleep = false;
-  if (ammo === 'arrow_sleep' || ammo === 'arrow_frost') { e.alert = 0; e.ringT = 0; e.hunt = 0; e.cool = ammo === 'arrow_sleep' ? 12 : 5; }
+  const st = KIN.stats(e.kin); const unaware = !e.chase && (e.alert || 0) < 0.6;
+  const bite = ITEMS[ammo].arrow * (unaware ? 2 : 1); const before = e.kin.hp;
+  const calm = ammo === 'arrow_sleep' || ammo === 'arrow_frost';
+  Wild.strike(e, bite, { arrow: true, keepOne: true, quiet: calm }); // an arrow never takes the last point: it softens, and brings the Kin to you
+  if (calm) { Wild.disengage(e, ammo === 'arrow_sleep' ? 12 : 5); e.ringT = 0; if (ammo === 'arrow_sleep') e.sleep = true; }
   this.stats.arrowHits = (this.stats.arrowHits || 0) + 1;
   if (e.high && Math.random() < 0.6) { p.add('feather', 1); setTimeout(() => UI.toast('A Sky Feather spins down to you.', 'good'), 400); }
   const pct = Math.round(e.kin.hp / st.hp * 100);
@@ -508,8 +515,7 @@ G.onBattleEnd = function (result, wildE, wild, mine, ambush) {
   } else if (result === 'lost') {
     // the winner comes after you: run, or it knocks you out
     UI.toast('Your Kin are down. RUN!', 'bad');
-    wildE.alert = 0; wildE.cool = 999; wildE.chase = { t: 14, hitCd: 0 }; wildE.speed = Math.max(wildE.speed, 3.9); wildE.patrol = null; wildE.sleep = false;
-    Wild.chaser = wildE;
+    Wild.engage(wildE, false, { rage: true, quiet: true }); wildE.cool = 0;
   }
   p.frozen = false;
   this.fightGrace = performance.now() + 8000; // a breather: nothing jumps you for eight seconds after a fight
@@ -692,7 +698,7 @@ G.loop = function (t) {
       const trig = (Dialogue.active() || Village.walking) ? null : Wild.update(dt, p, performance.now() / 1000, false);
       Buddy.update(dt, p); Keeps.update(dt, p); Citadel.update(dt, p); Farms.update(dt, p); Sky.update(dt, p); Combat.update(dt, p, input);
       Wild.ensureHeart(p, this.trainerLevel, this.mythicCaught); Wild.ensureLegend(p); Wild.ensureApex(p);
-      if (trig && !trig.e.cool && !Dialogue.active() && !p.flying && !(this.fightGrace > performance.now()) && !((Keeps.inHold(p) || Citadel.inside(p) || Sky.inFort(p)) && !trig.e.keepBoss && !trig.e.skyBoss)) Battle.start(trig.e, trig.ambush);
+      if (trig && !trig.e.cool && !Dialogue.active() && !p.flying && !(this.fightGrace > performance.now()) && !((Keeps.inHold(p) || Citadel.inside(p) || Sky.inFort(p)) && !trig.e.keepBoss && !trig.e.skyBoss)) Wild.engage(trig.e, trig.ambush);
       for (const e of Wild.list) if (e.cool > 0) e.cool -= dt;
       Hazards.update(dt, p, false); Npcs.update(dt, p, false); Campaign.update(dt, p, false); Taming.update(dt, p); if (p.gliding) { this.lastGlide = performance.now(); if (!this.stats.glideTold && !p.mount && !p.wingsOn) { this.stats.glideTold = true; G.explain('Gliding', 'Left stick: push sideways to bank and turn. Push forward to dive and pick up speed, pull back to brake. The arrow on the glide compass is the wind: with it behind you, you go far; into it, you barely move over the ground. Coming in to land, pull back a moment before the ground to flare and you touch down soft. Too fast and too steep, and it hurts. Let go of ▲ to drop, best done low.'); } }
       if (p.landMsg) { if (p.landMsg === 'hard') UI.toast('Hard landing. Pull back on the stick just before the ground to flare.', 'bad'); else if (p.landMsg === 'stall') UI.toast('You stalled her and dropped. Brake less: keep a little speed until the flare.', 'bad'); else if (p.landMsg === 'soft' && !this.stats.flareTold) { this.stats.flareTold = true; UI.toast('A clean flare. Feather-soft.', 'good'); } p.landMsg = null; }
@@ -764,7 +770,7 @@ G.loop = function (t) {
     const top = w.topAt(o.x, o.z); const sky = o.y >= SKY_SPLIT ? 1 : (o.y >= top ? 1 : Math.max(0, 1 - (top - o.y) * 0.11));
     ents.push({ x: o.x + 0.5, y: o.y, z: o.z + 0.5, yaw: o.yaw || 0, model: o.model, mesh: o.mesh, scale: o.scale || 1, hover: 0, skyMul: sky, isStatue: true });
   }
-  for (const e of ents) if (e.isStatue || e.isFx || e.isMount || e.isBuddy || e.isFoe || !e.model) { /* static */ } else if (e.hitT > 0) { e.hover = (e.model.hover || 0) + Math.sin(e.hitT * 60) * 0.08; } else if (e.breach == null) e.hover = e.model.hover + (e.flying ? Math.sin((e.bob || 0) * 2) * 0.08 : 0);
+  for (const e of ents) if (e.isStatue || e.isFx || e.isMount || e.isBuddy || e.isFoe || !e.model) { /* static */ } else if (e.chase || e.dazed > 0 || e.stunT > 0 || e.flee > 0) { /* the live fight sets its own stance */ } else if (e.hitT > 0) { e.hover = (e.model.hover || 0) + Math.sin(e.hitT * 60) * 0.08; } else if (e.breach == null) e.hover = e.model.hover + (e.flying ? Math.sin((e.bob || 0) * 2) * 0.08 : 0);
   const held = (!inBattle && !this.thirdPerson && !p.mount && !p.flying && this.talkK <= 0 && !this.grassCamOn) ? Held.describe(p, dt, input) : null; if (held) { const top = w.topAt(Math.floor(p.x), Math.floor(p.z)); held.skyMul = eye.y >= top ? 1 : Math.max(0.2, 1 - (top - eye.y) * 0.11); }
   R.render(w, p, ents, cam, { lights, lines, held });
   if ((this.frame & 3) === 0) UI.renderHud(dt);
@@ -774,7 +780,8 @@ G.loop = function (t) {
   if ((this.frame & 7) === 0 && !inBattle) {
     const st = this.stealthTarget();
     const lead = this.activeKin();
-    UI.setButtons({ snare: !!st && (p.has('snare') || p.has('snare2')), ride: !p.flying && (!!p.mount || !!(lead && this.rideRequirement(lead) != null)), riding: !!p.mount, ship: p.has('ship') && (p.flying || this.world.layerAt(Math.floor(p.y), Math.floor(p.x), Math.floor(p.z)) !== 'Mines'), flying: p.flying, canLand: p.flying && (p.autoLand || this.landHeight() <= G.LAND_REACH) });
+    const eng = Wild.engagedNear(p);
+    UI.setButtons({ deploy: !!eng && !p.flying, snare: !!st && (p.has('snare') || p.has('snare2')) && !(eng && !(eng.dazed > 0)), ride: !p.flying && (!!p.mount || !!(lead && this.rideRequirement(lead) != null)), riding: !!p.mount, ship: p.has('ship') && (p.flying || this.world.layerAt(Math.floor(p.y), Math.floor(p.x), Math.floor(p.z)) !== 'Mines'), flying: p.flying, canLand: p.flying && (p.autoLand || this.landHeight() <= G.LAND_REACH) });
     if (p.mount && !p.mount.borrowed && (p.mount.hp <= 0 || !this.kin.includes(p.mount))) { p.mount = null; UI.toast('Your mount is down.', 'bad'); }
     if (p.mount && p.mountMode === 'water' && !p.inWater && p.onGround) { p.mount = null; UI.toast('It cannot follow you onto land.'); }
     if (p.mount && p.mountMode === 'air' && (this.frame & 15) === 0 && this.noKinFlight()) { p.mount = null; UI.toast('No room down here for wings that size. You climb off.'); }
@@ -793,9 +800,10 @@ G.onTap = function () {
   if (rn) { Npcs.talk(rn); return; }
   if (Buddy.pick(p) && !Wild.pick(p)) { Buddy.tap(); return; }
   { const sel0 = p.selected(); const ai = sel0 && ITEMS[sel0]; if (ai && ai.arrow && Combat.anyBow()) { this.shoot(sel0); return; } }
-  if (Combat.weapon() && (Keeps.inHold(p) || Citadel.inside(p) || Sky.inFort(p) || !Wild.pick(p))) { Combat.swing(); return; }
   const e = (p.selected() && (p.itemInfo(p.selected()) || {}).bow) ? null : Wild.pick(p);
   const hit = p.raycast(5.5);
+  if (Combat.weapon() && !(e && e.rogue) && !(e && e.dazed > 0)) { Combat.swing(); return; }
+  if (e && e.dazed > 0) { if (p.has('snare') || p.has('snare2')) { this.stealthSnare(); } else UI.toast('It is dazed. A snare would take it now: 2 wood, 2 stone.'); return; }
   if (e && e.rogue) { const c = Campaign.C(); if (c.ranch !== 2) { UI.toast('Thunderhoof flattens his ears at you. Talk to Dusty Hale first.'); return; } const k = KIN.create(e.kin.sp, e.kin.level); Taming.start(k, { hard: true, onDone: (kk) => { kk.tamed = true; this.addKin(kk); Campaign.onRogueTamed(kk); UI.toast('Thunderhoof is yours, and you can ride now. Every Kin still has to be broken in once: press Ride and hold on.', 'good'); } }); return; }
   if (e && (!hit || Math.hypot(e.x - p.x, e.z - p.z, e.y - p.y) < hit.dist + 0.5)) {
     if (e.cool > 0) e.cool = 0;
