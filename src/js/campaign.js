@@ -180,6 +180,7 @@ const Campaign = (() => {
     const y0 = world.colInfo(X0 + 30, Z0).h; s.y0 = y0; const F = B.FORTSTONE;
     const box = (x0, x1, z0, z1, ya, yb, b) => { for (let x = x0; x <= x1; x++) for (let z = z0; z <= z1; z++) for (let y = ya; y <= yb; y++) set(X0 + x, y, Z0 + z, b); };
     for (let x = -24; x <= 80; x++) for (let z = -14; z <= 14; z++) { const X = X0 + x, Z = Z0 + z; for (let y = y0 + 1; y <= y0 + 22; y++) if (world.getBlock(X, y, Z) !== B.AIR) set(X, y, Z, B.AIR); for (let y = y0 - 4; y <= y0; y++) set(X, y, Z, y === y0 ? B.GRAVEL : B.STONE); }
+    world.fellCrowns(X0 - 24, Z0 - 14, X0 + 80, Z0 + 14, (x, y, z) => { if (isTreeBlock(world.getBlock(x, y, z))) set(x, y, z, B.AIR); });
     box(-1, 76, -9, 9, y0 + 1, y0 + 15, F); box(0, 75, -8, 8, y0 + 1, y0 + 14, B.AIR); box(-1, 76, -9, 9, y0 - 12, y0, F);
     for (let x = -1; x <= 76; x += 2) { set(X0 + x, y0 + 16, Z0 - 9, F); set(X0 + x, y0 + 16, Z0 + 9, F); }
     // the face of it: square towers at the corners and flanking the gate, buttresses along the long walls, banners, thorns crawling up round the gate

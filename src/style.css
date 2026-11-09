@@ -45,12 +45,8 @@ button { font-family: var(--font); color: var(--ui); }
 #joy.active { background: rgba(255,255,255,.14); border-color: rgba(255,255,255,.6); }
 #joy-knob { position: absolute; left: 33px; top: 33px; width: 40px; height: 40px; border-radius: 50%; background: rgba(255,255,255,.55); box-shadow: 0 2px 6px rgba(0,0,0,.4); }
 #joy::after { content: '◀ ▶'; position: absolute; left: 0; right: 0; top: 46px; text-align: center; font-size: 10px; letter-spacing: 36px; padding-left: 36px; opacity: .35; pointer-events: none; }
-#joy2 { position: absolute; right: 26px; bottom: calc(96px + env(safe-area-inset-bottom)); width: 110px; height: 110px; border-radius: 50%; background: rgba(255,255,255,.08); border: 2px solid rgba(255,255,255,.35); pointer-events: none; }
-#joy2.active { background: rgba(255,255,255,.14); border-color: rgba(255,255,255,.6); }
-#joy2-knob { position: absolute; left: 33px; top: 33px; width: 40px; height: 40px; border-radius: 50%; background: rgba(255,255,255,.55); box-shadow: 0 2px 6px rgba(0,0,0,.4); }
-#joy2::after { content: 'look'; position: absolute; left: 0; right: 0; top: 7px; text-align: center; font-size: 9px; letter-spacing: 1px; text-transform: uppercase; opacity: .4; pointer-events: none; }
-#btn-jump { position: absolute; right: 148px; bottom: calc(160px + env(safe-area-inset-bottom)); width: 56px; height: 56px; border-radius: 50%; background: rgba(255,255,255,.14); border: 2px solid rgba(255,255,255,.4); font-size: 22px; pointer-events: auto; }
-#btn-sneak { position: absolute; right: 148px; bottom: calc(96px + env(safe-area-inset-bottom)); width: 56px; height: 56px; border-radius: 50%; background: rgba(255,255,255,.12); border: 2px solid rgba(255,255,255,.4); font-size: 20px; pointer-events: auto; }
+#btn-jump { position: absolute; right: 26px; bottom: calc(164px + env(safe-area-inset-bottom)); width: 58px; height: 58px; border-radius: 50%; background: rgba(255,255,255,.14); border: 2px solid rgba(255,255,255,.4); font-size: 22px; pointer-events: auto; }
+#btn-sneak { position: absolute; right: 26px; bottom: calc(96px + env(safe-area-inset-bottom)); width: 58px; height: 58px; border-radius: 50%; background: rgba(255,255,255,.12); border: 2px solid rgba(255,255,255,.4); font-size: 20px; pointer-events: auto; }
 #btn-sneak.on { background: rgba(122,215,255,.5); }
 #hud.in-battle #hotbar, #hud.in-battle #item-name, #hud.in-battle #touch-ui, #hud.in-battle #quest-hint, #hud.in-battle #mine-bar, #hud.in-battle #drop-bar, #hud.in-battle #look { display: none; }
 #toasts { position: absolute; left: 50%; top: 80px; transform: translateX(-50%); display: flex; flex-direction: column; gap: 6px; align-items: center; width: 90vw; }
@@ -206,7 +202,7 @@ code { font-family: var(--pix); font-size: 11px; }
 #btn-deploy { position: absolute; left: 50%; top: calc(152px + env(safe-area-inset-top)); transform: translateX(-50%); padding: 7px 15px; border-radius: 16px; background: rgba(226, 84, 44, .42); color: rgba(255,255,255,.92); border: 1.5px solid rgba(255, 214, 184, .55); font-weight: 800; font-size: 13px; letter-spacing: .3px; pointer-events: auto; box-shadow: 0 2px 10px rgba(0,0,0,.25); text-shadow: 0 1px 2px rgba(0,0,0,.45); backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px); }
 #btn-deploy:active { background: rgba(226, 84, 44, .8); }
 #btn-deploy.hidden, #btn-snare.hidden { display: none; }
-#btn-ride { position: absolute; right: 149px; bottom: calc(224px + env(safe-area-inset-bottom)); width: 54px; height: 36px; border-radius: 20px; background: rgba(255,255,255,.1); border: 2px solid rgba(255,255,255,.3); font-size: 12px; pointer-events: auto; }
+#btn-ride { position: absolute; right: 28px; bottom: calc(232px + env(safe-area-inset-bottom)); width: 54px; height: 36px; border-radius: 20px; background: rgba(255,255,255,.1); border: 2px solid rgba(255,255,255,.3); font-size: 12px; pointer-events: auto; }
 #btn-ride.on { background: rgba(240,208,144,.5); }
 body.desktop #joy, body.desktop #btn-jump, body.desktop #btn-sneak { display: none; }
 #sky { position: fixed; inset: 0; pointer-events: none; overflow: hidden; z-index: 2; transition: opacity .8s; }

@@ -133,6 +133,7 @@ const SKY_CLEAR = { [B.LAMP]: 1, [B.FLOWERBOX]: 1, [B.RAIL]: 1, [B.BANNER]: 1, [
 const isSolid = (id) => BLOCKS[id].solid;
 const isLeaf = (id) => id === B.LEAVES || id === B.BERRYLEAF || id === B.NEEDLES;
 const isTrunk = (id) => id === B.LOG || id === B.BIRCHLOG || id === B.PALMLOG;
+const isTreeBlock = (id) => isLeaf(id) || isTrunk(id) || id === B.FROND || id === B.CACTUS; // what a felled crown may take away
 const isOpaque = (id) => BLOCKS[id].solid && !BLOCKS[id].partial && !BLOCKS[id].transparent;
 
 const BIOME = { PLAINS: 0, FOREST: 1, DESERT: 2, SNOW: 3, SWAMP: 4, MOUNTAIN: 5, OCEAN: 6, MARE: 7, HIGHLANDS: 8, CRATER: 9, DUNES: 10, FLATS: 11, MESA: 12, LOSTWORLD: 13 };
@@ -316,6 +317,14 @@ class World {
     return { type, height, berries, big: type === 'jungle' && hr > 0.6, lean: Math.floor(U.hash3(x, 95, z, this.seed) * 4) };
   }
 
+  // a builder that levels a patch of ground takes the trees on it with it, crowns and all: any tree rooted inside the
+  // rectangle is replayed and every block of it outside the rectangle is handed to the setter, so no canopy is left hanging over the edge
+  fellCrowns(x0, z0, x1, z1, set) {
+    for (let x = x0; x <= x1; x++) for (let z = z0; z <= z1; z++) {
+      const info = this.colInfo(U.mod(x, WORLD_W), U.mod(z, WORLD_W)); const tree = this.treeAt(x, z, info); if (!tree) continue;
+      this.plantTree((wx, wy, wz) => { if (wx < x0 || wx > x1 || wz < z0 || wz > z1) set(wx, wy, wz); }, x, info.h, z, tree, this.seed); // the setter clears the block only if it is tree: a crown block that never got placed (it met a hill) must not become a hole
+    }
+  }
   // one tree of a given kind: trunk, branches, a canopy of leaf blocks the mesher draws as soft puffs
   plantTree(put, x, h, z, tree, s) {
     const th = tree.height; const type = tree.type;

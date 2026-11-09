@@ -272,6 +272,7 @@ const Village = (() => {
       push(x, vy - 1, z, plaza ? (Math.max(Math.abs(dx), Math.abs(dz)) === 6 ? M.plazaEdge : M.plaza) : onStreet(dx, dz) ? M.plaza : M.ground);
       for (let y = vy; y <= Math.max(hm, vy) + 14; y++) push(x, y, z, B.AIR); // a pine is up to fourteen blocks of trunk and needles
     }
+    world.fellCrowns(vx - R - 3, vz - R - 3, vx + R + 3, vz + R + 3, (x, y, z) => push(x, y, z, -1)); // and the crowns of the trees that stood here do not stay hanging beyond the edge (-1: clear only if it is tree)
     // the square: a fountain in the cities, the Fusion Table to one side
     if (city) {
       for (let a = -2; a <= 2; a++) for (let b = -2; b <= 2; b++) { push(vx + a, vy - 1, vz + b, B.MASONRY); if (Math.hypot(a, b) <= 2.5) push(vx + a, vy, vz + b, (a || b) ? B.BASIN : B.FOUNTAIN); }
@@ -383,13 +384,13 @@ const Village = (() => {
       const R = v.R + 4; const ccx = Math.floor(U.mod(v.x, WORLD_W) / CH), ccz = Math.floor(U.mod(v.z, WORLD_W) / CH); const cr = Math.ceil(R / CH) + 1;
       const kx = U.mod(chunk.cx, NCH), kz = U.mod(chunk.cz, NCH); const ddx = Math.abs(U.mod(kx - ccx + NCH / 2, NCH) - NCH / 2), ddz = Math.abs(U.mod(kz - ccz + NCH / 2, NCH) - NCH / 2); if (ddx > cr || ddz > cr) continue;
       const ops = layout(v).buckets.get(key); if (!ops) continue;
-      const bl = chunk.blocks; for (let i = 0; i < ops.length; i += 4) bl[(ops[i] * CH + ops[i + 2]) * WH + ops[i + 1]] = ops[i + 3];
+      const bl = chunk.blocks; for (let i = 0; i < ops.length; i += 4) { const j = (ops[i] * CH + ops[i + 2]) * WH + ops[i + 1]; if (ops[i + 3] === -1) { if (isTreeBlock(bl[j])) bl[j] = B.AIR; } else bl[j] = ops[i + 3]; }
     }
     if (typeof Sky !== 'undefined') Sky.overlay(chunk);
   }
   function patchLoaded(v) {
     if (v.patched) return; v.patched = true; const L = layout(v);
-    for (const c of world.chunks.values()) { const key = U.mod(c.cx, NCH) + ',' + U.mod(c.cz, NCH); const ops = L.buckets.get(key); if (!ops) continue; const bl = c.blocks; for (let i = 0; i < ops.length; i += 4) bl[(ops[i] * CH + ops[i + 2]) * WH + ops[i + 1]] = ops[i + 3]; world.reapplyEdits(c); }
+    for (const c of world.chunks.values()) { const key = U.mod(c.cx, NCH) + ',' + U.mod(c.cz, NCH); const ops = L.buckets.get(key); if (!ops) continue; const bl = c.blocks; for (let i = 0; i < ops.length; i += 4) { const j = (ops[i] * CH + ops[i + 2]) * WH + ops[i + 1]; if (ops[i + 3] === -1) { if (isTreeBlock(bl[j])) bl[j] = B.AIR; } else bl[j] = ops[i + 3]; } world.reapplyEdits(c); }
   }
   function rawSite(cx, cz, id) {
     if (villages.has(id)) return villages.get(id);
@@ -1490,9 +1491,9 @@ const Village = (() => {
       if (k.hp <= 0) continue;
       let best = null, bd = Infinity;
       for (const e of r.raiders) { const d = Math.hypot(e.x - g.x, e.z - g.z); if (d < bd) { bd = d; best = e; } }
-      if (!best) { const dx = g.post.x - g.x, dz = g.post.z - g.z, d = Math.hypot(dx, dz); if (d > 0.4) { g.x += dx / d * Math.min(d, 2.5 * dt); g.z += dz / d * Math.min(d, 2.5 * dt); g.yaw = Math.atan2(dx, dz); g.moving = true; } else g.moving = false; g.y = standY(g.x, g.y, g.z) ?? g.y; continue; }
+      if (!best) { const dx = g.post.x - g.x, dz = g.post.z - g.z, d = Math.hypot(dx, dz); if (d > 0.4) { const nx = g.x + dx / d * Math.min(d, 2.5 * dt), nz = g.z + dz / d * Math.min(d, 2.5 * dt); const gy = standY(nx, g.y, nz); if (gy != null) { g.x = nx; g.z = nz; g.y = gy; } g.yaw = Math.atan2(dx, dz); g.moving = gy != null; } else g.moving = false; unstick(g); continue; }
       const dx = best.x - g.x, dz = best.z - g.z, d = Math.hypot(dx, dz);
-      if (d > 1.4) { const sp = 3.2 * dt; g.x += dx / d * Math.min(d, sp); g.z += dz / d * Math.min(d, sp); g.yaw = Math.atan2(dx, dz); g.moving = true; const gy = standY(g.x, g.y, g.z); if (gy != null) g.y += (gy - g.y) * Math.min(1, dt * 8); const ch = Math.max(Math.abs(g.x - cx), Math.abs(g.z - cz)); g.leap = Math.abs(ch - wr) < 1.2 ? 1.1 : 0; continue; }
+      if (d > 1.4) { const sp = 3.2 * dt; const nx = g.x + dx / d * Math.min(d, sp), nz = g.z + dz / d * Math.min(d, sp); const gy = standY(nx, g.y, nz); if (gy != null) { g.x = nx; g.z = nz; g.y += (gy - g.y) * Math.min(1, dt * 8); } g.yaw = Math.atan2(dx, dz); g.moving = true; const ch = Math.max(Math.abs(g.x - cx), Math.abs(g.z - cz)); g.leap = Math.abs(ch - wr) < 1.2 ? 1.1 : 0; continue; }
       g.moving = false; g.leap = 0;
       if (g.cd > 0) continue;
       g.cd = 1.3;
@@ -1694,10 +1695,11 @@ const Village = (() => {
     if (!inBattle) ensureThief(v, st, player);
     if (v.gatesClosed !== false && !isNight() && !(v.raid && v.raid.state === 'active')) setGates(v, st, false);
     // guards off duty: stand at their posts and watch you
-    if (!(v.raid && v.raid.state === 'active')) for (const g of v.guardEnts) { g.bob += dt; const dx = player.x - g.x, dz = player.z - g.z; if (Math.hypot(dx, dz) < 7) g.yaw = Math.atan2(dx, dz); g.moving = false; g.leap = 0; }
+    if (!(v.raid && v.raid.state === 'active')) for (const g of v.guardEnts) { g.bob += dt; const dx = player.x - g.x, dz = player.z - g.z; if (Math.hypot(dx, dz) < 7) g.yaw = Math.atan2(dx, dz); g.moving = false; g.leap = 0; if (((g.bob * 2) | 0) !== (((g.bob - dt) * 2) | 0)) unstick(g); }
     for (const n of v.npcs) {
       if (n.hidden) continue;
       n.bob = (n.bob || 0) + dt;
+      if (((n.bob * 2) | 0) !== (((n.bob - dt) * 2) | 0)) unstick(n); // twice a second: nobody stands in a lamp post
       if (n === v.elder && walkState) continue;
       if (n.wander === false) { const dx = player.x - n.x, dz = player.z - n.z; if (Math.hypot(dx, dz) < 5) n.yaw = Math.atan2(dx, dz); continue; }
       n.wait -= dt;
@@ -1709,6 +1711,11 @@ const Village = (() => {
       }
     }
     if (walkState && !inBattle) elderWalk(dt, player);
+  }
+  // someone standing inside a prop (a lamp post, a fence, a flower box: the props came after the villagers' homes were set) steps to the nearest clear square, and his home moves with him
+  function unstick(n) {
+    if (standY(n.x, n.y, n.z) != null) return;
+    for (const r of [1, 1.5, 2.2]) for (let k = 0; k < 8; k++) { const a = k / 8 * 6.283; const nx = Math.floor(n.x + Math.cos(a) * r) + 0.5, nz = Math.floor(n.z + Math.sin(a) * r) + 0.5; const gy = standY(nx, n.y, nz); if (gy != null) { n.x = nx; n.z = nz; n.y = gy; if (n.home && standY(n.home.x, n.y, n.home.z) == null) n.home = { x: nx, z: nz }; return; } }
   }
   function standY(x, y, z) {
     const bx = Math.floor(x), bz = Math.floor(z);
@@ -1748,7 +1755,8 @@ const Village = (() => {
           Dialogue.show(e.name, [
             'Thank you, stranger. Grakor held this village for a whole season and kept us in our homes. You have freed us.',
             'Welcome to Stratakin. The world is layered: sky islands above, these lands, the Mines below, and the Core at the heart of everything.',
-            'Kin live in every layer. They can be caught, raised and fused into new ones. Come, I will show you the table.',
+            'Kin live in every layer, and the wild ones will come at you. Meet them with your own blade and shield if you like, or send a Kin of yours in. A Kin always hits harder than steel, and the great ones only fall to Kin.',
+            'Catch them, raise them, and the right pairs can be fused into new ones. Come, I will show you the table.',
           ], () => { walkState.stage = 'lead'; G.player.frozen = true; });
         }
         break;
@@ -1761,8 +1769,8 @@ const Village = (() => {
         if (arrived) {
           e.yaw = Math.atan2(v.x + 0.5 - e.x, v.z + 0.5 - e.z); walkState.stage = 'talk2'; G.talkNpc = e;
           Dialogue.show(e.name, [
-            'This is a Fusion Table. Tap it. Put two Kin in its grid and they become one, a little above the best of the pair. Put in sixteen and you will make something this village sings about.',
-            'Materials craft gear on the same table, and anything it makes can be taken apart again. One Kin with materials becomes a statue, or a lamp if something in it burns.',
+            'This is a Fusion Table. Tap it. A fusion is a recipe: two particular Kin and an element stone, and out of them comes a third, better than either. The table lists the recipes you know. Quest folk teach more, and so do the tyrants when they fall.',
+            'Materials craft gear on the same table, swords, shields and bows among them, and anything it makes can be taken apart again. It also keeps your spare Kin: eight walk with you, the rest wait in the table.',
             `Take these Shards for what you did. From today ${v.name} is under your protection: we set aside ${income} Shards for you every dawn. Come to me to collect them, and for the village ledger.`,
             'Raiders come at night for the walls, and Grakor will try to come back. Leave a Kin or two with us as guards; the ledger shows what we need. Pell bakes, Mira\'s smoothies mend tired Kin, Oskar trades. Old Brannock on the shore knows where the other tyrants sit.',
           ], () => { G.player.frozen = false; G.shards += 60; UI.toast('+60 Shards from the village.', 'good'); G.stats.elderDone = true; walkState = null; e.wander = true; e.home = { x: v.x + 2.5, z: v.z + 3.5 }; });

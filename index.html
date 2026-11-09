@@ -60,12 +60,8 @@ button { font-family: var(--font); color: var(--ui); }
 #joy.active { background: rgba(255,255,255,.14); border-color: rgba(255,255,255,.6); }
 #joy-knob { position: absolute; left: 33px; top: 33px; width: 40px; height: 40px; border-radius: 50%; background: rgba(255,255,255,.55); box-shadow: 0 2px 6px rgba(0,0,0,.4); }
 #joy::after { content: '◀ ▶'; position: absolute; left: 0; right: 0; top: 46px; text-align: center; font-size: 10px; letter-spacing: 36px; padding-left: 36px; opacity: .35; pointer-events: none; }
-#joy2 { position: absolute; right: 26px; bottom: calc(96px + env(safe-area-inset-bottom)); width: 110px; height: 110px; border-radius: 50%; background: rgba(255,255,255,.08); border: 2px solid rgba(255,255,255,.35); pointer-events: none; }
-#joy2.active { background: rgba(255,255,255,.14); border-color: rgba(255,255,255,.6); }
-#joy2-knob { position: absolute; left: 33px; top: 33px; width: 40px; height: 40px; border-radius: 50%; background: rgba(255,255,255,.55); box-shadow: 0 2px 6px rgba(0,0,0,.4); }
-#joy2::after { content: 'look'; position: absolute; left: 0; right: 0; top: 7px; text-align: center; font-size: 9px; letter-spacing: 1px; text-transform: uppercase; opacity: .4; pointer-events: none; }
-#btn-jump { position: absolute; right: 148px; bottom: calc(160px + env(safe-area-inset-bottom)); width: 56px; height: 56px; border-radius: 50%; background: rgba(255,255,255,.14); border: 2px solid rgba(255,255,255,.4); font-size: 22px; pointer-events: auto; }
-#btn-sneak { position: absolute; right: 148px; bottom: calc(96px + env(safe-area-inset-bottom)); width: 56px; height: 56px; border-radius: 50%; background: rgba(255,255,255,.12); border: 2px solid rgba(255,255,255,.4); font-size: 20px; pointer-events: auto; }
+#btn-jump { position: absolute; right: 26px; bottom: calc(164px + env(safe-area-inset-bottom)); width: 58px; height: 58px; border-radius: 50%; background: rgba(255,255,255,.14); border: 2px solid rgba(255,255,255,.4); font-size: 22px; pointer-events: auto; }
+#btn-sneak { position: absolute; right: 26px; bottom: calc(96px + env(safe-area-inset-bottom)); width: 58px; height: 58px; border-radius: 50%; background: rgba(255,255,255,.12); border: 2px solid rgba(255,255,255,.4); font-size: 20px; pointer-events: auto; }
 #btn-sneak.on { background: rgba(122,215,255,.5); }
 #hud.in-battle #hotbar, #hud.in-battle #item-name, #hud.in-battle #touch-ui, #hud.in-battle #quest-hint, #hud.in-battle #mine-bar, #hud.in-battle #drop-bar, #hud.in-battle #look { display: none; }
 #toasts { position: absolute; left: 50%; top: 80px; transform: translateX(-50%); display: flex; flex-direction: column; gap: 6px; align-items: center; width: 90vw; }
@@ -221,7 +217,7 @@ code { font-family: var(--pix); font-size: 11px; }
 #btn-deploy { position: absolute; left: 50%; top: calc(152px + env(safe-area-inset-top)); transform: translateX(-50%); padding: 7px 15px; border-radius: 16px; background: rgba(226, 84, 44, .42); color: rgba(255,255,255,.92); border: 1.5px solid rgba(255, 214, 184, .55); font-weight: 800; font-size: 13px; letter-spacing: .3px; pointer-events: auto; box-shadow: 0 2px 10px rgba(0,0,0,.25); text-shadow: 0 1px 2px rgba(0,0,0,.45); backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px); }
 #btn-deploy:active { background: rgba(226, 84, 44, .8); }
 #btn-deploy.hidden, #btn-snare.hidden { display: none; }
-#btn-ride { position: absolute; right: 149px; bottom: calc(224px + env(safe-area-inset-bottom)); width: 54px; height: 36px; border-radius: 20px; background: rgba(255,255,255,.1); border: 2px solid rgba(255,255,255,.3); font-size: 12px; pointer-events: auto; }
+#btn-ride { position: absolute; right: 28px; bottom: calc(232px + env(safe-area-inset-bottom)); width: 54px; height: 36px; border-radius: 20px; background: rgba(255,255,255,.1); border: 2px solid rgba(255,255,255,.3); font-size: 12px; pointer-events: auto; }
 #btn-ride.on { background: rgba(240,208,144,.5); }
 body.desktop #joy, body.desktop #btn-jump, body.desktop #btn-sneak { display: none; }
 #sky { position: fixed; inset: 0; pointer-events: none; overflow: hidden; z-index: 2; transition: opacity .8s; }
@@ -396,7 +392,6 @@ body.desktop #joy, body.desktop #btn-jump, body.desktop #btn-sneak { display: no
   <div id="drop-bar" class="hidden"></div>
   <div id="touch-ui">
     <div id="joy"><div id="joy-knob"></div></div>
-    <div id="joy2"><div id="joy2-knob"></div></div>
     <button id="btn-jump">▲</button>
     <button id="btn-sneak" aria-label="Down">▼</button>
     <button id="btn-deploy" class="hidden">Deploy Kin</button>
@@ -774,6 +769,7 @@ const SKY_CLEAR = { [B.LAMP]: 1, [B.FLOWERBOX]: 1, [B.RAIL]: 1, [B.BANNER]: 1, [
 const isSolid = (id) => BLOCKS[id].solid;
 const isLeaf = (id) => id === B.LEAVES || id === B.BERRYLEAF || id === B.NEEDLES;
 const isTrunk = (id) => id === B.LOG || id === B.BIRCHLOG || id === B.PALMLOG;
+const isTreeBlock = (id) => isLeaf(id) || isTrunk(id) || id === B.FROND || id === B.CACTUS; // what a felled crown may take away
 const isOpaque = (id) => BLOCKS[id].solid && !BLOCKS[id].partial && !BLOCKS[id].transparent;
 
 const BIOME = { PLAINS: 0, FOREST: 1, DESERT: 2, SNOW: 3, SWAMP: 4, MOUNTAIN: 5, OCEAN: 6, MARE: 7, HIGHLANDS: 8, CRATER: 9, DUNES: 10, FLATS: 11, MESA: 12, LOSTWORLD: 13 };
@@ -957,6 +953,14 @@ class World {
     return { type, height, berries, big: type === 'jungle' && hr > 0.6, lean: Math.floor(U.hash3(x, 95, z, this.seed) * 4) };
   }
 
+  // a builder that levels a patch of ground takes the trees on it with it, crowns and all: any tree rooted inside the
+  // rectangle is replayed and every block of it outside the rectangle is handed to the setter, so no canopy is left hanging over the edge
+  fellCrowns(x0, z0, x1, z1, set) {
+    for (let x = x0; x <= x1; x++) for (let z = z0; z <= z1; z++) {
+      const info = this.colInfo(U.mod(x, WORLD_W), U.mod(z, WORLD_W)); const tree = this.treeAt(x, z, info); if (!tree) continue;
+      this.plantTree((wx, wy, wz) => { if (wx < x0 || wx > x1 || wz < z0 || wz > z1) set(wx, wy, wz); }, x, info.h, z, tree, this.seed); // the setter clears the block only if it is tree: a crown block that never got placed (it met a hill) must not become a hole
+    }
+  }
   // one tree of a given kind: trunk, branches, a canopy of leaf blocks the mesher draws as soft puffs
   plantTree(put, x, h, z, tree, s) {
     const th = tree.height; const type = tree.type;
@@ -5991,6 +5995,7 @@ const Village = (() => {
       push(x, vy - 1, z, plaza ? (Math.max(Math.abs(dx), Math.abs(dz)) === 6 ? M.plazaEdge : M.plaza) : onStreet(dx, dz) ? M.plaza : M.ground);
       for (let y = vy; y <= Math.max(hm, vy) + 14; y++) push(x, y, z, B.AIR); // a pine is up to fourteen blocks of trunk and needles
     }
+    world.fellCrowns(vx - R - 3, vz - R - 3, vx + R + 3, vz + R + 3, (x, y, z) => push(x, y, z, -1)); // and the crowns of the trees that stood here do not stay hanging beyond the edge (-1: clear only if it is tree)
     // the square: a fountain in the cities, the Fusion Table to one side
     if (city) {
       for (let a = -2; a <= 2; a++) for (let b = -2; b <= 2; b++) { push(vx + a, vy - 1, vz + b, B.MASONRY); if (Math.hypot(a, b) <= 2.5) push(vx + a, vy, vz + b, (a || b) ? B.BASIN : B.FOUNTAIN); }
@@ -6102,13 +6107,13 @@ const Village = (() => {
       const R = v.R + 4; const ccx = Math.floor(U.mod(v.x, WORLD_W) / CH), ccz = Math.floor(U.mod(v.z, WORLD_W) / CH); const cr = Math.ceil(R / CH) + 1;
       const kx = U.mod(chunk.cx, NCH), kz = U.mod(chunk.cz, NCH); const ddx = Math.abs(U.mod(kx - ccx + NCH / 2, NCH) - NCH / 2), ddz = Math.abs(U.mod(kz - ccz + NCH / 2, NCH) - NCH / 2); if (ddx > cr || ddz > cr) continue;
       const ops = layout(v).buckets.get(key); if (!ops) continue;
-      const bl = chunk.blocks; for (let i = 0; i < ops.length; i += 4) bl[(ops[i] * CH + ops[i + 2]) * WH + ops[i + 1]] = ops[i + 3];
+      const bl = chunk.blocks; for (let i = 0; i < ops.length; i += 4) { const j = (ops[i] * CH + ops[i + 2]) * WH + ops[i + 1]; if (ops[i + 3] === -1) { if (isTreeBlock(bl[j])) bl[j] = B.AIR; } else bl[j] = ops[i + 3]; }
     }
     if (typeof Sky !== 'undefined') Sky.overlay(chunk);
   }
   function patchLoaded(v) {
     if (v.patched) return; v.patched = true; const L = layout(v);
-    for (const c of world.chunks.values()) { const key = U.mod(c.cx, NCH) + ',' + U.mod(c.cz, NCH); const ops = L.buckets.get(key); if (!ops) continue; const bl = c.blocks; for (let i = 0; i < ops.length; i += 4) bl[(ops[i] * CH + ops[i + 2]) * WH + ops[i + 1]] = ops[i + 3]; world.reapplyEdits(c); }
+    for (const c of world.chunks.values()) { const key = U.mod(c.cx, NCH) + ',' + U.mod(c.cz, NCH); const ops = L.buckets.get(key); if (!ops) continue; const bl = c.blocks; for (let i = 0; i < ops.length; i += 4) { const j = (ops[i] * CH + ops[i + 2]) * WH + ops[i + 1]; if (ops[i + 3] === -1) { if (isTreeBlock(bl[j])) bl[j] = B.AIR; } else bl[j] = ops[i + 3]; } world.reapplyEdits(c); }
   }
   function rawSite(cx, cz, id) {
     if (villages.has(id)) return villages.get(id);
@@ -7209,9 +7214,9 @@ const Village = (() => {
       if (k.hp <= 0) continue;
       let best = null, bd = Infinity;
       for (const e of r.raiders) { const d = Math.hypot(e.x - g.x, e.z - g.z); if (d < bd) { bd = d; best = e; } }
-      if (!best) { const dx = g.post.x - g.x, dz = g.post.z - g.z, d = Math.hypot(dx, dz); if (d > 0.4) { g.x += dx / d * Math.min(d, 2.5 * dt); g.z += dz / d * Math.min(d, 2.5 * dt); g.yaw = Math.atan2(dx, dz); g.moving = true; } else g.moving = false; g.y = standY(g.x, g.y, g.z) ?? g.y; continue; }
+      if (!best) { const dx = g.post.x - g.x, dz = g.post.z - g.z, d = Math.hypot(dx, dz); if (d > 0.4) { const nx = g.x + dx / d * Math.min(d, 2.5 * dt), nz = g.z + dz / d * Math.min(d, 2.5 * dt); const gy = standY(nx, g.y, nz); if (gy != null) { g.x = nx; g.z = nz; g.y = gy; } g.yaw = Math.atan2(dx, dz); g.moving = gy != null; } else g.moving = false; unstick(g); continue; }
       const dx = best.x - g.x, dz = best.z - g.z, d = Math.hypot(dx, dz);
-      if (d > 1.4) { const sp = 3.2 * dt; g.x += dx / d * Math.min(d, sp); g.z += dz / d * Math.min(d, sp); g.yaw = Math.atan2(dx, dz); g.moving = true; const gy = standY(g.x, g.y, g.z); if (gy != null) g.y += (gy - g.y) * Math.min(1, dt * 8); const ch = Math.max(Math.abs(g.x - cx), Math.abs(g.z - cz)); g.leap = Math.abs(ch - wr) < 1.2 ? 1.1 : 0; continue; }
+      if (d > 1.4) { const sp = 3.2 * dt; const nx = g.x + dx / d * Math.min(d, sp), nz = g.z + dz / d * Math.min(d, sp); const gy = standY(nx, g.y, nz); if (gy != null) { g.x = nx; g.z = nz; g.y += (gy - g.y) * Math.min(1, dt * 8); } g.yaw = Math.atan2(dx, dz); g.moving = true; const ch = Math.max(Math.abs(g.x - cx), Math.abs(g.z - cz)); g.leap = Math.abs(ch - wr) < 1.2 ? 1.1 : 0; continue; }
       g.moving = false; g.leap = 0;
       if (g.cd > 0) continue;
       g.cd = 1.3;
@@ -7413,10 +7418,11 @@ const Village = (() => {
     if (!inBattle) ensureThief(v, st, player);
     if (v.gatesClosed !== false && !isNight() && !(v.raid && v.raid.state === 'active')) setGates(v, st, false);
     // guards off duty: stand at their posts and watch you
-    if (!(v.raid && v.raid.state === 'active')) for (const g of v.guardEnts) { g.bob += dt; const dx = player.x - g.x, dz = player.z - g.z; if (Math.hypot(dx, dz) < 7) g.yaw = Math.atan2(dx, dz); g.moving = false; g.leap = 0; }
+    if (!(v.raid && v.raid.state === 'active')) for (const g of v.guardEnts) { g.bob += dt; const dx = player.x - g.x, dz = player.z - g.z; if (Math.hypot(dx, dz) < 7) g.yaw = Math.atan2(dx, dz); g.moving = false; g.leap = 0; if (((g.bob * 2) | 0) !== (((g.bob - dt) * 2) | 0)) unstick(g); }
     for (const n of v.npcs) {
       if (n.hidden) continue;
       n.bob = (n.bob || 0) + dt;
+      if (((n.bob * 2) | 0) !== (((n.bob - dt) * 2) | 0)) unstick(n); // twice a second: nobody stands in a lamp post
       if (n === v.elder && walkState) continue;
       if (n.wander === false) { const dx = player.x - n.x, dz = player.z - n.z; if (Math.hypot(dx, dz) < 5) n.yaw = Math.atan2(dx, dz); continue; }
       n.wait -= dt;
@@ -7428,6 +7434,11 @@ const Village = (() => {
       }
     }
     if (walkState && !inBattle) elderWalk(dt, player);
+  }
+  // someone standing inside a prop (a lamp post, a fence, a flower box: the props came after the villagers' homes were set) steps to the nearest clear square, and his home moves with him
+  function unstick(n) {
+    if (standY(n.x, n.y, n.z) != null) return;
+    for (const r of [1, 1.5, 2.2]) for (let k = 0; k < 8; k++) { const a = k / 8 * 6.283; const nx = Math.floor(n.x + Math.cos(a) * r) + 0.5, nz = Math.floor(n.z + Math.sin(a) * r) + 0.5; const gy = standY(nx, n.y, nz); if (gy != null) { n.x = nx; n.z = nz; n.y = gy; if (n.home && standY(n.home.x, n.y, n.home.z) == null) n.home = { x: nx, z: nz }; return; } }
   }
   function standY(x, y, z) {
     const bx = Math.floor(x), bz = Math.floor(z);
@@ -7467,7 +7478,8 @@ const Village = (() => {
           Dialogue.show(e.name, [
             'Thank you, stranger. Grakor held this village for a whole season and kept us in our homes. You have freed us.',
             'Welcome to Stratakin. The world is layered: sky islands above, these lands, the Mines below, and the Core at the heart of everything.',
-            'Kin live in every layer. They can be caught, raised and fused into new ones. Come, I will show you the table.',
+            'Kin live in every layer, and the wild ones will come at you. Meet them with your own blade and shield if you like, or send a Kin of yours in. A Kin always hits harder than steel, and the great ones only fall to Kin.',
+            'Catch them, raise them, and the right pairs can be fused into new ones. Come, I will show you the table.',
           ], () => { walkState.stage = 'lead'; G.player.frozen = true; });
         }
         break;
@@ -7480,8 +7492,8 @@ const Village = (() => {
         if (arrived) {
           e.yaw = Math.atan2(v.x + 0.5 - e.x, v.z + 0.5 - e.z); walkState.stage = 'talk2'; G.talkNpc = e;
           Dialogue.show(e.name, [
-            'This is a Fusion Table. Tap it. Put two Kin in its grid and they become one, a little above the best of the pair. Put in sixteen and you will make something this village sings about.',
-            'Materials craft gear on the same table, and anything it makes can be taken apart again. One Kin with materials becomes a statue, or a lamp if something in it burns.',
+            'This is a Fusion Table. Tap it. A fusion is a recipe: two particular Kin and an element stone, and out of them comes a third, better than either. The table lists the recipes you know. Quest folk teach more, and so do the tyrants when they fall.',
+            'Materials craft gear on the same table, swords, shields and bows among them, and anything it makes can be taken apart again. It also keeps your spare Kin: eight walk with you, the rest wait in the table.',
             `Take these Shards for what you did. From today ${v.name} is under your protection: we set aside ${income} Shards for you every dawn. Come to me to collect them, and for the village ledger.`,
             'Raiders come at night for the walls, and Grakor will try to come back. Leave a Kin or two with us as guards; the ledger shows what we need. Pell bakes, Mira\'s smoothies mend tired Kin, Oskar trades. Old Brannock on the shore knows where the other tyrants sit.',
           ], () => { G.player.frozen = false; G.shards += 60; UI.toast('+60 Shards from the village.', 'good'); G.stats.elderDone = true; walkState = null; e.wander = true; e.home = { x: v.x + 2.5, z: v.z + 3.5 }; });
@@ -8927,6 +8939,7 @@ const Campaign = (() => {
     const y0 = world.colInfo(X0 + 30, Z0).h; s.y0 = y0; const F = B.FORTSTONE;
     const box = (x0, x1, z0, z1, ya, yb, b) => { for (let x = x0; x <= x1; x++) for (let z = z0; z <= z1; z++) for (let y = ya; y <= yb; y++) set(X0 + x, y, Z0 + z, b); };
     for (let x = -24; x <= 80; x++) for (let z = -14; z <= 14; z++) { const X = X0 + x, Z = Z0 + z; for (let y = y0 + 1; y <= y0 + 22; y++) if (world.getBlock(X, y, Z) !== B.AIR) set(X, y, Z, B.AIR); for (let y = y0 - 4; y <= y0; y++) set(X, y, Z, y === y0 ? B.GRAVEL : B.STONE); }
+    world.fellCrowns(X0 - 24, Z0 - 14, X0 + 80, Z0 + 14, (x, y, z) => { if (isTreeBlock(world.getBlock(x, y, z))) set(x, y, z, B.AIR); });
     box(-1, 76, -9, 9, y0 + 1, y0 + 15, F); box(0, 75, -8, 8, y0 + 1, y0 + 14, B.AIR); box(-1, 76, -9, 9, y0 - 12, y0, F);
     for (let x = -1; x <= 76; x += 2) { set(X0 + x, y0 + 16, Z0 - 9, F); set(X0 + x, y0 + 16, Z0 + 9, F); }
     // the face of it: square towers at the corners and flanking the gate, buttresses along the long walls, banners, thorns crawling up round the gate
@@ -10640,12 +10653,12 @@ const UI = (() => {
       <p class="small">Graphics: <b>full</b> is shadows, dense grass and a sharp picture; <b>balanced</b> thins the grass and the pixels; <b>light</b> drops the shadows and most of the grass for a steadier frame rate. The number in the corner of the screen is frames per second.</p>
       <div class="row"><button class="btn" id="m-camera">Camera: ${G.thirdPerson ? 'third person' : 'first person'}</button><button class="btn" id="m-skins">Skin: ${Avatar.skin().name}</button></div>
       <h4>How to play</h4>
-      <p class="small">${Controls.isTouch ? 'Left side of the screen: drag to walk. Right side: drag to look, <b>hold</b> to mine, <b>tap</b> to place a block or talk to a Fusion Table. ▲ jumps, hold ▲ in the air with a Glider to glide.' : 'WASD to move, mouse to look, <b>hold left click</b> to mine, <b>right click</b> to place or use. Space jumps, Shift sneaks, 1-9 or the wheel pick an item. E opens Craft, Q opens Kin, J opens Quests, V switches the camera. Esc releases the mouse.'}</p>
+      <p class="small">${Controls.isTouch ? 'Left stick walks; drag anywhere on the right of the screen to turn the camera. <b>Hold</b> to mine, or to block when you hold a weapon; <b>tap</b> to place a block, swing, talk, or use a Fusion Table. ▲ jumps, ▼ crouches, hold ▲ in the air with a Glider to glide. In third person the camera orbits you: swing it round to see your face, or your Kin\'s.' : 'WASD to move, mouse to look, <b>hold left click</b> to mine or block, <b>right click</b> to place or use. Space jumps, Shift sneaks, 1-9 or the wheel pick an item. E opens Craft, Q opens Kin, J opens Quests, V switches the camera, F deploys a Kin or sets a snare. Esc releases the mouse.'}</p>
       <p class="small">Chests (Craft › Blocks) keep what you store in them through anything. Amulets come from the people by the fires on the road; nobody sells them. Third person shows your skin: unlock more by playing.</p>
-      <p class="small">Wild Kin have a sense ring. Walk into it from the front and they attack first. Sneak up from behind, stay still when the ring flashes, and you can jump them for an ambush: first strike and a better catch chance.</p>
+      <p class="small">Wild Kin have a sense ring. Walk into it from the front and they come for you, live: they crouch, then lunge. Hold a weapon and hold the screen to block with your shield; raise it, or swing, just as the lunge lands to parry. Swords and axes chip a Kin's health (a wooden sword a twentieth a blow, Starmetal about a seventh), arrows more but never the last point. <b>Deploy</b> sends your Kin in for the proper battle: they hit far harder, and the big ones only fall to Kin. Beat a common Kin by hand and it lies dazed for ten seconds: snare it, or let it go. Sneak up from behind, stay still when the ring flashes, and Deploy for an ambush: first strike and a better catch chance. Your buddy darts in for a bite of its own now and then.</p>
       <p class="small">Layers, top to bottom: Sky islands (Light, Gale), Surface, the Mines (dark, bring a torch), and the Core: lava, Flame and Void, the Mythic. The world wraps after about an hour of walking in one direction; the further you go from camp, the stranger the Kin.</p>
       <p class="small">Shards (◆) are the currency: you earn them by dismantling objects and gear that had a Kin in them. Shops to spend them in come later.</p>
-      <p class="small">The Fusion Table has 16 slots. Two Kin make a new one a little above their median level; ten make a much stronger one; six or more grant a trait that works outside battle. Items alone craft gear.</p>
+      <p class="small">The Fusion Table: a fusion is a recipe, two particular Kin and an element stone (three essences and an iron), and the table lists the recipes you know. Quest people and beaten tyrants teach more; some fusions fork, and the table you use decides which way. Items alone craft gear, and the table keeps your spare Kin.</p>
       <p class="small">Every 4 trainer levels a new tier of Kin appears, a couple of levels above you. They keep to the outskirts and the deep water; the beaten paths stay gentler.</p>
       <p class="small">Seed: <code>${G.world.seed}</code></p>
     </div>`;
