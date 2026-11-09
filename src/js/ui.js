@@ -96,7 +96,7 @@ const UI = (() => {
   }
   function renderHud(dt) {
     const p = G.player;
-    el.hearts.innerHTML = Array.from({ length: p.maxHp }, (_, i) => `<i class="${i < p.hp ? 'on' : ''}"></i>`).join('');
+    el.hearts.innerHTML = Array.from({ length: p.maxHp }, (_, i) => `<i class="${i < p.hp ? 'on' : ''}"></i>`).join(''); el.hearts.classList.toggle('low', p.hp <= 3);
     if (p.wingsOn || (p.has('wings') && p.wingE != null && p.wingE < 59)) { el.breath.classList.remove('hidden'); el['breath-fill'].style.width = ((p.wingE || 0) / 60 * 100) + '%'; el.breath.classList.toggle('low', (p.wingE || 0) < 12); } else
     if (p.underwater) { el.breath.classList.remove('hidden'); el['breath-fill'].style.width = (p.breath * 100) + '%'; el.breath.classList.toggle('low', p.breath < 0.3); } else el.breath.classList.add('hidden');
     { const ap = Combat.armourPts ? Combat.armourPts() : 0; el['trainer-lvl'].textContent = 'Lv ' + G.trainerLevel + '  ◆ ' + G.shards + (ap ? '  ⛨ ' + ap : ''); }
@@ -817,7 +817,7 @@ const UI = (() => {
   function showTutorial() {
     const t = document.getElementById('tutorial');
     t.innerHTML = Controls.isTouch
-      ? `<b>How to move</b><div class="tut-row"><span class="k">◎</span> Left stick: walk</div><div class="tut-row"><span class="k">↔</span> Drag the right side: look around</div><div class="tut-row"><span class="k">▲</span> Jump (also swims up)</div><div class="tut-row"><span class="k">●</span> Hold a finger on a block: mine it</div><div class="tut-row"><span class="k">·</span> Tap: place the selected item, or use a table</div><div class="tut-row"><span class="k">⌁</span> Wild Kin have a ring. Sneak behind them to ambush.</div><div class="tut-row"><span class="k">▼</span> Hold to go down (ship, wings, ladders). Tap to sneak, tap again to stand.</div><button class="btn" id="tut-ok">Got it</button>`
+      ? `<b>How to move</b><div class="tut-row"><span class="k">◎</span> Left stick: walk</div><div class="tut-row"><span class="k">↔</span> Drag the screen: look around</div><div class="tut-row"><span class="k">▲</span> Jump (also swims up)</div><div class="tut-row"><span class="k">●</span> Hold a finger on a block: mine it</div><div class="tut-row"><span class="k">·</span> Tap: place the selected item, or use a table</div><div class="tut-row"><span class="k">‹›</span> Swipe the bag pill to change what you hold</div><div class="tut-row"><span class="k">⌁</span> Wild Kin have a ring. Your lead Kin fights beside you; sneak behind them to ambush.</div><div class="tut-row"><span class="k">▼</span> Hold to go down (ship, wings, ladders). Tap to sneak, tap again to stand.</div><button class="btn" id="tut-ok">Got it</button>`
       : `<b>How to move</b><div class="tut-row"><span class="k">WASD</span> walk · <span class="k">mouse</span> look · <span class="k">Space</span> jump · <span class="k">Shift</span> sneak</div><div class="tut-row"><span class="k">hold click</span> mine · <span class="k">right click</span> place or use</div><div class="tut-row"><span class="k">E</span> craft · <span class="k">Q</span> Kin · <span class="k">J</span> quests · <span class="k">Esc</span> free the mouse</div><div class="tut-row">Wild Kin have a ring. Sneak behind them to ambush.</div><button class="btn" id="tut-ok">Got it</button>`;
     t.classList.remove('hidden');
     const close = () => t.classList.add('hidden');

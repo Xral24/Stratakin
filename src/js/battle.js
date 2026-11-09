@@ -61,6 +61,10 @@ const Battle = (() => {
   function fillCard(card, k, showXp) {
     const st = KIN.stats(k);
     const rar = KIN.RARITY[k.sp.rarity || 0];
+    { // a small portrait on the card, redrawn only when the Kin on it changes
+      let cv = card.querySelector('canvas.bpic'); if (!cv) { cv = document.createElement('canvas'); cv.className = 'bpic'; cv.width = cv.height = 56; card.insertBefore(cv, card.firstChild); }
+      const key = (k.id || k.sp.seed) + ':' + k.stage; if (cv.dataset.k !== key) { cv.dataset.k = key; try { KIN.portrait(cv, k.sp, k.stage, 56); } catch (e) {} }
+    }
     card.querySelector('.nm').innerHTML = KIN.name(k) + (k.sp.mythic ? ' ✦' : '') + ((k.sp.rarity || 0) > 0 ? ` <span class="rar r${k.sp.rarity}">${rar.name}</span>` : '');
     card.querySelector('.lv').textContent = 'Lv ' + k.level;
     const f = card.querySelector('.hpfill'); const frac = Math.max(0, k.hp / st.hp);

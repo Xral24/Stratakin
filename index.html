@@ -36,7 +36,7 @@ button { font-family: var(--font); color: var(--ui); }
 #hearts i.on { background: linear-gradient(#ff7a86, #e8303f 70%); }
 #breath { position: absolute; left: 50%; bottom: calc(96px + env(safe-area-inset-bottom)); transform: translateX(-50%); display: flex; align-items: center; gap: 8px; font-weight: 800; font-size: 11px; color: #bfeaff; text-shadow: 0 1px 0 #000; }
 #breath .track { width: 160px; height: 12px; background: rgba(0,0,0,.55); border: 1px solid rgba(255,255,255,.3); border-radius: 7px; overflow: hidden; }
-#breath-fill { height: 100%; background: #6fd1f2; }
+#breath-fill { height: 100%; background: var(--acc2); }
 #breath.low { color: #ff8a7a; animation: blink .6s infinite; }
 #breath.low #breath-fill { background: #ff6b5a; }
 @keyframes blink { 50% { opacity: .35; } }
@@ -82,7 +82,8 @@ button { font-family: var(--font); color: var(--ui); }
 #battle.snaring #b-actions { display: none; }
 #battle.snaring #b-log { max-height: 40px; min-height: 0; }
 .b-head { display: flex; gap: 8px; }
-.b-card { flex: 1; background: rgba(0,0,0,.3); border: 1px solid var(--line); border-radius: 12px; padding: 7px 9px; }
+.b-card { flex: 1; background: rgba(0,0,0,.3); border: 1px solid var(--line); border-radius: 14px; padding: 7px 9px 7px 66px; position: relative; min-height: 64px; }
+.b-card .bpic { position: absolute; left: 6px; top: 6px; width: 52px; height: 52px; border-radius: 10px; background: radial-gradient(circle at 50% 40%, rgba(255,255,255,.14), rgba(0,0,0,.35) 75%); }
 .b-card.shake { animation: shake .4s; }
 @keyframes shake { 0%,100% { transform: none } 20% { transform: translateX(-6px) } 40% { transform: translateX(6px) } 60% { transform: translateX(-4px) } 80% { transform: translateX(4px) } }
 .b-name { display: flex; justify-content: space-between; font-weight: 800; }
@@ -233,7 +234,7 @@ code { font-family: var(--font); font-weight: 800; font-size: 12px; background: 
 #weather.warn { color: #fff; background: rgba(226, 84, 44, .7) !important; border-color: rgba(255,200,180,.5) !important; animation: blink 1.2s infinite; }
 #flash { position: fixed; inset: 0; background: #fff; pointer-events: none; opacity: 0; }
 .chip.empty { background: rgba(255,255,255,.1); color: var(--ui); border: 1px dashed rgba(255,255,255,.4); }
-#look { position: absolute; left: 50%; top: calc(50% + 22px); transform: translateX(-50%); font-size: 12px; background: rgba(0,0,0,.55); padding: 3px 9px; border-radius: 8px; white-space: nowrap; pointer-events: none; }
+#look { position: absolute; left: 50%; top: calc(50% + 22px); transform: translateX(-50%); font-size: 12px; font-weight: 700; background: var(--bg); border: 1px solid var(--line); padding: 3px 10px; border-radius: 9px; white-space: nowrap; pointer-events: none; }
 #look:empty { display: none; }
 .tag.down { background: #ff6b5a; }
 #btn-snare { position: absolute; left: 50%; top: calc(214px + env(safe-area-inset-top)); transform: translateX(-50%); padding: 7px 15px; border-radius: 16px; background: rgba(60, 200, 160, .45); color: #fff; border: 1.5px solid rgba(200, 255, 235, .6); font-weight: 800; font-size: 13px; pointer-events: auto; box-shadow: 0 2px 10px rgba(0,0,0,.25); text-shadow: 0 1px 2px rgba(0,0,0,.4); backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px); }
@@ -269,7 +270,7 @@ body.desktop #joy, body.desktop #btn-jump, body.desktop #btn-sneak { display: no
 #btn-ship.on { background: rgba(199,251,255,.85); color: #06202c; }
 #btn-ship.on.far { background: rgba(20,30,46,.82); color: rgba(255,255,255,.55); border-color: rgba(199,251,255,.3); }
 #drop-bar { position: absolute; right: 10px; bottom: calc(14px + env(safe-area-inset-bottom)); display: flex; flex-direction: column; gap: 4px; pointer-events: auto; }
-#drop-bar button { background: rgba(0,0,0,.55); border: 1px solid rgba(255,255,255,.3); border-radius: 8px; padding: 6px 8px; font-size: 11px; font-weight: 800; }
+#drop-bar button { background: var(--bg); border: 1px solid var(--line); border-radius: 9px; padding: 6px 9px; font-size: 11px; font-weight: 800; }
 .kcard .kheal { margin-left: 6px; padding: 4px 8px; font-size: 11px; border-radius: 8px; background: #ff5f7a; color: #111; border: 0; font-weight: 800; }
 .kcard .kheal:disabled { opacity: .35; }
 
@@ -392,6 +393,8 @@ body.desktop #joy, body.desktop #btn-jump, body.desktop #btn-sneak { display: no
 .settings .tog.on { border-color: rgba(242,181,68,.55); background: rgba(242,181,68,.1); }
 .settings .tog.on span { color: var(--acc); }
 #start .btn.ghost { background: rgba(255,255,255,.55); border-color: rgba(60,40,10,.2); color: #2b2216; }
+#hearts.low i.on { animation: beat .8s ease-in-out infinite; }
+@keyframes beat { 0%, 100% { transform: scale(1); } 30% { transform: scale(1.22); } 45% { transform: scale(1.05); } 60% { transform: scale(1.18); } }
 
 </style>
 </head>
@@ -8003,6 +8006,10 @@ const Battle = (() => {
   function fillCard(card, k, showXp) {
     const st = KIN.stats(k);
     const rar = KIN.RARITY[k.sp.rarity || 0];
+    { // a small portrait on the card, redrawn only when the Kin on it changes
+      let cv = card.querySelector('canvas.bpic'); if (!cv) { cv = document.createElement('canvas'); cv.className = 'bpic'; cv.width = cv.height = 56; card.insertBefore(cv, card.firstChild); }
+      const key = (k.id || k.sp.seed) + ':' + k.stage; if (cv.dataset.k !== key) { cv.dataset.k = key; try { KIN.portrait(cv, k.sp, k.stage, 56); } catch (e) {} }
+    }
     card.querySelector('.nm').innerHTML = KIN.name(k) + (k.sp.mythic ? ' ✦' : '') + ((k.sp.rarity || 0) > 0 ? ` <span class="rar r${k.sp.rarity}">${rar.name}</span>` : '');
     card.querySelector('.lv').textContent = 'Lv ' + k.level;
     const f = card.querySelector('.hpfill'); const frac = Math.max(0, k.hp / st.hp);
@@ -10650,7 +10657,7 @@ const UI = (() => {
   }
   function renderHud(dt) {
     const p = G.player;
-    el.hearts.innerHTML = Array.from({ length: p.maxHp }, (_, i) => `<i class="${i < p.hp ? 'on' : ''}"></i>`).join('');
+    el.hearts.innerHTML = Array.from({ length: p.maxHp }, (_, i) => `<i class="${i < p.hp ? 'on' : ''}"></i>`).join(''); el.hearts.classList.toggle('low', p.hp <= 3);
     if (p.wingsOn || (p.has('wings') && p.wingE != null && p.wingE < 59)) { el.breath.classList.remove('hidden'); el['breath-fill'].style.width = ((p.wingE || 0) / 60 * 100) + '%'; el.breath.classList.toggle('low', (p.wingE || 0) < 12); } else
     if (p.underwater) { el.breath.classList.remove('hidden'); el['breath-fill'].style.width = (p.breath * 100) + '%'; el.breath.classList.toggle('low', p.breath < 0.3); } else el.breath.classList.add('hidden');
     { const ap = Combat.armourPts ? Combat.armourPts() : 0; el['trainer-lvl'].textContent = 'Lv ' + G.trainerLevel + '  ◆ ' + G.shards + (ap ? '  ⛨ ' + ap : ''); }
@@ -11371,7 +11378,7 @@ const UI = (() => {
   function showTutorial() {
     const t = document.getElementById('tutorial');
     t.innerHTML = Controls.isTouch
-      ? `<b>How to move</b><div class="tut-row"><span class="k">◎</span> Left stick: walk</div><div class="tut-row"><span class="k">↔</span> Drag the right side: look around</div><div class="tut-row"><span class="k">▲</span> Jump (also swims up)</div><div class="tut-row"><span class="k">●</span> Hold a finger on a block: mine it</div><div class="tut-row"><span class="k">·</span> Tap: place the selected item, or use a table</div><div class="tut-row"><span class="k">⌁</span> Wild Kin have a ring. Sneak behind them to ambush.</div><div class="tut-row"><span class="k">▼</span> Hold to go down (ship, wings, ladders). Tap to sneak, tap again to stand.</div><button class="btn" id="tut-ok">Got it</button>`
+      ? `<b>How to move</b><div class="tut-row"><span class="k">◎</span> Left stick: walk</div><div class="tut-row"><span class="k">↔</span> Drag the screen: look around</div><div class="tut-row"><span class="k">▲</span> Jump (also swims up)</div><div class="tut-row"><span class="k">●</span> Hold a finger on a block: mine it</div><div class="tut-row"><span class="k">·</span> Tap: place the selected item, or use a table</div><div class="tut-row"><span class="k">‹›</span> Swipe the bag pill to change what you hold</div><div class="tut-row"><span class="k">⌁</span> Wild Kin have a ring. Your lead Kin fights beside you; sneak behind them to ambush.</div><div class="tut-row"><span class="k">▼</span> Hold to go down (ship, wings, ladders). Tap to sneak, tap again to stand.</div><button class="btn" id="tut-ok">Got it</button>`
       : `<b>How to move</b><div class="tut-row"><span class="k">WASD</span> walk · <span class="k">mouse</span> look · <span class="k">Space</span> jump · <span class="k">Shift</span> sneak</div><div class="tut-row"><span class="k">hold click</span> mine · <span class="k">right click</span> place or use</div><div class="tut-row"><span class="k">E</span> craft · <span class="k">Q</span> Kin · <span class="k">J</span> quests · <span class="k">Esc</span> free the mouse</div><div class="tut-row">Wild Kin have a ring. Sneak behind them to ambush.</div><button class="btn" id="tut-ok">Got it</button>`;
     t.classList.remove('hidden');
     const close = () => t.classList.add('hidden');
