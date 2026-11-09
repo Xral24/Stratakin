@@ -659,6 +659,18 @@ const R = (() => {
     state.viewDist = mobile ? 56 : 96;
     resize();
   }
+  // graphics presets: what the phone can afford. full: everything; balanced: lighter grass, fewer pixels; light: no shadows, sparse grass, screen pixels
+  const QUALITY = { full: { shadows: true, grassQuality: 1, dprCap: null, outlines: true, viewMul: 1 }, balanced: { shadows: true, grassQuality: 0.7, dprCap: 1.4, outlines: true, viewMul: 0.9 }, light: { shadows: false, grassQuality: 0.5, dprCap: 1.0, outlines: true, viewMul: 0.75 } };
+  function setQuality(name) {
+    const Q = QUALITY[name] || QUALITY.full; state.quality = QUALITY[name] ? name : 'full';
+    state.shadows = Q.shadows; state.grassQuality = Q.grassQuality; state.dprCap = Q.dprCap; state.outlines = Q.outlines; state.viewDist = Math.round((isMobile ? 56 : 96) * Q.viewMul);
+    try { localStorage.setItem('stratakin-gfx', state.quality); } catch (e) {}
+    resize();
+  }
+  try { const g = localStorage.getItem('stratakin-gfx'); if (g && QUALITY[g]) state.pendingQuality = g; } catch (e) {}
+  // frame rate, smoothed, for the HUD
+  let fpsT = 0, fpsN = 0; state.fps = 0;
+  function tickFps() { const now = performance.now(); if (fpsT === 0) { fpsT = now; return; } fpsN++; if (now - fpsT >= 1000) { state.fps = Math.round(fpsN * 1000 / (now - fpsT)); fpsN = 0; fpsT = now; } }
   function resize() {
     const dpr = Math.min(window.devicePixelRatio || 1, state.dprCap || (isMobile ? 1.75 : 2));
     const w = Math.floor(canvas.clientWidth * dpr), h = Math.floor(canvas.clientHeight * dpr);
@@ -1489,6 +1501,7 @@ const R = (() => {
   }
 
   function render(world, player, entities, cam, extras) {
+    tickFps(); if (state.pendingQuality) { const q = state.pendingQuality; state.pendingQuality = null; setQuality(q); }
     resize();
     setEnv(world, player);
     const sc = state.skyColor;
@@ -1638,5 +1651,5 @@ const R = (() => {
     return out;
   }
 
-  return { grassZone, init, resize, buildChunk, freeChunk, entityMesh, dropEntityMesh, renderPortrait, render, boxLines, targetLines, ringLines, state, get gl() { return gl; } };
+  return { grassZone, init, resize, buildChunk, freeChunk, entityMesh, dropEntityMesh, renderPortrait, render, boxLines, targetLines, ringLines, state, setQuality, QUALITY, get gl() { return gl; } };
 })();

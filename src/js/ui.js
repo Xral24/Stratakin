@@ -101,7 +101,7 @@ const UI = (() => {
     const va = Village.active; const inV = va && Math.hypot(va.x - p.x, va.z - p.z) < 22;
     const inDome = inV && va.type === 'deep' && Math.hypot(va.x - p.x, va.z - p.z) < 11 && p.y < SEA;
     const zl = Wild.zoneLevel ? Wild.zoneLevel(p.x, p.y, p.z, { layer }, G.trainerLevel) : null;
-    el.where.textContent = `${inV ? va.name + ' · ' : ''}${inDome ? 'Dome' : layer} · ${layer === 'Surface' || layer === 'Water' ? biome + ' · ' : ''}y ${Math.floor(p.y)}${zl != null ? ' · wild Lv ~' + zl : ''}`;
+    el.where.textContent = `${inV ? va.name + ' · ' : ''}${inDome ? 'Dome' : layer} · ${layer === 'Surface' || layer === 'Water' ? biome + ' · ' : ''}y ${Math.floor(p.y)}${zl != null ? ' · wild Lv ~' + zl : ''}${R.state.fps ? ' · ' + R.state.fps + ' fps' : ''}`;
     const bt = G.buffText ? G.buffText() : ''; const wl = Weather.label(); el.weather.textContent = (bt ? bt + ' · ' : '') + ((p.chill || 0) > 0.05 ? (p.coldKind === 'space' ? 'FREEZING · no air · ' : p.coldKind === 'heat' ? 'SCORCHING · get a Lava Suit · ' : 'FREEZING · ') : '') + (layer === 'Surface' || layer === 'Sky' || layer === 'Water' ? (wl === 'clear' ? ((R.state.day || 0) < 0.3 ? 'night' : 'clear') : wl + ((R.state.day || 0) < 0.3 ? ' · night' : '')) : '');
     const pinTxt = (() => { if (!G.pin) return ''; const dx = U.mod(G.pin.x - p.x + WORLD_W / 2, WORLD_W) - WORLD_W / 2, dz = U.mod(G.pin.z - p.z + WORLD_W / 2, WORLD_W) - WORLD_W / 2; const d = Math.round(Math.hypot(dx, dz)); if (d < 6) { G.pin = null; toast('You are at your pin.'); return ''; } const dirs = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW']; const ang = Math.atan2(dx, -dz); return ` · ◎ pin ${d}m ${dirs[Math.round(((ang / (Math.PI * 2)) + 1) * 8) % 8]}`; })();
     const now = performance.now(); const fx = (G.repelUntil > now ? ` · hush ${Math.ceil((G.repelUntil - now) / 1000)}s` : G.lure && G.lure.until > now ? ` · ${G.lure.elem} lure ${Math.ceil((G.lure.until - now) / 1000)}s` : '') + Npcs.hudText();
@@ -391,6 +391,8 @@ const UI = (() => {
       <p class="small">Saving happens on its own every minute and whenever you leave. <b>Games</b> saves this one and shows every world you have, so you can play another; <b>New world</b> starts a fresh game alongside this one. Nothing is erased unless you delete a game from the list.</p>
       <button class="btn" id="m-sound">Sound: ${soundOn ? 'on' : 'off'}</button><button class="btn" id="m-music">Music: ${Music.enabled ? 'on' : 'off'}${Music.enabled && Music.current ? ' · ' + Music.current : ''}</button><button class="btn" id="m-map">Minimap: ${MM.on ? 'on' : 'off'}</button>
       <button class="btn" id="m-autojump">Auto-jump: ${G.player.autoJump ? 'on' : 'off'}</button>
+      <div class="row"><button class="btn" id="m-gfx">Graphics: ${({ full: 'full', balanced: 'balanced', light: 'light' })[R.state.quality || 'full']}</button><button class="btn ghost" id="m-shadows">Shadows: ${R.state.shadows === false ? 'off' : 'on'}</button></div>
+      <p class="small">Graphics: <b>full</b> is shadows, dense grass and a sharp picture; <b>balanced</b> thins the grass and the pixels; <b>light</b> drops the shadows and most of the grass for a steadier frame rate. The number in the corner of the screen is frames per second.</p>
       <div class="row"><button class="btn" id="m-camera">Camera: ${G.thirdPerson ? 'third person' : 'first person'}</button><button class="btn" id="m-skins">Skin: ${Avatar.skin().name}</button></div>
       <h4>How to play</h4>
       <p class="small">${Controls.isTouch ? 'Left side of the screen: drag to walk. Right side: drag to look, <b>hold</b> to mine, <b>tap</b> to place a block or talk to a Fusion Table. ▲ jumps, hold ▲ in the air with a Glider to glide.' : 'WASD to move, mouse to look, <b>hold left click</b> to mine, <b>right click</b> to place or use. Space jumps, Shift sneaks, 1-9 or the wheel pick an item. E opens Craft, Q opens Kin, J opens Quests, V switches the camera. Esc releases the mouse.'}</p>
@@ -408,6 +410,8 @@ const UI = (() => {
     q('m-music').addEventListener('click', () => { Music.setEnabled(!Music.enabled); renderMenu(); });
     q('m-map').addEventListener('click', () => { setMinimap(!MM.on); renderMenu(); });
     q('m-autojump').addEventListener('click', () => { G.player.autoJump = !G.player.autoJump; renderMenu(); });
+    q('m-gfx').addEventListener('click', () => { const order = ['full', 'balanced', 'light']; R.setQuality(order[(order.indexOf(R.state.quality || 'full') + 1) % 3]); renderMenu(); });
+    q('m-shadows').addEventListener('click', () => { R.state.shadows = R.state.shadows === false; renderMenu(); });
     q('m-camera').addEventListener('click', () => { G.toggleCamera(); renderMenu(); });
     q('m-skins').addEventListener('click', () => openPanel('skins'));
     q('m-new').addEventListener('click', () => G.newWorldFromMenu());
