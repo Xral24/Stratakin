@@ -297,25 +297,34 @@ const UI = (() => {
     const st = KIN.stats(k);
     return KIN.STAT_KEYS.map(key => { const v = st[key]; const max = key === 'hp' ? 2200 : 1000; return `<div class="stat"><span>${KIN.STAT_NAMES[key]}</span><div class="sbar"><div style="width:${Math.min(100, 100 * v / Math.max(max * 0.12, v * 1.3))}%"></div></div><b>${v}</b></div>`; }).join('');
   }
+  // a move as a card: the element's colour down the side, the name, and what it does as small pills
+  function moveCard(m, extra = '') {
+    const col = m.kind === 'util' ? '#8899aa' : ELEM_COLOR[m.elem];
+    const pills = m.kind === 'util' ? `<em>${m.desc}</em>` : `<i style="background:${col}">${m.elem}</i><i>${m.kind === 'phys' ? 'contact' : m.kind}</i><i>power ${m.power}</i><i>${Math.round(m.acc * 100)}%</i>${m.drain ? '<i>drains</i>' : ''}${m.prio ? '<i>first</i>' : ''}`;
+    return `<div class="moverow" style="--c:${col}"><b>${m.name}${extra}</b><span>${pills}</span></div>`;
+  }
   function renderDetail(k) {
     setTitle(KIN.name(k));
     const mv = KIN.moves(k);
     const elems = k.sp.elem.map((w, i) => ({ e: KIN.E[i], w })).filter(x => x.w > 0.04).sort((a, b) => b.w - a.w);
     const next = k.stage < 3 ? `Evolves at Lv ${k.sp.evolveAt[k.stage - 1]}` : 'Final form';
-    el['panel-body'].innerHTML = `<div class="detail">${portraitHtml(k, 120)}<div>
-      <div class="krow"><b>Lv ${k.level}</b> · stage ${k.stage} · ${next}</div>
-      <div class="krow small">XP ${k.xp}/${KIN.xpToNext(k.level)}</div>
+    const st0 = KIN.stats(k); const lead = k === G.activeKin();
+    el['panel-body'].innerHTML = `<div class="detail">${portraitHtml(k, 132)}<div class="dhead">
+      <div class="krow"><b>Lv ${k.level}</b> · stage ${k.stage}${lead ? ' <span class="tag">lead</span>' : ''}</div>
+      <div class="small dim">${next}</div>
+      <div class="dbar"><span>HP</span><div class="sbar hp"><div style="width:${Math.round(100 * k.hp / st0.hp)}%"></div></div><b>${Math.round(k.hp)}/${st0.hp}</b></div>
+      <div class="dbar"><span>XP</span><div class="sbar xp"><div style="width:${Math.round(100 * k.xp / KIN.xpToNext(k.level))}%"></div></div><b>${k.xp}/${KIN.xpToNext(k.level)}</b></div>
       <div class="elemmix">${elems.map(x => `<span class="badge" style="background:${ELEM_COLOR[x.e]};flex:${x.w}">${x.e} ${Math.round(x.w * 100)}%</span>`).join('')}</div>
       ${k.sp.climber ? '<div class="small">Climber: ridden, it leaps two blocks at a time and never minds a fall. Half as cold on its back.</div>' : ''}
       ${(k.sp.gen || 0) > 0 ? `<div class="small">Fusion generation ${k.sp.gen}${k.sp.fusedFrom ? ' (from ' + k.sp.fusedFrom + ' Kin)' : ''}: +${Math.round((Math.pow(1.08, k.sp.gen) - 1) * 100)}% stats</div>` : ''}
       ${(k.sp.traits || []).map(t => `<div class="trait"><b>${t}</b> ${KIN.TRAITS[t]}</div>`).join('')}
     </div></div>
     <div class="stats">${statBars(k)}</div>
-    <h4>Moves</h4>${mv.map(m => `<div class="moverow" style="--c:${m.kind === 'util' ? '#8899aa' : ELEM_COLOR[m.elem]}"><b>${m.name}</b><span>${m.kind === 'util' ? m.desc : m.kind + ' · power ' + m.power + ' · ' + Math.round(m.acc * 100) + '% acc'}</span></div>`).join('')}
+    <h4>Moves</h4>${mv.map(m => moveCard(m)).join('')}
     <h4>Gear</h4><div class="small">${['weapon', 'armor', 'charm'].map(slot => { const it = k.equip && k.equip[slot]; return `<span class="chip" ${it ? `data-uneq="${slot}" style="${Icons.style(it)}"` : 'style="opacity:.6"'}>${slot}: ${it ? ITEMS[it].name + (ITEMS[it].relic ? ' ' + Math.round(Relics.cond(it) * 100) + '%' : '') + ' ✕' : 'none'}</span>`; }).join(' ')}</div>
     ${(() => { const have = [...G.player.inv.keys()].filter(x => ITEMS[x] && ITEMS[x].kinGear); return have.length ? `<div class="usebar">${have.map(x => `<button class="btn ghost" data-equip="${x}">Put on ${ITEMS[x].name} ×${G.player.count(x)}</button>`).join('')}</div>` : '<div class="small">Craft Kin gear under Craft › Kin gear, then put it on here.</div>'; })()}
     ${['tonic_revive', 'tonic_heal', 'tonic_vigor', 'tonic_might', 'tonic_swift'].some(t => G.player.has(t)) ? `<h4>Tonics</h4><div class="usebar">${['tonic_revive', 'tonic_heal', 'tonic_vigor', 'tonic_might', 'tonic_swift'].filter(t => G.player.has(t)).map(t => `<button class="btn ghost" data-tonic="${t}">${ITEMS[t].name} ×${G.player.count(t)}</button>`).join('')}</div>` : ''}
-    <div class="row"><button class="btn" id="d-active" ${k === G.activeKin() || k.hp <= 0 ? 'disabled' : ''}>Set active</button><button class="btn" id="d-rename">Rename</button>${Village.active && G.villageState[Village.active.id] && G.villageState[Village.active.id].freed ? `<button class="btn ghost" id="d-guard" ${k.hp <= 0 ? 'disabled' : ''}>Station as guard</button>` : ''}<button class="btn ghost" id="d-back">Back</button></div>`;
+    <div class="row"><button class="btn" id="d-active" ${k === G.activeKin() || k.hp <= 0 ? 'disabled' : ''}>Make lead</button><button class="btn ghost" id="d-rename">Rename</button>${Village.active && G.villageState[Village.active.id] && G.villageState[Village.active.id].freed ? `<button class="btn ghost" id="d-guard" ${k.hp <= 0 ? 'disabled' : ''}>Station as guard</button>` : ''}<button class="btn ghost" id="d-back">Back</button></div>`;
     drawPortraits(el['panel-body']);
     q('d-active').addEventListener('click', () => { G.setActive(k); renderDetail(k); });
     el['panel-body'].querySelectorAll('[data-tonic]').forEach(b => b.addEventListener('click', () => { G.useTonic(b.dataset.tonic, k); renderDetail(k); }));
@@ -558,7 +567,7 @@ const UI = (() => {
   const MAPSTEP = () => { BIG.step = BIG.bpp > 8 ? 6 : 4; };
   function renderMap() {
     setTitle('Map');
-    el['panel-body'].innerHTML = `<div class="maphead"><button class="btn ghost" id="map-out">−</button><span class="small">${Math.round(BIG.bpp * BIG.size)} blocks across · north up · you are the arrow</span><button class="btn ghost" id="map-in">+</button></div><canvas id="bigmap" width="480" height="480"></canvas><p class="small">Drag the map to look around; tap it to drop a pin, and the compass and the hint line guide you to it. <button class="btn ghost" id="map-centre">Back to me</button> ${G.pin ? '<button class="btn ghost" id="pin-clear">Clear pin</button>' : ''}</p><p class="small"><span style="color:#5ad66a">●</span> village you hold · <span style="color:#ff4040">●</span> held by a tyrant · <span style="color:#d9b36a">●</span> hermit · <span style="color:#ffd040">●</span> someone with a job · <span style="color:#5b9fd0">●</span> Brannock · <span style="color:#ff6a3a">△</span> Indian camp · ⚗ lab · ⌖ den · ✶ legendary · ▲ landing pad · ✦ camp fire · ★ quest · ⚑ fisherman's target · <span style="color:#ff6060">●</span> tyrant and guards · <span style="color:#ffb0a0">●</span> wild Kin</p>`;
+    el['panel-body'].innerHTML = `<div class="maphead"><button class="btn ghost" id="map-out">−</button><span class="small">${Math.round(BIG.bpp * BIG.size)} blocks across · north up · you are the arrow</span><button class="btn ghost" id="map-in">+</button></div><canvas id="bigmap" width="480" height="480"></canvas><p class="small">Drag the map to look around; tap it to drop a pin, and the compass and the hint line guide you to it. <button class="btn ghost" id="map-centre">Back to me</button> ${G.pin ? '<button class="btn ghost" id="pin-clear">Clear pin</button>' : ''}</p><div class="legend"><b><i style="background:#5ad66a"></i>village you hold</b><b><i style="background:#ff4040"></i>held by a tyrant</b><b><i style="background:#ff3030"></i>tyrant and guards</b><b><i style="background:#ffb0a0"></i>wild Kin</b><b><i style="background:#ffd040;color:#111">★</i>quest</b><b><i style="background:#d9b36a"></i>hermit</b><b><i style="background:#ffd040"></i>someone with a job</b><b><i style="background:#5b9fd0"></i>Brannock</b><b><i class="g" style="color:#ff6a3a">△</i>Indian camp</b><b><i class="g">⚗</i>lab</b><b><i class="g">⌖</i>den</b><b><i class="g">✶</i>legendary</b><b><i class="g">▲</i>landing pad</b><b><i class="g">✦</i>camp fire</b><b><i class="g" style="color:#ff6060">⚑</i>fisherman's target</b><b><i class="g" style="color:#9fe0ff">⌂</i>town</b><b><i class="g">◎</i>your pin</b></div>`;
     { const rs = (G.stats.roosts || []).filter(r => (r.world || 'earth') === G.worldId); if (rs.length) { const here = G.roostHere();
       el['panel-body'].insertAdjacentHTML('beforeend', `<h4>Train stations</h4><p class="small">${here ? `You are at ${here.name} station.` : 'Board at any station whose line you have fixed.'}</p><div class="roosts">${rs.map(r => { const me = here && here.id === r.id; const c = G.roostCost(r); return `<button class="btn ${me ? 'ghost' : ''}" data-roost="${r.id}" ${!here || me || G.shards < c ? 'disabled' : ''}>${r.name}${me ? ' (here)' : ` · ◆ ${c}`}</button>`; }).join('')}</div>`);
       el['panel-body'].querySelectorAll('[data-roost]').forEach(b => b.addEventListener('click', () => G.flyTo(b.dataset.roost))); } }
@@ -623,7 +632,7 @@ const UI = (() => {
         <div class="elemmix">${KIN.dominant(k.sp.elem, 3).map(e => `<span class="badge" style="background:${ELEM_COLOR[e]}">${e}</span>`).join('')}</div>
         ${d.caught ? '<h4>Stats</h4>' : '<h4>Against the strongest you put in</h4>'}
         ${KIN.STAT_KEYS.map(key => { const dv = d.caught ? 0 : st[key] - best[key]; return `<div class="stat"><span>${KIN.STAT_NAMES[key]}</span><div class="sbar"><div style="width:${Math.min(100, 100 * st[key] / Math.max(1, Math.max(st[key], best[key]) * 1.15))}%"></div></div><b>${st[key]} <span class="${dv >= 0 ? 'ok' : 'no'}">${dv >= 0 ? '+' : ''}${dv}</span></b></div>`; }).join('')}
-        <h4>Moves</h4>${mv.map(m => `<div class="moverow" style="--c:${m.kind === 'util' ? '#8899aa' : ELEM_COLOR[m.elem]}"><b>${m.name}${parentMoves.has(m.name) ? '' : ' <span class="tag">new</span>'}</b><span>${m.kind === 'util' ? m.desc : m.kind + ' · power ' + m.power + ' · ' + Math.round(m.acc * 100) + '% acc'}</span></div>`).join('')}
+        <h4>Moves</h4>${mv.map(m => moveCard(m, parentMoves.has(m.name) ? '' : ' <span class="tag">new</span>')).join('')}
         ${(k.sp.traits || []).length ? '<h4>Traits</h4>' + k.sp.traits.map(t => `<div class="trait"><b>${t}</b> ${KIN.TRAITS[t]}</div>`).join('') : ''}
         ${k.sp.climber ? '<div class="trait"><b>Climber</b> Ridden, it leaps two blocks at a time and never minds a fall.</div>' : ''}
         <div class="row"><button class="btn big" id="rv-ok">Keep going</button><button class="btn ghost" id="rv-detail">Full details</button></div></div>`;
