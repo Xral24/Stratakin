@@ -383,7 +383,7 @@ const UI = (() => {
   function renderTrain() {
     setTitle('Station');
     const rs = (G.stats.roosts || []).filter(r => (r.world || 'earth') === G.worldId); const here = G.roostHere();
-    el['panel-body'].innerHTML = `<p class="note">${rs.length < 2 ? 'This is the only open station on the line so far. Free other towns and fix their stations, and the train will run to them.' : 'Where to? The fare goes up with the distance.'} You have ◆ ${G.shards}.</p><div class="roosts">${rs.map(r => { const me = here && here.id === r.id; const c = G.roostCost(r); return `<button class="btn ${me ? 'ghost' : ''}" data-roost="${r.id}" ${!here || me || G.shards < c ? 'disabled' : ''}>${r.name}${me ? ' (here)' : ` · ◆ ${c}`}</button>`; }).join('')}</div>`;
+    el['panel-body'].innerHTML = `<p class="note">${rs.length < 2 ? 'This is the only open station on the line so far. Free other towns and fix their stations, and the train will run to them. Stilt villages on the sea join the line by ferry as soon as you free them.' : 'Where to? The fare goes up with the distance.'} You have ◆ ${G.shards}.</p><div class="roosts">${rs.map(r => { const me = here && here.id === r.id; const c = G.roostCost(r); return `<button class="btn ${me ? 'ghost' : ''}" data-roost="${r.id}" ${!here || me || G.shards < c ? 'disabled' : ''}>${r.name}${me ? ' (here)' : ` · ◆ ${c}`}</button>`; }).join('')}</div>`;
     el['panel-body'].querySelectorAll('[data-roost]').forEach(b => b.addEventListener('click', () => G.flyTo(b.dataset.roost)));
   }
   function renderForge(d) {

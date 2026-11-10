@@ -940,7 +940,7 @@ G.flyTo = function (id) {
       const p = this.player, w = this.world; w.ensureAround(Math.floor(r.x / CH), Math.floor(r.z / CH), 3, 9999);
       p.x = r.x; p.z = r.z; const gy = w.groundY(Math.floor(r.x), Math.floor(r.z)); p.y = Math.max(Number.isFinite(gy) ? gy + 1 : -1, Number.isFinite(r.y) ? r.y : -1, SEA + 1) + 0.05; p.vx = p.vy = p.vz = 0; p.fallStart = null; p.gliding = false; p.frozen = false;
       Village.trainArrive(Village.active); this.meshPass(999); this.paused = false; Controls.setEnabled(true);
-      setTimeout(() => { f.style.opacity = 0; UI.toast(`The train pulls into ${r.name}.`, 'good'); }, 300);
+      setTimeout(() => { f.style.opacity = 0; UI.toast(r.ferry || (Village.active && Village.active.type === 'sea') ? `The ferry ties up at ${r.name}.` : `The train pulls into ${r.name}.`, 'good'); }, 300);
     }, 1100);
   };
   // where a train stands at the platform you ride out on it first; elsewhere (the old stations) the fade alone

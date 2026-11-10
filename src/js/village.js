@@ -941,6 +941,10 @@ const Village = (() => {
     // a jetty running on east past the juice bar, with a lamp at its end
     for (let i = 0; i <= 7; i++) { const x = vx + 15 + i; for (const w of [-1, 0, 1]) { set(x, vy - 1, vz + w, B.PLANKS); for (let y = vy; y <= vy + 3; y++) if (world.getBlock(x, y, vz + w) !== B.AIR) set(x, y, vz + w, B.AIR); } if (i % 3 === 1) for (const w of [-1, 1]) { const gy = world.groundY(x, vz + w, vy - 2); for (let y = gy + 1; y < vy - 1; y++) set(x, y, vz + w, B.LOG); set(x, vy, vz + w, B.PALISADE); } }
     set(vx + 22, vy, vz, B.LAMP);
+    // the ferry landing: a stage off the north side of the jetty, posts at its corners, a lamp; the ferry ties up beyond it
+    for (let x = vx + 15; x <= vx + 20; x++) for (let z = vz - 4; z <= vz - 2; z++) { set(x, vy - 1, z, B.PLANKS); for (let y = vy; y <= vy + 3; y++) if (world.getBlock(x, y, z) !== B.AIR) set(x, y, z, B.AIR); }
+    for (const [x, z] of [[vx + 15, vz - 4], [vx + 20, vz - 4]]) { const gy = world.groundY(x, z, vy - 2); for (let y = gy + 1; y < vy - 1; y++) set(x, y, z, B.LOG); set(x, vy, z, B.FENCE || B.PALISADE); }
+    set(vx + 15, vy + 1, vz - 4, B.LAMP);
   }
   // dome village on the sea floor: a glass hemisphere full of air, a water shaft down through the top to swim in by, small stone huts
   function stampDeep(v) {
@@ -1277,6 +1281,7 @@ const Village = (() => {
     } else if (v.type === 'sea') {
       [[-2, -2], [2, 2], [-2, 2], [2, -2]].forEach((h, i) => v.npcs.push(villager(i, h[0], h[1])));
       v.npcs.push(keeper(10, 'bakery', -13, 0), keeper(11, 'juice', 13, 0), keeper(12, 'trader', 0, -13), healer(0, 13));
+      { const fm = keeper(13, 'station', 17.5, -2.5); fm.name = 'Ferryman ' + pname(13); fm.ferry = true; v.npcs.push(fm); }
       v.elder = Object.assign(makeNpc(20, 'elder', v.x + 2, v.z + 2, title + ' ' + pname(7), null, vy, v.id, sty), { hidden: !freed, wander: freed });
     } else if (v.style === 'atlantis') {
       [[-5, 4], [5, -5], [-4, -6], [6, 5], [0, -9], [-8, 0]].forEach((h, i) => v.npcs.push(villager(i, h[0], h[1])));
@@ -1708,7 +1713,7 @@ const Village = (() => {
       if (near.R && !near.patched) patchLoaded(near);
       if (nd < 14) {
         if (!G.lastVillage || G.lastVillage.id !== near.id) G.lastVillage = { id: near.id, x: near.x, y: near.y, z: near.z, name: near.name, world: world.preset.id };
-        if (state(near.id).freed) { G.respawnPoint = { x: near.x + 0.5, y: near.y, z: near.z + (near.type === 'deep' ? -4.5 : 4.5) }; if (!near.R && near.type !== 'deep' && G.addRoost) G.addRoost({ id: near.id, name: near.name, x: near.x + 0.5, y: near.y, z: near.z + 4.5, world: world.preset.id }); }
+        if (state(near.id).freed) { G.respawnPoint = { x: near.x + 0.5, y: near.y, z: near.z + (near.type === 'deep' ? -4.5 : 4.5) }; if (!near.R && near.type !== 'deep' && G.addRoost) G.addRoost(near.type === 'sea' ? { id: near.id, name: near.name, x: near.x + 17.5, y: near.y, z: near.z - 3, world: world.preset.id, ferry: true } : { id: near.id, name: near.name, x: near.x + 0.5, y: near.y, z: near.z + 4.5, world: world.preset.id }); }
       }
       if (nd < 50) ensureBoss(near, G.trainerLevel);
       ensureLieutenants(near, state(near.id), player);
@@ -1941,9 +1946,28 @@ const Village = (() => {
     UI.sfx('quest'); return true;
   }
   function trainArrive(v) { const p = G.player; if (p.wasThird != null) { G.thirdPerson = p.wasThird; p.wasThird = null; } trains.delete(v.id); }
+  function ferryMesh() {
+    return R.entityMesh('ferry', (mb) => {
+      const hull = [0.42, 0.27, 0.16], trim = [0.86, 0.82, 0.72], red = [0.62, 0.15, 0.13], dark = [0.12, 0.11, 0.1], glass = [0.62, 0.8, 0.9], brass = [0.85, 0.68, 0.3];
+      // the hull: long along z, narrowing to a bow at +z
+      mb.box(-0.9, 0.0, -2.2, 0.9, 0.7, 1.4, hull); mb.box(-0.6, 0.05, 1.4, 0.6, 0.7, 2.2, hull); mb.box(-0.3, 0.1, 2.2, 0.3, 0.7, 2.6, hull);
+      mb.box(-0.95, 0.65, -2.25, 0.95, 0.78, 1.45, trim); mb.box(-1.0, 0.25, -2.2, 1.0, 0.35, 1.4, red);
+      // the deckhouse with windows, a funnel, a mast
+      mb.box(-0.65, 0.78, -1.6, 0.65, 1.75, 0.4, trim); mb.box(-0.68, 1.15, -1.3, 0.68, 1.45, 0.1, glass); mb.box(-0.75, 1.75, -1.7, 0.75, 1.85, 0.5, red);
+      mb.tube([[0, 1.85, -0.9], [0, 2.7, -0.9]], [0.18, 0.2], dark, { segs: 10, cap0: 'flat', cap1: 'flat' }); mb.tube([[0, 2.45, -0.9], [0, 2.6, -0.9]], [0.205, 0.205], red, { segs: 10, cap0: 'none', cap1: 'none' });
+      mb.tube([[0, 0.78, 1.2], [0, 3.0, 1.2]], [0.05, 0.04], dark, { segs: 6, cap0: 'flat', cap1: 'flat' }); mb.ball(0, 3.05, 1.2, 0.08, brass, { n: 2 });
+      // a lifebuoy on the deckhouse wall
+      mb.tube([[0.66, 1.3, -0.6], [0.72, 1.3, -0.6]], [0.18, 0.18], [0.95, 0.4, 0.3], { segs: 10, cap0: 'flat', cap1: 'flat' });
+    });
+  }
+  function ferryPieces(v) {
+    if (!v || v.type !== 'sea' || !isFreed(v.id)) return [];
+    const t = performance.now() / 1000; const m = ferryMesh();
+    return [{ x: v.x + 17.5, y: SEA + 0.5 + Math.sin(t * 1.1) * 0.06, z: v.z - 6.6, yaw: Math.PI / 2 + Math.sin(t * 0.7) * 0.02, model: { height: 3, radius: 2.4 }, mesh: m, scale: 1, hover: 0, skyMul: 1 }];
+  }
   function entities() {
     const out = [];
-    if (active) out.push(...trainPieces(active));
+    if (active) out.push(...trainPieces(active), ...ferryPieces(active));
     if (active) {
       for (const n of active.npcs) if (!n.hidden) out.push({ x: n.x, y: n.y, z: n.z, yaw: n.yaw, model: n.model, mesh: n.mesh, scale: 1, hover: 0, skyMul: 1, src: n });
       for (const g of active.guardEnts) if (g.kin.hp > 0) out.push({ x: g.x, y: g.y, z: g.z, yaw: g.yaw, model: g.model, mesh: g.mesh, scale: 1, hover: (g.model.hover || 0) + (g.leap || 0) + (g.hitT > 0 ? Math.sin(g.hitT * 60) * 0.08 : 0), skyMul: 1, isMount: true, src: g });
