@@ -304,6 +304,7 @@ const Wild = (() => {
         e.dazed -= dt; e.hover = (e.model.hover || 0) - Math.min(0.12, e.model.height * 0.08); e.jawOpen = 0.5; e.yaw += Math.sin(e.bob * 2.2) * dt * 0.6;
         { const an = e._an || (e._an = Anim.fresh(e, performance.now())); an.sit = 1; an.lean = 0.3; an.nod = 0.45 + Math.sin(e.bob * 2.2) * 0.1; }
         if (((e.bob * 6) | 0) % 5 === 0 && Math.random() < 0.3) Hazards.sparks(e.x + Math.sin(e.bob * 3) * 0.5, e.y + e.model.height * 0.9 + (e.hover || 0), e.z + Math.cos(e.bob * 3) * 0.5, 1, [1, 0.95, 0.6], 0.3);
+        if (e.dazed <= 0 && e.cageWin) { const k = e.cageWin === true ? G.activeKin() : e.cageWin; e.dazed = 0; G.onBattleEnd('won', e, e.kin, k, false); continue; }
         if (e.dazed <= 0) { const st = KIN.stats(e.kin); e.kin.hp = Math.max(1, Math.round(st.hp * 0.25)); e.hover = e.model.hover; e.jawOpen = 0; e.cool = 40; e.alert = 0; e.hunt = 0; e.flee = 7; if (e._an) { e._an.sit = 0; e._an.lean = 0; e._an.nod = 0; } UI.toast(`${KIN.name(e.kin)} shakes itself and slinks off.`); }
         continue;
       }
@@ -459,11 +460,13 @@ const Wild = (() => {
     if (e.kin.hp <= 0) { daze(e); return { dmg: before, pct: 0, dazed: true }; }
     return { dmg: before - e.kin.hp, pct: Math.round(e.kin.hp / st.hp * 100), dazed: false };
   }
+  // the great ones you are meant to be able to cage: beaten live, they go down dazed like any other so a snare can take them
+  function cageable(e) { return !!(e.isApex || e.isLegend || e.isMythic); }
   function daze(e, k) {
     e.kin.hp = 1; e.dazed = 10; disengage(e, 0); e.cool = 0; e.alert = 0; e.stunT = 0;
     G.knockout(e.x, e.y, e.z);
     UI.sfx('win'); UI.toast(`${KIN.name(e.kin)} goes down, dazed. Snare it now, or let it go.`, 'good');
-    rewardWin(e, k || null); G.stats.liveWins = (G.stats.liveWins || 0) + 1;
+    if (!cageable(e)) rewardWin(e, k || null); else e.cageWin = k || true; G.stats.liveWins = (G.stats.liveWins || 0) + 1;
     const dom = KIN.dominant(e.kin.sp.elem, 1)[0]; if (Math.random() < 0.35) { G.player.add('ess_' + dom, 1); UI.toast(`${dom} Essence collected.`); }
   }
   // its lunge reaches you: a shield in its face blocks most of it, a shield raised or a swing timed as it lands turns it away
@@ -479,7 +482,7 @@ const Wild = (() => {
     const before = e.kin.hp; e.kin.hp = Math.max(0, e.kin.hp - dmg); e.hitT = 0.35; e.sleep = false;
     if (!e.chase) engage(e, false, { quiet: true }); if (e.chase) { e.chase.t = Math.max(e.chase.t, 18); e.chase.foe = 'buddy'; e.chase.foeT = 5; if (e.chase.phase === 'wind' && Math.random() < 0.4) { e.chase.phase = 'rest'; e.chase.pt = 0.5; e.chase.hitCd = 0.6; } }
     G.kinFocus = e; G.kinFocusT = 3.5;
-    if (e.kin.hp <= 0) { if (scripted(e)) { G.knockout(e.x, e.y, e.z); G.onBattleEnd('won', e, e.kin, k, false); } else daze(e, k); }
+    if (e.kin.hp <= 0) { if (scripted(e) && !cageable(e)) { G.knockout(e.x, e.y, e.z); G.onBattleEnd('won', e, e.kin, k, false); } else daze(e, k); }
     return before - Math.max(0, e.kin.hp);
   }
   // its lunge reaches your Kin: the battle's numbers, no shield to hide behind

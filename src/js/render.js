@@ -417,10 +417,13 @@ const R = (() => {
   const m4lookAt = (eye, c, up) => { let fx = c[0] - eye[0], fy = c[1] - eye[1], fz = c[2] - eye[2]; let l = Math.hypot(fx, fy, fz) || 1; fx /= l; fy /= l; fz /= l; let rx = fy * up[2] - fz * up[1], ry = fz * up[0] - fx * up[2], rz = fx * up[1] - fy * up[0]; l = Math.hypot(rx, ry, rz) || 1; rx /= l; ry /= l; rz /= l; const ux = ry * fz - rz * fy, uy = rz * fx - rx * fz, uz = rx * fy - ry * fx; const m = new Float32Array(16); m[0] = rx; m[4] = ry; m[8] = rz; m[1] = ux; m[5] = uy; m[9] = uz; m[2] = -fx; m[6] = -fy; m[10] = -fz; m[12] = -(rx * eye[0] + ry * eye[1] + rz * eye[2]); m[13] = -(ux * eye[0] + uy * eye[1] + uz * eye[2]); m[14] = (fx * eye[0] + fy * eye[1] + fz * eye[2]); m[15] = 1; return m; };
   const m4ortho = (l, r, b, t, n, f) => { const m = new Float32Array(16); m[0] = 2 / (r - l); m[5] = 2 / (t - b); m[10] = -2 / (f - n); m[12] = -(r + l) / (r - l); m[13] = -(t + b) / (t - b); m[14] = -(f + n) / (f - n); m[15] = 1; return m; };
   // the shadow pass: everything solid near the player, seen from the sun
+  let shFrame = 1;
   function renderShadows(world, player, cam, entities, visible) {
     const on = shadowReady && state.shadows !== false && state.skyPass && state.sunAmt > 0.02 && state.sun[1] > 0.04;
     state.shadowOn = on ? Math.min(1, (state.sun[1] - 0.04) / 0.12) * state.sunAmt : 0;
     if (!on) return;
+    // on a phone the sun's view is redrawn every other frame: the map keeps its own matrix, so a skipped frame only means shadows a frame old
+    if (isMobile && lightPV && (shFrame = (shFrame + 1) & 1) === 1) return;
     const E = isMobile ? 30 : 44; const sun = state.sun;
     const f = U.forwardVec(cam.yaw, 0); let cx = player.x + f[0] * E * 0.3, cy = player.y, cz = player.z + f[2] * E * 0.3;
     const up = Math.abs(sun[1]) > 0.95 ? [1, 0, 0] : [0, 1, 0];
@@ -434,7 +437,7 @@ const R = (() => {
     gl.bindFramebuffer(gl.FRAMEBUFFER, shFB); gl.viewport(0, 0, shSize, shSize); gl.clear(gl.DEPTH_BUFFER_BIT);
     gl.enable(gl.CULL_FACE); gl.cullFace(gl.FRONT); gl.enable(gl.POLYGON_OFFSET_FILL); gl.polygonOffset(1.5, 2.0);
     gl.useProgram(shProgC); gl.uniformMatrix4fv(shlocC.uLightPV, false, lightPV);
-    const ident = U.m4identity(); const R2 = (E + 20) * (E + 20);
+    const ident = U.m4identity(); const R2 = (E + 14) * (E + 14);
     for (const c of world.chunks.values()) { if (!c.mesh || !c.mesh.op) continue; const mx = c.cx * CH + 8, mz = c.cz * CH + 8; if ((mx - cx) ** 2 + (mz - cz) ** 2 > R2) continue; ident[12] = c.cx * CH; ident[14] = c.cz * CH; gl.uniformMatrix4fv(shlocC.uModel, false, ident); gl.bindBuffer(gl.ARRAY_BUFFER, c.mesh.op.vbo); gl.enableVertexAttribArray(shlocC.aPos); gl.vertexAttribPointer(shlocC.aPos, 3, gl.FLOAT, false, 0, 0); gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, c.mesh.op.ibo); gl.drawElements(gl.TRIANGLES, c.mesh.op.count, gl.UNSIGNED_INT, 0); }
     gl.useProgram(shProgE); gl.uniformMatrix4fv(shlocE.uLightPV, false, lightPV); const now = performance.now();
     for (const e of entities) { if (!e.mesh || !e.mesh.count || e.isFx || e.noShadow) continue; if ((e.x - cx) ** 2 + (e.z - cz) ** 2 > R2) continue;
@@ -671,9 +674,18 @@ const R = (() => {
   try { const g = localStorage.getItem('stratakin-gfx'); if (g && QUALITY[g]) state.pendingQuality = g; } catch (e) {}
   // frame rate, smoothed, for the HUD
   let fpsT = 0, fpsN = 0; state.fps = 0;
-  function tickFps() { const now = performance.now(); if (fpsT === 0) { fpsT = now; return; } fpsN++; if (now - fpsT >= 1000) { state.fps = Math.round(fpsN * 1000 / (now - fpsT)); fpsN = 0; fpsT = now; } }
+  function tickFps() { const now = performance.now(); if (fpsT === 0) { fpsT = now; return; } fpsN++; if (now - fpsT >= 1000) { state.fps = Math.round(fpsN * 1000 / (now - fpsT)); fpsN = 0; fpsT = now; adapt(state.fps); } }
+  // automatic resolution: a phone that cannot hold a smooth frame quietly draws fewer pixels (down to 60% of its normal sharpness), and goes back
+  // up once there is headroom. Judged over a few seconds so a single hitch (a chunk building, a save) does not change anything
+  state.dynScale = 1; let slowSecs = 0, fastSecs = 0;
+  function adapt(fps) {
+    if (!isMobile || document.hidden) return;
+    if (fps < 42) { slowSecs++; fastSecs = 0; } else if (fps > 56) { fastSecs++; slowSecs = 0; } else { slowSecs = Math.max(0, slowSecs - 1); fastSecs = 0; }
+    if (slowSecs >= 3 && state.dynScale > 0.6) { state.dynScale = Math.max(0.6, +(state.dynScale - 0.1).toFixed(2)); slowSecs = 0; resize(); }
+    else if (fastSecs >= 8 && state.dynScale < 1) { state.dynScale = Math.min(1, +(state.dynScale + 0.1).toFixed(2)); fastSecs = 0; resize(); }
+  }
   function resize() {
-    const dpr = Math.min(window.devicePixelRatio || 1, state.dprCap || (isMobile ? 1.75 : 2));
+    const dpr = Math.max(0.75, Math.min(window.devicePixelRatio || 1, state.dprCap || (isMobile ? 1.75 : 2)) * (state.dynScale || 1));
     const w = Math.floor(canvas.clientWidth * dpr), h = Math.floor(canvas.clientHeight * dpr);
     if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
     gl.viewport(0, 0, canvas.width, canvas.height);
@@ -737,6 +749,7 @@ const R = (() => {
   const FLOWERS = [[0.95, 0.85, 0.25], [0.95, 0.95, 0.95], [0.85, 0.35, 0.55], [0.6, 0.5, 0.95], [0.95, 0.5, 0.25]];
   function buildChunk(world, chunk) {
     const cx = chunk.cx, cz = chunk.cz, ox = cx * CH, oz = cz * CH;
+    const lod = chunk.lod = chunk.wantLod || 0; // 1 = far: no surface studs, fewer facets on leaves and clouds
     const nb = [];
     for (let dx = -1; dx <= 1; dx++) for (let dz = -1; dz <= 1; dz++) nb.push(world.chunks.get((cx + dx) + ',' + (cz + dz)) || null);
     const chunkAt = (x, z) => nb[((x < 0 ? 0 : x > 15 ? 2 : 1) * 3) + (z < 0 ? 0 : z > 15 ? 2 : 1)];
@@ -988,9 +1001,9 @@ const R = (() => {
           const cell = ((wx & 1) === 0) && ((wz & 1) === 0);
           if ((under && cell) || rim.length || (top && cell)) {
             const sk = skyAt(lx, y + 1, lz); const h0 = U.hash3(wx, y, wz, 220), h1 = U.hash3(wx, y, wz, 221); const white = id === B.GLOWGRASS ? [0.98, 0.99, 1.0] : [0.96, 0.97, 1.0], shade = [0.84, 0.88, 0.97]; const em = id === B.GLOWGRASS;
-            if (under && cell) { const r = 1.15 + h0 * 0.35; op.blob(lx + 1 - r, y - r * 0.55, lz + 1 - r, lx + 1 + r, y + 0.3, lz + 1 + r, 1, white, { sky: sk * 0.85, n: 3, under: shade, soft: 0.6, emis: em }); }
-            if (top && cell) { const r = 1.05 + h1 * 0.3, hgt = 0.22 + h0 * 0.18; op.blob(lx + 1 - r, y + 0.75, lz + 1 - r, lx + 1 + r, y + 1 + hgt, lz + 1 + r, 1, white, { sky: sk, n: 3, under: shade, soft: 0.7, emis: em }); } // the fluffy cover you walk on
-            for (const [a, b] of rim) { const r = 0.75 + h1 * 0.3; const cx = lx + 0.5 + a * 0.5, cz = lz + 0.5 + b * 0.5; op.blob(cx - r, y - r * 0.5 + (top ? 0.1 : 0), cz - r, cx + r, y + (top ? 1.0 : 0.9), cz + r, 1, white, { sky: sk, n: 3, under: shade, soft: 0.6, emis: em }); }
+            if (under && cell) { const r = 1.15 + h0 * 0.35; op.blob(lx + 1 - r, y - r * 0.55, lz + 1 - r, lx + 1 + r, y + 0.3, lz + 1 + r, 1, white, { sky: sk * 0.85, n: 2, under: shade, soft: 0.6, emis: em }); }
+            if (top && cell) { const r = 1.05 + h1 * 0.3, hgt = 0.22 + h0 * 0.18; op.blob(lx + 1 - r, y + 0.75, lz + 1 - r, lx + 1 + r, y + 1 + hgt, lz + 1 + r, 1, white, { sky: sk, n: lod ? 2 : 3, under: shade, soft: 0.7, emis: em }); } // the fluffy cover you walk on
+            if (((wx + wz) & 1) === 0) for (const [a, b] of rim) { const r = 0.95 + h1 * 0.3; const cx = lx + 0.5 + a * 0.5, cz = lz + 0.5 + b * 0.5; op.blob(cx - r, y - r * 0.5 + (top ? 0.1 : 0), cz - r, cx + r, y + (top ? 1.0 : 0.9), cz + r, 1, white, { sky: sk, n: 2, under: shade, soft: 0.6, emis: em }); }
           }
           // the block itself still draws as a block below (falls through)
         }
@@ -1093,7 +1106,7 @@ const R = (() => {
           const dark = 1 - 0.06 * Math.max(0, around - 2); // deeper in the crown, darker
           let c; if (id === B.NEEDLES) { const nv = 0.9 + h1 * 0.2; c = [0.19 * nv, 0.42 * nv, 0.3 * nv]; } else { const warm = id === B.BERRYLEAF ? 1 : 0; c = [tint[0] * (0.9 + warm * 0.25) * vr, tint[1] * 1.02 * vr, tint[2] * 0.72 * vr]; }
           const hue = (h2 - 0.5) * 0.16; c = [c[0] * dark * (1 + hue), c[1] * dark, c[2] * dark * (1 - hue)]; // some puffs yellower, some bluer
-          op.blob(cx - rx, cy - ry, cz - rz, cx + rx, cy + ry, cz + rz, 0.9, [c[0] * 1.08, c[1] * 1.06, c[2]], { sky: sk, n: nLeaf >= 4 ? 3 : 2, under: [c[0] * 0.5, c[1] * 0.56, c[2] * 0.62], split: 0.05, soft: 0.7 });
+          op.blob(cx - rx, cy - ry, cz - rz, cx + rx, cy + ry, cz + rz, 0.9, [c[0] * 1.08, c[1] * 1.06, c[2]], { sky: sk, n: nLeaf >= 4 && !lod ? 3 : 2, under: [c[0] * 0.5, c[1] * 0.56, c[2] * 0.62], split: 0.05, soft: 0.7 });
           if (id === B.BERRYLEAF) for (let k = 0; k < 3; k++) { const a = U.hash3(wx, y, wz, 64 + k) * 6.283, e = 0.2 + U.hash3(wx, y, wz, 67 + k) * 0.6; op.ball(cx + Math.cos(a) * r * 0.85, cy + r * 0.8 * (e - 0.4), cz + Math.sin(a) * r * 0.85, 0.08, [0.9, 0.15, 0.22], { sky: sk, n: 2 }); }
           continue;
         }
@@ -1379,7 +1392,7 @@ const R = (() => {
               if (r.glass) gs.quad(vs, cs, ss, false); else op.quad(vs, cs, ss, !!r.emis);
             }
             const studs = typeof pf.studs === 'function' ? pf.studs((k) => U.hash3(wx, y * 8 + f, wz, k)) : pf.studs;
-            if (studs) for (const s of studs) {
+            if (studs && !lod) for (const s of studs) {
               const h = s.s / 2; const p0 = at(s.u - h, s.v - h), p1 = at(s.u + h, s.v + h);
               const x0 = Math.min(p0[0], p1[0]), x1 = Math.max(p0[0], p1[0]), y0 = Math.min(p0[1], p1[1]), y1 = Math.max(p0[1], p1[1]), z0 = Math.min(p0[2], p1[2]), z1 = Math.max(p0[2], p1[2]);
               const ex = n[0] * s.h, ey = n[1] * s.h, ez = n[2] * s.h;

@@ -636,17 +636,22 @@ G.meshPass = function (budget) {
   const pcx = Math.floor(p.x / CH), pcz = Math.floor(p.z / CH);
   const dirty = [];
   for (const c of w.chunks.values()) {
-    if (!c.dirty) continue;
     const d = Math.max(Math.abs(c.cx - pcx), Math.abs(c.cz - pcz));
+    // detail: the chunks right around you get every pebble and leaf facet; further out they are rebuilt plainer (nobody sees a stud at 30 blocks)
+    const lod = d > 1 ? 1 : 0; if (c.mesh && c.lod !== lod && !c.dirty) c.dirty = 'lod'; c.wantLod = lod;
+    if (!c.dirty) continue;
     if (d > this.viewR) continue;
     // need all neighbours generated for correct seams / AO
     let ok = true;
     for (let dx = -1; dx <= 1 && ok; dx++) for (let dz = -1; dz <= 1; dz++) if (!w.chunks.has((c.cx + dx) + ',' + (c.cz + dz))) { ok = false; break; }
-    if (ok) dirty.push([(c.cx - pcx) ** 2 + (c.cz - pcz) ** 2, c]);
+    if (ok) dirty.push([(c.cx - pcx) ** 2 + (c.cz - pcz) ** 2 + (c.dirty === 'lod' ? 50 : 0), c]);
   }
   dirty.sort((a, b) => a[0] - b[0]);
   let n = 0;
-  for (const [, c] of dirty) { R.buildChunk(w, c); if (++n >= budget) break; }
+  // a time budget as well as a count: building a chunk is the heaviest thing the game does, and on a phone two in one frame is a visible hitch.
+  // At least one per call; then stop once this frame has spent its share (a big budget, as after a teleport, means 'all of them')
+  const t0 = performance.now(), ms = budget >= 99 ? 1e9 : (this.mobile ? 6 : 10);
+  for (const [, c] of dirty) { R.buildChunk(w, c); if (++n >= budget || performance.now() - t0 > ms) break; }
 };
 G.streamChunks = function () {
   const w = this.world, p = this.player;
