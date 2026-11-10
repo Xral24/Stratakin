@@ -172,7 +172,7 @@ const Combat = (() => {
   }
   const shots = []; // the archers' arrows
   function down(f, how) {
-    f.state = 'down'; f.hp = 0; f.t = 0; f.hover = -0.55; UI.sfx('win');
+    f.state = 'down'; f.hp = 0; f.t = 0; f.hover = -0.55; UI.sfx('win'); G.knockout(f.x, f.y, f.z);
     const P = G.player; const gold = weapon() && weapon().fx === 'loot' ? 2 : 1; const sh = Math.round((8 + f.lv * 6) * gold * (f.kind === 'captain' ? 3 : 1)); G.shards += sh;
     let msg = `${f.name} drops to his knees, dazed. +${sh} shards.`;
     if (Math.random() < 0.25 + (f.kind === 'captain' ? 0.5 : 0)) { const pool = Object.values(GEAR).filter(g => g.tier >= f.lv && g.tier <= f.lv + 2); const g = pool[Math.floor(Math.random() * pool.length)]; if (g && !P.has(g.id)) { P.add(g.id, 1); msg += ` He drops a ${g.name}.`; } }
@@ -186,7 +186,7 @@ const Combat = (() => {
     let d = dmg; const facing = Math.cos(Math.atan2(G.player.x - f.x, G.player.z - f.z) - f.yaw) > 0.3;
     if (f.block && facing && f.state !== 'stun' && !opts.pierce) { const half = opts.halfPierce ? 0.5 : 1; d = Math.round(d * (1 - f.block * half)); }
     if (!f.aware) { d *= 2; f.aware = true; } // caught unawares: double
-    f.hp -= Math.max(1, d); f.hitT = 0.25; f.aware = true;
+    f.hp -= Math.max(1, d); f.hitT = 0.25; f.aware = true; UI.floater(f.x, f.y + 2.1, f.z, String(Math.max(1, Math.round(d))), d < dmg ? 'weak' : d > dmg ? 'crit' : '');
     if (opts.burn) f.burn = Math.max(f.burn, opts.burn); if (opts.slow) f.slowT = Math.max(f.slowT, opts.slow); if (opts.bleed) f.bleed = Math.max(f.bleed, opts.bleed);
     if (opts.stun) { f.state = 'stun'; f.t = opts.stun; }
     if (opts.knock) { const a = Math.atan2(f.x - G.player.x, f.z - G.player.z); f.x += Math.sin(a) * opts.knock; f.z += Math.cos(a) * opts.knock; }

@@ -74,6 +74,23 @@ const UI = (() => {
     } catch (e) { /* audio refused */ }
   }
   // ---------- HUD ----------
+  // hit numbers: a figure rises off whoever took the blow and fades. kind: '' plain, 'crit', 'eff' (hit hard), 'weak' (shrugged off), 'hurt' (yours taking it), 'heal'
+  const floaters = [];
+  function floater(x, y, z, text, kind = '') {
+    const host = document.getElementById('floaters'); if (!host) return;
+    const d = document.createElement('div'); d.className = 'flt ' + kind; d.textContent = text; d.style.opacity = '0'; host.appendChild(d);
+    floaters.push({ x, y, z, el: d, t: 0, dur: kind === 'crit' ? 1.15 : 0.95, drift: (Math.random() - 0.5) * 0.6 });
+    if (floaters.length > 24) { const f = floaters.shift(); f.el.remove(); }
+  }
+  function floatersTick(dt) {
+    for (let i = floaters.length - 1; i >= 0; i--) {
+      const f = floaters[i]; f.t += dt; const u = f.t / f.dur;
+      if (u >= 1) { f.el.remove(); floaters.splice(i, 1); continue; }
+      const pr = R.project(f.x + f.drift * u, f.y + 0.9 * u + 0.4 * Math.sin(u * 3.1), f.z); if (!pr || !pr.on) { f.el.style.opacity = '0'; continue; }
+      const sc = (f.el.classList.contains('crit') ? 1.25 : 1) * (u < 0.12 ? 0.6 + u * 3.5 : 1.02 - u * 0.12);
+      f.el.style.transform = `translate(${pr.x.toFixed(1)}px, ${pr.y.toFixed(1)}px) translate(-50%, -50%) scale(${sc.toFixed(3)})`; f.el.style.opacity = u > 0.65 ? ((1 - u) / 0.35).toFixed(2) : '1';
+    }
+  }
   function toast(msg, cls) {
     const d = document.createElement('div'); d.className = 'toast' + (cls ? ' ' + cls : ''); d.textContent = msg;
     el.toasts.appendChild(d);
@@ -456,7 +473,8 @@ const UI = (() => {
     setTitle('Bag');
     const p = G.player; const hb = p.hotbar(); const sel = p.selected();
     const groups = [
-      ['Tools and food', k => ITEMS[k] && (ITEMS[k].light || ITEMS[k].snare || ITEMS[k].use)],
+      ['Weapons and tools', k => ITEMS[k] && (ITEMS[k].light || ITEMS[k].snare || (!ITEMS[k].block && (/^(sw_|sp_|ax_|sh_|bow|pick|axe|rod)/.test(k) || ['hatchet', 'shovel', 'arrow'].includes(k) || ITEMS[k].weapon || ITEMS[k].shield)))],
+      ['Food and tonics', k => ITEMS[k] && ITEMS[k].use],
       ['Kits', k => ITEMS[k] && ITEMS[k].kit],
       ['Kin gear', k => ITEMS[k] && ITEMS[k].kinGear],
       ['Blocks', k => ITEMS[k] && ITEMS[k].block && !ITEMS[k].light && k !== 'fusion' || k === 'fusion'],
@@ -465,11 +483,11 @@ const UI = (() => {
     ];
     const used = new Set();
     const all = [...new Set([...hb, ...[...p.inv.keys()].filter(k => ITEMS[k] && !ITEMS[k].gear)])];
-    let html = `<p class="note">Tap <b>Hold</b> to carry an item in hand (then tap the world to place or use it). Gear you own is at the bottom.</p>`;
+    let html = `<p class="note">Tap a row to hold it. Swipe the bag pill on the screen to switch without opening the bag.</p>`;
     for (const [title, test] of groups) {
       const keys = all.filter(k => !used.has(k) && test(k)); keys.forEach(k => used.add(k));
       if (!keys.length) continue;
-      html += `<div class="bag-group"><h4>${title}</h4>` + keys.map(k => { const inf = p.itemInfo(k); return `<div class="bag-row ${k === sel ? 'sel' : ''}" data-k="${k}"><div class="ico big" style="${inf.obj ? Icons.swatch(inf.col) : Icons.style(k)}"></div><div class="rinfo"><b>${inf.name}${inf.obj ? '' : ' ×' + p.count(k)}</b><div class="small">${inf.desc || ''}</div></div><div class="btns">${inf.use ? `<button class="use" data-use="${k}">Use</button>` : inf.kinGear ? `<button class="use" data-equipgo="${k}">Put on</button>` : ''}${hb.includes(k) ? `<button class="${inf.use ? '' : 'use'}" data-sel="${k}">${k === sel ? 'In hand' : 'Hold'}</button>` : ''}${inf.obj ? '' : `<button data-drop1="${k}">Drop 1</button><button data-dropall="${k}">Drop all</button>`}</div></div>`; }).join('') + '</div>';
+      html += `<div class="bag-group"><h4>${title}</h4>` + keys.map(k => { const inf = p.itemInfo(k); return `<div class="bag-row ${k === sel ? 'sel' : ''}" data-k="${k}"><div class="ico big" style="${inf.obj ? Icons.swatch(inf.col) : Icons.style(k)}"></div><div class="rinfo"><b>${inf.name}${inf.obj ? '' : ' ×' + p.count(k)}</b><div class="small">${inf.desc || ''}</div></div><div class="btns">${inf.use ? `<button class="use" data-use="${k}">Use</button>` : inf.kinGear ? `<button class="use" data-equipgo="${k}">Put on</button>` : ''}${hb.includes(k) ? `<button class="${inf.use ? '' : 'use'}" data-sel="${k}">${k === sel ? 'In hand' : 'Hold'}</button>` : ''}${inf.obj ? '' : `<button class="more" data-more="${k}" aria-label="Drop">⋯</button>`}</div>${inf.obj ? '' : `<div class="dropbar hidden" data-for="${k}"><span>Drop</span><button data-drop1="${k}">one</button><button data-dropall="${k}">all ${p.count(k)}</button></div>`}</div>`; }).join('') + '</div>';
     }
     const amulets = Npcs.AMULET_KEYS.filter(k => p.has(k));
     if (amulets.length) { const A = G.amulet || {}; const now = performance.now(); const cd = A.cd > now ? Math.ceil((A.cd - now) / 1000) : 0; html += `<div class="bag-group"><h4>Amulets</h4><p class="small">One trick each. Any amulet used puts all of them to sleep for four minutes.${cd ? ' Asleep for ' + cd + 's.' : ''}${Npcs.hudText() ? ' Active:' + Npcs.hudText() : ''}</p>` + amulets.map(k => `<div class="bag-row"><div class="ico big" style="${Icons.style(k)}"></div><div class="rinfo"><b>${ITEMS[k].name}</b><div class="small">${ITEMS[k].desc}</div></div><div class="btns"><button class="use" data-amulet="${k}" ${cd ? 'disabled' : ''}>Activate</button></div></div>`).join('') + '</div>'; }
@@ -481,6 +499,9 @@ const UI = (() => {
     el['panel-body'].querySelectorAll('[data-equipgo]').forEach(b => b.addEventListener('click', () => { openPanel('kin'); toast('Pick the Kin, then Put on from its page.'); }));
     el['panel-body'].querySelectorAll('[data-use]').forEach(b => b.addEventListener('click', () => { const k = b.dataset.use; if (ITEMS[k].use === 'kin') { openPanel('kin'); toast('Pick the Kin to use it on.'); return; } if (G.useItem(k)) renderBag(); }));
     el['panel-body'].querySelectorAll('[data-amulet]').forEach(b => b.addEventListener('click', () => { if (Npcs.activate(b.dataset.amulet)) { closePanel(); } }));
+    el['panel-body'].querySelectorAll('[data-more]').forEach(b => b.addEventListener('click', (ev) => { ev.stopPropagation(); const bar = el['panel-body'].querySelector(`.dropbar[data-for="${b.dataset.more}"]`); if (bar) bar.classList.toggle('hidden'); }));
+    // tapping the row itself holds the item (the buttons keep their own jobs)
+    el['panel-body'].querySelectorAll('.bag-row[data-k]').forEach(r => r.addEventListener('click', (ev) => { if (ev.target.closest('button') || ev.target.closest('.dropbar')) return; const k = r.dataset.k; const i = p.hotbar().indexOf(k); if (i < 0) return; p.sel = i; renderHotbar(); closePanel(); toast(`${p.itemInfo(k).name} in hand.`); }));
     el['panel-body'].querySelectorAll('[data-drop1]').forEach(b => b.addEventListener('click', () => { G.dropItem(b.dataset.drop1, 1); renderBag(); }));
     el['panel-body'].querySelectorAll('[data-dropall]').forEach(b => b.addEventListener('click', () => { G.dropItem(b.dataset.dropall, 999); renderBag(); }));
   }
@@ -900,5 +921,5 @@ const UI = (() => {
   function lookLabel(t) { const e = document.getElementById('look'); if (e.textContent !== t) e.textContent = t; }
   function hideStart() { el.start.classList.add('hidden'); el.hud.classList.remove('hidden'); document.body.classList.toggle('desktop', !Controls.isTouch); }
   function loading(v) { el.loading.classList.toggle('hidden', !v); }
-  return { init, sfx, audio, toast, explain, renderHud, renderMinimap, renderHotbar, openPanel, closePanel, showStart, hideStart, showTutorial, lookLabel, setButtons, renderSky, loading, get panelOpen() { return panelOpen; }, get soundOn() { return soundOn; } };
+  return { init, sfx, audio, toast, explain, renderHud, renderMinimap, renderHotbar, openPanel, closePanel, showStart, hideStart, showTutorial, lookLabel, setButtons, renderSky, loading, floater, floatersTick, get panelOpen() { return panelOpen; }, get soundOn() { return soundOn; } };
 })();

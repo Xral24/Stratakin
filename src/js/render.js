@@ -1397,6 +1397,15 @@ const R = (() => {
   function freeChunk(chunk) { if (chunk.mesh) { freeMesh(chunk.mesh.op); freeMesh(chunk.mesh.wa); freeMesh(chunk.mesh.gs); freeMesh(chunk.mesh.gr); chunk.mesh = null; } }
 
   // ---------- entity meshes ----------
+  // where a world point lands on the screen (CSS pixels), from the last frame's camera; on = in front of the camera and inside the view
+  let lastPV = null;
+  function project(x, y, z) {
+    if (!lastPV) return null; const m = lastPV;
+    const cw = m[3] * x + m[7] * y + m[11] * z + m[15]; if (cw <= 0.05) return { on: false };
+    const cx = (m[0] * x + m[4] * y + m[8] * z + m[12]) / cw, cy = (m[1] * x + m[5] * y + m[9] * z + m[13]) / cw;
+    const sx = (cx * 0.5 + 0.5) * canvas.clientWidth, sy = (0.5 - cy * 0.5) * canvas.clientHeight;
+    return { x: sx, y: sy, on: cx > -1.1 && cx < 1.1 && cy > -1.1 && cy < 1.1, depth: cw };
+  }
   function entityMesh(key, buildFn) {
     let m = entityMeshes.get(key);
     if (!m) { const mb = new MeshBuilder(1024, true); buildFn(mb); m = upload(mb) || { count: 0 }; entityMeshes.set(key, m); }
@@ -1543,7 +1552,7 @@ const R = (() => {
     }
     const proj = U.m4perspective(cam.fov, aspect, 0.08, 400);
     const view = U.m4view(cam.x, cam.y, cam.z, cam.yaw, cam.pitch);
-    const pv = U.m4mul(proj, view);
+    const pv = U.m4mul(proj, view); lastPV = pv;
     const planes = U.frustumPlanes(pv);
     gl.useProgram(prog);
     gl.uniformMatrix4fv(loc.uPV, false, pv);
@@ -1690,5 +1699,5 @@ const R = (() => {
     return out;
   }
 
-  return { grassZone, init, resize, buildChunk, freeChunk, entityMesh, dropEntityMesh, renderPortrait, render, boxLines, targetLines, ringLines, state, setQuality, QUALITY, get gl() { return gl; } };
+  return { grassZone, init, resize, buildChunk, freeChunk, entityMesh, dropEntityMesh, renderPortrait, render, project, boxLines, targetLines, ringLines, state, setQuality, QUALITY, get gl() { return gl; } };
 })();

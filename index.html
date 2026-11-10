@@ -410,6 +410,23 @@ body.desktop #joy, body.desktop #btn-jump, body.desktop #btn-sneak { display: no
 .legend b { display: inline-flex; align-items: center; gap: 5px; font-weight: 700; }
 .legend i { display: inline-flex; align-items: center; justify-content: center; width: 13px; height: 13px; border-radius: 50%; font-style: normal; font-size: 10px; font-weight: 800; box-shadow: 0 0 0 1px rgba(0,0,0,.4); }
 .legend i.g { background: none; box-shadow: none; width: auto; font-size: 13px; color: var(--ui); }
+/* hit numbers */
+#floaters { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+.flt { position: absolute; left: 0; top: 0; font-weight: 900; font-size: 17px; color: #fff; text-shadow: 0 1px 0 #000, 0 0 5px rgba(0,0,0,.9); will-change: transform, opacity; white-space: nowrap; }
+.flt.crit { color: var(--acc); font-size: 21px; } .flt.crit::after { content: '!'; }
+.flt.eff { color: #8ff0a0; }
+.flt.weak { color: rgba(255,255,255,.6); font-size: 13px; }
+.flt.hurt { color: #ff7a6a; }
+.flt.heal { color: #8ff0a0; }
+#koflash { position: fixed; inset: 0; pointer-events: none; background: radial-gradient(ellipse at center, rgba(255,255,255,.35), rgba(255,250,230,.12) 60%, transparent); opacity: 0; }
+#koflash.on { animation: koflash .5s ease-out; }
+@keyframes koflash { 0% { opacity: 1; } 100% { opacity: 0; } }
+/* bag rows: the row holds, one main button, drop tucked behind ⋯ */
+.bag-row { flex-wrap: wrap; cursor: pointer; }
+.bag-row .btns button.more { min-width: 34px; padding-left: 0; padding-right: 0; font-size: 16px; line-height: 1; }
+.dropbar { flex-basis: 100%; display: flex; align-items: center; gap: 6px; justify-content: flex-end; padding-top: 6px; font-size: 12px; color: var(--dim); }
+.dropbar button { background: rgba(255,107,90,.15); border: 1px solid rgba(255,107,90,.45); color: #ffb3a8; border-radius: 9px; padding: 5px 12px; font-weight: 800; font-size: 12px; }
+.bag-row .rinfo { flex: 1 1 0; min-width: 0; } .bag-row .btns { flex: 0 0 auto; } .bag-row .btns button { padding: 7px 10px; font-size: 12px; } .bag-row { border-radius: 14px; border-color: var(--line); }
 
 </style>
 </head>
@@ -439,6 +456,8 @@ body.desktop #joy, body.desktop #btn-jump, body.desktop #btn-sneak { display: no
       <button class="hbtn" data-panel="menu">≡</button>
     </div>
   </div>
+  <div id="floaters"></div>
+  <div id="koflash"></div>
   <canvas id="minimap" class="hidden" width="192" height="192"></canvas>
   <div id="quest-hint"></div>
   <div id="target" class="hidden"><div class="t-name"></div><div class="t-bar"><div class="t-fill"></div></div></div>
@@ -2896,6 +2915,15 @@ const R = (() => {
   function freeChunk(chunk) { if (chunk.mesh) { freeMesh(chunk.mesh.op); freeMesh(chunk.mesh.wa); freeMesh(chunk.mesh.gs); freeMesh(chunk.mesh.gr); chunk.mesh = null; } }
 
   // ---------- entity meshes ----------
+  // where a world point lands on the screen (CSS pixels), from the last frame's camera; on = in front of the camera and inside the view
+  let lastPV = null;
+  function project(x, y, z) {
+    if (!lastPV) return null; const m = lastPV;
+    const cw = m[3] * x + m[7] * y + m[11] * z + m[15]; if (cw <= 0.05) return { on: false };
+    const cx = (m[0] * x + m[4] * y + m[8] * z + m[12]) / cw, cy = (m[1] * x + m[5] * y + m[9] * z + m[13]) / cw;
+    const sx = (cx * 0.5 + 0.5) * canvas.clientWidth, sy = (0.5 - cy * 0.5) * canvas.clientHeight;
+    return { x: sx, y: sy, on: cx > -1.1 && cx < 1.1 && cy > -1.1 && cy < 1.1, depth: cw };
+  }
   function entityMesh(key, buildFn) {
     let m = entityMeshes.get(key);
     if (!m) { const mb = new MeshBuilder(1024, true); buildFn(mb); m = upload(mb) || { count: 0 }; entityMeshes.set(key, m); }
@@ -3042,7 +3070,7 @@ const R = (() => {
     }
     const proj = U.m4perspective(cam.fov, aspect, 0.08, 400);
     const view = U.m4view(cam.x, cam.y, cam.z, cam.yaw, cam.pitch);
-    const pv = U.m4mul(proj, view);
+    const pv = U.m4mul(proj, view); lastPV = pv;
     const planes = U.frustumPlanes(pv);
     gl.useProgram(prog);
     gl.uniformMatrix4fv(loc.uPV, false, pv);
@@ -3189,7 +3217,7 @@ const R = (() => {
     return out;
   }
 
-  return { grassZone, init, resize, buildChunk, freeChunk, entityMesh, dropEntityMesh, renderPortrait, render, boxLines, targetLines, ringLines, state, setQuality, QUALITY, get gl() { return gl; } };
+  return { grassZone, init, resize, buildChunk, freeChunk, entityMesh, dropEntityMesh, renderPortrait, render, project, boxLines, targetLines, ringLines, state, setQuality, QUALITY, get gl() { return gl; } };
 })();
 
 </script>
@@ -3797,15 +3825,20 @@ class Player {
     if (this.has('frostcloak')) return null;
     const bx = Math.floor(this.x), bz = Math.floor(this.z);
     if (this.y < w.topAt(bx, bz) - 4) return null; // underground is out of the wind
-    const biome = w.biomeAt(bx, bz);
-    if (biome === BIOME.SNOW || (biome === BIOME.MOUNTAIN && this.y >= 66) || this.y >= SKY_BASE + 6) return 'cold';
-    return null;
+    if (this.y >= SKY_BASE + 6) return 'cold';
+    // inside a town's walls you are among houses and hearths: never cold there
+    if (typeof Village !== 'undefined' && Village.active) { const v = Village.active; const R = (v.R || 12) + 4; if (Math.hypot(v.x - this.x, v.z - this.z) < R) return null; }
+    // otherwise it is the snow itself that chills you: most of the ground around you has to be snow. Grass, stone and paths
+    // at the edge of a snowfield or on a high green slope are not cold
+    const biome = w.biomeAt(bx, bz); if (biome !== BIOME.SNOW && biome !== BIOME.MOUNTAIN) return null;
+    let snowy = 0; for (let dx = -2; dx <= 2; dx++) for (let dz = -2; dz <= 2; dz++) { const t = w.groundY(bx + dx * 2, bz + dz * 2, Math.floor(this.y) + 3); if (w.getBlock(bx + dx * 2, t, bz + dz * 2) === B.SNOW) snowy++; }
+    return snowy >= 10 ? 'cold' : null;
   }
   updateChill(dt) {
     const kind = this.coldHere();
     const rate = kind === 'space' ? 1 / 3 : kind === 'cold' ? 1 / 8 : kind === 'heat' ? 1 / 6 : 0;
     const shelter = this.mount && this.mount.sp.climber ? 0.5 : 1;
-    this.chill = U.clamp((this.chill || 0) + (kind ? rate * (kind === 'heat' ? 1 : shelter * this.lavaMul) : -1 / 4) * dt, 0, 1);
+    this.chill = U.clamp((this.chill || 0) + (kind ? rate * (kind === 'heat' ? 1 : shelter * this.lavaMul) : -1 / 2) * dt, 0, 1);
     this.coldKind = kind;
     if (this.chill >= 1) { this.chillTick = (this.chillTick || 0) + dt; const every = kind === 'space' ? 1.5 : 3 / this.lavaMul; if (this.chillTick > every) { this.chillTick = 0; this.damage(1, kind); } }
     else this.chillTick = 0;
@@ -5808,12 +5841,14 @@ const Wild = (() => {
     if (opts.fromX != null && (e.model.radius || 0.6) * e.scale < 1.3 && !opts.arrow) { const ddx = e.x - opts.fromX, ddz = e.z - opts.fromZ, dl = Math.hypot(ddx, ddz) || 1; const push = opts.push == null ? 0.35 : opts.push; const nx = e.x + ddx / dl * push, nz = e.z + ddz / dl * push; const gy = findGround(nx, e.y, nz, e); if (gy != null && Math.abs(gy - e.y) < 1.6) { e.x = nx; e.z = nz; } }
     if (e.chase && e.chase.phase === 'wind' && (opts.heavy || Math.random() < 0.5)) { e.chase.phase = 'rest'; e.chase.pt = 0.5; e.chase.hitCd = 0.6; } // a hit in the wind-up puts it off its stroke
     G.kinFocus = e; G.kinFocusT = 3.5;
+    { const hy = e.y + (e.hover || 0) + (e.model ? e.model.height * e.scale : 1) + 0.2; UI.floater(e.x, hy, e.z, String(Math.max(0, before - Math.max(e.kin.hp, 0))), hard ? 'weak' : ''); }
     if (keepOne && before - dmg < 1 && hard && !e.shrugTold) { e.shrugTold = true; UI.toast(`${KIN.name(e.kin)} shrugs off your steel. Only a Kin can finish it: Deploy.`, 'bad'); }
     if (e.kin.hp <= 0) { daze(e); return { dmg: before, pct: 0, dazed: true }; }
     return { dmg: before - e.kin.hp, pct: Math.round(e.kin.hp / st.hp * 100), dazed: false };
   }
   function daze(e, k) {
     e.kin.hp = 1; e.dazed = 10; disengage(e, 0); e.cool = 0; e.alert = 0; e.stunT = 0;
+    G.knockout(e.x, e.y, e.z);
     UI.sfx('win'); UI.toast(`${KIN.name(e.kin)} goes down, dazed. Snare it now, or let it go.`, 'good');
     rewardWin(e, k || null); G.stats.liveWins = (G.stats.liveWins || 0) + 1;
     const dom = KIN.dominant(e.kin.sp.elem, 1)[0]; if (Math.random() < 0.35) { G.player.add('ess_' + dom, 1); UI.toast(`${dom} Essence collected.`); }
@@ -5831,7 +5866,7 @@ const Wild = (() => {
     const before = e.kin.hp; e.kin.hp = Math.max(0, e.kin.hp - dmg); e.hitT = 0.35; e.sleep = false;
     if (!e.chase) engage(e, false, { quiet: true }); if (e.chase) { e.chase.t = Math.max(e.chase.t, 18); e.chase.foe = 'buddy'; e.chase.foeT = 5; if (e.chase.phase === 'wind' && Math.random() < 0.4) { e.chase.phase = 'rest'; e.chase.pt = 0.5; e.chase.hitCd = 0.6; } }
     G.kinFocus = e; G.kinFocusT = 3.5;
-    if (e.kin.hp <= 0) { if (scripted(e)) { G.onBattleEnd('won', e, e.kin, k, false); } else daze(e, k); }
+    if (e.kin.hp <= 0) { if (scripted(e)) { G.knockout(e.x, e.y, e.z); G.onBattleEnd('won', e, e.kin, k, false); } else daze(e, k); }
     return before - Math.max(0, e.kin.hp);
   }
   // its lunge reaches your Kin: the battle's numbers, no shield to hide behind
@@ -10650,6 +10685,23 @@ const UI = (() => {
     } catch (e) { /* audio refused */ }
   }
   // ---------- HUD ----------
+  // hit numbers: a figure rises off whoever took the blow and fades. kind: '' plain, 'crit', 'eff' (hit hard), 'weak' (shrugged off), 'hurt' (yours taking it), 'heal'
+  const floaters = [];
+  function floater(x, y, z, text, kind = '') {
+    const host = document.getElementById('floaters'); if (!host) return;
+    const d = document.createElement('div'); d.className = 'flt ' + kind; d.textContent = text; d.style.opacity = '0'; host.appendChild(d);
+    floaters.push({ x, y, z, el: d, t: 0, dur: kind === 'crit' ? 1.15 : 0.95, drift: (Math.random() - 0.5) * 0.6 });
+    if (floaters.length > 24) { const f = floaters.shift(); f.el.remove(); }
+  }
+  function floatersTick(dt) {
+    for (let i = floaters.length - 1; i >= 0; i--) {
+      const f = floaters[i]; f.t += dt; const u = f.t / f.dur;
+      if (u >= 1) { f.el.remove(); floaters.splice(i, 1); continue; }
+      const pr = R.project(f.x + f.drift * u, f.y + 0.9 * u + 0.4 * Math.sin(u * 3.1), f.z); if (!pr || !pr.on) { f.el.style.opacity = '0'; continue; }
+      const sc = (f.el.classList.contains('crit') ? 1.25 : 1) * (u < 0.12 ? 0.6 + u * 3.5 : 1.02 - u * 0.12);
+      f.el.style.transform = `translate(${pr.x.toFixed(1)}px, ${pr.y.toFixed(1)}px) translate(-50%, -50%) scale(${sc.toFixed(3)})`; f.el.style.opacity = u > 0.65 ? ((1 - u) / 0.35).toFixed(2) : '1';
+    }
+  }
   function toast(msg, cls) {
     const d = document.createElement('div'); d.className = 'toast' + (cls ? ' ' + cls : ''); d.textContent = msg;
     el.toasts.appendChild(d);
@@ -11032,7 +11084,8 @@ const UI = (() => {
     setTitle('Bag');
     const p = G.player; const hb = p.hotbar(); const sel = p.selected();
     const groups = [
-      ['Tools and food', k => ITEMS[k] && (ITEMS[k].light || ITEMS[k].snare || ITEMS[k].use)],
+      ['Weapons and tools', k => ITEMS[k] && (ITEMS[k].light || ITEMS[k].snare || (!ITEMS[k].block && (/^(sw_|sp_|ax_|sh_|bow|pick|axe|rod)/.test(k) || ['hatchet', 'shovel', 'arrow'].includes(k) || ITEMS[k].weapon || ITEMS[k].shield)))],
+      ['Food and tonics', k => ITEMS[k] && ITEMS[k].use],
       ['Kits', k => ITEMS[k] && ITEMS[k].kit],
       ['Kin gear', k => ITEMS[k] && ITEMS[k].kinGear],
       ['Blocks', k => ITEMS[k] && ITEMS[k].block && !ITEMS[k].light && k !== 'fusion' || k === 'fusion'],
@@ -11041,11 +11094,11 @@ const UI = (() => {
     ];
     const used = new Set();
     const all = [...new Set([...hb, ...[...p.inv.keys()].filter(k => ITEMS[k] && !ITEMS[k].gear)])];
-    let html = `<p class="note">Tap <b>Hold</b> to carry an item in hand (then tap the world to place or use it). Gear you own is at the bottom.</p>`;
+    let html = `<p class="note">Tap a row to hold it. Swipe the bag pill on the screen to switch without opening the bag.</p>`;
     for (const [title, test] of groups) {
       const keys = all.filter(k => !used.has(k) && test(k)); keys.forEach(k => used.add(k));
       if (!keys.length) continue;
-      html += `<div class="bag-group"><h4>${title}</h4>` + keys.map(k => { const inf = p.itemInfo(k); return `<div class="bag-row ${k === sel ? 'sel' : ''}" data-k="${k}"><div class="ico big" style="${inf.obj ? Icons.swatch(inf.col) : Icons.style(k)}"></div><div class="rinfo"><b>${inf.name}${inf.obj ? '' : ' ×' + p.count(k)}</b><div class="small">${inf.desc || ''}</div></div><div class="btns">${inf.use ? `<button class="use" data-use="${k}">Use</button>` : inf.kinGear ? `<button class="use" data-equipgo="${k}">Put on</button>` : ''}${hb.includes(k) ? `<button class="${inf.use ? '' : 'use'}" data-sel="${k}">${k === sel ? 'In hand' : 'Hold'}</button>` : ''}${inf.obj ? '' : `<button data-drop1="${k}">Drop 1</button><button data-dropall="${k}">Drop all</button>`}</div></div>`; }).join('') + '</div>';
+      html += `<div class="bag-group"><h4>${title}</h4>` + keys.map(k => { const inf = p.itemInfo(k); return `<div class="bag-row ${k === sel ? 'sel' : ''}" data-k="${k}"><div class="ico big" style="${inf.obj ? Icons.swatch(inf.col) : Icons.style(k)}"></div><div class="rinfo"><b>${inf.name}${inf.obj ? '' : ' ×' + p.count(k)}</b><div class="small">${inf.desc || ''}</div></div><div class="btns">${inf.use ? `<button class="use" data-use="${k}">Use</button>` : inf.kinGear ? `<button class="use" data-equipgo="${k}">Put on</button>` : ''}${hb.includes(k) ? `<button class="${inf.use ? '' : 'use'}" data-sel="${k}">${k === sel ? 'In hand' : 'Hold'}</button>` : ''}${inf.obj ? '' : `<button class="more" data-more="${k}" aria-label="Drop">⋯</button>`}</div>${inf.obj ? '' : `<div class="dropbar hidden" data-for="${k}"><span>Drop</span><button data-drop1="${k}">one</button><button data-dropall="${k}">all ${p.count(k)}</button></div>`}</div>`; }).join('') + '</div>';
     }
     const amulets = Npcs.AMULET_KEYS.filter(k => p.has(k));
     if (amulets.length) { const A = G.amulet || {}; const now = performance.now(); const cd = A.cd > now ? Math.ceil((A.cd - now) / 1000) : 0; html += `<div class="bag-group"><h4>Amulets</h4><p class="small">One trick each. Any amulet used puts all of them to sleep for four minutes.${cd ? ' Asleep for ' + cd + 's.' : ''}${Npcs.hudText() ? ' Active:' + Npcs.hudText() : ''}</p>` + amulets.map(k => `<div class="bag-row"><div class="ico big" style="${Icons.style(k)}"></div><div class="rinfo"><b>${ITEMS[k].name}</b><div class="small">${ITEMS[k].desc}</div></div><div class="btns"><button class="use" data-amulet="${k}" ${cd ? 'disabled' : ''}>Activate</button></div></div>`).join('') + '</div>'; }
@@ -11057,6 +11110,9 @@ const UI = (() => {
     el['panel-body'].querySelectorAll('[data-equipgo]').forEach(b => b.addEventListener('click', () => { openPanel('kin'); toast('Pick the Kin, then Put on from its page.'); }));
     el['panel-body'].querySelectorAll('[data-use]').forEach(b => b.addEventListener('click', () => { const k = b.dataset.use; if (ITEMS[k].use === 'kin') { openPanel('kin'); toast('Pick the Kin to use it on.'); return; } if (G.useItem(k)) renderBag(); }));
     el['panel-body'].querySelectorAll('[data-amulet]').forEach(b => b.addEventListener('click', () => { if (Npcs.activate(b.dataset.amulet)) { closePanel(); } }));
+    el['panel-body'].querySelectorAll('[data-more]').forEach(b => b.addEventListener('click', (ev) => { ev.stopPropagation(); const bar = el['panel-body'].querySelector(`.dropbar[data-for="${b.dataset.more}"]`); if (bar) bar.classList.toggle('hidden'); }));
+    // tapping the row itself holds the item (the buttons keep their own jobs)
+    el['panel-body'].querySelectorAll('.bag-row[data-k]').forEach(r => r.addEventListener('click', (ev) => { if (ev.target.closest('button') || ev.target.closest('.dropbar')) return; const k = r.dataset.k; const i = p.hotbar().indexOf(k); if (i < 0) return; p.sel = i; renderHotbar(); closePanel(); toast(`${p.itemInfo(k).name} in hand.`); }));
     el['panel-body'].querySelectorAll('[data-drop1]').forEach(b => b.addEventListener('click', () => { G.dropItem(b.dataset.drop1, 1); renderBag(); }));
     el['panel-body'].querySelectorAll('[data-dropall]').forEach(b => b.addEventListener('click', () => { G.dropItem(b.dataset.dropall, 999); renderBag(); }));
   }
@@ -11476,7 +11532,7 @@ const UI = (() => {
   function lookLabel(t) { const e = document.getElementById('look'); if (e.textContent !== t) e.textContent = t; }
   function hideStart() { el.start.classList.add('hidden'); el.hud.classList.remove('hidden'); document.body.classList.toggle('desktop', !Controls.isTouch); }
   function loading(v) { el.loading.classList.toggle('hidden', !v); }
-  return { init, sfx, audio, toast, explain, renderHud, renderMinimap, renderHotbar, openPanel, closePanel, showStart, hideStart, showTutorial, lookLabel, setButtons, renderSky, loading, get panelOpen() { return panelOpen; }, get soundOn() { return soundOn; } };
+  return { init, sfx, audio, toast, explain, renderHud, renderMinimap, renderHotbar, openPanel, closePanel, showStart, hideStart, showTutorial, lookLabel, setButtons, renderSky, loading, floater, floatersTick, get panelOpen() { return panelOpen; }, get soundOn() { return soundOn; } };
 })();
 
 </script>
@@ -11755,7 +11811,7 @@ const Combat = (() => {
   }
   const shots = []; // the archers' arrows
   function down(f, how) {
-    f.state = 'down'; f.hp = 0; f.t = 0; f.hover = -0.55; UI.sfx('win');
+    f.state = 'down'; f.hp = 0; f.t = 0; f.hover = -0.55; UI.sfx('win'); G.knockout(f.x, f.y, f.z);
     const P = G.player; const gold = weapon() && weapon().fx === 'loot' ? 2 : 1; const sh = Math.round((8 + f.lv * 6) * gold * (f.kind === 'captain' ? 3 : 1)); G.shards += sh;
     let msg = `${f.name} drops to his knees, dazed. +${sh} shards.`;
     if (Math.random() < 0.25 + (f.kind === 'captain' ? 0.5 : 0)) { const pool = Object.values(GEAR).filter(g => g.tier >= f.lv && g.tier <= f.lv + 2); const g = pool[Math.floor(Math.random() * pool.length)]; if (g && !P.has(g.id)) { P.add(g.id, 1); msg += ` He drops a ${g.name}.`; } }
@@ -11769,7 +11825,7 @@ const Combat = (() => {
     let d = dmg; const facing = Math.cos(Math.atan2(G.player.x - f.x, G.player.z - f.z) - f.yaw) > 0.3;
     if (f.block && facing && f.state !== 'stun' && !opts.pierce) { const half = opts.halfPierce ? 0.5 : 1; d = Math.round(d * (1 - f.block * half)); }
     if (!f.aware) { d *= 2; f.aware = true; } // caught unawares: double
-    f.hp -= Math.max(1, d); f.hitT = 0.25; f.aware = true;
+    f.hp -= Math.max(1, d); f.hitT = 0.25; f.aware = true; UI.floater(f.x, f.y + 2.1, f.z, String(Math.max(1, Math.round(d))), d < dmg ? 'weak' : d > dmg ? 'crit' : '');
     if (opts.burn) f.burn = Math.max(f.burn, opts.burn); if (opts.slow) f.slowT = Math.max(f.slowT, opts.slow); if (opts.bleed) f.bleed = Math.max(f.bleed, opts.bleed);
     if (opts.stun) { f.state = 'stun'; f.t = opts.stun; }
     if (opts.knock) { const a = Math.atan2(f.x - G.player.x, f.z - G.player.z); f.x += Math.sin(a) * opts.knock; f.z += Math.cos(a) * opts.knock; }
@@ -12594,9 +12650,10 @@ const Buddy = (() => {
   function land(k, T, move) {
     if (gone(T)) return;
     const hx = T.x - (T.x - e.x) * 0.3, hz = T.z - (T.z - e.z) * 0.3, hy = T.y + (T.isFoe ? 1.0 : (T.model ? T.model.height * T.scale * 0.55 : 0.8));
-    if (T.isFoe) { const st = KIN.stats(k); const dmg = Math.max(2, Math.round(st.atk * 0.35 + k.level * 0.25)); Combat.hurtFoe(T, dmg, e.x, e.z); Hazards.sparks(hx, hy, hz, 8, elemCol(move.elem)); UI.sfx('hit'); return; }
+    if (T.isFoe) { const st = KIN.stats(k); const dmg = Math.max(2, Math.round(st.atk * 0.35 + k.level * 0.25)); Combat.hurtFoe(T, dmg, e.x, e.z); UI.floater(T.x, hy + 0.9, T.z, String(dmg)); Hazards.sparks(hx, hy, hz, 8, elemCol(move.elem)); UI.sfx('hit'); return; }
     if (Battle.dodges(k, T.kin)) { UI.sfx('miss'); return; }
     const r = Battle.calcDamage(k, T.kin, move); const dealt = Wild.hitByKin(T, r.dmg, k);
+    UI.floater(T.x, hy + 0.5, T.z, String(dealt), r.crit ? 'crit' : r.eff > 1.25 ? 'eff' : r.eff < 0.8 ? 'weak' : '');
     Hazards.sparks(hx, hy, hz, r.crit ? 16 : 10, elemCol(move.elem), r.eff > 1.25 ? 4.5 : 3.2); UI.sfx(r.eff > 1.25 ? 'hit2' : 'hit');
     if (r.crit && dealt > 0) UI.toast(`${KIN.name(k)}: critical!`);
     if (move.drain) { const st = KIN.stats(k); k.hp = Math.min(st.hp, k.hp + Math.round(dealt / 3)); }
@@ -12620,13 +12677,14 @@ const Buddy = (() => {
       e.hover = (e.model.hover || 0) + (e.flying ? Math.sin(e.bob * 2) * 0.08 : 0); return true; }
     e.hover = (e.model.hover || 0) + (flinchT > 0 ? Math.sin(flinchT * 40) * 0.06 : 0) + (e.flying ? Math.sin(e.bob * 2) * 0.08 : 0);
     if (atkCd <= 0 && !pending) { const st = KIN.stats(k); const mv = KIN.moves(k).filter(m => m.kind !== 'util'); const move = mv[Math.random() < 0.65 ? 0 : Math.min(1, mv.length - 1)];
-      if (k.hp < st.hp * 0.4 && Math.random() < 0.2) { k.hp = Math.min(st.hp, k.hp + Math.round(st.hp * 0.22)); Hazards.sparks(e.x, e.y + e.model.height * e.scale * 0.7, e.z, 10, [0.6, 1.0, 0.6], 1.5); UI.sfx('util'); atkCd = 1.4; }
+      if (k.hp < st.hp * 0.4 && Math.random() < 0.2) { const heal = Math.round(st.hp * 0.22); k.hp = Math.min(st.hp, k.hp + heal); UI.floater(e.x, e.y + e.model.height * e.scale + 0.2, e.z, '+' + heal, 'heal'); Hazards.sparks(e.x, e.y + e.model.height * e.scale * 0.7, e.z, 10, [0.6, 1.0, 0.6], 1.5); UI.sfx('util'); atkCd = 1.4; }
       else if (move.kind === 'phys') { dash = { t: 0, x0: e.x, z0: e.z, hit: false, move }; atkCd = U.clamp(2.3 - st.agi / 90, 1.1, 2.3); }
       else { Battle.spawnFx(e, T, move.elem); pending = { t: 0.34, T, move }; atkCd = U.clamp(2.5 - st.agi / 90, 1.2, 2.5); } }
     return true;
   }
   function hurt(dmg, from, eff) {
     const k = e && e.kin; if (!k) return; k.hp = Math.max(0, k.hp - dmg); e.hitT = 0.35; flinchT = 0.35; hopT = 0.25;
+    UI.floater(e.x, e.y + e.model.height * e.scale + 0.2, e.z, String(dmg), 'hurt');
     if (from) { const ddx = e.x - from.x, ddz = e.z - from.z, dl = Math.hypot(ddx, ddz) || 1; const nx = e.x + ddx / dl * 0.35, nz = e.z + ddz / dl * 0.35; const gy = ground(nx, nz, e.y); if (Math.abs(gy - e.y) < 1.5) { e.x = nx; e.z = nz; } }
     Hazards.sparks(e.x, e.y + e.model.height * e.scale * 0.6, e.z, 6, [1.0, 0.6, 0.5]); UI.sfx(eff > 1.25 ? 'hit2' : 'hurt');
     if (k.hp <= 0) down();
@@ -12960,6 +13018,8 @@ G.deployKin = function () {
   if (healthy.length === 1) { this.sendIn(healthy[0], e); return; }
   UI.openPanel('deploy', e);
 };
+// the knockout beat: a short slow-down and a white flash when something goes down
+G.knockout = function (x, y, z) { this.slowT = 0.45; const f = document.getElementById('koflash'); if (f) { f.classList.remove('on'); void f.offsetWidth; f.classList.add('on'); } this.shake = Math.max(this.shake || 0, 0.3); };
 G.sendIn = function (k, e) {
   if (!k || k.hp <= 0 || !this.kin.includes(k)) return;
   this.stats.buddyOff = false;
@@ -13477,6 +13537,7 @@ G.loop = function (t) {
   if (!this.running) return;
   requestAnimationFrame((tt) => this.loop(tt));
   let dt = Math.min(0.05, (t - this.lastT) / 1000); this.lastT = t; this.frame++;
+  if (this.slowT > 0) { this.slowT -= dt; dt *= 0.3; } // a knockout beat: the world holds its breath for a moment
   const w = this.world, p = this.player;
   let input = Controls.poll();
   const inBattle = Battle.active;
@@ -13648,6 +13709,7 @@ G.loop = function (t) {
   const held = (!inBattle && !this.thirdPerson && !p.mount && !p.flying && this.talkK <= 0 && !this.grassCamOn) ? Held.describe(p, dt, input) : null; if (held) { const top = w.topAt(Math.floor(p.x), Math.floor(p.z)); held.skyMul = eye.y >= top ? 1 : Math.max(0.2, 1 - (top - eye.y) * 0.11); }
   R.render(w, p, ents, cam, { lights, lines, held });
   if ((this.frame & 3) === 0) UI.renderHud(dt);
+  UI.floatersTick(dt);
   if ((this.frame & 31) === 0 && !inBattle) UI.renderMinimap(p);
   if ((this.frame & 15) === 0) this.updateMusic(inBattle);
   if ((this.frame & 1) === 0) UI.renderSky(cam, this.world, R.state);

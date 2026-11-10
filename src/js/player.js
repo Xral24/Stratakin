@@ -354,15 +354,20 @@ class Player {
     if (this.has('frostcloak')) return null;
     const bx = Math.floor(this.x), bz = Math.floor(this.z);
     if (this.y < w.topAt(bx, bz) - 4) return null; // underground is out of the wind
-    const biome = w.biomeAt(bx, bz);
-    if (biome === BIOME.SNOW || (biome === BIOME.MOUNTAIN && this.y >= 66) || this.y >= SKY_BASE + 6) return 'cold';
-    return null;
+    if (this.y >= SKY_BASE + 6) return 'cold';
+    // inside a town's walls you are among houses and hearths: never cold there
+    if (typeof Village !== 'undefined' && Village.active) { const v = Village.active; const R = (v.R || 12) + 4; if (Math.hypot(v.x - this.x, v.z - this.z) < R) return null; }
+    // otherwise it is the snow itself that chills you: most of the ground around you has to be snow. Grass, stone and paths
+    // at the edge of a snowfield or on a high green slope are not cold
+    const biome = w.biomeAt(bx, bz); if (biome !== BIOME.SNOW && biome !== BIOME.MOUNTAIN) return null;
+    let snowy = 0; for (let dx = -2; dx <= 2; dx++) for (let dz = -2; dz <= 2; dz++) { const t = w.groundY(bx + dx * 2, bz + dz * 2, Math.floor(this.y) + 3); if (w.getBlock(bx + dx * 2, t, bz + dz * 2) === B.SNOW) snowy++; }
+    return snowy >= 10 ? 'cold' : null;
   }
   updateChill(dt) {
     const kind = this.coldHere();
     const rate = kind === 'space' ? 1 / 3 : kind === 'cold' ? 1 / 8 : kind === 'heat' ? 1 / 6 : 0;
     const shelter = this.mount && this.mount.sp.climber ? 0.5 : 1;
-    this.chill = U.clamp((this.chill || 0) + (kind ? rate * (kind === 'heat' ? 1 : shelter * this.lavaMul) : -1 / 4) * dt, 0, 1);
+    this.chill = U.clamp((this.chill || 0) + (kind ? rate * (kind === 'heat' ? 1 : shelter * this.lavaMul) : -1 / 2) * dt, 0, 1);
     this.coldKind = kind;
     if (this.chill >= 1) { this.chillTick = (this.chillTick || 0) + dt; const every = kind === 'space' ? 1.5 : 3 / this.lavaMul; if (this.chillTick > every) { this.chillTick = 0; this.damage(1, kind); } }
     else this.chillTick = 0;

@@ -395,3 +395,20 @@ body.desktop #joy, body.desktop #btn-jump, body.desktop #btn-sneak { display: no
 .legend b { display: inline-flex; align-items: center; gap: 5px; font-weight: 700; }
 .legend i { display: inline-flex; align-items: center; justify-content: center; width: 13px; height: 13px; border-radius: 50%; font-style: normal; font-size: 10px; font-weight: 800; box-shadow: 0 0 0 1px rgba(0,0,0,.4); }
 .legend i.g { background: none; box-shadow: none; width: auto; font-size: 13px; color: var(--ui); }
+/* hit numbers */
+#floaters { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+.flt { position: absolute; left: 0; top: 0; font-weight: 900; font-size: 17px; color: #fff; text-shadow: 0 1px 0 #000, 0 0 5px rgba(0,0,0,.9); will-change: transform, opacity; white-space: nowrap; }
+.flt.crit { color: var(--acc); font-size: 21px; } .flt.crit::after { content: '!'; }
+.flt.eff { color: #8ff0a0; }
+.flt.weak { color: rgba(255,255,255,.6); font-size: 13px; }
+.flt.hurt { color: #ff7a6a; }
+.flt.heal { color: #8ff0a0; }
+#koflash { position: fixed; inset: 0; pointer-events: none; background: radial-gradient(ellipse at center, rgba(255,255,255,.35), rgba(255,250,230,.12) 60%, transparent); opacity: 0; }
+#koflash.on { animation: koflash .5s ease-out; }
+@keyframes koflash { 0% { opacity: 1; } 100% { opacity: 0; } }
+/* bag rows: the row holds, one main button, drop tucked behind ⋯ */
+.bag-row { flex-wrap: wrap; cursor: pointer; }
+.bag-row .btns button.more { min-width: 34px; padding-left: 0; padding-right: 0; font-size: 16px; line-height: 1; }
+.dropbar { flex-basis: 100%; display: flex; align-items: center; gap: 6px; justify-content: flex-end; padding-top: 6px; font-size: 12px; color: var(--dim); }
+.dropbar button { background: rgba(255,107,90,.15); border: 1px solid rgba(255,107,90,.45); color: #ffb3a8; border-radius: 9px; padding: 5px 12px; font-weight: 800; font-size: 12px; }
+.bag-row .rinfo { flex: 1 1 0; min-width: 0; } .bag-row .btns { flex: 0 0 auto; } .bag-row .btns button { padding: 7px 10px; font-size: 12px; } .bag-row { border-radius: 14px; border-color: var(--line); }

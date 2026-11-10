@@ -26,9 +26,10 @@ const Buddy = (() => {
   function land(k, T, move) {
     if (gone(T)) return;
     const hx = T.x - (T.x - e.x) * 0.3, hz = T.z - (T.z - e.z) * 0.3, hy = T.y + (T.isFoe ? 1.0 : (T.model ? T.model.height * T.scale * 0.55 : 0.8));
-    if (T.isFoe) { const st = KIN.stats(k); const dmg = Math.max(2, Math.round(st.atk * 0.35 + k.level * 0.25)); Combat.hurtFoe(T, dmg, e.x, e.z); Hazards.sparks(hx, hy, hz, 8, elemCol(move.elem)); UI.sfx('hit'); return; }
+    if (T.isFoe) { const st = KIN.stats(k); const dmg = Math.max(2, Math.round(st.atk * 0.35 + k.level * 0.25)); Combat.hurtFoe(T, dmg, e.x, e.z); UI.floater(T.x, hy + 0.9, T.z, String(dmg)); Hazards.sparks(hx, hy, hz, 8, elemCol(move.elem)); UI.sfx('hit'); return; }
     if (Battle.dodges(k, T.kin)) { UI.sfx('miss'); return; }
     const r = Battle.calcDamage(k, T.kin, move); const dealt = Wild.hitByKin(T, r.dmg, k);
+    UI.floater(T.x, hy + 0.5, T.z, String(dealt), r.crit ? 'crit' : r.eff > 1.25 ? 'eff' : r.eff < 0.8 ? 'weak' : '');
     Hazards.sparks(hx, hy, hz, r.crit ? 16 : 10, elemCol(move.elem), r.eff > 1.25 ? 4.5 : 3.2); UI.sfx(r.eff > 1.25 ? 'hit2' : 'hit');
     if (r.crit && dealt > 0) UI.toast(`${KIN.name(k)}: critical!`);
     if (move.drain) { const st = KIN.stats(k); k.hp = Math.min(st.hp, k.hp + Math.round(dealt / 3)); }
@@ -52,13 +53,14 @@ const Buddy = (() => {
       e.hover = (e.model.hover || 0) + (e.flying ? Math.sin(e.bob * 2) * 0.08 : 0); return true; }
     e.hover = (e.model.hover || 0) + (flinchT > 0 ? Math.sin(flinchT * 40) * 0.06 : 0) + (e.flying ? Math.sin(e.bob * 2) * 0.08 : 0);
     if (atkCd <= 0 && !pending) { const st = KIN.stats(k); const mv = KIN.moves(k).filter(m => m.kind !== 'util'); const move = mv[Math.random() < 0.65 ? 0 : Math.min(1, mv.length - 1)];
-      if (k.hp < st.hp * 0.4 && Math.random() < 0.2) { k.hp = Math.min(st.hp, k.hp + Math.round(st.hp * 0.22)); Hazards.sparks(e.x, e.y + e.model.height * e.scale * 0.7, e.z, 10, [0.6, 1.0, 0.6], 1.5); UI.sfx('util'); atkCd = 1.4; }
+      if (k.hp < st.hp * 0.4 && Math.random() < 0.2) { const heal = Math.round(st.hp * 0.22); k.hp = Math.min(st.hp, k.hp + heal); UI.floater(e.x, e.y + e.model.height * e.scale + 0.2, e.z, '+' + heal, 'heal'); Hazards.sparks(e.x, e.y + e.model.height * e.scale * 0.7, e.z, 10, [0.6, 1.0, 0.6], 1.5); UI.sfx('util'); atkCd = 1.4; }
       else if (move.kind === 'phys') { dash = { t: 0, x0: e.x, z0: e.z, hit: false, move }; atkCd = U.clamp(2.3 - st.agi / 90, 1.1, 2.3); }
       else { Battle.spawnFx(e, T, move.elem); pending = { t: 0.34, T, move }; atkCd = U.clamp(2.5 - st.agi / 90, 1.2, 2.5); } }
     return true;
   }
   function hurt(dmg, from, eff) {
     const k = e && e.kin; if (!k) return; k.hp = Math.max(0, k.hp - dmg); e.hitT = 0.35; flinchT = 0.35; hopT = 0.25;
+    UI.floater(e.x, e.y + e.model.height * e.scale + 0.2, e.z, String(dmg), 'hurt');
     if (from) { const ddx = e.x - from.x, ddz = e.z - from.z, dl = Math.hypot(ddx, ddz) || 1; const nx = e.x + ddx / dl * 0.35, nz = e.z + ddz / dl * 0.35; const gy = ground(nx, nz, e.y); if (Math.abs(gy - e.y) < 1.5) { e.x = nx; e.z = nz; } }
     Hazards.sparks(e.x, e.y + e.model.height * e.scale * 0.6, e.z, 6, [1.0, 0.6, 0.5]); UI.sfx(eff > 1.25 ? 'hit2' : 'hurt');
     if (k.hp <= 0) down();

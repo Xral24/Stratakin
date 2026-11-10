@@ -454,12 +454,14 @@ const Wild = (() => {
     if (opts.fromX != null && (e.model.radius || 0.6) * e.scale < 1.3 && !opts.arrow) { const ddx = e.x - opts.fromX, ddz = e.z - opts.fromZ, dl = Math.hypot(ddx, ddz) || 1; const push = opts.push == null ? 0.35 : opts.push; const nx = e.x + ddx / dl * push, nz = e.z + ddz / dl * push; const gy = findGround(nx, e.y, nz, e); if (gy != null && Math.abs(gy - e.y) < 1.6) { e.x = nx; e.z = nz; } }
     if (e.chase && e.chase.phase === 'wind' && (opts.heavy || Math.random() < 0.5)) { e.chase.phase = 'rest'; e.chase.pt = 0.5; e.chase.hitCd = 0.6; } // a hit in the wind-up puts it off its stroke
     G.kinFocus = e; G.kinFocusT = 3.5;
+    { const hy = e.y + (e.hover || 0) + (e.model ? e.model.height * e.scale : 1) + 0.2; UI.floater(e.x, hy, e.z, String(Math.max(0, before - Math.max(e.kin.hp, 0))), hard ? 'weak' : ''); }
     if (keepOne && before - dmg < 1 && hard && !e.shrugTold) { e.shrugTold = true; UI.toast(`${KIN.name(e.kin)} shrugs off your steel. Only a Kin can finish it: Deploy.`, 'bad'); }
     if (e.kin.hp <= 0) { daze(e); return { dmg: before, pct: 0, dazed: true }; }
     return { dmg: before - e.kin.hp, pct: Math.round(e.kin.hp / st.hp * 100), dazed: false };
   }
   function daze(e, k) {
     e.kin.hp = 1; e.dazed = 10; disengage(e, 0); e.cool = 0; e.alert = 0; e.stunT = 0;
+    G.knockout(e.x, e.y, e.z);
     UI.sfx('win'); UI.toast(`${KIN.name(e.kin)} goes down, dazed. Snare it now, or let it go.`, 'good');
     rewardWin(e, k || null); G.stats.liveWins = (G.stats.liveWins || 0) + 1;
     const dom = KIN.dominant(e.kin.sp.elem, 1)[0]; if (Math.random() < 0.35) { G.player.add('ess_' + dom, 1); UI.toast(`${dom} Essence collected.`); }
@@ -477,7 +479,7 @@ const Wild = (() => {
     const before = e.kin.hp; e.kin.hp = Math.max(0, e.kin.hp - dmg); e.hitT = 0.35; e.sleep = false;
     if (!e.chase) engage(e, false, { quiet: true }); if (e.chase) { e.chase.t = Math.max(e.chase.t, 18); e.chase.foe = 'buddy'; e.chase.foeT = 5; if (e.chase.phase === 'wind' && Math.random() < 0.4) { e.chase.phase = 'rest'; e.chase.pt = 0.5; e.chase.hitCd = 0.6; } }
     G.kinFocus = e; G.kinFocusT = 3.5;
-    if (e.kin.hp <= 0) { if (scripted(e)) { G.onBattleEnd('won', e, e.kin, k, false); } else daze(e, k); }
+    if (e.kin.hp <= 0) { if (scripted(e)) { G.knockout(e.x, e.y, e.z); G.onBattleEnd('won', e, e.kin, k, false); } else daze(e, k); }
     return before - Math.max(0, e.kin.hp);
   }
   // its lunge reaches your Kin: the battle's numbers, no shield to hide behind

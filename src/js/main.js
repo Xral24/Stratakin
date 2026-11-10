@@ -143,6 +143,8 @@ G.deployKin = function () {
   if (healthy.length === 1) { this.sendIn(healthy[0], e); return; }
   UI.openPanel('deploy', e);
 };
+// the knockout beat: a short slow-down and a white flash when something goes down
+G.knockout = function (x, y, z) { this.slowT = 0.45; const f = document.getElementById('koflash'); if (f) { f.classList.remove('on'); void f.offsetWidth; f.classList.add('on'); } this.shake = Math.max(this.shake || 0, 0.3); };
 G.sendIn = function (k, e) {
   if (!k || k.hp <= 0 || !this.kin.includes(k)) return;
   this.stats.buddyOff = false;
@@ -660,6 +662,7 @@ G.loop = function (t) {
   if (!this.running) return;
   requestAnimationFrame((tt) => this.loop(tt));
   let dt = Math.min(0.05, (t - this.lastT) / 1000); this.lastT = t; this.frame++;
+  if (this.slowT > 0) { this.slowT -= dt; dt *= 0.3; } // a knockout beat: the world holds its breath for a moment
   const w = this.world, p = this.player;
   let input = Controls.poll();
   const inBattle = Battle.active;
@@ -831,6 +834,7 @@ G.loop = function (t) {
   const held = (!inBattle && !this.thirdPerson && !p.mount && !p.flying && this.talkK <= 0 && !this.grassCamOn) ? Held.describe(p, dt, input) : null; if (held) { const top = w.topAt(Math.floor(p.x), Math.floor(p.z)); held.skyMul = eye.y >= top ? 1 : Math.max(0.2, 1 - (top - eye.y) * 0.11); }
   R.render(w, p, ents, cam, { lights, lines, held });
   if ((this.frame & 3) === 0) UI.renderHud(dt);
+  UI.floatersTick(dt);
   if ((this.frame & 31) === 0 && !inBattle) UI.renderMinimap(p);
   if ((this.frame & 15) === 0) this.updateMusic(inBattle);
   if ((this.frame & 1) === 0) UI.renderSky(cam, this.world, R.state);
