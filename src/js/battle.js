@@ -16,6 +16,7 @@ const Battle = (() => {
   function buffs() { return { guard: false, focus: false, coil: false, dash: false }; }
   function start(e, isAmbush, opts = {}) {
     if (active) return;
+    stunUsed = false; stunned = false; if (stunTimer) { clearInterval(stunTimer); stunTimer = null; }
     const party = G.healthyKin();
     if (!party.length) { G.toast('All your Kin are down. Revive them at the Voodoo Hut or with a tonic.'); e.alert = 0; e.wait = 4; if (!e.chase) e.cool = 6; return; }
     if (e.chase) { Wild.disengage(e, 0); e.alert = 1; }
@@ -199,7 +200,11 @@ const Battle = (() => {
   }
   async function afterTurn() {
     refresh();
-    if (wild.hp <= 0) { log(`${KIN.name(wild)} is defeated!`, 'good'); G.sfx('win'); await sleep(600); return end('won'); }
+    if (wild.hp <= 0) {
+      // the final blow staggers it instead: a few seconds where it can be snared, if a snare will take it at all. Let the moment pass and it is beaten
+      if (!stunUsed && snareRule().list.length && catchChance().chance > 0) { stunUsed = true; wild.hp = 1; refresh(); return stunWindow(); }
+      log(`${KIN.name(wild)} is defeated!`, 'good'); G.sfx('win'); await sleep(600); return end('won');
+    }
     if (mine.hp <= 0) {
       log(`${KIN.name(mine)} is down!`, 'bad'); G.sfx('down'); await sleep(700);
       const next = G.healthyKin();
@@ -232,6 +237,7 @@ const Battle = (() => {
     const item = snareRule().list[0] || 'snare';
     let c = stealth ? ITEMS[item].snare * (wildE && wildE.alert < 0.5 ? 0.6 : 0.45) : ITEMS[item].snare * (1 - frac * 0.8);
     if (wild.level > mine.level + 3) c *= 0.75;
+    if (stunUsed && wild.hp <= 1) c *= 1.3; // staggered by the final blow: easier to hold
     // the level gap: a little above you is fair, 20% above is a long shot, twice your level and nothing holds it
     const grip = 2 * Math.max(1, G.trainerLevel || 1); // snare strength: twice your trainer level, not your Kin's level
     const gap = wild.level / grip;
@@ -246,6 +252,18 @@ const Battle = (() => {
     if (wild.sp.mythic || wild.sp.legend) c = frac < 0.15 ? Math.min(c, 0.5) : Math.min(c, 0.12);
     return { chance: U.clamp(c, gap > 1.2 ? 0.002 : 0.04, 0.9), item, gap, grip };
   }
+  let stunUsed = false, stunTimer = null;
+  function stunWindow() {
+    log(`${KIN.name(wild)} staggers, stunned! Snare it now, or let it fall.`, 'good'); G.sfx('win'); if (G.knockout) G.knockout();
+    stunned = true; let left = 4.0;
+    el.actions.innerHTML = `<button class="act snare stun" data-a="stunsnare"><b>Snare it!</b><small>${ITEMS[snareRule().list[0]].name} · <span id="stun-left">4</span>s</small><i class="stunbar"><i id="stun-fill"></i></i></button><button class="act" data-a="finish"><b>Let it fall</b><small>win the fight</small></button>`;
+    const fill = document.getElementById('stun-fill');
+    const done = (snare) => { if (!stunned) return; stunned = false; clearInterval(stunTimer); stunTimer = null; if (snare) { busy = false; beginSnare(); } else { wild.hp = 0; refresh(); log(`${KIN.name(wild)} is defeated!`, 'good'); end('won'); } };
+    el.actions.querySelector('[data-a="stunsnare"]').addEventListener('click', () => done(true));
+    el.actions.querySelector('[data-a="finish"]').addEventListener('click', () => done(false));
+    stunTimer = setInterval(() => { left -= 0.1; if (fill) fill.style.width = Math.max(0, left / 4 * 100) + '%'; const s = document.getElementById('stun-left'); if (s) s.textContent = Math.max(0, Math.ceil(left)); if (left <= 0) done(false); }, 100);
+  }
+  let stunned = false;
   function beginSnare() {
     if (!snareRule().list.length) { log(snareRule().why + '.', 'bad'); renderActions(); busy = false; return; }
     const { chance, item, gap, grip, hopeless } = catchChance();
@@ -304,6 +322,7 @@ const Battle = (() => {
     afterTurn();
   }
   function end(result) {
+    stunned = false; if (stunTimer) { clearInterval(stunTimer); stunTimer = null; }
     stealth = false;
     if (camState) { G.player.yaw = camState.yaw; G.player.pitch = Math.max(-0.3, Math.min(0.1, camState.pitch)); }
     active = false; busy = false; snareState = null; camState = null; fx.length = 0;

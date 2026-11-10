@@ -420,3 +420,9 @@ body.desktop #joy, body.desktop #btn-jump, body.desktop #btn-sneak { display: no
 .choose .pick:active { border-color: var(--acc); background: rgba(242,181,68,.12); }
 .choose .pick .ico { grid-row: span 2; width: 52px; height: 52px; border-radius: 12px; }
 .choose .pick b { font-size: 17px; } .choose .pick small { color: var(--dim); font-size: 12.5px; }
+/* the stun window in a battle: a big flashing Snare button with its time running out */
+.act.stun { position: relative; overflow: hidden; border-color: var(--acc) !important; background: rgba(242,181,68,.2) !important; animation: stunpulse .5s ease-in-out infinite alternate; }
+.act.stun b { color: var(--acc); font-size: 17px; }
+.act.stun .stunbar { position: absolute; left: 0; right: 0; bottom: 0; height: 4px; background: rgba(0,0,0,.35); }
+.act.stun #stun-fill { display: block; height: 100%; width: 100%; background: var(--acc); }
+@keyframes stunpulse { from { box-shadow: 0 0 0 0 rgba(242,181,68,.0); } to { box-shadow: 0 0 14px 2px rgba(242,181,68,.6); } }
