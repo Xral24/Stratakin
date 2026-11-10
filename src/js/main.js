@@ -1013,7 +1013,7 @@ G.updateMusic = function (inBattle) {
   const wet = Weather.state.intensity > 0.4 && (Weather.state.kind === 'rain' || Weather.state.kind === 'storm');
   const va = Village.active; const inVillage = va && Math.hypot(va.x - p.x, va.z - p.z) < 22 && this.villageState[va.id] && this.villageState[va.id].freed;
   const volcanic = biome === BIOME.MOUNTAIN && p.y >= 64 && U.vnoise2(bx, bz, 256, WORLD_W, w.seed + 611) > 0.6;
-  const chased = (Camps.active && Camps.active.alarm > 0) || (Wild.chaser && Wild.chaser.chase);
+  const wc = Wild.chaser; const chased = (Camps.active && Camps.active.alarm > 0) || (wc && wc.chase && !(wc.dazed > 0) && Wild.list.includes(wc) && Math.hypot(wc.x - p.x, wc.z - p.z) < 30);
   if (inBattle) mood = 'battle';
   else if (chased) mood = 'danger';
   else if (inVillage && this.worldId === 'moon') mood = 'alien';

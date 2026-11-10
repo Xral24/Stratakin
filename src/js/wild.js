@@ -505,7 +505,7 @@ const Wild = (() => {
   function focusText() { const e = G.kinFocus; if (!e || !(G.kinFocusT > 0)) return null; if (e.dazed > 0) return `${KIN.name(e.kin)}: dazed`; return `${KIN.name(e.kin)} Lv ${e.kin.level}: ${Math.max(0, Math.round(e.kin.hp / KIN.stats(e.kin).hp * 100))}%`; }
   // the hostile Kin nearest you, for the Deploy button
   function engagedNear(player, maxD = 16) { let best = null, bd = maxD; for (const e of list) { if (!e.chase && !(e.dazed > 0)) continue; const d = Math.hypot(e.x - player.x, e.z - player.z); if (d < bd) { bd = d; best = e; } } return best; }
-  function remove(e) { const i = list.indexOf(e); if (i >= 0) list.splice(i, 1); if (e === mythicRef) mythicRef = null; if (e === legendRef) legendRef = null; if (e.isApex && apexRefs[e.isApex] === e) apexRefs[e.isApex] = null; }
+  function remove(e) { const i = list.indexOf(e); if (i >= 0) list.splice(i, 1); if (api.chaser === e) api.chaser = list.find(o => o.chase && o !== e) || null; e.chase = null; if (e === mythicRef) mythicRef = null; if (e === legendRef) legendRef = null; if (e.isApex && apexRefs[e.isApex] === e) apexRefs[e.isApex] = null; }
   function nearest(player, maxD = 6) {
     let best = null, bd = maxD;
     for (const e of list) { const d = Math.hypot(e.x - player.x, e.z - player.z, e.y - player.y); if (d < bd) { bd = d; best = e; } }

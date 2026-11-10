@@ -200,9 +200,10 @@ const Battle = (() => {
   }
   async function afterTurn() {
     refresh();
+    // the snare moment: as soon as one more of your Kin's strongest attack would finish it (however much life it has left), it is out of it for a
+    // few seconds. A blow that finishes it outright from above that line staggers it instead, so the moment is never skipped
+    if (!stunUsed && mine.hp > 0 && (wild.hp <= 0 || wild.hp <= strongestHit())) { stunUsed = true; if (wild.hp <= 0) wild.hp = 1; refresh(); return stunWindow(); }
     if (wild.hp <= 0) {
-      // the final blow staggers it instead: a few seconds where it can be snared, if a snare will take it at all. Let the moment pass and it is beaten
-      if (!stunUsed && snareRule().list.length && catchChance().chance > 0) { stunUsed = true; wild.hp = 1; refresh(); return stunWindow(); }
       log(`${KIN.name(wild)} is defeated!`, 'good'); G.sfx('win'); await sleep(600); return end('won');
     }
     if (mine.hp <= 0) {
@@ -237,7 +238,7 @@ const Battle = (() => {
     const item = snareRule().list[0] || 'snare';
     let c = stealth ? ITEMS[item].snare * (wildE && wildE.alert < 0.5 ? 0.6 : 0.45) : ITEMS[item].snare * (1 - frac * 0.8);
     if (wild.level > mine.level + 3) c *= 0.75;
-    if (stunUsed && wild.hp <= 1) c *= 1.3; // staggered by the final blow: easier to hold
+    if (stunned || (stunUsed && wild.hp <= strongestHit())) c *= 1.8; // stunned: much easier to hold
     // the level gap: a little above you is fair, 20% above is a long shot, twice your level and nothing holds it
     const grip = 2 * Math.max(1, G.trainerLevel || 1); // snare strength: twice your trainer level, not your Kin's level
     const gap = wild.level / grip;
@@ -253,12 +254,19 @@ const Battle = (() => {
     return { chance: U.clamp(c, gap > 1.2 ? 0.002 : 0.04, 0.9), item, gap, grip };
   }
   let stunUsed = false, stunTimer = null;
+  // what your Kin's hardest move would do to it, without a lucky crit (the best of a few rolls)
+  function strongestHit() {
+    let best = 0; for (const m of KIN.moves(mine)) { if (m.kind === 'util' || !m.power) continue; for (let i = 0; i < 4; i++) { const r = calcDamage(mine, wild, m); if (!r.crit) best = Math.max(best, r.dmg); } }
+    return best;
+  }
   function stunWindow() {
     log(`${KIN.name(wild)} staggers, stunned! Snare it now, or let it fall.`, 'good'); G.sfx('win'); if (G.knockout) G.knockout();
     stunned = true; let left = 4.0;
-    el.actions.innerHTML = `<button class="act snare stun" data-a="stunsnare"><b>Snare it!</b><small>${ITEMS[snareRule().list[0]].name} · <span id="stun-left">4</span>s</small><i class="stunbar"><i id="stun-fill"></i></i></button><button class="act" data-a="finish"><b>Let it fall</b><small>win the fight</small></button>`;
+    const rule = snareRule(); const can = rule.list.length > 0; const cc = can ? catchChance() : null;
+    const what = !can ? rule.why : cc.hopeless ? `too strong to hold yet (Lv ${wild.level}; raise your trainer level)` : `${ITEMS[rule.list[0]].name} · about ${Math.round(Math.min(1, cc.chance * 1.8) * 100)}%`;
+    el.actions.innerHTML = `<button class="act snare stun" data-a="stunsnare" ${can && !cc.hopeless ? '' : 'disabled'}><b>Snare it!</b><small>${what} · <span id="stun-left">4</span>s</small><i class="stunbar"><i id="stun-fill"></i></i></button><button class="act" data-a="finish"><b>Finish it</b><small>win the fight</small></button>`;
     const fill = document.getElementById('stun-fill');
-    const done = (snare) => { if (!stunned) return; stunned = false; clearInterval(stunTimer); stunTimer = null; if (snare) { busy = false; beginSnare(); } else { wild.hp = 0; refresh(); log(`${KIN.name(wild)} is defeated!`, 'good'); end('won'); } };
+    const done = (snare) => { if (!stunned) return; stunned = false; clearInterval(stunTimer); stunTimer = null; if (snare) { busy = false; beginSnare(); } else { wild.hp = 0; refresh(); log(`${KIN.name(wild)} is defeated!`, 'good'); G.sfx('win'); end('won'); } };
     el.actions.querySelector('[data-a="stunsnare"]').addEventListener('click', () => done(true));
     el.actions.querySelector('[data-a="finish"]').addEventListener('click', () => done(false));
     stunTimer = setInterval(() => { left -= 0.1; if (fill) fill.style.width = Math.max(0, left / 4 * 100) + '%'; const s = document.getElementById('stun-left'); if (s) s.textContent = Math.max(0, Math.ceil(left)); if (left <= 0) done(false); }, 100);
