@@ -188,6 +188,7 @@ const UI = (() => {
     else if (name === 'draught') renderDraught();
     else if (name === 'skins') renderSkins();
     else if (name === 'deploy') renderDeploy(data);
+    else if (name === 'table') renderTable(data);
   }
   // ---------- skins: how you look from outside ----------
   function renderSkins() {
@@ -397,6 +398,20 @@ const UI = (() => {
     el['panel-body'].innerHTML = `<p class="note">${intro} Relics are Kin gear far beyond anything a table makes. Put one on from a Kin's page. You have ◆ ${G.shards.toLocaleString()}.</p>` + Relics.html(d.seller);
     el['panel-body'].querySelectorAll('[data-relic]').forEach(b => b.addEventListener('click', () => { Relics.buy(b.dataset.relic); }));
   }
+  // a table does two jobs: crafting and fusing Kin. Both panels carry the same two tabs so you can switch without walking away
+  let lastTable = null;
+  function tableTabs(on) {
+    return `<div class="tabs"><button class="tab ${on === 'craft' ? 'on' : ''}" data-tab="craft">Craft</button><button class="tab ${on === 'fusion' ? 'on' : ''}" data-tab="fusion">Fuse Kin</button></div>`;
+  }
+  function wireTabs() { el['panel-body'].querySelectorAll('[data-tab]').forEach(b => b.addEventListener('click', () => { if (b.dataset.tab === 'craft') openPanel('craft'); else openPanel('fusion', lastTable || undefined); })); }
+  // the chooser a table opens with: two big choices
+  function renderTable(data) {
+    setTitle('Table'); if (data && data.table) lastTable = data;
+    el['panel-body'].innerHTML = `<div class="choose">
+      <button class="pick" data-go="craft"><span class="ico big" style="${Icons.style('snare')}"></span><b>Craft tools and items</b><small>Snares, picks, weapons, shields, blocks, tonics and Kin gear</small></button>
+      <button class="pick" data-go="fusion"><span class="ico big" style="${Icons.style('ess_Flame') || ''}"></span><b>Fuse Kin</b><small>Put Kin and essences together into something new${G.player.has('voidshard') ? '. Your Void Shard lets this table take dark materials' : ''}</small></button></div>`;
+    el['panel-body'].querySelectorAll('[data-go]').forEach(b => b.addEventListener('click', () => b.dataset.go === 'craft' ? openPanel('craft') : openPanel('fusion', lastTable || undefined)));
+  }
   function renderCraft() {
     setTitle('Craft');
     const p = G.player;
@@ -409,13 +424,14 @@ const UI = (() => {
     }
     const CATS = [['arms', 'Weapons and shields'], ['gear', 'Tools and gear'], ['tonics', 'Tonics'], ['blocks', 'Blocks'], ['builds', 'Buildings'], ['kin', 'Kin gear']];
     const catOf = (r) => r.cat || (r.out.startsWith('tonic_') ? 'tonics' : ITEMS[r.out].block ? 'blocks' : 'gear');
-    el['panel-body'].innerHTML = `<p class="note">No table needed for these. Ingredients come from mining, leaves, berries and essences. Kits raise a whole building where you tap; Kin gear is put on from a Kin's page.</p>` + CATS.map(([c, title]) => `<h4>${title}</h4>` + RECIPES.filter(r => catOf(r) === c && !(r.when && !r.when(G))).map(r => {
+    el['panel-body'].innerHTML = tableTabs('craft') + `<p class="note">No table needed for these. Ingredients come from mining, leaves, berries and essences. Kits raise a whole building where you tap; Kin gear is put on from a Kin's page.</p>` + CATS.map(([c, title]) => `<h4>${title}</h4>` + RECIPES.filter(r => catOf(r) === c && !(r.when && !r.when(G))).map(r => {
       const owned = ITEMS[r.out].gear && p.has(r.out);
       const darkOff = G.darkRecipe(r) && !G.nearDarkTable();
       const can = !owned && !darkOff && Object.keys(r.needs).every(k => p.count(k) >= r.needs[k]);
       return `<div class="recipe ${can ? 'can' : ''}"><div class="ico big" style="${Icons.style(r.out)}"></div><div class="rinfo"><b>${ITEMS[r.out].name}${r.n > 1 ? ' ×' + r.n : ''}</b>${G.darkRecipe(r) ? ' <span class="darktag">Dark Table</span>' : ''}<div class="small">${ITEMS[r.out].desc}${p.gearPower[r.out] ? ' Marked by ' + p.gearPower[r.out].mark + ': +' + Math.round((p.gearPower[r.out].power - 1) * 100) + '%.' : ''}</div><div class="needs">${Object.keys(r.needs).map(k => `<span class="${p.count(k) >= r.needs[k] ? 'ok' : 'no'}">${ITEMS[k].name} ${p.count(k)}/${r.needs[k]}</span>`).join('')}</div></div><button class="btn" data-r="${r.id}" ${can ? '' : 'disabled'}>${owned ? 'Owned' : 'Craft'}</button></div>`;
     }).join('')).join('') + secureHtml(); // the safe slots last: recipes are what you came for
     el['panel-body'].querySelectorAll('button[data-r]').forEach(b => b.addEventListener('click', () => { if (!G.craft(b.dataset.r)) renderCraft(); }));
+    wireTabs();
     el['panel-body'].querySelectorAll('[data-sec]').forEach(c => c.addEventListener('click', () => { if (Object.keys(G.secure).length >= 5) return; securePicking = true; renderCraft(); }));
     el['panel-body'].querySelectorAll('[data-unsec]').forEach(c => c.addEventListener('click', () => { delete G.secure[c.dataset.unsec]; renderCraft(); }));
   }
@@ -746,7 +762,7 @@ const UI = (() => {
   function renderFusion(data) {
     setTitle('Fusion Table');
     if (!fusionState) fusionState = { slots: new Array(16).fill(null), picking: null, preview: null };
-    if (data && data.table) fusionState.table = data.table;
+    if (data && data.table) { fusionState.table = data.table; lastTable = data; }
     const fs = fusionState; const p = G.player;
     const body = el['panel-body'];
     const kinsIn = fs.slots.filter(s => s && s.kin).map(s => s.kin);
@@ -782,7 +798,7 @@ const UI = (() => {
       const stoneTxt = (rc) => { const st = (e) => `${e} Stone${G.player.has('stone_' + e) ? ' ✓' : ''}${e === 'Void' ? ' <span class="darktag">Dark Table</span>' : ''}`; if (!rc.alt) return ' + ' + st(rc.stone); const c = fk(rc); if (c) return ' + ' + st(c === 'alt' ? rc.alt.stone : rc.stone) + ' <i class="small">(your path: ' + (c === 'alt' ? 'Dark' : 'Light') + ')</i>'; return `<div class="fork">⑂ ordinary table + ${st(rc.stone)} → <b>${rc.out.names[0]}</b> (Light) &nbsp;or&nbsp; Dark Table + ${st(rc.alt.stone)} → <b>${rc.alt.out.names[0]}</b> (Dark)<br><span class="small">A fork: the first table you fuse them on decides it, for good.</span></div>`; };
       const outName = (rc) => { const c = fk(rc); return c === 'alt' ? rc.alt.out.names[0] + ' <span class="small">#' + rc.alt.out.dex + '</span>' : rc.out.names[0] + ' <span class="small">#' + rc.out.dex + '</span>' + (rc.alt && !c ? ' <span class="small">or ' + rc.alt.out.names[0] + '</span>' : ''); };
       return `<h4>Fusion recipes on ${G.world.preset.name} (${known.length} of ${all.length} known)</h4>` + all.filter(rc => known.includes(rc.i)).map(rc => `<div class="recipe ${ok(rc) ? 'can' : ''}"><div class="rinfo"><b>${outName(rc)}</b><div class="needs">${rc.parts.map(sp => `${sp.names[0]}${have(sp) ? ' ✓' : ''} <span style="opacity:.6">(${sp.home ? (sp.home.layer === 'Surface' ? sp.home.biome : sp.home.layer) : 'fusion #' + sp.dex})</span>`).join(' + ')}${stoneTxt(rc)}</div></div></div>`).join('') + (known.length < all.length ? '<p class="note">Quest people teach the rest, one at a time, when you finish their jobs.</p>' : ''); })();
-    body.innerHTML = foundingHtml(fs) + `<p class="note">Tap a slot to fill it. A fusion is a recipe: the Kin it names (two, or three or four for the great ones) and the right element stone (stones are crafted from 3 essences and an iron). Items alone craft gear, and essences with berries make tonics.</p>
+    body.innerHTML = tableTabs('fusion') + foundingHtml(fs) + `<p class="note">Tap a slot to fill it. A fusion is a recipe: the Kin it names (two, or three or four for the great ones) and the right element stone (stones are crafted from 3 essences and an iron). Items alone craft gear, and essences with berries make tonics.</p>
       <div class="fgrid">${fs.slots.map(cell).join('')}</div>
       ${resultHtml}
       <div class="row"><button class="btn big" id="f-go" ${pv && pv.kind !== 'none' ? '' : 'disabled'}>${pv && pv.kind === 'craft' ? 'Craft' : pv && pv.kind === 'statue' ? 'Make' : pv && pv.kind === 'distill' ? 'Distil' : 'Fuse'}</button><button class="btn ghost" id="f-clear">Clear</button></div>
@@ -792,6 +808,7 @@ const UI = (() => {
       ${(() => { const list = G.dismantleList(); return list.length ? list.map((d, i) => `<div class="recipe"><div class="ico big" style="${d.obj ? Icons.swatch(d.col) : Icons.style(d.key)}"></div><div class="rinfo"><b>${d.name}${d.n > 1 ? ' ×' + d.n : ''}${d.mark ? ' · marked by ' + d.mark : ''}</b><div class="needs">${Object.keys(d.gives).map(k => `<span class="ok">+${d.gives[k]} ${ITEMS[k].name}</span>`).join('')}${d.shards ? `<span class="ok">+${d.shards} ◆</span>` : ''}</div></div><button class="btn ghost" data-dis="${i}">Dismantle</button></div>`).join('') : '<p class="small">Nothing to dismantle. Placed statues must be picked up first (mine them).</p>'; })()}`;
     drawPortraits(body);
     const fg = document.getElementById('found-go'); if (fg) fg.addEventListener('click', () => { const nm = document.getElementById('found-name').value; const v = G.foundVillage(fs.table, nm); if (v) { closePanel(); } });
+    wireTabs();
     body.querySelectorAll('.fcell').forEach(c => c.addEventListener('click', () => { const i = +c.dataset.i; if (fs.slots[i]) { fs.slots[i] = null; updatePreview(); renderFusion(); } else { fs.picking = i; renderFusion(); } }));
     q('f-clear').addEventListener('click', () => { fs.slots.fill(null); updatePreview(); renderFusion(); });
     body.querySelectorAll('[data-dis]').forEach(b => b.addEventListener('click', () => { const d = G.dismantleList()[+b.dataset.dis]; if (d && G.dismantle(d)) { sfx('break'); toast(`${d.name} taken apart${d.shards ? ': +' + d.shards + ' Shards' : ''}.`, 'good'); fs.slots.fill(null); updatePreview(); renderFusion(); } }));

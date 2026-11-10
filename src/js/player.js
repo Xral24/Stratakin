@@ -114,6 +114,7 @@ const ITEMS = {
   bulb: { name: 'Breathing Bulb', col: '#9fd8ff', gear: true, desc: 'Breathe underwater for two minutes.' },
   glider: { name: 'Glider', col: '#f0d090', gear: true, desc: 'Hold ▲ while falling to glide. Stick sideways turns, forward dives, back brakes. Pull back just before the ground to flare and land soft.' },
   lavasuit: { name: 'Lava Suit', col: '#ff9050', gear: true, desc: 'Keeps the heat of the Core off you. Without it the heat down there wears you down, the way the cold does on the peaks. It does not make lava safe: nothing does. Stay out of it.' },
+  voidshard: { name: 'Void Shard', col: '#8a4ad8', gear: true, desc: 'A splinter of the Kinmaster\'s own table. Carry it and every Fusion Table you stand at takes dark materials: Void Crystal, Void Essence and Void Stones.' },
   frostcloak: { name: 'Frost Cloak', col: '#bfe3ff', gear: true, desc: 'Keeps the cold out. Without it, snowfields and mountain tops slow you, then freeze you.' },
   spacesuit: { name: 'Space Suit', col: '#e8f0ff', gear: true, desc: 'Air and warmth beyond the sky. Without it the Moon freezes you in moments.' },
   ship: { name: 'Starlark', col: '#c7fbff', gear: true, desc: 'Professor Finch\'s prototype, finished at Garrick\'s forge. Tap it on the surface to board; hold ▲ to climb, hold ▼ to go down. Climb above the clouds to leave the world.' },

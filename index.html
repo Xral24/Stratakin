@@ -427,6 +427,14 @@ body.desktop #joy, body.desktop #btn-jump, body.desktop #btn-sneak { display: no
 .dropbar { flex-basis: 100%; display: flex; align-items: center; gap: 6px; justify-content: flex-end; padding-top: 6px; font-size: 12px; color: var(--dim); }
 .dropbar button { background: rgba(255,107,90,.15); border: 1px solid rgba(255,107,90,.45); color: #ffb3a8; border-radius: 9px; padding: 5px 12px; font-weight: 800; font-size: 12px; }
 .bag-row .rinfo { flex: 1 1 0; min-width: 0; } .bag-row .btns { flex: 0 0 auto; } .bag-row .btns button { padding: 7px 10px; font-size: 12px; } .bag-row { border-radius: 14px; border-color: var(--line); }
+.tabs { display: flex; gap: 6px; margin-bottom: 12px; background: rgba(255,255,255,.05); padding: 4px; border-radius: 12px; border: 1px solid var(--line); }
+.tab { flex: 1; background: none; border: 0; color: var(--dim); font-weight: 800; font-size: 14px; padding: 8px; border-radius: 9px; }
+.tab.on { background: var(--acc); color: var(--acc-ink); }
+.choose { display: grid; gap: 10px; padding: 4px 0 8px; }
+.choose .pick { display: grid; grid-template-columns: 56px 1fr; grid-template-rows: auto auto; column-gap: 12px; align-items: center; text-align: left; background: rgba(255,255,255,.06); border: 1px solid var(--line); border-radius: 16px; padding: 14px; color: var(--ui); }
+.choose .pick:active { border-color: var(--acc); background: rgba(242,181,68,.12); }
+.choose .pick .ico { grid-row: span 2; width: 52px; height: 52px; border-radius: 12px; }
+.choose .pick b { font-size: 17px; } .choose .pick small { color: var(--dim); font-size: 12.5px; }
 
 </style>
 </head>
@@ -3585,6 +3593,7 @@ const ITEMS = {
   bulb: { name: 'Breathing Bulb', col: '#9fd8ff', gear: true, desc: 'Breathe underwater for two minutes.' },
   glider: { name: 'Glider', col: '#f0d090', gear: true, desc: 'Hold ▲ while falling to glide. Stick sideways turns, forward dives, back brakes. Pull back just before the ground to flare and land soft.' },
   lavasuit: { name: 'Lava Suit', col: '#ff9050', gear: true, desc: 'Keeps the heat of the Core off you. Without it the heat down there wears you down, the way the cold does on the peaks. It does not make lava safe: nothing does. Stay out of it.' },
+  voidshard: { name: 'Void Shard', col: '#8a4ad8', gear: true, desc: 'A splinter of the Kinmaster\'s own table. Carry it and every Fusion Table you stand at takes dark materials: Void Crystal, Void Essence and Void Stones.' },
   frostcloak: { name: 'Frost Cloak', col: '#bfe3ff', gear: true, desc: 'Keeps the cold out. Without it, snowfields and mountain tops slow you, then freeze you.' },
   spacesuit: { name: 'Space Suit', col: '#e8f0ff', gear: true, desc: 'Air and warmth beyond the sky. Without it the Moon freezes you in moments.' },
   ship: { name: 'Starlark', col: '#c7fbff', gear: true, desc: 'Professor Finch\'s prototype, finished at Garrick\'s forge. Tap it on the surface to board; hold ▲ to climb, hold ▼ to go down. Climb above the clouds to leave the world.' },
@@ -9393,7 +9402,7 @@ const Campaign = (() => {
   }
   let rogueSp = null; let zooDino = null; let bossRef = null; let kmSp = null;
   function kinmasterSpecies() { if (kmSp) return kmSp; const sp = KIN.species(U.combine(0x0BAD, 1), ['Void'], 0, { primary: 'Void', shape: 'biped', total: 760, rarity: 4 }); sp.names = ['Vexmaw', 'Vexmaw', 'Vexmaw']; sp.noFuse = true; sp.colors = { body: '#2a1038', belly: '#b026ff', accent: '#ff3a3a', dark: '#0a0410', eye: '#ff3a3a' }; sp.feat.horns = true; sp.feat.spikes = true; sp.feat.crest = true; sp.cap = 200; kmSp = sp; return sp; }
-  function onBoss(result) { const c = C(); c.kinmaster = true; bossRef = null; const i = people.findIndex(x => x.id === 'kinmaster'); if (i >= 0) people.splice(i, 1); setTimeout(() => Dialogue.show('The Kinmaster', ['Enough! You have not won anything. You have only made me hurry.', 'The Core, the Heart, the thing that sleeps on the Starmetal: I will have it before you can follow.'], () => UI.toast('He is gone, down into the earth. The Core. The Mantlewyrm.', 'bad')), 1200); }
+  function onBoss(result) { const c = C(); c.kinmaster = true; bossRef = null; const i = people.findIndex(x => x.id === 'kinmaster'); if (i >= 0) people.splice(i, 1); setTimeout(() => Dialogue.show('The Kinmaster', ['Enough! You have not won anything. You have only made me hurry.', 'The Core, the Heart, the thing that sleeps on the Starmetal: I will have it before you can follow.'], () => { UI.toast('He is gone, down into the earth. The Core. The Mantlewyrm.', 'bad'); if (!G.player.has('voidshard')) setTimeout(() => Dialogue.show('A prisoner from his cells', ['You beat him in his own hall. Look, his table cracked when he ran: a splinter of it came off in my hand.', 'Keep it on you. The old tables in the villages lost the knack for dark work when he came; with this in your pocket, any of them will take Void for you again. Consider it a thank you from all of us.'], () => { G.player.add('voidshard', 1); UI.sfx('quest'); UI.toast('Void Shard: every Fusion Table now takes dark materials while you carry it.', 'good'); }), 900); }), 1200); }
   function rogueSpecies() {
     if (rogueSp) return rogueSp;
     const sp = KIN.species(U.combine(0x40CE, 7), ['Gale'], 0, { primary: 'Gale', shape: 'quadruped', total: 420, rarity: 2 });
@@ -10823,6 +10832,7 @@ const UI = (() => {
     else if (name === 'draught') renderDraught();
     else if (name === 'skins') renderSkins();
     else if (name === 'deploy') renderDeploy(data);
+    else if (name === 'table') renderTable(data);
   }
   // ---------- skins: how you look from outside ----------
   function renderSkins() {
@@ -11032,6 +11042,20 @@ const UI = (() => {
     el['panel-body'].innerHTML = `<p class="note">${intro} Relics are Kin gear far beyond anything a table makes. Put one on from a Kin's page. You have ◆ ${G.shards.toLocaleString()}.</p>` + Relics.html(d.seller);
     el['panel-body'].querySelectorAll('[data-relic]').forEach(b => b.addEventListener('click', () => { Relics.buy(b.dataset.relic); }));
   }
+  // a table does two jobs: crafting and fusing Kin. Both panels carry the same two tabs so you can switch without walking away
+  let lastTable = null;
+  function tableTabs(on) {
+    return `<div class="tabs"><button class="tab ${on === 'craft' ? 'on' : ''}" data-tab="craft">Craft</button><button class="tab ${on === 'fusion' ? 'on' : ''}" data-tab="fusion">Fuse Kin</button></div>`;
+  }
+  function wireTabs() { el['panel-body'].querySelectorAll('[data-tab]').forEach(b => b.addEventListener('click', () => { if (b.dataset.tab === 'craft') openPanel('craft'); else openPanel('fusion', lastTable || undefined); })); }
+  // the chooser a table opens with: two big choices
+  function renderTable(data) {
+    setTitle('Table'); if (data && data.table) lastTable = data;
+    el['panel-body'].innerHTML = `<div class="choose">
+      <button class="pick" data-go="craft"><span class="ico big" style="${Icons.style('snare')}"></span><b>Craft tools and items</b><small>Snares, picks, weapons, shields, blocks, tonics and Kin gear</small></button>
+      <button class="pick" data-go="fusion"><span class="ico big" style="${Icons.style('ess_Flame') || ''}"></span><b>Fuse Kin</b><small>Put Kin and essences together into something new${G.player.has('voidshard') ? '. Your Void Shard lets this table take dark materials' : ''}</small></button></div>`;
+    el['panel-body'].querySelectorAll('[data-go]').forEach(b => b.addEventListener('click', () => b.dataset.go === 'craft' ? openPanel('craft') : openPanel('fusion', lastTable || undefined)));
+  }
   function renderCraft() {
     setTitle('Craft');
     const p = G.player;
@@ -11044,13 +11068,14 @@ const UI = (() => {
     }
     const CATS = [['arms', 'Weapons and shields'], ['gear', 'Tools and gear'], ['tonics', 'Tonics'], ['blocks', 'Blocks'], ['builds', 'Buildings'], ['kin', 'Kin gear']];
     const catOf = (r) => r.cat || (r.out.startsWith('tonic_') ? 'tonics' : ITEMS[r.out].block ? 'blocks' : 'gear');
-    el['panel-body'].innerHTML = `<p class="note">No table needed for these. Ingredients come from mining, leaves, berries and essences. Kits raise a whole building where you tap; Kin gear is put on from a Kin's page.</p>` + CATS.map(([c, title]) => `<h4>${title}</h4>` + RECIPES.filter(r => catOf(r) === c && !(r.when && !r.when(G))).map(r => {
+    el['panel-body'].innerHTML = tableTabs('craft') + `<p class="note">No table needed for these. Ingredients come from mining, leaves, berries and essences. Kits raise a whole building where you tap; Kin gear is put on from a Kin's page.</p>` + CATS.map(([c, title]) => `<h4>${title}</h4>` + RECIPES.filter(r => catOf(r) === c && !(r.when && !r.when(G))).map(r => {
       const owned = ITEMS[r.out].gear && p.has(r.out);
       const darkOff = G.darkRecipe(r) && !G.nearDarkTable();
       const can = !owned && !darkOff && Object.keys(r.needs).every(k => p.count(k) >= r.needs[k]);
       return `<div class="recipe ${can ? 'can' : ''}"><div class="ico big" style="${Icons.style(r.out)}"></div><div class="rinfo"><b>${ITEMS[r.out].name}${r.n > 1 ? ' ×' + r.n : ''}</b>${G.darkRecipe(r) ? ' <span class="darktag">Dark Table</span>' : ''}<div class="small">${ITEMS[r.out].desc}${p.gearPower[r.out] ? ' Marked by ' + p.gearPower[r.out].mark + ': +' + Math.round((p.gearPower[r.out].power - 1) * 100) + '%.' : ''}</div><div class="needs">${Object.keys(r.needs).map(k => `<span class="${p.count(k) >= r.needs[k] ? 'ok' : 'no'}">${ITEMS[k].name} ${p.count(k)}/${r.needs[k]}</span>`).join('')}</div></div><button class="btn" data-r="${r.id}" ${can ? '' : 'disabled'}>${owned ? 'Owned' : 'Craft'}</button></div>`;
     }).join('')).join('') + secureHtml(); // the safe slots last: recipes are what you came for
     el['panel-body'].querySelectorAll('button[data-r]').forEach(b => b.addEventListener('click', () => { if (!G.craft(b.dataset.r)) renderCraft(); }));
+    wireTabs();
     el['panel-body'].querySelectorAll('[data-sec]').forEach(c => c.addEventListener('click', () => { if (Object.keys(G.secure).length >= 5) return; securePicking = true; renderCraft(); }));
     el['panel-body'].querySelectorAll('[data-unsec]').forEach(c => c.addEventListener('click', () => { delete G.secure[c.dataset.unsec]; renderCraft(); }));
   }
@@ -11381,7 +11406,7 @@ const UI = (() => {
   function renderFusion(data) {
     setTitle('Fusion Table');
     if (!fusionState) fusionState = { slots: new Array(16).fill(null), picking: null, preview: null };
-    if (data && data.table) fusionState.table = data.table;
+    if (data && data.table) { fusionState.table = data.table; lastTable = data; }
     const fs = fusionState; const p = G.player;
     const body = el['panel-body'];
     const kinsIn = fs.slots.filter(s => s && s.kin).map(s => s.kin);
@@ -11417,7 +11442,7 @@ const UI = (() => {
       const stoneTxt = (rc) => { const st = (e) => `${e} Stone${G.player.has('stone_' + e) ? ' ✓' : ''}${e === 'Void' ? ' <span class="darktag">Dark Table</span>' : ''}`; if (!rc.alt) return ' + ' + st(rc.stone); const c = fk(rc); if (c) return ' + ' + st(c === 'alt' ? rc.alt.stone : rc.stone) + ' <i class="small">(your path: ' + (c === 'alt' ? 'Dark' : 'Light') + ')</i>'; return `<div class="fork">⑂ ordinary table + ${st(rc.stone)} → <b>${rc.out.names[0]}</b> (Light) &nbsp;or&nbsp; Dark Table + ${st(rc.alt.stone)} → <b>${rc.alt.out.names[0]}</b> (Dark)<br><span class="small">A fork: the first table you fuse them on decides it, for good.</span></div>`; };
       const outName = (rc) => { const c = fk(rc); return c === 'alt' ? rc.alt.out.names[0] + ' <span class="small">#' + rc.alt.out.dex + '</span>' : rc.out.names[0] + ' <span class="small">#' + rc.out.dex + '</span>' + (rc.alt && !c ? ' <span class="small">or ' + rc.alt.out.names[0] + '</span>' : ''); };
       return `<h4>Fusion recipes on ${G.world.preset.name} (${known.length} of ${all.length} known)</h4>` + all.filter(rc => known.includes(rc.i)).map(rc => `<div class="recipe ${ok(rc) ? 'can' : ''}"><div class="rinfo"><b>${outName(rc)}</b><div class="needs">${rc.parts.map(sp => `${sp.names[0]}${have(sp) ? ' ✓' : ''} <span style="opacity:.6">(${sp.home ? (sp.home.layer === 'Surface' ? sp.home.biome : sp.home.layer) : 'fusion #' + sp.dex})</span>`).join(' + ')}${stoneTxt(rc)}</div></div></div>`).join('') + (known.length < all.length ? '<p class="note">Quest people teach the rest, one at a time, when you finish their jobs.</p>' : ''); })();
-    body.innerHTML = foundingHtml(fs) + `<p class="note">Tap a slot to fill it. A fusion is a recipe: the Kin it names (two, or three or four for the great ones) and the right element stone (stones are crafted from 3 essences and an iron). Items alone craft gear, and essences with berries make tonics.</p>
+    body.innerHTML = tableTabs('fusion') + foundingHtml(fs) + `<p class="note">Tap a slot to fill it. A fusion is a recipe: the Kin it names (two, or three or four for the great ones) and the right element stone (stones are crafted from 3 essences and an iron). Items alone craft gear, and essences with berries make tonics.</p>
       <div class="fgrid">${fs.slots.map(cell).join('')}</div>
       ${resultHtml}
       <div class="row"><button class="btn big" id="f-go" ${pv && pv.kind !== 'none' ? '' : 'disabled'}>${pv && pv.kind === 'craft' ? 'Craft' : pv && pv.kind === 'statue' ? 'Make' : pv && pv.kind === 'distill' ? 'Distil' : 'Fuse'}</button><button class="btn ghost" id="f-clear">Clear</button></div>
@@ -11427,6 +11452,7 @@ const UI = (() => {
       ${(() => { const list = G.dismantleList(); return list.length ? list.map((d, i) => `<div class="recipe"><div class="ico big" style="${d.obj ? Icons.swatch(d.col) : Icons.style(d.key)}"></div><div class="rinfo"><b>${d.name}${d.n > 1 ? ' ×' + d.n : ''}${d.mark ? ' · marked by ' + d.mark : ''}</b><div class="needs">${Object.keys(d.gives).map(k => `<span class="ok">+${d.gives[k]} ${ITEMS[k].name}</span>`).join('')}${d.shards ? `<span class="ok">+${d.shards} ◆</span>` : ''}</div></div><button class="btn ghost" data-dis="${i}">Dismantle</button></div>`).join('') : '<p class="small">Nothing to dismantle. Placed statues must be picked up first (mine them).</p>'; })()}`;
     drawPortraits(body);
     const fg = document.getElementById('found-go'); if (fg) fg.addEventListener('click', () => { const nm = document.getElementById('found-name').value; const v = G.foundVillage(fs.table, nm); if (v) { closePanel(); } });
+    wireTabs();
     body.querySelectorAll('.fcell').forEach(c => c.addEventListener('click', () => { const i = +c.dataset.i; if (fs.slots[i]) { fs.slots[i] = null; updatePreview(); renderFusion(); } else { fs.picking = i; renderFusion(); } }));
     q('f-clear').addEventListener('click', () => { fs.slots.fill(null); updatePreview(); renderFusion(); });
     body.querySelectorAll('[data-dis]').forEach(b => b.addEventListener('click', () => { const d = G.dismantleList()[+b.dataset.dis]; if (d && G.dismantle(d)) { sfx('break'); toast(`${d.name} taken apart${d.shards ? ': +' + d.shards + ' Shards' : ''}.`, 'good'); fs.slots.fill(null); updatePreview(); renderFusion(); } }));
@@ -13209,9 +13235,9 @@ G.previewGrid = function (slots) {
 G.nearTable = function () { const p = this.player, w = this.world; const x0 = Math.floor(p.x), y0 = Math.floor(p.y), z0 = Math.floor(p.z); for (let dx = -5; dx <= 5; dx++) for (let dz = -5; dz <= 5; dz++) for (let dy = -3; dy <= 3; dy++) if (w.getBlock(x0 + dx, y0 + dy, z0 + dz) === B.FUSION || w.getBlock(x0 + dx, y0 + dy, z0 + dz) === B.DARKTABLE) return true; return false; };
 // the Kinmaster's own table, in the throne room at Thornhold: the only one that takes dark materials
 G.DARK = ['void', 'ess_Void', 'stone_Void'];
-G.nearDarkTable = function () { const p = this.player, w = this.world; const x0 = Math.floor(p.x), y0 = Math.floor(p.y), z0 = Math.floor(p.z); for (let dx = -5; dx <= 5; dx++) for (let dz = -5; dz <= 5; dz++) for (let dy = -3; dy <= 3; dy++) if (w.getBlock(x0 + dx, y0 + dy, z0 + dz) === B.DARKTABLE && Keeps.tableOpen(x0 + dx, z0 + dz)) return true; return false; };
+G.nearDarkTable = function () { if (this.player.has('voidshard') && this.nearTable()) return true; const p = this.player, w = this.world; const x0 = Math.floor(p.x), y0 = Math.floor(p.y), z0 = Math.floor(p.z); for (let dx = -5; dx <= 5; dx++) for (let dz = -5; dz <= 5; dz++) for (let dy = -3; dy <= 3; dy++) if (w.getBlock(x0 + dx, y0 + dy, z0 + dz) === B.DARKTABLE && Keeps.tableOpen(x0 + dx, z0 + dz)) return true; return false; };
 G.darkRecipe = function (r) { return Object.keys(r.needs).some(k => this.DARK.includes(k)) || this.DARK.includes(r.out); };
-G.DARK_MSG = 'Dark materials will not work on an ordinary table. Only the Kinmaster\'s Dark Fusion Table, in the throne room at Thornhold, takes Void.';
+G.DARK_MSG = 'Dark materials will not work on an ordinary table. Only the Kinmaster\'s Dark Fusion Table at Thornhold takes Void, until you carry a piece of it.';
 // the party: eight slots, eggs take one each; anything more goes to storage, reached at any Fusion Table
 G.partyFull = function () { return this.kin.length + this.eggs.length >= this.MAX_KIN; };
 G.addKin = function (k) {
@@ -13782,7 +13808,7 @@ G.onTap = function () {
   if (!interactable && selInfo && selInfo.snare) { if (this.stealthTarget()) { this.stealthSnare(); } else UI.toast('Snares work in a fight, or sneak up close behind an unaware Kin and press Set snare.'); return; }
   const ev = p.place();
   if (!ev) return;
-  if (ev.interact === 'fusion') { if (ev.dark && !Keeps.tableOpen(ev.x, ev.z)) { UI.toast('The warlord\'s table. It will not answer you until this place is yours.', 'bad'); return; } if (!ev.dark && Village.tableChallenge()) return; if (ev.dark && !this.stats.darkTold) { this.stats.darkTold = true; this.explain('The Dark Fusion Table', 'The Kinmaster\'s own table. It is the only one that takes dark materials: Void Crystal, Void Essence and Void Stones. Every fusion that needs a Void Stone, the Void Snare, and anything else made with Void has to be made here.'); } UI.openPanel('fusion', { table: { x: ev.x, y: ev.y, z: ev.z }, dark: !!ev.dark }); return; }
+  if (ev.interact === 'fusion') { if (ev.dark && !Keeps.tableOpen(ev.x, ev.z)) { UI.toast('The warlord\'s table. It will not answer you until this place is yours.', 'bad'); return; } if (!ev.dark && Village.tableChallenge()) return; if (ev.dark && !this.stats.darkTold) { this.stats.darkTold = true; this.explain('The Dark Fusion Table', 'The Kinmaster\'s own table. It is the only one that takes dark materials: Void Crystal, Void Essence and Void Stones. Every fusion that needs a Void Stone, the Void Snare, and anything else made with Void has to be made here.'); } UI.openPanel('fusion', { table: { x: ev.x, y: ev.y, z: ev.z }, dark: !!ev.dark }); if (!ev.dark) UI.openPanel('table', { table: { x: ev.x, y: ev.y, z: ev.z } }); return; } // tapping a table asks what you came for: crafting or Kin
   if (ev.interact === 'portal') { const r = Village.portalHere(ev.x, ev.z); if (r.err) { UI.toast(r.err, 'bad'); return; } UI.openPanel('portal', r.v); return; }
   if (ev.interact === 'chest') { UI.openPanel('chest', { x: ev.x, y: ev.y, z: ev.z }); return; }
   if (ev.interact === 'incubator') { if (!Lab.canUse()) { UI.toast('The incubator is dead until its maker is free.', 'bad'); return; } UI.openPanel('incubator'); return; }
