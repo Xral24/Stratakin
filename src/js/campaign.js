@@ -364,8 +364,8 @@ const Campaign = (() => {
       return say(['The sea is bigger than the land. Remember that.', c.bulbDone ? 'And I keep one thing from down there I have never shown anyone. It is not cheap.' : ''], relic('diver'));
     }
     if (n.job === 'rancher') {
-      if (!c.ranch) return say(['Ride? You? Nobody rides a Kin they have not been thrown off first.', 'I will teach you. But I need a paddock first, for the wild one they are bringing in. Build me a fence where my posts are: two high, a gap for a gate.'], () => { c.ranch = 1; });
-      if (c.ranch === 1) return say(['The paddock. Two high, all the way round, between my posts.']);
+      if (!c.ranch) return say(['Ride? You? Nobody rides a Kin they have not been thrown off first.', 'I will teach you. But I need a paddock first, for the wild one they are bringing in. Wall in the square between my four posts, two blocks high, with a gap for a gate.', 'Any solid block does it. Planks are easiest: one log makes four at the table, and you will want about fifteen logs. Dirt or stone works too if you are short.'], () => { c.ranch = 1; });
+      if (c.ranch === 1) return say(['The paddock. Two high, all the way round, between my four posts. Planks, logs, stone, dirt: anything solid. Leave one gap for the gate.']);
       if (c.ranch === 2 && !c.rogueTamed) return say(['They brought him in last night. Thunderhoof. Nobody has stayed on him longer than a breath.', 'You want to learn? Get on him. Tap when he lands his weight, not before, not after. If he throws you, get up and try again.']);
       return say(['You ride now. But only a few kinds will ever take a rider: steeds, dinosaurs, the great ones. Your Kindex marks steeds with ♞.', 'Each one has to be broken in once. Then ride it: trust builds over a couple of hours and it gets faster. Leave it unridden for a long time (hours of play) and the trust slowly fades.']);
     }
