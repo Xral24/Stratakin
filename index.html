@@ -3991,7 +3991,7 @@ class Player {
       if (drop) this.add(drop, 1);
       // everything that grows, grows back: logs, leaves, cactus, glowworms
       const regrowAfter = { [B.LOG]: 240000, [B.BIRCHLOG]: 240000, [B.PALMLOG]: 240000, [B.LEAVES]: 180000, [B.CACTUS]: 240000, [B.GLOWWORM]: 300000 }[hit.id];
-      if (regrowAfter) (this.world.regrow = this.world.regrow || []).push({ x: hit.x, y: hit.y, z: hit.z, t: performance.now() + regrowAfter, id: hit.id });
+      if (regrowAfter && ((hit.id !== B.LOG && hit.id !== B.BIRCHLOG && hit.id !== B.PALMLOG && hit.id !== B.LEAVES) || typeof Felling === 'undefined' || Felling.natural(hit.x, hit.y, hit.z, hit.id))) (this.world.regrow = this.world.regrow || []).push({ x: hit.x, y: hit.y, z: hit.z, t: performance.now() + regrowAfter, id: hit.id });
       return { broke: hit.id, drop, x: hit.x, y: hit.y, z: hit.z };
     }
     return null;
@@ -13061,6 +13061,16 @@ const Felling = (() => {
     if (out.filter(b => CROWN(b.id)).length < 3) return null;
     return { root: { x, y: y - 1, z }, blocks: out, type: 'wild' };
   }
+  // was this block put there by the world's own tree (so it may grow back), or by a player?
+  function natural(x, y, z, id) {
+    const w = G.world;
+    for (let dx = -3; dx <= 3; dx++) for (let dz = -3; dz <= 3; dz++) {
+      const rx = x + dx, rz = z + dz; const info = w.colInfo(U.mod(rx, WORLD_W), U.mod(rz, WORLD_W)); const tree = w.treeAt(rx, rz, info); if (!tree) continue;
+      let hit = null; w.plantTree((bx, by, bz, bid) => { if (bx === x && by === y && bz === z) hit = bid; }, rx, info.h, rz, tree, w.seed);
+      if (hit != null && (hit === id || (TRUNK(hit) && TRUNK(id)) || (CROWN(hit) && CROWN(id)))) return true;
+    }
+    return false;
+  }
   // the cut: the trunk block at (x, y, z) has just been taken out by the player; the rest of the tree above it comes down
   function cut(x, y, z, player) {
     const w = G.world; const t = treeOf(w, x, y, z); if (!t) return false;
@@ -13134,7 +13144,7 @@ const Felling = (() => {
     }
     return out;
   }
-  return { init, cut, update, entities, isTrunk: TRUNK };
+  return { init, cut, update, entities, natural, isTrunk: TRUNK };
 })();
 
 </script>
@@ -13878,7 +13888,7 @@ G.loop = function (t) {
         const dv = Math.hypot(p.x - this.village.x, p.z - this.village.z);
         if (this.stats.elderDone && !this.stats.securePrompt && dv > 18 && !Dialogue.active()) { this.stats.securePrompt = true; Dialogue.show('Elder Hask, calling after you', ['One more thing! If the wild beats you, you wake up at the last village you visited, and your bag is gone, all of it, except your gear and the five secure slots.', 'Set the secure slots in the Craft menu. Whatever you put there, you keep. Shards and Kin are safe too. Go well.']); }
       }
-      if (w.regrow && w.regrow.length && (this.frame & 31) === 0) { const now = performance.now(); w.regrow = w.regrow.filter(r => { if (now < r.t) return true; const b = w.getBlock(r.x, r.y, r.z); if (r.id != null) { if (b === B.AIR && !(Math.abs(r.x + 0.5 - p.x) < 0.8 && Math.abs(r.z + 0.5 - p.z) < 0.8 && r.y >= Math.floor(p.y) - 1 && r.y <= Math.floor(p.y) + 2)) { if (r.id === B.GLOWWORM && !isSolid(w.getBlock(r.x, r.y - 1, r.z))) return false; w.setBlock(r.x, r.y, r.z, r.id); } else if (b === B.AIR) { r.t = now + 15000; return true; } } else if (r.leaf) { if (b === B.LEAVES) w.setBlock(r.x, r.y, r.z, B.BERRYLEAF); } else if (b === B.AIR) w.setBlock(r.x, r.y, r.z, B.BERRY); return false; }); }
+      if (w.regrow && w.regrow.length && (this.frame & 31) === 0) { const now = performance.now(); w.regrow = w.regrow.filter(r => { if (now < r.t) return true; if ((r.id === B.LOG || r.id === B.BIRCHLOG || r.id === B.PALMLOG || r.id === B.LEAVES) && !Felling.natural(r.x, r.y, r.z, r.id)) return false; /* a block you built and took away stays gone */ const b = w.getBlock(r.x, r.y, r.z); if (r.id != null) { if (b === B.AIR && !(Math.abs(r.x + 0.5 - p.x) < 0.8 && Math.abs(r.z + 0.5 - p.z) < 0.8 && r.y >= Math.floor(p.y) - 1 && r.y <= Math.floor(p.y) + 2)) { if (r.id === B.GLOWWORM && !isSolid(w.getBlock(r.x, r.y - 1, r.z))) return false; w.setBlock(r.x, r.y, r.z, r.id); } else if (b === B.AIR) { r.t = now + 15000; return true; } } else if (r.leaf) { if (b === B.LEAVES) w.setBlock(r.x, r.y, r.z, B.BERRYLEAF); } else if (b === B.AIR) w.setBlock(r.x, r.y, r.z, B.BERRY); return false; }); }
       const trig = (Dialogue.active() || Village.walking) ? null : Wild.update(dt, p, performance.now() / 1000, false);
       Buddy.update(dt, p); Felling.update(dt); Keeps.update(dt, p); Citadel.update(dt, p); Farms.update(dt, p); Sky.update(dt, p); Combat.update(dt, p, input);
       Wild.ensureHeart(p, this.trainerLevel, this.mythicCaught); Wild.ensureLegend(p); Wild.ensureApex(p);

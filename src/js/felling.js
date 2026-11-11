@@ -31,6 +31,16 @@ const Felling = (() => {
     if (out.filter(b => CROWN(b.id)).length < 3) return null;
     return { root: { x, y: y - 1, z }, blocks: out, type: 'wild' };
   }
+  // was this block put there by the world's own tree (so it may grow back), or by a player?
+  function natural(x, y, z, id) {
+    const w = G.world;
+    for (let dx = -3; dx <= 3; dx++) for (let dz = -3; dz <= 3; dz++) {
+      const rx = x + dx, rz = z + dz; const info = w.colInfo(U.mod(rx, WORLD_W), U.mod(rz, WORLD_W)); const tree = w.treeAt(rx, rz, info); if (!tree) continue;
+      let hit = null; w.plantTree((bx, by, bz, bid) => { if (bx === x && by === y && bz === z) hit = bid; }, rx, info.h, rz, tree, w.seed);
+      if (hit != null && (hit === id || (TRUNK(hit) && TRUNK(id)) || (CROWN(hit) && CROWN(id)))) return true;
+    }
+    return false;
+  }
   // the cut: the trunk block at (x, y, z) has just been taken out by the player; the rest of the tree above it comes down
   function cut(x, y, z, player) {
     const w = G.world; const t = treeOf(w, x, y, z); if (!t) return false;
@@ -104,5 +114,5 @@ const Felling = (() => {
     }
     return out;
   }
-  return { init, cut, update, entities, isTrunk: TRUNK };
+  return { init, cut, update, entities, natural, isTrunk: TRUNK };
 })();

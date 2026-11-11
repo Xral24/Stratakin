@@ -71,6 +71,8 @@ Scope (Alexander, 8 Nov evening): EVERYTHING visible goes to the same standard: 
 
 - Felling only takes real trees: logs need a crown, and a trunk only climbs straight up, so taking a block out of a log wall takes just that block.
 
+- Regrowth only puts back the world's own tree blocks (Felling.natural checks the generator). Logs and leaves you placed and then took away stay gone, old queued ones included.
+
 ## Still to do
 UI polish as feedback comes in. Card battle screen still used for scripted encounters (raids at the walls, thief, citadel duel, holds) and the snare mini-game; converting those to live is the next big step if wanted. (Old list: train/ships, combat animation, eggs, avatar hair/paint, buddy WEAR cosmetics, Silas and Finch, UI polish (item icons), quality toggles in settings (state.shadows, state.grassQuality, state.dprCap).
 

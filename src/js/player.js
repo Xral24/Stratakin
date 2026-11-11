@@ -476,7 +476,7 @@ class Player {
       if (drop) this.add(drop, 1);
       // everything that grows, grows back: logs, leaves, cactus, glowworms
       const regrowAfter = { [B.LOG]: 240000, [B.BIRCHLOG]: 240000, [B.PALMLOG]: 240000, [B.LEAVES]: 180000, [B.CACTUS]: 240000, [B.GLOWWORM]: 300000 }[hit.id];
-      if (regrowAfter) (this.world.regrow = this.world.regrow || []).push({ x: hit.x, y: hit.y, z: hit.z, t: performance.now() + regrowAfter, id: hit.id });
+      if (regrowAfter && ((hit.id !== B.LOG && hit.id !== B.BIRCHLOG && hit.id !== B.PALMLOG && hit.id !== B.LEAVES) || typeof Felling === 'undefined' || Felling.natural(hit.x, hit.y, hit.z, hit.id))) (this.world.regrow = this.world.regrow || []).push({ x: hit.x, y: hit.y, z: hit.z, t: performance.now() + regrowAfter, id: hit.id });
       return { broke: hit.id, drop, x: hit.x, y: hit.y, z: hit.z };
     }
     return null;
