@@ -632,7 +632,7 @@ class World {
     if (!c) return B.AIR;
     return c.blocks[((x - cx * CH) * CH + (z - cz * CH)) * WH + y];
   }
-  setBlock(x, y, z, id, record = true) {
+  setBlock(x, y, z, id, record = true) { this.editSerial = (this.editSerial || 0) + 1;
     if (y < 0 || y >= WH) return;
     const cx = Math.floor(x / CH), cz = Math.floor(z / CH);
     const c = this.getChunk(cx, cz, true);

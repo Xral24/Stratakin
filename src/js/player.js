@@ -274,12 +274,22 @@ class Player {
       const ahead = [this.x + mx * 0.7, this.y, this.z + mz * 0.7];
       if (this.collides(ahead[0], this.y + 0.1, ahead[2]) && !this.collides(ahead[0], this.y + 1.05, ahead[2])) this.vy = 6.5;
     }
+    if ((hitX || hitZ) && this.onGround && !this.sneak && ml > 0.2 && !this.mount) {
+      const ax = this.x + mx * 0.55, az = this.z + mz * 0.55, fy = Math.floor(this.y + 0.01);
+      const b = w.getBlock(Math.floor(ax), fy, Math.floor(az));
+      if (R.isSoil(b) && w.getBlock(Math.floor(ax), fy + 1, Math.floor(az)) !== undefined && !this.collides(this.x, fy + 1.02, this.z) && !this.collides(ax, fy + 1.02, az)) {
+        this.y = fy + 1.001; this.stepLag = Math.min(1.2, (this.stepLag || 0) + 1); this.vy = 0; // the camera eases up over a moment instead of popping
+        if (hitX) this.moveAxis(0, this.vx * dt); if (hitZ) this.moveAxis(2, this.vz * dt);
+      }
+    }
     if ((hitX || hitZ) && this.onGround && (this.autoJump || this.autoJumpTrait) && !this.sneak && ml > 0.3) {
       // auto jump over one-block steps
       const ahead = [this.x + mx * 0.7, this.y, this.z + mz * 0.7];
       if (this.collides(ahead[0], this.y, ahead[2]) && !this.collides(ahead[0], this.y + 1.05, ahead[2])) { this.vy = 8.0; this.onGround = false; }
     }
     if (hitX) this.vx = 0; if (hitZ) this.vz = 0;
+    { let want = 0; if (this.onGround && !this.mount && !this.inWater) { const below = w.getBlock(Math.floor(this.x), Math.floor(this.y - 0.05), Math.floor(this.z)); if (R.isSoil(below)) { const s = R.surfaceAt(w, this.x, this.z); if (s != null) want = U.clamp(s - this.y, -0.85, 0.85); } }
+      this.visLift = (this.visLift || 0) + (want - (this.visLift || 0)) * Math.min(1, dt * 14); this.stepLag = (this.stepLag || 0) * Math.exp(-dt * 10); }
     const wasFalling = this.vy < 0;
     const hitY = this.moveAxis(1, this.vy * dt);
     if (hitY) {
@@ -380,7 +390,8 @@ class Player {
     this.hp -= n; this.hurtFlash = 0.4; this.lastDamage = cause;
     if (this.hp <= 0) { this.hp = 0; this.dead = true; }
   }
-  eye() { return { x: this.x, y: this.y + this.EYE - (this.sneak ? 0.25 : 0), z: this.z }; }
+  eye() { return { x: this.x, y: this.y + this.EYE - (this.sneak ? 0.25 : 0) + this.drawLift(), z: this.z }; }
+  drawLift() { return (this.visLift || 0) - (this.stepLag || 0); } // how far the drawn figure and camera sit from the collision height: on the smoothed surface, easing over steps
   // ---- block targeting (DDA raycast) ----
   raycast(maxDist = 6, hitFluids = false, solidOnly = false) {
     const e = this.eye();

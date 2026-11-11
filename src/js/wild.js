@@ -93,6 +93,40 @@ const Wild = (() => {
   }
   function calmHere(player) { const v = Village.active; if (!v) return false; const st = G.villageState && G.villageState[v.id]; return !!(st && st.freed) && Math.hypot(wdd(player.x - v.x), wdd(player.z - v.z)) < 60; }
   // choose species + level for a spawn at this position: tier by trainer level, then rarity and weather weigh the roster
+  function wantedParts() {
+    const body = world.preset.id; const known = ((G.stats.recipes || {})[body]) || []; if (!known.length) return [];
+    const all = KIN.recipes(body); const have = new Set(G.kin.map(k => k.sp.seed)); const out = [];
+    for (const rc of all) if (known.includes(rc.i)) for (const sp of rc.parts) if (!have.has(sp.seed) && !sp.fusion && (sp.rarity || 0) <= 1) out.push(sp);
+    return out;
+  }
+  // ---- haunts: every Kin a known recipe calls for, and you have not caught, has a spot of its own on its home ground within reach of your
+  // first village, where one or two of it always live. Villagers know about them; the fusion quest points there ----
+  function haunts() {
+    const body = world.preset.id; if (body !== 'earth') return [];
+    const st = G.stats.haunts || (G.stats.haunts = {}); const have = new Set(G.kin.map(k => k.sp.seed)); const out = [];
+    const home = Village.def || G.lastVillage || world.spawn;
+    for (const sp of wantedParts()) {
+      let h = st[sp.seed];
+      if (!h) { // the nearest bit of its biome from home, not inside a town, starting a little way out
+        const want = sp.home.biome; let best = null;
+        for (let r = 40; r <= 420 && !best; r += 12) for (let k = 0; k < 24 && !best; k++) { const a = (k / 24 + (sp.seed % 97) / 97) * 6.283; const x = Math.round(home.x + Math.cos(a) * r), z = Math.round(home.z + Math.sin(a) * r);
+          if (BIOME_NAME[world.biomeAt(x, z)] !== want) continue; const ci = world.colInfo(U.mod(x, WORLD_W), U.mod(z, WORLD_W)); if (ci.h <= SEA + 1) continue; if (Village.townList && Village.townList().some(t => Math.hypot(t.x - x, t.z - z) < 30)) continue; best = { x, z }; }
+        if (!best) continue; h = st[sp.seed] = { x: best.x, z: best.z, name: sp.names[0], biome: want };
+      }
+      if (!have.has(sp.seed)) out.push(Object.assign({ sp }, h));
+    }
+    return out;
+  }
+  let hauntT = 0;
+  function tendHaunts(player, trainerLevel) {
+    for (const h of haunts()) {
+      const d = Math.hypot(h.x - player.x, h.z - player.z); if (d > 90 || d < 22) continue; // fill it up while you are near but not looking right at it
+      const n = list.filter(e => e.kin.sp.seed === h.sp.seed && Math.hypot(e.x - h.x, e.z - h.z) < 24).length; if (n >= 2) continue;
+      for (let t = 0; t < 10; t++) { const x = Math.floor(h.x + (Math.random() - 0.5) * 12), z = Math.floor(h.z + (Math.random() - 0.5) * 12); const gy = world.groundY(x, z); if (gy == null || !standable(x, gy + 1, z, false)) continue;
+        const lvl = Math.max(2, Math.min(KIN.capOf(h.sp), zoneLevel(x, gy + 1, z, contextAt(x, gy + 1, z), trainerLevel)));
+        const e = makeEntity(h.sp, lvl, x + 0.5, gy + 1, z + 0.5, {}); e.haunt = h.sp.seed; list.push(e); break; }
+    }
+  }
   function roll(x, y, z, trainerLevel) {
     const ctx = contextAt(x, y, z);
     const rx = Math.floor(U.mod(x, WORLD_W) / REGION), rz = Math.floor(U.mod(z, WORLD_W) / REGION);
@@ -126,7 +160,10 @@ const Wild = (() => {
     });
     let pick = Math.random() * weights.reduce((a, b) => a + b, 0), idx = 0;
     for (; idx < weights.length - 1; idx++) { pick -= weights[idx]; if (pick <= 0) break; }
-    const sp = list[idx];
+    let sp = list[idx];
+    // the Kin your known recipes call for and you have not caught yet turn up regularly on their home ground, wherever on the map that ground is,
+    // so a recipe is never a hunt for one species that happens not to live in your part of the world
+    if (ctx.layer === 'Surface' && Math.random() < 0.25) { const want = wantedParts().filter(w => w.home && w.home.layer === 'Surface' && w.home.biome === ctx.biomeName); if (want.length) sp = want[Math.floor(Math.random() * want.length)]; }
     let level = zl + KIN.RARITY[sp.rarity].lvl + (elite ? 1 + Math.floor(Math.random() * 3) : -1 + Math.floor(Math.random() * 3));
     if (off && !elite) level += 1;
     level = Math.max(1, Math.min(level, KIN.capOf(sp)));
@@ -286,6 +323,7 @@ const Wild = (() => {
 
   // returns a battle trigger or null
   function update(dt, player, time, battleActive) {
+    hauntT -= dt; if (hauntT <= 0) { hauntT = 2.5; try { tendHaunts(player, G.trainerLevel || 1); } catch (e) {} }
     let trigger = null;
     const px = player.x, pz = player.z, py = player.y;
     const sneaking = player.sneak;
@@ -546,6 +584,6 @@ const Wild = (() => {
     return out;
   }
   function clear() { drops.length = 0; list.length = 0; mythicRef = null; legendRef = null; apexRefs.rex = apexRefs.mosa = null; }
-  const api = { inTallGrass, isHigh, dropEntities, init, update, list, remove, nearest, pick, rings, roll, ensureHeart, ensureLegend, ensureApex, apexSea, apexLevel: APEX_LV, clear, makeEntity, zoneLevel, noSpawn: null, chaser: null, engage, disengage, strike, hitByKin, daze, focusText, engagedNear, unfinishable, scripted, get mythic() { return mythicRef; }, get legend() { return legendRef; } };
+  const api = { haunts, inTallGrass, isHigh, dropEntities, init, update, list, remove, nearest, pick, rings, roll, ensureHeart, ensureLegend, ensureApex, apexSea, apexLevel: APEX_LV, clear, makeEntity, zoneLevel, noSpawn: null, chaser: null, engage, disengage, strike, hitByKin, daze, focusText, engagedNear, unfinishable, scripted, get mythic() { return mythicRef; }, get legend() { return legendRef; } };
   return api;
 })();

@@ -158,6 +158,8 @@ const Quests = (() => {
     if (r.xp) G.addTrainerXp(r.xp);
   }
   const dirs = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+  // you already hold both Kin of a known recipe: the quest points at the table, not the hunt
+  function pairReady() { const body = G.world.preset.id; const known = ((G.stats.recipes || {})[body]) || []; const have = new Set(G.kin.map(k => k.sp.seed)); return KIN.recipes(body).some(rc => known.includes(rc.i) && rc.parts.every(sp => have.has(sp.seed))); }
   function dirTo(dx, dz) { const ang = Math.atan2(dx, -dz); return dirs[Math.round(((ang / (Math.PI * 2)) + 1) * 8) % 8]; }
   let treeHint = { t: 0, text: '' };
   function hintText() {
@@ -167,7 +169,9 @@ const Quests = (() => {
     if (q.id === 'village' && (Village.def || G.village)) { const v = Village.def || G.village, dx = v.x - G.player.x, dz = v.z - G.player.z; t += ` · ${Math.round(Math.hypot(dx, dz))}m ${dirTo(dx, dz)}`; }
     if (q.id === 'fuse' || q.id === 'snare') {
       const b = G.world.findNearest(B.FUSION, G.player.x, G.player.z, 80);
-      if (b && q.id === 'fuse') t += ` · table ${Math.round(Math.hypot(b.x - G.player.x, b.z - G.player.z))}m ${dirTo(b.x - G.player.x, b.z - G.player.z)}`;
+      const hs = q.id === 'fuse' && Wild.haunts && !pairReady() ? Wild.haunts() : [];
+      if (hs.length) { const pl = G.player; hs.sort((a, c) => Math.hypot(a.x - pl.x, a.z - pl.z) - Math.hypot(c.x - pl.x, c.z - pl.z)); const h = hs[0]; t = `Catch ${/^[aeiou]/i.test(h.name) ? 'an' : 'a'} ${h.name} (${h.biome}) · ${Math.round(Math.hypot(h.x - pl.x, h.z - pl.z))}m ${dirTo(h.x - pl.x, h.z - pl.z)}`; }
+      else if (b && q.id === 'fuse') t += ` · table ${Math.round(Math.hypot(b.x - G.player.x, b.z - G.player.z))}m ${dirTo(b.x - G.player.x, b.z - G.player.z)}`;
     }
     if (q.id === 'timber' || q.id === 'ember' || q.id === 'void') {
       const now = performance.now();
@@ -215,6 +219,7 @@ const Quests = (() => {
     if (q.id === 'timber') { const b = G.world.findNearest(B.LOG, p.x, p.z, 64); return b ? { x: b.x, z: b.z } : null; }
     if (q.id === 'ember') { const b = G.world.findNearest(B.GLOWWORM, p.x, p.z, 80) || G.world.findNearest(B.EMBER, p.x, p.z, 40); return b ? { x: b.x, z: b.z } : null; }
     if (q.id === 'void') { const b = G.world.findNearest(B.VOID, p.x, p.z, 40); return b ? { x: b.x, z: b.z } : null; }
+    if (q.id === 'fuse' && !pairReady()) { const hs = Wild.haunts ? Wild.haunts() : []; if (hs.length) { hs.sort((a, b) => Math.hypot(a.x - p.x, a.z - p.z) - Math.hypot(b.x - p.x, b.z - p.z)); return { x: hs[0].x, z: hs[0].z }; } }
     if (q.id === 'fuse' || q.id === 'snare') { const b = G.world.findNearest(B.FUSION, p.x, p.z, 80); return b ? { x: b.x, z: b.z } : null; }
     if (q.id === 'skyroot' && typeof Sky !== 'undefined') { const k = Sky.sites().find(x => x.kind === 'tree'); if (k) return { x: k.x, z: k.z, note: 'the Skyroot' }; }
     if ((q.id === 'sky' || q.id === 'storm') && typeof Sky !== 'undefined') { const k = Sky.sites().find(x => x.kind === (q.id === 'sky' ? 'city' : 'fort')); if (k) return { x: k.x, z: k.z, note: k.name }; }

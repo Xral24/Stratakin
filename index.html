@@ -1366,7 +1366,7 @@ class World {
     if (!c) return B.AIR;
     return c.blocks[((x - cx * CH) * CH + (z - cz * CH)) * WH + y];
   }
-  setBlock(x, y, z, id, record = true) {
+  setBlock(x, y, z, id, record = true) { this.editSerial = (this.editSerial || 0) + 1;
     if (y < 0 || y >= WH) return;
     const cx = Math.floor(x / CH), cz = Math.floor(z / CH);
     const c = this.getChunk(cx, cz, true);
@@ -3227,6 +3227,15 @@ const R = (() => {
     for (let i = 0; i < 4; i++) { const t = shore && ws[i] >= 0 ? Math.max(ts[i], ws[i] - 1) : ts[i]; sum += t; lo = Math.min(lo, t); hi = Math.max(hi, t); }
     let v = hi - lo <= 2 ? sum / 4 + 1 : -1; if (v >= 0 && shore) v = Math.max(v, wl - 0.02); return v;
   }
+  let surfCache = { k: null, h: null };
+  function surfaceAt(world, x, z) {
+    const bx = Math.floor(x), bz = Math.floor(z); const k = bx + ',' + bz + ',' + (world.editSerial || 0);
+    let h = surfCache.k === k ? surfCache.h : null;
+    if (surfCache.k !== k) { const c = [[bx, bz], [bx + 1, bz], [bx, bz + 1], [bx + 1, bz + 1]].map(([cx, cz]) => cornerHeight(world, cx, cz)); h = c.some(v => v < 0) ? null : c; surfCache = { k, h }; }
+    if (!h) return null; const fx = x - bx, fz = z - bz;
+    return (h[0] * (1 - fx) + h[1] * fx) * (1 - fz) + (h[2] * (1 - fx) + h[3] * fx) * fz;
+  }
+  const isSoil = (b) => SOIL.has(b);
   function targetLines(world, x, y, z, pad = 0.003) {
     const id = world.getBlock(x, y, z); const [t] = soilTopAt(world, x, z);
     if (!SOIL.has(id) || t !== y) return boxLines(x, y, z, pad);
@@ -3246,7 +3255,7 @@ const R = (() => {
     return out;
   }
 
-  return { grassZone, init, resize, buildChunk, freeChunk, entityMesh, dropEntityMesh, renderPortrait, render, project, boxLines, targetLines, ringLines, state, setQuality, QUALITY, get gl() { return gl; } };
+  return { grassZone, init, resize, buildChunk, freeChunk, entityMesh, dropEntityMesh, renderPortrait, render, project, surfaceAt, isSoil, boxLines, targetLines, ringLines, state, setQuality, QUALITY, get gl() { return gl; } };
 })();
 
 </script>
@@ -3774,12 +3783,22 @@ class Player {
       const ahead = [this.x + mx * 0.7, this.y, this.z + mz * 0.7];
       if (this.collides(ahead[0], this.y + 0.1, ahead[2]) && !this.collides(ahead[0], this.y + 1.05, ahead[2])) this.vy = 6.5;
     }
+    if ((hitX || hitZ) && this.onGround && !this.sneak && ml > 0.2 && !this.mount) {
+      const ax = this.x + mx * 0.55, az = this.z + mz * 0.55, fy = Math.floor(this.y + 0.01);
+      const b = w.getBlock(Math.floor(ax), fy, Math.floor(az));
+      if (R.isSoil(b) && w.getBlock(Math.floor(ax), fy + 1, Math.floor(az)) !== undefined && !this.collides(this.x, fy + 1.02, this.z) && !this.collides(ax, fy + 1.02, az)) {
+        this.y = fy + 1.001; this.stepLag = Math.min(1.2, (this.stepLag || 0) + 1); this.vy = 0; // the camera eases up over a moment instead of popping
+        if (hitX) this.moveAxis(0, this.vx * dt); if (hitZ) this.moveAxis(2, this.vz * dt);
+      }
+    }
     if ((hitX || hitZ) && this.onGround && (this.autoJump || this.autoJumpTrait) && !this.sneak && ml > 0.3) {
       // auto jump over one-block steps
       const ahead = [this.x + mx * 0.7, this.y, this.z + mz * 0.7];
       if (this.collides(ahead[0], this.y, ahead[2]) && !this.collides(ahead[0], this.y + 1.05, ahead[2])) { this.vy = 8.0; this.onGround = false; }
     }
     if (hitX) this.vx = 0; if (hitZ) this.vz = 0;
+    { let want = 0; if (this.onGround && !this.mount && !this.inWater) { const below = w.getBlock(Math.floor(this.x), Math.floor(this.y - 0.05), Math.floor(this.z)); if (R.isSoil(below)) { const s = R.surfaceAt(w, this.x, this.z); if (s != null) want = U.clamp(s - this.y, -0.85, 0.85); } }
+      this.visLift = (this.visLift || 0) + (want - (this.visLift || 0)) * Math.min(1, dt * 14); this.stepLag = (this.stepLag || 0) * Math.exp(-dt * 10); }
     const wasFalling = this.vy < 0;
     const hitY = this.moveAxis(1, this.vy * dt);
     if (hitY) {
@@ -3880,7 +3899,8 @@ class Player {
     this.hp -= n; this.hurtFlash = 0.4; this.lastDamage = cause;
     if (this.hp <= 0) { this.hp = 0; this.dead = true; }
   }
-  eye() { return { x: this.x, y: this.y + this.EYE - (this.sneak ? 0.25 : 0), z: this.z }; }
+  eye() { return { x: this.x, y: this.y + this.EYE - (this.sneak ? 0.25 : 0) + this.drawLift(), z: this.z }; }
+  drawLift() { return (this.visLift || 0) - (this.stepLag || 0); } // how far the drawn figure and camera sit from the collision height: on the smoothed surface, easing over steps
   // ---- block targeting (DDA raycast) ----
   raycast(maxDist = 6, hitFluids = false, solidOnly = false) {
     const e = this.eye();
@@ -5510,6 +5530,40 @@ const Wild = (() => {
   }
   function calmHere(player) { const v = Village.active; if (!v) return false; const st = G.villageState && G.villageState[v.id]; return !!(st && st.freed) && Math.hypot(wdd(player.x - v.x), wdd(player.z - v.z)) < 60; }
   // choose species + level for a spawn at this position: tier by trainer level, then rarity and weather weigh the roster
+  function wantedParts() {
+    const body = world.preset.id; const known = ((G.stats.recipes || {})[body]) || []; if (!known.length) return [];
+    const all = KIN.recipes(body); const have = new Set(G.kin.map(k => k.sp.seed)); const out = [];
+    for (const rc of all) if (known.includes(rc.i)) for (const sp of rc.parts) if (!have.has(sp.seed) && !sp.fusion && (sp.rarity || 0) <= 1) out.push(sp);
+    return out;
+  }
+  // ---- haunts: every Kin a known recipe calls for, and you have not caught, has a spot of its own on its home ground within reach of your
+  // first village, where one or two of it always live. Villagers know about them; the fusion quest points there ----
+  function haunts() {
+    const body = world.preset.id; if (body !== 'earth') return [];
+    const st = G.stats.haunts || (G.stats.haunts = {}); const have = new Set(G.kin.map(k => k.sp.seed)); const out = [];
+    const home = Village.def || G.lastVillage || world.spawn;
+    for (const sp of wantedParts()) {
+      let h = st[sp.seed];
+      if (!h) { // the nearest bit of its biome from home, not inside a town, starting a little way out
+        const want = sp.home.biome; let best = null;
+        for (let r = 40; r <= 420 && !best; r += 12) for (let k = 0; k < 24 && !best; k++) { const a = (k / 24 + (sp.seed % 97) / 97) * 6.283; const x = Math.round(home.x + Math.cos(a) * r), z = Math.round(home.z + Math.sin(a) * r);
+          if (BIOME_NAME[world.biomeAt(x, z)] !== want) continue; const ci = world.colInfo(U.mod(x, WORLD_W), U.mod(z, WORLD_W)); if (ci.h <= SEA + 1) continue; if (Village.townList && Village.townList().some(t => Math.hypot(t.x - x, t.z - z) < 30)) continue; best = { x, z }; }
+        if (!best) continue; h = st[sp.seed] = { x: best.x, z: best.z, name: sp.names[0], biome: want };
+      }
+      if (!have.has(sp.seed)) out.push(Object.assign({ sp }, h));
+    }
+    return out;
+  }
+  let hauntT = 0;
+  function tendHaunts(player, trainerLevel) {
+    for (const h of haunts()) {
+      const d = Math.hypot(h.x - player.x, h.z - player.z); if (d > 90 || d < 22) continue; // fill it up while you are near but not looking right at it
+      const n = list.filter(e => e.kin.sp.seed === h.sp.seed && Math.hypot(e.x - h.x, e.z - h.z) < 24).length; if (n >= 2) continue;
+      for (let t = 0; t < 10; t++) { const x = Math.floor(h.x + (Math.random() - 0.5) * 12), z = Math.floor(h.z + (Math.random() - 0.5) * 12); const gy = world.groundY(x, z); if (gy == null || !standable(x, gy + 1, z, false)) continue;
+        const lvl = Math.max(2, Math.min(KIN.capOf(h.sp), zoneLevel(x, gy + 1, z, contextAt(x, gy + 1, z), trainerLevel)));
+        const e = makeEntity(h.sp, lvl, x + 0.5, gy + 1, z + 0.5, {}); e.haunt = h.sp.seed; list.push(e); break; }
+    }
+  }
   function roll(x, y, z, trainerLevel) {
     const ctx = contextAt(x, y, z);
     const rx = Math.floor(U.mod(x, WORLD_W) / REGION), rz = Math.floor(U.mod(z, WORLD_W) / REGION);
@@ -5543,7 +5597,10 @@ const Wild = (() => {
     });
     let pick = Math.random() * weights.reduce((a, b) => a + b, 0), idx = 0;
     for (; idx < weights.length - 1; idx++) { pick -= weights[idx]; if (pick <= 0) break; }
-    const sp = list[idx];
+    let sp = list[idx];
+    // the Kin your known recipes call for and you have not caught yet turn up regularly on their home ground, wherever on the map that ground is,
+    // so a recipe is never a hunt for one species that happens not to live in your part of the world
+    if (ctx.layer === 'Surface' && Math.random() < 0.25) { const want = wantedParts().filter(w => w.home && w.home.layer === 'Surface' && w.home.biome === ctx.biomeName); if (want.length) sp = want[Math.floor(Math.random() * want.length)]; }
     let level = zl + KIN.RARITY[sp.rarity].lvl + (elite ? 1 + Math.floor(Math.random() * 3) : -1 + Math.floor(Math.random() * 3));
     if (off && !elite) level += 1;
     level = Math.max(1, Math.min(level, KIN.capOf(sp)));
@@ -5703,6 +5760,7 @@ const Wild = (() => {
 
   // returns a battle trigger or null
   function update(dt, player, time, battleActive) {
+    hauntT -= dt; if (hauntT <= 0) { hauntT = 2.5; try { tendHaunts(player, G.trainerLevel || 1); } catch (e) {} }
     let trigger = null;
     const px = player.x, pz = player.z, py = player.y;
     const sneaking = player.sneak;
@@ -5963,7 +6021,7 @@ const Wild = (() => {
     return out;
   }
   function clear() { drops.length = 0; list.length = 0; mythicRef = null; legendRef = null; apexRefs.rex = apexRefs.mosa = null; }
-  const api = { inTallGrass, isHigh, dropEntities, init, update, list, remove, nearest, pick, rings, roll, ensureHeart, ensureLegend, ensureApex, apexSea, apexLevel: APEX_LV, clear, makeEntity, zoneLevel, noSpawn: null, chaser: null, engage, disengage, strike, hitByKin, daze, focusText, engagedNear, unfinishable, scripted, get mythic() { return mythicRef; }, get legend() { return legendRef; } };
+  const api = { haunts, inTallGrass, isHigh, dropEntities, init, update, list, remove, nearest, pick, rings, roll, ensureHeart, ensureLegend, ensureApex, apexSea, apexLevel: APEX_LV, clear, makeEntity, zoneLevel, noSpawn: null, chaser: null, engage, disengage, strike, hitByKin, daze, focusText, engagedNear, unfinishable, scripted, get mythic() { return mythicRef; }, get legend() { return legendRef; } };
   return api;
 })();
 
@@ -6613,7 +6671,8 @@ const Village = (() => {
       if (i > 0) world.setBlock(x, gy, z, B.PLANKS);
     }
     world.setBlock(s.x - ux, gy + 1, s.z - uz, B.TORCH);
-    { const px = s.x - ux * 3 + (uz ? 2 : 0), pz = s.z - uz * 3 + (ux ? 2 : 0); const py = world.groundY(px, pz, gy + 6); for (let y = py + 1; y <= py + 3; y++) if (world.getBlock(px, y, pz) !== B.AIR) world.setBlock(px, y, pz, B.AIR); if (!isSolid(world.getBlock(px, py, pz))) world.setBlock(px, py, pz, B.STONE); world.setBlock(px, py + 1, pz, B.PORTAL); G.fisherSpot.portal = { x: px, y: py + 1, z: pz }; }
+    if (world.preset.id !== 'earth') { const px = s.x - ux * 3 + (uz ? 2 : 0), pz = s.z - uz * 3 + (ux ? 2 : 0); const py = world.groundY(px, pz, gy + 6); for (let y = py + 1; y <= py + 3; y++) if (world.getBlock(px, y, pz) !== B.AIR) world.setBlock(px, y, pz, B.AIR); if (!isSolid(world.getBlock(px, py, pz))) world.setBlock(px, py, pz, B.STONE); world.setBlock(px, py + 1, pz, B.PORTAL); G.fisherSpot.portal = { x: px, y: py + 1, z: pz }; }
+    clearFisherPortal();
     fisher = makeNpc(99, 'fisher', s.x + ux * 3, s.z + uz * 3, 'Old Brannock', null, gy + 1, 'shore');
     fisher.wander = false; fisher.yaw = Math.atan2(Math.cos(s.a), Math.sin(s.a));
   }
@@ -6658,7 +6717,7 @@ const Village = (() => {
       for (let d = -12; d <= 12; d++) { for (const [x, z] of [[vx - 5, vz + d], [vx + 5, vz + d], [vx + d, vz - 5], [vx + d, vz + 5]]) if (Math.abs(d) > 3 && world.getBlock(x, vy, z) === B.AIR) set(x, vy - 1, z, B.PLANKS); }
       for (let d = -2; d <= 2; d++) { set(vx + d, vy, vz - 4, d % 2 ? B.LOG : B.AIR); }
     }
-    set(vx + 5, vy, vz - 5, B.PORTAL); set(vx + 5, vy - 1, vz - 5, M.plazaEdge);
+    if (world.preset.id !== 'earth') { set(vx + 5, vy, vz - 5, B.PORTAL); set(vx + 5, vy - 1, vz - 5, M.plazaEdge); }
     const r = U.rng(U.combine(world.seed, U.strHash(v.id)));
     if (M.bush) for (let i = 0; i < 14; i++) {
       const a = r() * Math.PI * 2, d = 9 + r() * 3; const x = Math.round(vx + Math.cos(a) * d), z = Math.round(vz + Math.sin(a) * d);
@@ -6740,7 +6799,9 @@ const Village = (() => {
 
   // ---- portals: every village has an arch; held villages' arches are dead, yours link up ----
   function portalBlock(v) { return v.type === 'land' ? { x: v.x + 5, y: v.y, z: v.z - 5 } : v.type === 'sea' ? { x: v.x - 3, y: v.y, z: v.z - 2 } : { x: v.x + 4, y: v.y, z: v.z - 4 }; }
-  function ensurePortal(v) { if (v.founded || v.R) return; const s = portalBlock(v); const x = s.x, z = s.z; if (world.getBlock(x, s.y, z) !== B.PORTAL) { world.setBlock(x, s.y, z, B.PORTAL); if (!isSolid(world.getBlock(x, s.y - 1, z))) world.setBlock(x, s.y - 1, z, B.STONE); for (let y = s.y + 1; y <= s.y + 2; y++) if (world.getBlock(x, y, z) !== B.AIR) world.setBlock(x, y, z, B.AIR); } }
+  // an Earth town built before the trains may still have its old portal standing: take it down
+  function clearPortal(v) { if (world.preset.id !== 'earth') return; for (let dx = -8; dx <= 8; dx++) for (let dz = -8; dz <= 8; dz++) for (let dy = -2; dy <= 3; dy++) if (world.getBlock(v.x + dx, v.y + dy, v.z + dz) === B.PORTAL) world.setBlock(v.x + dx, v.y + dy, v.z + dz, B.AIR); }
+  function ensurePortal(v) { if (v.founded || v.R || world.preset.id === 'earth') { clearPortal(v); return; } const s = portalBlock(v); const x = s.x, z = s.z; if (world.getBlock(x, s.y, z) !== B.PORTAL) { world.setBlock(x, s.y, z, B.PORTAL); if (!isSolid(world.getBlock(x, s.y - 1, z))) world.setBlock(x, s.y - 1, z, B.STONE); for (let y = s.y + 1; y <= s.y + 2; y++) if (world.getBlock(x, y, z) !== B.AIR) world.setBlock(x, y, z, B.AIR); } }
   function portalSpot(v) { return v.type === 'land' ? { x: v.x + 5.5, y: v.y, z: v.z - 3.5 } : v.type === 'sea' ? { x: v.x - 2.5, y: v.y, z: v.z - 0.5 } : { x: v.x + 4.5, y: v.y, z: v.z - 2.5 }; }
   function portalList(fromId) {
     const out = [];
@@ -7683,6 +7744,7 @@ const Village = (() => {
       if (!state(near.id).stamped) { ensureStamped(near); UI.toast(`${near.name}: ${near.style === 'atlantis' ? 'a city of the sea people' : near.type === 'sea' ? 'a village on stilts' : near.type === 'deep' ? 'a village under the sea' : near.style === 'alien' ? 'an alien settlement' : near.style === 'frontier' ? 'a frontier town' : near.style === 'halo' ? 'a caravan town' : 'a village'}${state(near.id).freed ? '' : ', held by a tyrant'}.`); }
       if (near.founded) { refreshT -= dt; if (refreshT <= 0 || !near.npcs.length) { refreshT = 4; refreshFounded(near); } }
       else if (!near.npcs.length) { populate(near); ensurePortal(near); }
+      if (!near.portalChecked) { near.portalChecked = true; clearPortal(near); }
       if (active && active !== near) { if (active.raid && active.raid.state === 'active') endRaid(active, state(active.id)); clearLieutenants(active); }
       active = near; remember(near, state(near.id));
       Wild.noSpawn = { x: near.x, z: near.z, r: near.type === 'land' ? (near.R ? near.R + 3 : state(near.id).expanded ? 21 : 15) : 16 };
@@ -7745,7 +7807,7 @@ const Village = (() => {
         else if (d <= 2.2 || walkState.far || (d < 40 && walkState.t >= 7)) {
           e.yaw = Math.atan2(dx, dz); walkState.stage = 'done';
           const reward = 80 + v.tier * 40; G.talkNpc = e;
-          Dialogue.show(e.name, [`Thank you! ${walkState.tyrant ? walkState.tyrant + ' kept' : 'That tyrant kept'} us shut in our own homes. We never thought anyone would stand up to him.`, `${v.name} is free. The doors are open again: ${shopDef('bakery', v).title}, ${shopDef('juice', v).title}, ${shopDef('trader', v).title}, and the ${shopDef('voodoo', v).title}. The arch in the square is yours now: tap it to step to any village you hold${world.preset.id !== 'earth' ? ' on this world' : ''}.`, `From today this village is under your protection. We set aside ${income} Shards for you every dawn; come to me to collect them. And here are ${reward} for the fight.`, 'Leave a Kin or two with us as guards. Raiders come at night for the walls, and the tyrant will try to come back. Talk to me for the village ledger.'], () => { G.shards += reward; UI.toast(`+${reward} Shards. ${v.name} pays ${income} a day.`, 'good'); walkState = null; e.wander = true; });
+          Dialogue.show(e.name, [`Thank you! ${walkState.tyrant ? walkState.tyrant + ' kept' : 'That tyrant kept'} us shut in our own homes. We never thought anyone would stand up to him.`, `${v.name} is free. The doors are open again: ${shopDef('bakery', v).title}, ${shopDef('juice', v).title}, ${shopDef('trader', v).title}, and the ${shopDef('voodoo', v).title}. ${world.preset.id !== 'earth' ? 'The arch in the square is yours now: tap it to step to any village you hold on this world.' : 'The station (or the ferry) will take you to any village you hold once its line is running.'}`, `From today this village is under your protection. We set aside ${income} Shards for you every dawn; come to me to collect them. And here are ${reward} for the fight.`, 'Leave a Kin or two with us as guards. Raiders come at night for the walls, and the tyrant will try to come back. Talk to me for the village ledger.'], () => { G.shards += reward; UI.toast(`+${reward} Shards. ${v.name} pays ${income} a day.`, 'good'); walkState = null; e.wander = true; });
         } else if (d >= 40) { walkState.t = 99; walkState.far = true; }
         break;
       }
@@ -7806,6 +7868,7 @@ const Village = (() => {
     return best;
   }
   function dirWord(dx, dz) { const dirs = ['north', 'north-east', 'east', 'south-east', 'south', 'south-west', 'west', 'north-west']; const ang = Math.atan2(dx, -dz); return dirs[Math.round(((ang / (Math.PI * 2)) + 1) * 8) % 8]; }
+  function clearFisherPortal() { const fp = G.fisherSpot && G.fisherSpot.portal; if (!fp || world.preset.id !== 'earth') return; if (world.getBlock(fp.x, fp.y, fp.z) === B.PORTAL) world.setBlock(fp.x, fp.y, fp.z, B.AIR); G.fisherSpot.portal = null; }
   function fisherTarget() {
     let target = G.fisherTarget ? recordFor(G.fisherTarget) : null;
     if (!target || isFreed(target.id)) { target = fisher ? nearestUnfreed(fisher.x, fisher.z, true) : null; G.fisherTarget = target ? target.id : null; }
@@ -7850,6 +7913,12 @@ const Village = (() => {
       UI.openPanel('village', v);
       return;
     }
+    const an = (w) => (/^[aeiou]/i.test(w) ? 'An ' : 'A ') + w;
+    { const hs = (typeof Wild !== 'undefined' && Wild.haunts) ? Wild.haunts() : []; const p = G.player;
+      if (hs.length && Math.random() < 0.7) { const h = hs[Math.floor(Math.random() * hs.length)]; const dx = wd(h.x - p.x), dz = wd(h.z - p.z), d = Math.round(Math.hypot(dx, dz) / 10) * 10;
+        const where = h.biome === 'Forest' ? 'in the trees' : h.biome === 'Plains' ? 'out on the open grass' : h.biome === 'Desert' ? 'out on the sand' : h.biome === 'Swamp' ? 'down in the marsh' : h.biome === 'Snowfield' ? 'up in the snow' : h.biome === 'Mountains' ? 'up on the slopes' : 'out there';
+        G.stats.hauntTold = G.stats.hauntTold || {}; G.stats.hauntTold[h.sp.seed] = true;
+        Dialogue.show(n.name, [U.rng(Date.now() | 0).pick([`${an(h.name)}? I see a couple of them ${where}, about ${d} blocks ${dirWord(dx, dz)} of here. Always the same spot.`, `You want ${an(h.name).toLowerCase()}? There's a pair that keeps ${where}, ${d} blocks or so to the ${dirWord(dx, dz)}. My cousin swears they never leave it.`, `${h.name}s, you say. Go ${dirWord(dx, dz)}, maybe ${d} blocks, ${where}. That's where they always are.`])]); return; } }
     Dialogue.show(n.name, [U.rng(Date.now() | 0).pick(VILLAGER_LINES)]);
   }
   // ---- the train: a little tank engine and two coaches waiting at the platform of every open station, steam idling; it pulls out when you buy a fare ----
@@ -8627,6 +8696,8 @@ const Quests = (() => {
     if (r.xp) G.addTrainerXp(r.xp);
   }
   const dirs = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+  // you already hold both Kin of a known recipe: the quest points at the table, not the hunt
+  function pairReady() { const body = G.world.preset.id; const known = ((G.stats.recipes || {})[body]) || []; const have = new Set(G.kin.map(k => k.sp.seed)); return KIN.recipes(body).some(rc => known.includes(rc.i) && rc.parts.every(sp => have.has(sp.seed))); }
   function dirTo(dx, dz) { const ang = Math.atan2(dx, -dz); return dirs[Math.round(((ang / (Math.PI * 2)) + 1) * 8) % 8]; }
   let treeHint = { t: 0, text: '' };
   function hintText() {
@@ -8636,7 +8707,9 @@ const Quests = (() => {
     if (q.id === 'village' && (Village.def || G.village)) { const v = Village.def || G.village, dx = v.x - G.player.x, dz = v.z - G.player.z; t += ` · ${Math.round(Math.hypot(dx, dz))}m ${dirTo(dx, dz)}`; }
     if (q.id === 'fuse' || q.id === 'snare') {
       const b = G.world.findNearest(B.FUSION, G.player.x, G.player.z, 80);
-      if (b && q.id === 'fuse') t += ` · table ${Math.round(Math.hypot(b.x - G.player.x, b.z - G.player.z))}m ${dirTo(b.x - G.player.x, b.z - G.player.z)}`;
+      const hs = q.id === 'fuse' && Wild.haunts && !pairReady() ? Wild.haunts() : [];
+      if (hs.length) { const pl = G.player; hs.sort((a, c) => Math.hypot(a.x - pl.x, a.z - pl.z) - Math.hypot(c.x - pl.x, c.z - pl.z)); const h = hs[0]; t = `Catch ${/^[aeiou]/i.test(h.name) ? 'an' : 'a'} ${h.name} (${h.biome}) · ${Math.round(Math.hypot(h.x - pl.x, h.z - pl.z))}m ${dirTo(h.x - pl.x, h.z - pl.z)}`; }
+      else if (b && q.id === 'fuse') t += ` · table ${Math.round(Math.hypot(b.x - G.player.x, b.z - G.player.z))}m ${dirTo(b.x - G.player.x, b.z - G.player.z)}`;
     }
     if (q.id === 'timber' || q.id === 'ember' || q.id === 'void') {
       const now = performance.now();
@@ -8684,6 +8757,7 @@ const Quests = (() => {
     if (q.id === 'timber') { const b = G.world.findNearest(B.LOG, p.x, p.z, 64); return b ? { x: b.x, z: b.z } : null; }
     if (q.id === 'ember') { const b = G.world.findNearest(B.GLOWWORM, p.x, p.z, 80) || G.world.findNearest(B.EMBER, p.x, p.z, 40); return b ? { x: b.x, z: b.z } : null; }
     if (q.id === 'void') { const b = G.world.findNearest(B.VOID, p.x, p.z, 40); return b ? { x: b.x, z: b.z } : null; }
+    if (q.id === 'fuse' && !pairReady()) { const hs = Wild.haunts ? Wild.haunts() : []; if (hs.length) { hs.sort((a, b) => Math.hypot(a.x - p.x, a.z - p.z) - Math.hypot(b.x - p.x, b.z - p.z)); return { x: hs[0].x, z: hs[0].z }; } }
     if (q.id === 'fuse' || q.id === 'snare') { const b = G.world.findNearest(B.FUSION, p.x, p.z, 80); return b ? { x: b.x, z: b.z } : null; }
     if (q.id === 'skyroot' && typeof Sky !== 'undefined') { const k = Sky.sites().find(x => x.kind === 'tree'); if (k) return { x: k.x, z: k.z, note: 'the Skyroot' }; }
     if ((q.id === 'sky' || q.id === 'storm') && typeof Sky !== 'undefined') { const k = Sky.sites().find(x => x.kind === (q.id === 'sky' ? 'city' : 'fort')); if (k) return { x: k.x, z: k.z, note: k.name }; }
@@ -10550,7 +10624,7 @@ const Avatar = (() => {
     const seat = p.mount ? 0.75 : p.flying ? 0.35 : 0;
     an.attack = p.swingT > 0 ? Math.sin(Math.min(1, p.swingT / 0.25) * Math.PI) : 0; an.block = p.blocking ? 1 : 0;
     if (p.mount || p.flying) { an.mv = 0; an.sit = 1; } else an.sit = 0;
-    return { x: p.x, y: p.y + seat, z: p.z, yaw: p.yaw + Math.PI, model: mm.model, mesh: mm.mesh, scale: look().height || 1, hover: 0, skyMul: 1, isMount: true, _an: an };
+    return { x: p.x, y: p.y + seat + (p.drawLift ? p.drawLift() : 0), z: p.z, yaw: p.yaw + Math.PI, model: mm.model, mesh: mm.mesh, scale: look().height || 1, hover: 0, skyMul: 1, isMount: true, _an: an };
   }
   // a camera behind and a little above you, pulled in when something is in the way
   function thirdCam(cam, p, world, back = 4.2, lift = 0) {

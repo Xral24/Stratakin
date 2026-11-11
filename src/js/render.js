@@ -1693,6 +1693,15 @@ const R = (() => {
     for (let i = 0; i < 4; i++) { const t = shore && ws[i] >= 0 ? Math.max(ts[i], ws[i] - 1) : ts[i]; sum += t; lo = Math.min(lo, t); hi = Math.max(hi, t); }
     let v = hi - lo <= 2 ? sum / 4 + 1 : -1; if (v >= 0 && shore) v = Math.max(v, wl - 0.02); return v;
   }
+  let surfCache = { k: null, h: null };
+  function surfaceAt(world, x, z) {
+    const bx = Math.floor(x), bz = Math.floor(z); const k = bx + ',' + bz + ',' + (world.editSerial || 0);
+    let h = surfCache.k === k ? surfCache.h : null;
+    if (surfCache.k !== k) { const c = [[bx, bz], [bx + 1, bz], [bx, bz + 1], [bx + 1, bz + 1]].map(([cx, cz]) => cornerHeight(world, cx, cz)); h = c.some(v => v < 0) ? null : c; surfCache = { k, h }; }
+    if (!h) return null; const fx = x - bx, fz = z - bz;
+    return (h[0] * (1 - fx) + h[1] * fx) * (1 - fz) + (h[2] * (1 - fx) + h[3] * fx) * fz;
+  }
+  const isSoil = (b) => SOIL.has(b);
   function targetLines(world, x, y, z, pad = 0.003) {
     const id = world.getBlock(x, y, z); const [t] = soilTopAt(world, x, z);
     if (!SOIL.has(id) || t !== y) return boxLines(x, y, z, pad);
@@ -1712,5 +1721,5 @@ const R = (() => {
     return out;
   }
 
-  return { grassZone, init, resize, buildChunk, freeChunk, entityMesh, dropEntityMesh, renderPortrait, render, project, boxLines, targetLines, ringLines, state, setQuality, QUALITY, get gl() { return gl; } };
+  return { grassZone, init, resize, buildChunk, freeChunk, entityMesh, dropEntityMesh, renderPortrait, render, project, surfaceAt, isSoil, boxLines, targetLines, ringLines, state, setQuality, QUALITY, get gl() { return gl; } };
 })();

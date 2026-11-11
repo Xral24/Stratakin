@@ -642,7 +642,8 @@ const Village = (() => {
       if (i > 0) world.setBlock(x, gy, z, B.PLANKS);
     }
     world.setBlock(s.x - ux, gy + 1, s.z - uz, B.TORCH);
-    { const px = s.x - ux * 3 + (uz ? 2 : 0), pz = s.z - uz * 3 + (ux ? 2 : 0); const py = world.groundY(px, pz, gy + 6); for (let y = py + 1; y <= py + 3; y++) if (world.getBlock(px, y, pz) !== B.AIR) world.setBlock(px, y, pz, B.AIR); if (!isSolid(world.getBlock(px, py, pz))) world.setBlock(px, py, pz, B.STONE); world.setBlock(px, py + 1, pz, B.PORTAL); G.fisherSpot.portal = { x: px, y: py + 1, z: pz }; }
+    if (world.preset.id !== 'earth') { const px = s.x - ux * 3 + (uz ? 2 : 0), pz = s.z - uz * 3 + (ux ? 2 : 0); const py = world.groundY(px, pz, gy + 6); for (let y = py + 1; y <= py + 3; y++) if (world.getBlock(px, y, pz) !== B.AIR) world.setBlock(px, y, pz, B.AIR); if (!isSolid(world.getBlock(px, py, pz))) world.setBlock(px, py, pz, B.STONE); world.setBlock(px, py + 1, pz, B.PORTAL); G.fisherSpot.portal = { x: px, y: py + 1, z: pz }; }
+    clearFisherPortal();
     fisher = makeNpc(99, 'fisher', s.x + ux * 3, s.z + uz * 3, 'Old Brannock', null, gy + 1, 'shore');
     fisher.wander = false; fisher.yaw = Math.atan2(Math.cos(s.a), Math.sin(s.a));
   }
@@ -687,7 +688,7 @@ const Village = (() => {
       for (let d = -12; d <= 12; d++) { for (const [x, z] of [[vx - 5, vz + d], [vx + 5, vz + d], [vx + d, vz - 5], [vx + d, vz + 5]]) if (Math.abs(d) > 3 && world.getBlock(x, vy, z) === B.AIR) set(x, vy - 1, z, B.PLANKS); }
       for (let d = -2; d <= 2; d++) { set(vx + d, vy, vz - 4, d % 2 ? B.LOG : B.AIR); }
     }
-    set(vx + 5, vy, vz - 5, B.PORTAL); set(vx + 5, vy - 1, vz - 5, M.plazaEdge);
+    if (world.preset.id !== 'earth') { set(vx + 5, vy, vz - 5, B.PORTAL); set(vx + 5, vy - 1, vz - 5, M.plazaEdge); }
     const r = U.rng(U.combine(world.seed, U.strHash(v.id)));
     if (M.bush) for (let i = 0; i < 14; i++) {
       const a = r() * Math.PI * 2, d = 9 + r() * 3; const x = Math.round(vx + Math.cos(a) * d), z = Math.round(vz + Math.sin(a) * d);
@@ -769,7 +770,9 @@ const Village = (() => {
 
   // ---- portals: every village has an arch; held villages' arches are dead, yours link up ----
   function portalBlock(v) { return v.type === 'land' ? { x: v.x + 5, y: v.y, z: v.z - 5 } : v.type === 'sea' ? { x: v.x - 3, y: v.y, z: v.z - 2 } : { x: v.x + 4, y: v.y, z: v.z - 4 }; }
-  function ensurePortal(v) { if (v.founded || v.R) return; const s = portalBlock(v); const x = s.x, z = s.z; if (world.getBlock(x, s.y, z) !== B.PORTAL) { world.setBlock(x, s.y, z, B.PORTAL); if (!isSolid(world.getBlock(x, s.y - 1, z))) world.setBlock(x, s.y - 1, z, B.STONE); for (let y = s.y + 1; y <= s.y + 2; y++) if (world.getBlock(x, y, z) !== B.AIR) world.setBlock(x, y, z, B.AIR); } }
+  // an Earth town built before the trains may still have its old portal standing: take it down
+  function clearPortal(v) { if (world.preset.id !== 'earth') return; for (let dx = -8; dx <= 8; dx++) for (let dz = -8; dz <= 8; dz++) for (let dy = -2; dy <= 3; dy++) if (world.getBlock(v.x + dx, v.y + dy, v.z + dz) === B.PORTAL) world.setBlock(v.x + dx, v.y + dy, v.z + dz, B.AIR); }
+  function ensurePortal(v) { if (v.founded || v.R || world.preset.id === 'earth') { clearPortal(v); return; } const s = portalBlock(v); const x = s.x, z = s.z; if (world.getBlock(x, s.y, z) !== B.PORTAL) { world.setBlock(x, s.y, z, B.PORTAL); if (!isSolid(world.getBlock(x, s.y - 1, z))) world.setBlock(x, s.y - 1, z, B.STONE); for (let y = s.y + 1; y <= s.y + 2; y++) if (world.getBlock(x, y, z) !== B.AIR) world.setBlock(x, y, z, B.AIR); } }
   function portalSpot(v) { return v.type === 'land' ? { x: v.x + 5.5, y: v.y, z: v.z - 3.5 } : v.type === 'sea' ? { x: v.x - 2.5, y: v.y, z: v.z - 0.5 } : { x: v.x + 4.5, y: v.y, z: v.z - 2.5 }; }
   function portalList(fromId) {
     const out = [];
@@ -1712,6 +1715,7 @@ const Village = (() => {
       if (!state(near.id).stamped) { ensureStamped(near); UI.toast(`${near.name}: ${near.style === 'atlantis' ? 'a city of the sea people' : near.type === 'sea' ? 'a village on stilts' : near.type === 'deep' ? 'a village under the sea' : near.style === 'alien' ? 'an alien settlement' : near.style === 'frontier' ? 'a frontier town' : near.style === 'halo' ? 'a caravan town' : 'a village'}${state(near.id).freed ? '' : ', held by a tyrant'}.`); }
       if (near.founded) { refreshT -= dt; if (refreshT <= 0 || !near.npcs.length) { refreshT = 4; refreshFounded(near); } }
       else if (!near.npcs.length) { populate(near); ensurePortal(near); }
+      if (!near.portalChecked) { near.portalChecked = true; clearPortal(near); }
       if (active && active !== near) { if (active.raid && active.raid.state === 'active') endRaid(active, state(active.id)); clearLieutenants(active); }
       active = near; remember(near, state(near.id));
       Wild.noSpawn = { x: near.x, z: near.z, r: near.type === 'land' ? (near.R ? near.R + 3 : state(near.id).expanded ? 21 : 15) : 16 };
@@ -1774,7 +1778,7 @@ const Village = (() => {
         else if (d <= 2.2 || walkState.far || (d < 40 && walkState.t >= 7)) {
           e.yaw = Math.atan2(dx, dz); walkState.stage = 'done';
           const reward = 80 + v.tier * 40; G.talkNpc = e;
-          Dialogue.show(e.name, [`Thank you! ${walkState.tyrant ? walkState.tyrant + ' kept' : 'That tyrant kept'} us shut in our own homes. We never thought anyone would stand up to him.`, `${v.name} is free. The doors are open again: ${shopDef('bakery', v).title}, ${shopDef('juice', v).title}, ${shopDef('trader', v).title}, and the ${shopDef('voodoo', v).title}. The arch in the square is yours now: tap it to step to any village you hold${world.preset.id !== 'earth' ? ' on this world' : ''}.`, `From today this village is under your protection. We set aside ${income} Shards for you every dawn; come to me to collect them. And here are ${reward} for the fight.`, 'Leave a Kin or two with us as guards. Raiders come at night for the walls, and the tyrant will try to come back. Talk to me for the village ledger.'], () => { G.shards += reward; UI.toast(`+${reward} Shards. ${v.name} pays ${income} a day.`, 'good'); walkState = null; e.wander = true; });
+          Dialogue.show(e.name, [`Thank you! ${walkState.tyrant ? walkState.tyrant + ' kept' : 'That tyrant kept'} us shut in our own homes. We never thought anyone would stand up to him.`, `${v.name} is free. The doors are open again: ${shopDef('bakery', v).title}, ${shopDef('juice', v).title}, ${shopDef('trader', v).title}, and the ${shopDef('voodoo', v).title}. ${world.preset.id !== 'earth' ? 'The arch in the square is yours now: tap it to step to any village you hold on this world.' : 'The station (or the ferry) will take you to any village you hold once its line is running.'}`, `From today this village is under your protection. We set aside ${income} Shards for you every dawn; come to me to collect them. And here are ${reward} for the fight.`, 'Leave a Kin or two with us as guards. Raiders come at night for the walls, and the tyrant will try to come back. Talk to me for the village ledger.'], () => { G.shards += reward; UI.toast(`+${reward} Shards. ${v.name} pays ${income} a day.`, 'good'); walkState = null; e.wander = true; });
         } else if (d >= 40) { walkState.t = 99; walkState.far = true; }
         break;
       }
@@ -1835,6 +1839,7 @@ const Village = (() => {
     return best;
   }
   function dirWord(dx, dz) { const dirs = ['north', 'north-east', 'east', 'south-east', 'south', 'south-west', 'west', 'north-west']; const ang = Math.atan2(dx, -dz); return dirs[Math.round(((ang / (Math.PI * 2)) + 1) * 8) % 8]; }
+  function clearFisherPortal() { const fp = G.fisherSpot && G.fisherSpot.portal; if (!fp || world.preset.id !== 'earth') return; if (world.getBlock(fp.x, fp.y, fp.z) === B.PORTAL) world.setBlock(fp.x, fp.y, fp.z, B.AIR); G.fisherSpot.portal = null; }
   function fisherTarget() {
     let target = G.fisherTarget ? recordFor(G.fisherTarget) : null;
     if (!target || isFreed(target.id)) { target = fisher ? nearestUnfreed(fisher.x, fisher.z, true) : null; G.fisherTarget = target ? target.id : null; }
@@ -1879,6 +1884,12 @@ const Village = (() => {
       UI.openPanel('village', v);
       return;
     }
+    const an = (w) => (/^[aeiou]/i.test(w) ? 'An ' : 'A ') + w;
+    { const hs = (typeof Wild !== 'undefined' && Wild.haunts) ? Wild.haunts() : []; const p = G.player;
+      if (hs.length && Math.random() < 0.7) { const h = hs[Math.floor(Math.random() * hs.length)]; const dx = wd(h.x - p.x), dz = wd(h.z - p.z), d = Math.round(Math.hypot(dx, dz) / 10) * 10;
+        const where = h.biome === 'Forest' ? 'in the trees' : h.biome === 'Plains' ? 'out on the open grass' : h.biome === 'Desert' ? 'out on the sand' : h.biome === 'Swamp' ? 'down in the marsh' : h.biome === 'Snowfield' ? 'up in the snow' : h.biome === 'Mountains' ? 'up on the slopes' : 'out there';
+        G.stats.hauntTold = G.stats.hauntTold || {}; G.stats.hauntTold[h.sp.seed] = true;
+        Dialogue.show(n.name, [U.rng(Date.now() | 0).pick([`${an(h.name)}? I see a couple of them ${where}, about ${d} blocks ${dirWord(dx, dz)} of here. Always the same spot.`, `You want ${an(h.name).toLowerCase()}? There's a pair that keeps ${where}, ${d} blocks or so to the ${dirWord(dx, dz)}. My cousin swears they never leave it.`, `${h.name}s, you say. Go ${dirWord(dx, dz)}, maybe ${d} blocks, ${where}. That's where they always are.`])]); return; } }
     Dialogue.show(n.name, [U.rng(Date.now() | 0).pick(VILLAGER_LINES)]);
   }
   // ---- the train: a little tank engine and two coaches waiting at the platform of every open station, steam idling; it pulls out when you buy a fare ----
