@@ -13045,7 +13045,7 @@ const Felling = (() => {
       if (Math.max(Math.abs(dx), Math.abs(dz)) !== r) continue;
       const rx = x + dx, rz = z + dz; const info = w.colInfo(U.mod(rx, WORLD_W), U.mod(rz, WORLD_W)); const tree = w.treeAt(rx, rz, info); if (!tree) continue;
       const set = new Map(); w.plantTree((bx, by, bz, id) => set.set(key(bx, by, bz), { x: bx, y: by, z: bz, id }), rx, info.h, rz, tree, w.seed);
-      if (set.has(key(x, y, z))) return { root: { x: rx, y: info.h, z: rz }, blocks: [...set.values()], type: tree.type };
+      if (set.has(key(x, y, z)) && [...set.values()].filter(b => CROWN(w.getBlock(b.x, b.y, b.z))).length >= 3) return { root: { x: rx, y: info.h, z: rz }, blocks: [...set.values()], type: tree.type };
     }
     const seen = new Set([key(x, y, z)]), out = [{ x, y, z, id: w.getBlock(x, y, z) }], stack = [[x, y, z]]; let n = 0;
     while (stack.length && n++ < 400) {
@@ -13053,10 +13053,12 @@ const Felling = (() => {
       for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++) for (let dz = -1; dz <= 1; dz++) {
         if (!dx && !dy && !dz) continue; const nx = cx + dx, ny = cy + dy, nz = cz + dz; const k = key(nx, ny, nz); if (seen.has(k)) continue;
         if (Math.abs(nx - x) > 5 || Math.abs(nz - z) > 5 || ny < y - 1) continue;
-        const b = w.getBlock(nx, ny, nz); if (!(TRUNK(b) || (CROWN(b) && (TRUNK(cur) || CROWN(cur))))) continue;
+        const b = w.getBlock(nx, ny, nz); if (!((TRUNK(b) && dy === 1 && !dx && !dz && !CROWN(cur)) || (CROWN(b) && (TRUNK(cur) || CROWN(cur))))) continue; // a trunk only climbs: logs side by side are a wall, not a tree
         seen.add(k); out.push({ x: nx, y: ny, z: nz, id: b }); stack.push([nx, ny, nz]);
       }
     }
+    // logs with no crown are something you built (a wall, a fence, a hut): taking one out takes out that one block, nothing more
+    if (out.filter(b => CROWN(b.id)).length < 3) return null;
     return { root: { x, y: y - 1, z }, blocks: out, type: 'wild' };
   }
   // the cut: the trunk block at (x, y, z) has just been taken out by the player; the rest of the tree above it comes down
