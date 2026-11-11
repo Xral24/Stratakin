@@ -135,8 +135,10 @@ const Wild = (() => {
   function standable(x, y, z, aquatic) {
     const b0 = world.getBlock(x, y, z), b1 = world.getBlock(x, y + 1, z), below = world.getBlock(x, y - 1, z);
     if (aquatic) return b0 === B.WATER && (b1 === B.WATER || b1 === B.AIR);
-    return b0 === B.AIR && (b1 === B.AIR || b1 === B.TORCH) && isSolid(below) && below !== B.LAVA;
+    return b0 === B.AIR && (b1 === B.AIR || b1 === B.TORCH) && isSolid(below) && below !== B.LAVA && !BARRIER.has(below);
   }
+  // fences, palisades and walls keep Kin out: nothing walks along the top of them, so a Kin that meets one turns back (fliers still go over)
+  const BARRIER = new Set([B.FENCE, B.PALISADE, B.IRONWALL, B.LAMP].filter(x => x != null));
   function makeEntity(sp, level, x, y, z, opts = {}) {
     const kin = KIN.create(sp, level);
     const st = KIN.stats(kin);
@@ -271,6 +273,7 @@ const Wild = (() => {
   function findGround(x, y, z, e) {
     const bx = Math.floor(x), bz = Math.floor(z);
     if (e.aquatic) { for (const dy of [0, 1, -1, 2, -2]) { if (world.getBlock(bx, Math.floor(y) + dy, bz) === B.WATER) return Math.floor(y) + dy; } return null; }
+    if (!e.flying) { const fy = Math.floor(y); for (let k = 0; k <= 1; k++) if (BARRIER.has(world.getBlock(bx, fy + k, bz))) return null; } // a fence in the way is a wall to a walker
     for (const dy of [0, 1, -1, 2, -2, -3]) { const yy = Math.floor(y) + dy; if (standable(bx, yy, bz, false)) return yy; }
     return null;
   }

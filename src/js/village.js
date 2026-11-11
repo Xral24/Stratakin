@@ -1379,7 +1379,12 @@ const Village = (() => {
     for (const n of v.npcs) n.hidden = false;
     G.stats.villagesFreed = (G.stats.villagesFreed || 0) + 1;
     if (v.starter) G.stats.villageFreed = true;
-    if (v.elder) { v.elder.wander = false; walkState = { v, stage: (v.starter && !G.stats.elderDone) ? 'approach' : 'approach-headman' }; }
+    const tyrant = v.boss ? (v.boss.title || v.boss.name || (v.boss.kin ? KIN.name(v.boss.kin) : null)) : null;
+    if (v.elder) { v.elder.wander = false; walkState = { v, tyrant, stage: (v.starter && !G.stats.elderDone) ? 'approach' : 'approach-headman' }; }
+    else { // no headman here: whoever is nearest says thank you, straight away
+      const n = v.npcs.filter(n => !n.hidden).sort((a, b) => Math.hypot(a.x - G.player.x, a.z - G.player.z) - Math.hypot(b.x - G.player.x, b.z - G.player.z))[0];
+      setTimeout(() => Dialogue.show(n ? n.name : v.name, [`You did it! ${tyrant ? tyrant + ' had' : 'That tyrant had'} us under his boot for so long. ${v.name} is free, and the doors are open again. Thank you.`]), 900);
+    }
     G.lastVillage = { id: v.id, x: v.x, y: v.y, z: v.z, name: v.name, world: world.preset.id };
     G.respawnPoint = { x: v.x + 0.5, y: v.y, z: v.z + 4.5 };
     if (G.fisherTarget === id) { G.fisherTarget = null; G.stats.fisherDone = (G.stats.fisherDone || 0) + 1; }
@@ -1766,11 +1771,11 @@ const Village = (() => {
       case 'approach-headman': {
         walkState.t = (walkState.t || 0) + dt;
         if (d > 2.2 && d < 40 && walkState.t < 7) moveTo(player.x - dx / d * 1.8, player.z - dz / d * 1.8, 2.6);
-        else if (d <= 2.2 || (d < 40 && walkState.t >= 7)) {
+        else if (d <= 2.2 || walkState.far || (d < 40 && walkState.t >= 7)) {
           e.yaw = Math.atan2(dx, dz); walkState.stage = 'done';
           const reward = 80 + v.tier * 40; G.talkNpc = e;
-          Dialogue.show(e.name, [`${v.name} is free. The tyrant is gone and the doors are open: ${shopDef('bakery', v).title}, ${shopDef('juice', v).title}, ${shopDef('trader', v).title}, and the ${shopDef('voodoo', v).title}. The arch in the square is yours now: tap it to step to any village you hold${world.preset.id !== 'earth' ? ' on this world' : ''}.`, `From today this village is under your protection. We set aside ${income} Shards for you every dawn; come to me to collect them. And here are ${reward} for the fight.`, 'Leave a Kin or two with us as guards. Raiders come at night for the walls, and the tyrant will try to come back. Talk to me for the village ledger.'], () => { G.shards += reward; UI.toast(`+${reward} Shards. ${v.name} pays ${income} a day.`, 'good'); walkState = null; e.wander = true; });
-        } else if (d >= 40) walkState = null;
+          Dialogue.show(e.name, [`Thank you! ${walkState.tyrant ? walkState.tyrant + ' kept' : 'That tyrant kept'} us shut in our own homes. We never thought anyone would stand up to him.`, `${v.name} is free. The doors are open again: ${shopDef('bakery', v).title}, ${shopDef('juice', v).title}, ${shopDef('trader', v).title}, and the ${shopDef('voodoo', v).title}. The arch in the square is yours now: tap it to step to any village you hold${world.preset.id !== 'earth' ? ' on this world' : ''}.`, `From today this village is under your protection. We set aside ${income} Shards for you every dawn; come to me to collect them. And here are ${reward} for the fight.`, 'Leave a Kin or two with us as guards. Raiders come at night for the walls, and the tyrant will try to come back. Talk to me for the village ledger.'], () => { G.shards += reward; UI.toast(`+${reward} Shards. ${v.name} pays ${income} a day.`, 'good'); walkState = null; e.wander = true; });
+        } else if (d >= 40) { walkState.t = 99; walkState.far = true; }
         break;
       }
       case 'approach-founded': {
