@@ -73,6 +73,11 @@ const Campaign = (() => {
   const set = (x, y, z, b) => world.setBlock(x, y, z, b);
   function clearAbove(x, z, y0, h) { for (let y = y0; y <= y0 + h; y++) { const b = world.getBlock(x, y, z); if (b !== B.AIR) set(x, y, z, B.AIR); } }
   function pad(cx, cz, r, y0, mat) { for (let dx = -r; dx <= r; dx++) for (let dz = -r; dz <= r; dz++) { for (let y = y0 - 3; y < y0; y++) if (!isSolid(world.getBlock(cx + dx, y, cz + dz))) set(cx + dx, y, cz + dz, B.DIRT); set(cx + dx, y0, cz + dz, mat || B.GRASS); clearAbove(cx + dx, cz + dz, y0 + 1, 8); } }
+  // the shaft has to come out through the gallery ceiling, and its ladder has to reach the gallery floor, or you drop in and cannot climb out
+  function openShaft(s, bottom) {
+    for (let dx = -1; dx <= 1; dx++) for (let dz = -1; dz <= 1; dz++) set(s.x + dx, bottom + 4, s.z + dz, B.AIR);
+    for (let y = bottom; y <= bottom + 4; y++) set(s.x, y, s.z + 1, B.LADDER);
+  }
   function stampMine(s) {
     world.ensureAround(Math.floor(s.x / CH), Math.floor(s.z / CH), 1, 99);
     const y0 = world.colInfo(s.x, s.z).h; pad(s.x, s.z, 7, y0, B.GRAVEL);
@@ -97,6 +102,7 @@ const Campaign = (() => {
       else set(X, y, Z, B.AIR);
     }
     for (const dx of [-6, -2, 2, 6]) { for (let y = bottom; y <= bottom + 3; y++) { set(s.x + dx, y, s.z - 3, B.LOG); set(s.x + dx, y, s.z + 3, B.LOG); } for (let dz = -3; dz <= 3; dz++) set(s.x + dx, bottom + 3, s.z + dz, B.PLANKS); set(s.x + dx, bottom + 2, s.z - 2, B.TORCH); }
+    openShaft(s, bottom);
     set(s.x + 7, bottom, s.z + 2, B.CHEST); set(s.x + 7, bottom, s.z + 1, B.CHEST);
     const ch = G.chestAt(s.x + 7, bottom, s.z + 2, true); ch.items = { torch: 6, bread: 2, copper: 2 };
     s.bottom = bottom; s.y0 = y0;
@@ -233,6 +239,7 @@ const Campaign = (() => {
     const S = sites(); const c = C();
     tick += dt; if (tick > 0.4) { tick = 0;
       if (near(S.mine, p, 90) && !c.st_mine) { c.st_mine = true; stampMine(S.mine); G.meshPass(99); }
+      else if (near(S.mine, p, 90) && c.st_mine && !c.mineShaftFix) { c.mineShaftFix = true; const m = S.mine; openShaft(m, Math.max(18, world.colInfo(m.x, m.z).h - 26)); G.meshPass(99); } // worlds stamped before the fix: the plug over the shaft comes out
       if (S.diver && near(S.diver, p, 90) && !c.st_diver) { c.st_diver = true; stampDiver(S.diver); G.meshPass(99); }
       if (S.ranch && near(S.ranch, p, 90) && !c.st_ranch) { c.st_ranch = true; stampRanch(S.ranch); G.meshPass(99); }
       if (S.snow && near(S.snow, p, 90) && !c.st_snow) { c.st_snow = true; stampSnow(S.snow); G.meshPass(99); }
