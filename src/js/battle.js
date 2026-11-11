@@ -11,6 +11,9 @@ const Battle = (() => {
     el.root = q('battle'); el.wild = q('b-wild'); el.mine = q('b-mine'); el.log = q('b-log'); el.actions = q('b-actions'); el.snare = q('b-snare');
     el.snareGo = q('snare-go'); el.zone = el.snare.querySelector('.snare-zone'); el.marker = el.snare.querySelector('.snare-marker');
     el.snare.addEventListener('click', onSnareGo);
+    // changed your mind (or pressed Snare by accident): the snare goes back in the bag and the fight carries on
+    const cancel = q('snare-cancel'); const stop = (e) => { e.stopPropagation(); e.preventDefault(); cancelSnare(); };
+    cancel.addEventListener('click', stop); cancel.addEventListener('touchstart', stop, { passive: false });
     el.snare.addEventListener('touchstart', (e) => { e.preventDefault(); onSnareGo(); }, { passive: false });
   }
   function buffs() { return { guard: false, focus: false, coil: false, dash: false }; }
@@ -286,7 +289,7 @@ const Battle = (() => {
     let period = U.clamp(2.3 - st.agi / 110, 0.75, 2.3) * [1, 0.95, 0.85, 0.65, 0.45][rar];
     if (gap > 1.2) period *= U.clamp(1 - (gap - 1.2) * 0.9, 0.25, 1); // a strong Kin fights the cage: the marker races
     if (hopeless) period = 0.08;
-    snareState = { width, left, period, hopeless, t0: performance.now(), done: false, hits: 0, need: rar >= 4 ? 3 : rar === 3 ? 2 : 1 };
+    snareState = { item, width, left, period, hopeless, t0: performance.now(), done: false, hits: 0, need: rar >= 4 ? 3 : rar === 3 ? 2 : 1 };
     el.zone.style.left = (left * 100) + '%'; el.zone.style.width = (width * 100) + '%';
     el.snare.classList.remove('hidden'); el.root.classList.add('snaring'); el.root.scrollTop = 0;
     const pct = chance === 0 ? '0%' : chance < 0.01 ? 'under 1%' : Math.round(chance * 100) + '%';
@@ -295,6 +298,12 @@ const Battle = (() => {
     else if (gap > 1.2) log(`${KIN.name(wild)} is far above your snare strength (${grip}). It will fight the cage hard.`, 'bad');
     G.sfx('snare');
     requestAnimationFrame(snareFrame);
+  }
+  function cancelSnare() {
+    if (!snareState || snareState.done) return;
+    snareState.done = true; G.player.add(snareState.item, 1); snareState = null;
+    el.snare.classList.add('hidden'); el.root.classList.remove('snaring');
+    log('You pick the snare back up.'); busy = false; renderActions();
   }
   function snareFrame() {
     if (!snareState || snareState.done) return;

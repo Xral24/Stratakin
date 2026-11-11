@@ -426,3 +426,4 @@ body.desktop #joy, body.desktop #btn-jump, body.desktop #btn-sneak { display: no
 .act.stun .stunbar { position: absolute; left: 0; right: 0; bottom: 0; height: 4px; background: rgba(0,0,0,.35); }
 .act.stun #stun-fill { display: block; height: 100%; width: 100%; background: var(--acc); }
 @keyframes stunpulse { from { box-shadow: 0 0 0 0 rgba(242,181,68,.0); } to { box-shadow: 0 0 14px 2px rgba(242,181,68,.6); } }
+#snare-cancel { display: block; margin: 10px auto 0; background: rgba(255,255,255,.08); color: var(--ui); border: 1px solid rgba(255,255,255,.2); border-radius: 12px; padding: 9px 16px; font-weight: 800; font-size: 13px; }

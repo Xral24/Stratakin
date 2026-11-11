@@ -868,11 +868,15 @@ G.onTap = function () {
   if (npc) { Village.talk(npc); return; }
   const rn = Npcs.pick(p);
   if (rn) { Npcs.talk(rn); return; }
-  if (Buddy.pick(p) && !Wild.pick(p)) { Buddy.tap(); return; }
+  { const be = Buddy.entity; const h0 = p.raycast(5.5); const useBlock = h0 && [B.CAMPFIRE, B.FUSION, B.DARKTABLE, B.CHEST, B.BED, B.DOOR, B.DOOR_OPEN, B.PORTAL, B.INCUBATOR].includes(h0.id);
+    const buddyFirst = !(useBlock && be && Math.hypot(be.x - p.x, be.z - p.z) > h0.dist - 0.3); // a fire or table right in front of you wins over your Kin standing beside it
+    if (buddyFirst && Buddy.pick(p) && !Wild.pick(p)) { Buddy.tap(); return; } }
   { const sel0 = p.selected(); const ai = sel0 && ITEMS[sel0]; if (ai && ai.arrow && Combat.anyBow()) { this.shoot(sel0); return; } }
   const e = (p.selected() && (p.itemInfo(p.selected()) || {}).bow) ? null : Wild.pick(p);
   const hit = p.raycast(5.5);
-  if (Combat.weapon() && !(e && e.rogue) && !(e && e.dazed > 0)) { Combat.swing(); return; }
+  // with a weapon in hand, a tap on something you use (the camp fire, a table, a door, a chest, a bed) still uses it; anything else is a swing
+  const usable = hit && !e && (hit.id === B.CAMPFIRE || hit.id === B.FUSION || hit.id === B.DARKTABLE || hit.id === B.STARMETAL || hit.id === B.PORTAL || hit.id === B.DOOR || hit.id === B.DOOR_OPEN || hit.id === B.CHEST || hit.id === B.INCUBATOR || hit.id === B.BED || hit.id === B.THORN || hit.id === B.DEADGATE || hit.id === B.RUBBLE);
+  if (Combat.weapon() && !usable && !(e && e.rogue) && !(e && e.dazed > 0)) { Combat.swing(); return; }
   if (e && e.dazed > 0) { if (p.has('snare') || p.has('snare2')) { this.stealthSnare(); } else UI.toast('It is dazed. A snare would take it now: 2 wood, 2 stone.'); return; }
   if (e && e.rogue) { const c = Campaign.C(); if (c.ranch !== 2) { UI.toast('Thunderhoof flattens his ears at you. Talk to Dusty Hale first.'); return; } const k = KIN.create(e.kin.sp, e.kin.level); Taming.start(k, { hard: true, onDone: (kk) => { kk.tamed = true; this.addKin(kk); Campaign.onRogueTamed(kk); UI.toast('Thunderhoof is yours, and you can ride now. Every Kin still has to be broken in once: press Ride and hold on.', 'good'); } }); return; }
   if (e && (!hit || Math.hypot(e.x - p.x, e.z - p.z, e.y - p.y) < hit.dist + 0.5)) {

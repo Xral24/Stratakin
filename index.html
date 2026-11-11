@@ -441,6 +441,7 @@ body.desktop #joy, body.desktop #btn-jump, body.desktop #btn-sneak { display: no
 .act.stun .stunbar { position: absolute; left: 0; right: 0; bottom: 0; height: 4px; background: rgba(0,0,0,.35); }
 .act.stun #stun-fill { display: block; height: 100%; width: 100%; background: var(--acc); }
 @keyframes stunpulse { from { box-shadow: 0 0 0 0 rgba(242,181,68,.0); } to { box-shadow: 0 0 14px 2px rgba(242,181,68,.6); } }
+#snare-cancel { display: block; margin: 10px auto 0; background: rgba(255,255,255,.08); color: var(--ui); border: 1px solid rgba(255,255,255,.2); border-radius: 12px; padding: 9px 16px; font-weight: 800; font-size: 13px; }
 
 </style>
 </head>
@@ -518,6 +519,7 @@ body.desktop #joy, body.desktop #btn-jump, body.desktop #btn-sneak { display: no
     <div class="snare-tip">Tap anywhere here when the marker is inside the glowing zone.</div>
     <div class="snare-track"><div class="snare-zone"></div><div class="snare-marker"></div></div>
     <button id="snare-go">Set the snare!</button>
+    <button id="snare-cancel">Not this one: pick the snare back up</button>
   </div>
   <div id="b-log"></div>
   <div id="b-actions"></div>
@@ -8061,6 +8063,9 @@ const Battle = (() => {
     el.root = q('battle'); el.wild = q('b-wild'); el.mine = q('b-mine'); el.log = q('b-log'); el.actions = q('b-actions'); el.snare = q('b-snare');
     el.snareGo = q('snare-go'); el.zone = el.snare.querySelector('.snare-zone'); el.marker = el.snare.querySelector('.snare-marker');
     el.snare.addEventListener('click', onSnareGo);
+    // changed your mind (or pressed Snare by accident): the snare goes back in the bag and the fight carries on
+    const cancel = q('snare-cancel'); const stop = (e) => { e.stopPropagation(); e.preventDefault(); cancelSnare(); };
+    cancel.addEventListener('click', stop); cancel.addEventListener('touchstart', stop, { passive: false });
     el.snare.addEventListener('touchstart', (e) => { e.preventDefault(); onSnareGo(); }, { passive: false });
   }
   function buffs() { return { guard: false, focus: false, coil: false, dash: false }; }
@@ -8336,7 +8341,7 @@ const Battle = (() => {
     let period = U.clamp(2.3 - st.agi / 110, 0.75, 2.3) * [1, 0.95, 0.85, 0.65, 0.45][rar];
     if (gap > 1.2) period *= U.clamp(1 - (gap - 1.2) * 0.9, 0.25, 1); // a strong Kin fights the cage: the marker races
     if (hopeless) period = 0.08;
-    snareState = { width, left, period, hopeless, t0: performance.now(), done: false, hits: 0, need: rar >= 4 ? 3 : rar === 3 ? 2 : 1 };
+    snareState = { item, width, left, period, hopeless, t0: performance.now(), done: false, hits: 0, need: rar >= 4 ? 3 : rar === 3 ? 2 : 1 };
     el.zone.style.left = (left * 100) + '%'; el.zone.style.width = (width * 100) + '%';
     el.snare.classList.remove('hidden'); el.root.classList.add('snaring'); el.root.scrollTop = 0;
     const pct = chance === 0 ? '0%' : chance < 0.01 ? 'under 1%' : Math.round(chance * 100) + '%';
@@ -8345,6 +8350,12 @@ const Battle = (() => {
     else if (gap > 1.2) log(`${KIN.name(wild)} is far above your snare strength (${grip}). It will fight the cage hard.`, 'bad');
     G.sfx('snare');
     requestAnimationFrame(snareFrame);
+  }
+  function cancelSnare() {
+    if (!snareState || snareState.done) return;
+    snareState.done = true; G.player.add(snareState.item, 1); snareState = null;
+    el.snare.classList.add('hidden'); el.root.classList.remove('snaring');
+    log('You pick the snare back up.'); busy = false; renderActions();
   }
   function snareFrame() {
     if (!snareState || snareState.done) return;
@@ -13842,11 +13853,15 @@ G.onTap = function () {
   if (npc) { Village.talk(npc); return; }
   const rn = Npcs.pick(p);
   if (rn) { Npcs.talk(rn); return; }
-  if (Buddy.pick(p) && !Wild.pick(p)) { Buddy.tap(); return; }
+  { const be = Buddy.entity; const h0 = p.raycast(5.5); const useBlock = h0 && [B.CAMPFIRE, B.FUSION, B.DARKTABLE, B.CHEST, B.BED, B.DOOR, B.DOOR_OPEN, B.PORTAL, B.INCUBATOR].includes(h0.id);
+    const buddyFirst = !(useBlock && be && Math.hypot(be.x - p.x, be.z - p.z) > h0.dist - 0.3); // a fire or table right in front of you wins over your Kin standing beside it
+    if (buddyFirst && Buddy.pick(p) && !Wild.pick(p)) { Buddy.tap(); return; } }
   { const sel0 = p.selected(); const ai = sel0 && ITEMS[sel0]; if (ai && ai.arrow && Combat.anyBow()) { this.shoot(sel0); return; } }
   const e = (p.selected() && (p.itemInfo(p.selected()) || {}).bow) ? null : Wild.pick(p);
   const hit = p.raycast(5.5);
-  if (Combat.weapon() && !(e && e.rogue) && !(e && e.dazed > 0)) { Combat.swing(); return; }
+  // with a weapon in hand, a tap on something you use (the camp fire, a table, a door, a chest, a bed) still uses it; anything else is a swing
+  const usable = hit && !e && (hit.id === B.CAMPFIRE || hit.id === B.FUSION || hit.id === B.DARKTABLE || hit.id === B.STARMETAL || hit.id === B.PORTAL || hit.id === B.DOOR || hit.id === B.DOOR_OPEN || hit.id === B.CHEST || hit.id === B.INCUBATOR || hit.id === B.BED || hit.id === B.THORN || hit.id === B.DEADGATE || hit.id === B.RUBBLE);
+  if (Combat.weapon() && !usable && !(e && e.rogue) && !(e && e.dazed > 0)) { Combat.swing(); return; }
   if (e && e.dazed > 0) { if (p.has('snare') || p.has('snare2')) { this.stealthSnare(); } else UI.toast('It is dazed. A snare would take it now: 2 wood, 2 stone.'); return; }
   if (e && e.rogue) { const c = Campaign.C(); if (c.ranch !== 2) { UI.toast('Thunderhoof flattens his ears at you. Talk to Dusty Hale first.'); return; } const k = KIN.create(e.kin.sp, e.kin.level); Taming.start(k, { hard: true, onDone: (kk) => { kk.tamed = true; this.addKin(kk); Campaign.onRogueTamed(kk); UI.toast('Thunderhoof is yours, and you can ride now. Every Kin still has to be broken in once: press Ride and hold on.', 'good'); } }); return; }
   if (e && (!hit || Math.hypot(e.x - p.x, e.z - p.z, e.y - p.y) < hit.dist + 0.5)) {
