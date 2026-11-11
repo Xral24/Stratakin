@@ -9109,13 +9109,22 @@ const Builds = (() => {
   function siteCentre(q) { const s = q.site; return s.ax != null ? { x: (s.ax + s.bx) / 2, z: (s.az + s.bz) / 2 } : { x: s.x, z: s.z }; }
 
   // ---------- checking the work ----------
+  // how high a wall stands at (x, z): its top against the lowest ground beside it, so a dip you dug by mistake does not spoil it
+  function topIn(x, z, lo, hi) { for (let y = hi; y >= lo; y--) if (solid(x, y, z)) return y; return lo - 1; }
+  function wallHeight(x, z, nx, nz) { const h = natural(x, z); const top = topIn(x, z, h - 3, h + 6); const ground = Math.max(h - 1, Math.min(h, topIn(x + nx, z + nz, h - 3, h), topIn(x - nx, z - nz, h - 3, h))); return top - ground; } // a block's dip is forgiven, a trench is not
+  // the share of a square ring that is walled; the posts sit a step out from 'half', so every ring from a step in to two steps out is tried
+  const cellScore = (h, need) => h >= need ? 1 : h >= need - 1 && need > 1 ? 0.75 : 0; // a stretch a block short still mostly counts
   function ring(cx, cz, half, need) {
-    const cells = [];
-    for (let i = -half; i <= half; i++) cells.push([cx + i, cz - half], [cx + i, cz + half]);
-    for (let i = -half + 1; i <= half - 1; i++) cells.push([cx - half, cz + i], [cx + half, cz + i]);
-    let ok = 0; for (const [x, z] of cells) if (stack(x, z, need + 2) >= need) ok++;
-    return ok / cells.length;
+    let best = 0;
+    for (const hh of [half, half + 1, half - 1, half + 2]) {
+      if (hh < 2) continue; let ok = 0, n = 0;
+      for (let i = -hh + 1; i <= hh - 1; i++) { for (const [x, z] of [[cx + i, cz - hh], [cx + i, cz + hh]]) { n++; ok += cellScore(wallHeight(x, z, 0, 1), need); } }
+      for (let i = -hh + 1; i <= hh - 1; i++) { for (const [x, z] of [[cx - hh, cz + i], [cx + hh, cz + i]]) { n++; ok += cellScore(wallHeight(x, z, 1, 0), need); } }
+      best = Math.max(best, ok / n);
+    }
+    return best;
   }
+
   function towerAt(cx, cz, need) { // tallest stack in a 2x2 or 3x3 footprint
     let best = 0; for (let dx = -1; dx <= 1; dx++) for (let dz = -1; dz <= 1; dz++) best = Math.max(best, stack(cx + dx, cz + dz, need + 3)); return Math.min(1, best / need);
   }
