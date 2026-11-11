@@ -99,6 +99,25 @@ const Wild = (() => {
     for (const rc of all) if (known.includes(rc.i)) for (const sp of rc.parts) if (!have.has(sp.seed) && !sp.fusion && (sp.rarity || 0) <= 1) out.push(sp);
     return out;
   }
+  // ---- leads: the rare ones a known recipe calls for get no haunt, only a place people talk about: a patch of their home ground well away from
+  // the towns where they are seen more than anywhere else. Still rare there, but that is where to look ----
+  function leads() {
+    const body = world.preset.id; if (body !== 'earth') return [];
+    const known = ((G.stats.recipes || {})[body]) || []; if (!known.length) return [];
+    const have = new Set(G.kin.map(k => k.sp.seed)); const st = G.stats.leads || (G.stats.leads = {}); const out = []; const home = Village.def || G.lastVillage || world.spawn;
+    for (const rc of KIN.recipes(body)) if (known.includes(rc.i)) for (const sp of rc.parts) {
+      if (have.has(sp.seed) || sp.fusion || (sp.rarity || 0) < 2 || !sp.home) continue;
+      let l = st[sp.seed];
+      if (!l) {
+        const layer = sp.home.layer, biome = sp.home.biome; let best = null;
+        if (layer === 'Surface') for (let r = 140; r <= 900 && !best; r += 20) for (let k = 0; k < 32 && !best; k++) { const a = (k / 32 + (sp.seed % 89) / 89) * 6.283; const x = Math.round(home.x + Math.cos(a) * r), z = Math.round(home.z + Math.sin(a) * r);
+          if (BIOME_NAME[world.biomeAt(x, z)] !== biome) continue; if (Village.townList && Village.townList().some(t => Math.hypot(t.x - x, t.z - z) < 60)) continue; best = { x, z }; }
+        l = st[sp.seed] = best ? { x: best.x, z: best.z, name: sp.names[0], biome, layer } : { name: sp.names[0], biome, layer }; // the deep ones: a layer, not a spot
+      }
+      out.push(Object.assign({ sp }, l));
+    }
+    return out;
+  }
   // ---- haunts: every Kin a known recipe calls for, and you have not caught, has a spot of its own on its home ground within reach of your
   // first village, where one or two of it always live. Villagers know about them; the fusion quest points there ----
   function haunts() {
@@ -127,6 +146,8 @@ const Wild = (() => {
         const e = makeEntity(h.sp, lvl, x + 0.5, gy + 1, z + 0.5, {}); e.haunt = h.sp.seed; list.push(e); break; }
     }
   }
+  let leadCache = { t: 0, m: new Map() };
+  function leadMap() { const now = performance.now(); if (now - leadCache.t > 3000) { leadCache = { t: now, m: new Map(leads().map(l => [l.sp.seed, l])) }; } return leadCache.m; }
   function roll(x, y, z, trainerLevel) {
     const ctx = contextAt(x, y, z);
     const rx = Math.floor(U.mod(x, WORLD_W) / REGION), rz = Math.floor(U.mod(z, WORLD_W) / REGION);
@@ -156,6 +177,7 @@ const Wild = (() => {
       const prim = KIN.dominant(sp.elem, 1)[0];
       w *= Weather.elemMul(prim, isNight);
       if (G.lure && G.lure.until > performance.now()) w *= prim === G.lure.elem ? 8 : 0.25;
+      if (sp.rarity >= 2) { const l = leadMap().get(sp.seed); if (l && l.x != null && Math.hypot(x - l.x, z - l.z) < 60) w = Math.max(w, 0.02) * 8; }
       return w;
     });
     let pick = Math.random() * weights.reduce((a, b) => a + b, 0), idx = 0;
@@ -163,6 +185,8 @@ const Wild = (() => {
     let sp = list[idx];
     // the Kin your known recipes call for and you have not caught yet turn up regularly on their home ground, wherever on the map that ground is,
     // so a recipe is never a hunt for one species that happens not to live in your part of the world
+    // near a rare one's lead it does turn up now and then (still rare: about one spawn in fifteen there), on its own layer
+    { for (const l of leadMap().values()) { if (l.layer !== ctx.layer) continue; const close = l.x == null || Math.hypot(x - l.x, z - l.z) < 60; if (close && Math.random() < (l.x == null ? 0.02 : 0.07)) { sp = l.sp; break; } } }
     if (ctx.layer === 'Surface' && Math.random() < 0.25) { const want = wantedParts().filter(w => w.home && w.home.layer === 'Surface' && w.home.biome === ctx.biomeName); if (want.length) sp = want[Math.floor(Math.random() * want.length)]; }
     let level = zl + KIN.RARITY[sp.rarity].lvl + (elite ? 1 + Math.floor(Math.random() * 3) : -1 + Math.floor(Math.random() * 3));
     if (off && !elite) level += 1;
@@ -584,6 +608,6 @@ const Wild = (() => {
     return out;
   }
   function clear() { drops.length = 0; list.length = 0; mythicRef = null; legendRef = null; apexRefs.rex = apexRefs.mosa = null; }
-  const api = { haunts, inTallGrass, isHigh, dropEntities, init, update, list, remove, nearest, pick, rings, roll, ensureHeart, ensureLegend, ensureApex, apexSea, apexLevel: APEX_LV, clear, makeEntity, zoneLevel, noSpawn: null, chaser: null, engage, disengage, strike, hitByKin, daze, focusText, engagedNear, unfinishable, scripted, get mythic() { return mythicRef; }, get legend() { return legendRef; } };
+  const api = { haunts, leads, inTallGrass, isHigh, dropEntities, init, update, list, remove, nearest, pick, rings, roll, ensureHeart, ensureLegend, ensureApex, apexSea, apexLevel: APEX_LV, clear, makeEntity, zoneLevel, noSpawn: null, chaser: null, engage, disengage, strike, hitByKin, daze, focusText, engagedNear, unfinishable, scripted, get mythic() { return mythicRef; }, get legend() { return legendRef; } };
   return api;
 })();

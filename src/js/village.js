@@ -1886,10 +1886,18 @@ const Village = (() => {
     }
     const an = (w) => (/^[aeiou]/i.test(w) ? 'An ' : 'A ') + w;
     { const hs = (typeof Wild !== 'undefined' && Wild.haunts) ? Wild.haunts() : []; const p = G.player;
-      if (hs.length && Math.random() < 0.7) { const h = hs[Math.floor(Math.random() * hs.length)]; const dx = wd(h.x - p.x), dz = wd(h.z - p.z), d = Math.round(Math.hypot(dx, dz) / 10) * 10;
+      const ls = (typeof Wild !== 'undefined' && Wild.leads) ? Wild.leads() : [];
+      if ((hs.length || ls.length) && Math.random() < 0.75) {
+        // whoever you ask knows about one of the Kin you are after; go round the people in town and you hear about each of them
+        G.stats.hintTurn = (G.stats.hintTurn || 0) + 1; const all = hs.map(h => ['haunt', h]).concat(ls.map(l => ['lead', l])); const [kind, pick] = all[G.stats.hintTurn % all.length];
+        if (kind === 'lead') { const l = pick; const where = { Forest: 'deep in the woods', Plains: 'far out on the grass', Desert: 'out in the dunes', Swamp: 'in the marsh', Snowfield: 'up in the snowfields', Mountains: 'high on the peaks', Ocean: 'on the open sea' }[l.biome] || 'out in the wilds';
+          if (l.x == null) { Dialogue.show(n.name, [`${an(l.name)}? Rare as anything. ${l.layer === 'Mines' ? 'The miners say they have seen one down in the Mines, in the dark galleries.' : l.layer === 'Water' ? 'Fishermen talk of one in the deep water, out past the shallows.' : l.layer === 'Sky' ? 'Only up in the sky, they say, among the cloud islands.' : 'Only in the deepest places, they say.'} Take snares and patience.`]); return; }
+          const dx = wd(l.x - p.x), dz = wd(l.z - p.z), d = Math.round(Math.hypot(dx, dz) / 50) * 50;
+          Dialogue.show(n.name, [U.rng(Date.now() | 0).pick([`${an(l.name)}? I saw one once, ${where}, a good ${d} blocks ${dirWord(dx, dz)} of here. You don't see them often, mind.`, `People say the ${l.name}s keep ${where}, about ${d} blocks to the ${dirWord(dx, dz)}. A rare thing. Go when you have time to wait.`])]); return; }
+        const h = pick; const dx = wd(h.x - p.x), dz = wd(h.z - p.z), d = Math.round(Math.hypot(dx, dz) / 10) * 10;
         const where = h.biome === 'Forest' ? 'in the trees' : h.biome === 'Plains' ? 'out on the open grass' : h.biome === 'Desert' ? 'out on the sand' : h.biome === 'Swamp' ? 'down in the marsh' : h.biome === 'Snowfield' ? 'up in the snow' : h.biome === 'Mountains' ? 'up on the slopes' : 'out there';
         G.stats.hauntTold = G.stats.hauntTold || {}; G.stats.hauntTold[h.sp.seed] = true;
-        Dialogue.show(n.name, [U.rng(Date.now() | 0).pick([`${an(h.name)}? I see a couple of them ${where}, about ${d} blocks ${dirWord(dx, dz)} of here. Always the same spot.`, `You want ${an(h.name).toLowerCase()}? There's a pair that keeps ${where}, ${d} blocks or so to the ${dirWord(dx, dz)}. My cousin swears they never leave it.`, `${h.name}s, you say. Go ${dirWord(dx, dz)}, maybe ${d} blocks, ${where}. That's where they always are.`])]); return; } }
+        Dialogue.show(n.name, [U.rng(Date.now() | 0).pick([`${an(h.name)}? I see a couple of them ${where}, about ${d} blocks ${dirWord(dx, dz)} of here. Always the same spot.`, `You want ${/^[aeiou]/i.test(h.name) ? 'an' : 'a'} ${h.name}? There's a pair that keeps ${where}, ${d} blocks or so to the ${dirWord(dx, dz)}. My cousin swears they never leave it.`, `${h.name}s, you say. Go ${dirWord(dx, dz)}, maybe ${d} blocks, ${where}. That's where they always are.`])]); return; } }
     Dialogue.show(n.name, [U.rng(Date.now() | 0).pick(VILLAGER_LINES)]);
   }
   // ---- the train: a little tank engine and two coaches waiting at the platform of every open station, steam idling; it pulls out when you buy a fare ----
