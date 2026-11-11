@@ -272,7 +272,7 @@ class Player {
     if ((hitX || hitZ) && this.inWater && ml > 0.3) {
       // climb out of the water onto the bank
       const ahead = [this.x + mx * 0.7, this.y, this.z + mz * 0.7];
-      if (this.collides(ahead[0], this.y + 0.1, ahead[2]) && !this.collides(ahead[0], this.y + 1.05, ahead[2])) this.vy = 6.5;
+      if (this.collides(ahead[0], this.y + 0.1, ahead[2])) { if (!this.collides(ahead[0], this.y + 1.05, ahead[2])) this.vy = 6.5; else if (!this.collides(ahead[0], this.y + 1.75, ahead[2])) this.vy = 8; } // a ledge up to a block above the water: haul yourself up
     }
     if ((hitX || hitZ) && this.onGround && !this.sneak && ml > 0.2 && !this.mount) {
       const ax = this.x + mx * 0.55, az = this.z + mz * 0.55, fy = Math.floor(this.y + 0.01);

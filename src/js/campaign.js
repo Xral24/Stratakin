@@ -131,7 +131,22 @@ const Campaign = (() => {
     // the sunken chest, out in the deep
     const cx = s.x + ux * 14, cz = s.z + uz * 14; let ch = world.groundY(cx, cz, SEA + 2); while (ch > 1 && world.getBlock(cx, ch, cz) === B.WATER) ch--; set(cx, ch + 1, cz, B.CHEST); set(cx + 1, ch + 1, cz, B.CORAL_R); set(cx - 1, ch + 1, cz, B.CORAL_Y);
     const c = G.chestAt(cx, ch + 1, cz, true); c.items = { pearl: 3, coral: 4, gold: 1 }; c.treasure = true; s.chest = { x: cx, y: ch + 1, z: cz };
+    pierWays(s);
   }
+  // ways on and off the pier: a ladder up the bank at the land end (into the hut door), and one down to the sea floor at the far end
+  function pierWays(s) {
+    const y0 = SEA + 1, ux = s.ux, uz = s.uz; let changed = false;
+    const put = (x, y, z, id) => { if (world.getBlock(x, y, z) !== id) { set(x, y, z, id); changed = true; } };
+    const lx = s.x - ux, lz = s.z - uz; let g = y0; // the real top of the bank, whatever has grown over it since
+    while (g < y0 + 40) { const b = world.getBlock(lx, g + 1, lz); if (isSolid(b) || b === B.LADDER) g++; else break; }
+    if (g > y0) { for (let y = y0 + 1; y <= g; y++) put(lx, y, lz, B.LADDER); for (let y = y0 + 1; y <= g + 2; y++) put(s.x, y, s.z, B.AIR); for (let y = g + 1; y <= g + 2; y++) { put(lx, y, lz, B.AIR); const bx = lx - ux, bz = lz - uz; if (isSolid(world.getBlock(bx, y, bz))) put(bx, y, bz, B.AIR); } }
+    const ex = s.x + ux * 13, ez = s.z + uz * 13; let fy = y0; while (fy > 1 && !isSolid(world.getBlock(ex, fy - 1, ez))) fy--;
+    for (let y = fy; y <= y0; y++) put(ex, y, ez, B.LADDER);
+    for (let y = y0 + 1; y <= y0 + 2; y++) put(ex, y, ez, B.AIR);
+    return changed;
+  }
+
+
   function stampRanch(s) {
     world.ensureAround(Math.floor(s.x / CH), Math.floor(s.z / CH), 1, 99);
     const y0 = world.colInfo(s.x, s.z).h; pad(s.x, s.z, 9, y0);
@@ -241,6 +256,7 @@ const Campaign = (() => {
       if (near(S.mine, p, 90) && !c.st_mine) { c.st_mine = true; stampMine(S.mine); G.meshPass(99); }
       else if (near(S.mine, p, 90) && c.st_mine && !c.mineShaftFix2) { c.mineShaftFix2 = true; const m = S.mine; openShaft(m, Math.max(18, world.colInfo(m.x, m.z).h - 26)); G.meshPass(99); } // worlds stamped before the fix: the plug over the shaft comes out
       if (S.diver && near(S.diver, p, 90) && !c.st_diver) { c.st_diver = true; stampDiver(S.diver); G.meshPass(99); }
+      else if (S.diver && near(S.diver, p, 60) && c.st_diver && pierWays(S.diver)) G.meshPass(99); // keeps the pier ladders whole, old worlds included (terrain can fill in after the stamp)
       if (S.ranch && near(S.ranch, p, 90) && !c.st_ranch) { c.st_ranch = true; stampRanch(S.ranch); G.meshPass(99); }
       if (S.snow && near(S.snow, p, 90) && !c.st_snow) { c.st_snow = true; stampSnow(S.snow); G.meshPass(99); }
       if (S.snow && S.snow.lost && c.frost === 1 && near(S.snow.lost, p, 70) && !c.st_shelter) { c.st_shelter = true; stampShelter(S.snow); G.meshPass(99); }

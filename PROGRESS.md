@@ -67,6 +67,8 @@ Scope (Alexander, 8 Nov evening): EVERYTHING visible goes to the same standard: 
 
 - Kin storage swap: tables now offer a third choice, Your Kin and storage. Store buttons are bigger and blue. With a full party, Swap in asks which Kin to trade and does it in one tap.
 
+- Marisol's pier: a ladder up the bank at the land end and one from the sea floor at the far end (self-repairing, old worlds too). Swimmers can haul themselves onto a ledge a block above the water.
+
 ## Still to do
 UI polish as feedback comes in. Card battle screen still used for scripted encounters (raids at the walls, thief, citadel duel, holds) and the snare mini-game; converting those to live is the next big step if wanted. (Old list: train/ships, combat animation, eggs, avatar hair/paint, buddy WEAR cosmetics, Silas and Finch, UI polish (item icons), quality toggles in settings (state.shadows, state.grassQuality, state.dprCap).
 
