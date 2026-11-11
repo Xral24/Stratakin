@@ -269,6 +269,9 @@ body.desktop #joy, body.desktop #btn-jump, body.desktop #btn-sneak { display: no
 #drop-bar button { background: var(--bg); border: 1px solid var(--line); border-radius: 9px; padding: 6px 9px; font-size: 11px; font-weight: 800; }
 .kcard .kheal { margin-left: 6px; padding: 4px 8px; font-size: 11px; border-radius: 8px; background: #ff5f7a; color: #111; border: 0; font-weight: 800; }
 .kcard .kheal:disabled { opacity: .35; }
+.kcard .kstore { margin-left: 6px; padding: 7px 12px; font-size: 13px; border-radius: 9px; background: #7ec8ff; color: #111; border: 0; font-weight: 800; }
+.kcard .kstore.swap { background: #ffd166; }
+.swapbar { position: sticky; top: 0; z-index: 2; background: #2b3550; border: 1px solid #ffd166; border-radius: 10px; padding: 8px 10px; margin-bottom: 8px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 
 #bagbar { position: absolute; left: 50%; bottom: calc(14px + env(safe-area-inset-bottom)); transform: translateX(-50%); pointer-events: auto; }
 #btn-bag { display: flex; align-items: center; gap: 8px; background: var(--bg); border: 1px solid rgba(255,255,255,.2); border-radius: 14px; padding: 8px 14px; font-weight: 800; font-size: 13px; min-width: 160px; justify-content: center; backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px); box-shadow: 0 2px 8px rgba(0,0,0,.3); position: relative; overflow: hidden; }

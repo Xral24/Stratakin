@@ -65,6 +65,8 @@ Scope (Alexander, 8 Nov evening): EVERYTHING visible goes to the same standard: 
 - Portals on Earth (11 Nov): Earth travels by train and ferry, so no portals: not at the fisherman's jetty, not in sea towns; leftovers in existing worlds are removed when you come near. The headman's speech mentions the station or ferry instead of the arch. Moon and Halo keep theirs.
 - Rare recipe Kin (11 Nov): each rare/legendary Kin a known recipe needs gets a lead (G.stats.leads, Wild.leads): a patch of its home biome 140-900 blocks out, away from towns (or just its layer for Mines/Water/Sky ones). Near it, it is about one spawn in fifteen; elsewhere as rare as ever. Villagers take turns hinting at every Kin of your recipes, commons (exact haunt) and rares (rough place, "a good 300 blocks north-east, high on the peaks").
 
+- Kin storage swap: tables now offer a third choice, Your Kin and storage. Store buttons are bigger and blue. With a full party, Swap in asks which Kin to trade and does it in one tap.
+
 ## Still to do
 UI polish as feedback comes in. Card battle screen still used for scripted encounters (raids at the walls, thief, citadel duel, holds) and the snare mini-game; converting those to live is the next big step if wanted. (Old list: train/ships, combat animation, eggs, avatar hair/paint, buddy WEAR cosmetics, Silas and Finch, UI polish (item icons), quality toggles in settings (state.shadows, state.grassQuality, state.dprCap).
 

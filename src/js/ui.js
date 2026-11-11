@@ -165,7 +165,7 @@ const UI = (() => {
     if (Battle.active) return;
     panelOpen = name; el.panel.classList.remove('hidden'); G.setPaused(true);
     el['panel-body'].scrollTop = 0;
-    if (name === 'kin') renderKin();
+    if (name === 'kin') { swapIn = null; renderKin(); }
     else if (name === 'kindex') renderKindex(data);
     else if (name === 'craft') renderCraft();
     else if (name === 'quest') renderQuests();
@@ -276,18 +276,28 @@ const UI = (() => {
     const have = p.count(item);
     return `<button class="kheal" data-heal="${item}" ${have ? '' : 'disabled'}>${k.hp <= 0 ? 'Revive' : 'Heal'}${have ? ' ×' + have : ' (none)'}</button>`;
   }
+  let swapIn = null;
   function renderKin() {
     setTitle(`Your party · ${G.kin.length + G.eggs.length}/${G.MAX_KIN}`);
     const body = el['panel-body'];
     const tonics = ['tonic_revive', 'tonic_heal'].map(t => `${ITEMS[t].name} ×${G.player.count(t)}`).join(' · ');
     const atTable = G.nearTable();
     const eggs = G.eggs.map(e => `<div class="kcard egg"><canvas class="eggpic" data-seed="${e.seed}" width="64" height="64"></canvas><div class="kinfo"><b>Egg${e.label ? ': ' + e.label : ''}</b><div class="small">${e.from ? 'From ' + e.from + '. ' : ''}Keep walking with it: about ${Math.max(0, Math.ceil(e.need - e.walked))} steps to go.</div><div class="qbar"><div style="width:${Math.round(100 * Math.min(1, e.walked / e.need))}%"></div></div></div></div>`).join('');
-    const box = G.box.length ? `<h4>Storage (${G.box.length})</h4>` + (atTable ? G.box.map((d, i) => `<div class="recipe"><div class="rinfo"><b>${d.nick || d.sp.names[(d.stage || 1) - 1]}</b> <span class="small">Lv ${d.level}</span></div><button class="btn" data-unbox="${i}" ${G.partyFull() ? 'disabled' : ''}>Take</button></div>`).join('') : '<p class="note">Your stored Kin wait at the Fusion Tables. Stand at any table to swap.</p>') : '';
-    body.innerHTML = `<p class="note">You carry eight, and an egg takes a slot. Everyone awake learns a little from every win; the one that fights learns most.<br>${tonics}</p><div class="row"><button class="btn" id="k-dex">Kindex</button></div>` + G.kin.map(k => kinCard(k, healButton(k) + (atTable && G.kin.length > 1 ? `<button class="kheal" data-store="${k.id}">Store</button>` : ''))).join('') + eggs + box;
+    const nm = (d) => d.nick || d.sp.names[(d.stage || 1) - 1];
+    if (swapIn != null && (!atTable || !G.box[swapIn])) swapIn = null;
+    const full = G.partyFull();
+    const box = !G.box.length ? (atTable ? '<h4>Storage</h4><p class="note">Nothing stored yet. Tap Store on any Kin above to leave it here.</p>' : '') : `<h4>Storage (${G.box.length})</h4>` + (atTable ? G.box.map((d, i) => `<div class="recipe"><div class="rinfo"><b>${nm(d)}</b> <span class="small">Lv ${d.level}</span></div><button class="btn" data-unbox="${i}">${full ? 'Swap in' : 'Take'}</button></div>`).join('') : '<p class="note">Your stored Kin wait at the Fusion Tables. Stand at any table to swap them.</p>');
+    const swapNote = swapIn != null ? `<div class="swapbar"><b>Bringing ${nm(G.box[swapIn])}.</b> Who goes into storage? Tap Swap on one. <button class="btn ghost" id="k-swapx">Cancel</button></div>` : '';
+    const tableNote = atTable && swapIn == null ? '<p class="note"><b>You are at a table.</b> Store sends a Kin to storage. Take or Swap in brings one back, and if you are full it asks who to trade.</p>' : '';
+    const storeBtn = (k) => !atTable || G.kin.length <= 1 ? '' : swapIn != null ? `<button class="kstore swap" data-swapout="${k.id}">Swap</button>` : `<button class="kstore" data-store="${k.id}">Store</button>`;
+    body.innerHTML = swapNote + tableNote + `<p class="note">You carry eight, and an egg takes a slot. Everyone awake learns a little from every win; the one that fights learns most.<br>${tonics}</p><div class="row"><button class="btn" id="k-dex">Kindex</button></div>` + G.kin.map(k => kinCard(k, healButton(k) + storeBtn(k))).join('') + eggs + box;
     drawPortraits(body);
     q('k-dex').addEventListener('click', () => openPanel('kindex'));
-    body.querySelectorAll('[data-store]').forEach(b => b.addEventListener('click', (ev) => { ev.stopPropagation(); const k = G.kin.find(x => x.id == b.dataset.store); if (!k || G.kin.length <= 1) return; G.returnGear([k]); G.kin = G.kin.filter(x => x !== k); G.box.push(KIN.serialize(k)); G.activeIdx = U.clamp(G.activeIdx, 0, G.kin.length - 1); renderKin(); }));
-    body.querySelectorAll('[data-unbox]').forEach(b => b.addEventListener('click', () => { if (G.partyFull()) return; const d = G.box.splice(+b.dataset.unbox, 1)[0]; G.kin.push(KIN.deserialize(d)); renderKin(); }));
+    const stash = (k) => { G.returnGear([k]); G.kin = G.kin.filter(x => x !== k); G.box.push(KIN.serialize(k)); };
+    body.querySelectorAll('[data-store]').forEach(b => b.addEventListener('click', (ev) => { ev.stopPropagation(); const k = G.kin.find(x => x.id == b.dataset.store); if (!k || G.kin.length <= 1) return; stash(k); G.activeIdx = U.clamp(G.activeIdx, 0, G.kin.length - 1); sfx('place'); renderKin(); }));
+    body.querySelectorAll('[data-swapout]').forEach(b => b.addEventListener('click', (ev) => { ev.stopPropagation(); const k = G.kin.find(x => x.id == b.dataset.swapout); if (!k || swapIn == null) return; const d = G.box.splice(swapIn, 1)[0]; swapIn = null; const at = G.kin.indexOf(k); stash(k); G.kin.splice(at, 0, KIN.deserialize(d)); G.activeIdx = U.clamp(G.activeIdx, 0, G.kin.length - 1); sfx('place'); toast(`${nm(d)} joins you. ${KIN.name(k)} waits in storage.`); renderKin(); }));
+    const sx = q('k-swapx'); if (sx) sx.addEventListener('click', () => { swapIn = null; renderKin(); });
+    body.querySelectorAll('[data-unbox]').forEach(b => b.addEventListener('click', () => { const i = +b.dataset.unbox; if (G.partyFull()) { if (!G.kin.length) return; swapIn = i; renderKin(); body.scrollTop = 0; return; } const d = G.box.splice(i, 1)[0]; G.kin.push(KIN.deserialize(d)); sfx('place'); renderKin(); }));
     body.querySelectorAll('.kheal').forEach(b => b.addEventListener('click', (ev) => { ev.stopPropagation(); const card = b.closest('.kcard'); const k = G.kin.find(x => x.id == card.dataset.kid); if (G.useTonic(b.dataset.heal, k)) renderKin(); }));
     body.querySelectorAll('.kcard').forEach(c => c.addEventListener('click', () => openPanel('detail', G.kin.find(k => k.id == c.dataset.kid))));
   }
@@ -409,8 +419,9 @@ const UI = (() => {
     setTitle('Table'); if (data && data.table) lastTable = data;
     el['panel-body'].innerHTML = `<div class="choose">
       <button class="pick" data-go="craft"><span class="ico big" style="${Icons.style('snare')}"></span><b>Craft tools and items</b><small>Snares, picks, weapons, shields, blocks, tonics and Kin gear</small></button>
-      <button class="pick" data-go="fusion"><span class="ico big" style="${Icons.style('ess_Flame') || ''}"></span><b>Fuse Kin</b><small>Put Kin and essences together into something new${G.player.has('voidshard') ? '. Your Void Shard lets this table take dark materials' : ''}</small></button></div>`;
-    el['panel-body'].querySelectorAll('[data-go]').forEach(b => b.addEventListener('click', () => b.dataset.go === 'craft' ? openPanel('craft') : openPanel('fusion', lastTable || undefined)));
+      <button class="pick" data-go="fusion"><span class="ico big" style="${Icons.style('ess_Flame') || ''}"></span><b>Fuse Kin</b><small>Put Kin and essences together into something new${G.player.has('voidshard') ? '. Your Void Shard lets this table take dark materials' : ''}</small></button>
+      <button class="pick" data-go="kin"><span class="ico big" style="${Icons.style('snare')}"></span><b>Your Kin and storage</b><small>Store a Kin here or swap one in${G.box.length ? ` (${G.box.length} waiting)` : ''}</small></button></div>`;
+    el['panel-body'].querySelectorAll('[data-go]').forEach(b => b.addEventListener('click', () => b.dataset.go === 'craft' ? openPanel('craft') : b.dataset.go === 'kin' ? openPanel('kin') : openPanel('fusion', lastTable || undefined)));
   }
   function renderCraft() {
     setTitle('Craft');
