@@ -76,7 +76,7 @@ const Campaign = (() => {
   // the shaft has to come out through the gallery ceiling, and its ladder has to reach the gallery floor, or you drop in and cannot climb out
   function openShaft(s, bottom) {
     for (let dx = -1; dx <= 1; dx++) for (let dz = -1; dz <= 1; dz++) set(s.x + dx, bottom + 4, s.z + dz, B.AIR);
-    for (let y = bottom; y <= bottom + 4; y++) set(s.x, y, s.z + 1, B.LADDER);
+    for (let y = bottom; y <= bottom + 4; y++) { set(s.x, y, s.z + 1, B.LADDER); if (y <= bottom + 3) set(s.x, y, s.z + 2, B.LOG); } // a beam behind the bottom of it, so it reads as one ladder down to the floor
   }
   function stampMine(s) {
     world.ensureAround(Math.floor(s.x / CH), Math.floor(s.z / CH), 1, 99);
@@ -239,7 +239,7 @@ const Campaign = (() => {
     const S = sites(); const c = C();
     tick += dt; if (tick > 0.4) { tick = 0;
       if (near(S.mine, p, 90) && !c.st_mine) { c.st_mine = true; stampMine(S.mine); G.meshPass(99); }
-      else if (near(S.mine, p, 90) && c.st_mine && !c.mineShaftFix) { c.mineShaftFix = true; const m = S.mine; openShaft(m, Math.max(18, world.colInfo(m.x, m.z).h - 26)); G.meshPass(99); } // worlds stamped before the fix: the plug over the shaft comes out
+      else if (near(S.mine, p, 90) && c.st_mine && !c.mineShaftFix2) { c.mineShaftFix2 = true; const m = S.mine; openShaft(m, Math.max(18, world.colInfo(m.x, m.z).h - 26)); G.meshPass(99); } // worlds stamped before the fix: the plug over the shaft comes out
       if (S.diver && near(S.diver, p, 90) && !c.st_diver) { c.st_diver = true; stampDiver(S.diver); G.meshPass(99); }
       if (S.ranch && near(S.ranch, p, 90) && !c.st_ranch) { c.st_ranch = true; stampRanch(S.ranch); G.meshPass(99); }
       if (S.snow && near(S.snow, p, 90) && !c.st_snow) { c.st_snow = true; stampSnow(S.snow); G.meshPass(99); }

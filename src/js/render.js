@@ -1256,7 +1256,10 @@ const R = (() => {
         if (id === B.LADDER) { // two rails and rungs, flat against whichever side has a wall
           const sk = skyAt(lx, y, lz); const wood = [0.62, 0.47, 0.26], dark = [0.48, 0.35, 0.18];
           const wall = (dx, dz) => isOpaque(get(lx + dx, y, lz + dz));
-          const side = wall(1, 0) ? 'x+' : wall(-1, 0) ? 'x-' : wall(0, 1) ? 'z+' : wall(0, -1) ? 'z-' : 'x+';
+          const sideAt = (yy) => { const w2 = (dx, dz) => isOpaque(get(lx + dx, yy, lz + dz)); return w2(1, 0) ? 'x+' : w2(-1, 0) ? 'x-' : w2(0, 1) ? 'z+' : w2(0, -1) ? 'z-' : null; };
+          let side = sideAt(y); // a stretch with nothing behind it lines up with the rest of the ladder above or below, so it stays one ladder
+          for (let k = 1; !side && k < 12; k++) { if (get(lx, y + k, lz) === B.LADDER) side = sideAt(y + k); if (!side && get(lx, y - k, lz) === B.LADDER) side = sideAt(y - k); }
+          side = side || 'x+';
           const at = side === 'x+' ? 0.86 : side === 'x-' ? 0.02 : side === 'z+' ? 0.86 : 0.02;
           if (side[0] === 'x') { op.box(lx + at, y, lz + 0.12, lx + at + 0.12, y + 1, lz + 0.22, dark, sk, false); op.box(lx + at, y, lz + 0.78, lx + at + 0.12, y + 1, lz + 0.88, dark, sk, false); for (const r of [0.15, 0.4, 0.65, 0.9]) op.box(lx + at, y + r - 0.04, lz + 0.22, lx + at + 0.1, y + r + 0.04, lz + 0.78, wood, sk, false); }
           else { op.box(lx + 0.12, y, lz + at, lx + 0.22, y + 1, lz + at + 0.12, dark, sk, false); op.box(lx + 0.78, y, lz + at, lx + 0.88, y + 1, lz + at + 0.12, dark, sk, false); for (const r of [0.15, 0.4, 0.65, 0.9]) op.box(lx + 0.22, y + r - 0.04, lz + at, lx + 0.78, y + r + 0.04, lz + at + 0.1, wood, sk, false); }
