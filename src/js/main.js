@@ -162,7 +162,7 @@ G.rideMode = function (k) {
 };
 G.rideRequirement = function (k) {
   const r = k.sp.rarity || 0;
-  if (k.sp.tame) return 1;
+  if (k.sp.tame || k.sp.fast) return 1; // Thunderhoof and the camp horses: broken in already, anyone they trust can ride them
   const base = { land: 6, water: 10, air: 18 }[this.rideMode(k)];
   if (base == null) return null;
   return base + r * 5 + (k.sp.mythic ? 20 : 0);
