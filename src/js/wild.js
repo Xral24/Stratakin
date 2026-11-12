@@ -493,6 +493,7 @@ const Wild = (() => {
   function biteDmg(e) { const big = e.isBoss || e.isLegend || e.isApex || e.keepBoss || e.finalBoss || e.lieutenant; return Math.max(1, Math.round((1 + e.kin.level / 15 + (e.chase && e.chase.rage ? 1 : 0)) * (big ? 1.5 : 1))); } // you have ten hearts: a Lv 30 Kin takes three a bite, armour and a shield take the edge off
   // it turns on you: from here it is a live fight until you deploy a Kin, beat it by hand, or get away
   function engage(e, ambush, opts = {}) {
+    if (e.peaceful) return; // Thunderhoof and the like: you ride them, nobody fights them
     if (e.chase || e.dazed > 0) { if (e.chase) e.chase.t = Math.max(e.chase.t, 18); return; }
     const st = KIN.stats(e.kin);
     if (e.speed0 == null) e.speed0 = e.speed; if (e.patrol) { e.patrol0 = e.patrol; e.patrol = null; }
@@ -543,7 +544,7 @@ const Wild = (() => {
   // your Kin's blow lands: full battle damage, and a Kin can finish anything. A common Kin goes down dazed (your snare window); the scripted ones (tyrants, legends, bosses, quest Kin) are beaten outright
   function scripted(e) { return !!(e.lieutenant || e.isBoss || e.isLegend || e.isApex || e.isLabBoss || e.isMythic || e.isWarden || e.lairQuest || e.nightQuest || e.kinmaster || e.keepBoss || e.finalBoss || e.skyBoss || e.tangleBoss || e.citadelFirst || e.thief || e.pest || e.rogue || e.raider || e.siege || e.kin.sp.mythic); }
   function hitByKin(e, dmg, k) {
-    if (e.dazed > 0 || !list.includes(e)) return 0;
+    if (e.dazed > 0 || !list.includes(e) || e.peaceful) return 0;
     const before = e.kin.hp; e.kin.hp = Math.max(0, e.kin.hp - dmg); e.hitT = 0.35; e.sleep = false;
     if (!e.chase) engage(e, false, { quiet: true }); if (e.chase) { e.chase.t = Math.max(e.chase.t, 18); e.chase.foe = 'buddy'; e.chase.foeT = 5; if (e.chase.phase === 'wind' && Math.random() < 0.4) { e.chase.phase = 'rest'; e.chase.pt = 0.5; e.chase.hitCd = 0.6; } }
     G.kinFocus = e; G.kinFocusT = 3.5;

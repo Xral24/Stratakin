@@ -216,7 +216,7 @@ const Combat = (() => {
     }
     // wild Kin in the arc: a fraction of their health a blow, the big weapons about a seventh, a wooden sword a twentieth. Your Kin hit far harder.
     if (!hit || w.kind === 'axe') {
-      const near = Wild.list.filter(e => !e.high && !(e.dazed > 0)).map(e => { const dx = e.x - p.x, dz = e.z - p.z, d = Math.hypot(dx, dz); return { e, dx, dz, d }; }).filter(o => o.d <= w.reach + 0.4 + (o.e.model.radius || 0.6) * o.e.scale * 0.6 && Math.abs(o.e.y - p.y) < 2.6).sort((a, b) => a.d - b.d);
+      const near = Wild.list.filter(e => !e.high && !e.peaceful && !(e.dazed > 0)).map(e => { const dx = e.x - p.x, dz = e.z - p.z, d = Math.hypot(dx, dz); return { e, dx, dz, d }; }).filter(o => o.d <= w.reach + 0.4 + (o.e.model.radius || 0.6) * o.e.scale * 0.6 && Math.abs(o.e.y - p.y) < 2.6).sort((a, b) => a.d - b.d);
       for (const o of near) {
         const { e, dx, dz, d } = o; const ang = Math.acos(U.clamp((dx * fx + dz * fz) / (d || 1), -1, 1)); if (ang > w.arc * 0.5 + 0.3) continue;
         const crit = Math.random() < w.crit; const unaware = !e.chase && (e.alert || 0) < 0.6;
