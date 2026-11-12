@@ -446,12 +446,12 @@ body.desktop #joy, body.desktop #btn-jump, body.desktop #btn-sneak { display: no
 @keyframes stunpulse { from { box-shadow: 0 0 0 0 rgba(242,181,68,.0); } to { box-shadow: 0 0 14px 2px rgba(242,181,68,.6); } }
 #snare-cancel { display: block; margin: 10px auto 0; background: rgba(255,255,255,.08); color: var(--ui); border: 1px solid rgba(255,255,255,.2); border-radius: 12px; padding: 9px 16px; font-weight: 800; font-size: 13px; }
 /* riding a bucking Kin: big and in the middle, where your eyes are */
-#tamebar { position: fixed; left: 50%; top: 52%; transform: translate(-50%, -50%); width: min(380px, 90vw); background: var(--bg2); border: 2px solid #ffd166; border-radius: 16px; padding: 14px 14px 16px; z-index: 7; display: flex; flex-direction: column; gap: 10px; box-shadow: 0 8px 30px rgba(0,0,0,.55); pointer-events: none; }
+#tamebar { position: fixed; left: 50%; top: 52%; transform: translate(-50%, -50%); width: min(560px, 96vw); background: var(--bg2); border: 2px solid #ffd166; border-radius: 16px; padding: 14px 14px 16px; z-index: 7; display: flex; flex-direction: column; gap: 10px; box-shadow: 0 8px 30px rgba(0,0,0,.55); pointer-events: none; }
 #tamebar.hidden { display: none; }
-#tamebar .snare-tip { font-size: 20px; font-weight: 800; opacity: 1; text-align: center; color: #ffd166; }
-#tamebar .snare-tip small { display: block; font-size: 13px; font-weight: 600; color: var(--ui); opacity: .85; margin-top: 2px; }
-#tamebar .snare-track { height: 46px; border-radius: 14px; background: rgba(255,255,255,.14); }
-#tamebar .snare-marker { width: 10px; margin-left: -5px; }
+#tamebar .snare-tip { font-size: 26px; font-weight: 800; opacity: 1; text-align: center; color: #ffd166; }
+#tamebar .snare-tip small { display: block; font-size: 16px; font-weight: 600; color: var(--ui); opacity: .85; margin-top: 2px; }
+#tamebar .snare-track { height: 80px; border-radius: 14px; background: rgba(255,255,255,.14); }
+#tamebar .snare-marker { width: 14px; margin-left: -7px; }
 
 </style>
 </head>
@@ -9773,7 +9773,7 @@ const Taming = (() => {
   let st = null, el = null;
   function start(k, opts = {}) {
     if (st) return;
-    const hard = !!opts.hard; st = { k, ent: opts.ent || null, hits: 0, need: hard ? 6 : 4, pos: 0, dir: 1, speed: hard ? 1.7 : 1.15, zone: hard ? 0.13 : 0.2, center: 0.5, onDone: opts.onDone };
+    const hard = !!opts.hard; st = { k, ent: opts.ent || null, hits: 0, need: hard ? 6 : 4, pos: 0, dir: 1, speed: hard ? 1.7 : 1.15, zone: hard ? 0.22 : 0.28, center: 0.5, onDone: opts.onDone };
     st.center = 0.2 + Math.random() * 0.6;
     if (!el) { el = document.createElement('div'); el.id = 'tamebar'; el.innerHTML = '<div class="snare-tip"></div><div class="snare-track"><div class="snare-zone"></div><div class="snare-marker"></div></div>'; document.getElementById('touch-ui').appendChild(el); }
     el.classList.remove('hidden'); G.player.frozen = true; draw(); UI.sfx('alert');
@@ -9784,7 +9784,7 @@ const Taming = (() => {
   function tap() {
     if (!st) return false;
     const ok = Math.abs(st.pos - st.center) <= st.zone / 2;
-    if (ok) { st.hits++; UI.sfx('hit'); if (st.hits >= st.need) { const s = st; end(); s.k.tamed = true; UI.sfx('caught'); UI.toast(`${KIN.name(s.k)} stops fighting. It will carry you now.`, 'good'); if (s.onDone) s.onDone(s.k); else G.mountKin(s.k); return true; } st.center = 0.15 + Math.random() * 0.7; st.speed *= 1.1; draw(); return true; }
+    if (ok) { st.hits++; UI.sfx('hit'); if (st.hits >= st.need) { const s = st; end(); s.k.tamed = true; UI.sfx('caught'); UI.toast(`${KIN.name(s.k)} stops fighting. It will carry you now.`, 'good'); if (s.onDone) s.onDone(s.k); else G.mountKin(s.k); return true; } st.center = 0.15 + Math.random() * 0.7; st.speed *= 1.04; draw(); return true; }
     const s = st; end(); const p = G.player; p.damage(1, 'thrown'); p.vy = 7; p.vx = (Math.random() - 0.5) * 6; p.vz = (Math.random() - 0.5) * 6; UI.sfx('down');
     UI.toast(`Thrown! ${KIN.name(s.k)} snorts and stands there. Try again.`, 'bad'); return true;
   }

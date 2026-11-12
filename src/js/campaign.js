@@ -462,7 +462,7 @@ const Taming = (() => {
   let st = null, el = null;
   function start(k, opts = {}) {
     if (st) return;
-    const hard = !!opts.hard; st = { k, ent: opts.ent || null, hits: 0, need: hard ? 6 : 4, pos: 0, dir: 1, speed: hard ? 1.7 : 1.15, zone: hard ? 0.13 : 0.2, center: 0.5, onDone: opts.onDone };
+    const hard = !!opts.hard; st = { k, ent: opts.ent || null, hits: 0, need: hard ? 6 : 4, pos: 0, dir: 1, speed: hard ? 1.7 : 1.15, zone: hard ? 0.22 : 0.28, center: 0.5, onDone: opts.onDone };
     st.center = 0.2 + Math.random() * 0.6;
     if (!el) { el = document.createElement('div'); el.id = 'tamebar'; el.innerHTML = '<div class="snare-tip"></div><div class="snare-track"><div class="snare-zone"></div><div class="snare-marker"></div></div>'; document.getElementById('touch-ui').appendChild(el); }
     el.classList.remove('hidden'); G.player.frozen = true; draw(); UI.sfx('alert');
@@ -473,7 +473,7 @@ const Taming = (() => {
   function tap() {
     if (!st) return false;
     const ok = Math.abs(st.pos - st.center) <= st.zone / 2;
-    if (ok) { st.hits++; UI.sfx('hit'); if (st.hits >= st.need) { const s = st; end(); s.k.tamed = true; UI.sfx('caught'); UI.toast(`${KIN.name(s.k)} stops fighting. It will carry you now.`, 'good'); if (s.onDone) s.onDone(s.k); else G.mountKin(s.k); return true; } st.center = 0.15 + Math.random() * 0.7; st.speed *= 1.1; draw(); return true; }
+    if (ok) { st.hits++; UI.sfx('hit'); if (st.hits >= st.need) { const s = st; end(); s.k.tamed = true; UI.sfx('caught'); UI.toast(`${KIN.name(s.k)} stops fighting. It will carry you now.`, 'good'); if (s.onDone) s.onDone(s.k); else G.mountKin(s.k); return true; } st.center = 0.15 + Math.random() * 0.7; st.speed *= 1.04; draw(); return true; }
     const s = st; end(); const p = G.player; p.damage(1, 'thrown'); p.vy = 7; p.vx = (Math.random() - 0.5) * 6; p.vz = (Math.random() - 0.5) * 6; UI.sfx('down');
     UI.toast(`Thrown! ${KIN.name(s.k)} snorts and stands there. Try again.`, 'bad'); return true;
   }
