@@ -445,6 +445,13 @@ body.desktop #joy, body.desktop #btn-jump, body.desktop #btn-sneak { display: no
 .act.stun #stun-fill { display: block; height: 100%; width: 100%; background: var(--acc); }
 @keyframes stunpulse { from { box-shadow: 0 0 0 0 rgba(242,181,68,.0); } to { box-shadow: 0 0 14px 2px rgba(242,181,68,.6); } }
 #snare-cancel { display: block; margin: 10px auto 0; background: rgba(255,255,255,.08); color: var(--ui); border: 1px solid rgba(255,255,255,.2); border-radius: 12px; padding: 9px 16px; font-weight: 800; font-size: 13px; }
+/* riding a bucking Kin: big and in the middle, where your eyes are */
+#tamebar { position: fixed; left: 50%; top: 52%; transform: translate(-50%, -50%); width: min(380px, 90vw); background: var(--bg2); border: 2px solid #ffd166; border-radius: 16px; padding: 14px 14px 16px; z-index: 7; display: flex; flex-direction: column; gap: 10px; box-shadow: 0 8px 30px rgba(0,0,0,.55); pointer-events: none; }
+#tamebar.hidden { display: none; }
+#tamebar .snare-tip { font-size: 20px; font-weight: 800; opacity: 1; text-align: center; color: #ffd166; }
+#tamebar .snare-tip small { display: block; font-size: 13px; font-weight: 600; color: var(--ui); opacity: .85; margin-top: 2px; }
+#tamebar .snare-track { height: 46px; border-radius: 14px; background: rgba(255,255,255,.14); }
+#tamebar .snare-marker { width: 10px; margin-left: -5px; }
 
 </style>
 </head>
@@ -9772,7 +9779,7 @@ const Taming = (() => {
     el.classList.remove('hidden'); G.player.frozen = true; draw(); UI.sfx('alert');
     UI.toast(`${KIN.name(k)} bucks! Tap when the marker is in the glow. Stay on ${st.need} times.`);
   }
-  function draw() { if (!st || !el) return; el.querySelector('.snare-tip').textContent = `Hold on! ${st.hits}/${st.need}`; const z = el.querySelector('.snare-zone'); z.style.left = ((st.center - st.zone / 2) * 100) + '%'; z.style.width = (st.zone * 100) + '%'; el.querySelector('.snare-marker').style.left = (st.pos * 100) + '%'; }
+  function draw() { if (!st || !el) return; el.querySelector('.snare-tip').innerHTML = `Hold on! ${st.hits}/${st.need}<small>Tap anywhere when the white line is in the green</small>`; const z = el.querySelector('.snare-zone'); z.style.left = ((st.center - st.zone / 2) * 100) + '%'; z.style.width = (st.zone * 100) + '%'; el.querySelector('.snare-marker').style.left = (st.pos * 100) + '%'; }
   function update(dt, p) { if (!st) return; st.pos += st.dir * st.speed * dt; if (st.pos > 1) { st.pos = 1; st.dir = -1; } if (st.pos < 0) { st.pos = 0; st.dir = 1; } draw(); }
   function tap() {
     if (!st) return false;

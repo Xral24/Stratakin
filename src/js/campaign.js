@@ -468,7 +468,7 @@ const Taming = (() => {
     el.classList.remove('hidden'); G.player.frozen = true; draw(); UI.sfx('alert');
     UI.toast(`${KIN.name(k)} bucks! Tap when the marker is in the glow. Stay on ${st.need} times.`);
   }
-  function draw() { if (!st || !el) return; el.querySelector('.snare-tip').textContent = `Hold on! ${st.hits}/${st.need}`; const z = el.querySelector('.snare-zone'); z.style.left = ((st.center - st.zone / 2) * 100) + '%'; z.style.width = (st.zone * 100) + '%'; el.querySelector('.snare-marker').style.left = (st.pos * 100) + '%'; }
+  function draw() { if (!st || !el) return; el.querySelector('.snare-tip').innerHTML = `Hold on! ${st.hits}/${st.need}<small>Tap anywhere when the white line is in the green</small>`; const z = el.querySelector('.snare-zone'); z.style.left = ((st.center - st.zone / 2) * 100) + '%'; z.style.width = (st.zone * 100) + '%'; el.querySelector('.snare-marker').style.left = (st.pos * 100) + '%'; }
   function update(dt, p) { if (!st) return; st.pos += st.dir * st.speed * dt; if (st.pos > 1) { st.pos = 1; st.dir = -1; } if (st.pos < 0) { st.pos = 0; st.dir = 1; } draw(); }
   function tap() {
     if (!st) return false;
