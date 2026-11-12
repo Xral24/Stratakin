@@ -75,6 +75,8 @@ Scope (Alexander, 8 Nov evening): EVERYTHING visible goes to the same standard: 
 
 - Wall checks (paddock, pens, houses, forts) forgive: rings from a step in to two out of the marked size (Hale's posts sit at 5, the check was at 4), corners skipped, a one-block dip beside or under the wall forgiven, and a stretch one block short counts three quarters.
 
+- Thunderhoof: spawned inside the wild cleanup range (he appeared at 70 and was swept at 58, then never came back). Now spawns within 45 of the paddock and respawns whenever he has been cleared; the quest pin points at him.
+
 ## Still to do
 UI polish as feedback comes in. Card battle screen still used for scripted encounters (raids at the walls, thief, citadel duel, holds) and the snare mini-game; converting those to live is the next big step if wanted. (Old list: train/ships, combat animation, eggs, avatar hair/paint, buddy WEAR cosmetics, Silas and Finch, UI polish (item icons), quality toggles in settings (state.shadows, state.grassQuality, state.dprCap).
 

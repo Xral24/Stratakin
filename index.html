@@ -9605,7 +9605,8 @@ const Campaign = (() => {
     if (S.halfB && near(S.halfB, p, 70) && C().st_halfB && !has('sela')) person('sela', 'Old Sela', 'halfB', S.halfB.x + 2, S.halfB.z + 1, { body: '#4a5a6a', belly: '#8d5524' }, ['hermit']);
     if (zooDino && !near(S.zoo, p, 110)) { Wild.remove(zooDino); zooDino = null; }
     // the rogue horse-Kin stands in the finished paddock
-    if (S.ranch && C().paddock && !C().rogueTamed && !rogue && near(S.ranch, p, 70)) {
+    if (rogue && !Wild.list.includes(rogue)) rogue = null; // the wild cleared him away when you walked off: he comes back when you return
+    if (S.ranch && C().paddock && !C().rogueTamed && !rogue && near(S.ranch.pen, p, 45)) {
       const pen = S.ranch.pen; const sp = rogueSpecies(); const gy = world.groundY(pen.x, pen.z) + 1;
       rogue = Wild.makeEntity(sp, Math.max(12, G.trainerLevel + 4), pen.x + 0.5, gy, pen.z + 0.5, { senseR: 0 }); rogue.peaceful = true; rogue.rogue = true; rogue.patrol = { ax: pen.x - 2.5, az: pen.z + 0.5, bx: pen.x + 3.5, bz: pen.z + 0.5, period: 6, phase: 0 }; rogue.speed = 2.5;
       Wild.list.push(rogue);
@@ -9669,7 +9670,7 @@ const Campaign = (() => {
     if (n.job === 'rancher') {
       if (!c.ranch) return say(['Ride? You? Nobody rides a Kin they have not been thrown off first.', 'I will teach you. But I need a paddock first, for the wild one they are bringing in. Wall in the square between my four posts, two blocks high, with a gap for a gate.', 'Any solid block does it. Planks are easiest: one log makes four at the table, and you will want about fifteen logs. Dirt or stone works too if you are short.'], () => { c.ranch = 1; });
       if (c.ranch === 1) return say(['The paddock. Two high, all the way round, between my four posts. Planks, logs, stone, dirt: anything solid. Leave one gap for the gate.']);
-      if (c.ranch === 2 && !c.rogueTamed) return say(['They brought him in last night. Thunderhoof. Nobody has stayed on him longer than a breath.', 'You want to learn? Get on him. Tap when he lands his weight, not before, not after. If he throws you, get up and try again.']);
+      if (c.ranch === 2 && !c.rogueTamed) return say(['They brought him in last night. Thunderhoof. Nobody has stayed on him longer than a breath.', 'He is in your paddock. Walk up and tap him to get on. Tap when he lands his weight, not before, not after. If he throws you, get up and try again.']);
       return say(['You ride now. But only a few kinds will ever take a rider: steeds, dinosaurs, the great ones. Your Kindex marks steeds with ♞.', 'Each one has to be broken in once. Then ride it: trust builds over a couple of hours and it gets faster. Leave it unridden for a long time (hours of play) and the trust slowly fades.']);
     }
     if (n.job === 'hand') return say([['Hale was thrown seven times before he stayed on anything.', 'Feed them berries. They remember.', 'Mind the back legs.'][Math.floor(Math.random() * 3)]]);
@@ -9744,7 +9745,7 @@ const Campaign = (() => {
     if (id === 'foreman' || id === 'ironpick' || id === 'lavasuit') return S.mine && { x: S.mine.x, z: S.mine.z, note: 'the Mining Camp' };
     if (id === 'mines' && S.mine) return { x: S.mine.x, z: S.mine.z, note: 'the shaft' };
     if (id === 'diver') { if (c.bulbStep === 1 && S.diver && S.diver.chest) return { x: S.diver.chest.x, z: S.diver.chest.z, note: 'the sunken chest' }; return S.diver && { x: S.diver.x, z: S.diver.z, note: 'Marisol\'s pier' }; }
-    if (id === 'ranch') { if (c.ranch === 1) return { x: S.ranch.pen.x, z: S.ranch.pen.z, note: 'the paddock posts' }; return S.ranch && { x: S.ranch.x, z: S.ranch.z, note: 'Hale\'s Ranch' }; }
+    if (id === 'ranch') { if (c.ranch === 1) return { x: S.ranch.pen.x, z: S.ranch.pen.z, note: 'the paddock posts' }; if (c.ranch === 2 && !c.rogueTamed) return { x: S.ranch.pen.x, z: S.ranch.pen.z, note: 'Thunderhoof, in the paddock' }; return S.ranch && { x: S.ranch.x, z: S.ranch.z, note: 'Hale\'s Ranch' }; }
     if (id === 'frost') { c.snowKnown = true; if ((c.frost === 1 || c.frost === 2) && S.snow && S.snow.lost) return { x: S.snow.lost.x, z: S.snow.lost.z, note: 'Tam' }; return S.snow && { x: S.snow.x, z: S.snow.z, note: 'the snow camp' }; }
     if (id === 'kinmaster' && S.fort) return { x: S.fort.x + (c.st_fort ? 30 : -18), z: S.fort.z, note: 'Thornhold' };
     if (id === 'lost' && !G.stats.lostMap) { if (!c.zoo && S.zoo) return { x: S.zoo.x, z: S.zoo.z, note: 'Quill\'s Menagerie' }; if (S.halfA && !c.mapA) return { x: S.halfA.x, z: S.halfA.z, note: 'Trapper Jo' }; if (S.halfB && !c.mapB) return { x: S.halfB.x, z: S.halfB.z, note: 'Old Sela' }; }
