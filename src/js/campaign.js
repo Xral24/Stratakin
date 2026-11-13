@@ -169,15 +169,21 @@ const Campaign = (() => {
   }
   // where Tam got lost: the same spot every session, and always on land you can stand on (never out on the water or up a cliff face)
   function lostOf(s) {
-    if (!s) return null; if (s.lost && s.lost.v === 2) return s.lost;
-    const was = s.lost; const r = U.rng(U.combine(s.x, s.z, 0x5A)); let first = null; // older saves kept a spot picked blind (it could be water or a cliff): it is picked again, properly
-    for (let i = 0; i < 40; i++) {
-      const a = r() * Math.PI * 2, d = 55 + r() * 25; const x = Math.round(s.x + Math.cos(a) * d), z = Math.round(s.z + Math.sin(a) * d); if (!first) first = { x, z };
-      if (!land(x, z)) continue; const h = world.colInfo(x, z).h; let flat = true; for (const [dx, dz] of [[3, 0], [-3, 0], [0, 3], [0, -3]]) if (Math.abs(world.colInfo(x + dx, z + dz).h - h) > 2) flat = false;
-      if (flat) { s.lost = { x, z, v: 2, moved: !!was && (x !== was.x || z !== was.z) }; return s.lost; }
+    if (!s) return null; if (s.lost && s.lost.v === 3) return s.lost;
+    const was = s.lost; const r = U.rng(U.combine(s.x, s.z, 0x5A)); let fallback = null;
+    // the real ground, not the map's guess: no water on it, above the sea
+    const dry = (x, z) => { world.ensureAround(Math.floor(x / CH), Math.floor(z / CH), 0, 4); const gy = world.groundY(x, z); if (!(gy > SEA + 1)) return false; const top = world.getBlock(x, gy, z), up = world.getBlock(x, gy + 1, z); return top !== B.WATER && up !== B.WATER; };
+    const flatAt = (x, z) => { const h = world.colInfo(x, z).h; for (const [dx, dz] of [[3, 0], [-3, 0], [0, 3], [0, -3]]) if (Math.abs(world.colInfo(x + dx, z + dz).h - h) > 2) return false; return true; };
+    // he went out after a white Kin into the snow: a snowfield spot first, any dry flat ground if the snow runs out
+    for (let i = 0; i < 60; i++) {
+      const a = r() * Math.PI * 2, d = 50 + r() * 35; const x = Math.round(s.x + Math.cos(a) * d), z = Math.round(s.z + Math.sin(a) * d);
+      if (!land(x, z) || !flatAt(x, z) || !dry(x, z)) continue;
+      if (world.colInfo(x, z).biome === BIOME.SNOW) { s.lost = { x, z, v: 3, moved: !!was && (x !== was.x || z !== was.z) }; return s.lost; }
+      if (!fallback) fallback = { x, z };
     }
-    s.lost = Object.assign(first, { v: 2, moved: !!was && (first.x !== was.x || first.z !== was.z) }); return s.lost;
+    const f = fallback || { x: s.x + 25, z: s.z }; s.lost = { x: f.x, z: f.z, v: 3, moved: !!was && (f.x !== was.x || f.z !== was.z) }; return s.lost;
   }
+
 
   function stampShelter(s) { const L = lostOf(s); world.ensureAround(Math.floor(L.x / CH), Math.floor(L.z / CH), 0, 99); const y0 = world.groundY(L.x, L.z); for (let dx = -2; dx <= 2; dx++) for (let dz = -2; dz <= 2; dz++) if (Math.abs(dx) === 2 || Math.abs(dz) === 2) { set(L.x + dx, y0 + 1, L.z + dz, B.SNOW); if ((dx + dz) % 2) set(L.x + dx, y0 + 2, L.z + dz, B.SNOW); } set(L.x + 2, y0 + 1, L.z, B.AIR); set(L.x - 1, y0 + 1, L.z - 1, B.TORCH); L.y0 = y0; }
   function stampPeak(s) {
