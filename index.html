@@ -3251,6 +3251,13 @@ const R = (() => {
     let v = hi - lo <= 2 ? sum / 4 + 1 : -1; if (v >= 0 && shore) v = Math.max(v, wl - 0.02); return v;
   }
   let surfCache = { k: null, h: null };
+  // where a creature's feet should rest: on soil the drawn ground is a smooth slope between block corners, so stand on the highest
+  // of it under the footprint (centre and four points at radius r), never more than a block's worth from the block top
+  function standY(world, x, z, top, r) {
+    const below = world.getBlock(Math.floor(x), Math.floor(top - 0.5), Math.floor(z)); if (!isSoil(below)) return top;
+    let s = null; for (const [ox, oz] of [[0, 0], [r, 0], [-r, 0], [0, r], [0, -r]]) { const t = surfaceAt(world, x + ox, z + oz); if (t != null && (s == null || t > s)) s = t; }
+    return s == null ? top : Math.max(top - 0.85, Math.min(top + 0.85, s));
+  }
   function surfaceAt(world, x, z) {
     const bx = Math.floor(x), bz = Math.floor(z); const k = bx + ',' + bz + ',' + (world.editSerial || 0);
     let h = surfCache.k === k ? surfCache.h : null;
@@ -3278,7 +3285,7 @@ const R = (() => {
     return out;
   }
 
-  return { grassZone, init, resize, buildChunk, freeChunk, entityMesh, dropEntityMesh, renderPortrait, render, project, surfaceAt, isSoil, boxLines, targetLines, ringLines, state, setQuality, QUALITY, get gl() { return gl; } };
+  return { grassZone, init, resize, buildChunk, freeChunk, entityMesh, dropEntityMesh, renderPortrait, render, project, surfaceAt, standY, isSoil, boxLines, targetLines, ringLines, state, setQuality, QUALITY, get gl() { return gl; } };
 })();
 
 </script>
@@ -8132,7 +8139,7 @@ const Wild = (() => {
     const bx = Math.floor(x), bz = Math.floor(z);
     if (e.aquatic) { for (const dy of [0, 1, -1, 2, -2]) { if (world.getBlock(bx, Math.floor(y) + dy, bz) === B.WATER) return Math.floor(y) + dy; } return null; }
     if (!e.flying) { const fy = Math.floor(y); for (let k = 0; k <= 1; k++) if (BARRIER.has(world.getBlock(bx, fy + k, bz))) return null; } // a fence in the way is a wall to a walker
-    for (const dy of [0, 1, -1, 2, -2, -3]) { const yy = Math.floor(y) + dy; if (standable(bx, yy, bz, false)) return yy; }
+    for (const dy of [0, 1, -1, 2, -2, -3]) { const yy = Math.floor(y) + dy; if (standable(bx, yy, bz, false)) return e.flying ? yy : R.standY(world, x, z, yy, Math.min(0.6, (e.model && e.model.radius || 0.5) * (e.scale || 1) * 0.6)); } // walkers stand on the drawn slope
     return null;
   }
   function skyExposure(e) {
@@ -15405,7 +15412,7 @@ const Buddy = (() => {
     key = k.id || k; wearSeen = KIN.wearKey(k.wear); place(p, true);
   }
   function spot(p) { const sy = Math.sin(p.yaw), cy = Math.cos(p.yaw); const back = -0.3, side = 1.6 + (e.model.radius || 0.6) * e.scale; return { x: p.x + sy * back + cy * side, z: p.z + cy * back - sy * side }; }
-  function ground(x, z, fromY) { const w = G.world; const y = w.groundY(Math.floor(x), Math.floor(z), Math.floor(fromY) + 3); return y == null ? fromY : y + 1; }
+  function ground(x, z, fromY) { const w = G.world; const y = w.groundY(Math.floor(x), Math.floor(z), Math.floor(fromY) + 3); if (y == null) return fromY; return R.standY(w, x, z, y + 1, e ? Math.min(0.5, (e.model.radius || 0.5) * e.scale * 0.6) : 0.3); } // on the drawn slope, not the block grid, so it never sinks into a rise
   function place(p, snap) { const s = spot(p); e.x = s.x; e.z = s.z; e.y = e.flying ? p.y + 1.2 : ground(s.x, s.z, p.y); gy = e.y; }
   function update(dt, p) {
     const k = lead();

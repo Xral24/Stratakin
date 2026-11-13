@@ -335,7 +335,7 @@ const Wild = (() => {
     const bx = Math.floor(x), bz = Math.floor(z);
     if (e.aquatic) { for (const dy of [0, 1, -1, 2, -2]) { if (world.getBlock(bx, Math.floor(y) + dy, bz) === B.WATER) return Math.floor(y) + dy; } return null; }
     if (!e.flying) { const fy = Math.floor(y); for (let k = 0; k <= 1; k++) if (BARRIER.has(world.getBlock(bx, fy + k, bz))) return null; } // a fence in the way is a wall to a walker
-    for (const dy of [0, 1, -1, 2, -2, -3]) { const yy = Math.floor(y) + dy; if (standable(bx, yy, bz, false)) return yy; }
+    for (const dy of [0, 1, -1, 2, -2, -3]) { const yy = Math.floor(y) + dy; if (standable(bx, yy, bz, false)) return e.flying ? yy : R.standY(world, x, z, yy, Math.min(0.6, (e.model && e.model.radius || 0.5) * (e.scale || 1) * 0.6)); } // walkers stand on the drawn slope
     return null;
   }
   function skyExposure(e) {

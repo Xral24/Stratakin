@@ -144,6 +144,8 @@ Scope (Alexander, 8 Nov evening): EVERYTHING visible goes to the same standard: 
 
 - Rune Mammoth gets proper sweeping crystal tusks and rounded ears; young horses no longer grow random wings (only warhorses can). Checked geometry for every form: heaviest is the World Stag at about 25k vertices, fine for phones since meshes are built once per species and stage.
 
+- Your buddy and wild Kin stand on the drawn slope of the ground (highest point under their footprint), not the flat block grid, so they no longer sink into rises. Shared helper R.standY.
+
 ## Still to do
 UI polish as feedback comes in. Card battle screen still used for scripted encounters (raids at the walls, thief, citadel duel, holds) and the snare mini-game; converting those to live is the next big step if wanted. (Old list: train/ships, combat animation, eggs, avatar hair/paint, buddy WEAR cosmetics, Silas and Finch, UI polish (item icons), quality toggles in settings (state.shadows, state.grassQuality, state.dprCap).
 

@@ -1700,6 +1700,13 @@ const R = (() => {
     let v = hi - lo <= 2 ? sum / 4 + 1 : -1; if (v >= 0 && shore) v = Math.max(v, wl - 0.02); return v;
   }
   let surfCache = { k: null, h: null };
+  // where a creature's feet should rest: on soil the drawn ground is a smooth slope between block corners, so stand on the highest
+  // of it under the footprint (centre and four points at radius r), never more than a block's worth from the block top
+  function standY(world, x, z, top, r) {
+    const below = world.getBlock(Math.floor(x), Math.floor(top - 0.5), Math.floor(z)); if (!isSoil(below)) return top;
+    let s = null; for (const [ox, oz] of [[0, 0], [r, 0], [-r, 0], [0, r], [0, -r]]) { const t = surfaceAt(world, x + ox, z + oz); if (t != null && (s == null || t > s)) s = t; }
+    return s == null ? top : Math.max(top - 0.85, Math.min(top + 0.85, s));
+  }
   function surfaceAt(world, x, z) {
     const bx = Math.floor(x), bz = Math.floor(z); const k = bx + ',' + bz + ',' + (world.editSerial || 0);
     let h = surfCache.k === k ? surfCache.h : null;
@@ -1727,5 +1734,5 @@ const R = (() => {
     return out;
   }
 
-  return { grassZone, init, resize, buildChunk, freeChunk, entityMesh, dropEntityMesh, renderPortrait, render, project, surfaceAt, isSoil, boxLines, targetLines, ringLines, state, setQuality, QUALITY, get gl() { return gl; } };
+  return { grassZone, init, resize, buildChunk, freeChunk, entityMesh, dropEntityMesh, renderPortrait, render, project, surfaceAt, standY, isSoil, boxLines, targetLines, ringLines, state, setQuality, QUALITY, get gl() { return gl; } };
 })();

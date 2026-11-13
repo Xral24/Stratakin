@@ -83,7 +83,7 @@ const Buddy = (() => {
     key = k.id || k; wearSeen = KIN.wearKey(k.wear); place(p, true);
   }
   function spot(p) { const sy = Math.sin(p.yaw), cy = Math.cos(p.yaw); const back = -0.3, side = 1.6 + (e.model.radius || 0.6) * e.scale; return { x: p.x + sy * back + cy * side, z: p.z + cy * back - sy * side }; }
-  function ground(x, z, fromY) { const w = G.world; const y = w.groundY(Math.floor(x), Math.floor(z), Math.floor(fromY) + 3); return y == null ? fromY : y + 1; }
+  function ground(x, z, fromY) { const w = G.world; const y = w.groundY(Math.floor(x), Math.floor(z), Math.floor(fromY) + 3); if (y == null) return fromY; return R.standY(w, x, z, y + 1, e ? Math.min(0.5, (e.model.radius || 0.5) * e.scale * 0.6) : 0.3); } // on the drawn slope, not the block grid, so it never sinks into a rise
   function place(p, snap) { const s = spot(p); e.x = s.x; e.z = s.z; e.y = e.flying ? p.y + 1.2 : ground(s.x, s.z, p.y); gy = e.y; }
   function update(dt, p) {
     const k = lead();
