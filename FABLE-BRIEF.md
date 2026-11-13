@@ -42,7 +42,16 @@ New games now default to one shared world, seed "Stratakin" (an empty World box 
      - one signature per element, on tail, ears and mane: flame tail and mane, fin tail and dorsal fin, leaf crest and flower, rock plates and club tail, plume tail and feather ears, crystal spikes, lightning tail and zigzag ears, smoky mane and glowing tail, radiant ruff and halo;
      - layered eyes: dark base, coloured iris, pupil and two glints, with a brow on adults;
      - hocked hind legs.
-   - **Carry that approach across** biped, serpent, bird, blob and the rest.
+   - **Six invented quadruped body plans** followed the same evening, after he asked for creatures that are unique rather than one body re-dressed (his references were Squirtle to Blastoise, Charmander to Charizard, Bulbasaur, Dark Magician and Blue-Eyes White Dragon, for how distinct each design is, never to copy):
+     - **Cairnback:** a low, broad beast carrying standing stones on its back, which float on the adult.
+     - **Lanternstag:** a slender stag whose antlers are hung with lanterns.
+     - **Masker:** a cat behind a carved mask with glowing slits, a conjuror's collar and a second mask on its tail.
+     - **Mantlewalker:** wide and flat, with a cape of skin down each side, floating as an adult.
+     - **Anvilmaw:** a knuckle-walking forge brute with an anvil jaw and chimneys that breathe its element.
+     - **Glyphtail:** a big-eared fox with ribbon tails (one, two, then three) that ring into a glowing glyph circle.
+
+     Mounts (steed, fast, tame, dino) keep the horse-like body. Pick by `(seed % 997) % 6`. Gallery: `t-archgal.js`.
+   - **Carry that approach across** biped, serpent, bird, blob and the rest: a library of invented body plans per shape, each with its own gimmick and three-stage arc, the element dressing whichever body it gets.
    - **Gallery:** `t-quadgal.js` in the harness renders one per element at every stage. Copy it for the other shapes, and keep bone indices (head 1, legs 2-5, tail 6, wings 7/8) so the animation still works.
 
 ## House rules

@@ -497,6 +497,137 @@ const KIN = (() => {
         // character, and evolutions you can see. Stage 1 is a cub (big head, big eyes, short legs), stage 2 a lean youngster,
         // stage 3 a proud adult (deep chest held high, long legs, a longer muzzle, a fierce brow, its element in full flower).
         const t = Math.max(0, Math.min(2, (stage || 1) - 1)), el = dominant(sp.elem || [], 1)[0] || 'Stone';
+        // ---- the body plans. Mounts (steeds, horses) keep the horse-like body below; every other four-legged Kin is one of
+        // six invented creatures, picked by its seed, each with a gimmick of its own and an arc across its three stages.
+        const ARCH = ['cairnback', 'lanternstag', 'masker', 'mantlewalker', 'anvilmaw', 'glyphtail'];
+        const arch = (sp.steed || sp.fast || sp.tame || sp.dino) ? 'steed' : ARCH[((sp.seed >>> 0) % 997) % ARCH.length];
+        if (arch !== 'steed') {
+          const glw = hexMix(C.accent, '#ffffff', 0.3), pawC = hexMix(C.dark, C.belly, 0.2), stoneC = hexMix(C.body, '#7d7a86', 0.55);
+          const look = (ex, ey, ez, er, o = {}) => { // layered eyes: dark base, coloured iris, pupil, two glints; an adult's brow
+            for (const sd of [-1, 1]) { ball(sd * ex, ey, ez, er, '#16121e', { n: 3 }); ball(sd * (ex + er * 0.04), ey - er * 0.12, ez + er * 0.5, er * 0.62, o.col || C.eye, { emis: !!o.glow, n: 3 });
+              ball(sd * (ex + er * 0.05), ey - er * 0.1, ez + er * 0.78, er * 0.3, '#0a0810', { n: 2 }); ball(sd * (ex - er * 0.22), ey + er * 0.34, ez + er * 0.82, er * 0.3, '#ffffff', { emis: true, n: 2 }); ball(sd * (ex + er * 0.3), ey - er * 0.36, ez + er * 0.84, er * 0.13, '#ffffff', { emis: true, n: 2 });
+              if (o.brow) blob(sd * ex - er * 1.1, ey + er * 0.88, ez - er * 0.3, sd * ex + er * 1.1, ey + er * 1.18, ez + er * 0.9, 0.5, o.brow, { n: 2 }); } };
+          const legsOf = (leg, L, xw, thick, front, back, o = {}) => { // four legs on bones 2..5; front/back z; a hock on the hind legs
+            const LG = [[-xw, front, 2, 0], [xw, front, 3, Math.PI], [-xw, back, 4, Math.PI], [xw, back, 5, 0]];
+            for (const [lx, lz, bi, ph] of LG) { const hind = lz < 0; B(bi, 'leg', [lx, leg + 0.06, lz], { phase: ph, len: leg + 0.05 });
+              if (hind && o.haunch !== false) blob(lx - thick * 1.0, leg * 0.5, lz - thick * 1.2, lx + thick * 1.0, leg + 0.2, lz + thick * 1.1, 1, C.body, { under: C.belly });
+              if (hind) tube([[lx, leg + 0.1, lz], [lx * 1.04, leg * 0.58, lz + 0.08], [lx, leg * 0.26, lz - 0.07], [lx, 0.1, lz]], [thick, thick * 0.78, thick * 0.62, thick * 0.66], C.body, { cap0: 'none', cap1: 'none' });
+              else tube([[lx, leg + 0.1, lz], [lx * 1.03, leg * 0.48, lz + 0.02], [lx, leg * 0.2, lz + 0.04], [lx, 0.1, lz + 0.03]], [thick, thick * 0.74, thick * 0.62, thick * 0.66], C.body, { cap0: 'none', cap1: 'none' });
+              if (o.hoof) blob(lx - thick * 0.7, 0, lz - thick * 0.6, lx + thick * 0.7, 0.14, lz + thick * 0.8, 0.4, C.dark, { n: 2 });
+              else blob(lx - thick * 0.85, 0, lz - thick * 0.6, lx + thick * 0.85, 0.13, lz + thick * 1.3, 0.7, pawC, { n: 2 }); }
+            bone = 0; legLen = leg + 0.05; };
+          if (arch === 'cairnback') {
+            // CAIRNBACK: a low, broad beast that carries standing stones on its back. They grow with it, and on the adult the
+            // top ones lift off and hang in the air above it, rune-bands glowing in its element's colour.
+            const leg = [0.3, 0.38, 0.46][t], L = [0.95, 1.08, 1.2][t];
+            blob(-0.48, leg - 0.04, -0.62 * L, 0.48, leg + 0.52, 0.62 * L, 1, C.body, { under: C.belly, bulge: 0.08 });
+            markings(-0.46, leg, -0.6 * L, 0.46, leg + 0.5, 0.6 * L);
+            for (let k = 0; k < 2 + t; k++) { const w = 0.3 - k * 0.05, y0 = leg + 0.42 + k * 0.24, z = -0.08 + (k % 2 ? 0.06 : -0.06); blob(-w, y0, z - w * 0.8, w, y0 + 0.24, z + w * 0.8, 0.35, stoneC, { n: 2 }); ring(0, y0 + 0.12, z, w * 1.02, 0.03, 0.02, glw, { emis: true }); }
+            if (t === 2) for (let k = 0; k < 3; k++) { const a = k / 3 * Math.PI * 2 + 0.4; const x = Math.cos(a) * 0.42, z = Math.sin(a) * 0.42; blob(x - 0.07, leg + 1.25, z - 0.05, x + 0.07, leg + 1.6, z + 0.05, 0.3, stoneC, { n: 2 }); blob(x - 0.075, leg + 1.4, z - 0.055, x + 0.075, leg + 1.44, z + 0.055, 0.2, glw, { emis: true, n: 1 }); } // the floating monoliths
+            B(1, 'head', [0, leg + 0.3, 0.6 * L]); const hy = leg + 0.22, hz = 0.62 * L;
+            blob(-0.3, hy - 0.08, hz - 0.1, 0.3, hy + 0.34, hz + 0.42, 0.85, C.body, { under: C.belly });
+            blob(-0.24, hy - 0.12, hz + 0.18, 0.24, hy + 0.06, hz + 0.5, 0.6, hexMix(C.body, C.dark, 0.35), { n: 2 }); // a heavy lower jaw
+            for (const sd of [-1, 1]) cone([sd * 0.18, hy + 0.02, hz + 0.44], [sd * 0.2, 1, 0.5], 0.14 + 0.06 * t, 0.045, stoneC); // stone tusks
+            look(0.15, hy + 0.24, hz + 0.34, [0.085, 0.075, 0.068][t], { brow: t >= 1 ? stoneC : null });
+            bone = 0; legsOf(leg, L, 0.3, 0.13, 0.42 * L, -0.42 * L, { hoof: true });
+            B(6, 'tail', [0, leg + 0.2, -0.62 * L]); tube([[0, leg + 0.2, -0.62 * L], [0, leg + 0.12, -0.82 * L]], [0.09, 0.07], C.body, { cap0: 'none', cap1: 'none' }); ball(0, leg + 0.1, -0.88 * L, 0.1 + 0.02 * t, stoneC, { n: 2 }); bone = 0;
+          } else if (arch === 'lanternstag') {
+            // LANTERNSTAG: tall and slender, carrying its light in its antlers. A fawn has one glowing bud on each side, the adult a
+            // crown of branches hung with lanterns. A pale ruff at the chest, a white flag of a tail.
+            const leg = [0.55, 0.72, 0.88][t], L = [0.78, 0.92, 1.0][t];
+            blob(-0.27, leg - 0.02, -0.5 * L, 0.27, leg + 0.44, 0.52 * L, 1, C.body, { under: C.belly });
+            markings(-0.26, leg, -0.48 * L, 0.26, leg + 0.42, 0.5 * L);
+            const nb = [0, leg + 0.34, 0.42 * L], ht = [0, leg + 0.78 + 0.08 * t, 0.62 * L];
+            tube([nb, [0, (nb[1] + ht[1]) / 2, (nb[2] + ht[2]) / 2 + 0.02], ht], [0.16, 0.13, 0.12], C.body, { cap0: 'none', cap1: 'round' });
+            for (let k = 0; k < 6; k++) { const a = (k / 5 - 0.5) * 2.2; cone([Math.sin(a) * 0.14, nb[1] + 0.02, nb[2] + 0.1 + Math.cos(a) * 0.04], [Math.sin(a) * 0.6, -0.4, 0.8], 0.16 + 0.03 * t, 0.05, C.belly); } // the ruff
+            B(1, 'head', ht); const hy = ht[1], hz = ht[2];
+            blob(-0.17, hy - 0.04, hz - 0.08, 0.17, hy + 0.26, hz + 0.24, 1, C.body, { under: C.belly });
+            blob(-0.1, hy - 0.02, hz + 0.16, 0.1, hy + 0.14, hz + 0.44 + 0.04 * t, 0.9, hexMix(C.body, C.belly, 0.5), { tap: [0.8, 0.85] }); ball(0, hy + 0.11, hz + 0.46 + 0.04 * t, 0.035, C.dark, { n: 2 });
+            look(0.11, hy + 0.15, hz + 0.16, [0.085, 0.072, 0.062][t], { brow: t === 2 ? C.dark : null });
+            for (const sd of [-1, 1]) { plate([[sd * 0.12, hy + 0.2, hz], [sd * 0.34, hy + 0.3, hz - 0.08], [sd * 0.18, hy + 0.3, hz + 0.02]], 0.025, C.body, { edge: C.belly }); // ears
+              const ab = [sd * 0.08, hy + 0.26, hz + 0.02];
+              if (t === 0) { cone(ab, [sd * 0.3, 1, -0.1], 0.14, 0.035, C.dark); ball(ab[0] + sd * 0.05, ab[1] + 0.17, ab[2] - 0.01, 0.05, glw, { emis: true, n: 2 }); }
+              else { const tips = []; const main = [[ab[0], ab[1], ab[2]], [ab[0] + sd * 0.12, ab[1] + 0.24, ab[2] - 0.06], [ab[0] + sd * 0.2, ab[1] + 0.48 + 0.12 * t, ab[2] - 0.12]]; tube(main, [0.035, 0.028, 0.012], C.dark, { cap0: 'none', cap1: 'round' }); tips.push(main[2]);
+                for (let k = 0; k < t + 1; k++) { const u = 0.35 + k * 0.25; const b0 = [ab[0] + sd * 0.2 * u, ab[1] + (0.48 + 0.12 * t) * u, ab[2] - 0.12 * u]; const e = [b0[0] + sd * (0.14 + 0.04 * k), b0[1] + 0.06, b0[2] + (k % 2 ? 0.1 : -0.12)]; tube([b0, e], [0.022, 0.01], C.dark, { cap0: 'none', cap1: 'round' }); tips.push(e); }
+                for (const tp of tips) { tube([tp, [tp[0], tp[1] - 0.08, tp[2]]], [0.006, 0.006], C.dark, { cap0: 'none', cap1: 'none' }); ball(tp[0], tp[1] - 0.13, tp[2], 0.05 + 0.008 * t, glw, { emis: true, n: 2 }); } } } // antlers hung with lanterns
+            bone = 0; legsOf(leg, L, 0.17, 0.085, 0.36 * L, -0.38 * L, { hoof: true, haunch: false });
+            B(6, 'tail', [0, leg + 0.36, -0.5 * L]); tube([[0, leg + 0.36, -0.5 * L], [0, leg + 0.48, -0.62 * L]], [0.07, 0.03], '#fff8ea', { cap0: 'round', cap1: 'round' }); bone = 0;
+          } else if (arch === 'masker') {
+            // MASKER: a sleek cat that never shows its face. It wears a carved mask with slits that glow, a high collar like a
+            // conjuror's, and a long ribbon of a tail. The adult's mask grows horns, and a second, smaller mask rides its tail.
+            const leg = [0.36, 0.46, 0.54][t], L = [0.9, 1.04, 1.16][t]; const maskC = hexMix('#f4ecdc', C.belly, 0.25);
+            blob(-0.27, leg - 0.02, -0.62 * L, 0.27, leg + 0.4, 0.5 * L, 1, C.body, { under: C.belly, tap: [0.92, 1] });
+            markings(-0.26, leg, -0.6 * L, 0.26, leg + 0.38, 0.48 * L);
+            const ht = [0, leg + 0.5 + 0.04 * t, 0.56 * L]; tube([[0, leg + 0.3, 0.38 * L], ht], [0.16, 0.14], C.body, { cap0: 'none', cap1: 'round' });
+            if (t >= 1) for (const sd of [-1, 1]) plate([[sd * 0.08, leg + 0.3, 0.42 * L], [sd * 0.32, leg + 0.62 + 0.08 * t, 0.36 * L], [sd * 0.24, leg + 0.72 + 0.1 * t, 0.46 * L], [sd * 0.1, leg + 0.5, 0.5 * L]], 0.025, C.accent, { edge: C.dark }); // the high collar
+            B(1, 'head', ht); const hy = ht[1], hz = ht[2];
+            blob(-0.22, hy - 0.06, hz - 0.12, 0.22, hy + 0.3, hz + 0.18, 1, C.body);
+            for (const sd of [-1, 1]) plate([[sd * 0.08, hy + 0.24, hz], [sd * 0.26, hy + 0.26, hz - 0.06], [sd * 0.24, hy + 0.52 + 0.04 * t, hz - 0.08]], 0.03, C.body, { edge: C.accent }); // tall ears
+            blob(-0.2, hy - 0.12, hz + 0.14, 0.2, hy + 0.28, hz + 0.26, 0.95, maskC, { tap: [1, 0.7] }); // the mask: a smooth oval, narrowing to the chin
+            for (const sd of [-1, 1]) plate([[sd * 0.035, hy + 0.12, hz + 0.27], [sd * 0.16, hy + 0.17, hz + 0.25], [sd * 0.14, hy + 0.1, hz + 0.26]], 0.014, glw, { emis: true }); // its glowing slits
+            if (t >= 1) { plate([[-0.014, hy + 0.27, hz + 0.265], [0.014, hy + 0.27, hz + 0.265], [0, hy - 0.06, hz + 0.29]], 0.01, C.accent); for (const sd of [-1, 1]) plate([[sd * 0.05, hy + 0.02, hz + 0.28], [sd * 0.13, hy + 0.06, hz + 0.26], [sd * 0.08, hy - 0.06, hz + 0.27]], 0.01, C.accent); } // painted lines
+            if (t === 2) for (const sd of [-1, 1]) cone([sd * 0.15, hy + 0.24, hz + 0.2], [sd * 0.35, 1, 0.2], 0.24, 0.035, maskC); // the mask's horns
+            bone = 0; legsOf(leg, L, 0.16, 0.08, 0.36 * L, -0.48 * L);
+            B(6, 'tail', [0, leg + 0.3, -0.62 * L]); const tp = [[0, leg + 0.3, -0.62 * L], [0, leg + 0.5, -0.9 * L], [0, leg + 0.86, -1.0 * L], [0, leg + 1.04 + 0.1 * t, -0.84 * L]];
+            tube(tp, [0.06, 0.05, 0.045, 0.03], C.body, { cap0: 'none', cap1: 'round' });
+            if (t === 2) { const e = tp[3]; plate([[e[0] - 0.08, e[1] + 0.06, e[2] - 0.02], [e[0] + 0.08, e[1] + 0.06, e[2] - 0.02], [e[0], e[1] - 0.1, e[2] + 0.02]], 0.025, maskC, { edge: C.dark }); ball(e[0], e[1] + 0.01, e[2] + 0.02, 0.02, glw, { emis: true, n: 1 }); }
+            else ball(tp[3][0], tp[3][1], tp[3][2], 0.05, C.accent, { n: 2 });
+            bone = 0;
+          } else if (arch === 'mantlewalker') {
+            // MANTLEWALKER: wide and flat, with a cape of skin down each side that ripples as it walks, edged in its element's
+            // light. A broad flat head with two curled head-fins and a whip tail. The adult's mantle is so big it floats.
+            const leg = [0.36, 0.44, 0.5][t], L = [0.9, 1.0, 1.1][t];
+            blob(-0.36, leg + 0.02, -0.56 * L, 0.36, leg + 0.38, 0.56 * L, 1, C.body, { under: C.belly, tap: [1, 0.85] });
+            markings(-0.34, leg + 0.04, -0.54 * L, 0.34, leg + 0.36, 0.54 * L);
+            const span = [0.34, 0.5, 0.72][t];
+            for (const sd of [-1, 1]) plate([[sd * 0.3, leg + 0.3, 0.46 * L], [sd * (0.3 + span), leg + 0.2, 0.3 * L], [sd * (0.32 + span * 1.05), leg + 0.12, -0.05], [sd * (0.3 + span * 0.85), leg + 0.16, -0.4 * L], [sd * 0.3, leg + 0.26, -0.5 * L]], 0.025, C.accent, { edge: glw }); // the mantle
+            if (t === 2) hover = 0.16;
+            B(1, 'head', [0, leg + 0.22, 0.56 * L]); const hy = leg + 0.14, hz = 0.56 * L;
+            blob(-0.3, hy - 0.04, hz - 0.08, 0.3, hy + 0.22, hz + 0.32, 0.9, C.body, { under: C.belly });
+            for (const sd of [-1, 1]) curl([sd * 0.24, hy + 0.06, hz + 0.3], [sd * 0.1, 0.2, 1], 0.2 + 0.06 * t, 0.05, C.accent, [sd * -0.2, 0.6, -0.6]); // head-fins
+            look(0.17, hy + 0.16, hz + 0.22, [0.08, 0.07, 0.064][t], { brow: t === 2 ? C.dark : null });
+            bone = 0; legsOf(leg, L, 0.2, 0.08, 0.36 * L, -0.38 * L, { haunch: false });
+            B(6, 'tail', [0, leg + 0.2, -0.56 * L]); tube([[0, leg + 0.2, -0.56 * L], [0, leg + 0.24, -0.9 * L], [0, leg + 0.34, -1.2 * L], [0, leg + 0.5, -1.4 * L]], [0.06, 0.04, 0.025, 0.0005], C.body, { cap0: 'none', cap1: 'none' }); ball(0, leg + 0.5, -1.4 * L, 0.04, glw, { emis: true, n: 1 }); bone = 0;
+          } else if (arch === 'anvilmaw') {
+            // ANVILMAW: a forge-brute, all shoulders and jaw. It walks on its knuckles, its jaw is an anvil, and on its back the
+            // chimneys of an inner furnace breathe out its element: embers, steam, sparks, smoke. More chimneys as it grows.
+            const leg = [0.36, 0.44, 0.52][t], L = [0.86, 1.0, 1.12][t];
+            blob(-0.46, leg - 0.02, -0.05, 0.46, leg + 0.7 + 0.06 * t, 0.58 * L, 1, C.body, { under: C.belly, bulge: 0.08 }); // the shoulders
+            blob(-0.3, leg - 0.06, -0.58 * L, 0.3, leg + 0.4, 0.1, 0.9, C.body, { under: C.belly });
+            markings(-0.44, leg, -0.04, 0.44, leg + 0.68, 0.56 * L);
+            for (let k = 0; k < 1 + t; k++) { const x = (k - t / 2) * 0.2, z = 0.06 - k * 0.04; tube([[x, leg + 0.6, z], [x, leg + 0.86 + 0.06 * t, z - 0.04]], [0.07, 0.06], C.dark, { cap0: 'none', cap1: 'none' }); ring(x, leg + 0.86 + 0.06 * t, z - 0.04, 0.065, 0.065, 0.018, C.dark); for (let j = 0; j < 2; j++) ball(x + (j ? 0.03 : -0.02), leg + 0.98 + 0.06 * t + j * 0.12, z - 0.06, 0.05 - j * 0.012, glw, { emis: true, n: 2 }); } // chimneys breathing its element
+            B(1, 'head', [0, leg + 0.42, 0.58 * L]); const hy = leg + 0.3, hz = 0.58 * L;
+            blob(-0.24, hy + 0.04, hz - 0.08, 0.24, hy + 0.32, hz + 0.24, 0.9, C.body);
+            blob(-0.3, hy - 0.16, hz + 0.02, 0.3, hy + 0.08, hz + 0.44 + 0.04 * t, 0.25, hexMix(C.dark, C.body, 0.25), { n: 2 }); // the anvil jaw
+            for (const sd of [-1, 1]) cone([sd * 0.22, hy + 0.06, hz + 0.4], [0, 1, 0.1], 0.12 + 0.04 * t, 0.04, '#f4ecdc'); // tusks up out of it
+            for (const sd of [-1, 1]) { ball(sd * 0.11, hy + 0.22, hz + 0.22, 0.045, '#16121e', { n: 2 }); ball(sd * 0.11, hy + 0.22, hz + 0.25, 0.03, glw, { emis: true, n: 2 }); } // small hot eyes under a heavy brow
+            blob(-0.22, hy + 0.27, hz + 0.12, 0.22, hy + 0.34, hz + 0.27, 0.5, C.dark, { n: 2 });
+            bone = 0; legsOf(leg, L, 0.3, 0.15, 0.4 * L, -0.42 * L);
+            B(6, 'tail', [0, leg + 0.2, -0.58 * L]); tube([[0, leg + 0.2, -0.58 * L], [0, leg + 0.1, -0.76 * L]], [0.08, 0.06], C.body, { cap0: 'none', cap1: 'round' }); bone = 0;
+          } else { // glyphtail
+            // GLYPHTAIL: a slight, big-eared fox whose tails are long ribbons. One for the kit, two, then three on the adult,
+            // and the adult's tails sweep up and round into a glowing ring of glyphs behind it.
+            const leg = [0.38, 0.48, 0.56][t], L = [0.82, 0.94, 1.04][t];
+            blob(-0.24, leg - 0.02, -0.5 * L, 0.24, leg + 0.38, 0.48 * L, 1, C.body, { under: C.belly });
+            markings(-0.23, leg, -0.48 * L, 0.23, leg + 0.36, 0.46 * L);
+            const ht = [0, leg + 0.5 + 0.04 * t, 0.52 * L]; tube([[0, leg + 0.3, 0.36 * L], ht], [0.14, 0.12], C.body, { cap0: 'none', cap1: 'round' });
+            B(1, 'head', ht); const hy = ht[1], hz = ht[2]; const hs = [1.25, 1.08, 0.96][t];
+            blob(-0.2 * hs, hy - 0.04, hz - 0.1, 0.2 * hs, hy + 0.28 * hs, hz + 0.2, 1, C.body, { under: C.belly });
+            blob(-0.08 * hs, hy + 0.0, hz + 0.12, 0.08 * hs, hy + 0.12 * hs, hz + 0.36 + 0.04 * t, 0.9, C.belly, { tap: [0.7, 0.8] }); ball(0, hy + 0.1 * hs, hz + 0.38 + 0.04 * t, 0.032, C.dark, { n: 2 });
+            look(0.1 * hs, hy + 0.17 * hs, hz + 0.16, [0.09, 0.075, 0.065][t] * hs, { brow: t === 2 ? C.dark : null, glow: t === 2 });
+            for (const sd of [-1, 1]) plate([[sd * 0.06 * hs, hy + 0.22 * hs, hz + 0.02], [sd * 0.24 * hs, hy + 0.22 * hs, hz - 0.04], [sd * 0.22 * hs, hy + (0.62 + 0.04 * t) * hs, hz - 0.08], [sd * 0.1 * hs, hy + 0.4 * hs, hz]], 0.03, C.body, { edge: C.accent }); // big ears
+            if (t >= 1) for (const sd of [-1, 1]) ball(sd * 0.05, hy + 0.3 * hs, hz + 0.2, 0.02, glw, { emis: true, n: 1 }); // glyph marks over the eyes
+            bone = 0; legsOf(leg, L, 0.14, 0.07, 0.34 * L, -0.38 * L);
+            B(6, 'tail', [0, leg + 0.3, -0.5 * L]); const tb = [0, leg + 0.3, -0.5 * L];
+            for (let k = 0; k < t + 1; k++) { const sx = (k - t / 2) * 0.16;
+              const path = t === 2 ? [tb, [sx * 1.5, tb[1] + 0.2, tb[2] - 0.3], [sx * 2.4, tb[1] + 0.6, tb[2] - 0.38], [sx * 2, tb[1] + 0.98, tb[2] - 0.3]] : [tb, [sx, tb[1] + 0.12, tb[2] - 0.32], [sx * 1.4, tb[1] + 0.36, tb[2] - 0.5], [sx * 1.6, tb[1] + 0.6, tb[2] - 0.48]];
+              tube(path, [0.06, 0.07, 0.06, 0.035], C.body, { cap0: 'none', cap1: 'round' }); const e = path[3]; ball(e[0], e[1], e[2], 0.05, C.accent, { n: 2 }); }
+            if (t === 2) { ring(0, tb[1] + 0.66, tb[2] - 0.36, 0.44, 0.44, 0.05, glw, { emis: true }); for (let k = 0; k < 6; k++) { const a = k / 6 * Math.PI * 2; ball(Math.cos(a) * 0.44, tb[1] + 0.66 + Math.sin(a) * 0.44, tb[2] - 0.36, 0.07, C.accent, { emis: true, n: 2 }); } } // the glyph ring
+            bone = 0;
+          }
+          if (f.wings) wings(0.28, legLen + 0.4, 0.1, 0.8 + 0.2 * t);
+          break;
+        }
         const hs = [1.3, 1.08, 0.95][t], leg = [0.4, 0.55, 0.7][t], L = [0.82, 1.0, 1.14][t], lift = [0, 0.04, 0.1][t];
         const glow = hexMix(C.accent, '#ffffff', 0.25), paw = hexMix(C.dark, C.belly, 0.25);
         // body: a deep chest and a smaller haunch, the chest a touch higher as it grows (a proud stance)
