@@ -136,6 +136,8 @@ Scope (Alexander, 8 Nov evening): EVERYTHING visible goes to the same standard: 
 
 - Floaters get evolution lines and bodies of their own: 54 drifting things grown into Kin (ember spark to a will-o'-wisp lord caged like a lantern, droplet to tide moon, seed fluff to dandelion king, pebble to floating island with a waterfall, kite to dragon kite, snowflake to blizzard star, plasma bead to storm eye, floating eye to the watcher, halo sprite to a seraph of rings, a bulb chandelier, a black hole, a crescent moon in a nightcap).
 
+- Fish get evolution lines and bodies of their own: 54 real fish and the legends they grow into (ember fry to inferno lionfish, minnow to megalodon, algae fry to lotus koi dragon, stonefish to reef-rock titan, coelacanth, flying fish to cloud manta, frost pike, storm swordfish, torpedo ray, abyss gulper, barreleye, sunfish, celestial goldfish, moonfish), each fry with a body of its own. Every Kin family now has its own designed evolution lines; the legendaries are what remains on the old shared bodies.
+
 ## Still to do
 UI polish as feedback comes in. Card battle screen still used for scripted encounters (raids at the walls, thief, citadel duel, holds) and the snare mini-game; converting those to live is the next big step if wanted. (Old list: train/ships, combat animation, eggs, avatar hair/paint, buddy WEAR cosmetics, Silas and Finch, UI polish (item icons), quality toggles in settings (state.shadows, state.grassQuality, state.dprCap).
 
