@@ -202,7 +202,7 @@ G.noKinFlight = function () { const p = this.player, w = this.world; if (w.prese
 // the saddle: the top of the body's main mass (ears, horns and spines do not count), and the rider's hips, so one sits on the other
 function backTop(m) { return seatOf(m).top; }
 // the saddle: the top of the mount's torso (its biggest body piece, so a raised neck or a hump does not count) and where along it the middle is
-function seatOf(m) { if (m._seat) return m._seat; const bp = m.boxes.filter(b => (b.bone || 0) === 0 && b.w && b.h && b.d); if (!bp.length) return (m._seat = { top: m.height * 0.62, zc: 0 }); let big = bp[0]; for (const b of bp) if (b.w * b.h * b.d > big.w * big.h * big.d) big = b; return (m._seat = { top: big.y + big.h, zc: big.z + big.d / 2, w: big.w }); }
+function seatOf(m) { if (m._seat) return m._seat; const bp = m.boxes.filter(b => (b.bone || 0) === 0 && b.k === 'blob' && b.w && b.h && b.d); /* body pieces only: a neck or a mane is a tube or a plate, never the saddle */ if (!bp.length) return (m._seat = { top: m.height * 0.62, zc: 0 }); let big = bp[0]; for (const b of bp) if (b.w * b.h * b.d > big.w * big.h * big.d) big = b; return (m._seat = { top: big.y + big.h, zc: big.z + big.d / 2, w: big.w }); }
 function hipOf(m) { if (m._hip != null) return m._hip; const leg = (m.bones || []).find(b => b && b.kind === 'leg'); return (m._hip = leg ? leg.piv[1] : 0.7); }
 // where the mount's feet are drawn: on the ground it stands on the visible surface, in the water it sits low like a swimmer
 G.mountBase = function (p) { return p.inWater ? p.y - 0.95 : p.y + p.drawLift(); };

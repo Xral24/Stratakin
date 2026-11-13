@@ -81,6 +81,13 @@ New games now default to one shared world, seed "Stratakin" (an empty World box 
      - `formOf()` is what `model()` draws.
      - `maturity()` keeps stats on the same power curve whatever the length; a single-form Kin grows stronger by level.
    - **Every step should change the body:** he found stage 2 to 3 too similar when a line kept the same plan, so three-stage lines now use a different body plan at each stage.
+   - **Four-legged Kin are finished on the new system** (Friday 13 November):
+     - **Land lines:** four per element, mixing the six plans plus blob starters.
+     - **Mounts:** a real horse plan, `steed`. Wild steeds go foal, colt, warhorse; camp horses, Thunderhoof and legendary steeds are full-grown warhorses (`steedFull`).
+     - **Legendary four-legged Kin:** a single grand form per element (`legend`).
+     - **Fusions** draw from the same lines.
+     - **Bipeds** are kept out on purpose: they get two-legged lines next.
+     - The saddle (`seatOf` in `js/main.js`) only looks at body blobs, so a neck or a mane never lifts the rider.
    - **Behaviour still follows `sp.shape`** (swim, fly, ride), so a line only mixes bodies that move the same way.
    - **What's excluded:** mounts, fusions, dinosaurs, legendaries and the scripted one-offs.
    - **The jobs for you:**

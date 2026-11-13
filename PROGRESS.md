@@ -118,6 +118,8 @@ Scope (Alexander, 8 Nov evening): EVERYTHING visible goes to the same standard: 
 
 - Evolution lines: LINES (land/water by element), each line 1 to 3 forms that may change body plan (jelly to walking ray, ember sprite to forge brute, minnow to shark to sea dragon, wisp to masked conjuror). lineOf/maxStage/lookOf/formOf/maturity; model draws the stage's form; evolution, names, stats and the Kin panel follow the line's length. Behaviour still keys on sp.shape. Worked out from the species, never saved.
 
+- All four-legged Kin on the lines: four land lines per element, a real horse plan for mounts (foal, colt, warhorse; camp horses, Thunderhoof and legendary steeds full-grown), a single grand form for legendary four-legged Kin, fusions included, bipeds held back for their own lines. Saddle height from body blobs only.
+
 ## Still to do
 UI polish as feedback comes in. Card battle screen still used for scripted encounters (raids at the walls, thief, citadel duel, holds) and the snare mini-game; converting those to live is the next big step if wanted. (Old list: train/ships, combat animation, eggs, avatar hair/paint, buddy WEAR cosmetics, Silas and Finch, UI polish (item icons), quality toggles in settings (state.shadows, state.grassQuality, state.dprCap).
 

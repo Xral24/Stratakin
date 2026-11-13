@@ -313,23 +313,33 @@ const KIN = (() => {
   // Mounts, fusions, dinosaurs, legendaries and the scripted one-offs keep their single fixed body.
   const LINES = {
     land: { // three-stage lines change body at BOTH steps, the way the great ones do (a lizard that becomes a dragon)
-      Tide: [[['blob', null, 'tidepool jelly'], ['quadruped', 'glyphtail', 'river otter'], ['quadruped', 'mantlewalker', 'manta that rides the air over the shallows']], [['quadruped', 'glyphtail', 'otter kit'], ['quadruped', 'mantlewalker', 'ray that learned to walk']]],
-      Flame: [[['blob', null, 'ember sprite'], ['quadruped', 'glyphtail', 'fire fox'], ['quadruped', 'anvilmaw', 'forge-king brute']], [['quadruped', 'masker', 'cinder kitten'], ['quadruped', 'anvilmaw', 'furnace hound']]],
-      Bloom: [[['blob', null, 'seed pod'], ['quadruped', 'lanternstag', 'sapling fawn'], ['quadruped', 'bulwark', 'ancient walking grove']], [['quadruped', 'bulwark', 'moss-backed pangolin']]],
-      Stone: [[['blob', null, 'pebble'], ['quadruped', 'bulwark', 'scaled burrower'], ['quadruped', 'anvilmaw', 'mountain brute']], [['quadruped', 'anvilmaw', 'quarry bulldog'], ['quadruped', 'bulwark', 'walking fortress']]],
-      Gale: [[['quadruped', 'glyphtail', 'wind fox kit'], ['quadruped', 'lanternstag', 'cloud deer'], ['quadruped', 'mantlewalker', 'sky manta']], [['quadruped', 'lanternstag', 'cloud deer']]],
-      Frost: [[['quadruped', 'masker', 'snow kitten'], ['quadruped', 'masker', 'ice lynx in a crystal mask']], [['blob', null, 'snowball imp'], ['quadruped', 'masker', 'ice lynx'], ['quadruped', 'bulwark', 'glacier fortress']]],
-      Spark: [[['blob', null, 'static spark'], ['quadruped', 'glyphtail', 'bolt fox'], ['quadruped', 'mantlewalker', 'storm ray']], [['quadruped', 'mantlewalker', 'storm ray']]],
-      Void: [[['blob', null, 'shadow wisp'], ['biped', null, 'masked conjuror']], [['quadruped', 'masker', 'shadow kitten'], ['quadruped', 'masker', 'phantom cat'], ['quadruped', 'mantlewalker', 'night wraith on a cape of shadow']]],
-      Light: [[['quadruped', 'lanternstag', 'glow fawn'], ['quadruped', 'lanternstag', 'lantern stag'], ['quadruped', 'glyphtail', 'halo fox that walks on light']], [['blob', null, 'firefly mote'], ['quadruped', 'glyphtail', 'halo fox']]]
+      Tide: [[['blob', null, 'tidepool jelly'], ['quadruped', 'glyphtail', 'river otter'], ['quadruped', 'mantlewalker', 'manta that rides the air over the shallows']], [['quadruped', 'glyphtail', 'otter kit'], ['quadruped', 'mantlewalker', 'ray that learned to walk']], [['blob', null, 'hermit in a shell'], ['quadruped', 'bulwark', 'reef fortress']], [['blob', null, 'bubble'], ['quadruped', 'masker', 'tide lynx']]],
+      Flame: [[['blob', null, 'ember sprite'], ['quadruped', 'glyphtail', 'fire fox'], ['quadruped', 'anvilmaw', 'forge-king brute']], [['quadruped', 'masker', 'cinder kitten'], ['quadruped', 'anvilmaw', 'furnace hound']], [['blob', null, 'coal'], ['quadruped', 'bulwark', 'magma armadillo'], ['quadruped', 'anvilmaw', 'volcano brute']], [['quadruped', 'lanternstag', 'ember deer']]],
+      Bloom: [[['blob', null, 'seed pod'], ['quadruped', 'lanternstag', 'sapling fawn'], ['quadruped', 'bulwark', 'ancient walking grove']], [['quadruped', 'bulwark', 'moss-backed pangolin']], [['quadruped', 'glyphtail', 'leaf fox kit'], ['quadruped', 'masker', 'thorn cat']], [['blob', null, 'bulb'], ['quadruped', 'anvilmaw', 'bramble boar']]],
+      Stone: [[['blob', null, 'pebble'], ['quadruped', 'bulwark', 'scaled burrower'], ['quadruped', 'anvilmaw', 'mountain brute']], [['quadruped', 'anvilmaw', 'quarry bulldog'], ['quadruped', 'bulwark', 'walking fortress']], [['quadruped', 'masker', 'crag cat']], [['blob', null, 'geode'], ['quadruped', 'glyphtail', 'crystal fox'], ['quadruped', 'bulwark', 'gem-backed titan']]],
+      Gale: [[['quadruped', 'glyphtail', 'wind fox kit'], ['quadruped', 'lanternstag', 'cloud deer'], ['quadruped', 'mantlewalker', 'sky manta']], [['quadruped', 'lanternstag', 'cloud deer']], [['blob', null, 'puff of cloud'], ['quadruped', 'glyphtail', 'gust fox'], ['quadruped', 'mantlewalker', 'wind ray']], [['quadruped', 'masker', 'feathered lynx']]],
+      Frost: [[['quadruped', 'masker', 'snow kitten'], ['quadruped', 'masker', 'ice lynx in a crystal mask']], [['blob', null, 'snowball imp'], ['quadruped', 'masker', 'ice lynx'], ['quadruped', 'bulwark', 'glacier fortress']], [['quadruped', 'glyphtail', 'arctic fox kit'], ['quadruped', 'lanternstag', 'snow reindeer']], [['quadruped', 'anvilmaw', 'frost yeti-hound']]],
+      Spark: [[['blob', null, 'static spark'], ['quadruped', 'glyphtail', 'bolt fox'], ['quadruped', 'mantlewalker', 'storm ray']], [['quadruped', 'mantlewalker', 'storm ray']], [['quadruped', 'masker', 'static cat'], ['quadruped', 'anvilmaw', 'dynamo brute']], [['blob', null, 'battery bug'], ['quadruped', 'bulwark', 'coil armadillo'], ['quadruped', 'lanternstag', 'lightning stag']]],
+      Void: [[['blob', null, 'shadow wisp'], ['biped', null, 'masked conjuror']], [['quadruped', 'masker', 'shadow kitten'], ['quadruped', 'masker', 'phantom cat'], ['quadruped', 'mantlewalker', 'night wraith on a cape of shadow']], [['quadruped', 'glyphtail', 'shade fox'], ['quadruped', 'anvilmaw', 'abyss hound']], [['blob', null, 'ink drop'], ['quadruped', 'bulwark', 'obsidian crawler'], ['quadruped', 'masker', 'void sphinx']]],
+      Light: [[['quadruped', 'lanternstag', 'glow fawn'], ['quadruped', 'lanternstag', 'lantern stag'], ['quadruped', 'glyphtail', 'halo fox that walks on light']], [['blob', null, 'firefly mote'], ['quadruped', 'glyphtail', 'halo fox']], [['quadruped', 'masker', 'dawn cat'], ['quadruped', 'mantlewalker', 'sunray']], [['blob', null, 'sunbeam'], ['quadruped', 'lanternstag', 'dawn deer'], ['quadruped', 'bulwark', 'gilded fortress']]]
     },
+    steed: { _: [[['quadruped', 'steed', 'foal'], ['quadruped', 'steed', 'colt'], ['quadruped', 'steed', 'warhorse']]] },
+    steedFull: { _: [[['quadruped', 'steed', 'warhorse']]] },
+    legend: { // the legendaries: one form, full-grown, the grandest body its element has
+      Tide: [[['quadruped', 'mantlewalker', 'tide sovereign']]], Flame: [[['quadruped', 'anvilmaw', 'volcano titan']]], Bloom: [[['quadruped', 'lanternstag', 'forest king']]],
+      Stone: [[['quadruped', 'bulwark', 'living mountain']]], Gale: [[['quadruped', 'mantlewalker', 'storm-cloud ray']]], Frost: [[['quadruped', 'masker', 'winter empress']]],
+      Spark: [[['quadruped', 'glyphtail', 'thunder fox']]], Void: [[['quadruped', 'masker', 'eclipse stalker']]], Light: [[['quadruped', 'glyphtail', 'sun fox']]], _: [[['quadruped', 'lanternstag', 'old king']]] },
     water: {
       Tide: [[['fish', 'minnow', 'river minnow'], ['fish', 'shark', 'reef shark'], ['serpent', 'seadragon', 'sea dragon']], [['fish', 'seahorse', 'seahorse'], ['fish', 'ray', 'ray']]],
       _: [[['fish', 'minnow', 'minnow'], ['fish', 'shark', 'shark']], [['fish', 'ray', 'ray']]]
     }
   };
-  const LAND_LINE = new Set(['quadruped', 'biped', 'blob']);
-  function lineClass(sp) { if (!sp || sp.steed || sp.fast || sp.tame || sp.dino || sp.mythic || sp.neon || sp.fusedFrom || (sp.rarity || 0) >= 4) return null; if (LAND_LINE.has(sp.shape)) return 'land'; if (sp.shape === 'fish') return 'water'; return null; }
+  const LAND_LINE = new Set(['quadruped', 'blob']); // two-legged Kin get lines of their own next, built on two-legged bodies
+  function lineClass(sp) {
+    if (!sp || sp.dino || sp.mythic || sp.neon) return null;
+    if (sp.steed || sp.fast || sp.tame) return (sp.evolveAt && sp.evolveAt[0] >= 999) || sp.fast || sp.tame || (sp.rarity || 0) >= 4 ? 'steedFull' : 'steed'; // horses you ride: camp horses, Thunderhoof and the legendary steeds are full-grown
+    if ((sp.rarity || 0) >= 4) return LAND_LINE.has(sp.shape) ? 'legend' : null;
+    if (LAND_LINE.has(sp.shape)) return 'land'; if (sp.shape === 'fish') return 'water'; return null; }
   function lineOf(sp) {
     if (sp._line !== undefined) return sp._line; const cls = lineClass(sp); if (!cls) return (sp._line = null);
     const el = dominant(sp.elem || [], 1)[0]; const T = LINES[cls]; const opts = T[el] || T._ || null; if (!opts) return (sp._line = null);
@@ -539,7 +549,7 @@ const KIN = (() => {
         // six invented creatures, picked by its seed, each with a gimmick of its own and an arc across its three stages.
         const ARCH = ['bulwark', 'lanternstag', 'masker', 'mantlewalker', 'anvilmaw', 'glyphtail'];
         const arch = (sp.steed || sp.fast || sp.tame || sp.dino) ? 'steed' : form.plan && ARCH.includes(form.plan) ? form.plan : ARCH[((sp.seed >>> 0) % 997) % ARCH.length];
-        if (arch !== 'steed') {
+        {
           const glw = hexMix(C.accent, '#ffffff', 0.3), pawC = hexMix(C.dark, C.belly, 0.2);
           const look = (ex, ey, ez, er, o = {}) => { // layered eyes: dark base, coloured iris, pupil, two glints; an adult's brow
             for (const sd of [-1, 1]) { ball(sd * ex, ey, ez, er, '#16121e', { n: 3 }); ball(sd * (ex + er * 0.04), ey - er * 0.12, ez + er * 0.5, er * 0.62, o.col || C.eye, { emis: !!o.glow, n: 3 });
@@ -608,7 +618,33 @@ const KIN = (() => {
               onTail(() => ball(tl[0], tl[1], tl[2], (0.08 + 0.02 * t) * kk, '#fff3b0', { emis: true, n: 2 }));
             }
           };
-          if (arch === 'bulwark') {
+          if (arch === 'steed') {
+            // STEED: the Kin you ride, drawn as a real horse. A foal is all legs, a big head and a fuzzy stub of a mane; a colt is
+            // sleek, with a flowing mane and tail; a warhorse is broad in the chest, feathered at the hoof, wears a face-plate and
+            // carries its element in full (a burning mane, frost on the fetlocks, a halo, wings on a wind horse).
+            const leg = [0.66, 0.7, 0.78][t], L = [0.72, 0.92, 1.0][t], hs = [1.3, 1.05, 1.0][t];
+            const maneC = el === 'Flame' ? C.accent : el === 'Frost' ? glw : hexMix(C.dark, C.accent, 0.35);
+            blob(-0.27 * bulk, leg - 0.02, -0.56 * L, 0.27 * bulk, leg + [0.36, 0.44, 0.5][t], 0.5 * L, 1, C.body, { under: C.belly, tap: [0.95, 1] }); // the barrel
+            if (t >= 1) blob(-0.3 * bulk, leg + 0.04, 0.1, 0.3 * bulk, leg + 0.5 + 0.04 * t, 0.56 * L, 1, C.body, { under: C.belly }); // the chest
+            markings(-0.26, leg, -0.54 * L, 0.26, leg + 0.42, 0.48 * L);
+            const nb = [0, leg + 0.36, 0.44 * L], ht = [0, leg + [0.86, 0.96, 1.06][t], 0.7 * L];
+            tube([nb, [0, (nb[1] + ht[1]) / 2, (nb[2] + ht[2]) / 2 + 0.03], ht], [[0.16, 0.2, 0.23][t], 0.15, 0.12], C.body, { cap0: 'none', cap1: 'round' }); // a long, arched neck
+            const mn = t === 0 ? 4 : 7; for (let i = 0; i < mn; i++) { const u = i / (mn - 1); const p0 = [0, nb[1] + 0.12 + (ht[1] - nb[1]) * u, nb[2] - 0.1 + (ht[2] - nb[2]) * u]; plate([[0, p0[1], p0[2] + 0.04], [-0.05, p0[1] + (t === 0 ? 0.06 : 0.12), p0[2] - (t === 0 ? 0.06 : 0.16)], [0.05, p0[1] + (t === 0 ? 0.03 : 0.06), p0[2] - (t === 0 ? 0.08 : 0.2)]], 0.025, maneC, { emis: el === 'Flame' && t === 2 }); } // the mane
+            B(1, 'head', ht); const hy = ht[1], hz = ht[2];
+            blob(-0.15 * hs, hy - 0.06, hz - 0.08, 0.15 * hs, hy + 0.22 * hs, hz + 0.2, 1, C.body, { under: C.belly });
+            blob(-0.11 * hs, hy - 0.16 * hs, hz + 0.08, 0.11 * hs, hy + 0.08 * hs, hz + (0.4 + 0.08 * t) * hs, 0.9, hexMix(C.body, C.belly, 0.35), { tap: [0.85, 0.75] }); // the long horse's face
+            for (const sd of [-1, 1]) ball(sd * 0.05 * hs, hy - 0.06 * hs, hz + (0.4 + 0.08 * t) * hs, 0.022, C.dark, { n: 1 }); // nostrils
+            look(0.12 * hs, hy + 0.1 * hs, hz + 0.1, [0.09, 0.07, 0.062][t] * hs, { brow: t === 2 ? C.dark : null });
+            for (const sd of [-1, 1]) plate([[sd * 0.06 * hs, hy + 0.18 * hs, hz], [sd * 0.14 * hs, hy + 0.2 * hs, hz - 0.02], [sd * 0.1 * hs, hy + 0.38 * hs, hz - 0.04]], 0.025, C.body, { edge: C.belly }); // ears
+            if (t >= 1) plate([[0, hy + 0.2 * hs, hz + 0.04], [-0.04, hy + 0.34 * hs, hz - 0.04], [0.04, hy + 0.3 * hs, hz - 0.06]], 0.02, maneC); // a forelock
+            if (t === 2) { plate([[-0.1, hy + 0.12, hz + 0.14], [0.1, hy + 0.12, hz + 0.14], [0.08, hy - 0.08, hz + 0.4], [-0.08, hy - 0.08, hz + 0.4]], 0.025, hexMix(C.dark, '#c9c4b8', 0.4), { edge: C.accent }); cone([0, hy + 0.14, hz + 0.16], [0, 0.6, 0.6], 0.16, 0.035, C.accent); } // the war face-plate and its spike
+            bone = 0; legsOf(leg, L, 0.15 * bulk, [0.06, 0.075, 0.09][t], 0.36 * L, -0.42 * L, { hoof: true, haunch: t >= 1 });
+            if (t === 2) for (const [fx, fz, fb] of [[-0.15, 0.36 * L, 2], [0.15, 0.36 * L, 3], [-0.15, -0.42 * L, 4], [0.15, -0.42 * L, 5]]) { bone = fb; for (let i = 0; i < 4; i++) { const a = i / 4 * Math.PI * 2; cone([fx + Math.cos(a) * 0.06, 0.24, fz + Math.sin(a) * 0.06], [Math.cos(a) * 0.5, -1, Math.sin(a) * 0.5], 0.12, 0.035, el === 'Frost' ? glw : maneC, { emis: el === 'Frost' || el === 'Flame' }); } bone = 0; } // feathered fetlocks
+            if (t === 2) for (const sd of [-1, 1]) plate([[sd * 0.28, leg + 0.4, 0.4 * L], [sd * 0.3, leg + 0.1, 0.32 * L], [sd * 0.3, leg + 0.06, -0.3 * L], [sd * 0.28, leg + 0.38, -0.36 * L]], 0.02, hexMix(C.accent, C.dark, 0.3), { edge: C.accent }); // barding
+            B(6, 'tail', [0, leg + 0.36, -0.56 * L]); const tl = [0, leg - [0.06, 0.18, 0.28][t], -(0.72 + 0.14 * t) * L];
+            tube([[0, leg + 0.36, -0.56 * L], [0, leg + 0.3, -(0.66 + 0.06 * t) * L], tl], [0.07, [0.07, 0.11, 0.14][t], 0.04], maneC, { cap0: 'none', cap1: 'round', emis: el === 'Flame' && t === 2 }); bone = 0; // the tail: a tuft, then a flowing switch
+            infuse({ head: [0, hy + 0.3 * hs, hz], hs, neck: [0, nb[1] + 0.1, nb[2] + 0.12], back: [leg + [0.36, 0.44, 0.5][t], -0.44 * L, 0.3 * L], tail: tl, jaw: [0, hy - 0.1 * hs, hz + 0.34 * hs], feet: [[-0.15, 0.36 * L, 2], [0.15, 0.36 * L, 3], [-0.15, -0.42 * L, 4], [0.15, -0.42 * L, 5]] });
+          } else if (arch === 'bulwark') {
             // BULWARK: born a soft, round pup in banded scales; grows into a long scaled hunter; ends as a walking fortress,
             // overlapping plates in ridges, a shield crest on its head and a mace at the end of its tail.
             const leg = [0.26, 0.34, 0.46][t], L = [0.8, 1.06, 1.22][t], plateC = el === 'Frost' ? glw : el === 'Flame' ? '#3a2a26' : hexMix(C.dark, C.body, 0.35);
@@ -742,71 +778,6 @@ const KIN = (() => {
           if (f.wings && el !== 'Gale') wings(0.28, legLen + 0.4, 0.1, 0.8 + 0.2 * t);
           break;
         }
-        const hs = [1.3, 1.08, 0.95][t], leg = [0.4, 0.55, 0.7][t], L = [0.82, 1.0, 1.14][t], lift = [0, 0.04, 0.1][t];
-        const glow = hexMix(C.accent, '#ffffff', 0.25), paw = hexMix(C.dark, C.belly, 0.25);
-        // body: a deep chest and a smaller haunch, the chest a touch higher as it grows (a proud stance)
-        blob(-0.36, leg - 0.02 + lift * 0.5, -0.05, 0.36, leg + 0.6 + lift, 0.66 * L, 1, C.body, { under: C.belly, bulge: 0.06 });
-        blob(-0.33, leg - 0.04, -0.66 * L, 0.33, leg + 0.5, 0.12, 0.9, C.body, { under: C.belly, bulge: 0.05 });
-        markings(-0.34, leg, -0.6 * L, 0.34, leg + 0.56, 0.6 * L);
-        const nb = [0, leg + 0.42 + lift, 0.5 * L], ht = [0, leg + 0.6 + lift + 0.05 * t, 0.6 * L + 0.06];
-        tube([nb, [0, (nb[1] + ht[1]) / 2 + 0.02, (nb[2] + ht[2]) / 2], ht], [0.25, 0.22, 0.2], C.body, { cap0: 'none', cap1: 'round' });
-        // head
-        B(1, 'head', ht); const hx = ht[1], hz = ht[2];
-        blob(-0.27 * hs, hx - 0.02 * hs, hz - 0.1 * hs, 0.27 * hs, hx + 0.46 * hs, hz + 0.36 * hs, 1, C.body, { under: C.belly });
-        const mz = hz + 0.3 * hs, ml = (0.14 + 0.1 * t) * hs;
-        blob(-0.13 * hs, hx + 0.03 * hs, mz - 0.06, 0.13 * hs, hx + 0.22 * hs, mz + ml, 0.95, t ? hexMix(C.body, C.belly, 0.55) : C.belly, { tap: [0.8, 0.85] }); // a muzzle that narrows to the nose
-        ball(0, hx + 0.2 * hs, mz + ml - 0.01, 0.055 * hs, C.dark, { n: 2 }); if (t === 2) blob(-0.1 * hs, hx + 0.02 * hs, mz, 0.1 * hs, hx + 0.08 * hs, mz + ml * 0.8, 0.8, hexMix(C.body, C.dark, 0.3), { n: 2 }); // and a jaw on the adult
-        { // eyes with life in them: a coloured iris, a dark pupil, a big glint and a small one; the adult's brow comes down
-          const er = [0.12, 0.098, 0.088][t] * hs, ey = hx + 0.29 * hs, ez = hz + 0.27 * hs, ex = 0.155 * hs;
-          for (const sd of [-1, 1]) { ball(sd * ex, ey, ez, er, '#16121e', { n: 3 }); ball(sd * (ex + er * 0.04), ey - er * 0.12, ez + er * 0.5, er * 0.62, C.eye, { emis: el === 'Void' || el === 'Spark' || el === 'Light', n: 3 });
-            ball(sd * (ex + er * 0.05), ey - er * 0.1, ez + er * 0.78, er * 0.3, '#0a0810', { n: 2 }); ball(sd * (ex - er * 0.22), ey + er * 0.34, ez + er * 0.82, er * 0.3, '#ffffff', { emis: true, n: 2 }); ball(sd * (ex + er * 0.3), ey - er * 0.36, ez + er * 0.84, er * 0.13, '#ffffff', { emis: true, n: 2 });
-            if (t === 2) blob(sd * ex - er * 1.1, ey + er * 0.88, ez - er * 0.3, sd * ex + er * 1.1, ey + er * 1.18, ez + er * 0.9, 0.5, C.dark, { n: 2 }); } }
-        if (t >= 1) for (const sd of [-1, 1]) plate([[sd * 0.24 * hs, hx + 0.16 * hs, hz + 0.1 * hs], [sd * 0.36 * hs, hx + 0.08 * hs, hz + 0.02 * hs], [sd * 0.3 * hs, hx + 0.22 * hs, hz + 0.04 * hs]], 0.03, C.accent); // cheek tufts
-        // ears, shaped by the element
-        for (const sd of [-1, 1]) {
-          const eb = [sd * 0.13 * hs, hx + 0.42 * hs, hz + 0.06 * hs], es = [0.36, 0.3, 0.27][t] * hs;
-          if (el === 'Spark') plate([[eb[0], eb[1], eb[2]], [eb[0] + sd * es * 0.45, eb[1] + es * 0.35, eb[2] - 0.02], [eb[0] + sd * es * 0.25, eb[1] + es * 0.5, eb[2] - 0.04], [eb[0] + sd * es * 0.7, eb[1] + es, eb[2] - 0.08], [eb[0] + sd * es * 0.12, eb[1] + es * 0.45, eb[2] - 0.04]], 0.035, C.body, { edge: C.dark });
-          else if (el === 'Tide') plate([[eb[0], eb[1] - 0.04, eb[2]], [eb[0] + sd * es * 0.9, eb[1] + es * 0.15, eb[2] - es * 0.4], [eb[0] + sd * es * 0.55, eb[1] + es * 0.45, eb[2] - es * 0.2], [eb[0] + sd * es * 0.15, eb[1] + es * 0.3, eb[2]]], 0.03, C.accent, { edge: C.body });
-          else if (el === 'Gale') for (let k = 0; k < 3; k++) cone([eb[0], eb[1], eb[2] - 0.02 * k], [sd * (0.5 + 0.3 * k), 1, -0.4 - 0.2 * k], es * (1 - 0.2 * k), 0.06 * hs, k ? C.belly : C.body);
-          else plate([[eb[0] - sd * 0.03, eb[1], eb[2] + 0.03], [eb[0] + sd * es * 0.38, eb[1], eb[2] - 0.02], [eb[0] + sd * es * 0.32, eb[1] + es, eb[2] - 0.08], [eb[0] + sd * es * 0.06, eb[1] + es * 0.5, eb[2]]], 0.035, C.body, { edge: el === 'Void' ? C.accent : C.belly });
-        }
-        if (f.horns || (t === 2 && (el === 'Stone' || el === 'Void'))) for (const sd of [-1, 1]) curl([sd * 0.15 * hs, hx + 0.4 * hs, hz + 0.16 * hs], [sd * 0.3, 1, -0.3], (0.3 + 0.14 * t) * hs, 0.07 * hs, el === 'Void' ? C.accent : C.dark, [sd * 0.3, -0.25, -0.5]);
-        if (f.crest || el === 'Bloom') plate([[0, hx + 0.44 * hs, hz + 0.18 * hs], [-0.04, hx + (0.66 + 0.06 * t) * hs, hz + 0.02], [0.05, hx + (0.6 + 0.08 * t) * hs, hz - 0.08], [0, hx + 0.44 * hs, hz]], 0.035, el === 'Bloom' ? C.accent : C.accent); // a leaf or a crest
-        if (el === 'Frost' && t === 2) for (const a of [-0.5, 0, 0.5]) cone([a * 0.16 * hs, hx + 0.44 * hs, hz + 0.08 * hs], [a * 0.6, 1, -0.2], 0.3 * hs, 0.05 * hs, glow, { emis: true });
-        if (el === 'Light' && t === 2) ring(0, hx + 0.72 * hs, hz + 0.12 * hs, 0.2 * hs, 0.07 * hs, 0.022, '#fff3b0', { emis: true }); // a halo
-        bone = 0;
-        // the element across the body
-        if (el === 'Flame' && t >= 1) for (let k = 0; k < 3 + t; k++) { const u = k / (2 + t); cone([0, nb[1] + 0.08 + (ht[1] - nb[1]) * u, nb[2] + (ht[2] - nb[2]) * u - 0.1], [0, 1, -0.7], (0.32 + 0.08 * t) * (1 - u * 0.35), 0.1, k % 2 ? C.accent : glow, { emis: true }); } // a mane of flame
-        if (el === 'Tide') plate([[0, leg + 0.58 + lift, 0.3 * L], [0, leg + 0.82 + lift + 0.06 * t, 0.05], [0, leg + 0.62, -0.3 * L], [0, leg + 0.5, -0.1]], 0.035, C.accent, { edge: C.body }); // a dorsal fin
-        if (el === 'Stone') for (let k = 0; k < 2 + t; k++) { const z = 0.4 * L - k * (0.75 * L / (1 + t)); blob(-0.22, leg + 0.5 + lift * 0.5, z - 0.12, 0.22, leg + 0.68 + lift * 0.5 + 0.03 * t, z + 0.12, 0.45, C.dark, { n: 2 }); } // rock plates
-        if (el === 'Frost' || f.spikes) for (let k = 0; k < 2 + t; k++) { const z = 0.35 * L - k * (0.7 * L / (1 + t)); cone([0, leg + 0.55 + lift * 0.5, z], [0, 1, -0.3], 0.18 + 0.05 * t, 0.06, el === 'Frost' ? glow : C.accent, { emis: el === 'Frost' }); }
-        if (el === 'Bloom' && t >= 1) { const fx = 0, fy = nb[1] + 0.02, fz = nb[2] + 0.12; for (let k = 0; k < 5; k++) { const a = k / 5 * Math.PI * 2; ball(fx + Math.cos(a) * 0.09, fy + Math.sin(a) * 0.09, fz + 0.06, 0.06, '#f4a3d2', { n: 2 }); } ball(fx, fy, fz + 0.09, 0.045, '#ffe08a', { n: 2 }); }
-        if (el === 'Void' && t >= 1) for (let k = 0; k < 4; k++) plate([[0, nb[1] + 0.1 + k * 0.06, nb[2] - 0.05 - k * 0.04], [-0.06, nb[1] + 0.34 + k * 0.05, nb[2] - 0.2 - k * 0.05], [0.06, nb[1] + 0.3 + k * 0.05, nb[2] - 0.16 - k * 0.04]], 0.03, C.dark, { edge: C.accent }); // a smoky mane
-        if (el === 'Light' && t >= 1) for (let k = 0; k < 7; k++) { const a = (k / 6 - 0.5) * 2.4; cone([Math.sin(a) * 0.18, nb[1] + 0.06 + Math.cos(a) * 0.1, nb[2] + 0.08], [Math.sin(a), Math.cos(a) * 0.6, -0.4], 0.16 + 0.04 * t, 0.05, '#fff6d0'); } // a radiant ruff
-        if (el === 'Spark' && t >= 1) for (const sd of [-1, 1]) ball(sd * 0.2 * hs, hx + 0.12 * hs, hz + 0.3 * hs, 0.05 * hs, '#ff7a5a', { emis: true, n: 2 }); // cheek sparks
-        if (f.wings || (el === 'Gale' && t === 2)) wings(0.3, leg + 0.52 + lift, 0.15, 0.7 + 0.25 * t);
-        // legs: a muscled upper leg, a slim lower leg, a big paw
-        legLen = leg + 0.05;
-        const legs = [[-0.22, 0.44 * L, 2, 0], [0.22, 0.44 * L, 3, Math.PI], [-0.22, -0.46 * L, 4, Math.PI], [0.22, -0.46 * L, 5, 0]];
-        for (const [lx, lz, bi, ph] of legs) { const back = lz < 0; B(bi, 'leg', [lx, leg + 0.06, lz], { phase: ph, len: leg + 0.05 });
-          if (back) blob(lx - 0.13, leg * 0.55, lz - 0.16, lx + 0.13, leg + 0.2, lz + 0.14, 1, C.body, { under: C.belly }); // the haunch
-          if (back) tube([[lx, leg + 0.1, lz], [lx * 1.04, leg * 0.58, lz + 0.09], [lx, leg * 0.26, lz - 0.07], [lx, 0.1, lz + 0.01]], [0.15, 0.11, 0.085, 0.09], C.body, { cap0: 'none', cap1: 'none' }); // a hock, bent back like a real hind leg
-          else tube([[lx, leg + 0.1, lz], [lx * 1.03, leg * 0.48, lz + 0.02], [lx, leg * 0.2, lz + 0.04], [lx, 0.1, lz + 0.03]], [0.14, 0.1, 0.085, 0.09], C.body, { cap0: 'none', cap1: 'none' });
-          blob(lx - 0.11, 0, lz - 0.08, lx + 0.11, 0.13, lz + 0.17, 0.7, paw, { n: 2 }); }
-        bone = 0;
-        // the tail: every element its own
-        B(6, 'tail', [0, leg + 0.36, -0.62 * L]); const tb = [0, leg + 0.36, -0.62 * L];
-        if (el === 'Flame') { tube([tb, [0, tb[1] + 0.1, tb[2] - 0.25], [0, tb[1] + 0.32, tb[2] - 0.42]], [0.08, 0.06, 0.05], C.body, { cap0: 'none', cap1: 'round' }); for (let k = 0; k < 3; k++) cone([0, tb[1] + 0.32, tb[2] - 0.42], [(k - 1) * 0.35, 1, -0.2], 0.28 + 0.06 * t - k % 2 * 0.06, 0.09, k === 1 ? glow : C.accent, { emis: true }); }
-        else if (el === 'Tide') { tube([tb, [0, tb[1] + 0.02, tb[2] - 0.3], [0, tb[1] + 0.06, tb[2] - 0.55]], [0.1, 0.07, 0.04], C.body, { cap0: 'none', cap1: 'round' }); for (const sd of [-1, 1]) plate([[0, tb[1] + 0.06, tb[2] - 0.5], [sd * 0.32, tb[1] + 0.2, tb[2] - 0.78], [sd * 0.08, tb[1] + 0.06, tb[2] - 0.7]], 0.03, C.accent, { edge: C.body }); }
-        else if (el === 'Spark') { const zz = [[0, tb[1], tb[2]], [0, tb[1] + 0.22, tb[2] - 0.2], [0, tb[1] + 0.14, tb[2] - 0.3], [0, tb[1] + 0.44, tb[2] - 0.5], [0, tb[1] + 0.36, tb[2] - 0.6], [0, tb[1] + 0.7, tb[2] - 0.78]]; tube(zz, [0.07, 0.06, 0.06, 0.07, 0.07, 0.02], C.accent, { cap0: 'none', cap1: 'round', segs: 5 }); }
-        else if (el === 'Stone') { tube([tb, [0, tb[1] - 0.04, tb[2] - 0.3], [0, tb[1] - 0.02, tb[2] - 0.5]], [0.1, 0.08, 0.07], C.body, { cap0: 'none', cap1: 'none' }); ball(0, tb[1], tb[2] - 0.58, 0.13 + 0.03 * t, C.dark, { n: 2 }); }
-        else if (el === 'Gale') for (let k = 0; k < 4; k++) cone([0, tb[1], tb[2]], [(k - 1.5) * 0.35, 0.5, -1], 0.55 + 0.1 * t - Math.abs(k - 1.5) * 0.08, 0.07, k % 2 ? C.belly : C.body);
-        else if (el === 'Frost') { tube([tb, [0, tb[1] + 0.1, tb[2] - 0.3]], [0.08, 0.06], C.body, { cap0: 'none', cap1: 'round' }); cone([0, tb[1] + 0.1, tb[2] - 0.3], [0, 0.6, -1], 0.36 + 0.08 * t, 0.08, glow, { emis: true }); }
-        else if (el === 'Void') tube([tb, [0, tb[1] + 0.16, tb[2] - 0.3], [0, tb[1] + 0.1, tb[2] - 0.6], [0, tb[1] + 0.3, tb[2] - 0.85]], [0.09, 0.08, 0.05, 0.0005], C.accent, { cap0: 'none', cap1: 'none', emis: true });
-        else if (el === 'Light') { tube([tb, [0, tb[1] + 0.2, tb[2] - 0.32], [0, tb[1] + 0.42, tb[2] - 0.44]], [0.08, 0.07, 0.06], C.body, { cap0: 'none', cap1: 'round' }); ball(0, tb[1] + 0.48, tb[2] - 0.46, 0.1 + 0.02 * t, '#fff3b0', { emis: true, n: 2 }); }
-        else { tube([tb, [0, tb[1] + 0.12, tb[2] - 0.3], [0, tb[1] + 0.34, tb[2] - 0.5]], [0.08, 0.06, 0.03], C.accent, { cap0: 'none', cap1: 'round' }); cone([0, tb[1] + 0.34, tb[2] - 0.5], [0, 1, -0.5], 0.2, 0.08, C.accent); } // Bloom: a leaf tip
-        bone = 0;
-        break;
       }
       case 'biped': {
         blob(-0.3, 0.5, -0.26, 0.3, 1.27, 0.26, 1, C.body, { under: C.belly, tap: [1.02, 0.82], split: 0.05, soft: 0.35 });
