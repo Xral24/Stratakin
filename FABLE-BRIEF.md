@@ -43,7 +43,7 @@ New games now default to one shared world, seed "Stratakin" (an empty World box 
      - layered eyes: dark base, coloured iris, pupil and two glints, with a brow on adults;
      - hocked hind legs.
    - **Six invented quadruped body plans** followed the same evening, after he asked for creatures that are unique rather than one body re-dressed (his references were Squirtle to Blastoise, Charmander to Charizard, Bulbasaur, Dark Magician and Blue-Eyes White Dragon, for how distinct each design is, never to copy):
-     - **Cairnback:** a low, broad beast carrying standing stones on its back, which float on the adult.
+     - **Bulwark** (replaced Cairnback, whose stones he found meaningless): a banded pup, then a scaled hunter, then a walking fortress with a shield crest and a mace tail.
      - **Lanternstag:** a slender stag whose antlers are hung with lanterns.
      - **Masker:** a cat behind a carved mask with glowing slits, a conjuror's collar and a second mask on its tail.
      - **Mantlewalker:** wide and flat, with a cape of skin down each side, floating as an adult.
@@ -51,6 +51,21 @@ New games now default to one shared world, seed "Stratakin" (an empty World box 
      - **Glyphtail:** a big-eared fox with ribbon tails (one, two, then three) that ring into a glowing glyph circle.
 
      Mounts (steed, fast, tame, dino) keep the horse-like body. Pick by `(seed % 997) % 6`. Gallery: `t-archgal.js`.
+   - **Round two, after his feedback.**
+     - **Evolutions change the body,** not just the count of something (he called one, two, three candles or tails "very basic"). Each stage changes proportions and grows new parts: shoulders, manes, capes, a furnace grate, swept-back ears.
+     - **Elements change the anatomy,** Eevee-style, through `infuse(A)` on each body's anchor points:
+       - **Flame:** a flame crest, flame tail, ember paws and fire horns.
+       - **Tide:** a dorsal fin, fork tail, neck frills and webbed feet.
+       - **Bloom:** a leaf, leaf collar and flowers.
+       - **Stone:** rock plates, boulder shoulders and a nose horn.
+       - **Gale:** feather tuft, ruff, wings and plume.
+       - **Frost:** crystals, an icicle beard and an ice crown.
+       - **Spark:** back bolts, cheek sparks and a bolt tail.
+       - **Void:** horns, a smoke mane and a wisp tail.
+       - **Light:** a ruff, halo and glowing tail.
+
+       Bulk also varies by element. Gallery: `t-archgal2.js`.
+     - **He liked** the Mantlewalker and the Frost Masker best.
    - **Carry that approach across** biped, serpent, bird, blob and the rest: a library of invented body plans per shape, each with its own gimmick and three-stage arc, the element dressing whichever body it gets.
    - **Gallery:** `t-quadgal.js` in the harness renders one per element at every stage. Copy it for the other shapes, and keep bone indices (head 1, legs 2-5, tail 6, wings 7/8) so the animation still works.
 
