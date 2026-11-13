@@ -281,6 +281,11 @@ class Player {
         this.y = fy + 1.001; this.stepLag = Math.min(1.2, (this.stepLag || 0) + 1); this.vy = 0; // the camera eases up over a moment instead of popping
         if (hitX) this.moveAxis(0, this.vx * dt); if (hitZ) this.moveAxis(2, this.vz * dt);
       }
+      // a bank two blocks high of earth, sand or snow: on screen it is one smooth slope, so you walk up it too, a little slower
+      else if (R.isSoil(b) && R.isSoil(w.getBlock(Math.floor(ax), fy + 1, Math.floor(az))) && !this.collides(this.x, fy + 2.02, this.z) && !this.collides(ax, fy + 2.02, az)) {
+        this.bankT = (this.bankT || 0) + dt;
+        if (this.bankT > 0.12) { this.bankT = 0; this.y = fy + 2.001; this.stepLag = Math.min(2.2, (this.stepLag || 0) + 2); this.vy = 0; if (hitX) this.moveAxis(0, this.vx * dt); if (hitZ) this.moveAxis(2, this.vz * dt); }
+      }
     }
     if ((hitX || hitZ) && this.onGround && (this.autoJump || this.autoJumpTrait) && !this.sneak && ml > 0.3) {
       // auto jump over one-block steps

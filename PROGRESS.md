@@ -110,6 +110,8 @@ Scope (Alexander, 8 Nov evening): EVERYTHING visible goes to the same standard: 
 
 - Speed: chunks are culled by the height their land really spans (mesh y range, not the whole 0..WH column), and on phones the shadow map redraws every third frame instead of every other. t-draws on the Stratakin world: about 2.7M to 2.2M vertices a frame at the camp in first person, 2.9M to 2.0M in third, 2.0M to 1.6M in the village.
 
+- Two-block banks of smoothed ground (anything in R.SOIL: grass, dirt, sand, snow, gravel, stone...) are walkable: they draw as one slope, so after a short push you step up both blocks, the camera easing over. Three high still stops you.
+
 ## Still to do
 UI polish as feedback comes in. Card battle screen still used for scripted encounters (raids at the walls, thief, citadel duel, holds) and the snare mini-game; converting those to live is the next big step if wanted. (Old list: train/ships, combat animation, eggs, avatar hair/paint, buddy WEAR cosmetics, Silas and Finch, UI polish (item icons), quality toggles in settings (state.shadows, state.grassQuality, state.dprCap).
 
