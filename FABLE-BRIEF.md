@@ -107,3 +107,7 @@ New games now default to one shared world, seed "Stratakin" (an empty World box 
 - **Old saves must keep working.** A place that is already stamped needs a repair flag to restamp, the way `mineShaftFix2` and `pierWays` do.
 - **Writing in the game and to him:** direct and informal, no em dashes, no rule-of-three lists, no templated structure. Villagers are humanoid folk. "Indians" stay "Indians".
 - **Test harness:** `/home/claude/strata-test`, `ROOT=/home/claude/strata node t-*.js`. `t-smoke.js` covers every layer, `t-sweep.js` walks every quest pin, `t-audit*.js` checks camp people stand on the ground, and `t-brief.js` takes a screenshot of each place above. Headless is slow, so give screenshots a few seconds.
+
+
+## Update, 13 November: every Kin now has a designed body
+All seven families have evolution lines with bespoke forms in js/kin.js (LINES: land, biped, bird, serpent, floater, water, legend), three lines per element, each anchored to a real animal or thing and evolving logically. Your job on the creatures is now polish rather than invention: proportions, colour, silhouette and faces, keeping each design's idea. Alexander has signed off the direction; the sheets he liked best are the starters, the two-legged lines and the redesigned fish and floaters.

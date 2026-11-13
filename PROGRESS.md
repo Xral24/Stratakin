@@ -140,6 +140,8 @@ Scope (Alexander, 8 Nov evening): EVERYTHING visible goes to the same standard: 
 
 - Redesigned on Alexander's notes: flying fish line is now bubble-fin fry, kite-fin flyer, waterspout rider; sailfish is a galleon with masts and sails; coelacanth line is a fossil fry and a half-stone living fossil that walks on its fins; droplet line is a raindrop with a splash crown, a fountain sprite, and a tide moon half moon half sea; sea angel grows into a six-winged abyssal seraph.
 
+- Legendaries get bodies of their own: Ignivar the fire dragon, the Tide Kirin, the World Stag, the Rune Mammoth, the Storm Griffin, the Aurora Sabretooth, the Raiju, the Eclipse Chimera, the Star Pegasus. Legendaries of the other families take the grandest final of their element's first line. Every Kin in the game now has a designed body.
+
 ## Still to do
 UI polish as feedback comes in. Card battle screen still used for scripted encounters (raids at the walls, thief, citadel duel, holds) and the snare mini-game; converting those to live is the next big step if wanted. (Old list: train/ships, combat animation, eggs, avatar hair/paint, buddy WEAR cosmetics, Silas and Finch, UI polish (item icons), quality toggles in settings (state.shadows, state.grassQuality, state.dprCap).
 
