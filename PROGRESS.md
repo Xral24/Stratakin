@@ -100,6 +100,8 @@ Scope (Alexander, 8 Nov evening): EVERYTHING visible goes to the same standard: 
 
 - Tam is a prisoner: when a dark hold stands within 320 of Ysolde's camp (every world checked so far), he is caged in iron bars in the hold's back courtyard corner (lost v4). Ysolde names the hold; the pin says 'Tam, held in X'; the cage gives once the hold's warriors are down (or the hold is already yours); Tam thanks you and walks home (frost 3). No hold near: the old snow shelter. Spellbound guards each say their own line, moving on each time you talk.
 
+- Village Kin in a live fight: a tyrant's, his lieutenants', raiders, lair and night quarry now go down dazed for 10 s (cageWin) when your Kin beats them, so you can snare them; left alone they count as beaten as before. The Kinmaster's own still never cage. Snare reach for a dazed Kin raised to about 9 blocks.
+
 ## Still to do
 UI polish as feedback comes in. Card battle screen still used for scripted encounters (raids at the walls, thief, citadel duel, holds) and the snare mini-game; converting those to live is the next big step if wanted. (Old list: train/ships, combat animation, eggs, avatar hair/paint, buddy WEAR cosmetics, Silas and Finch, UI polish (item icons), quality toggles in settings (state.shadows, state.grassQuality, state.dprCap).
 

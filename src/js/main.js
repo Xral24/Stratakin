@@ -120,7 +120,7 @@ G.dropSelected = function (n) { this.dropItem(this.player.selected(), n); };
 G.stealthTarget = function () {
   const p = this.player; let best = null, bd = Infinity;
   for (const e of Wild.list) {
-    if (e.dazed > 0) { const d0 = Math.hypot(e.x - p.x, e.z - p.z, (e.y - p.y) * 0.7); if (d0 < 4 + Math.min(4, (e.model.radius || 0.6)) && d0 - 8 < bd) { bd = d0 - 8; best = e; } continue; }
+    if (e.dazed > 0) { const d0 = Math.hypot(e.x - p.x, e.z - p.z, (e.y - p.y) * 0.7); if (d0 < 9 + Math.min(4, (e.model.radius || 0.6)) && d0 - 8 < bd) { bd = d0 - 8; best = e; } continue; }
     if (e.chase || e.cool > 0 || e.alert >= 0.98 || e.isBoss || e.lieutenant) continue;
     const reach = 3.2 + Math.min(4, (e.model.radius || 0.6)); // close to its body, not its middle: big Kin can be snared from their side
     const d = Math.hypot(e.x - p.x, e.z - p.z, (e.y - p.y) * 0.7);

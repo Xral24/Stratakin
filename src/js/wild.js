@@ -527,12 +527,14 @@ const Wild = (() => {
     return { dmg: before - e.kin.hp, pct: Math.round(e.kin.hp / st.hp * 100), dazed: false };
   }
   // the great ones you are meant to be able to cage: beaten live, they go down dazed like any other so a snare can take them
+  // story Kin you may still snare when they go down: a tyrant's, his lieutenants', a raider, a lair's or a night's quarry. The Kinmaster's own never.
+  function snareable(e) { return !!(e.isBoss || e.lieutenant || e.raider || e.lairQuest || e.nightQuest) && !(e.kinmaster || e.keepBoss || e.citadelFirst || e.finalBoss); }
   function cageable(e) { return !!(e.isApex || e.isLegend || e.isMythic); }
   function daze(e, k) {
     e.kin.hp = 1; e.dazed = 10; disengage(e, 0); e.cool = 0; e.alert = 0; e.stunT = 0;
     G.knockout(e.x, e.y, e.z);
-    UI.sfx('win'); UI.toast(`${KIN.name(e.kin)} goes down, dazed. Snare it now, or let it go.`, 'good');
-    if (!cageable(e)) rewardWin(e, k || null); else e.cageWin = k || true; G.stats.liveWins = (G.stats.liveWins || 0) + 1;
+    UI.sfx('win'); UI.toast(`${KIN.name(e.kin)} goes down, dazed. Walk up and tap it to snare it, or let it be.`, 'good');
+    if (!cageable(e) && !(scripted(e) && snareable(e))) rewardWin(e, k || null); else e.cageWin = k || true; // a story Kin left in the dirt still counts as beaten when the daze runs out G.stats.liveWins = (G.stats.liveWins || 0) + 1;
     const dom = KIN.dominant(e.kin.sp.elem, 1)[0]; if (Math.random() < 0.35) { G.player.add('ess_' + dom, 1); UI.toast(`${dom} Essence collected.`); }
   }
   // its lunge reaches you: a shield in its face blocks most of it, a shield raised or a swing timed as it lands turns it away
@@ -548,7 +550,7 @@ const Wild = (() => {
     const before = e.kin.hp; e.kin.hp = Math.max(0, e.kin.hp - dmg); e.hitT = 0.35; e.sleep = false;
     if (!e.chase) engage(e, false, { quiet: true }); if (e.chase) { e.chase.t = Math.max(e.chase.t, 18); e.chase.foe = 'buddy'; e.chase.foeT = 5; if (e.chase.phase === 'wind' && Math.random() < 0.4) { e.chase.phase = 'rest'; e.chase.pt = 0.5; e.chase.hitCd = 0.6; } }
     G.kinFocus = e; G.kinFocusT = 3.5;
-    if (e.kin.hp <= 0) { if (scripted(e) && !cageable(e)) { G.knockout(e.x, e.y, e.z); G.onBattleEnd('won', e, e.kin, k, false); } else daze(e, k); }
+    if (e.kin.hp <= 0) { if (scripted(e) && !cageable(e) && !snareable(e)) { G.knockout(e.x, e.y, e.z); G.onBattleEnd('won', e, e.kin, k, false); } else daze(e, k); }
     return before - Math.max(0, e.kin.hp);
   }
   // its lunge reaches your Kin: the battle's numbers, no shield to hide behind
