@@ -453,6 +453,12 @@ body.desktop #joy, body.desktop #btn-jump, body.desktop #btn-sneak { display: no
 #tamebar .snare-track { height: 80px; border-radius: 14px; background: rgba(255,255,255,.14); }
 #tamebar .snare-marker { width: 14px; margin-left: -7px; }
 
+/* the shield: hold it up against a Bound warrior's blow */
+#btn-block { position: absolute; right: 104px; bottom: calc(118px + env(safe-area-inset-bottom)); width: 70px; height: 70px; border-radius: 50%; background: rgba(90,140,220,.32); border: 2px solid rgba(160,200,255,.7); color: #fff; font-size: 26px; line-height: 1; pointer-events: auto; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+#btn-block small { font-size: 10px; font-weight: 800; letter-spacing: .5px; opacity: .85; margin-top: 2px; }
+#btn-block.held { background: rgba(120,170,255,.75); transform: scale(.94); }
+#btn-block.hidden { display: none; }
+
 </style>
 </head>
 <body>
@@ -505,6 +511,7 @@ body.desktop #joy, body.desktop #btn-jump, body.desktop #btn-sneak { display: no
     <button id="btn-snare" class="hidden">Set snare</button>
     <div id="fishbar" class="hidden"><div class="snare-tip">A bite! Tap when the marker is in the glow.</div><div class="snare-track"><div class="snare-zone"></div><div class="snare-marker"></div></div></div>
     <button id="btn-ride" class="hidden">Ride</button>
+    <button id="btn-block" class="hidden" aria-label="Block">🛡<small>hold</small></button>
     <button id="btn-ship" class="hidden" aria-label="Starship">🚀</button>
   </div>
   <div id="toasts"></div>
@@ -3456,7 +3463,7 @@ const R = (() => {
   // Bones: 0 body, 1 head, 2 left arm / front-left leg, 3 right arm / front-right leg, 4 back-left leg, 5 back-right leg,
   // 6 tail, 7 left wing, 8 right wing, 9 jaw. A model lists them as m.bones[i] = { piv: [x,y,z], kind, phase }.
   const Anim = (() => {
-    const mats = new Float32Array(160), sway = new Float32Array(4);
+    const mats = new Float32Array(160), sway = new Float32Array(4); const legAt = []; const CROUCH = 0.85; // how far the thighs come forward in a full crouch
     // bone i: rotate (rx about x, ry about y, rz about z) around piv, then move by (tx,ty,tz); optional scale sy
     function set(i, piv, rx, ry, rz, tx, ty, tz, sx, sy, sz) {
       const cx = Math.cos(rx), sxx = Math.sin(rx), cy = Math.cos(ry), syy = Math.sin(ry), cz = Math.cos(rz), szz = Math.sin(rz);
@@ -3493,7 +3500,15 @@ const R = (() => {
         const b = bones[i]; if (!b) { set(i, null, 0, 0, 0, 0, bob, 0); continue; }
         const k = b.kind, phs = b.phase || 0;
         switch (k) {
-          case 'leg': { const sw = Math.sin(ph + phs); const amp = (b.amp || 0.55) * mv * (1 - air * 0.8); const sit = a.sit || 0; set(i, b.piv, (-sw * amp) * (1 - sit) - 1.25 * sit, 0, (b.phase ? -1 : 1) * 0.25 * sit, 0, bob + Math.max(0, -Math.cos(ph + phs)) * 0.03 * mv * sc * (b.len || 1), 0); break; }
+          case 'leg': { const sw = Math.sin(ph + phs); const amp = (b.amp || 0.55) * mv * (1 - air * 0.8); const sit = a.sit || 0; const cr = (a.crouch || 0) * (1 - sit);
+            const ang = (-sw * amp) * (1 - sit) * (1 - cr * 0.5) - 1.25 * sit - CROUCH * cr, rz = (b.phase ? -1 : 1) * (0.25 * sit + 0.12 * cr), ty = bob + Math.max(0, -Math.cos(ph + phs)) * 0.03 * mv * sc * (b.len || 1);
+            legAt[i] = { ang, rz, ty, sw }; set(i, b.piv, ang, 0, rz, 0, ty, 0); break; }
+          case 'shin': { // the lower leg hangs from the knee wherever the thigh has swung it: straight for a stand, folded back for a crouch, down for a seat
+            const L = legAt[b.leg], P = bones[b.leg]; if (!L || !P) { set(i, null, 0, 0, 0, 0, bob, 0); break; }
+            const lt = P.piv[1] - b.piv[1]; const sit = a.sit || 0, cr = (a.crouch || 0) * (1 - sit);
+            const flex = 0.45 * mv * (1 - air) * Math.max(0, Math.sin(ph + phs + 1.9)); // the knee gives a little on each stride
+            const ang = L.ang + 1.25 * sit + 2 * CROUCH * cr + flex;
+            set(i, b.piv, ang, 0, L.rz, 0, L.ty + lt - Math.cos(L.ang) * lt, -Math.sin(L.ang) * lt); break; }
           case 'arm': { const sw = Math.sin(ph + phs + Math.PI); const amp = (b.amp || 0.4) * mv; const atk = a.attack || 0; const sit = a.sit || 0; const blk = a.block || 0; const shieldArm = (b.side || 0) > 0; // blocking: the left arm (+x: the figure faces +z) comes up square in front with the shield, the right stays low and a little out
             const rx = (-sw * amp - atk * 1.9 + idle * Math.sin(t * 1.3 + seed + phs) * 0.03) * (1 - sit) - 0.55 * sit - (shieldArm ? blk * 1.0 : 0); set(i, b.piv, rx, shieldArm ? blk * 0.5 : 0, (b.side || 0) * (0.08 + air * 1.1 + blk * (shieldArm ? 0.1 : 0.4)), 0, bob, 0); break; }
           case 'head': { const look = a.look || 0; set(i, b.piv, Math.sin(ph * 2) * 0.05 * mv + idle * Math.sin(t * 0.9 + seed) * 0.03 + (a.nod || 0), idle * Math.sin(t * 0.55 + seed * 2) * 0.16 + look, 0, 0, bob, 0); break; }
@@ -5109,7 +5124,7 @@ const KIN = (() => {
         B(1, 'head', [0, 1.3, 0]); bone = 0;
         for (const sd of [-1, 1]) { B(sd < 0 ? 2 : 3, 'arm', [sd * 0.34, 1.18, 0], { phase: sd < 0 ? 0 : Math.PI, side: sd }); tube([[sd * 0.31, 1.2, 0], [sd * 0.41, 0.9, 0.0]], [0.095, 0.08], cloth, { cap0: 'round', cap1: 'none', segs: 6 }); tube([[sd * 0.41, 0.9, 0.0], [sd * 0.45, 0.62, 0.05]], [0.075, 0.07], skin, { cap0: 'none', cap1: 'none', segs: 6 }); ball(sd * 0.45, 0.55, 0.06, 0.095, skin, { n: 3 }); ball(sd * 0.39, 0.55, 0.12, 0.045, skin, { n: 2 }); }
         legLen = 0.6;
-        for (const sd of [-1, 1]) { B(sd < 0 ? 4 : 5, 'leg', [sd * 0.15, 0.62, 0], { phase: sd < 0 ? 0 : Math.PI, len: 0.6, amp: 0.5 }); tube([[sd * 0.15, 0.64, 0], [sd * 0.16, 0.35, 0], [sd * 0.16, 0.12, 0.01]], [0.125, 0.105, 0.1], dark, { cap0: 'none', cap1: 'none', segs: 6 }); blob(sd * 0.16 - 0.12, 0, -0.1, sd * 0.16 + 0.12, 0.15, 0.24, 0.55, hexMix(dark, '#000000', 0.3), { n: 2 }); }
+        for (const sd of [-1, 1]) { B(sd < 0 ? 4 : 5, 'leg', [sd * 0.15, 0.62, 0], { phase: sd < 0 ? 0 : Math.PI, len: 0.6, amp: 0.5 }); tube([[sd * 0.15, 0.64, 0], [sd * 0.16, 0.35, 0]], [0.125, 0.108], dark, { cap0: 'none', cap1: 'round', segs: 6 }); B(sd < 0 ? 6 : 9, 'shin', [sd * 0.16, 0.35, 0], { leg: sd < 0 ? 4 : 5 }); tube([[sd * 0.16, 0.37, 0], [sd * 0.16, 0.12, 0.01]], [0.106, 0.1], dark, { cap0: 'round', cap1: 'none', segs: 6 }); /* a knee: the shin is its own bone, so he can crouch and sit properly */ blob(sd * 0.16 - 0.12, 0, -0.1, sd * 0.16 + 0.12, 0.15, 0.24, 0.55, hexMix(dark, '#000000', 0.3), { n: 2 }); }
         bone = 0; break;
       }
       default: { // floater: a sphere with a face, orbiting stones and a wisp of a tail
@@ -10714,7 +10729,11 @@ const Avatar = (() => {
     const seat = p.mount ? 0.75 : p.flying ? 0.35 : 0;
     an.attack = p.swingT > 0 ? Math.sin(Math.min(1, p.swingT / 0.25) * Math.PI) : 0; an.block = p.blocking ? 1 : 0;
     if (p.mount || p.flying) { an.mv = 0; an.sit = 1; } else an.sit = 0;
-    return { x: p.x, y: p.y + seat + (p.drawLift ? p.drawLift() : 0), z: p.z, yaw: p.yaw + Math.PI, model: mm.model, mesh: mm.mesh, scale: look().height || 1, hover: 0, skyMul: 1, isMount: true, _an: an };
+    // sneaking: knees bend and he sinks by just what the bend takes, so his boots stay on the ground
+    { const want = p.sneak && !p.mount && !p.flying && !p.inWater ? 1 : 0; const now = performance.now(); const dt = Math.min(0.1, (now - (an.ct || now)) / 1000); an.ct = now; an.crouch = (an.crouch || 0) + (want - (an.crouch || 0)) * Math.min(1, dt * 10); }
+    const hip = (() => { const leg = (mm.model.bones || []).find(b => b && b.kind === 'leg'); return leg ? leg.piv[1] : 0.62; })();
+    const sink = hip * (1 - Math.cos(0.85 * (an.crouch || 0))) * (look().height || 1);
+    return { x: p.x, y: p.y + seat - sink + (p.drawLift ? p.drawLift() : 0), z: p.z, yaw: p.yaw + Math.PI, model: mm.model, mesh: mm.mesh, scale: look().height || 1, hover: 0, skyMul: 1, isMount: true, _an: an };
   }
   // a camera behind and a little above you, pulled in when something is in the way
   function thirdCam(cam, p, world, back = 4.2, lift = 0) {
@@ -10917,7 +10936,7 @@ const UI = (() => {
     sb.addEventListener('mousedown', downStart); sb.addEventListener('mouseup', downEnd);
     const bs = q('btn-snare'), br = q('btn-ride');
     const tap = (el, fn) => { el.addEventListener('touchstart', (e) => { e.preventDefault(); fn(); }, { passive: false }); el.addEventListener('click', fn); };
-    tap(bs, () => G.stealthSnare()); tap(q('btn-deploy'), () => G.deployKin()); tap(br, () => G.toggleRide()); tap(q('btn-ship'), () => G.boardShip());
+    tap(bs, () => G.stealthSnare()); tap(q('btn-deploy'), () => G.deployKin()); tap(br, () => G.toggleRide()); { const bb = q('btn-block'); const on = (e) => { e.preventDefault(); e.stopPropagation(); G.blockHeld = true; bb.classList.add('held'); }, off = (e) => { if (e) e.stopPropagation(); G.blockHeld = false; bb.classList.remove('held'); }; bb.addEventListener('pointerdown', on); for (const ev of ['pointerup', 'pointercancel', 'pointerleave']) bb.addEventListener(ev, off); } tap(q('btn-ship'), () => G.boardShip());
 
   }
   // ---------- sounds ----------
@@ -12212,7 +12231,7 @@ const Combat = (() => {
     armT -= dt; if (armT <= 0) { armT = 1; const hb = G.buffOn ? G.buffOn('hearts') : null; const mx = 10 + (wornPerk('heart', true) ? 2 : 0) + (hb ? hb.amt : 0); if (p.maxHp !== mx) { p.maxHp = mx; if (p.hp > mx) p.hp = mx; } }
     // holding a weapon with a shield in the bag: hold means block, not dig
     const w = weapon(); const sh = shield();
-    const wantBlock = !!(w && sh && input && input.mine);
+    const wantBlock = !!(sh && ((w && input && input.mine) || G.blockHeld)); // hold the screen with a weapon out, or hold the shield button
     if (wantBlock && !p.blocking) blockT = 0; p.blocking = wantBlock; if (p.blocking) blockT += dt;
     if (G.foeFocusT > 0) G.foeFocusT -= dt;
     for (let i = shots.length - 1; i >= 0; i--) { const s = shots[i]; s.t += dt; s.x += s.vx * dt; s.y += s.vy * dt; s.z += s.vz * dt; s.vy -= 6 * dt;
@@ -14044,6 +14063,11 @@ G.loop = function (t) {
   if ((this.frame & 31) === 0 && !inBattle) UI.renderMinimap(p);
   if ((this.frame & 15) === 0) this.updateMusic(inBattle);
   if ((this.frame & 1) === 0) UI.renderSky(cam, this.world, R.state);
+  if ((this.frame & 7) === 0) { // the shield button: up whenever a Bound warrior has seen you and there is a shield in your bag
+    const foe = !inBattle && !p.mount && Combat.shield() && Combat.nearestFoe(p, 14); const bb = document.getElementById('btn-block');
+    if (bb) { bb.classList.toggle('hidden', !foe); if (!foe && this.blockHeld) { this.blockHeld = false; bb.classList.remove('held'); } }
+    if (foe && !this.stats.blockTip) { this.stats.blockTip = true; UI.toast('Your shield: hold 🛡 to raise it and take the blow. Raise it just as he strikes and you parry, leaving him open. Let go to swing back.', 'good'); }
+  }
   if ((this.frame & 7) === 0 && !inBattle) {
     const st = this.stealthTarget();
     const lead = this.activeKin();

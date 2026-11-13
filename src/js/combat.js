@@ -272,7 +272,7 @@ const Combat = (() => {
     armT -= dt; if (armT <= 0) { armT = 1; const hb = G.buffOn ? G.buffOn('hearts') : null; const mx = 10 + (wornPerk('heart', true) ? 2 : 0) + (hb ? hb.amt : 0); if (p.maxHp !== mx) { p.maxHp = mx; if (p.hp > mx) p.hp = mx; } }
     // holding a weapon with a shield in the bag: hold means block, not dig
     const w = weapon(); const sh = shield();
-    const wantBlock = !!(w && sh && input && input.mine);
+    const wantBlock = !!(sh && ((w && input && input.mine) || G.blockHeld)); // hold the screen with a weapon out, or hold the shield button
     if (wantBlock && !p.blocking) blockT = 0; p.blocking = wantBlock; if (p.blocking) blockT += dt;
     if (G.foeFocusT > 0) G.foeFocusT -= dt;
     for (let i = shots.length - 1; i >= 0; i--) { const s = shots[i]; s.t += dt; s.x += s.vx * dt; s.y += s.vy * dt; s.z += s.vz * dt; s.vy -= 6 * dt;

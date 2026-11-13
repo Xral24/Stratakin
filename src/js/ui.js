@@ -34,7 +34,7 @@ const UI = (() => {
     sb.addEventListener('mousedown', downStart); sb.addEventListener('mouseup', downEnd);
     const bs = q('btn-snare'), br = q('btn-ride');
     const tap = (el, fn) => { el.addEventListener('touchstart', (e) => { e.preventDefault(); fn(); }, { passive: false }); el.addEventListener('click', fn); };
-    tap(bs, () => G.stealthSnare()); tap(q('btn-deploy'), () => G.deployKin()); tap(br, () => G.toggleRide()); tap(q('btn-ship'), () => G.boardShip());
+    tap(bs, () => G.stealthSnare()); tap(q('btn-deploy'), () => G.deployKin()); tap(br, () => G.toggleRide()); { const bb = q('btn-block'); const on = (e) => { e.preventDefault(); e.stopPropagation(); G.blockHeld = true; bb.classList.add('held'); }, off = (e) => { if (e) e.stopPropagation(); G.blockHeld = false; bb.classList.remove('held'); }; bb.addEventListener('pointerdown', on); for (const ev of ['pointerup', 'pointercancel', 'pointerleave']) bb.addEventListener(ev, off); } tap(q('btn-ship'), () => G.boardShip());
 
   }
   // ---------- sounds ----------

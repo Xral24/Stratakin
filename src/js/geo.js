@@ -181,7 +181,7 @@
   // Bones: 0 body, 1 head, 2 left arm / front-left leg, 3 right arm / front-right leg, 4 back-left leg, 5 back-right leg,
   // 6 tail, 7 left wing, 8 right wing, 9 jaw. A model lists them as m.bones[i] = { piv: [x,y,z], kind, phase }.
   const Anim = (() => {
-    const mats = new Float32Array(160), sway = new Float32Array(4);
+    const mats = new Float32Array(160), sway = new Float32Array(4); const legAt = []; const CROUCH = 0.85; // how far the thighs come forward in a full crouch
     // bone i: rotate (rx about x, ry about y, rz about z) around piv, then move by (tx,ty,tz); optional scale sy
     function set(i, piv, rx, ry, rz, tx, ty, tz, sx, sy, sz) {
       const cx = Math.cos(rx), sxx = Math.sin(rx), cy = Math.cos(ry), syy = Math.sin(ry), cz = Math.cos(rz), szz = Math.sin(rz);
@@ -218,7 +218,15 @@
         const b = bones[i]; if (!b) { set(i, null, 0, 0, 0, 0, bob, 0); continue; }
         const k = b.kind, phs = b.phase || 0;
         switch (k) {
-          case 'leg': { const sw = Math.sin(ph + phs); const amp = (b.amp || 0.55) * mv * (1 - air * 0.8); const sit = a.sit || 0; set(i, b.piv, (-sw * amp) * (1 - sit) - 1.25 * sit, 0, (b.phase ? -1 : 1) * 0.25 * sit, 0, bob + Math.max(0, -Math.cos(ph + phs)) * 0.03 * mv * sc * (b.len || 1), 0); break; }
+          case 'leg': { const sw = Math.sin(ph + phs); const amp = (b.amp || 0.55) * mv * (1 - air * 0.8); const sit = a.sit || 0; const cr = (a.crouch || 0) * (1 - sit);
+            const ang = (-sw * amp) * (1 - sit) * (1 - cr * 0.5) - 1.25 * sit - CROUCH * cr, rz = (b.phase ? -1 : 1) * (0.25 * sit + 0.12 * cr), ty = bob + Math.max(0, -Math.cos(ph + phs)) * 0.03 * mv * sc * (b.len || 1);
+            legAt[i] = { ang, rz, ty, sw }; set(i, b.piv, ang, 0, rz, 0, ty, 0); break; }
+          case 'shin': { // the lower leg hangs from the knee wherever the thigh has swung it: straight for a stand, folded back for a crouch, down for a seat
+            const L = legAt[b.leg], P = bones[b.leg]; if (!L || !P) { set(i, null, 0, 0, 0, 0, bob, 0); break; }
+            const lt = P.piv[1] - b.piv[1]; const sit = a.sit || 0, cr = (a.crouch || 0) * (1 - sit);
+            const flex = 0.45 * mv * (1 - air) * Math.max(0, Math.sin(ph + phs + 1.9)); // the knee gives a little on each stride
+            const ang = L.ang + 1.25 * sit + 2 * CROUCH * cr + flex;
+            set(i, b.piv, ang, 0, L.rz, 0, L.ty + lt - Math.cos(L.ang) * lt, -Math.sin(L.ang) * lt); break; }
           case 'arm': { const sw = Math.sin(ph + phs + Math.PI); const amp = (b.amp || 0.4) * mv; const atk = a.attack || 0; const sit = a.sit || 0; const blk = a.block || 0; const shieldArm = (b.side || 0) > 0; // blocking: the left arm (+x: the figure faces +z) comes up square in front with the shield, the right stays low and a little out
             const rx = (-sw * amp - atk * 1.9 + idle * Math.sin(t * 1.3 + seed + phs) * 0.03) * (1 - sit) - 0.55 * sit - (shieldArm ? blk * 1.0 : 0); set(i, b.piv, rx, shieldArm ? blk * 0.5 : 0, (b.side || 0) * (0.08 + air * 1.1 + blk * (shieldArm ? 0.1 : 0.4)), 0, bob, 0); break; }
           case 'head': { const look = a.look || 0; set(i, b.piv, Math.sin(ph * 2) * 0.05 * mv + idle * Math.sin(t * 0.9 + seed) * 0.03 + (a.nod || 0), idle * Math.sin(t * 0.55 + seed * 2) * 0.16 + look, 0, 0, bob, 0); break; }

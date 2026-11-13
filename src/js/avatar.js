@@ -103,7 +103,11 @@ const Avatar = (() => {
     const seat = p.mount ? 0.75 : p.flying ? 0.35 : 0;
     an.attack = p.swingT > 0 ? Math.sin(Math.min(1, p.swingT / 0.25) * Math.PI) : 0; an.block = p.blocking ? 1 : 0;
     if (p.mount || p.flying) { an.mv = 0; an.sit = 1; } else an.sit = 0;
-    return { x: p.x, y: p.y + seat + (p.drawLift ? p.drawLift() : 0), z: p.z, yaw: p.yaw + Math.PI, model: mm.model, mesh: mm.mesh, scale: look().height || 1, hover: 0, skyMul: 1, isMount: true, _an: an };
+    // sneaking: knees bend and he sinks by just what the bend takes, so his boots stay on the ground
+    { const want = p.sneak && !p.mount && !p.flying && !p.inWater ? 1 : 0; const now = performance.now(); const dt = Math.min(0.1, (now - (an.ct || now)) / 1000); an.ct = now; an.crouch = (an.crouch || 0) + (want - (an.crouch || 0)) * Math.min(1, dt * 10); }
+    const hip = (() => { const leg = (mm.model.bones || []).find(b => b && b.kind === 'leg'); return leg ? leg.piv[1] : 0.62; })();
+    const sink = hip * (1 - Math.cos(0.85 * (an.crouch || 0))) * (look().height || 1);
+    return { x: p.x, y: p.y + seat - sink + (p.drawLift ? p.drawLift() : 0), z: p.z, yaw: p.yaw + Math.PI, model: mm.model, mesh: mm.mesh, scale: look().height || 1, hover: 0, skyMul: 1, isMount: true, _an: an };
   }
   // a camera behind and a little above you, pulled in when something is in the way
   function thirdCam(cam, p, world, back = 4.2, lift = 0) {

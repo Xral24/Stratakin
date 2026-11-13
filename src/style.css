@@ -437,3 +437,9 @@ body.desktop #joy, body.desktop #btn-jump, body.desktop #btn-sneak { display: no
 #tamebar .snare-tip small { display: block; font-size: 16px; font-weight: 600; color: var(--ui); opacity: .85; margin-top: 2px; }
 #tamebar .snare-track { height: 80px; border-radius: 14px; background: rgba(255,255,255,.14); }
 #tamebar .snare-marker { width: 14px; margin-left: -7px; }
+
+/* the shield: hold it up against a Bound warrior's blow */
+#btn-block { position: absolute; right: 104px; bottom: calc(118px + env(safe-area-inset-bottom)); width: 70px; height: 70px; border-radius: 50%; background: rgba(90,140,220,.32); border: 2px solid rgba(160,200,255,.7); color: #fff; font-size: 26px; line-height: 1; pointer-events: auto; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+#btn-block small { font-size: 10px; font-weight: 800; letter-spacing: .5px; opacity: .85; margin-top: 2px; }
+#btn-block.held { background: rgba(120,170,255,.75); transform: scale(.94); }
+#btn-block.hidden { display: none; }
