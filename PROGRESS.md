@@ -114,6 +114,8 @@ Scope (Alexander, 8 Nov evening): EVERYTHING visible goes to the same standard: 
 
 - Six invented quadruped body plans (Cairnback, Lanternstag, Masker, Mantlewalker, Anvilmaw, Glyphtail), each with its own gimmick and three-stage arc; mounts keep the horse-like body. Brief updated.
 
+- Kin polish pass: darker socks below the knee from stage 2, chest tufts on the young, softer Anvilmaw shoulders, jaw and knuckles, rounder Bulwark plates with lava glowing between them on Flame (no hoops), the Masker kitten's half-mask a band across its eyes.
+
 ## Still to do
 UI polish as feedback comes in. Card battle screen still used for scripted encounters (raids at the walls, thief, citadel duel, holds) and the snare mini-game; converting those to live is the next big step if wanted. (Old list: train/ships, combat animation, eggs, avatar hair/paint, buddy WEAR cosmetics, Silas and Finch, UI polish (item icons), quality toggles in settings (state.shadows, state.grassQuality, state.dprCap).
 
