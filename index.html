@@ -4813,7 +4813,7 @@ const KIN = (() => {
       Light: [[['quadruped', 'lanternstag', 'glow fawn'], ['quadruped', 'hart', 'white hart']], [['blob', 'mote', 'firefly mote'], ['blob', 'moth', 'lantern moth']], [['blob', 'sunbeam', 'sunbeam'], ['blob', 'corona', 'corona'], ['quadruped', 'sunlion', 'sun lion']], [['quadruped', 'unicorn', 'unicorn']]]
     },
     biped: { // two-legged Kin: each line anchored to a real animal or thing, every form its own body
-      Flame: [[['biped', 'embermonkey', 'ember monkey'], ['biped', 'torchmandrill', 'torch mandrill'], ['biped', 'magmagorilla', 'magma gorilla']], [['biped', 'wick', 'candle wick'], ['biped', 'waxgiant', 'wax giant']], [['biped', 'chiliimp', 'chili imp']]],
+      Flame: [[['biped', 'embermonkey', 'ember monkey'], ['biped', 'torchmandrill', 'torch mandrill'], ['biped', 'magmagorilla', 'magma gorilla']], [['biped', 'wick', 'candle wick'], ['biped', 'waxgiant', 'wax giant']], [['biped', 'redpanda', 'blaze red panda']]],
       Tide: [[['biped', 'froglet', 'froglet'], ['biped', 'riverfrog', 'river frog'], ['biped', 'sumofrog', 'sumo bullfrog']], [['biped', 'otterpup', 'otter pup'], ['biped', 'shellotter', 'shell-shield otter']], [['biped', 'axolotl', 'axolotl']]],
       Bloom: [[['biped', 'sporeling', 'sporeling'], ['biped', 'mushknight', 'mushroom knight'], ['biped', 'fungelder', 'fungus elder']], [['biped', 'mantisnymph', 'mantis nymph'], ['biped', 'orchidmantis', 'orchid mantis']], [['biped', 'mosssloth', 'moss sloth']]],
       Stone: [[['biped', 'molekit', 'star-nosed mole'], ['biped', 'minermole', 'miner mole'], ['biped', 'drillmole', 'drill mole']], [['biped', 'pangolinpup', 'pangolin pup'], ['biped', 'pangolinknight', 'pangolin knight']], [['biped', 'menhir', 'rune menhir']]],
@@ -4822,6 +4822,17 @@ const KIN = (() => {
       Spark: [[['biped', 'windupbot', 'wind-up bot'], ['biped', 'coilsoldier', 'coil soldier'], ['biped', 'thundermech', 'thunder mech']], [['biped', 'voltjoey', 'volt joey'], ['biped', 'thunderboxer', 'thunder boxer']], [['biped', 'conductor', 'lightning conductor']]],
       Void: [[['biped', 'puppet', 'puppet'], ['biped', 'marionette', 'marionette'], ['biped', 'puppeteer', 'puppeteer']], [['biped', 'ayeaye', 'aye-aye'], ['biped', 'nightshaman', 'night shaman']], [['biped', 'mimic', 'mimic chest']]],
       Light: [[['biped', 'prismsprite', 'prism sprite'], ['biped', 'crystalknight', 'crystal knight'], ['biped', 'paladin', 'radiant paladin']], [['biped', 'meerkatpup', 'meerkat pup'], ['biped', 'sunsentinel', 'sun sentinel']], [['biped', 'sunbear', 'sun bear']]]
+    },
+    bird: { // birds: each a real bird, or a legend grown from one
+      Flame: [[['bird', 'emberchick', 'ember chick'], ['bird', 'flamekestrel', 'flame kestrel'], ['bird', 'phoenix', 'phoenix']], [['bird', 'emberrobin', 'ember robin'], ['bird', 'firerobin', 'firebreast robin']], [['bird', 'magmavulture', 'magma vulture']]],
+      Tide: [[['bird', 'gullchick', 'gull chick'], ['bird', 'seagull', 'sea gull'], ['bird', 'albatross', 'albatross']], [['bird', 'puffling', 'puffling'], ['bird', 'puffin', 'puffin']], [['bird', 'heron', 'heron']]],
+      Bloom: [[['bird', 'peachick', 'peachick'], ['bird', 'peafowl', 'peafowl'], ['bird', 'bloompeacock', 'bloom peacock']], [['bird', 'cygnet', 'cygnet'], ['bird', 'lotusswan', 'lotus swan']], [['bird', 'hummingbird', 'hummingbird']]],
+      Stone: [[['bird', 'emuchick', 'emu chick'], ['bird', 'rockemu', 'rock emu'], ['bird', 'terrorbird', 'terror bird']], [['bird', 'hornbillchick', 'hornbill chick'], ['bird', 'hornbill', 'great hornbill']], [['bird', 'shoebill', 'shoebill']]],
+      Gale: [[['bird', 'eaglet', 'eaglet'], ['bird', 'hawk', 'hawk'], ['bird', 'stormeagle', 'storm eagle']], [['bird', 'swallow', 'swallow'], ['bird', 'swift', 'swift']], [['bird', 'frigatebird', 'frigatebird']]],
+      Frost: [[['bird', 'snowowlet', 'snowy owlet'], ['bird', 'snowyowl', 'snowy owl'], ['bird', 'auroraowl', 'aurora owl']], [['bird', 'cranechick', 'crane chick'], ['bird', 'crane', 'red-crowned crane']], [['bird', 'snowgoose', 'snow goose']]],
+      Spark: [[['bird', 'zapchick', 'zap chick'], ['bird', 'cockatoo', 'cockatoo'], ['bird', 'thundercockatoo', 'thunder cockatoo']], [['bird', 'kingfisherchick', 'kingfisher chick'], ['bird', 'kingfisher', 'kingfisher']], [['bird', 'lyrebird', 'lyrebird']]],
+      Void: [[['bird', 'ravenlet', 'ravenlet'], ['bird', 'raven', 'raven'], ['bird', 'ravenking', 'three-eyed raven king']], [['bird', 'nightjar', 'nightjar'], ['bird', 'potoo', 'potoo']], [['bird', 'cassowary', 'cassowary']]],
+      Light: [[['bird', 'squab', 'squab'], ['bird', 'dove', 'white dove'], ['bird', 'sundove', 'sun-crowned dove']], [['bird', 'goldchick', 'gold chick'], ['bird', 'pheasant', 'golden pheasant']], [['bird', 'ibis', 'sacred ibis']]]
     },
     steed: { _: [[['quadruped', 'steed', 'foal'], ['quadruped', 'steed', 'colt'], ['quadruped', 'steed', 'warhorse']]] },
     steedFull: { _: [[['quadruped', 'steed', 'warhorse']]] },
@@ -4839,7 +4850,7 @@ const KIN = (() => {
     if (!sp || sp.dino || sp.mythic || sp.neon) return null;
     if (sp.steed || sp.fast || sp.tame) return (sp.evolveAt && sp.evolveAt[0] >= 999) || sp.fast || sp.tame || (sp.rarity || 0) >= 4 ? 'steedFull' : 'steed'; // horses you ride: camp horses, Thunderhoof and the legendary steeds are full-grown
     if ((sp.rarity || 0) >= 4) return LAND_LINE.has(sp.shape) ? 'legend' : null;
-    if (LAND_LINE.has(sp.shape)) return 'land'; if (sp.shape === 'biped') return 'biped'; if (sp.shape === 'fish') return 'water'; return null; }
+    if (LAND_LINE.has(sp.shape)) return 'land'; if (sp.shape === 'biped') return 'biped'; if (sp.shape === 'bird') return 'bird'; if (sp.shape === 'fish') return 'water'; return null; }
   function lineOf(sp) {
     if (sp._line !== undefined) return sp._line; const cls = lineClass(sp); if (!cls) return (sp._line = null);
     const el = dominant(sp.elem || [], 1)[0]; const T = LINES[cls]; const opts = T[el] || T._ || null; if (!opts) return (sp._line = null);
@@ -5023,7 +5034,8 @@ const KIN = (() => {
     const eyes = (x, y, z, r, o) => { const col = (o && o.col) || C.eye; const bright = (o && o.bright) != null ? o.bright : true; for (const sd of [-1, 1]) { ball(sd * x, y, z, r, col, { emis: bright, n: 3 }); ball(sd * x + sd * r * 0.25, y + r * 0.32, z + r * 0.78, r * 0.32, '#ffffff', { emis: true, n: 2 }); if (o && o.brow) blob(sd * x - r * 0.9, y + r * 0.95, z - r * 0.5, sd * x + r * 0.9, y + r * 1.25, z + r * 0.75, 0.5, o.brow, { n: 2 }); } };
     // a ring of colour round an ellipsoid section (stripes, collars): centre (cx,cy,z), half-sizes hx,hy
     const ring = (cx, cy, z, hx, hy, th, c, o) => { const pts = []; for (let i = 0; i <= 14; i++) { const a = i / 14 * Math.PI * 2; pts.push([cx + Math.cos(a) * hx, cy + Math.sin(a) * hy, z]); } const rr = pts.map(() => th); tube(pts, rr, c, Object.assign({ cap0: 'none', cap1: 'none', segs: 6 }, o || {})); };
-    const BPD = new Set(['embermonkey', 'torchmandrill', 'magmagorilla', 'wick', 'waxgiant', 'chiliimp', 'froglet', 'riverfrog', 'sumofrog', 'otterpup', 'shellotter', 'axolotl', 'sporeling', 'mushknight', 'fungelder', 'mantisnymph', 'orchidmantis', 'mosssloth', 'molekit', 'minermole', 'drillmole', 'pangolinpup', 'pangolinknight', 'menhir', 'batpup', 'galebat', 'tempestbat', 'lemurkid', 'skylemur', 'gibbon', 'penguinchick', 'emperor', 'icegeneral', 'polarcub', 'polarbear', 'stoat', 'windupbot', 'coilsoldier', 'thundermech', 'voltjoey', 'thunderboxer', 'conductor', 'puppet', 'marionette', 'puppeteer', 'ayeaye', 'nightshaman', 'mimic', 'prismsprite', 'crystalknight', 'paladin', 'meerkatpup', 'sunsentinel', 'sunbear']);
+    const BPD = new Set(['embermonkey', 'torchmandrill', 'magmagorilla', 'wick', 'waxgiant', 'redpanda', 'froglet', 'riverfrog', 'sumofrog', 'otterpup', 'shellotter', 'axolotl', 'sporeling', 'mushknight', 'fungelder', 'mantisnymph', 'orchidmantis', 'mosssloth', 'molekit', 'minermole', 'drillmole', 'pangolinpup', 'pangolinknight', 'menhir', 'batpup', 'galebat', 'tempestbat', 'lemurkid', 'skylemur', 'gibbon', 'penguinchick', 'emperor', 'icegeneral', 'polarcub', 'polarbear', 'stoat', 'windupbot', 'coilsoldier', 'thundermech', 'voltjoey', 'thunderboxer', 'conductor', 'puppet', 'marionette', 'puppeteer', 'ayeaye', 'nightshaman', 'mimic', 'prismsprite', 'crystalknight', 'paladin', 'meerkatpup', 'sunsentinel', 'sunbear']);
+    const BRD = new Set(['emberchick', 'flamekestrel', 'phoenix', 'emberrobin', 'firerobin', 'magmavulture', 'gullchick', 'seagull', 'albatross', 'puffling', 'puffin', 'heron', 'peachick', 'peafowl', 'bloompeacock', 'cygnet', 'lotusswan', 'hummingbird', 'emuchick', 'rockemu', 'terrorbird', 'hornbillchick', 'hornbill', 'shoebill', 'eaglet', 'hawk', 'stormeagle', 'swallow', 'swift', 'frigatebird', 'snowowlet', 'snowyowl', 'auroraowl', 'cranechick', 'crane', 'snowgoose', 'zapchick', 'cockatoo', 'thundercockatoo', 'kingfisherchick', 'kingfisher', 'lyrebird', 'ravenlet', 'raven', 'ravenking', 'nightjar', 'potoo', 'cassowary', 'squab', 'dove', 'sundove', 'goldchick', 'pheasant', 'ibis']);
     // a level ring round a vertical axis (collars, coils, the bands of a funnel)
     const hring = (cx, cy, cz, r, th, c, o) => { const pts = []; for (let i = 0; i <= 16; i++) { const t = i / 16 * Math.PI * 2; pts.push([cx + Math.cos(t) * r, cy, cz + Math.sin(t) * r]); } tube(pts, pts.map(() => th), c, Object.assign({ cap0: 'none', cap1: 'none', segs: 6 }, o || {})); };
     // markings over a body ellipsoid given as its box
@@ -5707,14 +5719,16 @@ const KIN = (() => {
             arms(1.16, 0.34, 0.66, 0.09, wax, 'paw', { hand: (sd, w) => { if (sd > 0) { tube([[w[0], w[1], w[2]], [w[0], w[1] - 0.24, w[2] + 0.04]], [0.012, 0.012], '#2a2220', { cap0: 'none', cap1: 'none' }); blob(w[0] - 0.1, w[1] - 0.48, w[2] - 0.06, w[0] + 0.1, w[1] - 0.24, w[2] + 0.14, 0.4, '#3a3230'); ball(w[0], w[1] - 0.36, w[2] + 0.04, 0.07, glw, { emis: true, n: 2 }); } } });
             H(1.3); look(0.12, 1.12, 0.3, 0.06, { brow: wax2 }); mouth(0.94, 0.3, 0.07);
             for (const [x, z, h] of [[0, 0, 0.3], [-0.2, -0.04, 0.2], [0.2, -0.04, 0.22]]) { tube([[x, 1.28, z], [x, 1.28 + h, z]], [0.06, 0.06], wax, { cap0: 'none', cap1: 'flat' }); blob(x - 0.05, 1.3 + h, z - 0.05, x + 0.05, 1.5 + h, z + 0.05, 1, '#ffd25a', { emis: true, tap: [1, 0.12] }); } bone = 0;
-          } else if (P === 'chiliimp') { // a red chili pepper with legs, a green stem for a cap and a temper to match
-            const red = hexMix('#d8302a', bd, 0.25), stem = '#3f8a3a';
-            legs(0.3, 0.1, 0.04, stem, 'paw', { fc: stem });
-            const pts = [], rr = []; for (let i = 0; i <= 8; i++) { const u = i / 8; pts.push([Math.sin(u * 2.4) * 0.12, 1.2 - u * 0.96, 0.02 + u * u * 0.14]); rr.push(0.2 * Math.sin(Math.min(1, 0.25 + u) * Math.PI * 0.62) + 0.02); } tube(pts, rr, red, { cap0: 'round', cap1: 'round' });
-            arms(0.86, 0.18, 0.3, 0.035, stem, 'paw', { hc: stem });
-            H(1.0); for (let i = 0; i < 5; i++) { const a = i / 5 * Math.PI * 2; plate([[0, 1.24, 0], [Math.cos(a) * 0.2, 1.22, Math.sin(a) * 0.2], [Math.cos(a + 0.6) * 0.1, 1.26, Math.sin(a + 0.6) * 0.1]], 0.02, stem); } tube([[0, 1.24, 0], [0.04, 1.4, -0.04], [0.12, 1.46, -0.04]], [0.04, 0.035, 0.03], stem, { cap0: 'none', cap1: 'round' });
-            look(0.08, 1.02, 0.2, 0.05, { brow: '#2a1210' }); mouth(0.9, 0.22, 0.06); for (const sd of [-1, 1]) flame(sd * 0.22, 1.12, 0, 0.16, 0.035, [sd, 0.8, 0]); bone = 0;
-
+          } else if (P === 'redpanda') { // a red panda reared up on its hind legs the way they do when startled, a ringed tail with an ember at the tip
+            const rust = hexMix('#c8501e', bd, 0.25), black = '#2a1a14', cream = '#f4ead8';
+            legs(0.28, 0.12, 0.06, black, 'paw', { fc: black, thigh: true }); blob(-0.24, 0.26, -0.2, 0.24, 0.94, 0.2, 1, rust, { under: black, tap: [0.85, 1] });
+            arms(0.86, 0.22, 0.34, 0.055, black, 'claw', { out: 0.5, fwd: 0.12, cc: cream });
+            H(0.94); ball(0, 1.1, 0.02, 0.24, rust, { n: 3 }); blob(-0.16, 0.96, 0.1, 0.16, 1.14, 0.26, 1, cream); nose(0, 1.04, 0.27, 0.03, black);
+            for (const sd of [-1, 1]) { blob(sd * 0.11 - 0.05, 1.12, 0.17, sd * 0.11 + 0.05, 1.2, 0.24, 1, cream, { n: 2 }); tube([[sd * 0.1, 1.06, 0.22], [sd * 0.14, 0.96, 0.2]], [0.02, 0.012], '#8a3a1a', { cap0: 'round', cap1: 'round' }); plate([[sd * 0.1, 1.26, 0.0], [sd * 0.26, 1.24, -0.02], [sd * 0.2, 1.4, -0.04]], 0.03, rust, { edge: cream }); }
+            look(0.09, 1.1, 0.21, 0.045); mouth(0.99, 0.25, 0.03); bone = 0;
+            const pts = []; for (let i = 0; i <= 10; i++) { const u = i / 10; pts.push([Math.sin(u * 2.4) * 0.12, 0.34 + u * 0.5, -0.2 - u * 0.36]); }
+            B(6, 'tail', pts[0]); for (let i = 0; i < 10; i++) tube([pts[i], pts[i + 1]], [0.09 + 0.02 * Math.sin(i / 10 * Math.PI), 0.09 + 0.02 * Math.sin((i + 1) / 10 * Math.PI)], i % 2 ? '#8a3a1a' : rust, { cap0: 'none', cap1: i === 9 ? 'round' : 'none' });
+            flame(pts[10][0], pts[10][1] + 0.04, pts[10][2], 0.2, 0.05); bone = 0;
           // ======== TIDE ========
           } else if (P === 'froglet') { // a froglet that still has a bit of tadpole tail: round, all eyes, webbed feet
             legs(0.14, 0.13, 0.05, bd, 'web', { fc: ac }); blob(-0.28, 0.12, -0.24, 0.28, 0.66, 0.24, 1, bd, { under: bl });
@@ -6285,6 +6299,297 @@ const KIN = (() => {
         legLen = 0.35; break;
       }
       case 'bird': {
+        if (form.plan && BRD.has(form.plan)) {
+          // Birds with bodies of their own, each a real bird (or a legend grown from one). Bones: head 1, legs 4/5, tail 6, wings 7/8.
+          const P = form.plan, dk = C.dark, bl = C.belly, bd = C.body, ac = C.accent, glw = hexMix(C.accent, '#ffffff', 0.3), orange = '#e8a03a';
+          flyer = true; hover = 0.1;
+          const look = (ex, ey, ez, er, o = {}) => { for (const sd of [-1, 1]) { ball(sd * ex, ey, ez, er, '#16121e', { n: 3 }); ball(sd * (ex + er * 0.04), ey - er * 0.12, ez + er * 0.5, er * 0.62, o.col || C.eye, { emis: !!o.glow, n: 3 });
+            ball(sd * (ex + er * 0.05), ey - er * 0.1, ez + er * 0.78, er * 0.3, '#0a0810', { n: 2 }); ball(sd * (ex - er * 0.22), ey + er * 0.34, ez + er * 0.82, er * 0.3, '#ffffff', { emis: true, n: 2 });
+            if (o.brow) blob(sd * ex - er * 1.1, ey + er * 0.88, ez - er * 0.3, sd * ex + er * 1.1, ey + er * 1.18, ez + er * 0.9, 0.5, o.brow, { n: 2 }); } };
+          const H = (y, z) => B(1, 'head', [0, y, z || 0]);
+          const beak = (type, y, z, r, len, c) => { c = c || orange;
+            if (type === 'hook') { cone([0, y, z], [0, -0.05, 1], len * 0.7, r, c); curl([0, y + r * 0.2, z + len * 0.5], [0, -0.2, 1], len * 0.5, r * 0.55, c, [0, -1.4, 0]); }
+            else if (type === 'duck') blob(-r, y - r * 0.45, z - 0.02, r, y + r * 0.3, z + len, 0.85, c, { tap: [1, 0.9] });
+            else if (type === 'big') { blob(-r, y - r, z - 0.04, r, y + r * 0.6, z + len, 0.7, c, { tap: [1, 0.85] }); curl([0, y, z + len - 0.02], [0, -0.2, 1], r * 1.1, r * 0.4, c, [0, -1.4, 0]); }
+            else cone([0, y, z], [0, type === 'spear' ? -0.08 : -0.18, 1], len, r, c); };
+          const legsB = (hip, xw, c, th, o = {}) => { const tl = o.toe || th * 5;
+            for (const sd of [-1, 1]) { B(sd < 0 ? 4 : 5, 'leg', [sd * xw, hip, 0], { phase: sd < 0 ? 0 : Math.PI, len: hip, amp: 0.35 });
+              if (o.thigh) blob(sd * xw - th * 2.4, hip * 0.6, -th * 2.4, sd * xw + th * 2.4, hip + th * 2, th * 2.4, 1, o.thighC || bd, { under: bl });
+              tube([[sd * xw, hip, 0], [sd * xw, hip * 0.5, -th * 1.5], [sd * xw, 0.05, 0]], [th, th * 0.85, th * 0.8], c, { cap0: 'none', cap1: 'none', segs: 5 });
+              for (const a of [-0.55, 0, 0.55]) tube([[sd * xw, 0.05, 0], [sd * xw + a * tl * 0.6, 0.02, tl * (1 - Math.abs(a) * 0.3)]], [th * 0.6, th * 0.35], c, { cap0: 'round', cap1: 'round' });
+              tube([[sd * xw, 0.05, 0], [sd * xw, 0.02, -tl * 0.5]], [th * 0.5, th * 0.3], c, { cap0: 'round', cap1: 'round' });
+              if (o.web) plate([[sd * xw, 0.025, 0.02], [sd * xw - tl * 0.33, 0.025, tl * 0.84], [sd * xw + tl * 0.33, 0.025, tl * 0.84]], 0.012, c); }
+            bone = 0; legLen = hip; };
+          const wing = (sd, sh, L, o = {}) => { // a wing held the way a perched bird holds it: shoulder out a little, feathers swept back along the body, tips crossing over the tail; flight flaps it
+            B(sd < 0 ? 7 : 8, 'wing', sh, { side: sd, fold: o.fold != null ? Math.max(-0.35, o.fold * 0.2) : -0.2 });
+            const k = o.k || 1, c = o.c || bd, back = Math.min(1.1, 0.34 + L * 0.42) * (o.long || 1), out = Math.min(0.22, 0.06 + L * 0.08);
+            const el = [sh[0] + sd * out, sh[1] + 0.03, sh[2] - back * 0.12], wr = [sh[0] + sd * out * 1.25, sh[1] - 0.02, sh[2] - back * 0.34];
+            tube([sh, el, wr], [0.05 * k, 0.045 * k, 0.035 * k], c, { cap0: 'round', cap1: 'round' });
+            plate([[sh[0], sh[1] + 0.05, sh[2] + 0.04], el, wr, [wr[0] - sd * 0.02, wr[1] - 0.12, wr[2] + 0.02], [sh[0] + sd * 0.02, sh[1] - 0.14, sh[2] - 0.02]], 0.025, c);
+            const n = o.n || 7; for (let i = 0; i < n; i++) { const u = i / (n - 1); const b0 = [sh[0] + sd * (out * (0.4 + 0.85 * u)), sh[1] + 0.02 - 0.1 * (1 - u), sh[2] - back * (0.1 + 0.24 * u)];
+              const len = back * (0.4 + 0.6 * u), d0 = [sd * (0.04 - 0.12 * u), -0.12 - 0.1 * (1 - u), -1], dl = Math.hypot(...d0), d = d0.map(v => v / dl), tip = [b0[0] + d[0] * len, b0[1] + d[1] * len, b0[2] + d[2] * len], w = 0.06 * k;
+              plate([[b0[0], b0[1] + w, b0[2]], [tip[0], tip[1] + w * 0.35, tip[2]], [tip[0], tip[1] - w * 0.35, tip[2] + 0.01], [b0[0], b0[1] - w, b0[2]]], 0.014, o.feather ? o.feather(i, n) : i % 2 ? (o.f || c) : (o.f2 || o.f || c), o.tip ? { edge: o.tip, emis: !!o.emis } : { emis: !!o.emis }); }
+            bone = 0; };
+          const display = (sd, sh, L, o = {}) => { // a wing held open: up = 1 raised in a V over the back, up = 0 spread flat to glide
+            B(sd < 0 ? 7 : 8, 'wing', sh, { side: sd, fold: 0 }); const up = o.up == null ? 1 : o.up, k = o.k || 1, c = o.c || bd;
+            const el = [sh[0] + sd * L * (0.32 + 0.14 * (1 - up)), sh[1] + L * (0.06 + 0.3 * up), sh[2] - 0.06], wr = [sh[0] + sd * L * (0.6 + 0.36 * (1 - up)), sh[1] + L * (0.06 + 0.56 * up), sh[2] - 0.14];
+            tube([sh, el, wr], [0.06 * k, 0.05 * k, 0.035 * k], c, { cap0: 'round', cap1: 'round' });
+            const n = o.n || 9; for (let i = 0; i < n; i++) { const u = i / (n - 1); const b0 = u < 0.5 ? [sh[0] + (el[0] - sh[0]) * u * 2, sh[1] + (el[1] - sh[1]) * u * 2, sh[2] + (el[2] - sh[2]) * u * 2] : [el[0] + (wr[0] - el[0]) * (u - 0.5) * 2, el[1] + (wr[1] - el[1]) * (u - 0.5) * 2, el[2] + (wr[2] - el[2]) * (u - 0.5) * 2];
+              const len = L * (0.3 + 0.36 * u), d0 = [sd * (0.1 + 0.9 * u * u) * (0.5 + 0.5 * (1 - up)), -0.9 * (1 - u) * up - 0.05 + 0.3 * u * up, -0.5 - 0.5 * (1 - u)], dl = Math.hypot(...d0), d = d0.map(v => v / dl), tip = [b0[0] + d[0] * len, b0[1] + d[1] * len, b0[2] + d[2] * len], w = (0.05 + 0.6 * L / n) * k, tg = [(wr[0] - sh[0]), (wr[1] - sh[1]), (wr[2] - sh[2])], tl = Math.hypot(...tg), t3 = tg.map(v => v / tl);
+              plate([[b0[0] - t3[0] * w, b0[1] - t3[1] * w, b0[2] - t3[2] * w], [tip[0] - t3[0] * w * 0.7, tip[1] - t3[1] * w * 0.7, tip[2]], [tip[0] + t3[0] * w * 0.7, tip[1] + t3[1] * w * 0.7, tip[2] + 0.01], [b0[0] + t3[0] * w, b0[1] + t3[1] * w, b0[2] + t3[2] * w]], 0.014, o.feather ? o.feather(i, n) : i % 2 ? (o.f || c) : (o.f2 || o.f || c), o.tip ? { edge: o.tip, emis: !!o.emis } : { emis: !!o.emis }); }
+            plate([sh, el, wr, [wr[0] - sd * L * 0.12, wr[1] - L * 0.18 * up, wr[2] - 0.1], [sh[0] + sd * L * 0.1, sh[1] - L * 0.12, sh[2] - 0.12]], 0.025, c); bone = 0; };
+          const display2 = (x, y, z, L, o) => { for (const sd of [-1, 1]) display(sd, [sd * x, y, z], L, o); };
+          const wings2 = (x, y, z, L, o) => { for (const sd of [-1, 1]) wing(sd, [sd * x, y, z], L, o); };
+          const fanTail = (b, n, len, spread, c, o = {}) => { B(6, 'tail', b); for (let i = 0; i < n; i++) { const a = n === 1 ? 0 : (i / (n - 1) - 0.5) * spread; const d = [Math.sin(a), o.up || 0.15, -Math.cos(a)], tip = [b[0] + d[0] * len, b[1] + d[1] * len, b[2] + d[2] * len], w = o.w || 0.05;
+            plate([[b[0] - w * Math.cos(a), b[1], b[2] - w * Math.sin(a)], [tip[0] - w * 0.7 * Math.cos(a), tip[1], tip[2]], [tip[0] + w * 0.7 * Math.cos(a), tip[1], tip[2]], [b[0] + w * Math.cos(a), b[1], b[2]]], 0.014, Array.isArray(c) ? c[i % c.length] : c, o.edge ? { edge: o.edge, emis: !!o.emis } : { emis: !!o.emis }); if (o.eye) { ball(tip[0], tip[1] + 0.01, tip[2], o.eyeR || 0.05, o.eye, { emis: !!o.emis, n: 2 }); } }
+            bone = 0; };
+          const egg = (cy, cz, rx, ry, rz, c, u, tap) => blob(-rx, cy - ry, cz - rz, rx, cy + ry, cz + rz, 1, c || bd, { under: u || bl, tap });
+          const chick = (c, fluff, beakC, o = {}) => { // a round fluffy chick: the first stage of most bird lines
+            legsB(0.14, 0.08, beakC || orange, 0.025); egg(0.42, 0, 0.3, 0.3, 0.3, c, o.u || bl);
+            for (let i = 0; i < 10; i++) { const a = i * 2.4, u = ((i * 0.618) % 1) * 1.4 - 0.4, k = Math.sqrt(Math.max(0, 1 - u * u)); cone([Math.cos(a) * k * 0.28, 0.42 + u * 0.28, Math.sin(a) * k * 0.28], [Math.cos(a) * k, u, Math.sin(a) * k], 0.08, 0.03, fluff || c); }
+            H(0.62); ball(0, 0.76, 0.06, 0.22, c, { n: 3 }); look(0.1, 0.8, 0.22, 0.06, { col: o.eye, glow: o.glow }); beak(o.beak || 'cone', 0.72, 0.26, 0.05, o.beakL || 0.1, beakC);
+            if (o.head) o.head(); bone = 0; wings2(0.26, 0.5, 0.02, 0.32, { c, n: 3, fold: -0.9 });
+            fanTail([0, 0.36, -0.28], 3, 0.12, 0.8, c); if (o.after) o.after(); };
+
+          // ======== FLAME ========
+          if (P === 'emberchick') chick(bd, glw, orange, { head: () => { for (let i = 0; i < 3; i++) cone([(i - 1) * 0.05, 0.96, 0.04], [(i - 1) * 0.4, 1, -0.2], 0.14, 0.035, i === 1 ? glw : ac, { emis: true }); } });
+          else if (P === 'flamekestrel' || P === 'phoenix') { // a falcon of fire, then the phoenix: a crown of flame and a train of burning plumes
+            const big = P === 'phoenix', k = big ? 1.25 : 1;
+            legsB(0.3, 0.09, '#e8c23a', 0.03 * k); egg(0.6, 0.0, 0.2 * k, 0.24 * k, 0.34 * k, bd, bl, [0.8, 1]);
+            H(0.86); ball(0, 0.92, 0.26, 0.15 * k, bd, { n: 3 }); for (const sd of [-1, 1]) tube([[sd * 0.08, 0.9, 0.36], [sd * 0.1, 0.8, 0.34]], [0.02, 0.012], dk, { cap0: 'round', cap1: 'round' });
+            look(0.08, 0.95, 0.34, 0.04, { brow: dk, glow: big, col: big ? glw : null }); beak('hook', 0.9, 0.38, 0.035, 0.1, '#3a3230');
+            if (big) for (let i = 0; i < 5; i++) cone([(i - 2) * 0.04, 1.04, 0.22 - Math.abs(i - 2) * 0.04], [(i - 2) * 0.3, 1, -0.6], 0.3 - Math.abs(i - 2) * 0.05, 0.04, i % 2 ? ac : glw, { emis: true }); bone = 0;
+            if (big) display2(0.18 * k, 0.76, 0.04, 1.0, { c: '#ff7a2a', f: '#ff9a3a', f2: '#ffd25a', emis: true, n: 11, up: 1 }); else wings2(0.18 * k, 0.72, 0.06, 0.8, { c: bd, f: ac, n: 7 });
+            if (big) { B(6, 'tail', [0, 0.56, -0.34]); for (let i = 0; i < 5; i++) { const a = (i - 2) * 0.2; const p0 = [0, 0.56, -0.34], p1 = [Math.sin(a) * 0.3, 0.4, -0.9], p2 = [Math.sin(a) * 0.5, 0.5 + (i % 2) * 0.1, -1.5]; tube([p0, p1, p2], [0.03, 0.025, 0.015], i % 2 ? ac : glw, { emis: true, cap0: 'none', cap1: 'round' }); ball(p2[0], p2[1], p2[2], 0.06, glw, { emis: true, n: 2 }); } bone = 0; }
+            else fanTail([0, 0.56, -0.32], 5, 0.4, 0.5, [bd, ac], { edge: dk });
+          } else if (P === 'emberrobin' || P === 'firerobin') { // a robin whose breast is an ember; grown, the breast burns and its head is crested
+            const big = P === 'firerobin', k = big ? 1.2 : 0.9, brown = hexMix(bd, '#6a4a3a', 0.6);
+            legsB(0.2, 0.07, '#3a3230', 0.022 * k); egg(0.48, 0, 0.22 * k, 0.24 * k, 0.26 * k, brown, brown); blob(-0.18 * k, 0.32, 0.0, 0.18 * k, 0.66, 0.26 * k, 1, big ? glw : ac, { emis: big });
+            H(0.7); ball(0, 0.78, 0.14, 0.16 * k, brown, { n: 3 }); look(0.08, 0.82, 0.26, 0.045); beak('cone', 0.76, 0.28, 0.025, 0.08, '#3a3230');
+            if (big) for (let i = 0; i < 3; i++) cone([0, 0.92, 0.1 - i * 0.06], [0, 1, -0.6], 0.18, 0.035, i % 2 ? ac : glw, { emis: true }); bone = 0;
+            wings2(0.2 * k, 0.6, 0.02, 0.5 * k, { c: brown, n: 5 }); fanTail([0, 0.5, -0.24], 4, 0.3, 0.5, brown, { up: 0.5 });
+          } else if (P === 'magmavulture') { // a vulture with a bare red head, a ruff of ash, wings crusted like cooling lava
+            const ash = '#4a4448', lava = '#ffa23a';
+            legsB(0.34, 0.12, '#8a8288', 0.04); egg(0.74, -0.04, 0.3, 0.32, 0.38, ash, '#3a3438');
+            for (let i = 0; i < 12; i++) { const a = i / 12 * Math.PI * 2; cone([Math.cos(a) * 0.16, 1.0, 0.12 + Math.sin(a) * 0.1], [Math.cos(a), -0.2, Math.sin(a) * 0.6], 0.16, 0.05, '#e8e2dc'); }
+            tube([[0, 1.0, 0.14], [0, 1.16, 0.26], [0, 1.2, 0.36]], [0.06, 0.05, 0.045], '#c84a4a', { cap0: 'none', cap1: 'none' });
+            H(1.18, 0.3); ball(0, 1.24, 0.38, 0.1, '#c84a4a', { n: 3 }); look(0.06, 1.28, 0.42, 0.03, { brow: '#8a2a2a' }); beak('hook', 1.22, 0.46, 0.035, 0.16, '#e8e2dc'); bone = 0;
+            wings2(0.26, 0.92, 0.04, 1.3, { c: ash, f: ash, f2: '#3a3438', tip: lava, n: 9 });
+            for (const sd of [-1, 1]) for (let i = 0; i < 3; i++) tube([[sd * 0.28, 0.9 - i * 0.12, 0.0], [sd * 0.3, 0.84 - i * 0.12, -0.14]], [0.02, 0.015], lava, { emis: true, cap0: 'round', cap1: 'round' });
+            fanTail([0, 0.62, -0.4], 6, 0.36, 0.7, ash, { edge: lava });
+
+          // ======== TIDE ========
+          } else if (P === 'gullchick') chick('#c8ccd4', '#e0e4ea', '#f2c23a', { beakL: 0.12 });
+          else if (P === 'seagull' || P === 'albatross') { // a gull, then an albatross: the same white body, wings that go on and on
+            const big = P === 'albatross', grey = hexMix(bd, '#8a94a4', 0.5), white = '#f6f8fa';
+            legsB(0.26, 0.1, '#e8c070', 0.03, { web: true }); egg(0.56, 0, 0.22, 0.24, 0.42, white, '#e8ecf0');
+            H(0.78, 0.3); ball(0, 0.84, 0.38, 0.15, white, { n: 3 }); look(0.08, 0.88, 0.48, 0.04, { brow: big ? '#6a7484' : null }); beak('hook', 0.84, 0.52, 0.035, big ? 0.24 : 0.16, '#f2c23a');
+            if (!big) ball(0, 0.78, 0.6, 0.02, '#d83a3a', { n: 1 }); bone = 0;
+            if (big) display2(0.2, 0.72, 0.04, 1.5, { c: grey, f: grey, f2: '#2a2e38', n: 13, up: 0.1 }); else wings2(0.2, 0.7, 0.04, 0.9, { c: grey, f: grey, f2: '#2a2e38', n: 7 });
+            fanTail([0, 0.56, -0.4], 5, 0.26, 0.5, white);
+          } else if (P === 'puffling' || P === 'puffin') { // a puffling all dark fluff; grown, the puffin with its striped orange beak, standing upright
+            const big = P === 'puffin', black = '#20242e', white = '#f6f8fa';
+            if (!big) chick(black, '#3a3e48', '#3a3e48', { u: '#5a5e68' });
+            else { legsB(0.12, 0.1, orange, 0.035, { web: true }); egg(0.56, 0, 0.26, 0.4, 0.24, black, white, [1, 0.85]); blob(-0.2, 0.2, 0.06, 0.2, 0.74, 0.25, 1, white);
+              H(0.9); ball(0, 1.02, 0.04, 0.2, black, { n: 3 }); for (const sd of [-1, 1]) blob(sd * 0.12 - 0.07, 0.92, 0.06, sd * 0.12 + 0.07, 1.08, 0.2, 1, white, { n: 2 });
+              look(0.1, 1.04, 0.16, 0.035); blob(-0.06, 0.9, 0.18, 0.06, 1.08, 0.36, 0.7, '#e8603a', { tap: [1, 0.6] }); for (let i = 0; i < 2; i++) blob(-0.065, 0.92 + i * 0.04, 0.26 + i * 0.04, 0.065, 0.96 + i * 0.04, 0.28 + i * 0.04, 0.6, i ? '#f2c23a' : '#4a6ab8', { n: 1 }); bone = 0;
+              wings2(0.24, 0.8, 0.0, 0.5, { c: black, n: 5, fold: -1.45 }); fanTail([0, 0.3, -0.22], 3, 0.12, 0.6, black); }
+          } else if (P === 'heron') { // a grey heron: stilts for legs, an S of a neck, a dagger of a beak, a black plume behind the eye
+            const grey = hexMix(bd, '#8a94a4', 0.6), white = '#f2f4f6';
+            legsB(0.8, 0.08, '#c8a060', 0.025, { toe: 0.16 }); egg(1.0, 0, 0.18, 0.2, 0.36, grey, white);
+            tube([[0, 1.1, 0.24], [0, 1.36, 0.22], [0, 1.5, 0.36], [0, 1.6, 0.34]], [0.06, 0.05, 0.045, 0.045], white, { cap0: 'none', cap1: 'round' });
+            H(1.6, 0.34); ball(0, 1.64, 0.36, 0.08, white, { n: 3 }); look(0.05, 1.67, 0.4, 0.025); beak('spear', 1.63, 0.42, 0.03, 0.36, '#e8c23a');
+            tube([[0, 1.68, 0.32], [0, 1.68, 0.12], [0, 1.6, -0.06]], [0.015, 0.012, 0.006], '#20242e', { cap0: 'round', cap1: 'round' }); bone = 0;
+            wings2(0.17, 1.1, 0.04, 1.0, { c: grey, f: grey, f2: '#3a3e48', n: 8 }); fanTail([0, 0.96, -0.34], 4, 0.18, 0.5, grey); hover = 0;
+
+          // ======== BLOOM ========
+          } else if (P === 'peachick') chick(hexMix(bd, '#c8b48a', 0.5), null, '#8a6a42', { head: () => { for (let i = 0; i < 3; i++) { tube([[0, 0.96, 0.04], [(i - 1) * 0.06, 1.08, 0.0]], [0.008, 0.008], dk, { cap0: 'none', cap1: 'none' }); ball((i - 1) * 0.06, 1.1, 0.0, 0.025, ac, { n: 1 }); } } });
+          else if (P === 'peafowl' || P === 'bloompeacock') { // a peafowl, then a peacock whose train opens like a meadow: petals for feathers, flowers for eyes
+            const big = P === 'bloompeacock', blue = hexMix('#2a6ab8', bd, 0.4);
+            legsB(0.36, 0.08, '#8a8288', 0.03); egg(0.64, 0, 0.2, 0.24, 0.32, blue, blue);
+            tube([[0, 0.76, 0.2], [0, 0.98, 0.28], [0, 1.08, 0.3]], [0.08, 0.06, 0.055], blue, { cap0: 'none', cap1: 'round' });
+            H(1.06, 0.3); ball(0, 1.1, 0.32, 0.09, blue, { n: 3 }); for (const sd of [-1, 1]) blob(sd * 0.06 - 0.03, 1.1, 0.32, sd * 0.06 + 0.03, 1.14, 0.4, 0.6, '#f6f8fa', { n: 1 }); look(0.06, 1.12, 0.38, 0.028); beak('cone', 1.09, 0.4, 0.025, 0.07, '#8a8288');
+            for (let i = 0; i < 4; i++) { tube([[0, 1.18, 0.3], [(i - 1.5) * 0.04, 1.3, 0.28 - i * 0.02]], [0.006, 0.006], blue, { cap0: 'none', cap1: 'none' }); ball((i - 1.5) * 0.04, 1.32, 0.28 - i * 0.02, 0.022, big ? '#f4a3d2' : ac, { n: 1 }); } bone = 0;
+            wings2(0.18, 0.7, 0.06, 0.6, { c: hexMix(bd, '#8a6a42', 0.4), n: 5 });
+            if (big) fanTail([0, 0.66, -0.3], 15, 1.1, 2.8, [ac, hexMix(ac, '#2e6b2a', 0.4)], { up: 1.1, w: 0.17, eye: '#f4a3d2', eyeR: 0.08 });
+            else fanTail([0, 0.62, -0.3], 7, 0.7, 0.4, [ac, hexMix(ac, '#2e6b2a', 0.4)], { up: 0.05, w: 0.05, eye: blue, eyeR: 0.035 });
+            hover = 0; flyer = false;
+          } else if (P === 'cygnet' || P === 'lotusswan') { // a grey cygnet; grown, a white swan with a lotus opening on its back
+            const big = P === 'lotusswan';
+            if (!big) chick('#a8aeb8', '#c8ccd4', '#3a3e48', { beak: 'duck', beakL: 0.1 });
+            else { legsB(0.16, 0.12, '#3a3e48', 0.035, { web: true }); egg(0.42, 0, 0.3, 0.26, 0.44, '#f6f8fa', '#e8ecf0', [1, 0.9]);
+              tube([[0, 0.5, 0.32], [0, 0.86, 0.4], [0, 1.1, 0.3], [0, 1.16, 0.38]], [0.08, 0.065, 0.055, 0.05], '#f6f8fa', { cap0: 'none', cap1: 'round' });
+              H(1.16, 0.38); ball(0, 1.18, 0.4, 0.08, '#f6f8fa', { n: 3 }); blob(-0.04, 1.14, 0.44, 0.04, 1.22, 0.5, 0.6, '#16121e', { n: 1 }); look(0.055, 1.2, 0.44, 0.022); beak('duck', 1.16, 0.48, 0.035, 0.14, '#e8603a'); bone = 0;
+              wings2(0.26, 0.56, 0.06, 0.7, { c: '#f6f8fa', f: '#ffffff', f2: '#eef0f4', n: 7, fold: -1.0 });
+              for (let r = 0; r < 2; r++) for (let i = 0; i < 6; i++) { const a = i / 6 * Math.PI * 2 + r * 0.5; plate([[0, 0.66, -0.06], [Math.cos(a) * (0.26 - r * 0.08), 0.84 + r * 0.06, -0.06 + Math.sin(a) * (0.26 - r * 0.08)], [Math.cos(a + 0.4) * (0.18 - r * 0.06), 0.78 + r * 0.06, -0.06 + Math.sin(a + 0.4) * (0.18 - r * 0.06)]], 0.015, r ? '#f4c8e0' : '#f4a3d2'); }
+              ball(0, 0.8, -0.06, 0.06, '#ffe08a', { emis: true, n: 2 }); fanTail([0, 0.5, -0.42], 3, 0.14, 0.6, '#f6f8fa', { up: 0.6 }); }
+          } else if (P === 'hummingbird') { // a hummingbird: a jewel of a body, a needle beak, wings that never stop
+            legsB(0.16, 0.05, '#3a3230', 0.015); egg(0.5, 0, 0.14, 0.16, 0.26, bd, bl, [0.7, 1]); blob(-0.1, 0.4, 0.06, 0.1, 0.6, 0.2, 1, ac, { emis: true });
+            H(0.64, 0.18); ball(0, 0.7, 0.2, 0.11, bd, { n: 3 }); look(0.06, 0.72, 0.28, 0.035); beak('spear', 0.7, 0.3, 0.016, 0.34, '#2a2420'); bone = 0;
+            wings2(0.12, 0.6, 0.02, 0.6, { c: hexMix(bd, '#ffffff', 0.4), n: 6, fold: -0.2, long: 1.1 }); fanTail([0, 0.44, -0.24], 5, 0.18, 0.7, bd); hover = 0.4;
+
+          // ======== STONE ========
+          } else if (P === 'emuchick') chick('#c8b48a', '#8a6a42', '#3a3230', { after: () => { for (let i = 0; i < 3; i++) for (const sd of [-1, 1]) blob(sd * 0.24 - 0.02, 0.32 + i * 0.12, -0.12, sd * 0.24 + 0.02, 0.36 + i * 0.12, 0.12, 0.6, '#6a4a2e', { n: 1 }); } });
+          else if (P === 'rockemu' || P === 'terrorbird') { // an emu grown in stone country: a shaggy runner; then the terror bird, a giant with a hooked axe of a beak
+            const big = P === 'terrorbird', shag = hexMix(bd, '#6a5a4a', 0.5), hip = big ? 0.66 : 0.62;
+            legsB(hip, 0.14, '#6a6470', big ? 0.06 : 0.045, { thigh: true, thighC: shag, toe: big ? 0.3 : 0.2 });
+            egg(hip + 0.3, 0, big ? 0.32 : 0.28, big ? 0.32 : 0.28, big ? 0.48 : 0.36, shag, hexMix(shag, dk, 0.3));
+            for (let i = 0; i < 18; i++) { const a = i * 2.4, u = ((i * 0.618) % 1); cone([Math.cos(a) * 0.26, hip + 0.3 + u * 0.2, -0.1 - Math.abs(Math.sin(a)) * 0.24], [Math.cos(a) * 0.3, -1, -0.3], 0.24, 0.05, i % 2 ? shag : hexMix(shag, dk, 0.3)); }
+            if (!big) { tube([[0, hip + 0.4, 0.3], [0, hip + 0.8, 0.36], [0, hip + 1.0, 0.4]], [0.07, 0.06, 0.06], hexMix(shag, '#4a6ab8', 0.3), { cap0: 'none', cap1: 'round' }); H(hip + 1.0, 0.4); ball(0, hip + 1.04, 0.44, 0.1, shag, { n: 3 }); look(0.06, hip + 1.08, 0.5, 0.03); beak('duck', hip + 1.02, 0.52, 0.04, 0.1, '#3a3230'); bone = 0; }
+            else { tube([[0, hip + 0.44, 0.36], [0, hip + 0.82, 0.5]], [0.12, 0.11], shag, { cap0: 'none', cap1: 'round' }); H(hip + 0.86, 0.5); blob(-0.16, hip + 0.7, 0.42, 0.16, hip + 1.06, 0.72, 1, shag);
+              blob(-0.12, hip + 0.66, 0.64, 0.12, hip + 0.98, 1.1, 0.7, '#d8c8a0', { tap: [1, 0.8] }); curl([0, hip + 0.92, 1.06], [0, -0.2, 1], 0.2, 0.06, '#d8c8a0', [0, -1.6, 0]); tube([[-0.11, hip + 0.8, 0.7], [0, hip + 0.78, 1.04], [0.11, hip + 0.8, 0.7]], [0.012, 0.012, 0.012], '#3a3230', { cap0: 'round', cap1: 'round' });
+              look(0.12, hip + 0.96, 0.62, 0.035, { brow: dk, col: '#ffcf5a' }); for (let i = 0; i < 4; i++) cone([0, hip + 1.04, 0.46 - i * 0.08], [0, 1, -0.6], 0.14, 0.03, ac); bone = 0; }
+            wings2(0.26, hip + 0.42, 0.06, 0.3, { c: shag, n: 4, fold: -1.4 }); hover = 0; flyer = false;
+          } else if (P === 'hornbillchick' || P === 'hornbill') { // a hornbill: a beak like a carved horn with a stone casque on top of it
+            const big = P === 'hornbill', black = '#20242e', cream = '#f2ead6';
+            if (!big) chick(black, '#3a3e48', cream, { beak: 'big', beakL: 0.16, after: () => { bone = 1; blob(-0.04, 0.8, 0.22, 0.04, 0.86, 0.34, 0.6, bd, { n: 1 }); bone = 0; } });
+            else { legsB(0.26, 0.1, '#3a3e48', 0.035); egg(0.6, 0, 0.24, 0.26, 0.4, black, cream);
+              H(0.86, 0.3); ball(0, 0.92, 0.34, 0.15, black, { n: 3 }); look(0.08, 0.98, 0.44, 0.04, { brow: '#3a3e48', col: '#d83a3a' }); beak('big', 0.9, 0.44, 0.06, 0.42, cream);
+              blob(-0.06, 0.98, 0.4, 0.06, 1.14, 0.78, 0.6, bd, { under: hexMix(bd, dk, 0.3), tap: [1, 0.8] }); bone = 0;
+              wings2(0.22, 0.74, 0.04, 1.0, { c: black, f: black, f2: cream, n: 8 }); fanTail([0, 0.56, -0.4], 5, 0.6, 0.4, [cream, black], { up: -0.1 }); }
+          } else if (P === 'shoebill') { // a shoebill: still as a statue, grey as one, a huge clog of a beak and an unblinking stare
+            const grey = hexMix(bd, '#7a8494', 0.6);
+            legsB(0.6, 0.1, '#4a4448', 0.035, { toe: 0.22 }); egg(0.98, 0, 0.26, 0.3, 0.32, grey, hexMix(grey, '#ffffff', 0.2), [0.85, 1]);
+            H(1.26, 0.1); ball(0, 1.36, 0.12, 0.2, grey, { n: 3 }); for (let i = 0; i < 4; i++) cone([0, 1.5, 0.02 - i * 0.04], [0, 0.4, -1], 0.12, 0.025, grey);
+            blob(-0.15, 1.2, 0.18, 0.15, 1.4, 0.62, 0.8, '#c8b490', { tap: [1, 0.8] }); curl([0, 1.36, 0.6], [0, -0.3, 1], 0.12, 0.05, '#c8b490', [0, -1.8, 0]); tube([[-0.14, 1.28, 0.2], [0, 1.26, 0.6], [0.14, 1.28, 0.2]], [0.01, 0.01, 0.01], '#4a4448', { cap0: 'round', cap1: 'round' });
+            look(0.13, 1.44, 0.24, 0.035, { col: '#e8e2a0', brow: hexMix(grey, '#2a2e38', 0.4) }); bone = 0;
+            wings2(0.24, 1.14, 0.04, 1.1, { c: grey, n: 8 }); fanTail([0, 0.86, -0.3], 4, 0.2, 0.5, grey); hover = 0;
+
+          // ======== GALE ========
+          } else if (P === 'eaglet') chick('#f2ece2', '#ffffff', '#3a3230', { beak: 'hook', beakL: 0.12, glow: false });
+          else if (P === 'hawk' || P === 'stormeagle') { // a hawk with a barred chest; then an eagle of the storm, white-headed, cloud at its wingtips, lightning in its talons
+            const big = P === 'stormeagle', brown = hexMix(bd, '#6a4a2e', 0.5), white = '#f6f8fa', k = big ? 1.25 : 1;
+            legsB(0.32, 0.1, '#e8c23a', 0.035 * k, { thigh: true, thighC: brown }); egg(0.66, 0, 0.24 * k, 0.28 * k, 0.36 * k, brown, big ? brown : '#e8dcc8');
+            if (!big) for (let i = 0; i < 4; i++) ring(0, 0.5 + i * 0.07, 0.26, 0.14, 0.02, 0.012, brown);
+            H(0.94, 0.26); ball(0, 1.0, 0.3, 0.16 * k, big ? white : brown, { n: 3 }); look(0.09, 1.04, 0.42, 0.04, { brow: big ? '#c8ccd4' : dk, col: '#ffcf5a' }); beak('hook', 0.98, 0.46, 0.04, 0.14 * k, '#e8c23a');
+            if (big) for (let i = 0; i < 6; i++) { const a = i / 6 * Math.PI * 2; cone([Math.cos(a) * 0.12, 0.9 + Math.sin(a) * 0.06, 0.26], [Math.cos(a), -0.4, -0.3], 0.12, 0.04, white); } bone = 0;
+            if (big) { display2(0.22 * k, 0.84, 0.02, 1.2, { c: brown, n: 11, f: brown, f2: hexMix(brown, dk, 0.3), tip: '#ffffff', up: 0.8 }); for (const sd of [-1, 1]) { bone = sd < 0 ? 7 : 8; for (let i = 0; i < 3; i++) ball(sd * (0.8 + i * 0.14), 1.34 + (i % 2) * 0.1, -0.24, 0.12 - i * 0.02, '#e8ecf2', { n: 2 }); bone = 0; } } else wings2(0.22 * k, 0.8, 0.04, 1.0, { c: brown, n: 8, f: brown, f2: hexMix(brown, dk, 0.3) });
+            fanTail([0, 0.56, -0.36], 6, big ? 0.5 : 0.38, 0.6, big ? white : [brown, '#c8b48a']);
+            if (big) for (const sd of [-1, 1]) { bone = sd < 0 ? 4 : 5; plate([[sd * 0.12, 0.06, 0.2], [sd * 0.14, 0.2, 0.32], [sd * 0.12, 0.14, 0.32], [sd * 0.14, 0.3, 0.44]], 0.02, ac, { emis: true }); bone = 0; }
+          } else if (P === 'swallow' || P === 'swift') { // a barn swallow with a forked tail; then a swift, all scythe wings, a dart on the wind
+            const big = P === 'swift', navy = hexMix(bd, '#203060', 0.5);
+            legsB(0.12, 0.06, '#3a3230', 0.016); egg(0.4, 0, 0.14, 0.15, 0.3, navy, big ? navy : '#f2e2d0', [0.8, 1]); if (!big) blob(-0.08, 0.36, 0.18, 0.08, 0.5, 0.28, 1, '#c8503a', { n: 2 });
+            H(0.5, 0.22); ball(0, 0.52, 0.26, 0.11, navy, { n: 3 }); look(0.065, 0.55, 0.33, 0.03); beak('cone', 0.5, 0.36, 0.02, 0.05, '#2a2420'); bone = 0;
+            wings2(0.12, 0.46, 0.04, big ? 1.1 : 0.8, { c: navy, n: 7, long: big ? 1.35 : 1.1, fold: -1.35 });
+            B(6, 'tail', [0, 0.38, -0.28]); for (const sd of [-1, 1]) plate([[0, 0.38, -0.28], [sd * 0.08, 0.38, -0.32], [sd * (big ? 0.16 : 0.22), 0.36, big ? -0.6 : -0.86]], 0.015, navy); bone = 0; hover = 0.18;
+          } else if (P === 'frigatebird') { // a frigatebird: black, all angles, a scarlet throat pouch blown up like a balloon
+            const black = '#20242e';
+            legsB(0.16, 0.08, '#3a3e48', 0.02); egg(0.46, 0, 0.18, 0.2, 0.36, black, black);
+            ball(0, 0.4, 0.24, 0.17, '#e83a3a', { n: 3 });
+            H(0.62, 0.26); ball(0, 0.66, 0.3, 0.11, black, { n: 3 }); look(0.065, 0.7, 0.38, 0.03); beak('hook', 0.66, 0.4, 0.025, 0.2, '#8a8e98'); bone = 0;
+            wings2(0.16, 0.56, 0.04, 1.6, { c: black, n: 9, long: 0.75, fold: -1.35 });
+            B(6, 'tail', [0, 0.42, -0.34]); for (const sd of [-1, 1]) plate([[0, 0.42, -0.34], [sd * 0.06, 0.42, -0.38], [sd * 0.2, 0.4, -0.9]], 0.015, black); bone = 0;
+
+          // ======== FROST ========
+          } else if (P === 'snowowlet' || P === 'snowyowl' || P === 'auroraowl') { // an owlet ball of fluff, a snowy owl, then a great owl with the aurora in its wings
+            const k = P === 'snowowlet' ? 0 : P === 'snowyowl' ? 1 : 2, white = '#f6f8fa', fleck = '#3a3e48';
+            const top = [0.86, 1.1, 1.36][k], w = [0.32, 0.32, 0.4][k];
+            legsB(0.12, 0.12, white, 0.04, { thigh: true, thighC: white }); egg((top + 0.12) / 2, 0, w, (top - 0.12) / 2, w * 0.85, white, k === 0 ? '#e0e4ea' : white, [1, 0.9]);
+            if (k >= 1) for (let i = 0; i < 14; i++) { const a = (i * 2.4) % (Math.PI * 1.4) - 0.7 + Math.PI, y = 0.3 + ((i * 0.618) % 1) * (top - 0.5); blob(Math.sin(a) * w * 0.96 - 0.025, y - 0.01, Math.cos(a) * w * 0.8 - 0.025, Math.sin(a) * w * 0.96 + 0.025, y + 0.01, Math.cos(a) * w * 0.8 + 0.025, 0.7, fleck, { n: 1 }); }
+            H(top - 0.1); const hy = top + 0.06; blob(-w * 0.9, hy - 0.2, -w * 0.7, w * 0.9, hy + 0.18, w * 0.7, 1, white);
+            for (const sd of [-1, 1]) { ring(sd * 0.11, hy, w * 0.66, 0.1, 0.1, 0.02, '#e0e4ea'); } look(0.11, hy, w * 0.66, 0.065, { col: '#f2c23a', glow: k === 2 }); beak('hook', hy - 0.08, w * 0.7, 0.03, 0.06, '#3a3e48');
+            if (k >= 1) for (const sd of [-1, 1]) cone([sd * 0.18, hy + 0.14, 0.04], [sd * 0.4, 1, -0.2], 0.1, 0.03, white);
+            if (k === 0) for (let i = 0; i < 4; i++) cone([(i - 1.5) * 0.06, hy + 0.18, 0], [(i - 1.5) * 0.4, 1, -0.2], 0.08, 0.025, white); bone = 0;
+            const aur = (i, n) => ['#7ae8c8', '#7ab8f8', '#b88af8', '#f88ad8'][Math.floor(i / n * 4)];
+            if (k === 2) display2(w * 0.9, top - 0.3, 0.0, 1.2, { c: white, n: 12, feather: aur, emis: true, up: 0.45 }); else wings2(w * 0.9, top - 0.3, 0.0, [0.5, 0.9][k], { c: white, n: 7 });
+            fanTail([0, 0.3, -w * 0.8], 5, 0.2, 0.7, white); hover = 0.06;
+          } else if (P === 'cranechick' || P === 'crane') { // a crane chick; grown, a red-crowned crane, tall as a person, dancing
+            const big = P === 'crane', white = '#f6f8fa', black = '#20242e';
+            if (!big) chick('#c8b48a', '#e0d0b0', '#8a8288', { beakL: 0.14 });
+            else { legsB(0.9, 0.08, black, 0.025, { toe: 0.18 }); egg(1.1, 0, 0.2, 0.22, 0.34, white, white);
+              tube([[0, 1.2, 0.2], [0, 1.5, 0.28], [0, 1.74, 0.24], [0, 1.84, 0.3]], [0.06, 0.05, 0.045, 0.045], black, { cap0: 'none', cap1: 'round' });
+              H(1.84, 0.3); ball(0, 1.88, 0.32, 0.08, white, { n: 3 }); ball(0, 1.94, 0.3, 0.05, '#d83a3a', { n: 2 }); look(0.05, 1.89, 0.37, 0.022); beak('spear', 1.87, 0.38, 0.025, 0.26, '#a8a49a'); bone = 0;
+              wings2(0.18, 1.18, 0.04, 1.2, { c: white, n: 9, f: white, f2: black }); B(6, 'tail', [0, 1.04, -0.32]); for (let i = 0; i < 5; i++) tube([[0, 1.04, -0.32], [(i - 2) * 0.06, 0.94, -0.5], [(i - 2) * 0.08, 0.8, -0.56]], [0.03, 0.025, 0.01], black, { cap0: 'none', cap1: 'round' }); bone = 0; hover = 0; }
+          } else if (P === 'snowgoose') { // a snow goose, wings tipped black, honking through the blizzard with ice on its back
+            const white = '#f6f8fa';
+            legsB(0.2, 0.12, '#e8803a', 0.035, { web: true }); egg(0.52, 0, 0.26, 0.26, 0.4, white, '#e8ecf0');
+            tube([[0, 0.62, 0.3], [0, 0.84, 0.38], [0, 0.96, 0.4]], [0.08, 0.065, 0.06], white, { cap0: 'none', cap1: 'round' });
+            H(0.96, 0.4); ball(0, 1.0, 0.42, 0.1, white, { n: 3 }); look(0.06, 1.03, 0.48, 0.03); beak('duck', 0.98, 0.5, 0.04, 0.14, '#e8803a'); tube([[-0.035, 0.96, 0.52], [0.035, 0.96, 0.52]], [0.012, 0.012], '#2a2420', { cap0: 'round', cap1: 'round' }); bone = 0;
+            wings2(0.26, 0.66, 0.04, 0.9, { c: white, n: 8, f: white, f2: '#20242e' }); for (let i = 0; i < 5; i++) cone([(i - 2) * 0.08, 0.76, -0.1 - Math.abs(i - 2) * 0.06], [0, 1, -0.3], 0.14, 0.035, glw, { emis: true });
+            fanTail([0, 0.5, -0.4], 5, 0.18, 0.7, white);
+
+          // ======== SPARK ========
+          } else if (P === 'zapchick') chick(bd, glw, '#3a3e48', { head: () => { plate([[0, 0.96, 0.06], [0.02, 1.08, 0.02], [0, 1.04, 0.0], [0.02, 1.18, -0.06]], 0.025, ac, { emis: true }); } });
+          else if (P === 'cockatoo' || P === 'thundercockatoo') { // a cockatoo with a crest it raises like a fan; grown, the crest is a crown of lightning
+            const big = P === 'thundercockatoo', white = '#f6f8fa', k = big ? 1.2 : 1;
+            legsB(0.24, 0.1, '#6a6470', 0.035, { thigh: true, thighC: white }); egg(0.58, 0, 0.24 * k, 0.3 * k, 0.28 * k, white, '#eef0f4', [0.8, 1]);
+            H(0.86); ball(0, 0.96, 0.08, 0.18 * k, white, { n: 3 }); look(0.1, 0.98, 0.22, 0.04, { brow: big ? '#c8ccd4' : null, col: big ? glw : null, glow: big }); beak('big', 0.92, 0.22, 0.06, 0.1, '#3a3e48');
+            for (const sd of [-1, 1]) ball(sd * 0.12, 0.9, 0.18, 0.04, ac, { n: 2 });
+            for (let i = 0; i < (big ? 7 : 5); i++) { const a = (i / ((big ? 7 : 5) - 1) - 0.5) * 1.6; const b = [0, 1.08, 0.04 - i * 0.02]; if (big) plate([b, [Math.sin(a) * 0.14, 1.26, -0.06], [Math.sin(a) * 0.1, 1.22, -0.08], [Math.sin(a) * 0.26, 1.46 + Math.cos(a) * 0.1, -0.2]], 0.025, i % 2 ? ac : glw, { emis: true }); else cone(b, [Math.sin(a), 1, -0.6], 0.3, 0.04, ac); } bone = 0;
+            if (big) display2(0.22 * k, 0.74, 0.02, 0.9, { c: white, n: 10, tip: glw, up: 1 }); else wings2(0.22 * k, 0.72, 0.02, 0.8, { c: white, n: 8 }); fanTail([0, 0.42, -0.26], 5, 0.36, 0.5, white);
+          } else if (P === 'kingfisherchick' || P === 'kingfisher') { // a kingfisher: an electric-blue back, an orange breast and a beak like a dart
+            const big = P === 'kingfisher', blue = hexMix('#2a8ad8', bd, 0.25);
+            if (!big) chick(blue, glw, '#2a2420', { u: orange, beak: 'spear', beakL: 0.16 });
+            else { legsB(0.14, 0.06, '#e8603a', 0.02); egg(0.46, 0, 0.2, 0.22, 0.28, blue, orange, [0.8, 1]); tube([[0, 0.66, 0.2], [0, 0.62, -0.2]], [0.03, 0.03], glw, { emis: true, cap0: 'round', cap1: 'round' });
+              H(0.66, 0.18); ball(0, 0.72, 0.2, 0.15, blue, { n: 3 }); for (const sd of [-1, 1]) blob(sd * 0.12 - 0.04, 0.64, 0.18, sd * 0.12 + 0.04, 0.72, 0.28, 0.8, orange, { n: 1 });
+              look(0.08, 0.76, 0.3, 0.035); beak('spear', 0.72, 0.32, 0.035, 0.32, '#2a2420'); bone = 0;
+              wings2(0.18, 0.56, 0.02, 0.6, { c: blue, n: 6, tip: glw }); fanTail([0, 0.42, -0.26], 4, 0.14, 0.4, blue); }
+          } else if (P === 'lyrebird') { // a lyrebird: plain brown until it raises its tail, two curved lyre feathers strung with lightning between them
+            const brown = hexMix(bd, '#6a4a2e', 0.6);
+            legsB(0.3, 0.08, '#3a3230', 0.03); egg(0.58, 0, 0.2, 0.22, 0.3, brown, hexMix(brown, '#c8b48a', 0.4));
+            H(0.8, 0.22); ball(0, 0.86, 0.26, 0.12, brown, { n: 3 }); look(0.07, 0.9, 0.34, 0.035); beak('cone', 0.85, 0.37, 0.025, 0.07, '#3a3230'); bone = 0;
+            wings2(0.18, 0.66, 0.04, 0.55, { c: brown, n: 5 });
+            B(6, 'tail', [0, 0.56, -0.28]); for (const sd of [-1, 1]) { const pts = []; for (let i = 0; i <= 8; i++) { const u = i / 8; pts.push([sd * (0.06 + Math.sin(u * 3) * 0.3), 0.56 + u * 1.0, -0.3 - u * 0.24]); } tube(pts, pts.map((_, i) => 0.035 - i * 0.003), hexMix(brown, '#c8b48a', 0.5), { cap0: 'none', cap1: 'round' }); }
+            for (let i = 0; i < 6; i++) { const y = 0.8 + i * 0.12, x = Math.sin(((y - 0.56) / 1.0) * 3) * 0.3 + 0.06; tube([[-x, y, -0.3 - (y - 0.56) * 0.24], [0, y + 0.04, -0.32 - (y - 0.56) * 0.24], [x, y, -0.3 - (y - 0.56) * 0.24]], [0.008, 0.008, 0.008], glw, { emis: true, cap0: 'none', cap1: 'none' }); }
+            for (let i = 0; i < 9; i++) { const a = (i / 8 - 0.5) * 1.2; tube([[0, 0.58, -0.3], [Math.sin(a) * 0.3, 0.9, -0.5], [Math.sin(a) * 0.4, 1.1, -0.56]], [0.015, 0.01, 0.004], '#e8e2d4', { cap0: 'none', cap1: 'none' }); } bone = 0; hover = 0;
+
+          // ======== VOID ========
+          } else if (P === 'ravenlet') chick('#2a2430', '#3a3440', '#16121e', { eye: ac });
+          else if (P === 'raven' || P === 'ravenking') { // a raven, then a raven king with a third eye and a mantle of shadow feathers
+            const big = P === 'ravenking', black = hexMix('#1a1620', bd, 0.15), k = big ? 1.25 : 1;
+            legsB(0.24, 0.09, '#16121e', 0.03 * k); egg(0.58, 0, 0.22 * k, 0.26 * k, 0.36 * k, black, black);
+            for (let i = 0; i < 8; i++) { const a = (i / 7 - 0.5) * 2.4; cone([Math.sin(a) * 0.14, 0.72, 0.24], [Math.sin(a), -0.6, 0.4], 0.14, 0.035, black); }
+            H(0.86, 0.26); ball(0, 0.92, 0.3, 0.15 * k, black, { n: 3 }); look(0.08, 0.96, 0.42, 0.035, { col: ac, glow: big, brow: big ? '#3a3440' : null }); beak('hook', 0.9, 0.44, 0.04, 0.18, '#16121e');
+            if (big) { ball(0, 1.06, 0.4, 0.04, '#16121e', { n: 2 }); ball(0, 1.06, 0.43, 0.025, glw, { emis: true, n: 1 }); for (let i = 0; i < 5; i++) cone([(i - 2) * 0.05, 1.08, 0.28 - Math.abs(i - 2) * 0.03], [(i - 2) * 0.2, 1, -0.4], 0.16, 0.025, ac); } bone = 0;
+            if (big) display2(0.2 * k, 0.78, 0.02, 1.1, { c: black, n: 12, tip: ac, up: 0.6 }); else wings2(0.2 * k, 0.74, 0.04, 1.0, { c: black, n: 8 });
+            fanTail([0, 0.5, -0.36], 6, big ? 0.5 : 0.36, 0.6, black, { edge: big ? ac : null });
+            if (big) for (let i = 0; i < 6; i++) { const a = i * 2.1; tube([[Math.cos(a) * 0.3, 0.6, -0.2], [Math.cos(a) * 0.46, 0.5 + (i % 2) * 0.1, -0.4], [Math.cos(a) * 0.5, 0.4, -0.66]], [0.04, 0.025, 0.004], '#2a2430', { cap0: 'none', cap1: 'none' }); }
+          } else if (P === 'nightjar' || P === 'potoo') { // a nightjar, mottled like bark; then a potoo: a stump of a bird with a huge mouth and great staring yellow eyes
+            const big = P === 'potoo', bark = hexMix(bd, '#6a5a4a', 0.6), mott = hexMix(bark, '#2a2420', 0.4);
+            legsB(0.1, 0.08, '#3a3230', 0.02); egg(big ? 0.6 : 0.36, 0, big ? 0.24 : 0.2, big ? 0.5 : 0.22, big ? 0.22 : 0.3, bark, hexMix(bark, '#c8b48a', 0.3), big ? [1, 0.8] : null);
+            for (let i = 0; i < 16; i++) { const a = i * 2.4, u = ((i * 0.618) % 1) * 1.6 - 0.8, kk = Math.sqrt(Math.max(0, 1 - u * u)); blob(Math.cos(a) * kk * 0.22 - 0.03, (big ? 0.6 : 0.36) + u * (big ? 0.46 : 0.2) - 0.015, Math.sin(a) * kk * 0.22 - 0.03, Math.cos(a) * kk * 0.22 + 0.03, (big ? 0.6 : 0.36) + u * (big ? 0.46 : 0.2) + 0.015, Math.sin(a) * kk * 0.22 + 0.03, 0.7, mott, { n: 1 }); }
+            const hy = big ? 1.14 : 0.56; H(hy - 0.06); blob(-0.18, hy - 0.12, -0.12, 0.18, hy + 0.12, 0.18, 1, bark);
+            look(0.1, hy + 0.02, 0.14, big ? 0.075 : 0.045, { col: '#ffd22a', glow: big }); tube([[-0.14, hy - 0.08, 0.14], [0, hy - 0.1, 0.19], [0.14, hy - 0.08, 0.14]], [0.014, 0.014, 0.014], mott, { cap0: 'round', cap1: 'round' });
+            if (big) blob(-0.13, hy - 0.16, 0.08, 0.13, hy - 0.08, 0.2, 0.8, '#3a1a20');
+            for (const sd of [-1, 1]) tube([[sd * 0.08, hy + 0.1, 0.12], [sd * 0.12, hy + 0.14, 0.2]], [0.008, 0.004], mott, { cap0: 'none', cap1: 'none' }); bone = 0;
+            wings2(0.18, big ? 0.9 : 0.42, 0.0, big ? 0.8 : 0.7, { c: bark, n: 7, f: bark, f2: mott, fold: -1.45 }); fanTail([0, big ? 0.24 : 0.3, -0.24], 5, big ? 0.36 : 0.3, 0.4, [bark, mott], { up: big ? -0.6 : 0.1 }); hover = big ? 0 : 0.1;
+          } else if (P === 'cassowary') { // a cassowary: black plumage like hair, a blue neck, red wattles, a casque of horn on its head and dagger toes
+            const black = hexMix('#16121e', bd, 0.12), blue = '#3a8ad8';
+            legsB(0.66, 0.16, '#5a5a6a', 0.06, { thigh: true, thighC: black, toe: 0.26 }); for (const sd of [-1, 1]) { bone = sd < 0 ? 4 : 5; cone([sd * 0.16, 0.04, 0.06], [0, -0.1, 1], 0.24, 0.025, '#e8e2d4'); bone = 0; }
+            egg(1.0, -0.04, 0.34, 0.34, 0.46, black, black);
+            for (let i = 0; i < 20; i++) { const a = (i * 2.4) % (Math.PI * 2), u = ((i * 0.618) % 1); cone([Math.cos(a) * 0.3, 1.0 + u * 0.24, -0.1 - Math.abs(Math.sin(a)) * 0.3], [Math.cos(a) * 0.3, -1, -0.2], 0.3, 0.04, black); }
+            tube([[0, 1.16, 0.3], [0, 1.44, 0.42], [0, 1.62, 0.44]], [0.1, 0.07, 0.06], blue, { cap0: 'none', cap1: 'round' }); for (const sd of [-1, 1]) blob(sd * 0.05 - 0.03, 1.12, 0.38, sd * 0.05 + 0.03, 1.32, 0.48, 1, '#d83a3a', { n: 2 });
+            H(1.62, 0.44); ball(0, 1.66, 0.46, 0.1, blue, { n: 3 }); look(0.065, 1.7, 0.52, 0.03, { brow: '#2a4a8a', col: '#ffcf5a' }); beak('cone', 1.64, 0.54, 0.035, 0.12, '#2a2420');
+            blob(-0.05, 1.7, 0.36, 0.05, 1.96, 0.56, 0.8, hexMix(ac, '#c8a060', 0.4), { tap: [1, 0.5] }); bone = 0;
+            wings2(0.3, 1.06, 0.1, 0.2, { c: black, n: 3, fold: -1.45 }); hover = 0; flyer = false;
+
+          // ======== LIGHT ========
+          } else if (P === 'squab') chick('#e8e2ea', '#ffffff', '#c8a0a8');
+          else if (P === 'dove' || P === 'sundove') { // a white dove; then a dove crowned with the sun, rays spread behind it like a halo
+            const big = P === 'sundove', white = '#fbfaf6', k = big ? 1.2 : 1;
+            legsB(0.18, 0.08, '#e88a8a', 0.025); egg(0.5, 0, 0.22 * k, 0.24 * k, 0.32 * k, white, '#f2eee6', [0.85, 1]);
+            H(0.74, 0.22); ball(0, 0.8, 0.26, 0.14 * k, white, { n: 3 }); look(0.075, 0.84, 0.36, 0.035); beak('cone', 0.79, 0.38, 0.025, 0.07, '#c8a0a8');
+            if (big) { ring(0, 0.96, 0.08, 0.36, 0.36, 0.03, '#ffd25a', { emis: true }); for (let i = 0; i < 12; i++) { const a = i / 12 * Math.PI * 2; cone([Math.cos(a) * 0.36, 0.96 + Math.sin(a) * 0.36, 0.08], [Math.cos(a), Math.sin(a), 0], i % 2 ? 0.14 : 0.24, 0.04, i % 2 ? ac : '#ffd25a', { emis: true }); } } bone = 0;
+            if (big) display2(0.2 * k, 0.62, 0.04, 0.9, { c: white, n: 10, tip: '#ffd25a', up: 0.35 }); else wings2(0.2 * k, 0.6, 0.04, 0.8, { c: white, n: 8 });
+            fanTail([0, 0.44, -0.3], big ? 9 : 5, big ? 0.5 : 0.3, big ? 1.4 : 0.6, white, { edge: big ? '#ffd25a' : null });
+          } else if (P === 'goldchick') chick('#f2d27a', '#ffe8a0', orange);
+          else if (P === 'pheasant') { // a golden pheasant: a cape of gold and orange bars, a scarlet body and a tail as long as a spear
+            const gold = '#f2c23a', red = hexMix('#d8302a', bd, 0.2);
+            legsB(0.24, 0.08, '#c8a060', 0.03); egg(0.54, 0, 0.2, 0.22, 0.34, red, red);
+            for (let i = 0; i < 4; i++) ring(0, 0.72 - i * 0.03, 0.18 - i * 0.07, 0.15 - i * 0.01, 0.12, 0.025, i % 2 ? '#e8803a' : '#20242e');
+            H(0.78, 0.26); ball(0, 0.84, 0.3, 0.11, gold, { n: 3 }); for (let i = 0; i < 5; i++) cone([0, 0.92, 0.28 - i * 0.04], [0, 0.3, -1], 0.24, 0.035, gold); look(0.065, 0.86, 0.38, 0.03, { col: '#ffe08a' }); beak('cone', 0.82, 0.4, 0.025, 0.06, '#c8a060'); bone = 0;
+            wings2(0.18, 0.62, 0.04, 0.6, { c: hexMix('#2a6ab8', bd, 0.3), n: 6 });
+            B(6, 'tail', [0, 0.5, -0.32]); for (let i = 0; i < 3; i++) tube([[0, 0.5, -0.32], [(i - 1) * 0.04, 0.42, -0.9], [(i - 1) * 0.06, 0.3, -1.5]], [0.04, 0.03, 0.01], i === 1 ? '#c8a060' : '#8a6a42', { cap0: 'none', cap1: 'round' }); bone = 0; hover = 0;
+          } else if (P === 'ibis') { // a sacred ibis: white body, black head bare as a mask, a long curved beak, a sun disc floating above
+            const white = '#fbfaf6', black = '#20242e';
+            legsB(0.56, 0.08, black, 0.025, { toe: 0.16 }); egg(0.78, 0, 0.22, 0.24, 0.36, white, white);
+            tube([[0, 0.9, 0.26], [0, 1.1, 0.3], [0, 1.26, 0.3]], [0.06, 0.05, 0.05], black, { cap0: 'none', cap1: 'round' });
+            H(1.26, 0.3); ball(0, 1.3, 0.32, 0.09, black, { n: 3 }); look(0.055, 1.33, 0.38, 0.025); curl([0, 1.28, 0.38], [0, 0.0, 1], 0.42, 0.03, black, [0, -0.8, 0]);
+            ring(0, 1.62, 0.3, 0.12, 0.12, 0.02, '#ffd25a', { emis: true }); blob(-0.1, 1.52, 0.28, 0.1, 1.72, 0.32, 1, '#ffd25a', { emis: true }); bone = 0;
+            wings2(0.2, 0.86, 0.04, 0.9, { c: white, n: 8, f: white, f2: black }); fanTail([0, 0.72, -0.36], 5, 0.3, 0.5, black, { up: -0.3 }); hover = 0;
+          }
+          break;
+        }
         flyer = true; hover = 0.1;
         blob(-0.24, 0.5, -0.45, 0.24, 1.0, 0.34, 1, C.body, { under: C.belly, tap: [0.9, 0.95], split: -0.1 });
         markings(-0.24, 0.5, -0.45, 0.24, 1.0, 0.34);

@@ -126,6 +126,8 @@ Scope (Alexander, 8 Nov evening): EVERYTHING visible goes to the same standard: 
 
 - Two-legged Kin get evolution lines and bodies of their own: 54 designs, three lines per element (monkey to mandrill to magma gorilla, candle to wax giant, froglet to sumo bullfrog, sporeling to fungus elder, star-nosed mole to drill mole, bat pup to tempest bat lord, penguin chick to ice general, wind-up bot to thunder mech, puppet to puppeteer, prism sprite to radiant paladin, and more).
 
+- Chili imp replaced by a blaze red panda. Birds get evolution lines and bodies of their own: 54 real birds (ember chick to phoenix, gull to albatross, peachick to bloom peacock, emu chick to terror bird, eaglet to storm eagle, owlet to aurora owl, cockatoo, raven king, sun-crowned dove, shoebill, cassowary, lyrebird and more). Perched wings fold along the body; stage-3 birds hold their wings open.
+
 ## Still to do
 UI polish as feedback comes in. Card battle screen still used for scripted encounters (raids at the walls, thief, citadel duel, holds) and the snare mini-game; converting those to live is the next big step if wanted. (Old list: train/ships, combat animation, eggs, avatar hair/paint, buddy WEAR cosmetics, Silas and Finch, UI polish (item icons), quality toggles in settings (state.shadows, state.grassQuality, state.dprCap).
 
