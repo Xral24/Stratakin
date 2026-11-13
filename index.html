@@ -956,7 +956,7 @@ class World {
       if (h > SEA + 2 && h2 > SEA + 2) { best = { ang, ux, uz, ax, az, ya: h }; break; }
       if (!best || h > best.ya) best = { ang, ux, uz, ax, az, ya: h };
     }
-    const { ux, uz, ax, az, ya } = best;
+    const { ux, uz, ax, az } = best; const ya = Math.max(best.ya, SEA + 1); // a plateau ringed by sea: the mouth stands just above the water, a step up from a swim
     const bx = Math.round(L.x + ux * (L.inner - 4)), bz = Math.round(L.z + uz * (L.inner - 4)); // inside mouth
     const yb = this.colInfo(bx, bz).h;
     L.tunnel = { ax, az, bx, bz, ya, yb, ux, uz };
@@ -9480,14 +9480,14 @@ const Campaign = (() => {
   }
   // where Tam got lost: the same spot every session, and always on land you can stand on (never out on the water or up a cliff face)
   function lostOf(s) {
-    if (!s) return null; if (s.lost) return s.lost;
-    const r = U.rng(U.combine(s.x, s.z, 0x5A)); let first = null;
+    if (!s) return null; if (s.lost && s.lost.v === 2) return s.lost;
+    const was = s.lost; const r = U.rng(U.combine(s.x, s.z, 0x5A)); let first = null; // older saves kept a spot picked blind (it could be water or a cliff): it is picked again, properly
     for (let i = 0; i < 40; i++) {
       const a = r() * Math.PI * 2, d = 55 + r() * 25; const x = Math.round(s.x + Math.cos(a) * d), z = Math.round(s.z + Math.sin(a) * d); if (!first) first = { x, z };
       if (!land(x, z)) continue; const h = world.colInfo(x, z).h; let flat = true; for (const [dx, dz] of [[3, 0], [-3, 0], [0, 3], [0, -3]]) if (Math.abs(world.colInfo(x + dx, z + dz).h - h) > 2) flat = false;
-      if (flat) { s.lost = { x, z, moved: x !== first.x || z !== first.z }; return s.lost; }
+      if (flat) { s.lost = { x, z, v: 2, moved: !!was && (x !== was.x || z !== was.z) }; return s.lost; }
     }
-    s.lost = Object.assign(first, { moved: false }); return s.lost;
+    s.lost = Object.assign(first, { v: 2, moved: !!was && (first.x !== was.x || first.z !== was.z) }); return s.lost;
   }
 
   function stampShelter(s) { const L = lostOf(s); world.ensureAround(Math.floor(L.x / CH), Math.floor(L.z / CH), 0, 99); const y0 = world.groundY(L.x, L.z); for (let dx = -2; dx <= 2; dx++) for (let dz = -2; dz <= 2; dz++) if (Math.abs(dx) === 2 || Math.abs(dz) === 2) { set(L.x + dx, y0 + 1, L.z + dz, B.SNOW); if ((dx + dz) % 2) set(L.x + dx, y0 + 2, L.z + dz, B.SNOW); } set(L.x + 2, y0 + 1, L.z, B.AIR); set(L.x - 1, y0 + 1, L.z - 1, B.TORCH); L.y0 = y0; }
@@ -9767,7 +9767,7 @@ const Campaign = (() => {
     if (id === 'diver') { if (c.bulbStep === 1 && S.diver && S.diver.chest) return { x: S.diver.chest.x, z: S.diver.chest.z, note: 'the sunken chest' }; return S.diver && { x: S.diver.x, z: S.diver.z, note: 'Marisol\'s pier' }; }
     if (id === 'ranch') { if (c.ranch === 1) return { x: S.ranch.pen.x, z: S.ranch.pen.z, note: 'the paddock posts' }; if (c.ranch === 2 && !c.rogueTamed) return { x: S.ranch.pen.x, z: S.ranch.pen.z, note: 'Thunderhoof, in the paddock' }; return S.ranch && { x: S.ranch.x, z: S.ranch.z, note: 'Hale\'s Ranch' }; }
     if (id === 'frost') { c.snowKnown = true; if ((c.frost === 1 || c.frost === 2) && S.snow && lostOf(S.snow)) return { x: lostOf(S.snow).x, z: lostOf(S.snow).z, note: 'Tam' }; return S.snow && { x: S.snow.x, z: S.snow.z, note: 'the snow camp' }; }
-    if (id === 'kinmaster' && S.fort) return { x: S.fort.x + (c.st_fort ? 30 : -18), z: S.fort.z, note: 'Thornhold' };
+    if (id === 'kinmaster' && S.fort) { const gate = { x: S.fort.x + (c.st_fort ? 30 : -18), z: S.fort.z }; const P = G.player; if (c.st_fort && S.fort.throne && !c.kinmaster && P && Math.hypot(P.x - gate.x, P.z - gate.z) < 50) return { x: S.fort.throne.x, z: S.fort.throne.z, note: 'the Kinmaster, on his throne' }; return Object.assign(gate, { note: 'Thornhold' }); } // the gate first, then the throne once you are at the walls
     if (id === 'lost' && !G.stats.lostMap) { if (!c.zoo && S.zoo) return { x: S.zoo.x, z: S.zoo.z, note: 'Quill\'s Menagerie' }; if (S.halfA && !c.mapA) return { x: S.halfA.x, z: S.halfA.z, note: 'Trapper Jo' }; if (S.halfB && !c.mapB) return { x: S.halfB.x, z: S.halfB.z, note: 'Old Sela' }; }
     if (id === 'glider') { c.peakKnown = true; if (c.glider === 1 && S.peak) return { x: S.peak.x, z: S.peak.z, note: 'the peak' }; return S.peak && { x: S.peak.x, z: S.peak.z, note: 'Old Wren\'s peak' }; }
     return null;

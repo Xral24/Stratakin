@@ -83,6 +83,8 @@ Scope (Alexander, 8 Nov evening): EVERYTHING visible goes to the same standard: 
 
 - Tam: his spot was only worked out when the snow camp was first built, so after a reload it was gone (no Tam, no shelter), and it could land on water or a cliff. Now lostOf() picks the same flat land spot every session; the shelter restamps if it moved; standing camp people re-ground themselves.
 
+- Findability audit (t-audit*.js, 3-4 worlds): every camp person (Garrick, Marisol, Hale, Ysolde, Tam, Wren, Quill, Silas, Kinmaster, Jo, Sela, Pim, wanderers) spawns grounded; Thunderhoof, sunken chest, peak top, holds all reachable. Fixed: saved Tam spots re-picked if blind (v2), Kinmaster pin moves from the gate to the throne once you're at the walls, Lost World tunnel mouth never below the sea.
+
 ## Still to do
 UI polish as feedback comes in. Card battle screen still used for scripted encounters (raids at the walls, thief, citadel duel, holds) and the snare mini-game; converting those to live is the next big step if wanted. (Old list: train/ships, combat animation, eggs, avatar hair/paint, buddy WEAR cosmetics, Silas and Finch, UI polish (item icons), quality toggles in settings (state.shadows, state.grassQuality, state.dprCap).
 

@@ -212,7 +212,7 @@ class World {
       if (h > SEA + 2 && h2 > SEA + 2) { best = { ang, ux, uz, ax, az, ya: h }; break; }
       if (!best || h > best.ya) best = { ang, ux, uz, ax, az, ya: h };
     }
-    const { ux, uz, ax, az, ya } = best;
+    const { ux, uz, ax, az } = best; const ya = Math.max(best.ya, SEA + 1); // a plateau ringed by sea: the mouth stands just above the water, a step up from a swim
     const bx = Math.round(L.x + ux * (L.inner - 4)), bz = Math.round(L.z + uz * (L.inner - 4)); // inside mouth
     const yb = this.colInfo(bx, bz).h;
     L.tunnel = { ax, az, bx, bz, ya, yb, ux, uz };
