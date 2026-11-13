@@ -918,29 +918,49 @@ const Village = (() => {
       piles(px, pz, r);
     };
     const walkway = (ax, az, bx, bz) => { const n = Math.max(Math.abs(bx - ax), Math.abs(bz - az)); const ux = Math.sign(bx - ax), uz = Math.sign(bz - az); for (let i = 0; i <= n; i++) { const x = ax + ux * i, z = az + uz * i; set(x, vy - 1, z, B.PLANKS); for (let y = vy; y <= vy + 3; y++) if (world.getBlock(x, y, z) !== B.AIR) set(x, y, z, B.AIR); if (i % 3 === 1) { const gy = world.groundY(x, z, vy - 2); for (let y = gy + 1; y < vy - 1; y++) set(x, y, z, B.LOG); } if (i % 3 === 1 && i > 0 && i < n) { for (const s0 of [-1, 1]) { const rx = x + (uz ? s0 : 0), rz = z + (ux ? s0 : 0); set(rx, vy, rz, B.PALISADE); } } } }; // piles under it every third plank, a rail of posts along both sides
-    platform(vx, vz, 4);
+    // A reef village: round decks over the water, woven houses under swept sail roofs, root arches over the square, coral below.
+    const clearAir = (x, z, top) => { for (let y = vy; y <= top; y++) if (world.getBlock(x, y, z) !== B.AIR) set(x, y, z, B.AIR); };
+    const deck = (px, pz, r, cut) => { for (let dx = -r; dx <= r; dx++) for (let dz = -r; dz <= r; dz++) { if (Math.abs(dx) + Math.abs(dz) > cut) { if (world.getBlock(px + dx, vy - 1, pz + dz) === B.PLANKS && !keepPlank(px + dx, pz + dz)) set(px + dx, vy - 1, pz + dz, B.AIR); continue; } set(px + dx, vy - 1, pz + dz, B.PLANKS); clearAir(px + dx, pz + dz, vy + 10); }
+      for (const [dx, dz] of [[-r, 0], [r, 0], [0, -r], [0, r], [-(cut - r), -(cut - r)], [cut - r, -(cut - r)], [-(cut - r), cut - r], [cut - r, cut - r]]) { const gy = world.groundY(px + dx, pz + dz, vy - 2); for (let y = gy + 1; y < vy - 1; y++) set(px + dx, y, pz + dz, B.LOG); } };
+    const keepPlank = (x, z) => (Math.abs(x - vx) <= 1 || Math.abs(z - vz) <= 1) || (x >= vx + 13 && Math.abs(z - vz) <= 4); // walkways and the jetty cross the cut corners
+    // a sail roof: a dome of sail blocks whose peak sits off-centre (px, pz), swept up toward it; rr the reach, ht the rise
+    const sailRoof = (cx, cz, rr, ht, px, pz, y0) => { px = Math.round(px); pz = Math.round(pz); // a tent of sail: square rings stepping in and up to a peak that may sit off-centre (px, pz)
+      for (let dx = -rr; dx <= rr; dx++) for (let dz = -rr; dz <= rr; dz++) { const k = Math.max(Math.abs(dx), Math.abs(dz)); set(cx + px + dx, y0 + rr - k, cz + pz + dz, B.SAIL); }
+      return y0 + rr; };
+    const reef = (px, pz, r, n, seed) => { for (let i = 0; i < n; i++) { const a = U.hash3(seed, i, 7) * Math.PI * 2, d = 1 + U.hash3(seed, i, 11) * r; const x = Math.round(px + Math.cos(a) * d), z = Math.round(pz + Math.sin(a) * d); const gy = world.groundY(x, z, vy - 2); if (gy == null || gy >= vy - 2 || world.getBlock(x, gy + 1, z) !== B.WATER) continue; const k = U.hash3(seed, i, 13); set(x, gy + 1, z, k < 0.36 ? B.CORAL_R : k < 0.7 ? B.CORAL_B : B.CORAL_Y); } };
+    deck(vx, vz, 5, 8);
     set(vx, vy, vz, B.FUSION); set(vx - 3, vy, vz - 2, B.PORTAL);
     for (const [dx, dz] of [[-4, -4], [4, -4], [-4, 4], [4, 4]]) set(vx + dx, vy, vz + dz, B.LAMP);
-    for (let dx = -4; dx <= 4; dx++) for (let dz = -4; dz <= 4; dz++) if ((Math.abs(dx) === 4 || Math.abs(dz) === 4) && !(Math.abs(dx) === 4 && Math.abs(dz) === 4) && Math.abs(dx) > 1 && Math.abs(dz) > 1) set(vx + dx, vy, vz + dz, B.PALISADE); // a rail round the square, gaps toward the walkways
-    // nets drying on the rail, crab pots, a barrel or two
+    for (let dx = -5; dx <= 5; dx++) for (let dz = -5; dz <= 5; dz++) { const edge = (Math.abs(dx) === 5 || Math.abs(dz) === 5 || Math.abs(dx) + Math.abs(dz) === 8) && Math.abs(dx) + Math.abs(dz) <= 8; if (edge && Math.abs(dx) > 1 && Math.abs(dz) > 1 && !(Math.abs(dx) === 4 && Math.abs(dz) === 4) && !(Math.abs(dx) >= 4 && Math.abs(dz) >= 4)) set(vx + dx, vy, vz + dz, B.FENCE); } // a rail round the square, open toward the walkways and the corner decks
     set(vx - 2, vy, vz - 4, B.CHEST); set(vx + 3, vy, vz + 4, B.PEBBLES);
     const huts = [[-11, 0, 1, 0, B.EMBER, furnishBakery], [11, 0, -1, 0, B.BERRY, furnishJuice], [0, -11, 0, 1, B.COPPER, furnishTrader], [0, 11, 0, -1, B.VOID, furnishVoodoo]];
     for (const [hx, hz, dirX, dirZ, marker, furnish] of huts) {
-      const cx = vx + hx, cz = vz + hz; const alongX = dirX !== 0;
-      platform(cx, cz, 4);
-      // a stilt house: plank walls with a beam at the corners and the eaves, framed windows, a thatched roof pitched along the door's axis, a lantern inside
+      const cx = vx + hx, cz = vz + hz;
+      for (let dx = -5; dx <= 5; dx++) for (let dz = -5; dz <= 5; dz++) clearAir(cx + dx, cz + dz, vy + 11); // (an older gabled house may stand here)
+      deck(cx, cz, 4, 6);
+      // a woven house, eight-sided: woven walls with open window slots, posts by the door, a sail roof swept up and back to a curved spar
       for (let dx = -3; dx <= 3; dx++) for (let dz = -3; dz <= 3; dz++) {
-        const wall = Math.abs(dx) === 3 || Math.abs(dz) === 3, corner = Math.abs(dx) === 3 && Math.abs(dz) === 3; const a = alongX ? dx : dz, b = alongX ? dz : dx;
-        for (let y = vy; y <= vy + 2; y++) { let id = wall ? (corner ? B.BEAM : B.PLANKS) : B.AIR; if (wall && y === vy + 1 && ((Math.abs(dx) === 3 && Math.abs(dz) === 1) || (Math.abs(dz) === 3 && Math.abs(dx) === 1))) id = B.GLASS; set(cx + dx, y, cz + dz, id); }
-        if (Math.abs(a) === 3 && Math.abs(b) <= 2) for (let y = vy + 3; y < vy + 3 + (3 - Math.abs(b)); y++) set(cx + dx, y, cz + dz, b === 0 && y > vy + 3 ? B.BEAM : B.PLANKS); // the gables
+        const wall = Math.abs(dx) === 3 || Math.abs(dz) === 3, corner = Math.abs(dx) === 3 && Math.abs(dz) === 3;
+        for (let y = vy; y <= vy + 2; y++) { let id = wall && !corner ? B.WEAVE : B.AIR; if (id === B.WEAVE && y === vy + 1 && ((Math.abs(dx) === 3 && Math.abs(dz) === 1) || (Math.abs(dz) === 3 && Math.abs(dx) === 1))) id = B.AIR; if (id === B.WEAVE && (Math.abs(dx) === 2 || Math.abs(dz) === 2) && (Math.abs(dx) === 3 || Math.abs(dz) === 3) && Math.abs(dx) + Math.abs(dz) === 5) id = B.BEAM; set(cx + dx, y, cz + dz, id); }
       }
-      for (let a = -4; a <= 4; a++) for (let b = -4; b <= 4; b++) { const dx = alongX ? a : b, dz = alongX ? b : a; set(cx + dx, vy + 2 + (4 - Math.abs(b)), cz + dz, B.THATCH); }
+      const top = sailRoof(cx, cz, 5, 4, -dirX, -dirZ, vy + 3);
+      const px = cx - dirX, pz = cz - dirZ; set(px, top + 1, pz, B.BEAM); set(px - dirX, top + 2, pz - dirZ, B.BEAM); set(px - dirX * 2, top + 2, pz - dirZ * 2, B.BEAM); // the spar, curving back off the peak
       set(cx + dirX * 3, vy, cz + dirZ * 3, B.AIR); set(cx + dirX * 3, vy + 1, cz + dirZ * 3, B.AIR); set(cx + dirX * 3, vy + 2, cz + dirZ * 3, marker);
       set(cx, vy + 2, cz, B.LAMP);
-      for (const [wa, wb] of [[1, 4], [-1, 4], [1, -4], [-1, -4]]) { const dx = alongX ? wa : wb, dz = alongX ? wb : wa; if (world.getBlock(cx + dx, vy + 1, cz + dz) === B.AIR && world.getBlock(cx + dx, vy - 1, cz + dz) === B.PLANKS) set(cx + dx, vy + 1, cz + dz, B.FLOWERBOX); }
       furnish(cx, cz, dirX, dirZ, vy);
-      walkway(vx - dirX * 4, vz - dirZ * 4, cx + dirX * 4, cz + dirZ * 4);
+      walkway(vx - dirX * 5, vz - dirZ * 5, cx + dirX * 4, cz + dirZ * 4);
+      reef(cx, cz, 6, 9, v.x * 31 + v.z + hx * 7 + hz);
     }
+    // corner decks between the houses, each under its own little sail: nets and pots to the north, a place to sit to the south
+    for (const [sx, sz, a, b] of [[-1, -1, B.CHEST, B.PEBBLES], [1, 1, B.FLOWERBOX, B.CHEST], [-1, 1, B.PEBBLES, B.FLOWERBOX]]) {
+      const cx = vx + sx * 8, cz = vz + sz * 8; deck(cx, cz, 2, 3);
+      for (const [dx, dz] of [[5, 5], [5, 6], [6, 5]]) { set(vx + sx * dx, vy - 1, vz + sz * dz, B.PLANKS); clearAir(vx + sx * dx, vz + sz * dz, vy + 4); }
+      for (const [dx, dz] of [[-2, 0], [2, 0], [0, -2], [0, 2]]) if (!(dx === -sx * 2 || dz === -sz * 2)) { set(cx + dx, vy, cz + dz, B.BEAM); set(cx + dx, vy + 1, cz + dz, B.BEAM); set(cx + dx, vy + 2, cz + dz, B.BEAM); }
+      set(cx - sx * 2, vy + 2, cz, B.BEAM); set(cx, vy + 2, cz - sz * 2, B.BEAM);
+      sailRoof(cx, cz, 3, 2, 0, 0, vy + 3); set(cx + sx, vy, cz + sz, a); set(cx + sx, vy, cz - sz, b);
+      reef(cx, cz, 5, 6, v.x * 17 + v.z + sx * 3 + sz);
+    }
+    reef(vx, vz, 9, 14, v.x + v.z * 13);
     // a jetty running on east past the juice bar, with a lamp at its end
     for (let i = 0; i <= 7; i++) { const x = vx + 15 + i; for (const w of [-1, 0, 1]) { set(x, vy - 1, vz + w, B.PLANKS); for (let y = vy; y <= vy + 3; y++) if (world.getBlock(x, y, vz + w) !== B.AIR) set(x, y, vz + w, B.AIR); } if (i % 3 === 1) for (const w of [-1, 1]) { const gy = world.groundY(x, vz + w, vy - 2); for (let y = gy + 1; y < vy - 1; y++) set(x, y, vz + w, B.LOG); set(x, vy, vz + w, B.PALISADE); } }
     set(vx + 22, vy, vz, B.LAMP);
@@ -1042,6 +1062,7 @@ const Village = (() => {
   }
   function ensureStamped(v) {
     const st = state(v.id);
+    if (st.stamped && v.type === 'sea' && !st.reef1) { st.reef1 = true; world.ensureAround(Math.floor(v.x / CH), Math.floor(v.z / CH), 2, 999); stampSea(v); remember(v, st); return; } /* villages stamped before the reef look get it once */
     if (st.stamped) return;
     world.ensureAround(Math.floor(v.x / CH), Math.floor(v.z / CH), 2, 999);
     if (v.type === 'land' && v.R) { st.R = v.R; patchLoaded(v); stampWall(v, st); stampRoad(v, st); stampRail(v, st); st.stamped = true; remember(v, st); return; }
@@ -1051,7 +1072,7 @@ const Village = (() => {
       st.shops = st.shops || []; kinds.forEach((k, i) => { if (k !== 'house') st.shops.push({ slot: i, kind: k }); });
       st.homes = kinds.map((k, i) => k === 'house' ? i : -1).filter(i => i >= 0);
     }
-    if (v.type === 'land') { stampLand(v); if (st.expanded) { stampExpansion(v); MAT = MATS[v.style] || MATS.land; for (const sh of (st.shops || [])) stampShop(v, sh.slot, sh.kind); for (const i of (st.homes || [])) { const [dx, dz] = SLOTS[i]; const [dirX, dirZ] = slotDir(dx, dz); (MAT.pod ? pod : house)(v.x + dx, v.z + dz, v.y, dirX, dirZ, B.LOG, null); } } stampWall(v, st); stampRoad(v, st); if (st.dome) stampDome(v, st); } else if (v.type === 'sea') { stampSea(v); stampPier(v); } else if (v.style === 'atlantis') stampAtlantis(v); else stampDeep(v);
+    if (v.type === 'land') { stampLand(v); if (st.expanded) { stampExpansion(v); MAT = MATS[v.style] || MATS.land; for (const sh of (st.shops || [])) stampShop(v, sh.slot, sh.kind); for (const i of (st.homes || [])) { const [dx, dz] = SLOTS[i]; const [dirX, dirZ] = slotDir(dx, dz); (MAT.pod ? pod : house)(v.x + dx, v.z + dz, v.y, dirX, dirZ, B.LOG, null); } } stampWall(v, st); stampRoad(v, st); if (st.dome) stampDome(v, st); } else if (v.type === 'sea') { stampSea(v); stampPier(v); st.reef1 = true; } else if (v.style === 'atlantis') stampAtlantis(v); else stampDeep(v);
     st.stamped = true; remember(v, st);
   }
   // ---- the tyrant's guards: a road in, with a checkpoint and a lieutenant every dozen blocks ----
@@ -1712,6 +1733,7 @@ const Village = (() => {
     for (const v of allKnownSites(player.x, player.z, 1)) { const d = dist2d(v.x, v.z, player.x, player.z); if (d < nd) { nd = d; near = v; } }
     if (near && nd < 90) {
       frame(near, player.x, player.z);
+      if (state(near.id).stamped && near.type === 'sea' && !state(near.id).reef1) { ensureStamped(near); if (G.meshPass) G.meshPass(99); }
       if (!state(near.id).stamped) { ensureStamped(near); UI.toast(`${near.name}: ${near.style === 'atlantis' ? 'a city of the sea people' : near.type === 'sea' ? 'a village on stilts' : near.type === 'deep' ? 'a village under the sea' : near.style === 'alien' ? 'an alien settlement' : near.style === 'frontier' ? 'a frontier town' : near.style === 'halo' ? 'a caravan town' : 'a village'}${state(near.id).freed ? '' : ', held by a tyrant'}.`); }
       if (near.founded) { refreshT -= dt; if (refreshT <= 0 || !near.npcs.length) { refreshT = 4; refreshFounded(near); } }
       else if (!near.npcs.length) { populate(near); ensurePortal(near); }

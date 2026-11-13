@@ -724,7 +724,7 @@ const R = (() => {
 
   // ---------- chunk meshing ----------
   // material classes for the fragment shader: 1 grass top, 2 sand, 3 rock, 4 earth, 5 snow, 6 wood, 7 leaves, 8 lava, 9 tiles, 10 plaster, 11 cobbles, 12 thatch, 13 slate, 14 dressed stone, 15 basalt, 16 cloud
-  const MAT_OF = {}; for (const [ids, m] of [[[B.SAND, B.DUNE, B.SALTCRUST], 2], [[B.STONE, B.GRAVEL, B.MOSS, B.COPPER, B.IRON, B.EMBER, B.GOLD, B.DIAMOND, B.BEDROCK, B.RUBBLE, B.SELENITE, B.TYCHO, B.AMBER, B.REGOLITH, B.BOULDER], 3], [[B.DIRT], 4], [[B.SNOW], 5], [[B.PLANKS, B.LOG, B.BIRCHLOG, B.PALMLOG, B.BEAM, B.DOOR, B.DOOR_OPEN, B.LADDER, B.CHEST], 6], [[B.LEAVES, B.BERRYLEAF, B.NEEDLES, B.CACTUS], 7], [[B.LAVA], 8], [[B.TILES], 9], [[B.PLASTER], 10], [[B.COBBLE], 11], [[B.THATCH], 12], [[B.SLATE], 13], [[B.MASONRY, B.SLIT, B.FORTSTONE], 14], [[B.BASALT], 15], [[B.CLOUD], 16]]) for (const id of ids) MAT_OF[id] = m;
+  const MAT_OF = {}; for (const [ids, m] of [[[B.SAND, B.DUNE, B.SALTCRUST], 2], [[B.STONE, B.GRAVEL, B.MOSS, B.COPPER, B.IRON, B.EMBER, B.GOLD, B.DIAMOND, B.BEDROCK, B.RUBBLE, B.SELENITE, B.TYCHO, B.AMBER, B.REGOLITH, B.BOULDER], 3], [[B.DIRT], 4], [[B.SNOW], 5], [[B.PLANKS, B.LOG, B.BIRCHLOG, B.PALMLOG, B.BEAM, B.DOOR, B.DOOR_OPEN, B.LADDER, B.CHEST], 6], [[B.LEAVES, B.BERRYLEAF, B.NEEDLES, B.CACTUS], 7], [[B.LAVA], 8], [[B.TILES], 9], [[B.PLASTER], 10], [[B.COBBLE], 11], [[B.THATCH, B.WEAVE, B.SAIL], 12], [[B.SLATE], 13], [[B.MASONRY, B.SLIT, B.FORTSTONE], 14], [[B.BASALT], 15], [[B.CLOUD], 16]]) for (const id of ids) MAT_OF[id] = m;
   const scratchOpaque = new MeshBuilder(16384, false, true), scratchWater = new MeshBuilder(2048, false, true), scratchGlass = new MeshBuilder(512, false, true), scratchGrass = new MeshBuilder(8192, false, true);
   const SOIL = new Set([B.GRASS, B.DIRT, B.SAND, B.SNOW, B.GRAVEL, B.STONE, B.MOSS, B.GLOWGRASS, B.REGOLITH, B.DUNE, B.SALTCRUST]);
   // things that stand on the ground without stopping it from sloping: air, leaves, trunks, bushes, flowers, pebbles, torches, chests...
@@ -743,7 +743,7 @@ const R = (() => {
     }
     return [t, wt];
   }
-  const ROOFB = (b) => b === B.TILES || b === B.SLATE || b === B.THATCH;
+  const ROOFB = (b) => b === B.TILES || b === B.SLATE || b === B.THATCH || b === B.SAIL;
   const SIGNABLE = new Set([B.EMBER, B.BERRY, B.COPPER, B.VOID, B.IRON, B.GOLD, B.GLOWWORM, B.LOG, B.MOONGLOW, B.CLOUD, B.SELENITE, B.BERRYLEAF, B.AMBER]);
   const WALLY = (b) => b === B.PLANKS || b === B.PLASTER || b === B.BEAM || b === B.MASONRY || b === B.IRONWALL || b === B.VOIDWALL || b === B.SELGLASS;
   const surfTop = new Int16Array(18 * 18), surfWet = new Int16Array(18 * 18), cornerH = new Float32Array(17 * 17);
@@ -830,7 +830,7 @@ const R = (() => {
         }
         if (ROOFB(id)) { // a roof block is a wedge that leans toward the ridge: the slope faces the sky, the ridge block is a peak, the ends show a sawn rafter
           const sk = skyAt(lx, y + 1, lz); const D4 = [[1, 0], [-1, 0], [0, 1], [0, -1]]; const CX = [0, 1, 1, 0], CZ = [0, 0, 1, 1];
-          const pal = world.preset.paletteRgb && world.preset.paletteRgb[id]; const topC = pal ? pal[0] : info.top; const rafter = [0.4, 0.27, 0.15], under = [0.36, 0.25, 0.15];
+          const pal = world.preset.paletteRgb && world.preset.paletteRgb[id]; const topC = pal ? pal[0] : info.top; const sailB = id === B.SAIL; const rafter = sailB ? info.side : [0.4, 0.27, 0.15], under = sailB ? [info.side[0] * 0.8, info.side[1] * 0.8, info.side[2] * 0.8] : [0.36, 0.25, 0.15];
           const ups = D4.filter(([a, b]) => ROOFB(get(lx + a, y + 1, lz + b))), dns = D4.filter(([a, b]) => ROOFB(get(lx + a, y - 1, lz + b)));
           let H = null, ridge = null;
           if (ups.length >= 1 && ups.length <= 2 && !(ups.length === 2 && ups[0][0] === -ups[1][0] && ups[0][1] === -ups[1][1])) { H = [0, 0, 0, 0]; for (const [a, b] of ups) for (let i = 0; i < 4; i++) H[i] += a > 0 ? CX[i] : a < 0 ? 1 - CX[i] : b > 0 ? CZ[i] : 1 - CZ[i]; H = H.map(v => Math.min(1, v)); }
