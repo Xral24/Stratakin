@@ -3501,14 +3501,17 @@ const R = (() => {
         const k = b.kind, phs = b.phase || 0;
         switch (k) {
           case 'leg': { const sw = Math.sin(ph + phs); const amp = (b.amp || 0.55) * mv * (1 - air * 0.8); const sit = a.sit || 0; const cr = (a.crouch || 0) * (1 - sit);
-            const ang = (-sw * amp) * (1 - sit) * (1 - cr * 0.5) - 1.25 * sit - CROUCH * cr, rz = (b.phase ? -1 : 1) * ((a.straddle || 0.25) * sit + 0.12 * cr), ty = bob + Math.max(0, -Math.cos(ph + phs)) * 0.03 * mv * sc * (b.len || 1);
-            legAt[i] = { ang, rz, ty, sw }; set(i, b.piv, ang, 0, rz, 0, ty, 0); break; }
+            const side = b.phase ? 1 : -1, crossK = (a.cross || 0) * sit; // cross-legged on a mount's back: thighs flat and out, shins folded across in front
+            const ang = (-sw * amp) * (1 - sit) * (1 - cr * 0.5) - (1.25 * (1 - crossK) + 1.45 * crossK) * sit - CROUCH * cr, rz = -side * 0.12 * cr, ry = side * (0.3 * (1 - crossK) + 0.85 * crossK) * sit, ty = bob + Math.max(0, -Math.cos(ph + phs)) * 0.03 * mv * sc * (b.len || 1);
+            // where the knee ends up: the thigh's own axis after the turn (Ry*Rx*Rz on its downward line), so the shin can hang from it
+            const cx = Math.cos(ang), sx = Math.sin(ang), cy = Math.cos(ry), sy = Math.sin(ry), cz = Math.cos(rz), sz = Math.sin(rz);
+            legAt[i] = { ang, rz, ty, sw, side, crossK, ky: [-cy * sz + sy * sx * cz, cx * cz, sy * sz + cy * sx * cz] }; set(i, b.piv, ang, ry, rz, 0, ty, 0); break; }
           case 'shin': { // the lower leg hangs from the knee wherever the thigh has swung it: straight for a stand, folded back for a crouch, down for a seat
             const L = legAt[b.leg], P = bones[b.leg]; if (!L || !P) { set(i, null, 0, 0, 0, 0, bob, 0); break; }
             const lt = P.piv[1] - b.piv[1]; const sit = a.sit || 0, cr = (a.crouch || 0) * (1 - sit);
             const flex = 0.45 * mv * (1 - air) * Math.max(0, Math.sin(ph + phs + 1.9)); // the knee gives a little on each stride
             const ang = L.ang + 1.25 * sit + 2 * CROUCH * cr + flex;
-            set(i, b.piv, ang, 0, L.rz, 0, L.ty + lt - Math.cos(L.ang) * lt, -Math.sin(L.ang) * lt); break; }
+            const K = L.ky, ck = L.crossK || 0; const sa = ang * (1 - ck) + -1.45 * ck, sy = -L.side * 1.95 * ck; set(i, b.piv, sa, sy, L.rz, -lt * K[0], L.ty + lt - lt * K[1], -lt * K[2]); break; }
           case 'arm': { const sw = Math.sin(ph + phs + Math.PI); const amp = (b.amp || 0.4) * mv; const atk = a.attack || 0; const sit = a.sit || 0; const blk = a.block || 0; const shieldArm = (b.side || 0) > 0; // blocking: the left arm (+x: the figure faces +z) comes up square in front with the shield, the right stays low and a little out
             const rx = (-sw * amp - atk * 1.9 + idle * Math.sin(t * 1.3 + seed + phs) * 0.03) * (1 - sit) - 0.55 * sit - (shieldArm ? blk * 1.0 : 0); set(i, b.piv, rx, shieldArm ? blk * 0.5 : 0, (b.side || 0) * (0.08 + air * 1.1 + blk * (shieldArm ? 0.1 : 0.4)), 0, bob, 0); break; }
           case 'head': { const look = a.look || 0; set(i, b.piv, Math.sin(ph * 2) * 0.05 * mv + idle * Math.sin(t * 0.9 + seed) * 0.03 + (a.nod || 0), idle * Math.sin(t * 0.55 + seed * 2) * 0.16 + look, 0, 0, bob, 0); break; }
@@ -14065,7 +14068,7 @@ G.loop = function (t) {
     const sp = Math.hypot(p.vx, p.vz, p.vy || 0); if (sp > 1.5 && Math.random() < Math.min(0.9, sp * 0.08)) { const b = U.forwardVec(p.yaw, 0); Hazards.sparks(p.x - b[0] * 1.7, p.y - 0.4, p.z - b[2] * 1.7, 2, [0.5, 0.9, 1.0], 1.2); }
   }
   const showMe = inBattle || this.thirdPerson || this.talkK > 0 || !!p.mount || this.grassCamOn;
-  if (showMe) { const me = Avatar.entity(p, Math.hypot(p.vx, p.vz) > 0.6); if (p.mount) { const mm = KIN.model(p.mount.sp, p.mount.stage); const st = seatOf(mm); const f = U.forwardVec(p.yaw, 0); const along = 0.5 + st.zc - 0.06; me.x = p.x + f[0] * along; me.z = p.z + f[2] * along; me.y = G.mountBase(p) + st.top - hipOf(me.model) * (me.scale || 1) + 0.03; me._an.straddle = U.clamp((st.w || 0.5) * 0.9, 0.25, 0.6); } ents.push(me); }
+  if (showMe) { const me = Avatar.entity(p, Math.hypot(p.vx, p.vz) > 0.6); if (p.mount) { const mm = KIN.model(p.mount.sp, p.mount.stage); const st = seatOf(mm); const f = U.forwardVec(p.yaw, 0); const along = 0.5 + st.zc - 0.06; me.x = p.x + f[0] * along; me.z = p.z + f[2] * along; me.y = G.mountBase(p) + st.top - hipOf(me.model) * (me.scale || 1) + 0.1; me._an.cross = 1; /* sat cross-legged on top: fits a pony and a T-rex alike */ } ents.push(me); }
   if (p.mount) { const k = p.mount; const m = KIN.dress(KIN.model(k.sp, k.stage), k.wear); const fwd = U.forwardVec(p.yaw, 0); if (!k._an) k._an = { ph: 0, mv: 0, lx: p.x, lz: p.z, ly: p.y, lt: performance.now(), vy: 0, seed: 5, air: 0 }; k._an.swim = p.mountMode === 'water' ? 1 : 0; ents.push({ x: p.x + fwd[0] * 0.5, y: G.mountBase(p), z: p.z + fwd[2] * 0.5, yaw: p.yaw + Math.PI, model: m, mesh: R.entityMesh(KIN.meshKey(k.sp, k.stage) + KIN.wearKey(k.wear), (mb) => KIN.buildMesh(mb, m)), scale: 1, hover: 0, skyMul: 1, isMount: true, flying: p.mountMode === 'air' && !p.onGround, _an: k._an }); }
   ents.push(...Battle.fxEntities()); ents.push(...Sky.puffEntities()); ents.push(...Wild.dropEntities()); ents.push(...Buddy.entities()); ents.push(...Felling.entities()); ents.push(...Combat.entities()); ents.push(...Hazards.entities()); ents.push(...Npcs.entities());
   for (const o of w.statues.values()) {
