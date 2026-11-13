@@ -134,6 +134,8 @@ Scope (Alexander, 8 Nov evening): EVERYTHING visible goes to the same standard: 
 
 - Serpents get evolution lines and bodies of their own: 54 designs built on a shared body path (wave, rearing and coiled poses) with snake, eel and worm heads, cobra hoods, fins, legs for centipedes and millipedes. Ember worm to magma wyrm, elver to leviathan, inchworm to blossom serpent, earthworm to titan worm, wind ribbon to sky dragon, wire worm to thunder eel-dragon, shadow grub to a void wyrm biting its own tail, glow-worm to sun cobra, a mushroom-house snail and more.
 
+- Floaters get evolution lines and bodies of their own: 54 drifting things grown into Kin (ember spark to a will-o'-wisp lord caged like a lantern, droplet to tide moon, seed fluff to dandelion king, pebble to floating island with a waterfall, kite to dragon kite, snowflake to blizzard star, plasma bead to storm eye, floating eye to the watcher, halo sprite to a seraph of rings, a bulb chandelier, a black hole, a crescent moon in a nightcap).
+
 ## Still to do
 UI polish as feedback comes in. Card battle screen still used for scripted encounters (raids at the walls, thief, citadel duel, holds) and the snare mini-game; converting those to live is the next big step if wanted. (Old list: train/ships, combat animation, eggs, avatar hair/paint, buddy WEAR cosmetics, Silas and Finch, UI polish (item icons), quality toggles in settings (state.shadows, state.grassQuality, state.dprCap).
 
