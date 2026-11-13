@@ -175,8 +175,16 @@ const Combat = (() => {
     f.state = 'down'; f.hp = 0; f.t = 0; f.hover = -0.55; UI.sfx('win'); G.knockout(f.x, f.y, f.z);
     const P = G.player; const gold = weapon() && weapon().fx === 'loot' ? 2 : 1; const sh = Math.round((8 + f.lv * 6) * gold * (f.kind === 'captain' ? 3 : 1)); G.shards += sh;
     let msg = `${f.name} drops to his knees, dazed. +${sh} shards.`;
-    if (Math.random() < 0.25 + (f.kind === 'captain' ? 0.5 : 0)) { const pool = Object.values(GEAR).filter(g => g.tier >= f.lv && g.tier <= f.lv + 2); const g = pool[Math.floor(Math.random() * pool.length)]; if (g && !P.has(g.id)) { P.add(g.id, 1); msg += ` He drops a ${g.name}.`; } }
-    if (Math.random() < 0.18 + (f.kind === 'captain' ? 0.3 : 0)) { const ap = Object.values(ARMOUR).filter(a => a.tier >= f.lv && a.tier <= f.lv + 2); const a = ap[Math.floor(Math.random() * ap.length)]; if (a && !P.has(a.id)) { P.add(a.id, 1); msg += ` And a ${a.name}.`; } }
+    // what he fought with is yours: his sword, axe, shield or bow, as good as his rank (one you already carry turns into shards)
+    const takes = { guard: ['sword'], axeman: ['axe'], shield: ['shield'], captain: ['sword', 'shield'], archer: ['bow'] }[f.kind] || [];
+    for (const kind of takes) {
+      if (kind === 'bow') { if (!P.has('bow')) { P.add('bow', 1); msg += ' You take his bow.'; } else { P.add('arrow', 4); msg += ' You take his arrows.'; } continue; }
+      const pool = Object.values(GEAR).filter(g => g.kind === kind && g.tier <= Math.max(1, f.lv) && g.tier >= Math.max(0, f.lv - 2)); const g = pool[Math.floor(Math.random() * pool.length)]; if (!g) continue;
+      if (P.has(g.id)) { const extra = Math.max(6, Math.round(g.price / 4 || 10)); G.shards += extra; msg += ` His ${g.name} is like yours: +${extra} shards for it.`; }
+      else { P.add(g.id, 1); msg += ` You take his ${g.name}.`; }
+    }
+    if (Math.random() < 0.25 + (f.kind === 'captain' ? 0.5 : 0)) { const pool = Object.values(GEAR).filter(g => g.tier >= f.lv && g.tier <= f.lv + 2); const g = pool[Math.floor(Math.random() * pool.length)]; if (g && !P.has(g.id)) { P.add(g.id, 1); msg += ` He drops ${/^[AEIOU]/.test(g.name) ? 'an' : 'a'} ${g.name}.`; } }
+    if (Math.random() < 0.18 + (f.kind === 'captain' ? 0.3 : 0)) { const ap = Object.values(ARMOUR).filter(a => a.tier >= f.lv && a.tier <= f.lv + 2); const a = ap[Math.floor(Math.random() * ap.length)]; if (a && !P.has(a.id)) { P.add(a.id, 1); msg += ` And ${/^[AEIOU]/.test(a.name) ? 'an' : 'a'} ${a.name}.`; } }
     if (Math.random() < 0.4) { const a = ['arrow', 'arrow_frost', 'arrow_spark', 'arrow_barbed', 'arrow_heavy'][Math.min(4, Math.floor(Math.random() * (2 + f.lv)))]; P.add(a, 3); }
     UI.toast(msg, 'good'); UI.renderHotbar && UI.renderHotbar();
   }
