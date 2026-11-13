@@ -288,7 +288,7 @@ class Player {
       if (this.collides(ahead[0], this.y, ahead[2]) && !this.collides(ahead[0], this.y + 1.05, ahead[2])) { this.vy = 8.0; this.onGround = false; }
     }
     if (hitX) this.vx = 0; if (hitZ) this.vz = 0;
-    { let want = 0; if (this.onGround && !this.inWater) { const below = w.getBlock(Math.floor(this.x), Math.floor(this.y - 0.05), Math.floor(this.z)); if (R.isSoil(below)) { const s = R.surfaceAt(w, this.x, this.z); if (s != null) want = U.clamp(s - this.y, -0.85, 0.85); } }
+    { let want = 0; this.slopeK = 0; if (this.onGround && !this.inWater) { const below = w.getBlock(Math.floor(this.x), Math.floor(this.y - 0.05), Math.floor(this.z)); if (R.isSoil(below)) { let s = R.surfaceAt(w, this.x, this.z); if (s != null) { let lo = s; for (const [ox, oz] of [[0.3, 0], [-0.3, 0], [0, 0.3], [0, -0.3]]) { const t = R.surfaceAt(w, this.x + ox, this.z + oz); if (t == null) continue; if (t > s) s = t; if (t < lo) lo = t; } this.slopeK = U.clamp((s - lo) * 2.5, 0, 1); want = U.clamp(s - this.y, -0.85, 0.85); } } } // the highest of the ground under his boots, so a slope never swallows a foot (or a crouch)
       this.visLift = (this.visLift || 0) + (want - (this.visLift || 0)) * Math.min(1, dt * 14); this.stepLag = (this.stepLag || 0) * Math.exp(-dt * 10); }
     const wasFalling = this.vy < 0;
     const hitY = this.moveAxis(1, this.vy * dt);

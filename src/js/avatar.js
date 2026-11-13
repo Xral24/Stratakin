@@ -106,7 +106,7 @@ const Avatar = (() => {
     // sneaking: knees bend and he sinks by just what the bend takes, so his boots stay on the ground
     { const want = p.sneak && !p.mount && !p.flying && !p.inWater ? 1 : 0; const now = performance.now(); const dt = Math.min(0.1, (now - (an.ct || now)) / 1000); an.ct = now; an.crouch = (an.crouch || 0) + (want - (an.crouch || 0)) * Math.min(1, dt * 10); }
     const hip = (() => { const leg = (mm.model.bones || []).find(b => b && b.kind === 'leg'); return leg ? leg.piv[1] : 0.62; })();
-    const sink = hip * (1 - Math.cos(0.85 * (an.crouch || 0))) * (look().height || 1);
+    const sink = hip * (1 - Math.cos(0.85 * (an.crouch || 0))) * (look().height || 1) * (1 - 0.8 * (p.slopeK || 0)); // on a slope he crouches without sinking, or the hill comes up through him
     return { x: p.x, y: p.y + seat - sink + (p.drawLift ? p.drawLift() : 0), z: p.z, yaw: p.yaw + Math.PI, model: mm.model, mesh: mm.mesh, scale: look().height || 1, hover: 0, skyMul: 1, isMount: true, _an: an };
   }
   // a camera behind and a little above you, pulled in when something is in the way
