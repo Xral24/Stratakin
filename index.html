@@ -4801,16 +4801,16 @@ const KIN = (() => {
   // species' own sp.shape, so lines only mix bodies that move the same way: land with land, water with water.
   // Mounts, fusions, dinosaurs, legendaries and the scripted one-offs keep their single fixed body.
   const LINES = {
-    land: {
-      Tide: [[['blob', null, 'tidepool jelly'], ['quadruped', 'mantlewalker', 'ray that learned to walk'], ['quadruped', 'mantlewalker', 'manta drifting over the shallows']], [['quadruped', 'glyphtail', 'otter kit'], ['quadruped', 'glyphtail', 'river otter-fox']]],
-      Flame: [[['blob', null, 'ember sprite'], ['quadruped', 'anvilmaw', 'forge pup'], ['quadruped', 'anvilmaw', 'forge-king brute']], [['quadruped', 'glyphtail', 'fire fox kit'], ['quadruped', 'glyphtail', 'fire fox'], ['quadruped', 'glyphtail', 'many-tailed flame fox']]],
-      Bloom: [[['blob', null, 'seed pod'], ['quadruped', 'lanternstag', 'sapling fawn'], ['quadruped', 'lanternstag', 'forest stag in flower']], [['quadruped', 'bulwark', 'moss-backed pangolin']]],
-      Stone: [[['blob', null, 'pebble'], ['quadruped', 'bulwark', 'scaled burrower'], ['quadruped', 'bulwark', 'walking fortress']], [['quadruped', 'anvilmaw', 'quarry bulldog'], ['quadruped', 'anvilmaw', 'mountain brute']]],
-      Gale: [[['quadruped', 'glyphtail', 'wind fox kit'], ['quadruped', 'glyphtail', 'wind fox'], ['quadruped', 'glyphtail', 'sky fox that walks on air']], [['quadruped', 'lanternstag', 'cloud deer']]],
-      Frost: [[['quadruped', 'masker', 'snow kitten'], ['quadruped', 'masker', 'ice lynx in a crystal mask']], [['blob', null, 'snowball imp'], ['quadruped', 'bulwark', 'frost armadillo'], ['quadruped', 'bulwark', 'glacier fortress']]],
-      Spark: [[['blob', null, 'static spark'], ['quadruped', 'glyphtail', 'bolt fox'], ['quadruped', 'glyphtail', 'storm fox']], [['quadruped', 'mantlewalker', 'storm ray']]],
-      Void: [[['blob', null, 'shadow wisp'], ['biped', null, 'masked conjuror']], [['quadruped', 'masker', 'shadow kitten'], ['quadruped', 'masker', 'phantom cat'], ['quadruped', 'masker', 'caped night stalker']]],
-      Light: [[['quadruped', 'lanternstag', 'glow fawn'], ['quadruped', 'lanternstag', 'lantern stag'], ['quadruped', 'lanternstag', 'elk-king of lanterns']], [['blob', null, 'firefly mote'], ['quadruped', 'glyphtail', 'halo fox']]]
+    land: { // three-stage lines change body at BOTH steps, the way the great ones do (a lizard that becomes a dragon)
+      Tide: [[['blob', null, 'tidepool jelly'], ['quadruped', 'glyphtail', 'river otter'], ['quadruped', 'mantlewalker', 'manta that rides the air over the shallows']], [['quadruped', 'glyphtail', 'otter kit'], ['quadruped', 'mantlewalker', 'ray that learned to walk']]],
+      Flame: [[['blob', null, 'ember sprite'], ['quadruped', 'glyphtail', 'fire fox'], ['quadruped', 'anvilmaw', 'forge-king brute']], [['quadruped', 'masker', 'cinder kitten'], ['quadruped', 'anvilmaw', 'furnace hound']]],
+      Bloom: [[['blob', null, 'seed pod'], ['quadruped', 'lanternstag', 'sapling fawn'], ['quadruped', 'bulwark', 'ancient walking grove']], [['quadruped', 'bulwark', 'moss-backed pangolin']]],
+      Stone: [[['blob', null, 'pebble'], ['quadruped', 'bulwark', 'scaled burrower'], ['quadruped', 'anvilmaw', 'mountain brute']], [['quadruped', 'anvilmaw', 'quarry bulldog'], ['quadruped', 'bulwark', 'walking fortress']]],
+      Gale: [[['quadruped', 'glyphtail', 'wind fox kit'], ['quadruped', 'lanternstag', 'cloud deer'], ['quadruped', 'mantlewalker', 'sky manta']], [['quadruped', 'lanternstag', 'cloud deer']]],
+      Frost: [[['quadruped', 'masker', 'snow kitten'], ['quadruped', 'masker', 'ice lynx in a crystal mask']], [['blob', null, 'snowball imp'], ['quadruped', 'masker', 'ice lynx'], ['quadruped', 'bulwark', 'glacier fortress']]],
+      Spark: [[['blob', null, 'static spark'], ['quadruped', 'glyphtail', 'bolt fox'], ['quadruped', 'mantlewalker', 'storm ray']], [['quadruped', 'mantlewalker', 'storm ray']]],
+      Void: [[['blob', null, 'shadow wisp'], ['biped', null, 'masked conjuror']], [['quadruped', 'masker', 'shadow kitten'], ['quadruped', 'masker', 'phantom cat'], ['quadruped', 'mantlewalker', 'night wraith on a cape of shadow']]],
+      Light: [[['quadruped', 'lanternstag', 'glow fawn'], ['quadruped', 'lanternstag', 'lantern stag'], ['quadruped', 'glyphtail', 'halo fox that walks on light']], [['blob', null, 'firefly mote'], ['quadruped', 'glyphtail', 'halo fox']]]
     },
     water: {
       Tide: [[['fish', 'minnow', 'river minnow'], ['fish', 'shark', 'reef shark'], ['serpent', 'seadragon', 'sea dragon']], [['fish', 'seahorse', 'seahorse'], ['fish', 'ray', 'ray']]],

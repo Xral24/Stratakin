@@ -80,6 +80,7 @@ New games now default to one shared world, seed "Stratakin" (an empty World box 
      - `lookOf()` maps a stage to how grown-up it looks.
      - `formOf()` is what `model()` draws.
      - `maturity()` keeps stats on the same power curve whatever the length; a single-form Kin grows stronger by level.
+   - **Every step should change the body:** he found stage 2 to 3 too similar when a line kept the same plan, so three-stage lines now use a different body plan at each stage.
    - **Behaviour still follows `sp.shape`** (swim, fly, ride), so a line only mixes bodies that move the same way.
    - **What's excluded:** mounts, fusions, dinosaurs, legendaries and the scripted one-offs.
    - **The jobs for you:**
