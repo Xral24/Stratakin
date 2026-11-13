@@ -4801,16 +4801,16 @@ const KIN = (() => {
   // species' own sp.shape, so lines only mix bodies that move the same way: land with land, water with water.
   // Mounts, fusions, dinosaurs, legendaries and the scripted one-offs keep their single fixed body.
   const LINES = {
-    land: { // three-stage lines change body at BOTH steps, the way the great ones do (a lizard that becomes a dragon)
-      Tide: [[['blob', null, 'tidepool jelly'], ['quadruped', 'glyphtail', 'river otter'], ['quadruped', 'mantlewalker', 'manta that rides the air over the shallows']], [['quadruped', 'glyphtail', 'otter kit'], ['quadruped', 'mantlewalker', 'ray that learned to walk']], [['blob', null, 'hermit in a shell'], ['quadruped', 'bulwark', 'reef fortress']], [['blob', null, 'bubble'], ['quadruped', 'masker', 'tide lynx']]],
-      Flame: [[['blob', null, 'ember sprite'], ['quadruped', 'glyphtail', 'fire fox'], ['quadruped', 'anvilmaw', 'forge-king brute']], [['quadruped', 'masker', 'cinder kitten'], ['quadruped', 'anvilmaw', 'furnace hound']], [['blob', null, 'coal'], ['quadruped', 'bulwark', 'magma armadillo'], ['quadruped', 'anvilmaw', 'volcano brute']], [['quadruped', 'lanternstag', 'ember deer']]],
-      Bloom: [[['blob', null, 'seed pod'], ['quadruped', 'lanternstag', 'sapling fawn'], ['quadruped', 'bulwark', 'ancient walking grove']], [['quadruped', 'bulwark', 'moss-backed pangolin']], [['quadruped', 'glyphtail', 'leaf fox kit'], ['quadruped', 'masker', 'thorn cat']], [['blob', null, 'bulb'], ['quadruped', 'anvilmaw', 'bramble boar']]],
-      Stone: [[['blob', null, 'pebble'], ['quadruped', 'bulwark', 'scaled burrower'], ['quadruped', 'anvilmaw', 'mountain brute']], [['quadruped', 'anvilmaw', 'quarry bulldog'], ['quadruped', 'bulwark', 'walking fortress']], [['quadruped', 'masker', 'crag cat']], [['blob', null, 'geode'], ['quadruped', 'glyphtail', 'crystal fox'], ['quadruped', 'bulwark', 'gem-backed titan']]],
-      Gale: [[['quadruped', 'glyphtail', 'wind fox kit'], ['quadruped', 'lanternstag', 'cloud deer'], ['quadruped', 'mantlewalker', 'sky manta']], [['quadruped', 'lanternstag', 'cloud deer']], [['blob', null, 'puff of cloud'], ['quadruped', 'glyphtail', 'gust fox'], ['quadruped', 'mantlewalker', 'wind ray']], [['quadruped', 'masker', 'feathered lynx']]],
-      Frost: [[['quadruped', 'masker', 'snow kitten'], ['quadruped', 'masker', 'ice lynx in a crystal mask']], [['blob', null, 'snowball imp'], ['quadruped', 'masker', 'ice lynx'], ['quadruped', 'bulwark', 'glacier fortress']], [['quadruped', 'glyphtail', 'arctic fox kit'], ['quadruped', 'lanternstag', 'snow reindeer']], [['quadruped', 'anvilmaw', 'frost yeti-hound']]],
-      Spark: [[['blob', null, 'static spark'], ['quadruped', 'glyphtail', 'bolt fox'], ['quadruped', 'mantlewalker', 'storm ray']], [['quadruped', 'mantlewalker', 'storm ray']], [['quadruped', 'masker', 'static cat'], ['quadruped', 'anvilmaw', 'dynamo brute']], [['blob', null, 'battery bug'], ['quadruped', 'bulwark', 'coil armadillo'], ['quadruped', 'lanternstag', 'lightning stag']]],
-      Void: [[['blob', null, 'shadow wisp'], ['biped', null, 'masked conjuror']], [['quadruped', 'masker', 'shadow kitten'], ['quadruped', 'masker', 'phantom cat'], ['quadruped', 'mantlewalker', 'night wraith on a cape of shadow']], [['quadruped', 'glyphtail', 'shade fox'], ['quadruped', 'anvilmaw', 'abyss hound']], [['blob', null, 'ink drop'], ['quadruped', 'bulwark', 'obsidian crawler'], ['quadruped', 'masker', 'void sphinx']]],
-      Light: [[['quadruped', 'lanternstag', 'glow fawn'], ['quadruped', 'lanternstag', 'lantern stag'], ['quadruped', 'glyphtail', 'halo fox that walks on light']], [['blob', null, 'firefly mote'], ['quadruped', 'glyphtail', 'halo fox']], [['quadruped', 'masker', 'dawn cat'], ['quadruped', 'mantlewalker', 'sunray']], [['blob', null, 'sunbeam'], ['quadruped', 'lanternstag', 'dawn deer'], ['quadruped', 'bulwark', 'gilded fortress']]]
+    land: { // within an element no two lines share a body at the same stage, and every round starter is its own creature
+      Flame: [[['blob', 'ember', 'ember sprite'], ['quadruped', 'glyphtail', 'fire fox'], ['quadruped', 'anvilmaw', 'forge-king brute']], [['quadruped', 'masker', 'cinder kitten'], ['quadruped', 'bulwark', 'magma armadillo']], [['blob', 'coal', 'coal'], ['quadruped', 'lanternstag', 'ember deer'], ['quadruped', 'mantlewalker', 'flare ray']], [['quadruped', 'lanternstag', 'ember stag with burning antlers']]],
+      Tide: [[['blob', 'jelly', 'tidepool jelly'], ['quadruped', 'glyphtail', 'river otter'], ['quadruped', 'mantlewalker', 'manta that rides the air over the shallows']], [['blob', 'hermit', 'hermit in a shell'], ['quadruped', 'bulwark', 'reef fortress']], [['blob', 'bubble', 'bubble with a fish in it'], ['quadruped', 'masker', 'tide lynx'], ['quadruped', 'lanternstag', 'coral stag']], [['quadruped', 'anvilmaw', 'walrus brute']]],
+      Bloom: [[['blob', 'seed', 'seed pod'], ['quadruped', 'lanternstag', 'sapling fawn'], ['quadruped', 'bulwark', 'ancient walking grove']], [['blob', 'bulb', 'bulb'], ['quadruped', 'anvilmaw', 'bramble boar']], [['quadruped', 'glyphtail', 'leaf fox kit'], ['quadruped', 'masker', 'thorn cat']], [['quadruped', 'mantlewalker', 'lily-pad ray']]],
+      Stone: [[['blob', 'pebble', 'pebble'], ['quadruped', 'bulwark', 'scaled burrower'], ['quadruped', 'anvilmaw', 'mountain brute']], [['blob', 'geode', 'geode'], ['quadruped', 'glyphtail', 'crystal fox'], ['quadruped', 'lanternstag', 'crystal-antlered stag']], [['quadruped', 'masker', 'crag cat']], [['quadruped', 'mantlewalker', 'slab ray']]],
+      Gale: [[['quadruped', 'glyphtail', 'wind fox kit'], ['quadruped', 'lanternstag', 'cloud deer'], ['quadruped', 'mantlewalker', 'sky manta']], [['blob', 'puff', 'puff of cloud'], ['quadruped', 'masker', 'feathered lynx']], [['quadruped', 'anvilmaw', 'storm-horn bull']], [['quadruped', 'bulwark', 'wind-shell armadillo']]],
+      Frost: [[['blob', 'snowball', 'snowball imp'], ['quadruped', 'masker', 'ice lynx'], ['quadruped', 'bulwark', 'glacier fortress']], [['quadruped', 'glyphtail', 'arctic fox kit'], ['quadruped', 'lanternstag', 'snow reindeer']], [['quadruped', 'anvilmaw', 'frost yeti-hound']], [['blob', 'icicle', 'icicle'], ['quadruped', 'mantlewalker', 'aurora ray']]],
+      Spark: [[['blob', 'spark', 'static spark'], ['quadruped', 'glyphtail', 'bolt fox'], ['quadruped', 'mantlewalker', 'storm ray']], [['quadruped', 'masker', 'static cat'], ['quadruped', 'anvilmaw', 'dynamo brute']], [['blob', 'bug', 'battery beetle'], ['quadruped', 'bulwark', 'coil armadillo'], ['quadruped', 'lanternstag', 'lightning stag']], [['quadruped', 'masker', 'thunder sphinx']]],
+      Void: [[['blob', 'wisp', 'shadow wisp'], ['biped', null, 'masked conjuror']], [['quadruped', 'masker', 'shadow kitten'], ['quadruped', 'mantlewalker', 'night wraith on a cape of shadow']], [['blob', 'ink', 'ink drop'], ['quadruped', 'bulwark', 'obsidian crawler'], ['quadruped', 'anvilmaw', 'abyss titan']], [['quadruped', 'glyphtail', 'shade fox'], ['quadruped', 'lanternstag', 'eclipse stag']]],
+      Light: [[['quadruped', 'lanternstag', 'glow fawn'], ['quadruped', 'glyphtail', 'halo fox'], ['quadruped', 'mantlewalker', 'sunray']], [['blob', 'mote', 'firefly mote'], ['quadruped', 'masker', 'dawn cat']], [['blob', 'sunbeam', 'sunbeam'], ['quadruped', 'bulwark', 'gilded armadillo'], ['quadruped', 'anvilmaw', 'solar titan']], [['quadruped', 'lanternstag', 'elk-king of lanterns']]]
     },
     steed: { _: [[['quadruped', 'steed', 'foal'], ['quadruped', 'steed', 'colt'], ['quadruped', 'steed', 'warhorse']]] },
     steedFull: { _: [[['quadruped', 'steed', 'warhorse']]] },
@@ -5304,6 +5304,79 @@ const KIN = (() => {
       }
       case 'blob': {
         kind = 'blob'; bones[0] = { kind: 'body', piv: [0, 0, 0] };
+        const BP = form.plan;
+        if (BP) { // a starter with a design of its own: what it is should be plain at a glance
+          const glw = hexMix(C.accent, '#ffffff', 0.3), dk = C.dark, bel = C.belly;
+          const face = (y, z, r, x = 0.17, o = {}) => { for (const sd of [-1, 1]) { ball(sd * x, y, z, r, '#16121e', { n: 3 }); ball(sd * (x + r * 0.04), y - r * 0.12, z + r * 0.5, r * 0.62, o.col || C.eye, { emis: !!o.glow, n: 2 }); ball(sd * (x - r * 0.2), y + r * 0.34, z + r * 0.82, r * 0.32, '#ffffff', { emis: true, n: 2 }); } if (!o.noMouth) plate([[-0.06, y - r * 1.6, z + 0.04], [0.06, y - r * 1.6, z + 0.04], [0, y - r * 2.1, z + 0.05]], 0.01, dk); };
+          const feet = (y, x = 0.2, c = dk) => { for (const sd of [-1, 1]) blob(sd * x - 0.1, 0, -0.04, sd * x + 0.1, y, 0.2, 0.7, c, { n: 2 }); };
+          if (BP === 'ember') { // a living flame: a teardrop of fire with a crown that licks upward, little arms, a hot core
+            blob(-0.36, 0.06, -0.32, 0.36, 0.7, 0.32, 1, C.body, { under: bel, tap: [0.75, 0.6] }); ball(0, 0.32, 0.18, 0.14, glw, { emis: true, n: 2 });
+            for (let i = 0; i < 5; i++) { const a = (i / 4 - 0.5) * 1.6; cone([Math.sin(a) * 0.14, 0.6, -0.02], [Math.sin(a) * 0.6, 1, -0.2], 0.46 - Math.abs(i - 2) * 0.1, 0.1, i % 2 ? C.accent : glw, { emis: true }); }
+            for (const sd of [-1, 1]) tube([[sd * 0.32, 0.38, 0.04], [sd * 0.48, 0.3, 0.12]], [0.05, 0.035], C.body, { cap0: 'none', cap1: 'round' }); face(0.46, 0.27, 0.07, 0.12); feet(0.08, 0.16, C.accent); legLen = 0.12;
+          } else if (BP === 'coal') { // a lump of coal that woke up: dark facets, glowing cracks, stubby feet, two hot eyes
+            blob(-0.38, 0.06, -0.3, 0.38, 0.6, 0.3, 0.35, '#2a2426', { n: 2 }); blob(-0.24, 0.42, -0.2, 0.2, 0.76, 0.18, 0.3, '#352e30', { n: 2 }); blob(0.04, 0.3, -0.1, 0.42, 0.62, 0.26, 0.3, '#2f292b', { n: 2 });
+            for (const pth of [[[-0.3, 0.18, 0.31], [-0.18, 0.3, 0.32], [-0.22, 0.44, 0.31]], [[0.1, 0.14, 0.31], [0.2, 0.26, 0.32], [0.32, 0.3, 0.3]], [[-0.1, 0.62, 0.19], [0.0, 0.72, 0.16]]]) tube(pth, pth.map(() => 0.018), glw, { cap0: 'round', cap1: 'round', emis: true });
+            for (const sd of [-1, 1]) { ball(sd * 0.12, 0.46, 0.3, 0.05, '#16121e', { n: 2 }); ball(sd * 0.12, 0.46, 0.33, 0.032, glw, { emis: true, n: 1 }); } feet(0.1, 0.2, '#2a2426'); legLen = 0.12;
+          } else if (BP === 'jelly') { // a tidepool jelly: a soft dome with a frilled rim and trailing tentacles, it bobs in the air
+            blob(-0.42, 0.42, -0.42, 0.42, 0.92, 0.42, 1, C.body, { under: bel }); ring(0, 0.44, 0, 0.42, 0.42, 0.04, glw, { emis: true }); ball(0, 0.68, 0, 0.16, glw, { emis: true, n: 2 });
+            for (let i = 0; i < 6; i++) { const a = i / 6 * Math.PI * 2; const x = Math.cos(a) * 0.28, z = Math.sin(a) * 0.28; tube([[x, 0.44, z], [x * 1.1, 0.26, z * 1.1], [x * 0.9, 0.08, z * 0.9 + 0.05]], [0.035, 0.03, 0.015], C.accent, { cap0: 'none', cap1: 'round' }); }
+            face(0.66, 0.36, 0.07, 0.15); hover = 0.15; legLen = 0.08;
+          } else if (BP === 'hermit') { // a hermit in a spiral shell: claws and eye-stalks out of the doorway
+            for (let i = 0; i < 4; i++) { const r = 0.36 - i * 0.07; blob(-r, 0.12 + i * 0.16, -0.3 - i * 0.06, r, 0.12 + i * 0.16 + r * 1.3, -0.3 - i * 0.06 + r * 1.6, 1, i % 2 ? C.body : hexMix(C.body, bel, 0.5), { n: 2 }); }
+            for (const sd of [-1, 1]) { blob(sd * 0.2 - 0.1, 0.1, 0.18, sd * 0.2 + 0.1, 0.28, 0.42, 0.8, C.accent, { n: 2 }); cone([sd * 0.2, 0.22, 0.42], [sd * 0.3, 0.3, 1], 0.14, 0.04, C.accent); tube([[sd * 0.08, 0.28, 0.24], [sd * 0.1, 0.5, 0.28]], [0.025, 0.02], C.accent, { cap0: 'none', cap1: 'none' }); ball(sd * 0.1, 0.54, 0.28, 0.06, '#16121e', { n: 2 }); ball(sd * 0.1 - sd * 0.01, 0.56, 0.33, 0.025, '#ffffff', { emis: true, n: 1 }); }
+            feet(0.08, 0.26, C.accent); legLen = 0.1;
+          } else if (BP === 'bubble') { // a bubble with a fish inside it: a clear ball, fins poking through, bubbles trailing up
+            blob(-0.4, 0.1, -0.4, 0.4, 0.9, 0.4, 1, hexMix(C.body, '#ffffff', 0.35), { under: bel }); for (const sd of [-1, 1]) plate([[sd * 0.36, 0.5, 0], [sd * 0.56, 0.62, -0.12], [sd * 0.5, 0.36, -0.08]], 0.025, C.accent, { edge: glw });
+            plate([[0, 0.86, -0.1], [0, 1.06, -0.24], [0, 0.88, -0.32]], 0.025, C.accent); for (let i = 0; i < 4; i++) ball(0.2 + i * 0.05, 0.9 + i * 0.16, -0.1 - i * 0.04, 0.05 - i * 0.008, '#e8fbff', { emis: true, n: 1 });
+            face(0.56, 0.36, 0.09, 0.15); hover = 0.12; legLen = 0.06;
+          } else if (BP === 'seed') { // a seed pod: an acorn body under a cap with a stem and one new leaf
+            blob(-0.34, 0.08, -0.32, 0.34, 0.66, 0.32, 1, C.body, { under: bel, tap: [0.9, 1] }); blob(-0.4, 0.56, -0.38, 0.4, 0.82, 0.38, 0.85, hexMix(C.dark, '#5a3a22', 0.5), { n: 2 });
+            tube([[0, 0.8, 0], [0.04, 0.96, -0.02]], [0.04, 0.03], '#5a3a22', { cap0: 'none', cap1: 'round' }); plate([[0.04, 0.94, -0.02], [0.26, 1.06, -0.06], [0.14, 0.92, 0.0]], 0.02, C.accent);
+            face(0.4, 0.3, 0.075, 0.13); feet(0.1, 0.16); legLen = 0.12;
+          } else if (BP === 'bulb') { // a bulb with roots for feet and a green shoot on top
+            blob(-0.38, 0.14, -0.36, 0.38, 0.74, 0.36, 1, bel, { under: C.body, tap: [0.55, 1] }); for (let i = 0; i < 3; i++) plate([[0, 0.7, 0], [(i - 1) * 0.22, 1.08 + (i === 1 ? 0.12 : 0), -0.04], [(i - 1) * 0.1, 0.86, 0.04]], 0.025, C.accent);
+            for (let i = 0; i < 5; i++) { const a = (i / 4 - 0.5) * 2.4; tube([[Math.sin(a) * 0.2, 0.16, Math.cos(a) * 0.1], [Math.sin(a) * 0.36, 0.02, Math.cos(a) * 0.2]], [0.03, 0.012], '#8a6a42', { cap0: 'none', cap1: 'round' }); }
+            face(0.42, 0.33, 0.075, 0.14); legLen = 0.06;
+          } else if (BP === 'pebble') { // a river pebble with a cushion of moss on its back, sleepy eyes, little stone feet
+            blob(-0.44, 0.08, -0.36, 0.44, 0.52, 0.36, 1, C.body, { under: hexMix(C.body, C.dark, 0.3) }); blob(-0.26, 0.44, -0.24, 0.24, 0.58, 0.16, 0.9, '#5f8a3a', { n: 2 });
+            for (const sd of [-1, 1]) { blob(sd * 0.16 - 0.07, 0.3, 0.33, sd * 0.16 + 0.07, 0.36, 0.37, 0.7, '#16121e', { n: 1 }); } feet(0.08, 0.24, hexMix(C.body, C.dark, 0.3)); legLen = 0.1;
+          } else if (BP === 'geode') { // a rough grey rock split open at the front: crystals glowing inside
+            blob(-0.42, 0.06, -0.38, 0.42, 0.72, 0.36, 0.45, '#6a6470', { n: 2 }); blob(-0.3, 0.16, 0.14, 0.3, 0.6, 0.4, 0.6, '#2a2430', { n: 2 });
+            for (let i = 0; i < 7; i++) { const a = i / 7 * Math.PI * 2; cone([Math.cos(a) * 0.1, 0.38 + Math.sin(a) * 0.1, 0.28], [Math.cos(a) * 0.6, Math.sin(a) * 0.6, 1], 0.26, 0.08, glw, { emis: true }); } ball(0, 0.38, 0.34, 0.08, glw, { emis: true, n: 2 });
+            for (const sd of [-1, 1]) { ball(sd * 0.26, 0.6, 0.26, 0.05, '#16121e', { n: 2 }); ball(sd * 0.26, 0.61, 0.3, 0.02, '#ffffff', { emis: true, n: 1 }); } feet(0.08, 0.24, '#6a6470'); legLen = 0.1;
+          } else if (BP === 'puff') { // a puff of cloud with a face, tufts all round, drifting
+            for (const [x, y, z, r] of [[0, 0.5, 0, 0.32], [-0.3, 0.42, -0.04, 0.22], [0.3, 0.42, -0.04, 0.22], [-0.14, 0.7, -0.08, 0.2], [0.16, 0.7, -0.06, 0.2], [0, 0.34, -0.2, 0.22]]) ball(x, y, z, r, '#f4f8ff', { n: 3 });
+            face(0.5, 0.3, 0.07, 0.12); for (const sd of [-1, 1]) ball(sd * 0.22, 0.42, 0.28, 0.04, '#ffb0c8', { n: 1 }); hover = 0.2; legLen = 0.06;
+          } else if (BP === 'snowball') { // two stacked snowballs come alive: twig arms, an icicle quiff, a carrot of a nose
+            ball(0, 0.3, 0, 0.32, '#f4f8ff', { n: 3 }); ball(0, 0.74, 0.02, 0.22, '#f4f8ff', { n: 3 }); for (const sd of [-1, 1]) tube([[sd * 0.26, 0.42, 0.04], [sd * 0.5, 0.56, 0.06], [sd * 0.6, 0.6, 0.02]], [0.025, 0.02, 0.01], '#6b4a2a', { cap0: 'none', cap1: 'round' });
+            for (let i = 0; i < 3; i++) cone([(i - 1) * 0.06, 0.92, -0.02], [(i - 1) * 0.4, 1, -0.3], 0.2, 0.04, glw, { emis: true }); cone([0, 0.72, 0.2], [0, 0, 1], 0.14, 0.035, '#ff9a4a');
+            face(0.8, 0.18, 0.05, 0.08, { noMouth: true }); legLen = 0.04;
+          } else if (BP === 'icicle') { // an icicle on two feet: a spike of clear ice with a face in it
+            cone([0, 0.12, 0], [0, 1, 0], 1.0, 0.3, hexMix(C.body, '#ffffff', 0.3)); for (let i = 0; i < 4; i++) { const a = i / 4 * Math.PI * 2 + 0.4; cone([Math.cos(a) * 0.14, 0.16, Math.sin(a) * 0.14], [Math.cos(a), 1.6, Math.sin(a)], 0.4, 0.08, glw, { emis: true }); }
+            face(0.42, 0.18, 0.06, 0.09); feet(0.1, 0.14, C.accent); legLen = 0.12;
+          } else if (BP === 'spark') { // a spark with a face: a bright core with five points of lightning
+            ball(0, 0.5, 0, 0.26, C.body, { n: 3 }); for (let i = 0; i < 5; i++) { const a = i / 5 * Math.PI * 2 + Math.PI / 2; cone([Math.cos(a) * 0.2, 0.5 + Math.sin(a) * 0.2, 0], [Math.cos(a), Math.sin(a), 0.05], 0.3, 0.09, i % 2 ? C.accent : glw, { emis: true }); }
+            face(0.54, 0.24, 0.06, 0.1); hover = 0.12; legLen = 0.06;
+          } else if (BP === 'bug') { // a battery beetle: a split shell, a coiled antenna that glows, six little legs
+            blob(-0.3, 0.12, -0.36, 0.3, 0.5, 0.3, 1, C.body, { under: bel }); for (const sd of [-1, 1]) plate([[sd * 0.02, 0.5, 0.28], [sd * 0.32, 0.4, 0.1], [sd * 0.3, 0.32, -0.34], [sd * 0.02, 0.48, -0.36]], 0.025, C.accent, { edge: dk });
+            ball(0, 0.36, 0.34, 0.16, dk, { n: 2 }); for (const sd of [-1, 1]) { tube([[sd * 0.06, 0.46, 0.4], [sd * 0.16, 0.66, 0.44], [sd * 0.1, 0.76, 0.4], [sd * 0.18, 0.84, 0.44]], [0.015, 0.015, 0.015, 0.012], glw, { cap0: 'none', cap1: 'round', emis: true }); ball(sd * 0.18, 0.86, 0.44, 0.035, glw, { emis: true, n: 1 }); for (let i = 0; i < 3; i++) tube([[sd * 0.22, 0.2, 0.18 - i * 0.2], [sd * 0.38, 0.04, 0.2 - i * 0.2]], [0.02, 0.015], dk, { cap0: 'none', cap1: 'round' }); }
+            for (const sd of [-1, 1]) { ball(sd * 0.08, 0.42, 0.47, 0.035, glw, { emis: true, n: 1 }); } legLen = 0.06;
+          } else if (BP === 'wisp') { // a shadow wisp: a little ghost with a long trailing tail and lamp eyes, floating
+            blob(-0.3, 0.42, -0.28, 0.3, 0.96, 0.28, 1, C.body, { under: C.dark }); tube([[0, 0.5, -0.1], [0.1, 0.3, -0.3], [-0.06, 0.16, -0.5], [0.08, 0.1, -0.7]], [0.22, 0.14, 0.08, 0.0005], C.body, { cap0: 'none', cap1: 'none' });
+            for (const sd of [-1, 1]) { ball(sd * 0.12, 0.72, 0.25, 0.07, '#f2ecff', { emis: true, n: 2 }); ball(sd * 0.12, 0.71, 0.3, 0.035, '#16121e', { n: 2 }); } for (const sd of [-1, 1]) tube([[sd * 0.26, 0.66, 0], [sd * 0.4, 0.56, 0.08]], [0.05, 0.02], C.body, { cap0: 'none', cap1: 'round' }); hover = 0.25; legLen = 0.06;
+          } else if (BP === 'ink') { // a drop of ink: a glossy teardrop on curling tentacle feet, one bright highlight
+            blob(-0.34, 0.14, -0.32, 0.34, 0.86, 0.32, 1, C.dark, { under: C.body, tap: [0.4, 1] }); ball(-0.14, 0.66, 0.24, 0.045, '#ffffff', { emis: true, n: 2 });
+            for (let i = 0; i < 5; i++) { const a = (i / 5) * Math.PI * 2; tube([[Math.cos(a) * 0.2, 0.2, Math.sin(a) * 0.2], [Math.cos(a) * 0.36, 0.07, Math.sin(a) * 0.36], [Math.cos(a + 0.4) * 0.46, 0.08, Math.sin(a + 0.4) * 0.46], [Math.cos(a + 0.7) * 0.44, 0.16, Math.sin(a + 0.7) * 0.44]], [0.08, 0.06, 0.04, 0.02], C.dark, { cap0: 'none', cap1: 'round' }); }
+            face(0.44, 0.3, 0.07, 0.13, { glow: true, col: C.accent }); legLen = 0.06;
+          } else if (BP === 'mote') { // a firefly mote: a small bug with clear wings and a glowing tail-light
+            blob(-0.16, 0.42, -0.1, 0.16, 0.7, 0.24, 1, C.dark, { n: 2 }); ball(0, 0.5, -0.24, 0.2, glw, { emis: true, n: 3 }); for (const sd of [-1, 1]) plate([[sd * 0.08, 0.66, 0.02], [sd * 0.5, 0.84, -0.12], [sd * 0.42, 0.66, -0.3]], 0.015, '#eaf6ff', { edge: C.accent });
+            for (const sd of [-1, 1]) tube([[sd * 0.05, 0.68, 0.2], [sd * 0.12, 0.86, 0.3]], [0.012, 0.008], C.dark, { cap0: 'none', cap1: 'round' }); face(0.58, 0.24, 0.05, 0.08, { noMouth: true }); hover = 0.3; legLen = 0.05;
+          } else if (BP === 'sunbeam') { // a little sun with a face, rays all round it, floating warm
+            ball(0, 0.56, 0, 0.3, C.body, { n: 3 }); for (let i = 0; i < 10; i++) { const a = i / 10 * Math.PI * 2; cone([Math.cos(a) * 0.26, 0.56 + Math.sin(a) * 0.26, -0.04], [Math.cos(a), Math.sin(a), 0], i % 2 ? 0.16 : 0.24, 0.06, i % 2 ? C.accent : glw, { emis: true }); }
+            face(0.6, 0.27, 0.06, 0.1); for (const sd of [-1, 1]) ball(sd * 0.2, 0.48, 0.24, 0.04, '#ffb0a0', { n: 1 }); hover = 0.2; legLen = 0.06;
+          } else { blob(-0.4, 0.06, -0.36, 0.4, 0.76, 0.36, 1, C.body, { under: bel }); face(0.48, 0.32, 0.08, 0.15); feet(0.1); legLen = 0.12; }
+          break;
+        }
         blob(-0.55, 0.0, -0.52, 0.55, 1.04, 0.52, 1, C.body, { under: C.dark, tap: [0.86, 0.74], split: -0.4, soft: 0.25, n: 7 });
         markings(-0.55, 0.0, -0.52, 0.55, 1.04, 0.52);
         eyes(0.2, 0.62, 0.42, f.bigEyes ? 0.12 : 0.09);
