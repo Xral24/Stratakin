@@ -87,6 +87,8 @@ Scope (Alexander, 8 Nov evening): EVERYTHING visible goes to the same standard: 
 
 - Tam v3: spot checked against the real blocks (map heights can say land where the sea is), and in the Snowfield biome first. Old saves re-pick once.
 
+- One shared world: a new game with the World box left empty is the Stratakin world (seed 'Stratakin'), so every player gets the same villages, people and quest spots. Checked: two fresh games on one seed place every site, Tam, the holds, haunts, the lab and the sky sites identically. 🎲 rolls a world of your own.
+
 ## Still to do
 UI polish as feedback comes in. Card battle screen still used for scripted encounters (raids at the walls, thief, citadel duel, holds) and the snare mini-game; converting those to live is the next big step if wanted. (Old list: train/ships, combat animation, eggs, avatar hair/paint, buddy WEAR cosmetics, Silas and Finch, UI polish (item icons), quality toggles in settings (state.shadows, state.grassQuality, state.dprCap).
 

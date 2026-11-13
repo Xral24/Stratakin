@@ -11738,9 +11738,9 @@ const UI = (() => {
       q('s-new').addEventListener('click', startNew);
     };
     const startNew = () => {
-      el['start-buttons'].innerHTML = `<div class="row"><label class="small">Name <input id="s-name" placeholder="Game ${games.length + 1}" maxlength="24"></label><label class="small">Seed <input id="s-seed" placeholder="random" maxlength="24"></label></div><button class="btn ghost" id="s-back">Back</button>`;
+      el['start-buttons'].innerHTML = `<div class="row"><label class="small">Name <input id="s-name" placeholder="Game ${games.length + 1}" maxlength="24"></label><label class="small">World <input id="s-seed" placeholder="Stratakin" maxlength="24"></label><button class="btn ghost" id="s-dice" title="A different world">🎲</button></div><p class="note small" id="s-seednote">Leave it as Stratakin and you get the same world as everyone else: same villages, same people, same quests in the same places. Type any word (or roll 🎲) for a world of your own.</p><button class="btn ghost" id="s-back">Back</button>`;
       el['starter-pick'].classList.remove('hidden');
-      const seedOf = () => { const v = q('s-seed').value.trim(); return v ? U.strHash(v) : Math.floor(Math.random() * 2 ** 31); };
+      const seedOf = () => { const v = q('s-seed').value.trim(); return U.strHash(v || 'Stratakin'); }; // one shared world by default: everything sits in the same place for every player
       let seed = seedOf();
       const draw = () => {
         const sts = KIN.starters(seed);
@@ -11749,6 +11749,7 @@ const UI = (() => {
       };
       draw();
       q('s-seed').addEventListener('input', () => { seed = seedOf(); draw(); });
+      q('s-dice').addEventListener('click', () => { const W = ['amber', 'birch', 'cinder', 'drift', 'ember', 'fjord', 'gale', 'hollow', 'iris', 'juniper', 'kestrel', 'loch', 'moss', 'north', 'onyx', 'pike', 'quartz', 'rook', 'sable', 'thistle']; q('s-seed').value = W[Math.floor(Math.random() * W.length)] + Math.floor(Math.random() * 900 + 100); seed = seedOf(); draw(); });
       q('s-back').addEventListener('click', () => { el['starter-pick'].classList.add('hidden'); drawList(); });
     };
     drawList();
