@@ -92,6 +92,8 @@ Scope (Alexander, 8 Nov evening): EVERYTHING visible goes to the same standard: 
 - Knees: human legs split into thigh (bones 4/5) and shin (6/9, kind 'shin'); the shin hangs from wherever the thigh swings. Sneaking crouches (thighs forward 0.85 rad, shins back, figure sinks just enough to keep boots down); riding now hangs the shins down; a little knee give on each stride.
 - Shield: a 🛡 hold button shows whenever a Bound warrior has seen you and a shield is in the bag, with a one-time tip on blocking and parrying. Holding the screen with a weapon out still blocks too.
 
+- Hill lean: player measures the grade ahead in the walking direction (smooth surface, or a one-block step = 0.8); over 0.15 he leans forward up to 0.42 rad, a touch back going down steeply. Geo tips every upper-body bone of a human round the hips; legs stay put. A crouch adds a little forward lean.
+
 ## Still to do
 UI polish as feedback comes in. Card battle screen still used for scripted encounters (raids at the walls, thief, citadel duel, holds) and the snare mini-game; converting those to live is the next big step if wanted. (Old list: train/ships, combat animation, eggs, avatar hair/paint, buddy WEAR cosmetics, Silas and Finch, UI polish (item icons), quality toggles in settings (state.shadows, state.grassQuality, state.dprCap).
 

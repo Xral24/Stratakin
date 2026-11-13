@@ -3524,6 +3524,14 @@ const R = (() => {
           }
         }
       }
+      // leaning into a hill: everything above the hips tips forward together, round the hips, while the legs keep to the ground
+      const HL = a.hlean || 0;
+      if (HL && m.kind === 'human') {
+        const leg = bones.find(b => b && b.kind === 'leg'); const hy = leg ? leg.piv[1] : 0.62; const c = Math.cos(HL), sn = Math.sin(HL);
+        for (let i = 0; i < bones.length; i++) { const b = bones[i]; if (!b || b.kind === 'leg' || b.kind === 'shin') continue; const o = i * 16;
+          for (const k of [o, o + 4, o + 8]) { const y = mats[k + 1], z = mats[k + 2]; mats[k + 1] = c * y - sn * z; mats[k + 2] = sn * y + c * z; }
+          const y = mats[o + 13] - hy, z = mats[o + 14]; mats[o + 13] = c * y - sn * z + hy; mats[o + 14] = sn * y + c * z; }
+      }
       if (m.sway) { const S = m.sway; sway[0] = S.amp * (0.45 + 0.55 * Math.max(mv, swim, air)); sway[1] = S.freq; sway[2] = t * S.speed + seed; sway[3] = S.from; } // all in the model's own units: the shader sways aPos before uModel
       else { sway[0] = 0; sway[1] = 0; sway[2] = 0; sway[3] = 0; }
       return { mats, sway };
@@ -3825,6 +3833,14 @@ class Player {
       if (this.collides(ahead[0], this.y, ahead[2]) && !this.collides(ahead[0], this.y + 1.05, ahead[2])) { this.vy = 8.0; this.onGround = false; }
     }
     if (hitX) this.vx = 0; if (hitZ) this.vz = 0;
+    { // how steep the way ahead is, in the direction he is walking: he leans into it, more the steeper it gets
+      let lean = 0; const sp = Math.hypot(this.vx, this.vz);
+      if (this.onGround && !this.inWater && !this.mount && sp > 0.6) { const dx = this.vx / sp, dz = this.vz / sp;
+        const here = w.groundY(Math.floor(this.x), Math.floor(this.z)), next = w.groundY(Math.floor(this.x + dx * 0.8), Math.floor(this.z + dz * 0.8));
+        let grade = next > here && next - here <= 1 ? 0.8 : 0; // a block step up ahead
+        const a = R.surfaceAt(w, this.x + dx * 0.5, this.z + dz * 0.5), b = R.surfaceAt(w, this.x - dx * 0.5, this.z - dz * 0.5); if (a != null && b != null) grade = Math.max(grade, a - b);
+        if (grade > 0.15) lean = U.clamp((grade - 0.15) * 0.42, 0, 0.42); else if (grade < -0.3) lean = U.clamp((grade + 0.3) * 0.12, -0.08, 0); }
+      this.hillLean = (this.hillLean || 0) + (lean - (this.hillLean || 0)) * Math.min(1, dt * 6); }
     { let want = 0; this.slopeK = 0; if (this.onGround && !this.inWater) { const below = w.getBlock(Math.floor(this.x), Math.floor(this.y - 0.05), Math.floor(this.z)); if (R.isSoil(below)) { let s = R.surfaceAt(w, this.x, this.z); if (s != null) { let lo = s; for (const [ox, oz] of [[0.3, 0], [-0.3, 0], [0, 0.3], [0, -0.3]]) { const t = R.surfaceAt(w, this.x + ox, this.z + oz); if (t == null) continue; if (t > s) s = t; if (t < lo) lo = t; } this.slopeK = U.clamp((s - lo) * 2.5, 0, 1); want = U.clamp(s - this.y, -0.85, 0.85); } } } // the highest of the ground under his boots, so a slope never swallows a foot (or a crouch)
       this.visLift = (this.visLift || 0) + (want - (this.visLift || 0)) * Math.min(1, dt * 14); this.stepLag = (this.stepLag || 0) * Math.exp(-dt * 10); }
     const wasFalling = this.vy < 0;
@@ -10729,6 +10745,7 @@ const Avatar = (() => {
     const seat = p.mount ? 0.75 : p.flying ? 0.35 : 0;
     an.attack = p.swingT > 0 ? Math.sin(Math.min(1, p.swingT / 0.25) * Math.PI) : 0; an.block = p.blocking ? 1 : 0;
     if (p.mount || p.flying) { an.mv = 0; an.sit = 1; } else an.sit = 0;
+    an.hlean = p.mount || p.flying ? 0 : (p.hillLean || 0) + 0.12 * (an.crouch || 0); // into the hill, and a touch forward in a crouch
     // sneaking: knees bend and he sinks by just what the bend takes, so his boots stay on the ground
     { const want = p.sneak && !p.mount && !p.flying && !p.inWater ? 1 : 0; const now = performance.now(); const dt = Math.min(0.1, (now - (an.ct || now)) / 1000); an.ct = now; an.crouch = (an.crouch || 0) + (want - (an.crouch || 0)) * Math.min(1, dt * 10); }
     const hip = (() => { const leg = (mm.model.bones || []).find(b => b && b.kind === 'leg'); return leg ? leg.piv[1] : 0.62; })();

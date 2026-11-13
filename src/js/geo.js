@@ -242,6 +242,14 @@
           }
         }
       }
+      // leaning into a hill: everything above the hips tips forward together, round the hips, while the legs keep to the ground
+      const HL = a.hlean || 0;
+      if (HL && m.kind === 'human') {
+        const leg = bones.find(b => b && b.kind === 'leg'); const hy = leg ? leg.piv[1] : 0.62; const c = Math.cos(HL), sn = Math.sin(HL);
+        for (let i = 0; i < bones.length; i++) { const b = bones[i]; if (!b || b.kind === 'leg' || b.kind === 'shin') continue; const o = i * 16;
+          for (const k of [o, o + 4, o + 8]) { const y = mats[k + 1], z = mats[k + 2]; mats[k + 1] = c * y - sn * z; mats[k + 2] = sn * y + c * z; }
+          const y = mats[o + 13] - hy, z = mats[o + 14]; mats[o + 13] = c * y - sn * z + hy; mats[o + 14] = sn * y + c * z; }
+      }
       if (m.sway) { const S = m.sway; sway[0] = S.amp * (0.45 + 0.55 * Math.max(mv, swim, air)); sway[1] = S.freq; sway[2] = t * S.speed + seed; sway[3] = S.from; } // all in the model's own units: the shader sways aPos before uModel
       else { sway[0] = 0; sway[1] = 0; sway[2] = 0; sway[3] = 0; }
       return { mats, sway };

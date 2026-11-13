@@ -103,6 +103,7 @@ const Avatar = (() => {
     const seat = p.mount ? 0.75 : p.flying ? 0.35 : 0;
     an.attack = p.swingT > 0 ? Math.sin(Math.min(1, p.swingT / 0.25) * Math.PI) : 0; an.block = p.blocking ? 1 : 0;
     if (p.mount || p.flying) { an.mv = 0; an.sit = 1; } else an.sit = 0;
+    an.hlean = p.mount || p.flying ? 0 : (p.hillLean || 0) + 0.12 * (an.crouch || 0); // into the hill, and a touch forward in a crouch
     // sneaking: knees bend and he sinks by just what the bend takes, so his boots stay on the ground
     { const want = p.sneak && !p.mount && !p.flying && !p.inWater ? 1 : 0; const now = performance.now(); const dt = Math.min(0.1, (now - (an.ct || now)) / 1000); an.ct = now; an.crouch = (an.crouch || 0) + (want - (an.crouch || 0)) * Math.min(1, dt * 10); }
     const hip = (() => { const leg = (mm.model.bones || []).find(b => b && b.kind === 'leg'); return leg ? leg.piv[1] : 0.62; })();
