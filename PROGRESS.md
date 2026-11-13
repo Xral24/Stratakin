@@ -132,6 +132,8 @@ Scope (Alexander, 8 Nov evening): EVERYTHING visible goes to the same standard: 
 
 - Peafowl and bloom peacock redesigned as garden birds: green leaf-scale feathers, a vine round the neck, a crest of buds; the peafowl's train is long leaves ending in buds, the bloom peacock's opens into a giant pink flower with a glowing heart.
 
+- Serpents get evolution lines and bodies of their own: 54 designs built on a shared body path (wave, rearing and coiled poses) with snake, eel and worm heads, cobra hoods, fins, legs for centipedes and millipedes. Ember worm to magma wyrm, elver to leviathan, inchworm to blossom serpent, earthworm to titan worm, wind ribbon to sky dragon, wire worm to thunder eel-dragon, shadow grub to a void wyrm biting its own tail, glow-worm to sun cobra, a mushroom-house snail and more.
+
 ## Still to do
 UI polish as feedback comes in. Card battle screen still used for scripted encounters (raids at the walls, thief, citadel duel, holds) and the snare mini-game; converting those to live is the next big step if wanted. (Old list: train/ships, combat animation, eggs, avatar hair/paint, buddy WEAR cosmetics, Silas and Finch, UI polish (item icons), quality toggles in settings (state.shadows, state.grassQuality, state.dprCap).
 
