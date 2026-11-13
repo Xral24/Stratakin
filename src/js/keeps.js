@@ -144,7 +144,20 @@ const Keeps = (() => {
   function inHold(p) { return near(p.x, p.z, 12).some(k => !taken(k.id) && Math.abs(p.y - k.y) < 12); }
   function talkWarrior(n, say) {
     const freed = taken(n.holdId); const k = sites().find(x => x.id === n.holdId) || {};
-    if (!freed) return say(['...', 'The crystal... it hums... we hold the gate... we hold the gate...', 'His eyes are glazed and violet. He does not see you at all.']);
+    // every one of them says something of his own: picked by who he is, and moving on each time you talk to him
+    const h = [...String(n.id)].reduce((a, ch) => (a * 31 + ch.charCodeAt(0)) >>> 0, 7); n.said = (n.said == null ? h : n.said + 1);
+    const DAZED = [
+      ['...', 'The crystal... it hums... we hold the gate... we hold the gate...', 'His eyes are glazed and violet. He does not see you at all.'],
+      ['Stand back. Nobody passes. Nobody passes.', 'He says it to the air above your head, over and over.'],
+      ['I had a farm once. Barley. Or was it...', 'The violet comes back into his eyes. ...No. There is only the hold.'],
+      ['The master sees through us. The master sees you now.', 'He smiles without meaning it, and does not move.'],
+      ['Cold. So cold in here. Why do I not feel it?', 'He looks at his own hands as if they belonged to someone else.'],
+      ['Mind the prisoner. Mind the prisoner. Nobody talks to the prisoner.', 'His eyes slide past you toward the back of the courtyard.'],
+      ['We keep the light out. That is the work. Keep the light out.', 'A faint hum comes off him, like a struck bell.'],
+      ['Turn round, traveller. While you still choose where you walk.', 'For a moment he almost sounds like himself. Then it is gone.'],
+      ['My daughter... she would be grown by now...', 'He blinks hard. The glaze settles back over his eyes.'],
+      ['Break the shard on the dais and we are free. Break it. Break it.', 'He whispers it, and then stands straight again as if he never spoke.']];
+    if (!freed) return say(DAZED[n.said % DAZED.length]);
     const c = Campaign.C(); const key = 'thanked_' + n.id; const first = !c[key]; c[key] = true;
     if (first) { G.shards += 150; UI.toast('+150 Shards.', 'good'); return say([`I can see. I can SEE. How long was I standing here?`, `He put a shard of that cursed crystal over ${k.name} and we were his. You broke it. Take this, it is all I have on me.`, 'There are other holds. Others like us. Free them.']); }
     if (n.id.endsWith('_2') && !(G.stats.holdDeeds || {})[n.holdId]) return say([`${k.name} is ours again because of you.`, 'The courtyard inside these walls, it should belong to someone who will not let him back in. Eight thousand shards and it is yours to build in. The walls stay as they are: nothing scratches that stone.'], () => { if (G.shards < 8000) { UI.toast('A courtyard deed is 8,000 shards.', 'bad'); return; } G.shards -= 8000; (G.stats.holdDeeds || (G.stats.holdDeeds = {}))[n.holdId] = true; UI.sfx('quest'); UI.toast(`The courtyard of ${k.name} is yours to build in.`, 'good'); });
@@ -167,5 +180,5 @@ const Keeps = (() => {
     return true;
   }
   function mapMarks() { if (!onEarth()) return []; const p = G.player; return Citadel.mapMarks().concat(sites().filter(k => st()['seen_' + k.id] || taken(k.id) || (k.core && G.player.has('deepchart'))).map(k => ({ x: k.x, z: k.z, t: taken(k.id) ? '♜' : '☠', name: k.name + (k.core ? ' (deep in the Core)' : '') + (taken(k.id) ? ' (yours)' : '') }))); }
-  return { inHold, init, update, onBattle, tableOpen, near, mapMarks, keepFor, sites, gloom, talkWarrior, finalReady, onFinal, COUNT };
+  return { isTaken: (id) => taken(id), inHold, init, update, onBattle, tableOpen, near, mapMarks, keepFor, sites, gloom, talkWarrior, finalReady, onFinal, COUNT };
 })();

@@ -168,8 +168,15 @@ const Campaign = (() => {
     set(s.x + 3, y0 + 1, s.z, B.AIR); set(s.x + 3, y0 + 2, s.z, B.AIR); set(s.x, y0 + 1, s.z, B.CAMPFIRE);
   }
   // where Tam got lost: the same spot every session, and always on land you can stand on (never out on the water or up a cliff face)
+  // a dark hold near the snow camp: if there is one, that is where the Bound took Tam
+  function tamHold(s) { if (!s || typeof Keeps === 'undefined') return null; let best = null, bd = 320; for (const k of Keeps.sites()) { if (k.core) continue; const d = Math.hypot(k.x - s.x, k.z - s.z); if (d < bd) { bd = d; best = k; } } return best; }
+  const holdStamped = (k) => world.getBlock(k.x + 8, k.y + 2, k.z) === B.FORTSTONE;
+  // his cell: iron bars in the back corner of the courtyard, and a roof
+  function cellBlocks(L, fn) { for (let dx = -1; dx <= 1; dx++) for (let dz = -1; dz <= 1; dz++) { for (let y = L.y + 1; y <= L.y + 2; y++) if (dx || dz) fn(L.x + dx, y, L.z + dz); fn(L.x + dx, L.y + 3, L.z + dz); } }
+  function cellOpen(L) { if (!L.hold) return true; return world.getBlock(L.x + 1, L.y + 1, L.z) !== B.IRONWALL; }
   function lostOf(s) {
-    if (!s) return null; if (s.lost && s.lost.v === 3) return s.lost;
+    if (!s) return null; if (s.lost && s.lost.v === 4) return s.lost;
+    { const k = tamHold(s); if (k) { const was = s.lost; s.lost = { x: k.x + 5, z: k.z + 5, y: k.y, hold: k.id, holdName: k.name, v: 4, moved: !!was && (was.x !== k.x + 5 || was.z !== k.z + 5) }; return s.lost; } }
     const was = s.lost; const r = U.rng(U.combine(s.x, s.z, 0x5A)); let fallback = null;
     // the real ground, not the map's guess: no water on it, above the sea
     const dry = (x, z) => { world.ensureAround(Math.floor(x / CH), Math.floor(z / CH), 0, 4); const gy = world.groundY(x, z); if (!(gy > SEA + 1)) return false; const top = world.getBlock(x, gy, z), up = world.getBlock(x, gy + 1, z); return top !== B.WATER && up !== B.WATER; };
@@ -178,10 +185,10 @@ const Campaign = (() => {
     for (let i = 0; i < 60; i++) {
       const a = r() * Math.PI * 2, d = 50 + r() * 35; const x = Math.round(s.x + Math.cos(a) * d), z = Math.round(s.z + Math.sin(a) * d);
       if (!land(x, z) || !flatAt(x, z) || !dry(x, z)) continue;
-      if (world.colInfo(x, z).biome === BIOME.SNOW) { s.lost = { x, z, v: 3, moved: !!was && (x !== was.x || z !== was.z) }; return s.lost; }
+      if (world.colInfo(x, z).biome === BIOME.SNOW) { s.lost = { x, z, v: 4, moved: !!was && (x !== was.x || z !== was.z) }; return s.lost; }
       if (!fallback) fallback = { x, z };
     }
-    const f = fallback || { x: s.x + 25, z: s.z }; s.lost = { x: f.x, z: f.z, v: 3, moved: !!was && (f.x !== was.x || f.z !== was.z) }; return s.lost;
+    const f = fallback || { x: s.x + 25, z: s.z }; s.lost = { x: f.x, z: f.z, v: 4, moved: !!was && (f.x !== was.x || f.z !== was.z) }; return s.lost;
   }
 
 
@@ -276,7 +283,10 @@ const Campaign = (() => {
       else if (S.diver && near(S.diver, p, 60) && c.st_diver && pierWays(S.diver)) G.meshPass(99); // keeps the pier ladders whole, old worlds included (terrain can fill in after the stamp)
       if (S.ranch && near(S.ranch, p, 90) && !c.st_ranch) { c.st_ranch = true; stampRanch(S.ranch); G.meshPass(99); }
       if (S.snow && near(S.snow, p, 90) && !c.st_snow) { c.st_snow = true; stampSnow(S.snow); G.meshPass(99); }
-      if (S.snow && c.frost === 1 && lostOf(S.snow) && near(lostOf(S.snow), p, 70)) { const L = lostOf(S.snow), at = L.x + ',' + L.z; if (!c.st_shelter || (c.shelterAt ? c.shelterAt !== at : L.moved)) { c.st_shelter = true; c.shelterAt = at; stampShelter(S.snow); G.meshPass(99); } else if (!c.shelterAt) c.shelterAt = at; }
+      if (S.snow && c.frost === 1 && lostOf(S.snow) && near(lostOf(S.snow), p, 70)) { const L = lostOf(S.snow), at = L.x + ',' + L.z; if (L.hold) { const k = Keeps.sites().find(x => x.id === L.hold); if (k && holdStamped(k) && c.cellAt !== at) { c.cellAt = at; c.st_shelter = true; c.shelterAt = at; cellBlocks(L, (x, y, z) => set(x, y, z, B.IRONWALL)); G.meshPass(99); }
+          // the cell door gives once his warriors are down (or the hold is yours)
+          if (k && c.cellAt === at && !c.cellOpen && ((Combat.forHold(k.id).length && Combat.standingIn(k.id) === 0) || Keeps.isTaken(k.id))) { c.cellOpen = true; cellBlocks(L, (x, y, z) => set(x, y, z, B.AIR)); G.meshPass(99); UI.toast('The warriors are down. The bars of the cell in the corner give way: Tam is in there.', 'good'); } }
+        else if (!c.st_shelter || (c.shelterAt ? c.shelterAt !== at : L.moved)) { c.st_shelter = true; c.shelterAt = at; stampShelter(S.snow); G.meshPass(99); } else if (!c.shelterAt) c.shelterAt = at; }
       if (S.peak && near(S.peak, p, 110) && !c.st_peak) { c.st_peak = true; stampPeak(S.peak); G.meshPass(99); }
       if (S.fort && near(S.fort, p, 120) && !c.st_fort) { c.st_fort = true; stampFort(S.fort); G.meshPass(99); }
       if (S.fort && c.st_fort && S.fort.throne && near(S.fort, p, 110)) { const t = S.fort.throne, x = t.x - 2, y = S.fort.floorY + 1, z = t.z + 3; if (world.chunks.get(Math.floor(x / CH) + ',' + Math.floor(z / CH)) && world.getBlock(x, y, z) !== B.DARKTABLE) { world.setBlock(x, y, z, B.DARKTABLE); G.meshPass(99); } } // forts stamped before the table existed
@@ -305,7 +315,7 @@ const Campaign = (() => {
     if (S.diver && near(S.diver, p, 80) && C().st_diver && !has('diver')) { const s = S.diver; person('diver', 'Marisol', 'diver', s.x + s.ux * 9, s.z + s.uz * 9, { body: '#2f6f8a', belly: '#c68642' }, ['diver']); }
     if (S.ranch && near(S.ranch, p, 80) && C().st_ranch && !has('rancher')) { const s = S.ranch; person('rancher', 'Dusty Hale', 'rancher', s.x - 2, s.z + 2, { body: '#7a4a2a', belly: '#e8c39e' }, ['hat', 'star']); person('hand', 'Pip', 'hand', s.x - 3, s.z - 6, { body: '#4c7bc9', belly: '#f1d3b3' }, ['hat'], { ax: s.x - 3.5, az: s.z - 7.5, bx: s.x - 3.5, bz: s.z + 6.5, period: 16 }); }
     if (S.snow && near(S.snow, p, 80) && C().st_snow && !has('ysolde')) { const s = S.snow; person('ysolde', 'Ysolde', 'snow', s.x + 2, s.z + 2, { body: '#e8e8f0', belly: '#f1d3b3' }, ['hermit']); }
-    if (S.snow && C().frost === 1 && C().st_shelter && lostOf(S.snow) && near(lostOf(S.snow), p, 70) && !has('tam')) { const L = lostOf(S.snow); person('tam', 'Tam', 'lost', L.x, L.z + 1, { body: '#9aa8b8', belly: '#f1d3b3' }, ['hermit']); }
+    if (S.snow && C().frost === 1 && C().st_shelter && lostOf(S.snow) && near(lostOf(S.snow), p, 70) && !has('tam')) { const L = lostOf(S.snow); const n = person('tam', 'Tam', 'lost', L.x, L.hold ? L.z : L.z + 1, { body: '#9aa8b8', belly: '#f1d3b3' }, ['hermit']); if (L.hold && n) n.y = L.y + 1; }
     if (S.peak && near(S.peak, p, 100) && C().st_peak && !has('hermit')) { const s = S.peak; const a = Math.atan2(s.nz - s.z, s.nx - s.x) + Math.PI; let hx = Math.round(s.x + Math.cos(a) * 18), hz = Math.round(s.z + Math.sin(a) * 18); person('hermit', 'Old Wren', 'hermit', hx, hz, { body: '#7a6f5a', belly: '#e8c39e' }, ['hermit']); }
     if (S.zoo && near(S.zoo, p, 80) && C().st_zoo && !has('keeper')) { const s = S.zoo; person('keeper', 'Barnaby Quill', 'keeper', s.x + 3, s.z + 6, { body: '#6a2a4a', belly: '#e8c39e' }, ['hat', 'lamp']);
       if (!zooDino) { const sp = KIN.dex('earth').find(x => x.dino && x.shape === 'raptor') || KIN.dex('earth').find(x => x.dino); if (sp) { const gy = world.groundY(s.dino.x, s.dino.z) + 1; zooDino = Wild.makeEntity(sp, 40, s.dino.x + 0.5, gy, s.dino.z + 0.5, { senseR: 0 }); zooDino.peaceful = true; zooDino.exhibit = true; zooDino.patrol = { ax: s.dino.x - 2, az: s.dino.z + 0.5, bx: s.dino.x + 2.5, bz: s.dino.z + 0.5, period: 9, phase: 0 }; Wild.list.push(zooDino); } } }
@@ -348,7 +358,7 @@ const Campaign = (() => {
     // the paddock: a pen built where Hale put the posts
     if (c.ranch === 1 && S.ranch) { if (!c.penQ) c.penQ = { kind: 'build', what: 'pen', site: { x: S.ranch.pen.x, z: S.ranch.pen.z } }; if (near(S.ranch.pen, p, 40)) { const m = Builds.measure(c.penQ); if (m.pass) { c.ranch = 2; c.paddock = true; UI.sfx('quest'); UI.toast('The paddock stands. Go and tell Dusty Hale.', 'good'); } } }
     // finding Tam in the snow
-    if (c.frost === 1 && S.snow && lostOf(S.snow) && near(lostOf(S.snow), p, 4)) { c.frost = 2; UI.toast('You found Tam. He is half frozen. Talk to him.', 'good'); }
+    if (c.frost === 1 && S.snow && lostOf(S.snow) && near(lostOf(S.snow), p, 4) && (cellOpen(lostOf(S.snow)) || c.cellOpen)) { c.frost = 2; UI.toast(lostOf(S.snow).hold ? 'You found Tam. Talk to him.' : 'You found Tam. He is half frozen. Talk to him.', 'good'); }
     // the nest: you have to come in on the glider
     if (c.glider === 1 && S.peak && S.peak.top && !c.skyEgg) {
       const s = S.peak; const onTop = Math.hypot(p.x - (s.nx + 0.5), p.z - (s.nz + 0.5)) < 2.8 && p.y >= s.top + 0.9 && p.y < s.top + 3;
@@ -390,13 +400,15 @@ const Campaign = (() => {
     }
     if (n.job === 'hand') return say([['Hale was thrown seven times before he stayed on anything.', 'Feed them berries. They remember.', 'Mind the back legs.'][Math.floor(Math.random() * 3)]]);
     if (n.job === 'snow') {
+      { const L = lostOf(S.snow); if (!c.frost && L && L.hold) return say(['Have you seen my brother? Tam went out after a white Kin three days ago and did not come back.', `A trapper saw the Bound drag him through the gate of ${L.holdName}, the dark hold out in the snow. They keep prisoners in there.`, 'The cold out there kills, and so do they. Take my broth: drink one and you will not freeze for a while. Please bring him back.'], () => { c.frost = 1; G.player.add('broth', 3); }); }
       if (!c.frost) return say(['Have you seen my brother? Tam went out after a white Kin three days ago and did not come back.', 'The cold out there kills. Take my broth: drink one and you will not freeze for a while. Stand by a fire if you can.', 'Out in the snow, that way somewhere. Please.'], () => { c.frost = 1; G.player.add('broth', 3); });
       if ((c.frost === 1 || c.frost === 2) && !G.player.has('broth')) return say(['Out of broth? Here, two more. Find him.'], () => G.player.add('broth', 2));
-      if (c.frost === 1 || c.frost === 2) return say(['Please. He went out into the snow.']);
+      if (c.frost === 1 || c.frost === 2) return say([lostOf(S.snow) && lostOf(S.snow).hold ? `He is in ${lostOf(S.snow).holdName}. Get him out of there.` : 'Please. He went out into the snow.']);
       if (c.frost === 3) return say(['Tam! You brought him back.', 'Take this. I sewed it for him, but he says you need it more: a Frost Cloak. The mountains will not freeze you now.'], () => { c.frost = 4; give('frostcloak'); });
       return say(['Stay warm.']);
     }
     if (n.job === 'lost') {
+      if (c.frost === 2 && lostOf(S.snow) && lostOf(S.snow).hold) return say(['You came in for me? Past all of them?', `I went after a white Kin in the snow and they were on me before I saw them. They have kept me in that cage since. ${lostOf(S.snow).holdName} is no place to be.`, 'I can walk. Tell Ysolde I am coming home.'], () => { c.frost = 3; const i = people.findIndex(x => x.id === 'tam'); if (i >= 0) people.splice(i, 1); });
       if (c.frost === 2) { const ok = P.count('torch') >= 3 && P.count('bread') >= 1; if (!ok) return say(['Cold. So cold. I cannot walk like this.', 'Three torches and something to eat. Please.']); return say(['Warmth. Food. Thank you.', 'I can make it home now. Tell Ysolde I am coming.'], () => { P.take('torch', 3); P.take('bread', 1); c.frost = 3; const i = people.findIndex(x => x.id === 'tam'); if (i >= 0) people.splice(i, 1); }); }
       return say(['Thank you.']);
     }
@@ -461,7 +473,7 @@ const Campaign = (() => {
     if (id === 'mines' && S.mine) return { x: S.mine.x, z: S.mine.z, note: 'the shaft' };
     if (id === 'diver') { if (c.bulbStep === 1 && S.diver && S.diver.chest) return { x: S.diver.chest.x, z: S.diver.chest.z, note: 'the sunken chest' }; return S.diver && { x: S.diver.x, z: S.diver.z, note: 'Marisol\'s pier' }; }
     if (id === 'ranch') { if (c.ranch === 1) return { x: S.ranch.pen.x, z: S.ranch.pen.z, note: 'the paddock posts' }; if (c.ranch === 2 && !c.rogueTamed) return { x: S.ranch.pen.x, z: S.ranch.pen.z, note: 'Thunderhoof, in the paddock' }; return S.ranch && { x: S.ranch.x, z: S.ranch.z, note: 'Hale\'s Ranch' }; }
-    if (id === 'frost') { c.snowKnown = true; if ((c.frost === 1 || c.frost === 2) && S.snow && lostOf(S.snow)) return { x: lostOf(S.snow).x, z: lostOf(S.snow).z, note: 'Tam' }; return S.snow && { x: S.snow.x, z: S.snow.z, note: 'the snow camp' }; }
+    if (id === 'frost') { c.snowKnown = true; if ((c.frost === 1 || c.frost === 2) && S.snow && lostOf(S.snow)) { const L = lostOf(S.snow); return { x: L.x, z: L.z, note: L.hold ? `Tam, held in ${L.holdName}` : 'Tam' }; } return S.snow && { x: S.snow.x, z: S.snow.z, note: 'the snow camp' }; }
     if (id === 'kinmaster' && S.fort) { const gate = { x: S.fort.x + (c.st_fort ? 30 : -18), z: S.fort.z }; const P = G.player; if (c.st_fort && S.fort.throne && !c.kinmaster && P && Math.hypot(P.x - gate.x, P.z - gate.z) < 50) return { x: S.fort.throne.x, z: S.fort.throne.z, note: 'the Kinmaster, on his throne' }; return Object.assign(gate, { note: 'Thornhold' }); } // the gate first, then the throne once you are at the walls
     if (id === 'lost' && !G.stats.lostMap) { if (!c.zoo && S.zoo) return { x: S.zoo.x, z: S.zoo.z, note: 'Quill\'s Menagerie' }; if (S.halfA && !c.mapA) return { x: S.halfA.x, z: S.halfA.z, note: 'Trapper Jo' }; if (S.halfB && !c.mapB) return { x: S.halfB.x, z: S.halfB.z, note: 'Old Sela' }; }
     if (id === 'glider') { c.peakKnown = true; if (c.glider === 1 && S.peak) return { x: S.peak.x, z: S.peak.z, note: 'the peak' }; return S.peak && { x: S.peak.x, z: S.peak.z, note: 'Old Wren\'s peak' }; }

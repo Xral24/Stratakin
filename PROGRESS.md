@@ -98,6 +98,8 @@ Scope (Alexander, 8 Nov evening): EVERYTHING visible goes to the same standard: 
 
 - Riding pose: cross-legged on top of the mount's back for every mount (thighs flat and out, shins folded across in front), sat at the torso's top and middle. Thigh turns use the full Ry*Rx*Rz knee position so the shin hangs from the right place.
 
+- Tam is a prisoner: when a dark hold stands within 320 of Ysolde's camp (every world checked so far), he is caged in iron bars in the hold's back courtyard corner (lost v4). Ysolde names the hold; the pin says 'Tam, held in X'; the cage gives once the hold's warriors are down (or the hold is already yours); Tam thanks you and walks home (frost 3). No hold near: the old snow shelter. Spellbound guards each say their own line, moving on each time you talk.
+
 ## Still to do
 UI polish as feedback comes in. Card battle screen still used for scripted encounters (raids at the walls, thief, citadel duel, holds) and the snare mini-game; converting those to live is the next big step if wanted. (Old list: train/ships, combat animation, eggs, avatar hair/paint, buddy WEAR cosmetics, Silas and Finch, UI polish (item icons), quality toggles in settings (state.shadows, state.grassQuality, state.dprCap).
 
