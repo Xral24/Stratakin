@@ -1,6 +1,6 @@
 // Shared headless harness: serves /home/claude/strata, opens a phone-sized page, exposes helpers.
 const { chromium } = require('playwright'); const http = require('http'); const fs = require('fs'); const path = require('path');
-const ROOT = require('path').join(__dirname, '..', '..', 'src'); const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.png': 'image/png' };
+const ROOT = process.env.ROOT || '/home/claude/strata'; const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.png': 'image/png' };
 async function open(opts = {}) {
   const server = http.createServer((req, res) => { const p = path.join(ROOT, req.url === '/' ? '/index.html' : req.url.split('?')[0]); fs.readFile(p, (err, data) => { if (err) { res.writeHead(404); res.end(); return; } res.writeHead(200, { 'Content-Type': MIME[path.extname(p)] || 'text/plain' }); res.end(data); }); });
   const port = opts.port || 8170 + Math.floor(Math.random() * 200);

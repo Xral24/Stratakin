@@ -29,85 +29,30 @@ New games now default to one shared world, seed "Stratakin" (an empty World box 
 
 4. **The mine's look.** The Mining Camp and the galleries below should look like a real working mine: timbering, rails, lamps and ore seams. The shaft ladder must stay one continuous ladder from the gallery floor to the surface (`openShaft()`, repair flag `c.mineShaftFix2`).
 
-5. **The creatures.** He wants every Kin to be beautiful, in the design language of Pokémon, Yu-Gi-Oh! monsters and Beyblade bit-beasts. That means:
-   - **silhouettes** you'd know in shadow;
-   - **colour** blocked out cleanly with one strong accent;
-   - **eyes** with life in them;
-   - **the element** readable at a glance;
-   - **evolutions** that grow from cute to fearsome.
-
-   Take the style, never a particular creature. Kin are built by a generator (`model(sp, stage)` in `js/kin.js`): a `switch (sp.shape)` over the body shapes, with feature flags in `sp.feat`, colours in `sp.colors` and the element from `dominant(sp.elem, 1)`.
-   - **The quadruped is already redone as a sample** (Friday 13 November). Check with him how he felt about it before carrying it further. It has:
-     - cub, youngster and adult proportions by stage;
-     - one signature per element, on tail, ears and mane: flame tail and mane, fin tail and dorsal fin, leaf crest and flower, rock plates and club tail, plume tail and feather ears, crystal spikes, lightning tail and zigzag ears, smoky mane and glowing tail, radiant ruff and halo;
-     - layered eyes: dark base, coloured iris, pupil and two glints, with a brow on adults;
-     - hocked hind legs.
-   - **Six invented quadruped body plans** followed the same evening, after he asked for creatures that are unique rather than one body re-dressed (his references were Squirtle to Blastoise, Charmander to Charizard, Bulbasaur, Dark Magician and Blue-Eyes White Dragon, for how distinct each design is, never to copy):
-     - **Bulwark** (replaced Cairnback, whose stones he found meaningless): a banded pup, then a scaled hunter, then a walking fortress with a shield crest and a mace tail.
-     - **Lanternstag:** a slender stag whose antlers are hung with lanterns.
-     - **Masker:** a cat behind a carved mask with glowing slits, a conjuror's collar and a second mask on its tail.
-     - **Mantlewalker:** wide and flat, with a cape of skin down each side, floating as an adult.
-     - **Anvilmaw:** a knuckle-walking forge brute with an anvil jaw and chimneys that breathe its element.
-     - **Glyphtail:** a big-eared fox with ribbon tails (one, two, then three) that ring into a glowing glyph circle.
-
-     Mounts (steed, fast, tame, dino) keep the horse-like body. Pick by `(seed % 997) % 6`. Gallery: `t-archgal.js`.
-   - **Round two, after his feedback.**
-     - **Evolutions change the body,** not just the count of something (he called one, two, three candles or tails "very basic"). Each stage changes proportions and grows new parts: shoulders, manes, capes, a furnace grate, swept-back ears.
-     - **Elements change the anatomy,** Eevee-style, through `infuse(A)` on each body's anchor points:
-       - **Flame:** a flame crest, flame tail, ember paws and fire horns.
-       - **Tide:** a dorsal fin, fork tail, neck frills and webbed feet.
-       - **Bloom:** a leaf, leaf collar and flowers.
-       - **Stone:** rock plates, boulder shoulders and a nose horn.
-       - **Gale:** feather tuft, ruff, wings and plume.
-       - **Frost:** crystals, an icicle beard and an ice crown.
-       - **Spark:** back bolts, cheek sparks and a bolt tail.
-       - **Void:** horns, a smoke mane and a wisp tail.
-       - **Light:** a ruff, halo and glowing tail.
-
-       Bulk also varies by element. Gallery: `t-archgal2.js`.
-     - **He liked** the Mantlewalker and the Frost Masker best.
-   - **Carry that approach across** biped, serpent, bird, blob and the rest: a library of invented body plans per shape, each with its own gimmick and three-stage arc, the element dressing whichever body it gets.
-   - **Gallery:** `t-quadgal.js` in the harness renders one per element at every stage. Copy it for the other shapes, and keep bone indices (head 1, legs 2-5, tail 6, wings 7/8) so the animation still works.
-
-6. **Evolution lines: the structure is in, the art is yours.** (Built Friday 13 November, after he asked for creatures that start from what they are: an animal, a habitat, a real creature you can recognise. Evolutions may change the body completely, like Magikarp into Gyarados, and lines may be one, two or three stages.)
-   - **Where it lives:** `LINES` in `js/kin.js`, by movement class (`land`, `water`) and element. Each line is one to three forms of `[shape, plan, anchor]`:
-     - `shape`: the body case in `model()`;
-     - `plan`: the quadruped body plan, or a label for the art to come (fish `minnow`/`shark`/`ray`/`seahorse`, serpent `seadragon`);
-     - `anchor`: the real creature it should read as, e.g. "ember sprite", "forge-king brute", "ray that learned to walk", "masked conjuror", "reef shark", "sea dragon".
-   - **How it works:**
-     - `lineOf(sp)` picks a line from the species seed. It is never saved, so old saves get it too.
-     - `maxStage(sp)` replaces the old fixed 3.
-     - `lookOf()` maps a stage to how grown-up it looks.
-     - `formOf()` is what `model()` draws.
-     - `maturity()` keeps stats on the same power curve whatever the length; a single-form Kin grows stronger by level.
-   - **Every step should change the body:** he found stage 2 to 3 too similar when a line kept the same plan, so three-stage lines now use a different body plan at each stage.
-   - **Four-legged Kin are finished on the new system** (Friday 13 November):
-     - **Land lines:** four per element, mixing the six plans plus blob starters.
-     - **Mounts:** a real horse plan, `steed`. Wild steeds go foal, colt, warhorse; camp horses, Thunderhoof and legendary steeds are full-grown warhorses (`steedFull`).
-     - **Legendary four-legged Kin:** a single grand form per element (`legend`).
-     - **Fusions** draw from the same lines.
-     - **Bipeds** are kept out on purpose: they get two-legged lines next.
-     - The saddle (`seatOf` in `js/main.js`) only looks at body blobs, so a neck or a mane never lifts the rider.
-   - **Behaviour still follows `sp.shape`** (swim, fly, ride), so a line only mixes bodies that move the same way.
-   - **What's excluded:** mounts, fusions, dinosaurs, legendaries and the scripted one-offs.
-   - **The jobs for you:**
-     - the art for the forms that are still the old generic bodies: blob, fish (with real minnow, shark, ray and seahorse bodies), serpent (a proper sea dragon), biped (the masked conjuror);
-     - more lines per element, built on real animals and habitats he can recognise at a glance (sea: minnow, seahorse, ray, orca, shark, eel and blends of them);
-     - air lines for the birds.
-   - **Gallery:** `t-lines.js`.
+5. **The creatures: designed, now yours to polish.** Every Kin has a body of its own (done Friday 13 and the early hours of Saturday 14 November, with him reviewing every sheet). Don't reinvent these; he signed off the ideas. Polish proportions, colour, silhouette and faces, keeping each design's idea.
+   - **How it's built.** `LINES` in `js/kin.js` holds the evolution lines by family (`land`, `biped`, `bird`, `serpent`, `floater`, `water` for fish, `legend`, plus `steed`/`steedFull` for horses) and element. Each element has three or four lines of one to three forms; a form is `[shape, plan, name]`. `lineOf(sp)` picks one from the seed (never saved, so old saves follow), `formOf()` gives the body for a stage, and `model()` draws it.
+   - **Where each design lives.** Every `plan` is a bespoke design inside its shape's case in `model()`, guarded by a set: `QD` (four-legged, in the quadruped case, including the nine legendaries), `BPD` (bipeds), `BRD` (birds), `SRP` (serpents), `FLT` (floaters, in the `default` case), `FSH` (fish). Round starters are the `BP` sub-switch in the blob case. Each family has its own small kit of helpers at the top of its block (heads, legs, wings, fins, body paths). The six original body plans (bulwark, lanternstag, masker, mantlewalker, anvilmaw, glyphtail) now only appear as some starters.
+   - **The rules he set, which every change must keep:**
+     - each line starts from something real (an animal, a plant, a thing) and evolves logically: coal into smog into a walking volcano, not coal into a deer;
+     - no two forms in an element share a body at the same stage, and starters are all different from each other;
+     - every step changes the body, stage 2 to 3 included (stage-3 birds hold their wings open for this reason);
+     - Kin, not plain animals: each grows its element (he called the first birds "normal birds" and the peafowl "a normal pheasant" until they did);
+     - in the spirit of Pokémon, Yu-Gi-Oh! and Beyblade, never copying a creature (a yellow kangaroo with bolt-tipped ears was pulled for looking like Pikachu).
+   - **What he liked:** the round starters, the two-legged lines, the redesigned fish (bubble-fin fry to waterspout rider, galleon sailfish, living fossil) and floaters (raindrop, fountain sprite, tide moon, abyssal seraph).
+   - **Sheets:** `tools/test/t-allines.js` (four-legged), `t-bipeds.js`, `t-birds.js`, `t-serps.js`, `t-floats.js`, `t-fish.js`, `t-legends.js`. Each writes one PNG per element to `$OUT`. `t-verts.js` lists parts and vertices per form, heaviest first (World Stag is the top at about 25k).
+   - **Not yet checked in the game, only in sheets:** how birds look flying (wings are drawn folded, flight flaps them), riding the new bodies (`seatOf` in `js/main.js` sits the rider on the biggest body blob), and hover heights for floaters and the waterspout rider. Long serpents read small on sheets because the whole body has to fit.
 
 ## House rules
 
 - **Commit and push after every piece**, then publish the artifact:
-  - Working copy: `/home/claude/strata`. Sync into the repo with `cp -r strata/. stratakin/src/`, then `python3 tools/build.py` in `/home/claude/stratakin`.
+  - The sources are in `src/` in the repo. `python3 tools/build.py` builds the single-file game to `index.html` at the repo root; that file is exactly what gets published.
   - Commit as `git -c user.name=Xral24 -c user.email=xral24@users.noreply.github.com commit`, ending the message with the Co-Authored-By and Claude-Session lines, then `git push -q origin HEAD`.
-  - Build the single file with `python3 /home/claude/build-single.py`, then publish `/home/claude/stratakin-3files/index.html` to artifact slug `95c42275-5e63-4850-a378-dd4d1b3950d6`, chaining `base_version`.
+  - Publish the repo's `index.html` to artifact slug `95c42275-5e63-4850-a378-dd4d1b3950d6` as `index.html`, chaining `base_version` (get the live one with get_artifact first).
   - Add a line to `PROGRESS.md` before `## Still to do` each time.
 - **Phone first.** The budget is about 2.3M vertices a frame after the last optimisation pass. Build detail in blocks and in the chunk mesher, not as entities, and check the fps readout stays reasonable.
 - **Old saves must keep working.** A place that is already stamped needs a repair flag to restamp, the way `mineShaftFix2` and `pierWays` do.
 - **Writing in the game and to him:** direct and informal, no em dashes, no rule-of-three lists, no templated structure. Villagers are humanoid folk. "Indians" stay "Indians".
-- **Test harness:** `/home/claude/strata-test`, `ROOT=/home/claude/strata node t-*.js`. `t-smoke.js` covers every layer, `t-sweep.js` walks every quest pin, `t-audit*.js` checks camp people stand on the ground, and `t-brief.js` takes a screenshot of each place above. Headless is slow, so give screenshots a few seconds.
+- **Test harness:** `tools/test/` (Playwright; `npm i playwright`, Chromium with SwiftShader). Run as `ROOT=<repo>/src OUT=/tmp/ node tools/test/t-*.js`. `t-smoke.js` covers every layer, `t-sweep.js` walks every quest pin, `t-sink4.js` checks a Kin stands on the drawn slope, and the creature sheets are listed above. Headless is slow, so give screenshots a few seconds. Filter the console noise with `grep -v "proxy\|fonts\|Allowed\|On the Free\|For details\|connect\|SdkHttp\|Treat this"`.
+- **Ground:** the soil is drawn as smooth slopes between block corners. Anything that stands on it should use `R.standY(world, x, z, blockTop, radius)`, which the buddy and wild Kin now do; the player has its own version in `js/player.js`.
+- **Gotcha:** in a one-line JS edit, a `//` comment swallows the rest of the line. Use `/* */`.
 
-
-## Update, 13 November: every Kin now has a designed body
-All seven families have evolution lines with bespoke forms in js/kin.js (LINES: land, biped, bird, serpent, floater, water, legend), three lines per element, each anchored to a real animal or thing and evolving logically. Your job on the creatures is now polish rather than invention: proportions, colour, silhouette and faces, keeping each design's idea. Alexander has signed off the direction; the sheets he liked best are the starters, the two-legged lines and the redesigned fish and floaters.
