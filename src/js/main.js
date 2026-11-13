@@ -199,6 +199,8 @@ G.rideable = function () {
 };
 // flying Kin need open sky and air: not in the Mines, not in the Core, not on the airless worlds
 G.noKinFlight = function () { const p = this.player, w = this.world; if (w.preset.airless) return true; const L = w.layerAt(Math.floor(p.y), Math.floor(p.x), Math.floor(p.z)); return L === 'Mines' || L === 'Core'; };
+// where the mount's feet are drawn: on the ground it stands on the visible surface, in the water it sits low like a swimmer
+G.mountBase = function (p) { return p.inWater ? p.y - 0.95 : p.y + p.drawLift(); };
 G.mountKin = function (k) { const p = this.player; const mode = this.rideMode(k); if (!mode) return; p.mount = k; p.mountMode = mode; UI.sfx('util'); UI.toast(`You climb onto ${KIN.name(k)}.`); };
 G.toast = function (m, c) { UI.toast(m, c); };
 G.toggleCamera = function () { this.thirdPerson = !this.thirdPerson; if (this.orbit) { if (this.thirdPerson) { this.orbit.yaw = this.player.yaw; this.orbit.pitch = this.player.pitch; } else this.player.yaw = this.orbit.yaw; } UI.toast(this.thirdPerson ? 'Third person. You can see yourself now; V or the menu switches back.' : 'First person.'); };
@@ -826,8 +828,8 @@ G.loop = function (t) {
     const sp = Math.hypot(p.vx, p.vz, p.vy || 0); if (sp > 1.5 && Math.random() < Math.min(0.9, sp * 0.08)) { const b = U.forwardVec(p.yaw, 0); Hazards.sparks(p.x - b[0] * 1.7, p.y - 0.4, p.z - b[2] * 1.7, 2, [0.5, 0.9, 1.0], 1.2); }
   }
   const showMe = inBattle || this.thirdPerson || this.talkK > 0 || !!p.mount || this.grassCamOn;
-  if (showMe) { const me = Avatar.entity(p, Math.hypot(p.vx, p.vz) > 0.6); if (p.mount) { const mm = KIN.model(p.mount.sp, p.mount.stage); me.y = p.y - 0.75 + mm.height * 0.62; } ents.push(me); }
-  if (p.mount) { const k = p.mount; const m = KIN.dress(KIN.model(k.sp, k.stage), k.wear); const fwd = U.forwardVec(p.yaw, 0); if (!k._an) k._an = { ph: 0, mv: 0, lx: p.x, lz: p.z, ly: p.y, lt: performance.now(), vy: 0, seed: 5, air: 0 }; k._an.swim = p.mountMode === 'water' ? 1 : 0; ents.push({ x: p.x + fwd[0] * 0.5, y: p.y - 0.75 + (p.inWater ? -0.2 : 0), z: p.z + fwd[2] * 0.5, yaw: p.yaw + Math.PI, model: m, mesh: R.entityMesh(KIN.meshKey(k.sp, k.stage) + KIN.wearKey(k.wear), (mb) => KIN.buildMesh(mb, m)), scale: 1, hover: 0, skyMul: 1, isMount: true, flying: p.mountMode === 'air' && !p.onGround, _an: k._an }); }
+  if (showMe) { const me = Avatar.entity(p, Math.hypot(p.vx, p.vz) > 0.6); if (p.mount) { const mm = KIN.model(p.mount.sp, p.mount.stage); me.y = G.mountBase(p) + mm.height * 0.62; } ents.push(me); }
+  if (p.mount) { const k = p.mount; const m = KIN.dress(KIN.model(k.sp, k.stage), k.wear); const fwd = U.forwardVec(p.yaw, 0); if (!k._an) k._an = { ph: 0, mv: 0, lx: p.x, lz: p.z, ly: p.y, lt: performance.now(), vy: 0, seed: 5, air: 0 }; k._an.swim = p.mountMode === 'water' ? 1 : 0; ents.push({ x: p.x + fwd[0] * 0.5, y: G.mountBase(p), z: p.z + fwd[2] * 0.5, yaw: p.yaw + Math.PI, model: m, mesh: R.entityMesh(KIN.meshKey(k.sp, k.stage) + KIN.wearKey(k.wear), (mb) => KIN.buildMesh(mb, m)), scale: 1, hover: 0, skyMul: 1, isMount: true, flying: p.mountMode === 'air' && !p.onGround, _an: k._an }); }
   ents.push(...Battle.fxEntities()); ents.push(...Sky.puffEntities()); ents.push(...Wild.dropEntities()); ents.push(...Buddy.entities()); ents.push(...Felling.entities()); ents.push(...Combat.entities()); ents.push(...Hazards.entities()); ents.push(...Npcs.entities());
   for (const o of w.statues.values()) {
     if ((o.x - p.x) ** 2 + (o.z - p.z) ** 2 > 4000) continue;
