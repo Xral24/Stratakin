@@ -69,6 +69,25 @@ New games now default to one shared world, seed "Stratakin" (an empty World box 
    - **Carry that approach across** biped, serpent, bird, blob and the rest: a library of invented body plans per shape, each with its own gimmick and three-stage arc, the element dressing whichever body it gets.
    - **Gallery:** `t-quadgal.js` in the harness renders one per element at every stage. Copy it for the other shapes, and keep bone indices (head 1, legs 2-5, tail 6, wings 7/8) so the animation still works.
 
+6. **Evolution lines: the structure is in, the art is yours.** (Built Friday 13 November, after he asked for creatures that start from what they are: an animal, a habitat, a real creature you can recognise. Evolutions may change the body completely, like Magikarp into Gyarados, and lines may be one, two or three stages.)
+   - **Where it lives:** `LINES` in `js/kin.js`, by movement class (`land`, `water`) and element. Each line is one to three forms of `[shape, plan, anchor]`:
+     - `shape`: the body case in `model()`;
+     - `plan`: the quadruped body plan, or a label for the art to come (fish `minnow`/`shark`/`ray`/`seahorse`, serpent `seadragon`);
+     - `anchor`: the real creature it should read as, e.g. "ember sprite", "forge-king brute", "ray that learned to walk", "masked conjuror", "reef shark", "sea dragon".
+   - **How it works:**
+     - `lineOf(sp)` picks a line from the species seed. It is never saved, so old saves get it too.
+     - `maxStage(sp)` replaces the old fixed 3.
+     - `lookOf()` maps a stage to how grown-up it looks.
+     - `formOf()` is what `model()` draws.
+     - `maturity()` keeps stats on the same power curve whatever the length; a single-form Kin grows stronger by level.
+   - **Behaviour still follows `sp.shape`** (swim, fly, ride), so a line only mixes bodies that move the same way.
+   - **What's excluded:** mounts, fusions, dinosaurs, legendaries and the scripted one-offs.
+   - **The jobs for you:**
+     - the art for the forms that are still the old generic bodies: blob, fish (with real minnow, shark, ray and seahorse bodies), serpent (a proper sea dragon), biped (the masked conjuror);
+     - more lines per element, built on real animals and habitats he can recognise at a glance (sea: minnow, seahorse, ray, orca, shark, eel and blends of them);
+     - air lines for the birds.
+   - **Gallery:** `t-lines.js`.
+
 ## House rules
 
 - **Commit and push after every piece**, then publish the artifact:

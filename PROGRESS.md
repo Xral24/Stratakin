@@ -116,6 +116,8 @@ Scope (Alexander, 8 Nov evening): EVERYTHING visible goes to the same standard: 
 
 - Kin polish pass: darker socks below the knee from stage 2, chest tufts on the young, softer Anvilmaw shoulders, jaw and knuckles, rounder Bulwark plates with lava glowing between them on Flame (no hoops), the Masker kitten's half-mask a band across its eyes.
 
+- Evolution lines: LINES (land/water by element), each line 1 to 3 forms that may change body plan (jelly to walking ray, ember sprite to forge brute, minnow to shark to sea dragon, wisp to masked conjuror). lineOf/maxStage/lookOf/formOf/maturity; model draws the stage's form; evolution, names, stats and the Kin panel follow the line's length. Behaviour still keys on sp.shape. Worked out from the species, never saved.
+
 ## Still to do
 UI polish as feedback comes in. Card battle screen still used for scripted encounters (raids at the walls, thief, citadel duel, holds) and the snare mini-game; converting those to live is the next big step if wanted. (Old list: train/ships, combat animation, eggs, avatar hair/paint, buddy WEAR cosmetics, Silas and Finch, UI polish (item icons), quality toggles in settings (state.shadows, state.grassQuality, state.dprCap).
 

@@ -305,24 +305,61 @@ const KIN = (() => {
     ];
   }
 
+  // ---- evolution lines: what a Kin IS, and what it grows into ----
+  // A line is one to three forms. Each form names a body ([shape, plan]) and the real creature it is built on, so Fable (or
+  // anyone) knows what each stage should read as. A line may change body plan as it grows (a little fish into a sea dragon,
+  // an ember sprite into a forge brute). Behaviour (how it moves, whether it swims, flies or can be ridden) still follows the
+  // species' own sp.shape, so lines only mix bodies that move the same way: land with land, water with water.
+  // Mounts, fusions, dinosaurs, legendaries and the scripted one-offs keep their single fixed body.
+  const LINES = {
+    land: {
+      Tide: [[['blob', null, 'tidepool jelly'], ['quadruped', 'mantlewalker', 'ray that learned to walk'], ['quadruped', 'mantlewalker', 'manta drifting over the shallows']], [['quadruped', 'glyphtail', 'otter kit'], ['quadruped', 'glyphtail', 'river otter-fox']]],
+      Flame: [[['blob', null, 'ember sprite'], ['quadruped', 'anvilmaw', 'forge pup'], ['quadruped', 'anvilmaw', 'forge-king brute']], [['quadruped', 'glyphtail', 'fire fox kit'], ['quadruped', 'glyphtail', 'fire fox'], ['quadruped', 'glyphtail', 'many-tailed flame fox']]],
+      Bloom: [[['blob', null, 'seed pod'], ['quadruped', 'lanternstag', 'sapling fawn'], ['quadruped', 'lanternstag', 'forest stag in flower']], [['quadruped', 'bulwark', 'moss-backed pangolin']]],
+      Stone: [[['blob', null, 'pebble'], ['quadruped', 'bulwark', 'scaled burrower'], ['quadruped', 'bulwark', 'walking fortress']], [['quadruped', 'anvilmaw', 'quarry bulldog'], ['quadruped', 'anvilmaw', 'mountain brute']]],
+      Gale: [[['quadruped', 'glyphtail', 'wind fox kit'], ['quadruped', 'glyphtail', 'wind fox'], ['quadruped', 'glyphtail', 'sky fox that walks on air']], [['quadruped', 'lanternstag', 'cloud deer']]],
+      Frost: [[['quadruped', 'masker', 'snow kitten'], ['quadruped', 'masker', 'ice lynx in a crystal mask']], [['blob', null, 'snowball imp'], ['quadruped', 'bulwark', 'frost armadillo'], ['quadruped', 'bulwark', 'glacier fortress']]],
+      Spark: [[['blob', null, 'static spark'], ['quadruped', 'glyphtail', 'bolt fox'], ['quadruped', 'glyphtail', 'storm fox']], [['quadruped', 'mantlewalker', 'storm ray']]],
+      Void: [[['blob', null, 'shadow wisp'], ['biped', null, 'masked conjuror']], [['quadruped', 'masker', 'shadow kitten'], ['quadruped', 'masker', 'phantom cat'], ['quadruped', 'masker', 'caped night stalker']]],
+      Light: [[['quadruped', 'lanternstag', 'glow fawn'], ['quadruped', 'lanternstag', 'lantern stag'], ['quadruped', 'lanternstag', 'elk-king of lanterns']], [['blob', null, 'firefly mote'], ['quadruped', 'glyphtail', 'halo fox']]]
+    },
+    water: {
+      Tide: [[['fish', 'minnow', 'river minnow'], ['fish', 'shark', 'reef shark'], ['serpent', 'seadragon', 'sea dragon']], [['fish', 'seahorse', 'seahorse'], ['fish', 'ray', 'ray']]],
+      _: [[['fish', 'minnow', 'minnow'], ['fish', 'shark', 'shark']], [['fish', 'ray', 'ray']]]
+    }
+  };
+  const LAND_LINE = new Set(['quadruped', 'biped', 'blob']);
+  function lineClass(sp) { if (!sp || sp.steed || sp.fast || sp.tame || sp.dino || sp.mythic || sp.neon || sp.fusedFrom || (sp.rarity || 0) >= 4) return null; if (LAND_LINE.has(sp.shape)) return 'land'; if (sp.shape === 'fish') return 'water'; return null; }
+  function lineOf(sp) {
+    if (sp._line !== undefined) return sp._line; const cls = lineClass(sp); if (!cls) return (sp._line = null);
+    const el = dominant(sp.elem || [], 1)[0]; const T = LINES[cls]; const opts = T[el] || T._ || null; if (!opts) return (sp._line = null);
+    const pick = opts[((sp.seed >>> 0) % 1009) % opts.length];
+    Object.defineProperty(sp, '_line', { value: pick, enumerable: false, writable: true }); return pick; // not saved: worked out again from the species every time
+  }
+  function maxStage(sp) { const L = lineOf(sp); return L ? L.length : 3; }
+  // how grown-up a stage looks (1 young, 2 middle, 3 full): a two-stage line goes young to full, a single form is full-grown
+  function lookOf(sp, stage) { const n = maxStage(sp); const st = Math.min(stage || 1, n); return n === 1 ? 3 : n === 2 ? (st === 1 ? 1 : 3) : st; }
+  function formOf(sp, stage) { const L = lineOf(sp); if (!L) return { shape: sp.shape, plan: null, anchor: null, look: Math.min(3, stage || 1) }; const f = L[Math.min(stage || 1, L.length) - 1]; return { shape: f[0], plan: f[1], anchor: f[2], look: lookOf(sp, stage) }; }
+  // the power that comes with growing up, on the same curve whatever the line's length (a single-form Kin grows into it by level)
+  function maturity(k) { const n = maxStage(k.sp); if (n === 1) return k.level >= k.sp.evolveAt[1] ? 2 : k.level >= k.sp.evolveAt[0] ? 1 : 0; return (Math.min(k.stage, n) - 1) * 2 / (n - 1); }
   // ---- individuals ----
   function create(sp, level, rng) {
     const r = rng || U.rng(Math.floor(Math.random() * 1e9));
     const iv = {}; for (const k of STAT_KEYS) iv[k] = 0.92 + r() * 0.16;
-    let stage = 1; while (stage < 3 && level >= sp.evolveAt[stage - 1]) stage++;
+    let stage = 1; while (stage < maxStage(sp) && level >= sp.evolveAt[stage - 1]) stage++;
     const k = { id: Math.floor(r() * 1e9), sp, level, xp: 0, iv, stage, hp: 0, status: null, nick: null };
     k.hp = stats(k).hp;
     return k;
   }
   function stats(k) {
-    const g = growth(k.level) * (1 + 0.22 * (k.stage - 1)) * Math.pow(1.08, k.sp.gen || 0);
+    const g = growth(k.level) * (1 + 0.22 * maturity(k)) * Math.pow(1.08, k.sp.gen || 0);
     const s = {};
     for (const key of STAT_KEYS) s[key] = Math.max(1, Math.round(k.sp.base[key] * g * k.iv[key]));
     s.hp = Math.round(s.hp * 2.2);
     if (k.equip) for (const slot in k.equip) { const id = k.equip[slot], it = ITEMS[id]; if (it && it.boost) { const m = it.relic && typeof Relics !== 'undefined' ? Relics.mul(id) : 1; for (const key in it.boost) s[key] = Math.round(s[key] * (1 + it.boost[key] * m)); } }
     return s;
   }
-  function name(k) { return k.nick || k.sp.names[k.stage - 1]; }
+  function name(k) { return k.nick || k.sp.names[lookOf(k.sp, k.stage) - 1] || k.sp.names[0]; }
   // techniques: a fourth move learned in an incubator, one per element, stronger than anything the wild teaches
   const TECH = {
     Flame: { name: 'Inferno', elem: 'Flame', kind: 'spec', power: 96, acc: 0.85, crit: true, desc: 'Burns hot; crits often.' },
@@ -375,7 +412,7 @@ const KIN = (() => {
       k.xp -= xpToNext(k.level); k.level++;
       const before = stats(k).hp;
       events.push({ type: 'level', level: k.level });
-      if (k.stage < 3 && k.level >= k.sp.evolveAt[k.stage - 1]) {
+      if (k.stage < maxStage(k.sp) && k.level >= k.sp.evolveAt[k.stage - 1]) {
         k.stage++; events.push({ type: 'evolve', name: name(k) });
       }
       const after = stats(k).hp; k.hp = Math.min(after, k.hp + (after - before));
@@ -454,6 +491,7 @@ const KIN = (() => {
   // Parts are boxes {x,y,z,w,h,d} (kept for hats, tools and the like), blobs (box rounded toward its ellipsoid), tubes (rings along
   // a path) and plates (flat polygons). Each carries a colour, an emissive flag and a bone index; buildMesh turns them into geometry.
   function model(sp, stage) {
+    const form = formOf(sp, stage); const shape = form.shape; stage = form.look; // the body this stage has, drawn as grown-up as it looks
     const s = (sp.size || 1) * (stage === 1 ? 0.78 : stage === 2 ? 1.05 : 1.4) * (1 + 0.04 * Math.min(6, sp.gen || 0));
     const C = sp.colors; const f = sp.feat || {}; const dm = sp.dims || { w: 1, l: 1, h: 1 };
     const SX = s * dm.w, SY = s * dm.h, SZ = s * dm.l, SR = s * Math.sqrt(dm.w * dm.h); // SR: a scale for radii
@@ -490,8 +528,8 @@ const KIN = (() => {
         tube([[sd * sx, sy, sz + 0.08], [sd * (sx + L * 0.4), sy + L * 0.2, sz + 0.06], [sd * (sx + L * 0.78), sy + L * 0.26, sz]], [0.05, 0.04, 0.025], C.dark, { segs: 5, cap0: 'round', cap1: 'round' });
       } bone = 0;
     };
-    let hover = 0, legLen = 0.5, kind = sp.shape, flyer = false, sway = null;
-    switch (sp.shape) {
+    let hover = 0, legLen = 0.5, kind = shape, flyer = false, sway = null;
+    switch (shape) {
       case 'quadruped': {
         // Redrawn in the spirit of the great creature designs: a clear silhouette, one strong elemental signature, eyes with
         // character, and evolutions you can see. Stage 1 is a cub (big head, big eyes, short legs), stage 2 a lean youngster,
@@ -500,7 +538,7 @@ const KIN = (() => {
         // ---- the body plans. Mounts (steeds, horses) keep the horse-like body below; every other four-legged Kin is one of
         // six invented creatures, picked by its seed, each with a gimmick of its own and an arc across its three stages.
         const ARCH = ['bulwark', 'lanternstag', 'masker', 'mantlewalker', 'anvilmaw', 'glyphtail'];
-        const arch = (sp.steed || sp.fast || sp.tame || sp.dino) ? 'steed' : ARCH[((sp.seed >>> 0) % 997) % ARCH.length];
+        const arch = (sp.steed || sp.fast || sp.tame || sp.dino) ? 'steed' : form.plan && ARCH.includes(form.plan) ? form.plan : ARCH[((sp.seed >>> 0) % 997) % ARCH.length];
         if (arch !== 'steed') {
           const glw = hexMix(C.accent, '#ffffff', 0.3), pawC = hexMix(C.dark, C.belly, 0.2);
           const look = (ex, ey, ez, er, o = {}) => { // layered eyes: dark base, coloured iris, pupil, two glints; an adult's brow
@@ -1181,5 +1219,5 @@ const KIN = (() => {
   function serialize(k) { return { id: k.id, sp: k.sp, level: k.level, xp: k.xp, iv: k.iv, stage: k.stage, hp: k.hp, nick: k.nick, equip: k.equip || null, tech: k.tech || null, wear: k.wear || null, trust: k.trust || 0, tamed: k.tamed || false }; }
   function deserialize(d) { return Object.assign({ status: null }, d); }
 
-  return { partHelpers, dress, wearKey, E, EI, CHART, STAT_KEYS, STAT_NAMES, growth, xpToNext, dominant, species, speciesForContext, dex, bySeed, HABITATS, capOf, recipes, findRecipe, fuseRecipe, mythicSpecies, legendSpecies, apexSpecies, wardenSpecies, MAX_LEVEL, TECH, techFor, techByName, starters, create, stats, name, moves, effectiveness, gainXp, fuse, fusionLevel, TRAITS, RARITY, roster, buildUniverse, decorate, makeStatue, statueModel, shardsFor, model, buildMesh, meshKey, portrait, serialize, deserialize, UTIL_DESC, eggModel, eggPortrait };
+  return { LINES, lineOf, maxStage, lookOf, formOf, partHelpers, dress, wearKey, E, EI, CHART, STAT_KEYS, STAT_NAMES, growth, xpToNext, dominant, species, speciesForContext, dex, bySeed, HABITATS, capOf, recipes, findRecipe, fuseRecipe, mythicSpecies, legendSpecies, apexSpecies, wardenSpecies, MAX_LEVEL, TECH, techFor, techByName, starters, create, stats, name, moves, effectiveness, gainXp, fuse, fusionLevel, TRAITS, RARITY, roster, buildUniverse, decorate, makeStatue, statueModel, shardsFor, model, buildMesh, meshKey, portrait, serialize, deserialize, UTIL_DESC, eggModel, eggPortrait };
 })();

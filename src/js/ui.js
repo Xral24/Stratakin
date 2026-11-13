@@ -335,7 +335,7 @@ const UI = (() => {
     setTitle(KIN.name(k));
     const mv = KIN.moves(k);
     const elems = k.sp.elem.map((w, i) => ({ e: KIN.E[i], w })).filter(x => x.w > 0.04).sort((a, b) => b.w - a.w);
-    const next = k.stage < 3 ? `Evolves at Lv ${k.sp.evolveAt[k.stage - 1]}` : 'Final form';
+    const next = k.stage < KIN.maxStage(k.sp) ? `Evolves at Lv ${k.sp.evolveAt[k.stage - 1]}` : KIN.maxStage(k.sp) === 1 ? 'A single form: it grows stronger, not different' : 'Final form';
     const st0 = KIN.stats(k); const lead = k === G.activeKin();
     el['panel-body'].innerHTML = `<div class="detail">${portraitHtml(k, 132)}<div class="dhead">
       <div class="krow"><b>Lv ${k.level}</b> · stage ${k.stage}${lead ? ' <span class="tag">lead</span>' : ''}</div>
