@@ -29,6 +29,22 @@ New games now default to one shared world, seed "Stratakin" (an empty World box 
 
 4. **The mine's look.** The Mining Camp and the galleries below should look like a real working mine: timbering, rails, lamps and ore seams. The shaft ladder must stay one continuous ladder from the gallery floor to the surface (`openShaft()`, repair flag `c.mineShaftFix2`).
 
+5. **The creatures.** He wants every Kin to be beautiful, in the design language of Pokémon, Yu-Gi-Oh! monsters and Beyblade bit-beasts. That means:
+   - **silhouettes** you'd know in shadow;
+   - **colour** blocked out cleanly with one strong accent;
+   - **eyes** with life in them;
+   - **the element** readable at a glance;
+   - **evolutions** that grow from cute to fearsome.
+
+   Take the style, never a particular creature. Kin are built by a generator (`model(sp, stage)` in `js/kin.js`): a `switch (sp.shape)` over the body shapes, with feature flags in `sp.feat`, colours in `sp.colors` and the element from `dominant(sp.elem, 1)`.
+   - **The quadruped is already redone as a sample** (Friday 13 November) and he liked the direction. It has:
+     - cub, youngster and adult proportions by stage;
+     - one signature per element, on tail, ears and mane: flame tail and mane, fin tail and dorsal fin, leaf crest and flower, rock plates and club tail, plume tail and feather ears, crystal spikes, lightning tail and zigzag ears, smoky mane and glowing tail, radiant ruff and halo;
+     - layered eyes: dark base, coloured iris, pupil and two glints, with a brow on adults;
+     - hocked hind legs.
+   - **Carry that approach across** biped, serpent, bird, blob and the rest.
+   - **Gallery:** `t-quadgal.js` in the harness renders one per element at every stage. Copy it for the other shapes, and keep bone indices (head 1, legs 2-5, tail 6, wings 7/8) so the animation still works.
+
 ## House rules
 
 - **Commit and push after every piece**, then publish the artifact:
