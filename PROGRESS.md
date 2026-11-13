@@ -104,6 +104,8 @@ Scope (Alexander, 8 Nov evening): EVERYTHING visible goes to the same standard: 
 
 - The Kinmaster's own Kin, the hold warlords' and the Citadel's first can be snared now too (live: dazed window; battle: the stun window's Snare). Only the final fight refuses a cage.
 
+- Boss Kin (tyrant's, warlords', the Kinmaster's, the Citadel's first): catch chance ×0.3 and no stun bonus, the snare game is faster and needs at least two hits, and you get one try: if it breaks free it falls and the fight is won. The stun button says 'one chance'.
+
 ## Still to do
 UI polish as feedback comes in. Card battle screen still used for scripted encounters (raids at the walls, thief, citadel duel, holds) and the snare mini-game; converting those to live is the next big step if wanted. (Old list: train/ships, combat animation, eggs, avatar hair/paint, buddy WEAR cosmetics, Silas and Finch, UI polish (item icons), quality toggles in settings (state.shadows, state.grassQuality, state.dprCap).
 

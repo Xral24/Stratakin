@@ -8447,12 +8447,13 @@ const Battle = (() => {
   }
   // ---- snare mini-game ----
   let snareState = null;
+  const bossKin = () => !!(wildE && (wildE.isBoss || wildE.kinmaster || wildE.keepBoss || wildE.citadelFirst));
   function catchChance() {
     const st = KIN.stats(wild); const frac = wild.hp / st.hp;
     const item = snareRule().list[0] || 'snare';
     let c = stealth ? ITEMS[item].snare * (wildE && wildE.alert < 0.5 ? 0.6 : 0.45) : ITEMS[item].snare * (1 - frac * 0.8);
     if (wild.level > mine.level + 3) c *= 0.75;
-    if (stunned || (stunUsed && wild.hp <= strongestHit())) c *= 1.8; // stunned: much easier to hold
+    if ((stunned || (stunUsed && wild.hp <= strongestHit())) && !bossKin()) c *= 1.8; // stunned: much easier to hold (a boss's Kin does not give you that)
     // the level gap: a little above you is fair, 20% above is a long shot, twice your level and nothing holds it
     const grip = 2 * Math.max(1, G.trainerLevel || 1); // snare strength: twice your trainer level, not your Kin's level
     const gap = wild.level / grip;
@@ -8461,7 +8462,7 @@ const Battle = (() => {
     else if (gap > 1) c *= 1 - (gap - 1) * 2.25;
     if (ambush && !stealth) c *= 1.25;
     c *= KIN.RARITY[wild.sp.rarity || 0].catch;
-    if (wildE && wildE.isBoss) c *= 0.7;
+    if (bossKin()) c *= 0.3; // a tyrant's, a warlord's or the Kinmaster's own: very hard to hold, never quite impossible
     if (typeof Npcs !== 'undefined' && Npcs.active('hunter')) c *= 1.5; // the Hunter's Amulet
     if (G.buffMul) c *= G.buffMul('luck');
     if (wild.sp.mythic || wild.sp.legend) c = frac < 0.15 ? Math.min(c, 0.5) : Math.min(c, 0.12);
@@ -8477,7 +8478,7 @@ const Battle = (() => {
     log(`${KIN.name(wild)} staggers, stunned! Snare it now, or let it fall.`, 'good'); G.sfx('win'); if (G.knockout) G.knockout();
     stunned = true; let left = 4.0;
     const rule = snareRule(); const can = rule.list.length > 0; const cc = can ? catchChance() : null;
-    const what = !can ? rule.why : cc.hopeless ? `too strong to hold yet (Lv ${wild.level}; raise your trainer level)` : `${ITEMS[rule.list[0]].name} · about ${Math.round(Math.min(1, cc.chance * 1.8) * 100)}%`;
+    const what = !can ? rule.why : cc.hopeless ? `too strong to hold yet (Lv ${wild.level}; raise your trainer level)` : `${ITEMS[rule.list[0]].name} · about ${Math.max(1, Math.round(Math.min(1, cc.chance * (bossKin() ? 1 : 1.8)) * 100))}%${bossKin() ? ' · one chance' : ''}`;
     el.actions.innerHTML = `<button class="act snare stun" data-a="stunsnare" ${can && !cc.hopeless ? '' : 'disabled'}><b>Snare it!</b><small>${what} · <span id="stun-left">4</span>s</small><i class="stunbar"><i id="stun-fill"></i></i></button><button class="act" data-a="finish"><b>Finish it</b><small>win the fight</small></button>`;
     const fill = document.getElementById('stun-fill');
     const done = (snare) => { if (!stunned) return; stunned = false; clearInterval(stunTimer); stunTimer = null; if (snare) { busy = false; beginSnare(); } else { wild.hp = 0; refresh(); log(`${KIN.name(wild)} is defeated!`, 'good'); G.sfx('win'); end('won'); } };
@@ -8500,7 +8501,7 @@ const Battle = (() => {
     let period = U.clamp(2.3 - st.agi / 110, 0.75, 2.3) * [1, 0.95, 0.85, 0.65, 0.45][rar];
     if (gap > 1.2) period *= U.clamp(1 - (gap - 1.2) * 0.9, 0.25, 1); // a strong Kin fights the cage: the marker races
     if (hopeless) period = 0.08;
-    snareState = { item, width, left, period, hopeless, t0: performance.now(), done: false, hits: 0, need: rar >= 4 ? 3 : rar === 3 ? 2 : 1 };
+    snareState = { item, width, left, period: bossKin() ? period * 0.8 : period, hopeless, t0: performance.now(), done: false, hits: 0, need: Math.max(bossKin() ? 2 : 1, rar >= 4 ? 3 : rar === 3 ? 2 : 1) };
     el.zone.style.left = (left * 100) + '%'; el.zone.style.width = (width * 100) + '%';
     el.snare.classList.remove('hidden'); el.root.classList.add('snaring'); el.root.scrollTop = 0;
     const pct = chance === 0 ? '0%' : chance < 0.01 ? 'under 1%' : Math.round(chance * 100) + '%';
@@ -8543,6 +8544,7 @@ const Battle = (() => {
       log(`The cage snaps shut. ${KIN.name(wild)} is yours!`, 'good'); G.sfx('caught');
       await sleep(900); return end('caught');
     }
+    if (bossKin()) { log(`${KIN.name(wild)} tears the cage apart, and the effort finishes it. It falls. One chance, and it is gone.`, 'bad'); G.sfx('miss'); snareState = null; wild.hp = 0; refresh(); await sleep(1100); return end('won'); } // one try at a boss's Kin
     log(stealth ? `${KIN.name(wild)} breaks free and turns on you!` : `${KIN.name(wild)} breaks free!`, 'bad'); G.sfx('miss'); stealth = false;
     await sleep(500);
     await useMove(wild, mine, wildChoose(), false);
