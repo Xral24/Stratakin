@@ -102,6 +102,8 @@ Scope (Alexander, 8 Nov evening): EVERYTHING visible goes to the same standard: 
 
 - Village Kin in a live fight: a tyrant's, his lieutenants', raiders, lair and night quarry now go down dazed for 10 s (cageWin) when your Kin beats them, so you can snare them; left alone they count as beaten as before. The Kinmaster's own still never cage. Snare reach for a dazed Kin raised to about 9 blocks.
 
+- The Kinmaster's own Kin, the hold warlords' and the Citadel's first can be snared now too (live: dazed window; battle: the stun window's Snare). Only the final fight refuses a cage.
+
 ## Still to do
 UI polish as feedback comes in. Card battle screen still used for scripted encounters (raids at the walls, thief, citadel duel, holds) and the snare mini-game; converting those to live is the next big step if wanted. (Old list: train/ships, combat animation, eggs, avatar hair/paint, buddy WEAR cosmetics, Silas and Finch, UI polish (item icons), quality toggles in settings (state.shadows, state.grassQuality, state.dprCap).
 

@@ -527,8 +527,8 @@ const Wild = (() => {
     return { dmg: before - e.kin.hp, pct: Math.round(e.kin.hp / st.hp * 100), dazed: false };
   }
   // the great ones you are meant to be able to cage: beaten live, they go down dazed like any other so a snare can take them
-  // story Kin you may still snare when they go down: a tyrant's, his lieutenants', a raider, a lair's or a night's quarry. The Kinmaster's own never.
-  function snareable(e) { return !!(e.isBoss || e.lieutenant || e.raider || e.lairQuest || e.nightQuest) && !(e.kinmaster || e.keepBoss || e.citadelFirst || e.finalBoss); }
+  // story Kin you may still snare when they go down: a tyrant's, his lieutenants', a raider, a lair's or a night's quarry, the Kinmaster's and his warlords'. Only the very last fight is not for catching.
+  function snareable(e) { return !!(e.isBoss || e.lieutenant || e.raider || e.lairQuest || e.nightQuest || e.kinmaster || e.keepBoss || e.citadelFirst) && !e.finalBoss; }
   function cageable(e) { return !!(e.isApex || e.isLegend || e.isMythic); }
   function daze(e, k) {
     e.kin.hp = 1; e.dazed = 10; disengage(e, 0); e.cool = 0; e.alert = 0; e.stunT = 0;

@@ -85,7 +85,7 @@ const Battle = (() => {
   // which snare this Kin takes: the high flyers only a Flight Snare thrown from the air, the water Kin none at all (that is the rod's job)
   function snareRule() {
     const p = G.player;
-    if (wildE && (wildE.kinmaster || wildE.keepBoss || wildE.citadelFirst)) return { list: [], why: 'His Kin will never sit in a cage' };
+    if (wildE && wildE.finalBoss) return { list: [], why: 'Not this one. This one you end' }; // the last fight only; the Kinmaster's own Kin and his warlords' can be caught
     if (wildE && wildE.aquatic && !wildE.isApex) return { list: [], why: 'Water Kin slip any cage. Fish them with a rod.' };
     if (wildE && wildE.high) { const air = p.gliding || p.mountMode === 'air'; if (!air) return { list: [], why: 'Only from the air' }; return { list: p.has('snare_sky') ? ['snare_sky'] : [], why: 'Needs a Flight Snare' }; }
     return { list: ['snare2', 'snare'].filter(s => p.has(s)), why: 'No snares' };
