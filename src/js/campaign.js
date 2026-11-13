@@ -492,9 +492,9 @@ const Taming = (() => {
   let st = null, el = null;
   function start(k, opts = {}) {
     if (st) return;
-    // the rarer the Kin, the harder it bucks: common 4 taps and a gentle bar, up to legendary and mythic with 7 taps, a fast bar and a narrow zone
+    // the rarer the Kin, the harder it bucks: one good tap for most, two for the rarest, three for a mythic; the rarer ones get a faster bar and a narrower zone
     const rar = Math.min(5, (k.sp && k.sp.rarity) || 0), hard = !!opts.hard;
-    const need = hard ? 6 : [4, 4, 5, 6, 7, 7][rar], speed = hard ? 1.7 : [1.15, 1.25, 1.4, 1.6, 1.8, 1.9][rar], zone = hard ? 0.22 : [0.28, 0.27, 0.24, 0.21, 0.18, 0.17][rar];
+    const need = hard ? 3 : [1, 1, 1, 2, 2, 3][rar], speed = hard ? 1.7 : [1.15, 1.25, 1.4, 1.6, 1.8, 1.9][rar], zone = hard ? 0.22 : [0.28, 0.27, 0.24, 0.21, 0.18, 0.17][rar];
     st = { k, ent: opts.ent || null, hits: 0, need, pos: 0, dir: 1, speed, zone, center: 0.5, onDone: opts.onDone };
     st.center = 0.2 + Math.random() * 0.6;
     if (!el) { el = document.createElement('div'); el.id = 'tamebar'; el.innerHTML = '<div class="snare-tip"></div><div class="snare-track"><div class="snare-zone"></div><div class="snare-marker"></div></div>'; document.getElementById('touch-ui').appendChild(el); }
