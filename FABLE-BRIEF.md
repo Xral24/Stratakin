@@ -37,7 +37,7 @@ New games now default to one shared world, seed "Stratakin" (an empty World box 
    - **evolutions** that grow from cute to fearsome.
 
    Take the style, never a particular creature. Kin are built by a generator (`model(sp, stage)` in `js/kin.js`): a `switch (sp.shape)` over the body shapes, with feature flags in `sp.feat`, colours in `sp.colors` and the element from `dominant(sp.elem, 1)`.
-   - **The quadruped is already redone as a sample** (Friday 13 November) and he liked the direction. It has:
+   - **The quadruped is already redone as a sample** (Friday 13 November). Check with him how he felt about it before carrying it further. It has:
      - cub, youngster and adult proportions by stage;
      - one signature per element, on tail, ears and mane: flame tail and mane, fin tail and dorsal fin, leaf crest and flower, rock plates and club tail, plume tail and feather ears, crystal spikes, lightning tail and zigzag ears, smoky mane and glowing tail, radiant ruff and halo;
      - layered eyes: dark base, coloured iris, pupil and two glints, with a brow on adults;
