@@ -1915,16 +1915,28 @@ const KIN = (() => {
 
           // ======== BLOOM ========
           } else if (P === 'peachick') chick(hexMix(bd, '#c8b48a', 0.5), null, '#8a6a42', { head: () => { for (let i = 0; i < 3; i++) { tube([[0, 0.96, 0.04], [(i - 1) * 0.06, 1.08, 0.0]], [0.008, 0.008], dk, { cap0: 'none', cap1: 'none' }); ball((i - 1) * 0.06, 1.1, 0.0, 0.025, ac, { n: 1 }); } } });
-          else if (P === 'peafowl' || P === 'bloompeacock') { // a peafowl, then a peacock whose train opens like a meadow: petals for feathers, flowers for eyes
-            const big = P === 'bloompeacock', blue = hexMix('#2a6ab8', bd, 0.4);
-            legsB(0.36, 0.08, '#8a8288', 0.03); egg(0.64, 0, 0.2, 0.24, 0.32, blue, blue);
-            tube([[0, 0.76, 0.2], [0, 0.98, 0.28], [0, 1.08, 0.3]], [0.08, 0.06, 0.055], blue, { cap0: 'none', cap1: 'round' });
-            H(1.06, 0.3); ball(0, 1.1, 0.32, 0.09, blue, { n: 3 }); for (const sd of [-1, 1]) blob(sd * 0.06 - 0.03, 1.1, 0.32, sd * 0.06 + 0.03, 1.14, 0.4, 0.6, '#f6f8fa', { n: 1 }); look(0.06, 1.12, 0.38, 0.028); beak('cone', 1.09, 0.4, 0.025, 0.07, '#8a8288');
-            for (let i = 0; i < 4; i++) { tube([[0, 1.18, 0.3], [(i - 1.5) * 0.04, 1.3, 0.28 - i * 0.02]], [0.006, 0.006], blue, { cap0: 'none', cap1: 'none' }); ball((i - 1.5) * 0.04, 1.32, 0.28 - i * 0.02, 0.022, big ? '#f4a3d2' : ac, { n: 1 }); } bone = 0;
-            wings2(0.18, 0.7, 0.06, 0.6, { c: hexMix(bd, '#8a6a42', 0.4), n: 5 });
-            if (big) fanTail([0, 0.66, -0.3], 15, 1.1, 2.8, [ac, hexMix(ac, '#2e6b2a', 0.4)], { up: 1.1, w: 0.17, eye: '#f4a3d2', eyeR: 0.08 });
-            else fanTail([0, 0.62, -0.3], 7, 0.7, 0.4, [ac, hexMix(ac, '#2e6b2a', 0.4)], { up: 0.05, w: 0.05, eye: blue, eyeR: 0.035 });
-            hover = 0; flyer = false;
+          else if (P === 'peafowl' || P === 'bloompeacock') { // a garden that walks like a peafowl: leaf-scale feathers, a crest of buds, a train of leaves; grown, the train opens into a giant flower
+            const big = P === 'bloompeacock', green = hexMix('#2f8a52', bd, 0.25), lime = '#8ad05a', pink = '#f47ab8', pale = '#ffd8ec', gold = '#ffd25a', vine = '#3f6b2a';
+            legsB(0.36, 0.08, vine, 0.03); egg(0.64, 0, 0.21, 0.25, 0.32, green, lime);
+            for (let r = 0; r < 3; r++) for (let i = 0; i < 6; i++) { const a = (i / 5 - 0.5) * 1.8; plate([[Math.sin(a) * 0.17, 0.74 - r * 0.1, 0.22 - r * 0.02], [Math.sin(a) * 0.2 - 0.04, 0.66 - r * 0.1, 0.27 - r * 0.02], [Math.sin(a) * 0.2 + 0.04, 0.66 - r * 0.1, 0.27 - r * 0.02]], 0.015, r % 2 ? lime : hexMix(lime, green, 0.4)); } // leaf scales down the breast
+            tube([[0, 0.76, 0.2], [0, 0.98, 0.28], [0, 1.08, 0.3]], [0.08, 0.06, 0.055], green, { cap0: 'none', cap1: 'round' });
+            tube([[0.07, 0.8, 0.24], [-0.07, 0.9, 0.3], [0.06, 1.0, 0.32], [-0.04, 1.06, 0.34]], [0.014, 0.014, 0.014, 0.012], vine, { cap0: 'round', cap1: 'round' }); // a vine wound round the neck
+            H(1.06, 0.3); ball(0, 1.1, 0.32, 0.1, green, { n: 3 }); for (const sd of [-1, 1]) blob(sd * 0.065 - 0.035, 1.08, 0.3, sd * 0.065 + 0.035, 1.16, 0.4, 0.6, big ? pale : lime, { n: 1 });
+            look(0.06, 1.12, 0.38, 0.03, { col: gold, brow: big ? vine : null }); beak('cone', 1.09, 0.41, 0.025, 0.08, gold);
+            for (let i = 0; i < (big ? 5 : 3); i++) { const a = (i / ((big ? 5 : 3) - 1) - 0.5) * 1.2, tp = [Math.sin(a) * 0.14, 1.36 + Math.cos(a) * 0.06, 0.22]; tube([[0, 1.16, 0.3], tp], [0.018, 0.014], vine, { cap0: 'none', cap1: 'round' });
+              if (big) { for (let p = 0; p < 5; p++) { const q = p / 5 * Math.PI * 2; ball(tp[0] + Math.cos(q) * 0.035, tp[1] + Math.sin(q) * 0.035, tp[2], 0.026, pink, { n: 1 }); } ball(tp[0], tp[1], tp[2] + 0.01, 0.02, gold, { emis: true, n: 1 }); }
+              else blob(tp[0] - 0.03, tp[1] - 0.02, tp[2] - 0.03, tp[0] + 0.03, tp[1] + 0.07, tp[2] + 0.03, 1, pink, { tap: [1, 0.3] }); } bone = 0;
+            const leafWing = (sd) => { B(sd < 0 ? 7 : 8, 'wing', [sd * 0.18, 0.72, 0.06], { side: sd, fold: -0.2 }); for (let i = 0; i < 4; i++) { const b0 = [sd * 0.2, 0.74 - i * 0.04, 0.06 - i * 0.06], tip = [sd * 0.26, 0.6 - i * 0.05, -0.36 - i * 0.06]; plate([b0, [sd * 0.3, (b0[1] + tip[1]) / 2 + 0.04, (b0[2] + tip[2]) / 2], tip, [sd * 0.18, (b0[1] + tip[1]) / 2 - 0.06, (b0[2] + tip[2]) / 2]], 0.015, i % 2 ? green : lime, { edge: vine }); } bone = 0; };
+            leafWing(-1); leafWing(1);
+            B(6, 'tail', [0, 0.66, -0.3]);
+            if (!big) { for (let i = 0; i < 7; i++) { const a = (i / 6 - 0.5) * 0.5, tp = [Math.sin(a) * 0.5, 0.5 + (i % 2) * 0.05, -1.0 - Math.cos(a) * 0.1]; plate([[Math.sin(a) * 0.06 - 0.04, 0.64, -0.3], [tp[0] - 0.06, tp[1], tp[2] + 0.2], tp, [tp[0] + 0.06, tp[1], tp[2] + 0.2], [Math.sin(a) * 0.06 + 0.04, 0.64, -0.3]], 0.015, i % 2 ? green : lime, { edge: vine }); blob(tp[0] - 0.05, tp[1] - 0.04, tp[2] - 0.1, tp[0] + 0.05, tp[1] + 0.06, tp[2] + 0.02, 1, pink, { n: 2 }); } } // a train of long leaves, each ending in a closed bud
+            else { const c = [0, 1.08, -0.42]; // the train opens: a flower taller than the bird, two rings of petals round a glowing heart, leaves between
+              for (let i = 0; i < 9; i++) { const a = (i / 8 - 0.5) * 2.9; const d = [Math.sin(a), Math.cos(a), 0]; plate([[c[0] + d[0] * 0.2, c[1] + d[1] * 0.2 - 0.3, c[2] - 0.06], [c[0] + d[0] * 0.95 - d[1] * 0.06, c[1] + d[1] * 0.95 - 0.3 + d[0] * 0.06, c[2] - 0.12], [c[0] + d[0] * 1.15, c[1] + d[1] * 1.15 - 0.3, c[2] - 0.14], [c[0] + d[0] * 0.95 + d[1] * 0.06, c[1] + d[1] * 0.95 - 0.3 - d[0] * 0.06, c[2] - 0.12]], 0.015, i % 2 ? green : lime, { edge: vine }); }
+              for (let i = 0; i < 8; i++) { const a = (i / 7 - 0.5) * 2.6, d = [Math.sin(a), Math.cos(a)], w = 0.22; plate([[c[0] + d[0] * 0.16, c[1] + d[1] * 0.16 - 0.3, c[2]], [c[0] + d[0] * 0.6 - d[1] * w, c[1] + d[1] * 0.6 - 0.3 + d[0] * w, c[2] - 0.04], [c[0] + d[0] * 0.9, c[1] + d[1] * 0.9 - 0.3, c[2] - 0.06], [c[0] + d[0] * 0.6 + d[1] * w, c[1] + d[1] * 0.6 - 0.3 - d[0] * w, c[2] - 0.04]], 0.02, pink, { edge: '#c8407a' });
+                ball(c[0] + d[0] * 0.66, c[1] + d[1] * 0.66 - 0.3, c[2] + 0.02, 0.05, gold, { emis: true, n: 2 }); }
+              for (let i = 0; i < 6; i++) { const a = (i / 5 - 0.5) * 2.2, d = [Math.sin(a), Math.cos(a)], w = 0.12; plate([[c[0], c[1] - 0.3, c[2] + 0.03], [c[0] + d[0] * 0.3 - d[1] * w, c[1] + d[1] * 0.3 - 0.3 + d[0] * w, c[2] + 0.03], [c[0] + d[0] * 0.48, c[1] + d[1] * 0.48 - 0.3, c[2] + 0.03], [c[0] + d[0] * 0.3 + d[1] * w, c[1] + d[1] * 0.3 - 0.3 - d[0] * w, c[2] + 0.03]], 0.015, pale); }
+              ball(c[0], c[1] - 0.3, c[2] + 0.06, 0.12, gold, { emis: true, n: 2 }); for (let i = 0; i < 6; i++) { const a = i * 1.05; ball(Math.cos(a) * 0.9, 0.9 + (i % 3) * 0.3, -0.4 + Math.sin(a) * 0.2, 0.025, gold, { emis: true, n: 1 }); } }
+            bone = 0; hover = 0; flyer = false;
           } else if (P === 'cygnet' || P === 'lotusswan') { // a grey cygnet; grown, a white swan with a lotus opening on its back
             const big = P === 'lotusswan';
             if (!big) chick('#a8aeb8', '#c8ccd4', '#3a3e48', { beak: 'duck', beakL: 0.1 });
@@ -2130,7 +2142,6 @@ const KIN = (() => {
                 plate([[0, 1.36, 0.18], [0, 1.5, 0.08], [0, 1.24, 0.12]], 0.015, cyan); for (const sd of [-1, 1]) for (let i = 0; i < 2; i++) hring(sd * 0.08, 0.03, 0.06, 0.12 + i * 0.08, 0.01, foam); break;
               // BLOOM
               case 'peachick': onT(() => { for (let i = 0; i < 3; i++) plate([[0, 0.38, -0.3], [(i - 1) * 0.16, 0.5, -0.5], [(i - 1) * 0.08, 0.42, -0.44]], 0.02, leaf); }); break;
-              case 'peafowl': case 'bloompeacock': onH(() => { for (let i = 0; i < 3; i++) plate([[0, 1.16, 0.28], [(i - 1) * 0.14, 1.3, 0.2], [(i - 1) * 0.06, 1.22, 0.34]], 0.015, leaf); }); for (let i = 0; i < 6; i++) { const a = i / 6 * Math.PI * 2; plate([[0, 0.88, 0.26], [Math.cos(a) * 0.14, 0.88 + Math.sin(a) * 0.12, 0.2], [Math.cos(a + 0.5) * 0.1, 0.88 + Math.sin(a + 0.5) * 0.08, 0.24]], 0.015, P === 'bloompeacock' ? pet : leaf); } for (const sd of [-1, 1]) { bone = sd < 0 ? 4 : 5; tube([[sd * 0.08, 0.34, 0.02], [sd * 0.12, 0.22, 0.04], [sd * 0.06, 0.12, 0.02], [sd * 0.1, 0.04, 0.04]], [0.012, 0.012, 0.012, 0.01], leaf, { cap0: 'round', cap1: 'round' }); bone = 0; } break;
               case 'cygnet': onH(() => { plate([[0, 0.98, 0.06], [-0.14, 1.04, -0.02], [0, 1.08, -0.1], [0.14, 1.04, -0.02]], 0.02, leaf); ball(0, 1.02, 0.0, 0.035, pet, { n: 1 }); }); break;
               case 'lotusswan': for (let i = 0; i < 6; i++) { const a = (i / 5 - 0.5) * 2.4; plate([[0, 0.72, 0.36], [Math.sin(a) * 0.2, 0.66, 0.36 + Math.cos(a) * 0.12], [Math.sin(a + 0.3) * 0.16, 0.6, 0.34 + Math.cos(a + 0.3) * 0.1]], 0.015, leaf); } for (let i = 0; i < 6; i++) { const a = i * 1.1; ball(Math.cos(a) * 0.26, 1.0 + (i % 3) * 0.12, Math.sin(a) * 0.2 - 0.06, 0.022, '#ffe08a', { emis: true, n: 1 }); } break;
               case 'hummingbird': onT(() => { for (let i = 0; i < 5; i++) { const a = (i / 4 - 0.5) * 1.4; plate([[0, 0.44, -0.24], [Math.sin(a) * 0.22, 0.46, -0.24 - Math.cos(a) * 0.3], [Math.sin(a + 0.25) * 0.14, 0.44, -0.24 - Math.cos(a + 0.25) * 0.2]], 0.015, i % 2 ? pet : '#f4c8e0'); } }); onH(() => { for (let i = 0; i < 3; i++) plate([[0, 0.8, 0.18], [(i - 1) * 0.08, 0.94, 0.08], [(i - 1) * 0.03, 0.86, 0.12]], 0.012, pet); }); break;

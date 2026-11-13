@@ -130,6 +130,8 @@ Scope (Alexander, 8 Nov evening): EVERYTHING visible goes to the same standard: 
 
 - Birds spiced up: every bird grows its element (magma vulture in obsidian with a bone mask and lava veins, sea gull with a water-fin crest, puffin with golden tufts and a shell breastplate, owls with ice tufts, swift with wind blades, raven with shadow plumes, and so on) and adult birds get bigger Kin eyes.
 
+- Peafowl and bloom peacock redesigned as garden birds: green leaf-scale feathers, a vine round the neck, a crest of buds; the peafowl's train is long leaves ending in buds, the bloom peacock's opens into a giant pink flower with a glowing heart.
+
 ## Still to do
 UI polish as feedback comes in. Card battle screen still used for scripted encounters (raids at the walls, thief, citadel duel, holds) and the snare mini-game; converting those to live is the next big step if wanted. (Old list: train/ships, combat animation, eggs, avatar hair/paint, buddy WEAR cosmetics, Silas and Finch, UI polish (item icons), quality toggles in settings (state.shadows, state.grassQuality, state.dprCap).
 
