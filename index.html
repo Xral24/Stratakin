@@ -9477,9 +9477,20 @@ const Campaign = (() => {
     const y0 = world.colInfo(s.x, s.z).h; pad(s.x, s.z, 4, y0, B.SNOW);
     for (let k = 0; k < 4; k++) for (let dx = -3 + k; dx <= 3 - k; dx++) for (let dz = -3 + k; dz <= 3 - k; dz++) if (Math.abs(dx) === 3 - k || Math.abs(dz) === 3 - k) set(s.x + 6 + dx, y0 + 1 + k, s.z + dz, k === 3 ? B.LOG : B.PLANKS);
     set(s.x + 3, y0 + 1, s.z, B.AIR); set(s.x + 3, y0 + 2, s.z, B.AIR); set(s.x, y0 + 1, s.z, B.CAMPFIRE);
-    const r = U.rng(U.combine(s.x, s.z, 0x5A)); const a = r() * Math.PI * 2, d = 55 + r() * 25; s.lost = { x: Math.round(s.x + Math.cos(a) * d), z: Math.round(s.z + Math.sin(a) * d) };
   }
-  function stampShelter(s) { const L = s.lost; world.ensureAround(Math.floor(L.x / CH), Math.floor(L.z / CH), 0, 99); const y0 = world.groundY(L.x, L.z); for (let dx = -2; dx <= 2; dx++) for (let dz = -2; dz <= 2; dz++) if (Math.abs(dx) === 2 || Math.abs(dz) === 2) { set(L.x + dx, y0 + 1, L.z + dz, B.SNOW); if ((dx + dz) % 2) set(L.x + dx, y0 + 2, L.z + dz, B.SNOW); } set(L.x + 2, y0 + 1, L.z, B.AIR); set(L.x - 1, y0 + 1, L.z - 1, B.TORCH); L.y0 = y0; }
+  // where Tam got lost: the same spot every session, and always on land you can stand on (never out on the water or up a cliff face)
+  function lostOf(s) {
+    if (!s) return null; if (s.lost) return s.lost;
+    const r = U.rng(U.combine(s.x, s.z, 0x5A)); let first = null;
+    for (let i = 0; i < 40; i++) {
+      const a = r() * Math.PI * 2, d = 55 + r() * 25; const x = Math.round(s.x + Math.cos(a) * d), z = Math.round(s.z + Math.sin(a) * d); if (!first) first = { x, z };
+      if (!land(x, z)) continue; const h = world.colInfo(x, z).h; let flat = true; for (const [dx, dz] of [[3, 0], [-3, 0], [0, 3], [0, -3]]) if (Math.abs(world.colInfo(x + dx, z + dz).h - h) > 2) flat = false;
+      if (flat) { s.lost = { x, z, moved: x !== first.x || z !== first.z }; return s.lost; }
+    }
+    s.lost = Object.assign(first, { moved: false }); return s.lost;
+  }
+
+  function stampShelter(s) { const L = lostOf(s); world.ensureAround(Math.floor(L.x / CH), Math.floor(L.z / CH), 0, 99); const y0 = world.groundY(L.x, L.z); for (let dx = -2; dx <= 2; dx++) for (let dz = -2; dz <= 2; dz++) if (Math.abs(dx) === 2 || Math.abs(dz) === 2) { set(L.x + dx, y0 + 1, L.z + dz, B.SNOW); if ((dx + dz) % 2) set(L.x + dx, y0 + 2, L.z + dz, B.SNOW); } set(L.x + 2, y0 + 1, L.z, B.AIR); set(L.x - 1, y0 + 1, L.z - 1, B.TORCH); L.y0 = y0; }
   function stampPeak(s) {
     world.ensureAround(Math.floor(s.x / CH), Math.floor(s.z / CH), 2, 99); world.ensureAround(Math.floor(s.nx / CH), Math.floor(s.nz / CH), 1, 99);
     if (s.crag) { // no peak tall enough nearby: a crag of stone, steep but climbable by jumping its ledges
@@ -9570,7 +9581,7 @@ const Campaign = (() => {
       else if (S.diver && near(S.diver, p, 60) && c.st_diver && pierWays(S.diver)) G.meshPass(99); // keeps the pier ladders whole, old worlds included (terrain can fill in after the stamp)
       if (S.ranch && near(S.ranch, p, 90) && !c.st_ranch) { c.st_ranch = true; stampRanch(S.ranch); G.meshPass(99); }
       if (S.snow && near(S.snow, p, 90) && !c.st_snow) { c.st_snow = true; stampSnow(S.snow); G.meshPass(99); }
-      if (S.snow && S.snow.lost && c.frost === 1 && near(S.snow.lost, p, 70) && !c.st_shelter) { c.st_shelter = true; stampShelter(S.snow); G.meshPass(99); }
+      if (S.snow && c.frost === 1 && lostOf(S.snow) && near(lostOf(S.snow), p, 70)) { const L = lostOf(S.snow), at = L.x + ',' + L.z; if (!c.st_shelter || (c.shelterAt ? c.shelterAt !== at : L.moved)) { c.st_shelter = true; c.shelterAt = at; stampShelter(S.snow); G.meshPass(99); } else if (!c.shelterAt) c.shelterAt = at; }
       if (S.peak && near(S.peak, p, 110) && !c.st_peak) { c.st_peak = true; stampPeak(S.peak); G.meshPass(99); }
       if (S.fort && near(S.fort, p, 120) && !c.st_fort) { c.st_fort = true; stampFort(S.fort); G.meshPass(99); }
       if (S.fort && c.st_fort && S.fort.throne && near(S.fort, p, 110)) { const t = S.fort.throne, x = t.x - 2, y = S.fort.floorY + 1, z = t.z + 3; if (world.chunks.get(Math.floor(x / CH) + ',' + Math.floor(z / CH)) && world.getBlock(x, y, z) !== B.DARKTABLE) { world.setBlock(x, y, z, B.DARKTABLE); G.meshPass(99); } } // forts stamped before the table existed
@@ -9582,7 +9593,8 @@ const Campaign = (() => {
     }
     for (const n of people) { // the crew walks back and forth
       n.t += dt; if (n.walk) { const f = (Math.sin(n.t * Math.PI * 2 / n.walk.period) + 1) / 2; const tx = n.walk.ax + (n.walk.bx - n.walk.ax) * f, tz = n.walk.az + (n.walk.bz - n.walk.az) * f; const vx = tx - n.x, vz = tz - n.z; if (Math.hypot(vx, vz) > 0.01) n.yaw = Math.atan2(vx, vz); n.x = tx; n.z = tz; const g = world.groundY(Math.floor(n.x), Math.floor(n.z), Math.floor(n.y) + 2); n.y = g + 1; }
-      else { const dx = p.x - n.x, dz = p.z - n.z; if (Math.hypot(dx, dz) < 7) n.yaw = Math.atan2(dx, dz); }
+      else { const dx = p.x - n.x, dz = p.z - n.z; if (Math.hypot(dx, dz) < 7) n.yaw = Math.atan2(dx, dz);
+        if ((n.ground = (n.ground || 0) - dt) <= 0) { n.ground = 1; const fx = Math.floor(n.x), fy = Math.floor(n.y), fz = Math.floor(n.z); const inside = isSolid(world.getBlock(fx, fy, fz)), under = isSolid(world.getBlock(fx, fy - 1, fz)); if (inside || !under) { const g = world.groundY(fx, fz, inside ? fy + 4 : fy); if (g > 0) n.y = g + 1; } } } // stands on the ground, even if the ground was not there yet when they arrived
     }
   }
   function spawnPeople(S, p) {
@@ -9598,7 +9610,7 @@ const Campaign = (() => {
     if (S.diver && near(S.diver, p, 80) && C().st_diver && !has('diver')) { const s = S.diver; person('diver', 'Marisol', 'diver', s.x + s.ux * 9, s.z + s.uz * 9, { body: '#2f6f8a', belly: '#c68642' }, ['diver']); }
     if (S.ranch && near(S.ranch, p, 80) && C().st_ranch && !has('rancher')) { const s = S.ranch; person('rancher', 'Dusty Hale', 'rancher', s.x - 2, s.z + 2, { body: '#7a4a2a', belly: '#e8c39e' }, ['hat', 'star']); person('hand', 'Pip', 'hand', s.x - 3, s.z - 6, { body: '#4c7bc9', belly: '#f1d3b3' }, ['hat'], { ax: s.x - 3.5, az: s.z - 7.5, bx: s.x - 3.5, bz: s.z + 6.5, period: 16 }); }
     if (S.snow && near(S.snow, p, 80) && C().st_snow && !has('ysolde')) { const s = S.snow; person('ysolde', 'Ysolde', 'snow', s.x + 2, s.z + 2, { body: '#e8e8f0', belly: '#f1d3b3' }, ['hermit']); }
-    if (S.snow && S.snow.lost && C().frost === 1 && C().st_shelter && near(S.snow.lost, p, 70) && !has('tam')) { const L = S.snow.lost; person('tam', 'Tam', 'lost', L.x, L.z + 1, { body: '#9aa8b8', belly: '#f1d3b3' }, ['hermit']); }
+    if (S.snow && C().frost === 1 && C().st_shelter && lostOf(S.snow) && near(lostOf(S.snow), p, 70) && !has('tam')) { const L = lostOf(S.snow); person('tam', 'Tam', 'lost', L.x, L.z + 1, { body: '#9aa8b8', belly: '#f1d3b3' }, ['hermit']); }
     if (S.peak && near(S.peak, p, 100) && C().st_peak && !has('hermit')) { const s = S.peak; const a = Math.atan2(s.nz - s.z, s.nx - s.x) + Math.PI; let hx = Math.round(s.x + Math.cos(a) * 18), hz = Math.round(s.z + Math.sin(a) * 18); person('hermit', 'Old Wren', 'hermit', hx, hz, { body: '#7a6f5a', belly: '#e8c39e' }, ['hermit']); }
     if (S.zoo && near(S.zoo, p, 80) && C().st_zoo && !has('keeper')) { const s = S.zoo; person('keeper', 'Barnaby Quill', 'keeper', s.x + 3, s.z + 6, { body: '#6a2a4a', belly: '#e8c39e' }, ['hat', 'lamp']);
       if (!zooDino) { const sp = KIN.dex('earth').find(x => x.dino && x.shape === 'raptor') || KIN.dex('earth').find(x => x.dino); if (sp) { const gy = world.groundY(s.dino.x, s.dino.z) + 1; zooDino = Wild.makeEntity(sp, 40, s.dino.x + 0.5, gy, s.dino.z + 0.5, { senseR: 0 }); zooDino.peaceful = true; zooDino.exhibit = true; zooDino.patrol = { ax: s.dino.x - 2, az: s.dino.z + 0.5, bx: s.dino.x + 2.5, bz: s.dino.z + 0.5, period: 9, phase: 0 }; Wild.list.push(zooDino); } } }
@@ -9641,7 +9653,7 @@ const Campaign = (() => {
     // the paddock: a pen built where Hale put the posts
     if (c.ranch === 1 && S.ranch) { if (!c.penQ) c.penQ = { kind: 'build', what: 'pen', site: { x: S.ranch.pen.x, z: S.ranch.pen.z } }; if (near(S.ranch.pen, p, 40)) { const m = Builds.measure(c.penQ); if (m.pass) { c.ranch = 2; c.paddock = true; UI.sfx('quest'); UI.toast('The paddock stands. Go and tell Dusty Hale.', 'good'); } } }
     // finding Tam in the snow
-    if (c.frost === 1 && S.snow && S.snow.lost && near(S.snow.lost, p, 4)) { c.frost = 2; UI.toast('You found Tam. He is half frozen. Talk to him.', 'good'); }
+    if (c.frost === 1 && S.snow && lostOf(S.snow) && near(lostOf(S.snow), p, 4)) { c.frost = 2; UI.toast('You found Tam. He is half frozen. Talk to him.', 'good'); }
     // the nest: you have to come in on the glider
     if (c.glider === 1 && S.peak && S.peak.top && !c.skyEgg) {
       const s = S.peak; const onTop = Math.hypot(p.x - (s.nx + 0.5), p.z - (s.nz + 0.5)) < 2.8 && p.y >= s.top + 0.9 && p.y < s.top + 3;
@@ -9754,7 +9766,7 @@ const Campaign = (() => {
     if (id === 'mines' && S.mine) return { x: S.mine.x, z: S.mine.z, note: 'the shaft' };
     if (id === 'diver') { if (c.bulbStep === 1 && S.diver && S.diver.chest) return { x: S.diver.chest.x, z: S.diver.chest.z, note: 'the sunken chest' }; return S.diver && { x: S.diver.x, z: S.diver.z, note: 'Marisol\'s pier' }; }
     if (id === 'ranch') { if (c.ranch === 1) return { x: S.ranch.pen.x, z: S.ranch.pen.z, note: 'the paddock posts' }; if (c.ranch === 2 && !c.rogueTamed) return { x: S.ranch.pen.x, z: S.ranch.pen.z, note: 'Thunderhoof, in the paddock' }; return S.ranch && { x: S.ranch.x, z: S.ranch.z, note: 'Hale\'s Ranch' }; }
-    if (id === 'frost') { c.snowKnown = true; if ((c.frost === 1 || c.frost === 2) && S.snow && S.snow.lost) return { x: S.snow.lost.x, z: S.snow.lost.z, note: 'Tam' }; return S.snow && { x: S.snow.x, z: S.snow.z, note: 'the snow camp' }; }
+    if (id === 'frost') { c.snowKnown = true; if ((c.frost === 1 || c.frost === 2) && S.snow && lostOf(S.snow)) return { x: lostOf(S.snow).x, z: lostOf(S.snow).z, note: 'Tam' }; return S.snow && { x: S.snow.x, z: S.snow.z, note: 'the snow camp' }; }
     if (id === 'kinmaster' && S.fort) return { x: S.fort.x + (c.st_fort ? 30 : -18), z: S.fort.z, note: 'Thornhold' };
     if (id === 'lost' && !G.stats.lostMap) { if (!c.zoo && S.zoo) return { x: S.zoo.x, z: S.zoo.z, note: 'Quill\'s Menagerie' }; if (S.halfA && !c.mapA) return { x: S.halfA.x, z: S.halfA.z, note: 'Trapper Jo' }; if (S.halfB && !c.mapB) return { x: S.halfB.x, z: S.halfB.z, note: 'Old Sela' }; }
     if (id === 'glider') { c.peakKnown = true; if (c.glider === 1 && S.peak) return { x: S.peak.x, z: S.peak.z, note: 'the peak' }; return S.peak && { x: S.peak.x, z: S.peak.z, note: 'Old Wren\'s peak' }; }

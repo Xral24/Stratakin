@@ -81,6 +81,8 @@ Scope (Alexander, 8 Nov evening): EVERYTHING visible goes to the same standard: 
 
 - Beaten Bound warriors give up what they fought with: guard's sword, axeman's axe, shieldbearer's shield, archer's bow (arrows if you have one), captain's sword and shield. Rank sets the material; a duplicate turns into shards.
 
+- Tam: his spot was only worked out when the snow camp was first built, so after a reload it was gone (no Tam, no shelter), and it could land on water or a cliff. Now lostOf() picks the same flat land spot every session; the shelter restamps if it moved; standing camp people re-ground themselves.
+
 ## Still to do
 UI polish as feedback comes in. Card battle screen still used for scripted encounters (raids at the walls, thief, citadel duel, holds) and the snare mini-game; converting those to live is the next big step if wanted. (Old list: train/ships, combat animation, eggs, avatar hair/paint, buddy WEAR cosmetics, Silas and Finch, UI polish (item icons), quality toggles in settings (state.shadows, state.grassQuality, state.dprCap).
 
