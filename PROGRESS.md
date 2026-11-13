@@ -106,6 +106,8 @@ Scope (Alexander, 8 Nov evening): EVERYTHING visible goes to the same standard: 
 
 - Boss Kin (tyrant's, warlords', the Kinmaster's, the Citadel's first): catch chance ×0.3 and no stun bonus, the snare game is faster and needs at least two hits, and you get one try: if it breaks free it falls and the fight is won. The stun button says 'one chance'.
 
+- Story sweep (t-sweep.js, Stratakin world): every quest of all three arcs made current in turn, its pin taken and visited with the campaign, holds, village, wild and quest updates run: no errors. New pins where there were none: the Core (down the mine shaft), the Starlark (Garrick's forge), the Holds (nearest untaken), the Citadel and its prisoner (once it opens), Abyssaurus and Tyrannorex (the Lost World tunnel).
+
 ## Still to do
 UI polish as feedback comes in. Card battle screen still used for scripted encounters (raids at the walls, thief, citadel duel, holds) and the snare mini-game; converting those to live is the next big step if wanted. (Old list: train/ships, combat animation, eggs, avatar hair/paint, buddy WEAR cosmetics, Silas and Finch, UI polish (item icons), quality toggles in settings (state.shadows, state.grassQuality, state.dprCap).
 

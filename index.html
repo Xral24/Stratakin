@@ -8858,6 +8858,11 @@ const Quests = (() => {
     if (q.id === 'job') { const ws = Npcs.mapMarks(p, 400).filter(m => m.kind === 'wanderer'); let best = null, bd = Infinity; for (const m of ws) { const d = Math.hypot(m.x - p.x, m.z - p.z); if (d < bd) { bd = d; best = m; } } return best ? { x: best.x, z: best.z, note: best.name } : null; }
     if (q.id === 'lab' && G.world.preset.villages) { const L = Lab.state; const m = Lab.mapMarks(p); const tent = m.find(x => x.kind === 'tent'), lab = m.find(x => x.kind === 'lab'); if (L.told && lab && !L.rescued) return { x: lab.x, z: lab.z, note: 'the hatch' }; return tent ? { x: tent.x, z: tent.z, note: 'the apprentice' } : null; }
     if (q.id === 'lost' && G.world.lost && G.stats.lostMap) { const T = G.world.lostTunnel(); return { x: T.ax, z: T.az, note: 'the tunnel' }; }
+    // the rest of the big steps get a pin too, so nobody is left without a direction
+    if (q.id === 'core' || q.id === 'ship') { const t = Campaign.target(q.id === 'core' ? 'mines' : 'foreman'); if (t) return Object.assign({}, t, { note: q.id === 'core' ? 'down the mine shaft' : "Garrick's forge" }); }
+    if (q.id === 'holds' && typeof Keeps !== 'undefined') { const left = Keeps.sites().filter(k => !Keeps.isTaken(k.id) && (!k.core || p.has('deepchart'))); left.sort((a, b) => Math.hypot(a.x - p.x, a.z - p.z) - Math.hypot(b.x - p.x, b.z - p.z)); if (left[0]) return { x: left[0].x, z: left[0].z - 9, note: left[0].name }; }
+    if ((q.id === 'citadel' || q.id === 'scientist') && typeof Citadel !== 'undefined') { const m = Citadel.mapMarks()[0]; if (m) return { x: m.x, z: m.z, note: 'the Black Citadel' }; }
+    if ((q.id === 'abyss' || q.id === 'rex') && G.world.lost) { const T = G.world.lostTunnel(); if (T) return { x: T.ax, z: T.az, note: q.id === 'abyss' ? 'the sea by the Lost World' : 'the Lost World' }; }
     if (q.id === 'legend' && G.world.legend && (G.stats.apex || {}).rex === true && !(G.stats.legends || {})[G.worldId]) return { x: G.world.legend.x, z: G.world.legend.z, note: G.world.preset.legend.name };
     return null;
   }
