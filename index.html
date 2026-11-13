@@ -1973,8 +1973,8 @@ const R = (() => {
     const on = shadowReady && state.shadows !== false && state.skyPass && state.sunAmt > 0.02 && state.sun[1] > 0.04;
     state.shadowOn = on ? Math.min(1, (state.sun[1] - 0.04) / 0.12) * state.sunAmt : 0;
     if (!on) return;
-    // on a phone the sun's view is redrawn every other frame: the map keeps its own matrix, so a skipped frame only means shadows a frame old
-    if (isMobile && lightPV && (shFrame = (shFrame + 1) & 1) === 1) return;
+    // on a phone the sun's view is redrawn every third frame: the map keeps its own matrix, so a skipped frame only means shadows a frame old
+    if (isMobile && lightPV && (shFrame = (shFrame + 1) % 3) !== 0) return; // every third frame: the sun moves slowly, and you hardly see a shadow two frames old
     const E = isMobile ? 30 : 44; const sun = state.sun;
     const f = U.forwardVec(cam.yaw, 0); let cx = player.x + f[0] * E * 0.3, cy = player.y, cz = player.z + f[2] * E * 0.3;
     const up = Math.abs(sun[1]) > 0.95 ? [1, 0, 0] : [0, 1, 0];
@@ -2248,6 +2248,7 @@ const R = (() => {
     const cbo = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, cbo); gl.bufferData(gl.ARRAY_BUFFER, mb.col.subarray(0, mb.nv * 4), gl.STATIC_DRAW);
     const ibo = gl.createBuffer(); gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ibo); gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, mb.idx.subarray(0, mb.ni), gl.STATIC_DRAW);
     const out = { vbo, cbo, ibo, count: mb.ni, nbo: null, bbo: null, mbo: null, tris: mb.ni / 3, chunk: mb.chunk };
+    if (mb.chunk) { let a = 1e9, b = -1e9; const P = mb.pos; for (let i = 1, n = mb.nv * 3; i < n; i += 3) { const y = P[i]; if (y < a) a = y; if (y > b) b = y; } out.y0 = a; out.y1 = b; } // how high the chunk's land actually reaches: culling uses it
     if (mb.chunk) { out.mbo = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, out.mbo); gl.bufferData(gl.ARRAY_BUFFER, mb.mat.subarray(0, mb.nv), gl.STATIC_DRAW);
       const n8 = new Int8Array(mb.nv * 3); const nr = mb.nrm; for (let i = 0; i < mb.nv * 3; i++) n8[i] = Math.max(-127, Math.min(127, Math.round(nr[i] * 127))); out.nbo = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, out.nbo); gl.bufferData(gl.ARRAY_BUFFER, n8, gl.STATIC_DRAW); }
     else if (mb.nrm) { out.nbo = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, out.nbo); gl.bufferData(gl.ARRAY_BUFFER, mb.nrm.subarray(0, mb.nv * 3), gl.STATIC_DRAW); out.bbo = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, out.bbo); gl.bufferData(gl.ARRAY_BUFFER, mb.bone.subarray(0, mb.nv), gl.STATIC_DRAW); }
@@ -2959,6 +2960,7 @@ const R = (() => {
     }
     if (chunk.mesh) { freeMesh(chunk.mesh.op); freeMesh(chunk.mesh.wa); freeMesh(chunk.mesh.gs); freeMesh(chunk.mesh.gr); }
     chunk.mesh = { op: upload(op), wa: upload(wa), gs: upload(gs), gr: upload(gr) };
+    { let a = 1e9, b = -1e9; for (const m of [chunk.mesh.op, chunk.mesh.wa, chunk.mesh.gs, chunk.mesh.gr]) if (m && m.y0 != null) { a = Math.min(a, m.y0); b = Math.max(b, m.y1); } chunk.yb = a < b ? [a - 1, b + 2] : null; }
     chunk.dirty = false;
   }
   function freeChunk(chunk) { if (chunk.mesh) { freeMesh(chunk.mesh.op); freeMesh(chunk.mesh.wa); freeMesh(chunk.mesh.gs); freeMesh(chunk.mesh.gr); chunk.mesh = null; } }
@@ -3147,7 +3149,8 @@ const R = (() => {
       const mx = c.cx * CH + half, mz = c.cz * CH + half;
       const dx = mx - cam.x, dz = mz - cam.z;
       if (dx * dx + dz * dz > (state.viewDist + 16) * (state.viewDist + 16)) continue;
-      if (!U.sphereInFrustum(planes, mx, WH / 2, mz, rad)) continue;
+      if (c.yb) { const cy = (c.yb[0] + c.yb[1]) / 2, ry = (c.yb[1] - c.yb[0]) / 2; if (!U.sphereInFrustum(planes, mx, cy, mz, Math.hypot(half, ry, half))) continue; } // a sphere round the land that is really there, not the whole column
+      else if (!U.sphereInFrustum(planes, mx, WH / 2, mz, rad)) continue;
       visible.push(c);
     }
     gl.depthMask(true); gl.disable(gl.BLEND);
