@@ -122,6 +122,8 @@ Scope (Alexander, 8 Nov evening): EVERYTHING visible goes to the same standard: 
 
 - Every round starter is its own creature now (ember sprite, coal, jelly, hermit, bubble fish, seed pod, bulb, pebble, geode, cloud puff, snowball imp, icicle, spark, battery beetle, wisp, ink drop, firefly, sunbeam), and within each element no two lines share a body at the same stage.
 
+- Every evolved four-legged form now has a body of its own (34 legged designs, 16 floating or round ones), with its own head family: cat, canine, lizard, bull, deer, ape, beetle. Lines evolve logically: coal into smog into a walking volcano, jelly into man-o'-war into kraken, seed into sprout into walking oak, pebble into boulder into mountain giant, puff into storm cloud into hurricane, snowball into snow golem into yeti, wisp into shade into reaper wraith, sunbeam into corona into sun lion. Legendaries still use the old six bodies; next.
+
 ## Still to do
 UI polish as feedback comes in. Card battle screen still used for scripted encounters (raids at the walls, thief, citadel duel, holds) and the snare mini-game; converting those to live is the next big step if wanted. (Old list: train/ships, combat animation, eggs, avatar hair/paint, buddy WEAR cosmetics, Silas and Finch, UI polish (item icons), quality toggles in settings (state.shadows, state.grassQuality, state.dprCap).
 
