@@ -219,7 +219,7 @@
         const k = b.kind, phs = b.phase || 0;
         switch (k) {
           case 'leg': { const sw = Math.sin(ph + phs); const amp = (b.amp || 0.55) * mv * (1 - air * 0.8); const sit = a.sit || 0; const cr = (a.crouch || 0) * (1 - sit);
-            const ang = (-sw * amp) * (1 - sit) * (1 - cr * 0.5) - 1.25 * sit - CROUCH * cr, rz = (b.phase ? -1 : 1) * (0.25 * sit + 0.12 * cr), ty = bob + Math.max(0, -Math.cos(ph + phs)) * 0.03 * mv * sc * (b.len || 1);
+            const ang = (-sw * amp) * (1 - sit) * (1 - cr * 0.5) - 1.25 * sit - CROUCH * cr, rz = (b.phase ? -1 : 1) * ((a.straddle || 0.25) * sit + 0.12 * cr), ty = bob + Math.max(0, -Math.cos(ph + phs)) * 0.03 * mv * sc * (b.len || 1);
             legAt[i] = { ang, rz, ty, sw }; set(i, b.piv, ang, 0, rz, 0, ty, 0); break; }
           case 'shin': { // the lower leg hangs from the knee wherever the thigh has swung it: straight for a stand, folded back for a crouch, down for a seat
             const L = legAt[b.leg], P = bones[b.leg]; if (!L || !P) { set(i, null, 0, 0, 0, 0, bob, 0); break; }

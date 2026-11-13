@@ -94,6 +94,8 @@ Scope (Alexander, 8 Nov evening): EVERYTHING visible goes to the same standard: 
 
 - Hill lean: player measures the grade ahead in the walking direction (smooth surface, or a one-block step = 0.8); over 0.15 he leans forward up to 0.42 rad, a touch back going down steeply. Geo tips every upper-body bone of a human round the hips; legs stay put. A crouch adds a little forward lean.
 
+- Riding seat: seatOf() takes the mount's biggest body piece (the torso, not a raised neck) for the saddle height and its middle for where along the back to sit; the rider is placed there, and the thighs straddle wider for a wider mount.
+
 ## Still to do
 UI polish as feedback comes in. Card battle screen still used for scripted encounters (raids at the walls, thief, citadel duel, holds) and the snare mini-game; converting those to live is the next big step if wanted. (Old list: train/ships, combat animation, eggs, avatar hair/paint, buddy WEAR cosmetics, Silas and Finch, UI polish (item icons), quality toggles in settings (state.shadows, state.grassQuality, state.dprCap).
 
