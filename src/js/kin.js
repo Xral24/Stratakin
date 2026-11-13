@@ -1058,9 +1058,9 @@ const KIN = (() => {
               for (const sd of [-1, 1]) for (const pth of [[[sd * 0.56, 1.5, 0.3], [sd * 0.57, 1.3, 0.3], [sd * 0.57, 1.3, 0.1]], [[sd * 0.57, 1.2, -0.1], [sd * 0.57, 1.0, -0.2], [sd * 0.57, 1.2, -0.3]], [[sd * 0.56, 1.5, -0.5], [sd * 0.56, 1.1, -0.5]], [[sd * 0.56, 1.36, -0.4], [sd * 0.56, 1.36, -0.62]]]) tube(pth, pth.map(() => 0.025), cr, { emis: true, cap0: 'round', cap1: 'round' });
               for (const [x, z, r] of [[0.2, -0.3, 0.24], [-0.24, -0.5, 0.2], [0.0, 0.0, 0.18]]) blob(x - r, 1.84, z - r, x + r, 1.84 + r * 1.2, z + r, 0.4, R2, { n: 2 }); for (let i = 0; i < 6; i++) ball(Math.cos(i * 1.7) * 0.36, 1.86, -0.3 + Math.sin(i * 1.7) * 0.4, 0.12, '#5f8a3a', { n: 2 });
               H(1.5, 0.7); blob(-0.38, 1.16, 0.46, 0.38, 1.96, 0.96, 0.8, R, { under: R2 });
-              for (const sd of [-1, 1]) plate([[sd * 0.34, 1.86, 0.62], [sd * 0.84, 1.8, 0.44], [sd * 0.8, 1.2, 0.4], [sd * 0.36, 1.26, 0.6]], 0.04, R2, { edge: cr });
+              for (const sd of [-1, 1]) { blob(sd > 0 ? 0.3 : -0.78, 1.16, 0.44, sd > 0 ? 0.78 : -0.3, 1.86, 0.58, 1, R2, { n: 2 }); tube([[sd * 0.62, 1.74, 0.59], [sd * 0.7, 1.5, 0.59], [sd * 0.6, 1.3, 0.58]], [0.015, 0.015, 0.015], cr, { emis: true, cap0: 'round', cap1: 'round' }); }
               const tr = []; for (let i = 0; i <= 8; i++) { const u = i / 8; tr.push([0, 1.34 - u * 1.0 + (u > 0.75 ? (u - 0.75) * 1.4 : 0), 0.96 + u * 0.24 - (u > 0.75 ? (u - 0.75) * 0.8 : 0)]); } tube(tr, tr.map((_, i) => 0.13 * (1 - i / 12)), R, { cap0: 'none', cap1: 'round', shade: (p, nx, ny, nz, t) => U.hexToRgb(Math.floor(t * 16) % 2 ? R2 : R) });
-              for (const sd of [-1, 1]) curl([sd * 0.22, 1.28, 0.9], [sd * 0.25, -0.8, 1], 0.95, 0.08, cr, [-sd * 0.5, 1.5, 0.1], { emis: true });
+              for (const sd of [-1, 1]) { const pts = [], rr = []; for (let i = 0; i <= 10; i++) { const u = i / 10, q = u * Math.PI * 0.95; pts.push([sd * (0.22 + u * 0.2 - u * u * 0.14), 1.3 - Math.sin(q) * 0.52 + u * 0.1, 0.9 + Math.sin(q * 0.75) * 0.6]); rr.push(0.085 * (1 - u * 0.85)); } tube(pts, rr, cr, { emis: true, cap0: 'flat', cap1: 'round' }); } // tusks that sweep down, out and up again
               look(0.3, 1.62, 0.86, 0.06, { brow: R2, col: cr, glow: true }); bone = 0;
               tail([[0, 1.5, -0.86], [0, 1.24, -1.0]], [0.06, 0.04], R, { tip: (p) => cone(p, [0, -1, -0.2], 0.16, 0.06, R2) });
             } else if (P === 'stormgriffin') { // LEGEND, GALE: a griffin: the head, chest, wings and fore-talons of a storm eagle, the hindquarters of a lion
@@ -1276,7 +1276,7 @@ const KIN = (() => {
             bone = 0;
             infuse({ head: [0, hy + 0.3 * hs, hz], hs, neck: [0, leg + 0.42, 0.44 * L], back: [leg + 0.38, -0.4 * L, 0.3 * L], tail: tl, jaw: [0, hy + 0.02, hz + 0.3], feet: [[-0.14, 0.34 * L, 2], [0.14, 0.34 * L, 3], [-0.14, -0.38 * L, 4], [0.14, -0.38 * L, 5]] });
           }
-          if (f.wings && el !== 'Gale' && !QD.has(form.plan)) wings(0.28, legLen + 0.4, 0.1, 0.8 + 0.2 * t);
+          if (f.wings && el !== 'Gale' && !QD.has(form.plan) && !(arch === 'steed' && t < 2)) wings(0.28, legLen + 0.4, 0.1, 0.8 + 0.2 * t);
           break;
         }
       }
