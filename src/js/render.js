@@ -985,6 +985,17 @@ const R = (() => {
           const b0 = wa.nv; wa.vert(cx, y + 1.98, cz, 0, 1, 0, 0, 0, 0, sk, false); for (let i = 0; i < 12; i++) { const a = i / 12 * 6.2832; wa.vert(cx + Math.cos(a) * 0.72, y + 1.98, cz + Math.sin(a) * 0.72, 0, 1, 0, 0, 0, 0, sk, false); } for (let i = 0; i < 12; i++) wa.tri(b0, b0 + 1 + i, b0 + 1 + (i + 1) % 12);
           continue;
         }
+        if (id === B.SAILS) { // a windmill's sails: a hub on the wall behind, four spars, a lattice of canvas along each
+          const sk = skyAt(lx, y + 1, lz); let d = [0, -1]; for (const [a, b] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) if (isOpaque(get(lx + a, y, lz + b))) { d = [a, b]; break; }
+          const cx = lx + 0.5 + d[0] * 0.15, cy = y + 0.5, cz = lz + 0.5 + d[1] * 0.15; const px = d[0] ? 0 : 1, pz = d[0] ? 1 : 0; const rot = 0.35 + U.hash3(wx, y, wz, 212) * 0.9; const wood = [0.46, 0.32, 0.18], canvas = [0.95, 0.91, 0.8];
+          op.tube([[cx + d[0] * 0.4, cy, cz + d[1] * 0.4], [cx - d[0] * 0.25, cy, cz - d[1] * 0.25]], [0.16, 0.12], wood, { sky: sk, segs: 7, cap0: 'flat', cap1: 'round' });
+          for (let k = 0; k < 4; k++) { const an = rot + k * Math.PI / 2, c = Math.cos(an), sn = Math.sin(an); const AT = (r, o) => [cx + px * (c * r - sn * o), cy + sn * r + c * o, cz + pz * (c * r - sn * o)];
+            op.tube([AT(0, 0), AT(2.7, 0)], [0.06, 0.04], wood, { sky: sk, segs: 5, cap0: 'none', cap1: 'round' });
+            for (let j = 0; j < 4; j++) { const r0 = 0.6 + j * 0.52, r1 = r0 + 0.46; const q = [AT(r0, 0.07), AT(r1, 0.07), AT(r1, 0.72), AT(r0, 0.72)]; const cc = j % 2 ? canvas : [canvas[0] * 0.93, canvas[1] * 0.92, canvas[2] * 0.9]; const nrm = [-d[0], 0, -d[1]];
+              op.quad(q, [cc, cc, cc, cc], [sk, sk, sk, sk], false, [nrm, nrm, nrm, nrm]); op.quad([q[3], q[2], q[1], q[0]], [cc, cc, cc, cc], [sk, sk, sk, sk], false, [[d[0], 0, d[1]], [d[0], 0, d[1]], [d[0], 0, d[1]], [d[0], 0, d[1]]]); }
+            op.tube([AT(0.55, 0.74), AT(2.7, 0.74)], [0.025, 0.025], wood, { sky: sk, segs: 4, cap0: 'none', cap1: 'none' }); }
+          continue;
+        }
         if (id === B.BARREL) { // a cooper's barrel: bulged staves, two iron hoops, sometimes a lid of apples or a little keg beside it
           const sk = skyAt(lx, y + 1, lz); const gy = gnd(lx, y, lz); const hv = U.hash3(wx, y, wz, 190), hj = U.hash3(wx, y, wz, 191); const cx = lx + 0.5 + (hj - 0.5) * 0.12, cz = lz + 0.5 + (U.hash3(wx, y, wz, 192) - 0.5) * 0.12;
           const wood = [0.58 + hv * 0.08, 0.38 + hv * 0.05, 0.19], dark = [0.2, 0.19, 0.2];

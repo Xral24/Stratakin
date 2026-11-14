@@ -774,7 +774,7 @@ const B = {
   TORCH: 18, FUSION: 19, GRAVEL: 20, CACTUS: 21, STARMETAL: 22, MOSS: 23, STATUE: 24, PLANKS: 25, BERRY: 26, GLASS: 27, CAMPFIRE: 28, IRONWALL: 29, VOIDWALL: 30, GLOWWORM: 31, BERRYLEAF: 32, DOOR: 33, DOOR_OPEN: 34, PORTAL: 35,
   CHEST: 36, SELENITE: 37, TYCHO: 38, STARSALT: 39, MOONGLOW: 40, AMBER: 41, SULFUR: 42, RINGSHARD: 43, BRINE: 44, CORAL_R: 45, CORAL_B: 46, CORAL_Y: 47, PEARLCORAL: 48, GOLD: 49, DIAMOND: 50, FERN: 51, SELGLASS: 52, INCUBATOR: 53, REGOLITH: 54, DUNE: 55, SALTCRUST: 56, LADDER: 57, TARGET: 58, BALLOON: 59, FORTSTONE: 60, THORN: 61, DEADGATE: 62, RUBBLE: 63, DARKTABLE: 64,
   NEEDLES: 65, FROND: 66, BIRCHLOG: 67, BOULDER: 68, MUSHROOM: 69, FLOWERS: 70, PEBBLES: 71, PALMLOG: 72,
-  TILES: 73, SLATE: 74, THATCH: 75, PLASTER: 76, BEAM: 77, LAMP: 78, COBBLE: 79, FLOWERBOX: 80, PALISADE: 81, MASONRY: 82, FOUNTAIN: 83, BASIN: 84, AWNING: 85, BANNER: 86, SLIT: 87, TIPI: 88, HIDE: 89, LODGE: 90, FENCE: 91, FIREPIT: 92, TOTEM: 93, RAIL: 94, CART: 95, ROPEBRIDGE: 96, WEAVE: 97, SAIL: 98, EMBERLIGHT: 99, BARREL: 100, CRATE: 101, BUNTING: 102, SIGNPOST: 103, PLANTER: 104, BRICK: 105
+  TILES: 73, SLATE: 74, THATCH: 75, PLASTER: 76, BEAM: 77, LAMP: 78, COBBLE: 79, FLOWERBOX: 80, PALISADE: 81, MASONRY: 82, FOUNTAIN: 83, BASIN: 84, AWNING: 85, BANNER: 86, SLIT: 87, TIPI: 88, HIDE: 89, LODGE: 90, FENCE: 91, FIREPIT: 92, TOTEM: 93, RAIL: 94, CART: 95, ROPEBRIDGE: 96, WEAVE: 97, SAIL: 98, EMBERLIGHT: 99, BARREL: 100, CRATE: 101, BUNTING: 102, SIGNPOST: 103, PLANTER: 104, BRICK: 105, SAILS: 106
 };
 
 // name, top colour, side colour, solid, hardness (seconds to mine), drop item id, emissive, fluid
@@ -861,6 +861,7 @@ defBlock(B.PALMLOG, 'Palm Trunk', '#a08858', '#8a6e46', { hard: 0.6, drop: 'wood
 defBlock(B.TILES, 'Roof Tiles', '#c9623a', '#b25434', { hard: 0.5, drop: 'planks', transparent: true });
 defBlock(B.SLATE, 'Slate Roof', '#55606e', '#4a5462', { hard: 0.5, drop: 'planks', transparent: true });
 defBlock(B.THATCH, 'Thatch', '#d6b05a', '#b8964a', { hard: 0.3, drop: 'frond', transparent: true });
+defBlock(B.SAILS, 'Windmill Sails', '#efe6cf', '#7a5632', { solid: false, hard: 0.4, drop: 'planks', partial: true, transparent: true });
 defBlock(B.BRICK, 'Brick', '#b9583c', '#b25238', { hard: 1.0, drop: 'stone' });
 defBlock(B.PLASTER, 'Plaster', '#f3e3bd', '#eedbb0', { hard: 0.6, drop: 'planks' });
 defBlock(B.BEAM, 'Timber Beam', '#6a4830', '#5e3f28', { hard: 0.6, drop: 'planks' });
@@ -2559,6 +2560,17 @@ const R = (() => {
           // the water surface in the basin, on the water mesh so it shimmers and reflects
           wa.curMat = 0; const wc = [0.1, 0, 0]; const N = 24; const c0 = wa.nv; wa.vert(cx, y + 0.5, cz, 0, 1, 0, wc[0], wc[1], wc[2], sk, false); for (let i = 0; i < N; i++) { const a = i / N * 6.2832; wa.vert(cx + Math.cos(a) * 2.2, y + 0.5, cz + Math.sin(a) * 2.2, 0, 1, 0, wc[0], wc[1], wc[2], sk, false); } for (let i = 0; i < N; i++) wa.tri(c0, c0 + 1 + i, c0 + 1 + (i + 1) % N);
           const b0 = wa.nv; wa.vert(cx, y + 1.98, cz, 0, 1, 0, 0, 0, 0, sk, false); for (let i = 0; i < 12; i++) { const a = i / 12 * 6.2832; wa.vert(cx + Math.cos(a) * 0.72, y + 1.98, cz + Math.sin(a) * 0.72, 0, 1, 0, 0, 0, 0, sk, false); } for (let i = 0; i < 12; i++) wa.tri(b0, b0 + 1 + i, b0 + 1 + (i + 1) % 12);
+          continue;
+        }
+        if (id === B.SAILS) { // a windmill's sails: a hub on the wall behind, four spars, a lattice of canvas along each
+          const sk = skyAt(lx, y + 1, lz); let d = [0, -1]; for (const [a, b] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) if (isOpaque(get(lx + a, y, lz + b))) { d = [a, b]; break; }
+          const cx = lx + 0.5 + d[0] * 0.15, cy = y + 0.5, cz = lz + 0.5 + d[1] * 0.15; const px = d[0] ? 0 : 1, pz = d[0] ? 1 : 0; const rot = 0.35 + U.hash3(wx, y, wz, 212) * 0.9; const wood = [0.46, 0.32, 0.18], canvas = [0.95, 0.91, 0.8];
+          op.tube([[cx + d[0] * 0.4, cy, cz + d[1] * 0.4], [cx - d[0] * 0.25, cy, cz - d[1] * 0.25]], [0.16, 0.12], wood, { sky: sk, segs: 7, cap0: 'flat', cap1: 'round' });
+          for (let k = 0; k < 4; k++) { const an = rot + k * Math.PI / 2, c = Math.cos(an), sn = Math.sin(an); const AT = (r, o) => [cx + px * (c * r - sn * o), cy + sn * r + c * o, cz + pz * (c * r - sn * o)];
+            op.tube([AT(0, 0), AT(2.7, 0)], [0.06, 0.04], wood, { sky: sk, segs: 5, cap0: 'none', cap1: 'round' });
+            for (let j = 0; j < 4; j++) { const r0 = 0.6 + j * 0.52, r1 = r0 + 0.46; const q = [AT(r0, 0.07), AT(r1, 0.07), AT(r1, 0.72), AT(r0, 0.72)]; const cc = j % 2 ? canvas : [canvas[0] * 0.93, canvas[1] * 0.92, canvas[2] * 0.9]; const nrm = [-d[0], 0, -d[1]];
+              op.quad(q, [cc, cc, cc, cc], [sk, sk, sk, sk], false, [nrm, nrm, nrm, nrm]); op.quad([q[3], q[2], q[1], q[0]], [cc, cc, cc, cc], [sk, sk, sk, sk], false, [[d[0], 0, d[1]], [d[0], 0, d[1]], [d[0], 0, d[1]], [d[0], 0, d[1]]]); }
+            op.tube([AT(0.55, 0.74), AT(2.7, 0.74)], [0.025, 0.025], wood, { sky: sk, segs: 4, cap0: 'none', cap1: 'none' }); }
           continue;
         }
         if (id === B.BARREL) { // a cooper's barrel: bulged staves, two iron hoops, sometimes a lid of apples or a little keg beside it
@@ -10109,6 +10121,18 @@ const Village = (() => {
     }
     const lamp = (x, z) => { if (M.lamp) push(x, vy, z, M.lamp); else { push(x, vy, z, M.post); push(x, vy + 1, z, M.light); } };
     for (const [a, b] of [[-6, -6], [6, -6], [-6, 6], [6, 6]]) lamp(vx + a, vz + b);
+    if (M.houses && !city) { // the four pockets of green between the square and the first houses: a great old tree, a windmill, a kitchen garden, a woodyard; flowers in the grass between
+      { const tx = vx + 9, tz = vz - 9; for (let y = vy; y <= vy + 6; y++) push(tx, y, tz, B.LOG); for (const [a, b] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { push(tx + a, vy, tz + b, B.LOG); push(tx + a * 2, vy + 5, tz + b * 2, B.LOG); push(tx + a, vy + 5, tz + b, B.LOG); }
+        for (let a = -5; a <= 5; a++) for (let b = -5; b <= 5; b++) for (let c = -2; c <= 3; c++) { const dd = (a * a + b * b) / 22 + (c * c) / (c < 0 ? 5 : 9.5); if (dd <= 1 && (dd > 0.25 || c > 0) && !(a === 0 && b === 0 && c <= 0)) push(tx + a, vy + 7 + c, tz + b, B.LEAVES); }
+        for (const [a, b] of [[2, 1], [-2, 1], [1, -2], [-1, 2], [2, -1], [-2, -2]]) push(tx + a, vy, tz + b, B.FLOWERS); }
+      { const mx = vx - 9, mz = vz - 9; for (let a = -1; a <= 1; a++) for (let b = -1; b <= 1; b++) { for (let y = vy; y <= vy + 6; y++) push(mx + a, y, mz + b, y === vy ? B.MASONRY : (Math.abs(a) === 1 && Math.abs(b) === 1) ? B.BEAM : B.PLASTER); }
+        push(mx, vy, mz + 1, B.BEAM); push(mx, vy + 1, mz + 1, B.BEAM); push(mx, vy + 3, mz + 1, B.GLASS); push(mx + 1, vy + 4, mz, B.GLASS);
+        for (let a = -2; a <= 2; a++) for (let b = -2; b <= 2; b++) { const m = Math.max(Math.abs(a), Math.abs(b)); push(mx + a, vy + 9 - m, mz + b, B.TILES); }
+        push(mx, vy + 5, mz + 2, B.SAILS); push(mx + 2, vy, mz + 1, B.BARREL); push(mx - 2, vy, mz + 1, B.CRATE); }
+      { const gx = vx + 9, gz = vz + 9; for (let a = -2; a <= 2; a++) for (let b = -2; b <= 2; b++) { const edge = Math.abs(a) === 2 || Math.abs(b) === 2; if (edge) { if (!(a === 0 && b === -2)) push(gx + a, vy, gz + b, B.FENCE); } else { push(gx + a, vy - 1, gz + b, B.DIRT); push(gx + a, vy, gz + b, (a + b) % 2 ? B.BERRY : B.FERN); } } }
+      { const wx0 = vx - 9, wz0 = vz + 9; for (const [a, b, h] of [[0, 0, 2], [1, 0, 1], [0, 1, 1], [-1, 0, 1]]) for (let y = 0; y < h; y++) push(wx0 + a, vy + y, wz0 + b, B.LOG); push(wx0 + 2, vy, wz0 - 1, B.BARREL); push(wx0 - 1, vy, wz0 - 2, B.CRATE); push(wx0 + 1, vy, wz0 + 2, B.PLANTER); }
+      for (let dx = -11; dx <= 11; dx++) for (let dz = -11; dz <= 11; dz++) { const m = Math.max(Math.abs(dx), Math.abs(dz)); if (m < 8 || onStreet(dx, dz) || (Math.abs(dx) >= 7 && Math.abs(dz) >= 7)) continue; if (Math.abs(dx) > 10 || Math.abs(dz) > 10) continue; const h = U.hash3(vx + dx, 21, vz + dz, 0x51); if (h < 0.2) push(vx + dx, vy, vz + dz, h < 0.12 ? B.FLOWERS : B.FERN); }
+    }
     if (M.houses) { // the square is dressed for a fair: bunting round its four sides, pots at the inner corners, and in a town two stalls with their wares
       for (let d = -5; d <= 5; d++) { push(vx + d, vy + 2, vz - 6, B.BUNTING); push(vx + d, vy + 2, vz + 6, B.BUNTING); push(vx - 6, vy + 2, vz + d, B.BUNTING); push(vx + 6, vy + 2, vz + d, B.BUNTING); }
       for (const [a, b] of [[5, 5], [5, -5], [-5, -5]]) push(vx + a, vy, vz + b, B.PLANTER);

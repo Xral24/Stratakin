@@ -339,6 +339,18 @@ const Village = (() => {
     }
     const lamp = (x, z) => { if (M.lamp) push(x, vy, z, M.lamp); else { push(x, vy, z, M.post); push(x, vy + 1, z, M.light); } };
     for (const [a, b] of [[-6, -6], [6, -6], [-6, 6], [6, 6]]) lamp(vx + a, vz + b);
+    if (M.houses && !city) { // the four pockets of green between the square and the first houses: a great old tree, a windmill, a kitchen garden, a woodyard; flowers in the grass between
+      { const tx = vx + 9, tz = vz - 9; for (let y = vy; y <= vy + 6; y++) push(tx, y, tz, B.LOG); for (const [a, b] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { push(tx + a, vy, tz + b, B.LOG); push(tx + a * 2, vy + 5, tz + b * 2, B.LOG); push(tx + a, vy + 5, tz + b, B.LOG); }
+        for (let a = -5; a <= 5; a++) for (let b = -5; b <= 5; b++) for (let c = -2; c <= 3; c++) { const dd = (a * a + b * b) / 22 + (c * c) / (c < 0 ? 5 : 9.5); if (dd <= 1 && (dd > 0.25 || c > 0) && !(a === 0 && b === 0 && c <= 0)) push(tx + a, vy + 7 + c, tz + b, B.LEAVES); }
+        for (const [a, b] of [[2, 1], [-2, 1], [1, -2], [-1, 2], [2, -1], [-2, -2]]) push(tx + a, vy, tz + b, B.FLOWERS); }
+      { const mx = vx - 9, mz = vz - 9; for (let a = -1; a <= 1; a++) for (let b = -1; b <= 1; b++) { for (let y = vy; y <= vy + 6; y++) push(mx + a, y, mz + b, y === vy ? B.MASONRY : (Math.abs(a) === 1 && Math.abs(b) === 1) ? B.BEAM : B.PLASTER); }
+        push(mx, vy, mz + 1, B.BEAM); push(mx, vy + 1, mz + 1, B.BEAM); push(mx, vy + 3, mz + 1, B.GLASS); push(mx + 1, vy + 4, mz, B.GLASS);
+        for (let a = -2; a <= 2; a++) for (let b = -2; b <= 2; b++) { const m = Math.max(Math.abs(a), Math.abs(b)); push(mx + a, vy + 9 - m, mz + b, B.TILES); }
+        push(mx, vy + 5, mz + 2, B.SAILS); push(mx + 2, vy, mz + 1, B.BARREL); push(mx - 2, vy, mz + 1, B.CRATE); }
+      { const gx = vx + 9, gz = vz + 9; for (let a = -2; a <= 2; a++) for (let b = -2; b <= 2; b++) { const edge = Math.abs(a) === 2 || Math.abs(b) === 2; if (edge) { if (!(a === 0 && b === -2)) push(gx + a, vy, gz + b, B.FENCE); } else { push(gx + a, vy - 1, gz + b, B.DIRT); push(gx + a, vy, gz + b, (a + b) % 2 ? B.BERRY : B.FERN); } } }
+      { const wx0 = vx - 9, wz0 = vz + 9; for (const [a, b, h] of [[0, 0, 2], [1, 0, 1], [0, 1, 1], [-1, 0, 1]]) for (let y = 0; y < h; y++) push(wx0 + a, vy + y, wz0 + b, B.LOG); push(wx0 + 2, vy, wz0 - 1, B.BARREL); push(wx0 - 1, vy, wz0 - 2, B.CRATE); push(wx0 + 1, vy, wz0 + 2, B.PLANTER); }
+      for (let dx = -11; dx <= 11; dx++) for (let dz = -11; dz <= 11; dz++) { const m = Math.max(Math.abs(dx), Math.abs(dz)); if (m < 8 || onStreet(dx, dz) || (Math.abs(dx) >= 7 && Math.abs(dz) >= 7)) continue; if (Math.abs(dx) > 10 || Math.abs(dz) > 10) continue; const h = U.hash3(vx + dx, 21, vz + dz, 0x51); if (h < 0.2) push(vx + dx, vy, vz + dz, h < 0.12 ? B.FLOWERS : B.FERN); }
+    }
     if (M.houses) { // the square is dressed for a fair: bunting round its four sides, pots at the inner corners, and in a town two stalls with their wares
       for (let d = -5; d <= 5; d++) { push(vx + d, vy + 2, vz - 6, B.BUNTING); push(vx + d, vy + 2, vz + 6, B.BUNTING); push(vx - 6, vy + 2, vz + d, B.BUNTING); push(vx + 6, vy + 2, vz + d, B.BUNTING); }
       for (const [a, b] of [[5, 5], [5, -5], [-5, -5]]) push(vx + a, vy, vz + b, B.PLANTER);

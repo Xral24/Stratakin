@@ -250,6 +250,8 @@ Scope (Alexander, 8 Nov evening): EVERYTHING visible goes to the same standard: 
 
 - 14 Nov, soul pass 3, roofs and walls (Alexander: villages thatched, towns and cities tiled; no ruled edges, tiles overlap at the edge, thatch overflows; cream plaster, terracotta, brick). village.js ROOF_OVR: villages thatch every land-style house, towns turn thatch to tile, city quarters keep their own. render.js roof wedge: on single-slope blocks the eave row hangs past the edge in strips of uneven length (tiles 0.07-0.2 with the odd slipped one, thatch 0.2-0.46 thick and drooping with a dark cut face), the verge laps out over the gable by uneven amounts, thatch ridges carry a straw roll. New block 105 BRICK (shader material 17: four courses a block, pale mortar, each brick its own shade); land house styles now include brick walls and brick footings; plaster creamier, tiles more terracotta, thatch more golden.
 
+- 14 Nov, soul pass 4, the village green (layout(), villages and towns, not cities): the four pockets between the square and the first lots hold a great old tree (NE), a windmill (NW: 3x3 plaster tower, tiled cap, new block 106 SAILS drawn against the wall behind it), a fenced kitchen garden (SE) and a woodyard (SW); flowers and ferns in the grass band.
+
 ## Still to do
 UI polish as feedback comes in. Card battle screen still used for scripted encounters (raids at the walls, thief, citadel duel, holds) and the snare mini-game; converting those to live is the next big step if wanted. (Old list: train/ships, combat animation, eggs, avatar hair/paint, buddy WEAR cosmetics, Silas and Finch, UI polish (item icons), quality toggles in settings (state.shadows, state.grassQuality, state.dprCap).
 
