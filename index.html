@@ -993,6 +993,13 @@ class World {
     let h = 40 + (cont - 0.5) * 48 + (hills - 0.5) * 16;
     let mountain = 0;
     if (cont > 0.64) { mountain = (cont - 0.64) * 160; h += mountain; }
+    if (this.preset.id === 'earth') { /* Earth's land has shape: mountains break into ridges, uplands step down in shelves, the desert stands up in buttes, and parts of the coast are cliff */
+      if (mountain > 0) { const rg = 1 - Math.abs(U.fbm2(x, z, 90, 3, s + 43, P) - 0.5) * 2; h += (rg - 0.55) * Math.min(1, mountain / 10) * 16; }
+      const tm = U.vnoise2(x, z, 140, P, s + 45);
+      if (tm > 0.6 && h > SEA + 5) { const k = Math.min(1, (tm - 0.6) / 0.08), step = 5, f = (h / step) % 1, e = Math.max(0, (f - 0.7) / 0.3), hq = Math.floor(h / step) * step + step * e * e * (3 - 2 * e); h += (hq - h) * k; }
+      if (temp > 0.62 && moist < 0.47 && h > SEA + 3) { const mm = U.vnoise2(x, z, 110, P, s + 47); if (mm > 0.68) h += Math.min(1, (mm - 0.68) / 0.025) * 8; }
+      if (h >= SEA + 1 && h <= SEA + 7) { const cf = U.vnoise2(x, z, 120, P, s + 49); if (cf > 0.62) h += Math.min(1, (cf - 0.62) / 0.05) * 5; }
+    }
     if (this.preset.craters) {
       // bowls punched into the highlands
       const cr = U.vnoise2(x, z, 48, P, s + 61);
@@ -16208,7 +16215,7 @@ const Combat = (() => {
     return null;
   }
   function reset() { foes.length = 0; shots.length = 0; }
-  return { cond, broken, use, bow, anyBow, mend, mendQuote, lifeOf, BOWS, rack, ARMOUR, worn, armourPts, armourCut, wornPerk, init, GEAR, ARROWS, armoury, weapon, shield, chopTier, spawn, swing, arrowHit, takeBlow, nearestFoe, hurtFoe, update, entities, forHold, clearHold, standingIn, focusText, focus, reset, blocking, KINDS };
+  return { cond, broken, use, bow, anyBow, mend, mendQuote, lifeOf, BOWS, rack, ARMOUR, worn, armourPts, armourCut, wornPerk, init, GEAR, ARROWS, armoury, weapon, shield, chopTier, spawn, warriorModel, swing, arrowHit, takeBlow, nearestFoe, hurtFoe, update, entities, forHold, clearHold, standingIn, focusText, focus, reset, blocking, KINDS };
 })();
 
 </script>
@@ -16429,7 +16436,8 @@ const Keeps = (() => {
   function warriors(k) {
     for (let j = 0; j < 3; j++) { const id = 'sb_' + k.id + '_' + j; if (Campaign.hasPerson(id)) continue;
       const pos = [[-5, 2], [5, 2], [-4, -4]][j]; const cols = Object.assign({}, WARRIOR_COLS[j]); if (taken(k.id)) cols.eye = '#ffe08a';
-      const n = Campaign.spawnPerson(id, ['Bound Guard', 'Bound Archer', 'Bound Captain'][j], 'spellbound', k.x + pos[0], k.z + pos[1], cols, ['warrior']); n.holdId = k.id; n.yaw = Math.PI; }
+      const n = Campaign.spawnPerson(id, ['Bound Guard', 'Bound Archer', 'Bound Captain'][j], 'spellbound', k.x + pos[0], k.z + pos[1], cols, ['warrior']); n.holdId = k.id; n.yaw = Math.PI;
+      { const kind = ['guard', 'archer', 'captain'][j], m = Combat.warriorModel(kind, true); n.model = m; n.mesh = R.entityMesh('freed3:' + kind, (mb) => KIN.buildMesh(mb, m)); } /* the same soldiers, with their own eyes back */ }
   }
   function muster(k) {
     const i = k.i || 0; const lv = Math.min(7, i); const s = st(); s['must_' + k.id] = true;

@@ -214,7 +214,8 @@ const Keeps = (() => {
   function warriors(k) {
     for (let j = 0; j < 3; j++) { const id = 'sb_' + k.id + '_' + j; if (Campaign.hasPerson(id)) continue;
       const pos = [[-5, 2], [5, 2], [-4, -4]][j]; const cols = Object.assign({}, WARRIOR_COLS[j]); if (taken(k.id)) cols.eye = '#ffe08a';
-      const n = Campaign.spawnPerson(id, ['Bound Guard', 'Bound Archer', 'Bound Captain'][j], 'spellbound', k.x + pos[0], k.z + pos[1], cols, ['warrior']); n.holdId = k.id; n.yaw = Math.PI; }
+      const n = Campaign.spawnPerson(id, ['Bound Guard', 'Bound Archer', 'Bound Captain'][j], 'spellbound', k.x + pos[0], k.z + pos[1], cols, ['warrior']); n.holdId = k.id; n.yaw = Math.PI;
+      { const kind = ['guard', 'archer', 'captain'][j], m = Combat.warriorModel(kind, true); n.model = m; n.mesh = R.entityMesh('freed3:' + kind, (mb) => KIN.buildMesh(mb, m)); } /* the same soldiers, with their own eyes back */ }
   }
   function muster(k) {
     const i = k.i || 0; const lv = Math.min(7, i); const s = st(); s['must_' + k.id] = true;

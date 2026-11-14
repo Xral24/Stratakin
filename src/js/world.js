@@ -233,6 +233,13 @@ class World {
     let h = 40 + (cont - 0.5) * 48 + (hills - 0.5) * 16;
     let mountain = 0;
     if (cont > 0.64) { mountain = (cont - 0.64) * 160; h += mountain; }
+    if (this.preset.id === 'earth') { /* Earth's land has shape: mountains break into ridges, uplands step down in shelves, the desert stands up in buttes, and parts of the coast are cliff */
+      if (mountain > 0) { const rg = 1 - Math.abs(U.fbm2(x, z, 90, 3, s + 43, P) - 0.5) * 2; h += (rg - 0.55) * Math.min(1, mountain / 10) * 16; }
+      const tm = U.vnoise2(x, z, 140, P, s + 45);
+      if (tm > 0.6 && h > SEA + 5) { const k = Math.min(1, (tm - 0.6) / 0.08), step = 5, f = (h / step) % 1, e = Math.max(0, (f - 0.7) / 0.3), hq = Math.floor(h / step) * step + step * e * e * (3 - 2 * e); h += (hq - h) * k; }
+      if (temp > 0.62 && moist < 0.47 && h > SEA + 3) { const mm = U.vnoise2(x, z, 110, P, s + 47); if (mm > 0.68) h += Math.min(1, (mm - 0.68) / 0.025) * 8; }
+      if (h >= SEA + 1 && h <= SEA + 7) { const cf = U.vnoise2(x, z, 120, P, s + 49); if (cf > 0.62) h += Math.min(1, (cf - 0.62) / 0.05) * 5; }
+    }
     if (this.preset.craters) {
       // bowls punched into the highlands
       const cr = U.vnoise2(x, z, 48, P, s + 61);
