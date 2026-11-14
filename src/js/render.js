@@ -213,7 +213,7 @@ const R = (() => {
       float lam = max(dot(n, uSun), 0.0) * uSunAmt;
       float sh = lam > 0.001 ? shadowAt(vWorld, n) : 1.0;
       vec3 amb = vec3(0.78, 0.86, 1.05) * (0.4 + 0.3 * uDay) * (0.86 + 0.14 * n.y);
-      vec3 light = skyL * (amb * (0.88 + 0.12 * sh) + uSunCol * lam * sh * 0.78 * uDay);
+      vec3 light = skyL * (amb * (0.88 + 0.12 * sh) + uSunCol * lam * sh * 0.88 * uDay);
       light = max(light, vec3(uAmbient)); light = max(light, vec3(1.0, 0.78, 0.52) * torch * 0.95);
       if (vWorld.y < 14.5 && uCoreGlow > 0.5) { // the Core: the lava sea lights everything from below, orange on the undersides, fading up toward the roof
         float up = clamp((vWorld.y - 3.5) / 9.0, 0.0, 1.0); float under = 0.55 - 0.45 * n.y;
@@ -221,8 +221,10 @@ const R = (() => {
         light = max(light, vec3(1.0, 0.42, 0.1) * (1.0 - up * 0.75) * under * 1.1 * flick + vec3(0.6, 0.16, 0.05) * 0.45);
       }
       light = mix(light, vec3(1.0), emis);
-      vec3 vc = vCol.rgb; float lum = dot(vc, vec3(0.3, 0.59, 0.11)); vc = mix(vec3(lum), vc, 0.78); if (vc.g > vc.r * 1.1 && vc.g > vc.b * 1.2) vc *= vec3(1.04, 1.0, 0.86);
-      col = vc * light;
+      vec3 vc = vCol.rgb; float lum = dot(vc, vec3(0.3, 0.59, 0.11)); vc = clamp(mix(vec3(lum), vc, 1.04), 0.0, 1.0); if (vc.g > vc.r * 1.1 && vc.g > vc.b * 1.2) vc *= vec3(1.04, 1.0, 0.86);
+      /* the world is painted the way the Kin are: colours kept whole, and shade that leans cool and keeps its colour instead of going grey */
+      float litW = clamp(lam * sh * 1.6, 0.0, 1.0) * uDay; vec3 shadeW = clamp(mix(vec3(lum), vc, 1.16), 0.0, 1.0) * vec3(0.9, 0.9, 1.04);
+      col = mix(shadeW, vc, max(litW, emis)) * light;
       if (mat0 == 16) { // cloudstone: soft, bright, a little blue in the hollows
         float puff = vn(vWorld.xz * 0.5 + vWorld.y * 0.3) * 0.6 + vn(vWorld.xz * 1.7 + 4.0) * 0.4;
         col *= 0.93 + 0.12 * puff; col = mix(col, col * vec3(0.9, 0.94, 1.0), (1.0 - max(n.y, 0.0)) * 0.3 + (1.0 - puff) * 0.12);
@@ -244,7 +246,7 @@ const R = (() => {
         vec3 bp = floor(vWorld - n * 0.5);
         float hb = hash3(bp); float speck = hash3(vec3(floor(uv * 8.0), bp.y)); float blot = hash3(vec3(floor(uv * 3.0), bp.x + bp.z));
         int matp = int(vMat + 0.5); float soil = (matp == 1 || matp == 2 || matp == 4 || matp == 5) ? 1.0 : 0.0; float blocky = (matp == 7 || matp == 0 || matp >= 9 || soil > 0.5) ? 0.0 : 1.0; // leaves, props, the ground and the town's materials are not blocks: no per-block paint on them
-        col *= 1.0 + blocky * (-0.1 + 0.1 * hb + (speck - 0.5) * 0.12 * uQuality + (blot - 0.5) * 0.07);
+        col *= 1.0 + blocky * (-0.06 + 0.07 * hb + (speck - 0.5) * 0.05 * uQuality + (blot - 0.5) * 0.045); /* quieter: a hint of the block, not grit */
         col *= 1.0 + soil * ((vn(uv * 0.7 + 3.0) - 0.5) * 0.1 + (vn(uv * 2.3 + 8.0) - 0.5) * 0.05); // the ground: a soft drift of light and dark instead
         // broad painted drift: warm and cool patches across the land
         vec2 wp = vWorld.xz * 0.045; vec2 wi = floor(wp), wf = fract(wp); wf = wf * wf * (3.0 - 2.0 * wf);
@@ -302,7 +304,8 @@ const R = (() => {
           float cx = (flatTop ? vWorld.x : (abs(n.x) > 0.5 ? vWorld.z : vWorld.x)) + mod(row, 2.0) * 0.5; float cc = floor(cx); float rx = fract(cx);
           float mortar = min(smoothstep(0.0, 0.06, ry) * smoothstep(1.0, 0.94, ry), smoothstep(0.0, 0.035, rx) * smoothstep(1.0, 0.965, rx));
           float own = hash3(vec3(cc, row, 4.0));
-          col *= mix(0.6, 1.0, mortar) * (0.9 + 0.2 * own) * (0.96 + 0.08 * vn(uv * 9.0)) * (0.95 + 0.1 * vn(uv * 0.6 + 2.0));
+          float darkSt = 1.0 - smoothstep(0.2, 0.36, lum); /* dark stone is pointed with pale mortar, or its courses vanish and a fortress is one black lump */
+          col *= mix(mix(0.6, 1.0, mortar), mix(1.7, 1.0, mortar), darkSt) * (0.86 + 0.28 * own) * (0.96 + 0.08 * vn(uv * 9.0)) * (0.95 + 0.1 * vn(uv * 0.6 + 2.0));
         } else if (mat == 11) { // cobbles: rounded stones packed in a bed of dark mortar
           vec2 q = uv * 3.2; vec2 ci = floor(q), cf = fract(q); float f1 = 9.0, f2 = 9.0, idc = 0.0;
           for (int i = -1; i <= 1; i++) for (int j = -1; j <= 1; j++) { vec2 g = vec2(float(i), float(j)); vec2 o = vec2(hash3(vec3(ci + g, 1.0)), hash3(vec3(ci + g, 2.0))) * 0.7 + 0.15; float d = length(g + o - cf); if (d < f1) { f2 = f1; f1 = d; idc = hash3(vec3(ci + g, 3.0)); } else if (d < f2) f2 = d; }
@@ -508,7 +511,7 @@ const R = (() => {
     vC = mix(tint * vec3(0.3, 0.42, 0.62), tint * vec3(1.02, 1.1, 0.74) + vec3(0.05, 0.05, 0.0), k) * (0.84 + 0.3 * h3);
     vC *= 1.0 + gust * 0.22 * aBlade.y;
     vC *= vec3(1.0 + (h1 - 0.5) * 0.14, 1.0, 1.0 - (h1 - 0.5) * 0.1); // some blades warmer, some cooler
-    float lum = dot(vC, vec3(0.3, 0.59, 0.11)); vC = mix(vec3(lum), vC, 0.76) * vec3(1.04, 1.0, 0.86);
+    float lum = dot(vC, vec3(0.3, 0.59, 0.11)); vC = mix(vec3(lum), vC, 1.0) * vec3(1.04, 1.0, 0.86);
     vC = mix(vC, vC * vec3(1.12, 1.08, 0.82) + vec3(0.06, 0.05, 0.0), tall * aBlade.y * 0.6); // tall grass goes pale and golden at the tips
     if (flower && aBlade.y > 0.6) { float fk = hash(cell + 9.1); vC = fk < 0.45 ? vec3(0.96, 0.96, 0.92) : fk < 0.7 ? vec3(0.55, 0.65, 1.0) : fk < 0.88 ? vec3(1.0, 0.86, 0.3) : vec3(0.95, 0.55, 0.7); }
     vW = w; vH = aBlade.y;
