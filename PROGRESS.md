@@ -158,6 +158,8 @@ Scope (Alexander, 8 Nov evening): EVERYTHING visible goes to the same standard: 
 
 - Kin graphics pass 1 (14 Nov): entity shader repainted (no grain, richer colour, cool coloured shadows with one clean edge, softer rim and gloss, thin ink outline in the surface's own colour), rounder meshes (tessellation floor in buildMesh), and one shared eye (LOOK in kin.js: white, two-tone iris, tall pupil, two glints, lid; fierce brow; side-facing for fish). Every family routes through it. People not done yet.
 
+- Kin graphics pass 2 (14 Nov): portraits are supersampled (drawn 2-3x and shrunk, up to 640 px) so edges are smooth; mobile resolution cap 1.75 -> 2.25. Frost biped line redone as ice Kin: floe chick, glacier skater, ice general (navy and ice, no black-and-white penguin).
+
 ## Still to do
 UI polish as feedback comes in. Card battle screen still used for scripted encounters (raids at the walls, thief, citadel duel, holds) and the snare mini-game; converting those to live is the next big step if wanted. (Old list: train/ships, combat animation, eggs, avatar hair/paint, buddy WEAR cosmetics, Silas and Finch, UI polish (item icons), quality toggles in settings (state.shadows, state.grassQuality, state.dprCap).
 

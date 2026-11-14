@@ -686,7 +686,7 @@ const R = (() => {
     else if (fastSecs >= 8 && state.dynScale < 1) { state.dynScale = Math.min(1, +(state.dynScale + 0.1).toFixed(2)); fastSecs = 0; resize(); }
   }
   function resize() {
-    const dpr = Math.max(0.75, Math.min(window.devicePixelRatio || 1, state.dprCap || (isMobile ? 1.75 : 2)) * (state.dynScale || 1));
+    const dpr = Math.max(0.75, Math.min(window.devicePixelRatio || 1, state.dprCap || (isMobile ? 2.25 : 2)) * (state.dynScale || 1));
     const w = Math.floor(canvas.clientWidth * dpr), h = Math.floor(canvas.clientHeight * dpr);
     if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
     gl.viewport(0, 0, canvas.width, canvas.height);
@@ -1466,7 +1466,7 @@ const R = (() => {
   let pfb = null, ptex = null, pdepth = null, psize = 0;
   function renderPortrait(cv, mesh, model, size, opts = {}) {
     if (!eprog || !mesh || !mesh.count) return false;
-    size = size || 96; const S = Math.min(256, Math.round(size * (window.devicePixelRatio > 1.4 ? 2 : 1.5)));
+    size = size || 96; const OUT = Math.min(640, Math.round(size * Math.min(3, Math.max(1.5, window.devicePixelRatio || 1)))); const S = Math.min(1280, OUT * (OUT <= 320 ? 3 : 2)); /* drawn two or three times too big and shrunk: soft edges, no stair-steps */
     if (!pfb) { pfb = gl.createFramebuffer(); ptex = gl.createTexture(); pdepth = gl.createRenderbuffer(); }
     gl.bindFramebuffer(gl.FRAMEBUFFER, pfb);
     if (psize !== S) { gl.bindTexture(gl.TEXTURE_2D, ptex); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, S, S, 0, gl.RGBA, gl.UNSIGNED_BYTE, null); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR); gl.bindRenderbuffer(gl.RENDERBUFFER, pdepth); gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, S, S); gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, ptex, 0); gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, pdepth); psize = S; }
@@ -1497,8 +1497,10 @@ const R = (() => {
     gl.bindFramebuffer(gl.FRAMEBUFFER, null); gl.viewport(0, 0, canvas.width, canvas.height);
     // flip rows (GL is bottom-up) and un-premultiply nothing: alpha is 0 or 1
     const img = new ImageData(S, S); const d = img.data; for (let y = 0; y < S; y++) d.set(px.subarray((S - 1 - y) * S * 4, (S - y) * S * 4), y * S * 4);
-    cv.width = S; cv.height = S; cv.style.width = cv.style.height = size + 'px';
-    const ctx = cv.getContext('2d'); ctx.putImageData(img, 0, 0);
+    if (!renderPortrait._t) renderPortrait._t = document.createElement('canvas'); const tc = renderPortrait._t; tc.width = S; tc.height = S; tc.getContext('2d').putImageData(img, 0, 0);
+    cv.width = OUT; cv.height = OUT; cv.style.width = cv.style.height = size + 'px';
+    const ctx = cv.getContext('2d'); ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high'; ctx.clearRect(0, 0, OUT, OUT);
+    if (S >= OUT * 3) { const hc = renderPortrait._h || (renderPortrait._h = document.createElement('canvas')); hc.width = hc.height = Math.round(S / 2); const hx = hc.getContext('2d'); hx.imageSmoothingQuality = 'high'; hx.drawImage(tc, 0, 0, hc.width, hc.height); ctx.drawImage(hc, 0, 0, OUT, OUT); } else ctx.drawImage(tc, 0, 0, OUT, OUT);
     return true;
   }
 

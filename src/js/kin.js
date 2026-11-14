@@ -329,7 +329,7 @@ const KIN = (() => {
       Bloom: [[['biped', 'sporeling', 'sporeling'], ['biped', 'mushknight', 'mushroom knight'], ['biped', 'fungelder', 'fungus elder']], [['biped', 'mantisnymph', 'mantis nymph'], ['biped', 'orchidmantis', 'orchid mantis']], [['biped', 'mosssloth', 'moss sloth']]],
       Stone: [[['biped', 'molekit', 'star-nosed mole'], ['biped', 'minermole', 'miner mole'], ['biped', 'drillmole', 'drill mole']], [['biped', 'pangolinpup', 'pangolin pup'], ['biped', 'pangolinknight', 'pangolin knight']], [['biped', 'menhir', 'rune menhir']]],
       Gale: [[['biped', 'batpup', 'bat pup'], ['biped', 'galebat', 'gale bat'], ['biped', 'tempestbat', 'tempest bat lord']], [['biped', 'lemurkid', 'lemur kid'], ['biped', 'skylemur', 'sky lemur']], [['biped', 'gibbon', 'gibbon']]],
-      Frost: [[['biped', 'penguinchick', 'penguin chick'], ['biped', 'emperor', 'emperor penguin'], ['biped', 'icegeneral', 'ice general']], [['biped', 'polarcub', 'polar cub'], ['biped', 'polarbear', 'polar bear']], [['biped', 'stoat', 'stoat']]],
+      Frost: [[['biped', 'penguinchick', 'floe chick'], ['biped', 'emperor', 'glacier skater'], ['biped', 'icegeneral', 'ice general']], [['biped', 'polarcub', 'polar cub'], ['biped', 'polarbear', 'polar bear']], [['biped', 'stoat', 'stoat']]],
       Spark: [[['biped', 'windupbot', 'wind-up bot'], ['biped', 'coilsoldier', 'coil soldier'], ['biped', 'thundermech', 'thunder mech']], [['biped', 'voltjoey', 'volt joey'], ['biped', 'thunderboxer', 'thunder boxer']], [['biped', 'conductor', 'lightning conductor']]],
       Void: [[['biped', 'puppet', 'puppet'], ['biped', 'marionette', 'marionette'], ['biped', 'puppeteer', 'puppeteer']], [['biped', 'ayeaye', 'aye-aye'], ['biped', 'nightshaman', 'night shaman']], [['biped', 'mimic', 'mimic chest']]],
       Light: [[['biped', 'prismsprite', 'prism sprite'], ['biped', 'crystalknight', 'crystal knight'], ['biped', 'paladin', 'radiant paladin']], [['biped', 'meerkatpup', 'meerkat pup'], ['biped', 'sunsentinel', 'sun sentinel']], [['biped', 'sunbear', 'sun bear']]]
@@ -1550,22 +1550,26 @@ const KIN = (() => {
             look(0.06, 1.15, 0.18, 0.04); nose(0, 1.07, 0.21, 0.02); mouth(1.02, 0.2, 0.04, '#f4f0e6'); bone = 0;
 
           // ======== FROST ========
-          } else if (P === 'penguinchick' || P === 'emperor' || P === 'icegeneral') { // a fluffy chick, a sleek emperor with gold at its cheeks, then a general in ice armour with a lance
-            const k = P === 'penguinchick' ? 0 : P === 'emperor' ? 1 : 2, black = '#20242e', gold = '#f2b830';
+          } else if (P === 'penguinchick' || P === 'emperor' || P === 'icegeneral') { /* a chip of pack ice that hatched: a snowball chick with an iceberg tip on its head, a skater whose flippers and feet have grown blades, then a general in ice armour with a lance */
+            const k = P === 'penguinchick' ? 0 : P === 'emperor' ? 1 : 2, black = '#243f73', gold = '#9fe8ff', chick = '#8fc4e8', ice = '#9ff2ff';
             const hip = [0.1, 0.16, 0.22][k], top = [0.7, 1.24, 1.6][k], w = [0.3, 0.3, 0.38][k];
             legs(hip, 0.1 + 0.02 * k, 0.04 + 0.01 * k, '#e8903a', 'web', { fc: '#e8903a' });
-            blob(-w, hip - 0.04, -w * 0.9, w, top, w * 0.9, 1, k === 0 ? '#9aa4b2' : black, { under: k === 0 ? '#c8d0dc' : '#f4f6fa', tap: [0.75, 1] });
-            if (k) blob(-w * 0.72, hip + 0.04, 0.0, w * 0.72, top - 0.2, w * 0.92, 1, '#f4f6fa');
-            if (k === 0) for (let i = 0; i < 3; i++) cone([(i - 1) * 0.05, top + 0.2, -0.02], [(i - 1) * 0.4, 1, -0.2], 0.1, 0.03, '#9aa4b2');
-            arms(top - 0.16, w - 0.02, [0.24, 0.5, 0.6][k], [0.05, 0.06, 0.07][k], k === 0 ? '#9aa4b2' : black, 'fin', { out: 0.12, hand: k === 2 ? (sd, wr) => { if (sd > 0) { tube([[wr[0], wr[1] - 0.5, wr[2] + 0.04], [wr[0], wr[1] + 1.0, wr[2] + 0.14]], [0.03, 0.025], '#c8d8e8', { cap0: 'round', cap1: 'none' }); cone([wr[0], wr[1] + 1.0, wr[2] + 0.14], [0, 1, 0.1], 0.36, 0.08, glw, { emis: true }); } } : null });
+            blob(-w, hip - 0.04, -w * 0.9, w, top, w * 0.9, 1, k === 0 ? chick : black, { under: k === 0 ? '#eaf6ff' : '#f4f6fa', tap: [0.75, 1] });
+            cone([0, hip + 0.1, -w * 0.82], [0, 0.35, -1], 0.14 + 0.08 * k, 0.05, ice, { emis: true }); /* an icicle for a tail */
+            if (k) for (const sd of [-1, 1]) blob(sd * 0.12 - 0.018, 0, -0.08, sd * 0.12 + 0.018, 0.035, 0.26, 0.4, ice, { emis: true }); /* skate blades */
+            if (k) { blob(-w * 0.72, hip + 0.04, 0.0, w * 0.72, top - 0.2, w * 0.92, 1, '#f4f6fa'); for (let i = 0; i < 3; i++) { const cy = top - 0.42 - i * 0.17, r = 0.06 - i * 0.012; plate([[0, cy + r * 1.5, w * 0.93], [r, cy, w * 0.95], [0, cy - r * 1.5, w * 0.93], [-r, cy, w * 0.95]], 0.012, ice, { emis: true }); } } /* ice diamonds down the chest */
+            else ball(0, hip + 0.3, w * 0.86, 0.045, ice, { emis: true });
+            if (k === 0) { cone([0, top + 0.18, -0.02], [0.1, 1, -0.2], 0.3, 0.085, ice, { emis: true }); cone([-0.09, top + 0.17, 0.0], [-0.5, 1, -0.1], 0.16, 0.05, '#eaf6ff'); cone([0.1, top + 0.16, -0.04], [0.6, 1, -0.3], 0.13, 0.045, '#eaf6ff'); } /* the tip of the iceberg */
+            arms(top - 0.16, w - 0.02, [0.24, 0.5, 0.6][k], [0.05, 0.06, 0.07][k], k === 0 ? chick : black, 'fin', { out: 0.12, hand: k === 1 ? (sd, wr) => { cone([wr[0], wr[1] + 0.06, wr[2]], [sd * 0.35, -1, -0.15], 0.3, 0.055, ice, { emis: true }); } : k === 2 ? (sd, wr) => { if (sd > 0) { tube([[wr[0], wr[1] - 0.5, wr[2] + 0.04], [wr[0], wr[1] + 1.0, wr[2] + 0.14]], [0.03, 0.025], '#c8d8e8', { cap0: 'round', cap1: 'none' }); cone([wr[0], wr[1] + 1.0, wr[2] + 0.14], [0, 1, 0.1], 0.36, 0.08, ice, { emis: true }); } } : null });
             H(top - 0.1); const hy = top + [0.0, 0.1, 0.12][k];
-            ball(0, hy, 0.02, [0.24, 0.2, 0.22][k], k === 0 ? '#20242e' : black, { n: 3 }); if (k === 0) blob(-0.16, hy - 0.14, 0.06, 0.16, hy + 0.06, 0.24, 1, '#f4f6fa');
+            ball(0, hy, 0.02, [0.24, 0.2, 0.22][k], k === 0 ? chick : black, { n: 3 }); if (k === 0) { blob(-0.17, hy - 0.15, 0.06, 0.17, hy + 0.08, 0.24, 1, '#f4f8ff'); for (const sd of [-1, 1]) ball(sd * 0.2, hy - 0.07, 0.1, 0.035, ice, { emis: true }); }
+            if (k === 1) { for (let i = 0; i < 4; i++) cone([0, hy + 0.15 - i * 0.025, 0.1 - i * 0.075], [0, 1, -0.4 - i * 0.35], 0.13 + i * 0.07, 0.045, ice, { emis: true }); for (let i = 0; i < 7; i++) { const a = i / 7 * Math.PI * 2; cone([Math.cos(a) * 0.17, hy - 0.17, Math.sin(a) * 0.15], [Math.cos(a), -0.5, Math.sin(a)], 0.1, 0.04, '#f4f8ff'); } } /* a swept crest of shards, a ruff of frost */
             if (k) for (const sd of [-1, 1]) blob(sd * 0.16 - 0.05, hy - 0.16, -0.06, sd * 0.16 + 0.05, hy + 0.02, 0.08, 1, gold, { n: 2 });
-            cone([0, hy - 0.02, 0.18], [0, -0.15, 1], [0.1, 0.24, 0.26][k], 0.04, k ? '#e8903a' : '#3a3230');
-            look(0.1, hy + 0.04, 0.17, 0.045, { brow: k === 2 ? '#c8d8e8' : null });
-            if (k === 2) { blob(-0.2, hy + 0.1, -0.16, 0.2, hy + 0.24, 0.18, 0.8, '#c8d8e8'); for (let i = 0; i < 5; i++) cone([(i - 2) * 0.07, hy + 0.2, 0.02 - Math.abs(i - 2) * 0.04], [0, 1, -0.2], 0.18 + (i === 2) * 0.1, 0.035, glw, { emis: true }); }
+            cone([0, hy - 0.02, 0.18], [0, -0.15, 1], [0.1, 0.2, 0.26][k], 0.045, k ? '#ffb347' : '#ffcf7a');
+            look([0.085, 0.09, 0.1][k], hy + 0.03, [0.19, 0.15, 0.17][k], [0.058, 0.055, 0.045][k], { col: '#2aa8e8', brow: k === 2 ? '#c8d8e8' : null });
+            if (k === 2) { blob(-0.2, hy + 0.1, -0.16, 0.2, hy + 0.24, 0.18, 0.8, '#c8d8e8'); for (let i = 0; i < 5; i++) cone([(i - 2) * 0.07, hy + 0.2, 0.02 - Math.abs(i - 2) * 0.04], [0, 1, -0.2], 0.18 + (i === 2) * 0.1, 0.035, ice, { emis: true }); }
             bone = 0;
-            if (k === 2) { for (const sd of [-1, 1]) { blob(sd * w - 0.14, top - 0.26, -0.16, sd * w + 0.14, top - 0.04, 0.16, 0.4, '#c8d8e8'); for (let i = 0; i < 3; i++) cone([sd * (w + 0.06), top - 0.06, -0.08 + i * 0.08], [sd, 1, 0], 0.16, 0.035, glw, { emis: true }); }
+            if (k === 2) { for (const sd of [-1, 1]) { blob(sd * w - 0.14, top - 0.26, -0.16, sd * w + 0.14, top - 0.04, 0.16, 0.4, '#c8d8e8'); for (let i = 0; i < 3; i++) cone([sd * (w + 0.06), top - 0.06, -0.08 + i * 0.08], [sd, 1, 0], 0.16, 0.035, ice, { emis: true }); }
               for (let i = 0; i < 5; i++) plate([[(i - 2) * 0.12, top - 0.1, -w * 0.8], [(i - 2) * 0.16, 0.12, -w - 0.12], [(i - 2) * 0.16 + 0.12, 0.14, -w - 0.08]], 0.02, '#3a6ab8'); }
           } else if (P === 'polarcub' || P === 'polarbear') { // a polar cub, then the bear on its hind legs, ice grown over its shoulders like pauldrons
             const big = P === 'polarbear', white = '#f2f4f6', hip = big ? 0.56 : 0.22, top = big ? 1.5 : 0.72, w = big ? 0.46 : 0.3;
