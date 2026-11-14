@@ -318,6 +318,12 @@ const R = (() => {
           float own = hash3(vec3(cc, row, 4.0));
           float darkSt = 1.0 - smoothstep(0.2, 0.36, lum); /* dark stone is pointed with pale mortar, or its courses vanish and a fortress is one black lump */
           col *= mix(mix(0.6, 1.0, mortar), mix(1.7, 1.0, mortar), darkSt) * (0.86 + 0.28 * own) * (0.96 + 0.08 * vn(uv * 9.0)) * (0.95 + 0.1 * vn(uv * 0.6 + 2.0));
+        } else if (mat == 17) { // brick: four courses to the block, each brick half a block long, pale mortar, every brick fired a little differently
+          bool flatTop = abs(n.y) > 0.5; float cy = (flatTop ? vWorld.z : vWorld.y) * 4.0; float row = floor(cy); float ry = fract(cy);
+          float cx = (flatTop ? vWorld.x : (abs(n.x) > 0.5 ? vWorld.z : vWorld.x)) * 2.0 + mod(row, 2.0) * 0.5; float cc = floor(cx); float rx = fract(cx);
+          float mortar = min(smoothstep(0.0, 0.14, ry) * smoothstep(1.0, 0.86, ry), smoothstep(0.0, 0.05, rx) * smoothstep(1.0, 0.95, rx));
+          float own = hash3(vec3(cc, row, 7.0)); vec3 bc = col * (0.8 + 0.36 * own) * mix(vec3(1.0), vec3(1.12, 0.9, 0.8), step(0.8, own));
+          col = mix(vec3(0.8, 0.74, 0.63) * (lum * 0.6 + 0.62), bc, mortar) * (0.95 + 0.1 * vn(uv * 9.0));
         } else if (mat == 11) { // cobbles: rounded stones packed in a bed of dark mortar
           vec2 q = uv * 3.2; vec2 ci = floor(q), cf = fract(q); float f1 = 9.0, f2 = 9.0, idc = 0.0;
           for (int i = -1; i <= 1; i++) for (int j = -1; j <= 1; j++) { vec2 g = vec2(float(i), float(j)); vec2 o = vec2(hash3(vec3(ci + g, 1.0)), hash3(vec3(ci + g, 2.0))) * 0.7 + 0.15; float d = length(g + o - cf); if (d < f1) { f2 = f1; f1 = d; idc = hash3(vec3(ci + g, 3.0)); } else if (d < f2) f2 = d; }
@@ -742,7 +748,7 @@ const R = (() => {
 
   // ---------- chunk meshing ----------
   // material classes for the fragment shader: 1 grass top, 2 sand, 3 rock, 4 earth, 5 snow, 6 wood, 7 leaves, 8 lava, 9 tiles, 10 plaster, 11 cobbles, 12 thatch, 13 slate, 14 dressed stone, 15 basalt, 16 cloud
-  const MAT_OF = {}; for (const [ids, m] of [[[B.SAND, B.DUNE, B.SALTCRUST], 2], [[B.STONE, B.GRAVEL, B.MOSS, B.COPPER, B.IRON, B.EMBER, B.GOLD, B.DIAMOND, B.BEDROCK, B.RUBBLE, B.SELENITE, B.TYCHO, B.AMBER, B.REGOLITH, B.BOULDER], 3], [[B.DIRT], 4], [[B.SNOW], 5], [[B.PLANKS, B.LOG, B.BIRCHLOG, B.PALMLOG, B.BEAM, B.DOOR, B.DOOR_OPEN, B.LADDER, B.CHEST], 6], [[B.LEAVES, B.BERRYLEAF, B.NEEDLES, B.CACTUS], 7], [[B.LAVA], 8], [[B.TILES], 9], [[B.PLASTER], 10], [[B.COBBLE], 11], [[B.THATCH, B.WEAVE, B.SAIL], 12], [[B.SLATE], 13], [[B.MASONRY, B.SLIT, B.FORTSTONE], 14], [[B.BASALT], 15], [[B.CLOUD], 16]]) for (const id of ids) MAT_OF[id] = m;
+  const MAT_OF = {}; for (const [ids, m] of [[[B.SAND, B.DUNE, B.SALTCRUST], 2], [[B.STONE, B.GRAVEL, B.MOSS, B.COPPER, B.IRON, B.EMBER, B.GOLD, B.DIAMOND, B.BEDROCK, B.RUBBLE, B.SELENITE, B.TYCHO, B.AMBER, B.REGOLITH, B.BOULDER], 3], [[B.DIRT], 4], [[B.SNOW], 5], [[B.PLANKS, B.LOG, B.BIRCHLOG, B.PALMLOG, B.BEAM, B.DOOR, B.DOOR_OPEN, B.LADDER, B.CHEST], 6], [[B.LEAVES, B.BERRYLEAF, B.NEEDLES, B.CACTUS], 7], [[B.LAVA], 8], [[B.TILES], 9], [[B.PLASTER], 10], [[B.COBBLE], 11], [[B.THATCH, B.WEAVE, B.SAIL], 12], [[B.SLATE], 13], [[B.MASONRY, B.SLIT, B.FORTSTONE], 14], [[B.BASALT], 15], [[B.CLOUD], 16], [[B.BRICK], 17]]) for (const id of ids) MAT_OF[id] = m;
   const scratchOpaque = new MeshBuilder(16384, false, true), scratchWater = new MeshBuilder(2048, false, true), scratchGlass = new MeshBuilder(512, false, true), scratchGrass = new MeshBuilder(8192, false, true);
   const SOIL = new Set([B.GRASS, B.DIRT, B.SAND, B.SNOW, B.GRAVEL, B.STONE, B.MOSS, B.GLOWGRASS, B.REGOLITH, B.DUNE, B.SALTCRUST]);
   // things that stand on the ground without stopping it from sloping: air, leaves, trunks, bushes, flowers, pebbles, torches, chests...
@@ -763,7 +769,7 @@ const R = (() => {
   }
   const ROOFB = (b) => b === B.TILES || b === B.SLATE || b === B.THATCH || b === B.SAIL;
   const SIGNABLE = new Set([B.EMBER, B.BERRY, B.COPPER, B.VOID, B.IRON, B.GOLD, B.GLOWWORM, B.LOG, B.MOONGLOW, B.CLOUD, B.SELENITE, B.BERRYLEAF, B.AMBER]);
-  const WALLY = (b) => b === B.PLANKS || b === B.PLASTER || b === B.BEAM || b === B.MASONRY || b === B.IRONWALL || b === B.VOIDWALL || b === B.SELGLASS;
+  const WALLY = (b) => b === B.PLANKS || b === B.PLASTER || b === B.BEAM || b === B.MASONRY || b === B.BRICK || b === B.IRONWALL || b === B.VOIDWALL || b === B.SELGLASS;
   const surfTop = new Int16Array(18 * 18), surfWet = new Int16Array(18 * 18), cornerH = new Float32Array(17 * 17);
   const FLOWERS = [[0.95, 0.85, 0.25], [0.95, 0.95, 0.95], [0.85, 0.35, 0.55], [0.6, 0.5, 0.95], [0.95, 0.5, 0.25]];
   function buildChunk(world, chunk) {
@@ -866,6 +872,7 @@ const R = (() => {
             const a0 = ridge === 'x' ? [lx + 0.5, y + 0.5, lz] : [lx, y + 0.5, lz + 0.5], a1 = ridge === 'x' ? [lx + 0.5, y + 0.5, lz + 1] : [lx + 1, y + 0.5, lz + 0.5];
             if (ridge === 'x') { face([[lx, y, lz], [lx, y, lz + 1], a1, a0], topC, MAT_OF[id], [-0.707, 0.707, 0]); face([[lx + 1, y, lz + 1], [lx + 1, y, lz], a0, a1], topC, MAT_OF[id], [0.707, 0.707, 0]); if (!ROOFB(get(lx, y, lz - 1))) face([[lx, y, lz], a0, a0, [lx + 1, y, lz]], rafter, 6, [0, 0, -1]); if (!ROOFB(get(lx, y, lz + 1))) face([[lx + 1, y, lz + 1], a1, a1, [lx, y, lz + 1]], rafter, 6, [0, 0, 1]); }
             else { face([[lx, y, lz], a0, a1, [lx + 1, y, lz]], topC, MAT_OF[id], [0, 0.707, -0.707]); face([[lx + 1, y, lz + 1], a1, a0, [lx, y, lz + 1]], topC, MAT_OF[id], [0, 0.707, 0.707]); if (!ROOFB(get(lx - 1, y, lz))) face([[lx, y, lz + 1], a0, a0, [lx, y, lz]], rafter, 6, [-1, 0, 0]); if (!ROOFB(get(lx + 1, y, lz))) face([[lx + 1, y, lz], a1, a1, [lx + 1, y, lz + 1]], rafter, 6, [1, 0, 0]); }
+            if (id === B.THATCH) { const hr = U.hash3(wx, y, wz, 211); const rc = [topC[0] * (0.8 + hr * 0.12), topC[1] * (0.76 + hr * 0.12), topC[2] * 0.7]; op.curMat = 12; op.tube(ridge === 'x' ? [[lx + 0.5, y + 0.46, lz - 0.02], [lx + 0.5, y + 0.46, lz + 1.02]] : [[lx - 0.02, y + 0.46, lz + 0.5], [lx + 1.02, y + 0.46, lz + 0.5]], [0.17 + hr * 0.04, 0.17 + (1 - hr) * 0.04], rc, { sky: sk, segs: 7, cap0: 'round', cap1: 'round' }); op.curMat = 0; } // a thick roll of straw pegged along the ridge
             if (!isOpaque(get(lx, y - 1, lz))) face([[lx, y, lz], [lx + 1, y, lz], [lx + 1, y, lz + 1], [lx, y, lz + 1]], under, 6, [0, -1, 0]);
             continue;
           }
@@ -878,6 +885,21 @@ const R = (() => {
           for (const [a, b, [i, j]] of sides) {
             if (H[i] <= 0 && H[j] <= 0) continue; const nb = get(lx + a, y, lz + b); if (isOpaque(nb) || (ROOFB(nb) && !flat)) continue;
             face([P(i, 0), P(j, 0), P(j, H[j]), P(i, H[i])], H[i] >= 0.999 && H[j] >= 0.999 ? under : rafter, 6, [a, 0, b]);
+          }
+          if (ups.length === 1 && !sailB) { // nothing laid by hand ends in a ruled line: the bottom row of tiles hangs past the eave at uneven lengths, thatch spills over thick and shaggy, and both lap out over the gable
+            const [ua, ub] = ups[0]; const dn = [-ua, -ub], ac = [-ub, ua]; const thatch = id === B.THATCH; const cxm = lx + 0.5, czm = lz + 0.5; const hq = (k) => U.hash3(wx * 7 + k, y, wz * 5 + k, 210);
+            const shadeC = (k) => { const m = 0.84 + hq(k + 40) * 0.3; return [topC[0] * m, topC[1] * m, topC[2] * m]; };
+            const dbl = (v, c) => { face(v, c, MAT_OF[id], null); face([v[3], v[2], v[1], v[0]], [c[0] * 0.6, c[1] * 0.6, c[2] * 0.6], 6, null); };
+            if (!ROOFB(get(lx + dn[0], y - 1, lz + dn[1])) && !ROOFB(get(lx + dn[0], y, lz + dn[1]))) { const n = thatch ? 5 : 4; const ox = cxm + dn[0] * 0.5, oz = czm + dn[1] * 0.5;
+              for (let k = 0; k < n; k++) { const u0 = k / n - 0.5, u1 = (k + 1) / n - 0.5; const L = thatch ? 0.2 + hq(k) * 0.26 : (hq(k) < 0.14 ? 0.3 : 0.07 + hq(k) * 0.13); const dr = thatch ? 1.25 : 0.85; const lift = thatch ? 0.05 : 0.02 + hq(k + 9) * 0.03; const c = shadeC(k);
+                const p0 = [ox + ac[0] * u0 - dn[0] * 0.12, y + 0.12 + lift, oz + ac[1] * u0 - dn[1] * 0.12], p1 = [ox + ac[0] * u1 - dn[0] * 0.12, y + 0.12 + lift, oz + ac[1] * u1 - dn[1] * 0.12];
+                const q0 = [ox + ac[0] * u0 + dn[0] * L, y - L * dr + lift, oz + ac[1] * u0 + dn[1] * L], q1 = [ox + ac[0] * u1 + dn[0] * L, y - L * dr + lift, oz + ac[1] * u1 + dn[1] * L];
+                dbl([p0, p1, q1, q0], c);
+                if (thatch) { const t = 0.16; dbl([q0, q1, [q1[0] - dn[0] * 0.05, q1[1] - t, q1[2] - dn[1] * 0.05], [q0[0] - dn[0] * 0.05, q0[1] - t, q0[2] - dn[1] * 0.05]], [c[0] * 0.7, c[1] * 0.66, c[2] * 0.56]); } } }
+            for (const sg of [1, -1]) { const nb = get(lx + ac[0] * sg, y, lz + ac[1] * sg); if (ROOFB(nb) || isOpaque(nb)) continue; // the verge: the roof laps out over the gable, more here, less there
+              for (let k = 0; k < 2; k++) { const t0 = k / 2, t1 = (k + 1) / 2; const w = thatch ? 0.1 + hq(k + 20 + sg) * 0.14 : 0.03 + hq(k + 20 + sg) * 0.09; const S = (t) => [cxm + ua * (0.5 - t) + ac[0] * sg * 0.5, y + 1 - t + (thatch ? 0.04 : 0.02), czm + ub * (0.5 - t) + ac[1] * sg * 0.5];
+                const a0 = S(t0), a1 = S(t1); const b0 = [a0[0] + ac[0] * sg * w, a0[1] - 0.03, a0[2] + ac[1] * sg * w], b1 = [a1[0] + ac[0] * sg * w, a1[1] - 0.03, a1[2] + ac[1] * sg * w];
+                dbl(sg > 0 ? [a0, a1, b1, b0] : [a1, a0, b0, b1], shadeC(k + 30)); } }
           }
           if (!isOpaque(get(lx, y - 1, lz))) face([[lx, y, lz], [lx + 1, y, lz], [lx + 1, y, lz + 1], [lx, y, lz + 1]], under, 6, [0, -1, 0]);
           continue;

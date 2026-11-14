@@ -257,7 +257,7 @@ const Village = (() => {
     if (towns.has(v.id)) return towns.get(v.id);
     const R = v.R, vx = v.x, vz = v.z, vy = v.y; const M = MATS[v.style] || MATS.land; MAT = M;
     const buckets = new Map(); const push = (x, y, z, id) => { if (y < 1 || y >= WH) return; const cx = U.mod(Math.floor(x / CH), NCH), cz = U.mod(Math.floor(z / CH), NCH); const k = cx + ',' + cz; let b = buckets.get(k); if (!b) { b = []; buckets.set(k, b); } b.push(U.mod(x, CH), y, U.mod(z, CH), id); };
-    const city = v.size === 'city';
+    const city = v.size === 'city'; ROOF_OVR = city || v.size === 'town' ? 'tiles' : 'thatch';
     const streets = [0].concat(city ? [-40, -20, 20, 40] : v.size === 'town' ? [-24, 24] : []);
     const onStreet = (dx, dz) => { if (Math.max(Math.abs(dx), Math.abs(dz)) >= R - 4 && Math.max(Math.abs(dx), Math.abs(dz)) <= R - 2) return true; for (const s0 of streets) { if (Math.abs(dx - s0) <= 1 && Math.abs(dz) <= R) return true; if (Math.abs(dz - s0) <= 1 && Math.abs(dx) <= R) return true; } return false; };
     // the ground: levelled across the whole footprint. The air above is cleared to the height of the tallest nearby natural column plus
@@ -435,7 +435,7 @@ const Village = (() => {
       for (const sh of shops) if (!sh.castle) { qs(sh.x, sh.z); build(sh.x, sh.z, vy + (sh.raised && rail ? 1 : 0), sh.dirX, sh.dirZ, sh.kind === 'elder' ? B.GOLD : (SHOP_BUILD[sh.kind] || {}).marker || B.LOG, FURNISH[sh.kind] || null); }
       const r = U.rng(U.combine(world.seed, U.strHash(v.id)));
       for (const l of lots) if (!l.used) { if (r() < 0.12) { for (let a = -2; a <= 2; a++) for (let b = -2; b <= 2; b++) if (r() < 0.35 && M.bush) push(l.x + a, vy, l.z + b, M.bush); continue; } qs(l.x, l.z); build(l.x, l.z, vy, l.dirX, l.dirZ, null, null); l.home = true; }
-    } finally { world.setBlock = sb; world.getBlock = gb; QSTYLE = null; }
+    } finally { world.setBlock = sb; world.getBlock = gb; QSTYLE = null; ROOF_OVR = null; }
     const L = { R, buckets, shops, homes: lots.filter(l => l.home), streets, plots, rail, marks };
     towns.set(v.id, L); return L;
   }
@@ -700,7 +700,7 @@ const Village = (() => {
   // what each style of village is built from: the ground it levels, the square, the posts and lamps, the houses
   const MATS = {
     land: { ground: B.GRASS, under: B.DIRT, plaza: B.COBBLE, plazaEdge: B.STONE, post: B.LOG, light: B.TORCH, lamp: B.LAMP, floor: B.PLANKS, wall: B.PLASTER, window: B.GLASS, roof: B.TILES, eave: B.PLANKS, counter: B.PLANKS, bush: B.BERRY,
-      houses: [{ wall: B.PLASTER, base: B.MASONRY, beam: B.BEAM, roofs: [B.TILES, B.TILES, B.SLATE] }, { wall: B.PLASTER, base: B.MASONRY, beam: B.BEAM, roofs: [B.SLATE] }, { wall: B.MASONRY, base: B.MASONRY, beam: null, roofs: [B.SLATE, B.TILES] }, { wall: B.PLANKS, base: B.MASONRY, beam: B.BEAM, roofs: [B.THATCH, B.TILES] }] },
+      houses: [{ wall: B.PLASTER, base: B.MASONRY, beam: B.BEAM, roofs: [B.TILES, B.TILES, B.SLATE] }, { wall: B.PLASTER, base: B.BRICK, beam: B.BEAM, roofs: [B.TILES] }, { wall: B.BRICK, base: B.MASONRY, beam: null, roofs: [B.TILES, B.SLATE] }, { wall: B.PLASTER, base: B.BRICK, beam: B.BEAM, roofs: [B.TILES, B.THATCH] }, { wall: B.MASONRY, base: B.MASONRY, beam: null, roofs: [B.SLATE, B.TILES] }, { wall: B.PLANKS, base: B.MASONRY, beam: B.BEAM, roofs: [B.THATCH, B.TILES] }] },
     frontier: { ground: B.SAND, under: B.SAND, plaza: B.SAND, plazaEdge: B.PLANKS, post: B.LOG, light: B.TORCH, lamp: B.LAMP, floor: B.PLANKS, wall: B.PLANKS, window: B.GLASS, roof: B.THATCH, eave: B.LOG, counter: B.PLANKS, bush: B.CACTUS, boardwalk: true, saloon: true,
       houses: [{ wall: B.PLANKS, base: B.PLANKS, beam: B.LOG, roofs: [B.THATCH, B.THATCH, B.PLANKS] }] },
     alien: { ground: B.REGOLITH, under: B.DIRT, plaza: B.STARSALT, plazaEdge: B.BASALT, post: B.BASALT, light: B.MOONGLOW, floor: B.REGOLITH, wall: B.SELGLASS, window: B.SELGLASS, roof: B.SELGLASS, eave: B.SELGLASS, counter: B.BASALT, bush: null, pod: true },
@@ -708,7 +708,7 @@ const Village = (() => {
   };
   let MAT = MATS.land;
   // A city is four quarters, split by the two great streets through the square. Each has its own houses, its own ground and a landmark.
-  let QSTYLE = null;
+  let QSTYLE = null; let ROOF_OVR = null;
   const QUARTERS = {
     old: { name: 'the Old Quarter', ground: B.MASONRY, house: { wall: B.MASONRY, base: B.MASONRY, beam: null, roofs: [B.SLATE] } },          // north-west: dressed stone under slate, paved
     garden: { name: 'the Garden Quarter', ground: B.GRASS, house: { wall: B.PLASTER, base: B.MASONRY, beam: B.BEAM, roofs: [B.THATCH] } },   // north-east: thatched cottages among flowers
@@ -734,11 +734,13 @@ const Village = (() => {
     const lamp = (x, z) => { if (M.lamp) set(x, vy, z, M.lamp); else { set(x, vy, z, M.post); set(x, vy + 1, z, M.light); } };
     for (const [dx, dz] of [[-3, -3], [3, -3], [-3, 3], [3, 3]]) lamp(vx + dx, vz + dz);
     const build = M.pod ? pod : house;
+    ROOF_OVR = 'thatch';
     build(vx - 9, vz - 9, vy, 1, 0, B.EMBER, furnishBakery);
     build(vx + 9, vz - 9, vy, -1, 0, B.BERRY, furnishJuice);
     build(vx - 9, vz + 9, vy, 1, 0, B.COPPER, furnishTrader);
     build(vx + 9, vz + 9, vy, -1, 0, B.CLOUD, furnishElder);
     build(vx, vz + 10, vy, 0, -1, B.VOID, furnishVoodoo);
+    ROOF_OVR = null;
     if (M.saloon) { set(vx + 9 - 3, vy, vz - 9, B.DOOR); } // the saloon: swinging doors in the juice bar's doorway
     for (const [dx, dz] of [[-9, -5], [9, -5], [-9, 5], [9, 5], [0, 6]]) lamp(vx + dx, vz + dz);
     if (M.boardwalk) { // plank walks along the fronts of the houses and a hitching rail by the square
@@ -759,7 +761,7 @@ const Village = (() => {
   function house(hx, hz, vy, dirX, dirZ, marker, furnish) {
     const M = MAT; const set = (x, y, z, id) => world.setBlock(x, y, z, id);
     const styles = M.houses || [{ wall: M.wall, base: M.wall, beam: null, roofs: [M.roof] }];
-    const h1 = U.hash3(hx, 11, hz, 0x4a), h2 = U.hash3(hx, 12, hz, 0x4b); const st = QSTYLE || styles[Math.floor(h1 * styles.length)]; const roof = st.roofs[Math.floor(h2 * st.roofs.length)];
+    const h1 = U.hash3(hx, 11, hz, 0x4a), h2 = U.hash3(hx, 12, hz, 0x4b); const st = QSTYLE || styles[Math.floor(h1 * styles.length)]; let roof = st.roofs[Math.floor(h2 * st.roofs.length)]; if (M === MATS.land && !QSTYLE) { if (ROOF_OVR === 'thatch') roof = B.THATCH; else if (ROOF_OVR === 'tiles' && roof === B.THATCH) roof = B.TILES; } // villages are thatched; towns and cities go under tile and slate
     const beam = st.beam; const alongX = dirX !== 0; const sgn = alongX ? dirX : dirZ; // the ridge runs along the door's axis; the door is at a = 3 * sgn
     const A = (dx, dz) => alongX ? dx : dz, Bc = (dx, dz) => alongX ? dz : dx;
     const WT = 3; // the top wall row
