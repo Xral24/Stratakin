@@ -6,7 +6,6 @@ const RECIPES = [
   { id: 'snare', out: 'snare', n: 2, needs: { wood: 2, stone: 2 } },
   { id: 'snare2', out: 'snare2', n: 2, needs: { iron: 1, void: 1 } },
   { id: 'snare_sky', out: 'snare_sky', n: 2, needs: { snare: 2, feather: 3 }, when: G => !!(typeof Campaign !== 'undefined' && Campaign.C().flightSnare) },
-  { id: 'fusion', out: 'fusion', n: 1, needs: { stone: 6, copper: 2, ember: 1 } },
   { id: 'tonic_heal', out: 'tonic_heal', n: 1, needs: { berry: 3 } },
   { id: 'tonic_revive', out: 'tonic_revive', n: 1, needs: { berry: 6, ess_Bloom: 1, ess_Light: 1 } },
   { id: 'tonic_vigor', out: 'tonic_vigor', n: 1, needs: { berry: 4, ess_Bloom: 1 } },

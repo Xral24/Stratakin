@@ -143,7 +143,7 @@ const Village = (() => {
     { item: 'bulb', price: 180, level: 2, tale: 'pulled from a drowned chest' }, { item: 'glider', price: 220, level: 2, tale: 'found on a sky island, owner unknown' },
     { item: 'lavasuit', price: 650, level: 3, tale: 'carried up from the Core by a dying man' }, { item: 'voidwall', n: 4, price: 120, level: 3, tale: 'salvaged from a fallen keep' },
     { item: 'snare2', n: 3, price: 110, level: 2, tale: 'a poacher\'s kit' }, { item: 'tonic_revive', n: 2, price: 45, level: 1, tale: 'brewed in a swamp hut' },
-    { item: 'fusion', price: 90, level: 2, tale: 'a whole table, hauled out of a ruin' }, { item: 'ess_Void', n: 2, price: 80, level: 3, tale: 'scraped off the walls at y 20' }, { item: 'ess_Light', n: 2, price: 80, level: 3, tale: 'brought down from the clouds' },
+    { item: 'ess_Void', n: 2, price: 80, level: 3, tale: 'scraped off the walls at y 20' }, { item: 'ess_Light', n: 2, price: 80, level: 3, tale: 'brought down from the clouds' },
   ];
   const BARTERS = [
     { give: { ember: 6 }, get: { snare2: 1 } }, { give: { berry: 10 }, get: { tonic_revive: 1 } }, { give: { copper: 5 }, get: { glass: 8 } }, 
@@ -1795,6 +1795,9 @@ const Village = (() => {
       frame(near, player.x, player.z);
       if (state(near.id).stamped && near.type === 'sea' && !state(near.id).reef1) { ensureStamped(near); if (G.meshPass) G.meshPass(99); }
       if (!state(near.id).stamped) { ensureStamped(near); UI.toast(`${near.name}: ${near.style === 'atlantis' ? 'a city of the sea people' : near.type === 'sea' ? 'a village on stilts' : near.type === 'deep' ? 'a village under the sea' : near.style === 'alien' ? 'an alien settlement' : near.style === 'frontier' ? 'a frontier town' : near.style === 'halo' ? 'a caravan town' : 'a village'}${state(near.id).freed ? '' : ', held by a tyrant'}.`); }
+      if (state(near.id).stamped && !near._tableOk && !near.founded) { near._tableOk = true; /* a table that was dug up before tables were made fast goes back where it stood, and the one in your bag goes with it */
+        const vx = near.x, vy = near.y, vz = near.z; let found = false; for (let dx = -8; dx <= 8 && !found; dx++) for (let dz = -8; dz <= 8 && !found; dz++) for (let dy = -2; dy <= 3; dy++) if (world.getBlock(vx + dx, vy + dy, vz + dz) === B.FUSION) { found = true; break; }
+        if (!found && world.getBlock(vx, vy, vz) !== undefined) { const off = near.type === 'deep' || near.style === 'atlantis' ? [3, 3] : near.size === 'city' ? [5, -5] : [0, 0]; world.setBlock(vx + off[0], vy, vz + off[1], B.FUSION); if (G.player.has('fusion')) G.player.take('fusion', 1); UI.toast(`The Fusion Table is back in ${near.name}.`, 'good'); if (G.meshPass) G.meshPass(99); } }
       if (near.founded) { refreshT -= dt; if (refreshT <= 0 || !near.npcs.length) { refreshT = 4; refreshFounded(near); } }
       else if (!near.npcs.length) { populate(near); ensurePortal(near); }
       if (!near.portalChecked) { near.portalChecked = true; clearPortal(near); }

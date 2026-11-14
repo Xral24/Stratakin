@@ -735,7 +735,7 @@ G.loop = function (t) {
       }
       // mining / placing
       if (input.mine && !p.blocking && p.cantMine && (!this.cantToastT || performance.now() - this.cantToastT > 2500)) { this.cantToastT = performance.now(); UI.toast(p.toolNeed(p.cantMine), 'bad'); }
-      if (input.mine && !p.blocking) { const ev = p.mineTick(dt); if (ev) { UI.sfx('break'); if (Felling.isTrunk(ev.broke)) Felling.cut(ev.x, ev.y, ev.z, p); if (ev.broke === B.FUSION) UI.toast('Fusion Table picked up.'); if (ev.broke === B.CHEST) this.onChestBroken(ev.x, ev.y, ev.z); if (ev.drop) { if (!this.stats.dug) this.stats.dug = {}; this.stats.dug[ev.drop] = (this.stats.dug[ev.drop] || 0) + 1; } } else if (p.mineTarget && (this.frame % 12) === 0) UI.sfx('mine'); }
+      if (input.mine && !p.blocking) { const ev = p.mineTick(dt); if (ev) { UI.sfx('break'); if (Felling.isTrunk(ev.broke)) Felling.cut(ev.x, ev.y, ev.z, p);  if (ev.broke === B.CHEST) this.onChestBroken(ev.x, ev.y, ev.z); if (ev.drop) { if (!this.stats.dug) this.stats.dug = {}; this.stats.dug[ev.drop] = (this.stats.dug[ev.drop] || 0) + 1; } } else if (p.mineTarget && (this.frame % 12) === 0) UI.sfx('mine'); }
       else { p.mineTarget = null; p.mineProgress = 0; }
       if (input.placePressed) this.onTap();
       // wild Kin

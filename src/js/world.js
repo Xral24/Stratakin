@@ -41,7 +41,7 @@ defBlock(B.LAVA, 'Lava', '#ff7a1a', '#ff6a12', { solid: false, fluid: true, emis
 defBlock(B.CLOUD, 'Cloudstone', '#e9ecf6', '#d7dcea', { hard: 0.4, drop: 'cloud' });
 defBlock(B.GLOWGRASS, 'Glowcloud', '#f4f6fc', '#e8ecf6', { hard: 0.4, drop: 'cloud', emissive: true }); // cloud that glows at night (older sky places have it on top)
 defBlock(B.TORCH, 'Torch', '#ffd36a', '#8a6a3c', { solid: false, hard: 0.05, drop: 'torch', emissive: true, partial: true, transparent: true });
-defBlock(B.FUSION, 'Fusion Table', '#7ad7ff', '#3b3f5c', { hard: 1.0, drop: 'fusion', transparent: true }); // drawn as a pedestal, not a cube: whatever stands behind or under it keeps its faces
+defBlock(B.FUSION, 'Fusion Table', '#7ad7ff', '#3b3f5c', { hard: Infinity, transparent: true }); /* part of the place it stands in: it cannot be dug up or carried off */ // drawn as a pedestal, not a cube: whatever stands behind or under it keeps its faces
 defBlock(B.DARKTABLE, 'Dark Fusion Table', '#4a1a6a', '#1a0a26', { hard: Infinity, transparent: true });
 defBlock(B.GRAVEL, 'Gravel', '#7a766f', '#6f6b64', { hard: 0.4, drop: 'gravel' });
 defBlock(B.CACTUS, 'Cactus', '#4f9a3a', '#3f8a2f', { hard: 0.4, drop: 'frond' });
