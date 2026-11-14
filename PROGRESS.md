@@ -238,6 +238,8 @@ Scope (Alexander, 8 Nov evening): EVERYTHING visible goes to the same standard: 
 
 - Status effects show up more: a named status move lands its effect half the time (was 35%), and every other thrown move of Flame, Bloom, Frost, Spark and Void has an 18% chance of its element's effect (kin.js castMove). About 23% of moves now carry one (was 9%) and they are about 4% of all damage in simulated fights (was 2%). Bloom moved up to about 50% wins. Looked at land, village, city and hold pictures again (t-world.js): nothing wrong found.
 
+- Element chart evened out (Alexander said yes): every element beats two and loses to two. Flame > Bloom, Frost. Tide > Flame, Stone. Bloom > Tide, Stone. Stone > Spark, Flame (was Spark, Gale). Gale > Bloom, Light (was Bloom, Void). Frost > Gale, Void (was Bloom, Gale). Spark > Tide, Gale. Void > Spark, Light. Light > Void, Frost. Gale's stats moved from Speed toward Power, Attack and Health, Tide got a little more Power. Simulated win rates now: Gale about 40% (was 20% at the start of the day), most others 45 to 60%. Flame does badly among surface Kin only (about 30%) because Tide and Stone are common up there; it is fine overall. tools/test/t-balance-surface.js is the same simulation with surface Kin only.
+
 ## Still to do
 UI polish as feedback comes in. Card battle screen still used for scripted encounters (raids at the walls, thief, citadel duel, holds) and the snare mini-game; converting those to live is the next big step if wanted. (Old list: train/ships, combat animation, eggs, avatar hair/paint, buddy WEAR cosmetics, Silas and Finch, UI polish (item icons), quality toggles in settings (state.shadows, state.grassQuality, state.dprCap).
 
