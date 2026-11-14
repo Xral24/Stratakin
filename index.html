@@ -4580,8 +4580,8 @@ const KIN = (() => {
   const STAT_KEYS = ['hp', 'atk', 'pow', 'spd', 'agi'];
   const STAT_NAMES = { hp: 'Health', atk: 'Attack', pow: 'Power', spd: 'Speed', agi: 'Agility' };
   const ELEM_W = { // stat weight tweaks by element
-    Flame: { atk: 0.4, pow: 0.3, spd: 0.2, hp: -0.3 }, Tide: { pow: 0.3, hp: 0.3, agi: 0.1 }, Bloom: { hp: 0.35, pow: 0.2, spd: -0.2 }, Stone: { hp: 0.6, atk: 0.3, spd: -0.6, agi: -0.3 },
-    Gale: { spd: 0.6, agi: 0.4, hp: -0.4 }, Frost: { pow: 0.4, hp: 0.1, spd: -0.2 }, Spark: { spd: 0.5, pow: 0.4, hp: -0.3 }, Void: { pow: 0.5, agi: 0.3, hp: -0.1 }, Light: { hp: 0.3, pow: 0.3, agi: 0.2 }
+    Flame: { atk: 0.4, pow: 0.3, spd: 0.2, hp: -0.3 }, Tide: { pow: 0.3, hp: 0.3, agi: 0.1 }, Bloom: { hp: 0.35, pow: 0.2, spd: -0.2 }, Stone: { hp: 0.45, atk: 0.3, spd: -0.6, agi: -0.3 },
+    Gale: { spd: 0.5, agi: 0.3, pow: 0.3, hp: -0.1 }, Frost: { pow: 0.4, hp: 0.1, spd: -0.2 }, Spark: { spd: 0.5, pow: 0.4, hp: -0.2 }, Void: { pow: 0.5, agi: 0.3, hp: -0.1 }, Light: { hp: 0.3, pow: 0.3, agi: 0.2 }
   };
   const SHAPE_W = { quadruped: { atk: 0.25 }, biped: {}, serpent: { spd: 0.2, agi: 0.2, hp: -0.1 }, blob: { hp: 0.6, spd: -0.4 }, bird: { spd: 0.5, agi: 0.3, hp: -0.3 }, floater: { pow: 0.4, agi: 0.3, atk: -0.3 }, fish: { spd: 0.45, agi: 0.35, atk: 0.1, hp: -0.2 }, raptor: { atk: 0.45, spd: 0.4, hp: -0.2 }, longneck: { hp: 0.8, atk: 0.1, spd: -0.5 }, horned: { hp: 0.5, atk: 0.35, agi: -0.3, spd: -0.3 } };
   // layer / biome element biases for wild rosters
@@ -11986,8 +11986,8 @@ const Battle = (() => {
   }
   // ---- lasting hurts: some moves leave something behind that goes on working after the blow. Burn, frostbite, poison and curse take a share of
   // health at the end of every turn; shock sometimes costs a turn. One at a time, and it wears off.
-  const AIL = { burn: { name: 'Burn', word: 'is burning', pct: 0.06, turns: 3, col: [1, 0.5, 0.15], tag: '#ff7a2a' }, frost: { name: 'Frostbite', word: 'is frostbitten', pct: 0.05, turns: 3, col: [0.7, 0.95, 1], tag: '#7fd8f5' },
-    poison: { name: 'Poison', word: 'is poisoned', pct: 0.04, grow: 0.02, turns: 4, col: [0.6, 0.85, 0.2], tag: '#8fc93a' }, shock: { name: 'Shock', word: 'is jolted', pct: 0, skip: 0.3, turns: 3, col: [1, 0.9, 0.3], tag: '#e8c800' }, curse: { name: 'Curse', word: 'is cursed', pct: 0.05, turns: 3, col: [0.65, 0.35, 1], tag: '#a65cff' } };
+  const AIL = { burn: { name: 'Burn', word: 'is burning', pct: 0.09, turns: 3, col: [1, 0.5, 0.15], tag: '#ff7a2a' }, frost: { name: 'Frostbite', word: 'is frostbitten', pct: 0.08, turns: 3, col: [0.7, 0.95, 1], tag: '#7fd8f5' },
+    poison: { name: 'Poison', word: 'is poisoned', pct: 0.05, grow: 0.03, turns: 4, col: [0.6, 0.85, 0.2], tag: '#8fc93a' }, shock: { name: 'Shock', word: 'is jolted', pct: 0, skip: 0.3, turns: 3, col: [1, 0.9, 0.3], tag: '#e8c800' }, curse: { name: 'Curse', word: 'is cursed', pct: 0.08, turns: 3, col: [0.65, 0.35, 1], tag: '#a65cff' } };
   function ailFx(e, a) { if (!e || !e.model) return; const C = ctr(e, 0.3), h = (e.model.height || 1) * (e.model.scale || 1); for (let i = 0; i < 12; i++) { const o = [rnd(0.5), 0, rnd(0.5)]; Pt(i * 0.03, 0.6, i % 3 ? a.col : WHITE, a === AIL.frost ? 'cube' : a === AIL.shock ? 'shard' : 'ball', (u) => [C[0] + o[0] + Math.sin(u * 8 + i) * 0.1, C[1] + u * h * 1.1, C[2] + o[2], 0.14 * (1 - u), u * 5]); } }
   async function ailTick() { for (const [k, e, isMine] of [[wild, wildE, false], [mine, mineE, true]]) { const st = k && k.buffs && k.buffs.ail; if (!st || k.hp <= 0) continue; const a = AIL[st.type];
       if (a.pct) { const d = Math.max(1, Math.round(KIN.stats(k).hp * (a.pct + (a.grow || 0) * st.n))); k.hp = Math.max(0, k.hp - d); ailFx(e, a); if (e) e.hitT = 0.2; log(`${KIN.name(k)} ${a.word}: ${d} damage.`, isMine ? 'bad' : 'good'); G.sfx('hit'); refresh(); await sleep(550); }
@@ -12042,7 +12042,8 @@ const Battle = (() => {
     const A = (move.kind === 'phys' ? sa.atk : sa.pow) * (att.buffs.focus ? 1.25 : 1);
     const D = move.kind === 'phys' ? sd.atk : sd.pow;
     const eff = KIN.effectiveness(move.elem, def);
-    let dmg = A * (move.power / 100) * 1.1 * (A / (A + 0.5 * D)) * eff * (0.85 + Math.random() * 0.15);
+    const quick = U.clamp((sa.spd - sd.spd) / (sa.spd + sd.spd), -0.25, 0.25); /* the quicker Kin lands its blows better: speed was worth almost nothing before, and the fast elements lost four fights in five */
+    let dmg = A * (move.power / 100) * 0.8 * (1 + quick * 0.7) * (A / (A + 0.5 * D)) * eff * (0.85 + Math.random() * 0.15); /* blows a little lighter: fights were over in three turns, before a burn or a poison could matter */
     if (att === mine && focusOn) dmg *= 1.25; // the Amulet of Focus
     const crit = Math.random() < (move.crit ? 0.3 : 0.06); if (crit) dmg *= 1.6;
     if (def.buffs.guard && !move.pierce) { dmg *= 0.5; if (def.buffs.guard2) def.buffs.guard2 = false; else def.buffs.guard = false; }
@@ -12072,7 +12073,7 @@ const Battle = (() => {
     def.hp = Math.max(0, def.hp - r.dmg);
     { const k = attIsMine ? att : def, slot = attIsMine ? 'weapon' : 'armor'; const id = k.equip && k.equip[slot]; if (id && ITEMS[id] && ITEMS[id].relic) Relics.wear(id, (attIsMine ? 0.008 : 0.011) * (wildE && (wildE.isBoss || wildE.isLegend || wildE.isApex) ? 2 : 1)); } // relics wear as they work
     if (move.drain) { const st = KIN.stats(att); const h = Math.round(r.dmg / 3); att.hp = Math.min(st.hp, att.hp + h); }
-    let ailMsg = ''; if (move.ail && def.hp > 0 && !def.buffs.ail && Math.random() < (move.ailP || 0.3)) { def.buffs.ail = { type: move.ail, turns: AIL[move.ail].turns, n: 0 }; ailMsg = ` ${dn} ${AIL[move.ail].word}!`; }
+    let ailMsg = ''; if (move.ail && def.hp > 0 && !def.buffs.ail && Math.random() < (move.ailP || 0.45)) { def.buffs.ail = { type: move.ail, turns: AIL[move.ail].turns, n: 0 }; ailMsg = ` ${dn} ${AIL[move.ail].word}!`; }
     const card = attIsMine ? el.wild : el.mine;
     card.classList.add('shake'); setTimeout(() => card.classList.remove('shake'), 400);
     if (target) target.hitT = r.crit ? 0.55 : 0.35; shakeT = Math.max(shakeT, move.tech ? 0.5 : r.crit || r.eff > 1.25 ? 0.4 : 0.22);
