@@ -3229,6 +3229,11 @@ const KIN = (() => {
     else { for (const sd of [-1, 1]) { const b0 = [cx + sd * r * 0.35, top - r * 0.1, hd.cz + r * 0.1], b1 = [cx + sd * r * 0.75, top + r * 0.75, hd.cz + r * 0.05], b2 = [cx + sd * r * 1.05, top + r * 1.15, hd.cz + r * 0.3]; H.tube([b0, b1, b2], [Math.max(0.01, r * 0.07), Math.max(0.008, r * 0.05), Math.max(0.006, r * 0.035)], m.boxes[0].c, { cap0: 'none', cap1: 'round', segs: 5 }); H.ball(b2[0], b2[1], b2[2], Math.max(0.02, r * 0.17), glow, { emis: true }); }
       if (!hd.fake) H.ball(cx, hd.y0 + hd.h * 0.78, hd.z1 - r * 0.05, Math.max(0.016, r * 0.12), gem, { emis: true }); }
     return H.done(); }
+  /* a child of the folk: the same figure made small by whoever draws it, with the head (and whatever sits on it) kept large, the way children are */
+  function childify(m, k) { k = k || 1.3; const hb = m.bones && m.bones[1]; if (!hb) return m; const pv = hb.piv, S = (p) => [pv[0] + (p[0] - pv[0]) * k, pv[1] + (p[1] - pv[1]) * k, pv[2] + (p[2] - pv[2]) * k];
+    for (const b of m.boxes) { if (b.bone !== 1 && b.bone !== 7 && b.bone !== 8) continue; const o = S([b.x, b.y, b.z]); b.x = o[0]; b.y = o[1]; b.z = o[2]; b.w *= k; b.h *= k; b.d *= k; if (b.path) { b.path = b.path.map(S); b.radii = b.radii.map(r => Array.isArray(r) ? [r[0] * k, r[1] * k] : r * k); } if (b.pts) { b.pts = b.pts.map(S); b.t *= k; } if (b.spine) { b.spine = b.spine.map(S); b.widths = b.widths.map(w => w * k); } }
+    for (const i of [7, 8]) if (m.bones[i] && m.bones[i].piv) m.bones[i].piv = S(m.bones[i].piv);
+    m.height = Math.max(...m.boxes.map(b => b.y + b.h)); return m; }
   function partHelpers(m) {
     const s = m.scale; const P = m.boxes; const H = { bone: 0 };
     const S3 = (p) => [p[0] * s, p[1] * s, p[2] * s];
@@ -3450,5 +3455,5 @@ const KIN = (() => {
   function serialize(k) { return { id: k.id, sp: k.sp, level: k.level, xp: k.xp, iv: k.iv, stage: k.stage, hp: k.hp, nick: k.nick, equip: k.equip || null, tech: k.tech || null, wear: k.wear || null, trust: k.trust || 0, tamed: k.tamed || false }; }
   function deserialize(d) { return Object.assign({ status: null }, d); }
 
-  return { formName, LINES, lineOf, maxStage, lookOf, formOf, partHelpers, dress, wearKey, E, EI, CHART, STAT_KEYS, STAT_NAMES, growth, xpToNext, dominant, species, speciesForContext, dex, bySeed, HABITATS, capOf, recipes, findRecipe, fuseRecipe, mythicSpecies, legendSpecies, apexSpecies, wardenSpecies, MAX_LEVEL, TECH, techFor, techByName, starters, create, stats, name, moves, effectiveness, gainXp, fuse, fusionLevel, TRAITS, RARITY, roster, buildUniverse, decorate, makeStatue, statueModel, shardsFor, model, buildMesh, meshKey, portrait, serialize, deserialize, UTIL_DESC, eggModel, eggPortrait };
+  return { childify, formName, LINES, lineOf, maxStage, lookOf, formOf, partHelpers, dress, wearKey, E, EI, CHART, STAT_KEYS, STAT_NAMES, growth, xpToNext, dominant, species, speciesForContext, dex, bySeed, HABITATS, capOf, recipes, findRecipe, fuseRecipe, mythicSpecies, legendSpecies, apexSpecies, wardenSpecies, MAX_LEVEL, TECH, techFor, techByName, starters, create, stats, name, moves, effectiveness, gainXp, fuse, fusionLevel, TRAITS, RARITY, roster, buildUniverse, decorate, makeStatue, statueModel, shardsFor, model, buildMesh, meshKey, portrait, serialize, deserialize, UTIL_DESC, eggModel, eggPortrait };
 })();

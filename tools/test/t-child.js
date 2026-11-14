@@ -1,0 +1,6 @@
+const { open } = require('./harness'); const fs = require('fs');
+(async () => { const h = await open(); const { ev } = h; await h.newGame('gal-1'); await h.calm();
+  const png = await ev(() => { const S = 320; const cv0 = document.createElement('canvas'); cv0.width = S * 4; cv0.height = S; const ctx = cv0.getContext('2d'); ctx.fillStyle = '#7fb2d8'; ctx.fillRect(0, 0, cv0.width, cv0.height);
+    [['man', 0, 0], ['slim', 1, 1], ['woman', 3, 0], ['slim', 2, 1]].forEach(([build, hairVar, kid], i) => { const sp = { build, hairVar, hair: ['#3a2a1a', '#b8862e', '#6a4a22', '#1a1410'][i], shape: 'human', feat: {}, colors: { body: ['#4f7a3a', '#8a3a3a', '#9a4a7a', '#3a4a6a'][i], belly: '#e8c39e', accent: '#c9a84c', dark: '#3a2a20', eye: '#222222' }, size: 1, gen: 0, names: ['x'] }; const m = KIN.model(sp, 2); if (i === 3) KIN.decorate(m, 'hat'); if (kid) KIN.childify(m, 1.32); const sc = kid ? 0.64 : 1; const c = document.createElement('canvas'); R.renderPortrait(c, R.entityMesh('kid' + i, (mb) => KIN.buildMesh(mb, m)), m, S, { yaw: -0.4, pitch: -0.1, zoom: kid ? 0.72 : 1 }); ctx.drawImage(c, i * S, 0, S, S); });
+    return cv0.toDataURL('image/png'); });
+  fs.writeFileSync('/home/claude/child.png', Buffer.from(png.split(',')[1], 'base64')); console.log('ERRORS:', h.errors.length ? h.errors.slice(0, 3).join('\n') : 'none'); await h.close(); })();

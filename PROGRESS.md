@@ -204,6 +204,8 @@ Scope (Alexander, 8 Nov evening): EVERYTHING visible goes to the same standard: 
 
 - 14 Nov: tree crowns are rounder (leaf puffs n 4-5 near, 2 far, fully round, cool underside). Reviewed village and city houses in t-world shots: left as they are.
 
+- 14 Nov: children. One plain villager in four is a child: slim build, entity scale 0.64, and KIN.childify(m, 1.32) enlarges everything on the head bones (hat included) after clothing. They talk like any villager for now. tools/test/t-child.js.
+
 ## Still to do
 UI polish as feedback comes in. Card battle screen still used for scripted encounters (raids at the walls, thief, citadel duel, holds) and the snare mini-game; converting those to live is the next big step if wanted. (Old list: train/ships, combat animation, eggs, avatar hair/paint, buddy WEAR cosmetics, Silas and Finch, UI polish (item icons), quality toggles in settings (state.shadows, state.grassQuality, state.dprCap).
 
