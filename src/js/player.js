@@ -529,6 +529,7 @@ class Player {
     if (overlaps && isSolid(info.block)) return null;
     this.world.setBlock(px, py, pz, info.block);
     this.take(item, 1);
+    if (typeof G !== 'undefined' && G.ownBlock) G.ownBlock(px, py, pz, info.block); /* what you put down is yours to take up again, wherever it is */
     return { placed: info.block, x: px, y: py, z: pz };
   }
   serialize() {

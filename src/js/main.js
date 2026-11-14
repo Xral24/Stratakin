@@ -1086,7 +1086,12 @@ G.giveLostMap = function (from) {
   return true;
 };
 // towns and farms are not yours to dig up: the first knock on a wall brings someone running
+// a block you placed yourself inside a town, a farm or a hold stays yours: you can always take it back
+G.ownBlock = function (x, y, z, id) { if (!this.protectedAt({ x, y, z, id })) return; const m = this.stats.myBlocks || (this.stats.myBlocks = {}); const ks = Object.keys(m); if (ks.length > 600) delete m[ks[0]]; m[x + ',' + y + ',' + z] = id; };
 G.protectedAt = function (hit) {
+  { const m = this.stats.myBlocks, key = hit.x + ',' + hit.y + ',' + hit.z; if (m && m[key] != null) { if (m[key] === hit.id) return null; delete m[key]; } }
+  if (hit.id === B.STONE || hit.id === B.DIRT || hit.id === B.SAND) { const v = Village.active, w = this.world; /* and loose stone, earth or sand lying on the ground beside a Fusion Table was dropped there by somebody: it comes up */
+    if (v) { let near = false; for (let dx = -3; dx <= 3 && !near; dx++) for (let dz = -3; dz <= 3 && !near; dz++) for (let dy = -2; dy <= 0; dy++) if (w.getBlock(hit.x + dx, hit.y + dy, hit.z + dz) === B.FUSION) { near = true; break; } /* level with the table or above it, never the ground it stands on */ if (near && !Village.railAt(hit.x, hit.y, hit.z)) return null; } }
   if (Village.railAt(hit.x, hit.y, hit.z)) return { kind: 'rail' };
   if (this.worldId !== 'earth') return null; const p = this.player;
   const kind = p.toolKind(hit.id);

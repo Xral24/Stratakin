@@ -242,6 +242,8 @@ Scope (Alexander, 8 Nov evening): EVERYTHING visible goes to the same standard: 
 
 - Lighter meshes: a rounded piece its design marked as plain (n of 2 or less: scales, cloud puffs, plates) is no longer rounded as finely as a body. No visible difference in side-by-side renders; the median Earth Kin is 15% lighter and the heaviest (the pangolins) 40% lighter. tools/test/t-tris.js lists mesh sizes; Earth Kin are still heavier than the Moon's and the Halo's. FABLE-BRIEF.md has an evening update.
 
+- Blocks the player places inside a protected place (town, hold, rail) are remembered and can be mined back. Loose stone, dirt or sand level with the Fusion Table and within 3 of it also comes up, which frees blocks placed before this change. The ground under the table stays protected.
+
 ## Still to do
 UI polish as feedback comes in. Card battle screen still used for scripted encounters (raids at the walls, thief, citadel duel, holds) and the snare mini-game; converting those to live is the next big step if wanted. (Old list: train/ships, combat animation, eggs, avatar hair/paint, buddy WEAR cosmetics, Silas and Finch, UI polish (item icons), quality toggles in settings (state.shadows, state.grassQuality, state.dprCap).
 
