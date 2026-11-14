@@ -222,6 +222,8 @@ Scope (Alexander, 8 Nov evening): EVERYTHING visible goes to the same standard: 
 - Accessories on the new bodies: models carry native/fitBody; landmarks() ignores glowing parts, rings and orbits when finding the torso and head, a tube-bodied form names its torso with core(), round bodies wear a collar as a belt, low heads wear it on the head. Test: t-wearnat.js (six items on all 75 new bodies), t-allmodels.js (build + dress + moves for every Kin at every stage: 2115 ok).
 - Fix: alienize() returned a bare part list without bones, so the recoloured rare Kin of the Moon and Halo stood stiff and threw when dressed.
 
+- Elder: stooped (model.stoop, applied in buildMesh as a lean of everything above the hips, bone pivots included) and carries a staff. Children say something new each time and each day (talk counter + G.dayCount). Riding: the new bodies carry you by their shape, so a wingless native no longer counts as a flier (G.rideMode). Checked riding six of the new Kin in the world (tools/test/t-ridenat.js).
+
 ## Still to do
 UI polish as feedback comes in. Card battle screen still used for scripted encounters (raids at the walls, thief, citadel duel, holds) and the snare mini-game; converting those to live is the next big step if wanted. (Old list: train/ships, combat animation, eggs, avatar hair/paint, buddy WEAR cosmetics, Silas and Finch, UI polish (item icons), quality toggles in settings (state.shadows, state.grassQuality, state.dprCap).
 

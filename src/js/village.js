@@ -1978,7 +1978,7 @@ const Village = (() => {
     if (n.shop) { UI.openPanel('shop', shopDef(n.shop, active)); return; }
     if (n.role === 'voodoo') { UI.openPanel('shop', shopDef('voodoo', active)); return; }
     if (n.role === 'hermit') { talkHermit(n); return; }
-    if (n.child) { const day = Math.floor((G.world.day || 0)); const r = U.rng(U.combine(U.strHash((active ? active.id : 'v') + ':' + n.id), day)); /* children say what children say: what they saw, what they want, what they were told not to do */
+    if (n.child) { n.talks = (n.talks || 0) + 1; const day = (G.dayCount || 0) * 7 + n.talks; const r = U.rng(U.combine(U.strHash((active ? active.id : 'v') + ':' + n.id), day)); /* something new each time you ask, and each day */ /* children say what children say: what they saw, what they want, what they were told not to do */
       Dialogue.show(n.name, [r.pick(CHILD_LINES), r.pick(CHILD_LINES2)]); return; }
     if (n.role === 'traveller') {
       const o = n.offer; const give = Object.keys(o.give).map(k => `${o.give[k]} ${ITEMS[k].name}`).join(' and '); const get = Object.keys(o.get).map(k => `${o.get[k] > 1 ? o.get[k] + ' ' : ''}${ITEMS[k].name}`).join(', ');

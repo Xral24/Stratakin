@@ -8765,6 +8765,7 @@ const KIN = (() => {
     if (kind === 'elder') {
       setB(1); disc(0, 1.86, 0, 0.5, 0.05, '#3b2a4a'); blob(-0.3, 1.86, -0.3, 0.3, 2.34, 0.3, 0.5, '#3b2a4a', { tap: [1, 0.72] }); ring(0, 1.96, 0, 0.31, 0.31, 0.03, '#e0b84a', { emis: true });
       blob(-0.17, 0.98, 0.18, 0.17, 1.44, 0.34, 0.7, '#e8e4dc', { tap: [0.55, 1.0] }); setB(0); // a long white beard
+      m.stoop = 0.36; { const n0 = m.boxes.length; tube([[0.5, 0.02, 0.52], [0.47, 0.7, 0.48], [0.45, 1.28, 0.44]], [0.028, 0.03, 0.034], '#6a4a2a', { cap0: 'round', cap1: 'round', segs: 6 }); ball(0.45, 1.32, 0.44, 0.055, '#e0b84a', { emis: true }); for (let q = n0; q < m.boxes.length; q++) m.boxes[q].noStoop = true; } /* bent with age (the mesh leans everything above the hips), and a staff to lean on */
       ring(0, 1.14, 0.02, 0.28, 0.24, 0.025, '#ffd75a', { emis: true }); ball(0, 1.0, 0.25, 0.07, '#7ad7ff', { emis: true }); // chain and gem
       blob(-0.42, 0.08, -0.3, 0.42, 0.66, 0.3, 0.6, '#8a3fd0', { tap: [0.75, 1.0] }); // genie pants
     } else if (kind === 'voodoo') {
@@ -8914,7 +8915,9 @@ const KIN = (() => {
   }
   function wearKey(wear) { return wear && wear.item && wear.item !== 'none' ? ':w' + wear.item + (wear.col || '') : ''; }
   function buildMesh(mb, m) {
-    for (const b of m.boxes) {
+    const stoop = m.stoop || 0, hipY = 0.62 * (m.scale || 1); /* a stoop: all that is above the hips turns forward about them, whatever was put on the figure and whenever */
+    if (stoop && !m._stooped) { m._stooped = true; const c = Math.cos(stoop), sn = Math.sin(stoop); for (const bn of m.bones) if (bn && bn.piv && bn.piv[1] > hipY) { const y = bn.piv[1] - hipY, z = bn.piv[2]; bn.piv = [bn.piv[0], hipY + y * c - z * sn, y * sn + z * c]; } }
+    for (const b of m.boxes) { const lean = stoop && !b.noStoop && b.y + b.h / 2 > hipY; if (lean) { mb.push(); mb.rotate(stoop, 0, 0, [0, hipY, 0]); }
       mb.setBone(b.bone || 0); const col = U.hexToRgb(b.c); const o = Object.assign({ emis: !!b.emis }, b.o || {});
       if (b.rot) { mb.push(); mb.rotate(b.rot.rx || 0, b.rot.ry || 0, b.rot.rz || 0, b.rot.piv); }
       if (b.k === 'blob' && b.round > 0.01) { const sz = Math.max(b.w, b.h, b.d) / 2, lg = typeof window !== 'undefined' && window.__lowGeo; o.n = Math.max(o.n || 0, lg ? (sz >= 0.26 ? 6 : sz >= 0.1 ? 4 : 3) : sz >= 0.26 ? 9 : sz >= 0.1 ? 6 : sz >= 0.04 ? 4 : 3); } /* rounder forms: no visible facets on a body */
@@ -8924,7 +8927,7 @@ const KIN = (() => {
       else if (b.k === 'plate') mb.plate(b.pts, b.t, col, o);
       else if (b.k === 'ribbon') mb.ribbon(b.spine, b.widths, col, o);
       else mb.box(b.x, b.y, b.z, b.x + b.w, b.y + b.h, b.z + b.d, col, 1, !!b.emis);
-      if (b.rot) mb.pop();
+      if (b.rot) mb.pop(); if (lean) mb.pop();
     }
     mb.setBone(0);
   }
@@ -11639,7 +11642,7 @@ const Village = (() => {
     if (n.shop) { UI.openPanel('shop', shopDef(n.shop, active)); return; }
     if (n.role === 'voodoo') { UI.openPanel('shop', shopDef('voodoo', active)); return; }
     if (n.role === 'hermit') { talkHermit(n); return; }
-    if (n.child) { const day = Math.floor((G.world.day || 0)); const r = U.rng(U.combine(U.strHash((active ? active.id : 'v') + ':' + n.id), day)); /* children say what children say: what they saw, what they want, what they were told not to do */
+    if (n.child) { n.talks = (n.talks || 0) + 1; const day = (G.dayCount || 0) * 7 + n.talks; const r = U.rng(U.combine(U.strHash((active ? active.id : 'v') + ':' + n.id), day)); /* something new each time you ask, and each day */ /* children say what children say: what they saw, what they want, what they were told not to do */
       Dialogue.show(n.name, [r.pick(CHILD_LINES), r.pick(CHILD_LINES2)]); return; }
     if (n.role === 'traveller') {
       const o = n.offer; const give = Object.keys(o.give).map(k => `${o.give[k]} ${ITEMS[k].name}`).join(' and '); const get = Object.keys(o.get).map(k => `${o.get[k] > 1 ? o.get[k] + ' ' : ''}${ITEMS[k].name}`).join(', ');
@@ -17349,7 +17352,7 @@ G.sendIn = function (k, e) {
 G.rideMode = function (k) {
   const sp = k.sp;
   if (sp.shape === 'fish' || sp.shape === 'serpent') return 'water';
-  if (sp.shape === 'bird' || sp.shape === 'floater' || sp.feat.wings) return 'air';
+  if (sp.shape === 'bird' || sp.shape === 'floater' || (sp.feat.wings && !KIN.nativeId(sp))) return 'air'; /* the new bodies carry you the way they are built: a wingless one does not fly */
   if (sp.shape === 'quadruped' || sp.shape === 'raptor' || sp.shape === 'horned' || sp.shape === 'longneck') return 'land';
   return null;
 };

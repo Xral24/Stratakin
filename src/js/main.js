@@ -158,7 +158,7 @@ G.sendIn = function (k, e) {
 G.rideMode = function (k) {
   const sp = k.sp;
   if (sp.shape === 'fish' || sp.shape === 'serpent') return 'water';
-  if (sp.shape === 'bird' || sp.shape === 'floater' || sp.feat.wings) return 'air';
+  if (sp.shape === 'bird' || sp.shape === 'floater' || (sp.feat.wings && !KIN.nativeId(sp))) return 'air'; /* the new bodies carry you the way they are built: a wingless one does not fly */
   if (sp.shape === 'quadruped' || sp.shape === 'raptor' || sp.shape === 'horned' || sp.shape === 'longneck') return 'land';
   return null;
 };
