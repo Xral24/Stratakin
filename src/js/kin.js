@@ -30,10 +30,6 @@ const KIN = (() => {
   const WATER_SHAPES = ['fish', 'fish', 'serpent', 'blob', 'floater'];
   const ENDS = { quadruped: ['ox', 'fang', 'paw', 'hoof', 'mane', 'tusk'], biped: ['kin', 'ling', 'gar', 'mon', 'dor', 'bo'], serpent: ['coil', 'wyrm', 'tail', 'nag', 'ssa', 'vex'], blob: ['blob', 'bulb', 'glop', 'puff', 'mote', 'gum'], bird: ['wing', 'beak', 'ryl', 'swift', 'talon', 'quill'], floater: ['orb', 'wisp', 'gaze', 'halo', 'drift', 'eye'], fish: ['fin', 'gill', 'scale', 'ray', 'jaw', 'maw'], raptor: ['raptor', 'rex', 'claw', 'don', 'saur', 'tooth'], longneck: ['saurus', 'neck', 'docus', 'titan', 'pod', 'lodon'], horned: ['ceros', 'tops', 'horn', 'frill', 'ankyl', 'shield'] };
   const SUFFIX = ['ior', 'ax', 'on', 'eth', 'ius', 'ara'];
-  const MOVES = {
-    Flame: ['Ember Bite', 'Flare Burst'], Tide: ['Tide Lash', 'Rip Current'], Bloom: ['Thorn Whip', 'Spore Cloud'], Stone: ['Boulder Slam', 'Quake'], Gale: ['Wing Cut', 'Gust'],
-    Frost: ['Icicle Jab', 'Blizzard'], Spark: ['Shock Fang', 'Thunderbolt'], Void: ['Shadow Claw', 'Null Wave'], Light: ['Radiant Strike', 'Dawn Beam']
-  };
   const UTIL = { quadruped: 'Guard', biped: 'Focus', serpent: 'Coil', blob: 'Mend', bird: 'Dash', floater: 'Mend', fish: 'Dash', raptor: 'Dash', longneck: 'Mend', horned: 'Guard' };
   const UTIL_DESC = { Guard: 'Halves the next hit taken.', Focus: 'Raises Attack and Power for the fight.', Coil: 'Raises Agility for the fight.', Mend: 'Heals 30% of max health.', Dash: 'Raises Speed; strikes first next turn.' };
   const STAT_KEYS = ['hp', 'atk', 'pow', 'spd', 'agi'];
@@ -428,29 +424,73 @@ const KIN = (() => {
     return s;
   }
   function name(k) { return k.nick || k.sp.names[lookOf(k.sp, k.stage) - 1] || k.sp.names[0]; }
-  // techniques: a fourth move learned in an incubator, one per element, stronger than anything the wild teaches
-  const TECH = {
-    Flame: { name: 'Inferno', elem: 'Flame', kind: 'spec', power: 96, acc: 0.85, crit: true, desc: 'Burns hot; crits often.' },
-    Tide: { name: 'Riptide', elem: 'Tide', kind: 'phys', power: 84, acc: 0.95, drain: true, desc: 'Heals a third of the damage dealt.' },
-    Bloom: { name: 'Regrowth', elem: 'Bloom', kind: 'util', desc: 'Heals half of max health.' },
-    Stone: { name: 'Bulwark', elem: 'Stone', kind: 'util', desc: 'Halves the next two hits taken.' },
-    Gale: { name: 'Tailwind', elem: 'Gale', kind: 'util', desc: 'Strikes first next turn and dodges better all fight.' },
-    Frost: { name: 'Deep Freeze', elem: 'Frost', kind: 'spec', power: 92, acc: 0.9, pierce: true, desc: 'Goes through Guard.' },
-    Spark: { name: 'Overload', elem: 'Spark', kind: 'phys', power: 98, acc: 0.8, crit: true, desc: 'Wild and heavy; crits often.' },
-    Void: { name: 'Null Field', elem: 'Void', kind: 'spec', power: 86, acc: 0.95, pierce: true, desc: 'Goes through Guard.' },
-    Light: { name: 'Radiance', elem: 'Light', kind: 'spec', power: 90, acc: 0.9, drain: true, desc: 'Heals a third of the damage dealt.' },
+  // ---- moves. A Kin's moves come from what it is: its body decides how it strikes (a bird pecks and dives, a serpent bites and lashes),
+  // its elements decide what it throws, and each species draws its own from those pools, so two Flame Kin rarely fight alike.
+  // fx names the picture the battle plays (battle.js). Order is fixed: [strike, element move, helping move, grown move (stage 2+), technique].
+  const EWORD = { Flame: 'Ember', Tide: 'Tide', Bloom: 'Thorn', Stone: 'Boulder', Gale: 'Gale', Frost: 'Frost', Spark: 'Shock', Void: 'Shadow', Light: 'Radiant' };
+  const ACT = { Bite: { fx: 'bite', pw: 1, acc: 0.95 }, Claw: { fx: 'claw', pw: 0.9, acc: 0.95, crit: true, desc: 'Crits often.' }, Rush: { fx: 'rush', pw: 1.06, acc: 0.9 }, Slam: { fx: 'slam', pw: 1.16, acc: 0.84, desc: 'Heavy, less sure.' },
+    Flurry: { fx: 'flurry', pw: 0.86, acc: 1, desc: 'Never misses its mark.' }, Peck: { fx: 'flurry', pw: 0.9, acc: 0.98 }, Dive: { fx: 'dive', pw: 1.12, acc: 0.88 }, Cut: { fx: 'slash', pw: 1, acc: 0.95 }, Lash: { fx: 'tail', pw: 0.97, acc: 0.95 }, Drill: { fx: 'drill', pw: 0.88, acc: 0.95, pierce: true, desc: 'Goes through Guard.' } };
+  const STRIKES = { quadruped: ['Bite', 'Claw', 'Rush'], biped: ['Slam', 'Flurry', 'Cut'], bird: ['Peck', 'Dive', 'Cut'], serpent: ['Bite', 'Lash', 'Drill'], fish: ['Rush', 'Lash', 'Bite'], floater: ['Slam', 'Drill', 'Rush'], blob: ['Slam', 'Rush', 'Flurry'], raptor: ['Claw', 'Bite', 'Dive'], longneck: ['Lash', 'Slam', 'Rush'], horned: ['Rush', 'Slam', 'Drill'] };
+  const CAST = { // four thrown moves an element: [name, fx, power x, accuracy, flag]
+    Flame: [['Flare Burst', 'own', 1, 0.9], ['Fire Wheel', 'ringin', 1.0, 0.88, 'burn'], ['Meteor Shower', 'rain', 1.1, 0.82, 'burn'], ['Heat Ray', 'beam', 0.95, 0.96]],
+    Tide: [['Rip Current', 'own', 1, 0.9], ['Hydro Jet', 'beam', 0.96, 0.96], ['Bubble Barrage', 'volley', 0.9, 1], ['Monsoon', 'rain', 1.1, 0.84]],
+    Bloom: [['Leaf Storm', 'own', 1, 0.9], ['Spore Cloud', 'cloud', 0.88, 0.98, 'poison'], ['Seed Volley', 'volley', 0.94, 0.97], ['Root Snare', 'ground', 1.02, 0.88, 'poison']],
+    Stone: [['Rock Throw', 'own', 1.02, 0.9], ['Quake', 'ground', 1.1, 0.85], ['Sandblast', 'beam', 0.94, 0.96], ['Rockfall', 'rain', 1.12, 0.82]],
+    Gale: [['Gust', 'own', 1, 0.92], ['Air Slicer', 'volley', 0.94, 0.98, 'crit'], ['Downburst', 'rain', 1.08, 0.85], ['Vacuum', 'ringin', 1, 0.9, 'pierce']],
+    Frost: [['Icicle Spear', 'own', 1, 0.9], ['Blizzard', 'cloud', 1.0, 0.88, 'frost'], ['Frost Ray', 'beam', 0.96, 0.96], ['Hailstorm', 'rain', 1.08, 0.83, 'frost']],
+    Spark: [['Thunderbolt', 'own', 1.04, 0.88], ['Arc Lash', 'beam', 0.95, 0.96], ['Ball Lightning', 'orb', 1.1, 0.82, 'shock'], ['Static Field', 'ringin', 0.9, 0.95, 'shock']],
+    Void: [['Null Wave', 'own', 1, 0.92], ['Dark Ray', 'beam', 0.96, 0.96, 'pierce'], ['Grave Hands', 'ground', 1.02, 0.88, 'curse'], ['Night Rain', 'rain', 1.06, 0.85, 'curse']],
+    Light: [['Sun Pillar', 'own', 1.02, 0.9], ['Dawn Beam', 'beam', 0.96, 0.96], ['Starfall', 'rain', 1.1, 0.84], ['Halo Burst', 'ringin', 1, 0.92, 'drain']],
   };
-  function techFor(k) { return TECH[dominant(k.sp.elem, 1)[0]].name; }
-  function techByName(nm) { for (const e in TECH) if (TECH[e].name === nm) return TECH[e]; return null; }
+  const FLAGDESC = { crit: 'Crits often.', drain: 'Heals a third of the damage dealt.', pierce: 'Goes through Guard.', burn: 'May burn: hurts every turn.', poison: 'May poison: hurts more every turn.', frost: 'May frostbite: hurts every turn.', shock: 'May shock: it can lose its turn.', curse: 'May curse: hurts every turn.' };
+  const AILS = { burn: 1, poison: 1, frost: 1, shock: 1, curse: 1 };
+  // techniques: a last move learned in an incubator or from a teacher, three an element, stronger than anything the wild teaches. Which one a Kin learns depends on the Kin.
+  const TECHLIST = [
+    { name: 'Inferno', elem: 'Flame', kind: 'spec', power: 96, acc: 0.85, crit: true, fx: 'own', ail: 'burn', ailP: 0.45, desc: 'Crits often; may burn.' },
+    { name: 'Eruption', elem: 'Flame', kind: 'spec', power: 104, acc: 0.78, fx: 'erupt', ail: 'burn', ailP: 0.45, desc: 'Heavy; may burn.' },
+    { name: 'Phoenix Dive', elem: 'Flame', kind: 'phys', power: 92, acc: 0.9, drain: true, fx: 'dive', desc: 'Heals a third of the damage dealt.' },
+    { name: 'Riptide', elem: 'Tide', kind: 'phys', power: 84, acc: 0.95, drain: true, fx: 'rush', desc: 'Heals a third of the damage dealt.' },
+    { name: 'Tsunami', elem: 'Tide', kind: 'spec', power: 100, acc: 0.82, fx: 'own', desc: 'A wall of water. Heavy, less sure.' },
+    { name: 'Maelstrom', elem: 'Tide', kind: 'spec', power: 88, acc: 0.92, pierce: true, fx: 'ringin', desc: 'Goes through Guard.' },
+    { name: 'Regrowth', elem: 'Bloom', kind: 'util', desc: 'Heals half of max health.' },
+    { name: 'Thorn Cage', elem: 'Bloom', kind: 'spec', power: 90, acc: 0.9, pierce: true, fx: 'ground', ail: 'poison', ailP: 0.45, desc: 'Goes through Guard; may poison.' },
+    { name: 'Bloom Burst', elem: 'Bloom', kind: 'spec', power: 86, acc: 0.94, drain: true, fx: 'cloud', desc: 'Heals a third of the damage dealt.' },
+    { name: 'Bulwark', elem: 'Stone', kind: 'util', desc: 'Halves the next two hits taken.' },
+    { name: 'Landslide', elem: 'Stone', kind: 'spec', power: 102, acc: 0.8, fx: 'rain', desc: 'Heavy, less sure.' },
+    { name: 'Fissure', elem: 'Stone', kind: 'phys', power: 94, acc: 0.86, crit: true, fx: 'slam', desc: 'Crits often.' },
+    { name: 'Tailwind', elem: 'Gale', kind: 'util', desc: 'Strikes first next turn and dodges better all fight.' },
+    { name: 'Cyclone', elem: 'Gale', kind: 'spec', power: 94, acc: 0.88, fx: 'own', desc: 'A twister that fills the field.' },
+    { name: 'Sky Hammer', elem: 'Gale', kind: 'phys', power: 96, acc: 0.85, crit: true, fx: 'dive', desc: 'Crits often.' },
+    { name: 'Deep Freeze', elem: 'Frost', kind: 'spec', power: 92, acc: 0.9, pierce: true, fx: 'own', ail: 'frost', ailP: 0.45, desc: 'Goes through Guard; may frostbite.' },
+    { name: 'Avalanche', elem: 'Frost', kind: 'spec', power: 102, acc: 0.8, fx: 'rain', ail: 'frost', ailP: 0.45, desc: 'Heavy; may frostbite.' },
+    { name: 'Glacier Fang', elem: 'Frost', kind: 'phys', power: 90, acc: 0.92, crit: true, fx: 'bite', desc: 'Crits often.' },
+    { name: 'Overload', elem: 'Spark', kind: 'phys', power: 98, acc: 0.8, crit: true, fx: 'rush', ail: 'shock', ailP: 0.45, desc: 'Crits often; may shock.' },
+    { name: 'Thunderstorm', elem: 'Spark', kind: 'spec', power: 100, acc: 0.82, fx: 'own', desc: 'Bolt after bolt.' },
+    { name: 'Rail Bolt', elem: 'Spark', kind: 'spec', power: 88, acc: 0.95, pierce: true, fx: 'beam', desc: 'Goes through Guard.' },
+    { name: 'Null Field', elem: 'Void', kind: 'spec', power: 86, acc: 0.95, pierce: true, fx: 'own', desc: 'Goes through Guard.' },
+    { name: 'Eclipse', elem: 'Void', kind: 'spec', power: 90, acc: 0.9, drain: true, fx: 'ringin', desc: 'Heals a third of the damage dealt.' },
+    { name: 'Soul Rend', elem: 'Void', kind: 'phys', power: 94, acc: 0.88, crit: true, fx: 'claw', ail: 'curse', ailP: 0.45, desc: 'Crits often; may curse.' },
+    { name: 'Radiance', elem: 'Light', kind: 'spec', power: 90, acc: 0.9, drain: true, fx: 'own', desc: 'Heals a third of the damage dealt.' },
+    { name: 'Supernova', elem: 'Light', kind: 'spec', power: 104, acc: 0.78, fx: 'nova', desc: 'Heavy, less sure.' },
+    { name: 'Judgement', elem: 'Light', kind: 'spec', power: 92, acc: 0.9, pierce: true, fx: 'rain', desc: 'Goes through Guard.' },
+  ];
+  const TECH = {}; for (const t of TECHLIST) TECH[t.name] = t;
+  function techFor(k) { const el = dominant(k.sp.elem, 1)[0]; const mine = TECHLIST.filter(t => t.elem === el); return mine[((k.sp.seed >>> 7) % 997) % mine.length].name; }
+  function techByName(nm) { return TECH[nm] || null; }
+  function castMove(el, idx, st, bonus) { const c = CAST[el][idx % 4]; const m = { name: c[0], elem: el, kind: 'spec', power: Math.round((58 + 10 * st + (bonus || 0)) * c[2]), acc: c[3], fx: c[1] }; if (c[4]) { if (AILS[c[4]]) { m.ail = c[4]; m.ailP = 0.35; } else m[c[4]] = true; m.desc = FLAGDESC[c[4]]; } return m; }
   function moves(k) {
     const dom = dominant(k.sp.elem, 2);
     const e1 = dom[0], e2 = dom[1] || dom[0];
-    const st = k.stage;
-    const out = [
-      { name: MOVES[e1][0], elem: e1, kind: 'phys', power: 52 + 10 * st, acc: 0.95 },
-      { name: MOVES[e2][1], elem: e2, kind: 'spec', power: 58 + 10 * st, acc: 0.9 },
-      { name: UTIL[k.sp.shape], kind: 'util', desc: UTIL_DESC[UTIL[k.sp.shape]] },
-    ];
+    const st = k.stage, seed = k.sp.seed >>> 0;
+    /* Common Kin share the basics: every common of a body strikes the same way and throws its element's plain move. Rarer kinds draw from
+       deeper in the pools, and growing up is what gives a Kin its edge: stage 2 teaches a second thrown move of its own, stage 3 sharpens it.
+       Epics and legendaries know theirs from the start. */
+    const rar = k.sp.rarity || 0, acts = STRIKES[k.sp.shape] || STRIKES.quadruped;
+    const an = acts[rar === 0 ? 0 : rar === 1 ? (seed % 911) % 2 : (seed % 911) % acts.length], a = ACT[an];
+    const strike = { name: EWORD[e1] + ' ' + an, elem: e1, kind: 'phys', power: Math.round((52 + 10 * st) * a.pw), acc: a.acc, fx: a.fx }; if (a.crit) strike.crit = true; if (a.pierce) strike.pierce = true; if (a.desc) strike.desc = a.desc;
+    const ci = rar === 0 ? 0 : rar === 1 ? (seed >>> 3) % 2 : (seed >>> 3) % 4;
+    const out = [strike, castMove(e2, ci, st), { name: UTIL[k.sp.shape], kind: 'util', desc: UTIL_DESC[UTIL[k.sp.shape]] }];
+    if (st >= 2 || rar >= 3) { let gi = 1 + (seed >>> 9) % 3; if (e1 === e2 && gi === ci) gi = 1 + gi % 3; const g = Object.assign(castMove(e1, gi, st, st >= 3 ? 14 : 6), { grown: true }); if (st >= 3 && !g.crit && !g.drain && !g.pierce && !g.ail) { g.crit = true; g.desc = FLAGDESC.crit; } out.push(g); }
     if (k.tech) { const t = techByName(k.tech); if (t) out.push(Object.assign({}, t, { power: t.power ? t.power + 8 * st : undefined, tech: true })); }
     return out;
   }

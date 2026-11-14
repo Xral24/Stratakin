@@ -448,3 +448,5 @@ body.desktop #joy, body.desktop #btn-jump, body.desktop #btn-sneak { display: no
 .dmgpop{position:absolute;right:10px;top:-4px;font-weight:900;font-size:24px;color:#ffd24a;text-shadow:0 2px 0 #1a1420,0 0 8px rgba(0,0,0,.6);pointer-events:none;animation:dmgpop .95s ease-out forwards;z-index:5}
 .dmgpop.crit{font-size:32px;color:#ff5a3a}
 @keyframes dmgpop{0%{transform:translateY(8px) scale(.5);opacity:0}18%{transform:translateY(-10px) scale(1.25);opacity:1}100%{transform:translateY(-44px) scale(1);opacity:0}}
+
+.ailtag{position:absolute;left:8px;bottom:-9px;font-size:10px;font-weight:800;color:#14101c;padding:1px 7px;border-radius:8px;z-index:4;box-shadow:0 1px 0 rgba(0,0,0,.4)}

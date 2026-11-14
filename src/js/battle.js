@@ -16,7 +16,7 @@ const Battle = (() => {
     cancel.addEventListener('click', stop); cancel.addEventListener('touchstart', stop, { passive: false });
     el.snare.addEventListener('touchstart', (e) => { e.preventDefault(); onSnareGo(); }, { passive: false });
   }
-  function buffs() { return { guard: false, focus: false, coil: false, dash: false }; }
+  function buffs() { return { guard: false, focus: false, coil: false, dash: false, ail: null }; }
   function start(e, isAmbush, opts = {}) {
     if (active) return;
     stunUsed = false; stunned = false; if (stunTimer) { clearInterval(stunTimer); stunTimer = null; }
@@ -76,7 +76,16 @@ const Battle = (() => {
     card.querySelector('.elems').innerHTML = elemBadges(k) + `<span class="hpnum">${Math.max(0, Math.round(k.hp))}/${st.hp}</span>`;
     if (showXp) { const xf = card.querySelector('.xpfill'); if (xf) xf.style.width = (100 * k.xp / KIN.xpToNext(k.level)) + '%'; }
   }
-  function refresh() { fillCard(el.wild, wild, false); fillCard(el.mine, mine, true); }
+  // ---- lasting hurts: some moves leave something behind that goes on working after the blow. Burn, frostbite, poison and curse take a share of
+  // health at the end of every turn; shock sometimes costs a turn. One at a time, and it wears off.
+  const AIL = { burn: { name: 'Burn', word: 'is burning', pct: 0.06, turns: 3, col: [1, 0.5, 0.15], tag: '#ff7a2a' }, frost: { name: 'Frostbite', word: 'is frostbitten', pct: 0.05, turns: 3, col: [0.7, 0.95, 1], tag: '#7fd8f5' },
+    poison: { name: 'Poison', word: 'is poisoned', pct: 0.04, grow: 0.02, turns: 4, col: [0.6, 0.85, 0.2], tag: '#8fc93a' }, shock: { name: 'Shock', word: 'is jolted', pct: 0, skip: 0.3, turns: 3, col: [1, 0.9, 0.3], tag: '#e8c800' }, curse: { name: 'Curse', word: 'is cursed', pct: 0.05, turns: 3, col: [0.65, 0.35, 1], tag: '#a65cff' } };
+  function ailFx(e, a) { if (!e || !e.model) return; const C = ctr(e, 0.3), h = (e.model.height || 1) * (e.model.scale || 1); for (let i = 0; i < 12; i++) { const o = [rnd(0.5), 0, rnd(0.5)]; Pt(i * 0.03, 0.6, i % 3 ? a.col : WHITE, a === AIL.frost ? 'cube' : a === AIL.shock ? 'shard' : 'ball', (u) => [C[0] + o[0] + Math.sin(u * 8 + i) * 0.1, C[1] + u * h * 1.1, C[2] + o[2], 0.14 * (1 - u), u * 5]); } }
+  async function ailTick() { for (const [k, e, isMine] of [[wild, wildE, false], [mine, mineE, true]]) { const st = k && k.buffs && k.buffs.ail; if (!st || k.hp <= 0) continue; const a = AIL[st.type];
+      if (a.pct) { const d = Math.max(1, Math.round(KIN.stats(k).hp * (a.pct + (a.grow || 0) * st.n))); k.hp = Math.max(0, k.hp - d); ailFx(e, a); if (e) e.hitT = 0.2; log(`${KIN.name(k)} ${a.word}: ${d} damage.`, isMine ? 'bad' : 'good'); G.sfx('hit'); refresh(); await sleep(550); }
+      st.n++; if (--st.turns <= 0) { k.buffs.ail = null; log(`${KIN.name(k)} shakes off the ${a.name.toLowerCase()}.`); refresh(); await sleep(300); } } }
+  function ailTag(card, k) { const old = card.querySelector('.ailtag'); if (old) old.remove(); const st = k && k.buffs && k.buffs.ail; if (!st) return; const a = AIL[st.type]; const t = document.createElement('span'); t.className = 'ailtag'; t.textContent = a.name; t.style.background = a.tag; card.style.position = card.style.position || 'relative'; card.appendChild(t); }
+  function refresh() { fillCard(el.wild, wild, false); fillCard(el.mine, mine, true); ailTag(el.wild, wild); ailTag(el.mine, mine); }
   function log(msg, cls) {
     const d = document.createElement('div'); d.textContent = msg; if (cls) d.className = cls; el.log.appendChild(d);
     while (el.log.children.length > 4) el.log.removeChild(el.log.firstChild);
@@ -133,6 +142,7 @@ const Battle = (() => {
   }
   async function useMove(att, def, move, attIsMine) {
     const an = KIN.name(att), dn = KIN.name(def);
+    if (att.buffs.ail && att.buffs.ail.type === 'shock' && Math.random() < AIL.shock.skip) { ailFx(attIsMine ? mineE : wildE, AIL.shock); log(`${an} is jolted and cannot move!`, attIsMine ? 'bad' : 'good'); G.sfx('miss'); await sleep(700); return; }
     if (move.kind === 'util') {
       switch (move.name) {
         case 'Guard': att.buffs.guard = true; log(`${an} braces itself.`); break;
@@ -154,11 +164,12 @@ const Battle = (() => {
     def.hp = Math.max(0, def.hp - r.dmg);
     { const k = attIsMine ? att : def, slot = attIsMine ? 'weapon' : 'armor'; const id = k.equip && k.equip[slot]; if (id && ITEMS[id] && ITEMS[id].relic) Relics.wear(id, (attIsMine ? 0.008 : 0.011) * (wildE && (wildE.isBoss || wildE.isLegend || wildE.isApex) ? 2 : 1)); } // relics wear as they work
     if (move.drain) { const st = KIN.stats(att); const h = Math.round(r.dmg / 3); att.hp = Math.min(st.hp, att.hp + h); }
+    let ailMsg = ''; if (move.ail && def.hp > 0 && !def.buffs.ail && Math.random() < (move.ailP || 0.3)) { def.buffs.ail = { type: move.ail, turns: AIL[move.ail].turns, n: 0 }; ailMsg = ` ${dn} ${AIL[move.ail].word}!`; }
     const card = attIsMine ? el.wild : el.mine;
     card.classList.add('shake'); setTimeout(() => card.classList.remove('shake'), 400);
     if (target) target.hitT = r.crit ? 0.55 : 0.35; shakeT = Math.max(shakeT, move.tech ? 0.5 : r.crit || r.eff > 1.25 ? 0.4 : 0.22);
     { card.style.position = card.style.position || 'relative'; const pop = document.createElement('div'); pop.className = 'dmgpop' + (r.crit ? ' crit' : ''); pop.textContent = '-' + r.dmg; card.appendChild(pop); setTimeout(() => pop.remove(), 950); }
-    log(`${an} uses ${move.name}: ${r.dmg} damage${r.crit ? ', critical!' : ''}${r.eff > 1.25 ? ' It hits hard!' : r.eff < 0.8 ? ' It barely lands.' : ''}`, attIsMine ? 'good' : 'bad');
+    log(`${an} uses ${move.name}: ${r.dmg} damage${r.crit ? ', critical!' : ''}${r.eff > 1.25 ? ' It hits hard!' : r.eff < 0.8 ? ' It barely lands.' : ''}${ailMsg}`, attIsMine ? 'good' : 'bad');
     G.sfx(r.eff > 1.25 ? 'hit2' : 'hit'); refresh(); await sleep(700);
   }
   function wildChoose() {
@@ -166,7 +177,7 @@ const Battle = (() => {
     if (wild.hp < st.hp * 0.35 && mv[2].name === 'Mend' && Math.random() < 0.5) return mv[2];
     if (Math.random() < 0.15) return mv[2];
     const score = (m) => m.kind === 'util' ? 0 : m.power * KIN.effectiveness(m.elem, mine);
-    const atk = [mv[0], mv[1]].sort((a, b) => score(b) - score(a));
+    const atk = mv.filter(m => m.kind !== 'util').sort((a, b) => score(b) - score(a));
     return Math.random() < 0.75 ? atk[0] : atk[1];
   }
   async function doTurn(action) {
@@ -205,6 +216,7 @@ const Battle = (() => {
     afterTurn();
   }
   async function afterTurn() {
+    await ailTick();
     refresh();
     // the snare moment: as soon as one more of your Kin's strongest attack would finish it (however much life it has left), it is out of it for a
     // few seconds. A blow that finishes it outright from above that line staggers it instead, so the moment is never skipped
@@ -347,7 +359,7 @@ const Battle = (() => {
     stunned = false; if (stunTimer) { clearInterval(stunTimer); stunTimer = null; }
     stealth = false;
     if (camState) { G.player.yaw = camState.yaw; G.player.pitch = Math.max(-0.3, Math.min(0.1, camState.pitch)); }
-    for (const L of lunges) { L.e.x = L.bx; L.e.z = L.bz; } lunges.length = 0; shakeT = 0;
+    for (const L of lunges) { L.e.x = L.bx; L.e.z = L.bz; L.e.y = L.by; } lunges.length = 0; shakeT = 0;
     active = false; busy = false; snareState = null; camState = null; fx.length = 0;
     el.root.classList.add('hidden'); el.root.classList.remove('snaring');
     if (mine && mine.equip && mine.equip.charm && ITEMS[mine.equip.charm] && ITEMS[mine.equip.charm].relic) Relics.wear(mine.equip.charm, 0.01);
@@ -360,11 +372,11 @@ const Battle = (() => {
   let shakeT = 0; const lunges = [];
   const rnd = (a) => (Math.random() - 0.5) * 2 * a, mixc = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
   const WHITE = [1, 1, 1], lerp3 = (a, b, u) => [a[0] + (b[0] - a[0]) * u, a[1] + (b[1] - a[1]) * u, a[2] + (b[2] - a[2]) * u];
-  function Pt(delay, dur, col, shape, fn) { if (fx.length < 420) fx.push({ t: -delay, dur, col, shape, fn }); }
+  function Pt(delay, dur, col, shape, fn) { if (fx.length < 700) fx.push({ t: -delay, dur, col, shape, fn }); }
   function ctr(e, k) { return [e.x, e.y + (e.model.height || 1) * (e.model.scale || 1) * k, e.z]; }
   function burst(c, col, n, sp, delay, shape, size) { for (let i = 0; i < n; i++) { const v = [rnd(sp), Math.random() * sp * 1.2, rnd(sp)], sz = (size || 0.14) * (0.6 + Math.random() * 0.8), cc = Math.random() < 0.3 ? mixc(col, WHITE, 0.6) : col; Pt(delay, 0.4 + Math.random() * 0.25, cc, shape || 'cube', (u) => [c[0] + v[0] * u, c[1] + v[1] * u - 2.2 * u * u, c[2] + v[2] * u, sz * (1 - u), u * 9]); } }
   function ringOut(c, col, n, rad, delay, dur, size) { for (let i = 0; i < n; i++) { const a = i / n * Math.PI * 2; Pt(delay, dur, col, 'ball', (u) => { const r = rad * (1 - (1 - u) * (1 - u)); return [c[0] + Math.cos(a) * r, c[1], c[2] + Math.sin(a) * r, (size || 0.16) * (1 - u * 0.8), a]; }); } }
-  function lunge(e, to, dist, dur) { const dx = to.x - e.x, dz = to.z - e.z, d = Math.hypot(dx, dz) || 1; lunges.push({ e, t: 0, dur, bx: e.x, bz: e.z, by: e.y, dx: dx / d * Math.min(dist, d - 0.6), dz: dz / d * Math.min(dist, d - 0.6) }); }
+  function lunge(e, to, dist, dur, hop) { const dx = to.x - e.x, dz = to.z - e.z, d = Math.hypot(dx, dz) || 1; lunges.push({ e, t: 0, dur, hop: hop || 0, bx: e.x, bz: e.z, by: e.y, dx: dx / d * Math.min(dist, d - 0.6), dz: dz / d * Math.min(dist, d - 0.6) }); }
   const ELFX = {
     Flame(S, D, k, col) { const hot = [1, 0.85, 0.3]; for (let i = 0; i < 14 * k; i++) { const o = [rnd(0.25), rnd(0.25), rnd(0.25)], sz = 0.14 + i * 0.012; Pt(i * 0.022, 0.36, i % 3 ? col : hot, 'ball', (u) => { const p = lerp3(S, D, u); return [p[0] + o[0] * u * 2, p[1] + o[1] * u * 2 + Math.sin(u * Math.PI) * 0.3, p[2] + o[2] * u * 2, sz * (0.6 + u), u * 6]; }); }
       const T = 0.42; burst(D, col, 16 * k, 1.8, T, 'ball', 0.2); for (let i = 0; i < 12 * k; i++) { const a = Math.random() * 6.28, r = Math.random() * 0.5; Pt(T + Math.random() * 0.25, 0.55, i % 2 ? hot : col, 'ball', (u) => [D[0] + Math.cos(a + u * 3) * r * (1 - u), D[1] - 0.4 + u * 2.4, D[2] + Math.sin(a + u * 3) * r * (1 - u), 0.3 * (1 - u), a]); } return T; },
@@ -391,17 +403,54 @@ const Battle = (() => {
       const T = 0.32; for (let i = 0; i < 16; i++) { const y = i * 0.55; Pt(T - 0.04 + (15 - i) * 0.004, 0.42, i % 2 ? WHITE : col, 'ball', (u) => [D[0], D[1] - 0.5 + y, D[2], (0.75 * k - i * 0.012) * (1 - u * u), 0]); } /* a pillar of light drops on it */
       ringOut([D[0], D[1] - 0.5, D[2]], col, 16, 1.9 * k, T, 0.45, 0.16); for (let i = 0; i < 12 * k; i++) { const o = [rnd(0.8), 0, rnd(0.8)]; Pt(T + Math.random() * 0.3, 0.6, WHITE, 'cube', (u) => [D[0] + o[0], D[1] - 0.4 + u * 2.2, D[2] + o[2], 0.08 * (1 - u), u * 5]); } return T; },
   };
+  // what an element's thrown things are made of
+  const ESHAPE = { Flame: 'ball', Tide: 'ball', Bloom: 'shard', Stone: 'cube', Gale: 'shard', Frost: 'shard', Spark: 'shard', Void: 'ball', Light: 'ball' };
+  // thrown pictures any element can use, in its own colour and stuff: a ray, a fall from the sky, one slow great orb, quick shots, spikes running along the ground, a drifting cloud, a ring that closes in
+  const GEN = {
+    beam(S, D, k, col, sh, el) { const n = 26, jag = el === 'Spark' ? 0.28 : 0; for (let i = 0; i < n; i++) { const q = i / (n - 1), o = [rnd(jag), rnd(jag), rnd(jag)]; Pt(q * 0.14, 0.42, i % 3 === 0 ? WHITE : col, 'ball', (u) => { const p = lerp3(S, D, q); return [p[0] + o[0], p[1] + o[1], p[2] + o[2], (0.2 + 0.1 * Math.sin(u * 30 + i)) * k * (u < 0.7 ? 1 : (1 - u) / 0.3), 0]; }); }
+      for (let i = 0; i < 8; i++) { const a = i / 8 * 6.28; Pt(0, 0.2, col, sh, (u) => [S[0] + Math.cos(a) * 0.6 * (1 - u), S[1] + Math.sin(a) * 0.6 * (1 - u), S[2], 0.12, a]); }
+      const T = 0.18; burst(D, col, 14 * k, 2, T, sh, 0.14); ringOut(D, WHITE, 10, 1.2 * k, T, 0.3, 0.1); return T; },
+    rain(S, D, k, col, sh) { const T = 0.38; for (let i = 0; i < 14 * k; i++) { const o = [rnd(1.3), 0, rnd(1.3)], dl = 0.1 + Math.random() * 0.55, sz = 0.2 + Math.random() * 0.16, land = [D[0] + o[0], D[1] - 0.5, D[2] + o[2]]; Pt(dl, 0.28, i % 4 === 0 ? WHITE : col, sh, (u) => [land[0] + (1 - u) * 1.2, land[1] + (1 - u) * 7, land[2], sz, u * 4]); burst(land, col, 3, 1, dl + 0.28, 'cube', 0.08); }
+      for (let i = 0; i < 6; i++) Pt(0, 0.3, col, sh, (u) => [S[0] + rnd(0.2), S[1] + u * 5, S[2] + rnd(0.2), 0.16 * (1 - u), 0]); /* it goes up before it comes down */ return T; },
+    orb(S, D, k, col, sh) { const T = 0.62; Pt(0, T, col, 'ball', (u) => { const p = lerp3(S, D, u * u); return [p[0], p[1] + Math.sin(u * Math.PI) * 0.4, p[2], (0.35 + 0.5 * u) * k, 0]; }); Pt(0, T, WHITE, 'ball', (u) => { const p = lerp3(S, D, u * u); return [p[0], p[1] + Math.sin(u * Math.PI) * 0.4, p[2], (0.18 + 0.2 * u) * k, 0]; });
+      for (let i = 0; i < 12; i++) { const a = i / 12 * 6.28; Pt(0, T, i % 2 ? col : WHITE, sh, (u) => { const p = lerp3(S, D, u * u), r = 0.5 + 0.3 * u; return [p[0] + Math.cos(a + u * 16) * r, p[1] + Math.sin(u * Math.PI) * 0.4 + Math.sin(a + u * 16) * r, p[2], 0.1, a + u * 16]; }); }
+      burst(D, col, 26 * k, 2.8, T, sh, 0.2); ringOut(D, WHITE, 16, 2.2 * k, T, 0.4, 0.16); ringOut([D[0], D[1] - 0.5, D[2]], col, 16, 2.6 * k, T + 0.05, 0.5, 0.14); return T; },
+    volley(S, D, k, col, sh) { const yaw = Math.atan2(D[0] - S[0], D[2] - S[2]), n = Math.round(6 * k); for (let i = 0; i < n; i++) { const o = [rnd(0.35), rnd(0.35), rnd(0.35)], dl = i * 0.085, to = [D[0] + o[0], D[1] + o[1], D[2] + o[2]]; Pt(dl, 0.17, i % 2 ? col : mixc(col, WHITE, 0.5), sh, (u) => { const p = lerp3(S, to, u); return [p[0], p[1], p[2], 0.3, yaw]; }); Pt(dl, 0.17, WHITE, 'ball', (u) => { const p = lerp3(S, to, Math.max(0, u - 0.15)); return [p[0], p[1], p[2], 0.1, 0]; }); burst(to, col, 4, 1.2, dl + 0.17, 'cube', 0.09); } return 0.17; },
+    ground(S, D, k, col, sh) { const n = 9, g = D[1] - 0.6; for (let i = 0; i <= n; i++) { const q = i / n, p = lerp3(S, D, q), dl = q * 0.38, last = i === n, hh = last ? 1.9 * k : 0.5 + q * 0.5; for (let j = 0; j < (last ? 7 : 2); j++) { const o = last ? [rnd(0.5), 0, rnd(0.5)] : [rnd(0.2), 0, rnd(0.2)]; Pt(dl + j * 0.01, last ? 0.7 : 0.4, j % 3 === 2 ? mixc(col, WHITE, 0.5) : col, sh === 'ball' ? 'cube' : sh, (u) => { const up = Math.min(1, u * 4); return [p[0] + o[0], g + up * hh * (0.5 + 0.5 * ((j * 7) % 3) / 2), p[2] + o[2], (last ? 0.34 : 0.22) * (u < 0.7 ? 1 : (1 - u) / 0.3), j]; }); } }
+      const T = 0.4; ringOut([D[0], g + 0.1, D[2]], col, 12, 1.6 * k, T, 0.4, 0.14); burst(D, col, 10 * k, 1.6, T + 0.05, 'cube', 0.12); return T; },
+    cloud(S, D, k, col, sh) { for (let i = 0; i < 26 * k; i++) { const a = Math.random() * 6.28, r = 0.3 + Math.random() * 0.9, h = rnd(0.7), dl = Math.random() * 0.2; Pt(dl, 1.1, i % 3 === 0 ? mixc(col, WHITE, 0.6) : col, i % 4 === 0 ? sh : 'ball', (u) => { const q = Math.min(1, u * 2.2), p = lerp3(S, D, q), sw = Math.max(0, u * 2.2 - 1); return [p[0] + Math.cos(a + sw * 5) * r * q, p[1] + h * q + Math.sin(u * 9 + a) * 0.1, p[2] + Math.sin(a + sw * 5) * r * q, (0.2 + 0.25 * q) * (u < 0.75 ? 1 : (1 - u) * 4), a]; }); } return 0.5; },
+    ringin(S, D, k, col, sh) { const n = 20; for (let i = 0; i < n; i++) { const a = i / n * 6.28; Pt(0, 0.5, i % 2 ? col : mixc(col, WHITE, 0.5), sh, (u) => { const r = 2.6 * k * (1 - u * u) + 0.1; return [D[0] + Math.cos(a + u * 7) * r, D[1] - 0.3 + Math.sin(u * Math.PI) * 0.5, D[2] + Math.sin(a + u * 7) * r, 0.24, a + u * 7 + 1.57]; }); }
+      for (let i = 0; i < 6; i++) Pt(0, 0.25, col, sh, (u) => { const p = lerp3(S, D, u); return [p[0], p[1] + 1.5 * Math.sin(u * Math.PI), p[2], 0.14, 0]; });
+      const T = 0.5; for (let i = 0; i < 14 * k; i++) { const o = [rnd(0.4), 0, rnd(0.4)]; Pt(T + Math.random() * 0.1, 0.5, i % 2 ? col : WHITE, sh, (u) => [D[0] + o[0], D[1] - 0.5 + u * 3, D[2] + o[2], 0.24 * (1 - u), u * 8]); } return T; },
+    erupt(S, D, k, col, sh) { GEN.ground(S, D, 1.3, col, 'cube'); const T = 0.42; for (let i = 0; i < 26; i++) { const v = [rnd(1.6), 3.5 + Math.random() * 3, rnd(1.6)], sz = 0.2 + Math.random() * 0.2; Pt(T + Math.random() * 0.25, 0.9, i % 3 ? col : [1, 0.9, 0.35], 'ball', (u) => [D[0] + v[0] * u, D[1] - 0.6 + v[1] * u - 4.2 * u * u, D[2] + v[2] * u, sz * (1 - u * 0.6), u * 6]); } return T; },
+    nova(S, D, k, col, sh) { Pt(0, 0.45, WHITE, 'ball', (u) => [D[0], D[1] + 2.5 * (1 - u), D[2], 0.2 + u * 0.5, 0]); const T = 0.45; Pt(T, 0.35, WHITE, 'ball', (u) => [D[0], D[1], D[2], 2.4 * Math.sin(u * Math.PI), 0]); for (let r = 0; r < 3; r++) ringOut([D[0], D[1] - 0.4 + r * 0.5, D[2]], r % 2 ? WHITE : col, 20, 3 + r, T + r * 0.07, 0.5, 0.2); for (let i = 0; i < 12; i++) { const a = i / 12 * 6.28; for (let j = 1; j < 6; j++) Pt(T + j * 0.02, 0.4, col, 'shard', (u) => [D[0] + Math.cos(a) * j * 0.5, D[1] + Math.sin(a * 2) * 0.3, D[2] + Math.sin(a) * j * 0.5, 0.2 * (1 - u), -a + 1.57]); } return T; },
+  };
+  // strikes: what the attacker does when it closes in. Each returns the seconds until it lands
+  const PHYS = {
+    slash(src, dst, S, D, k, col, hit) { lunge(src, dst, hit ? 99 : 1.2, 0.5); const T = 0.2, ya = Math.atan2(D[0] - S[0], D[2] - S[2]) + Math.PI / 2, ex = Math.sin(ya), ez = Math.cos(ya);
+      for (let c = 0; c < 3 * k; c++) { const ang = -0.7 + (c % 3) * 0.7 + rnd(0.2); for (let i = 0; i < 9; i++) { const q = i / 8 - 0.5; Pt(T + c * 0.05 + i * 0.006, 0.22, i % 3 === 1 ? WHITE : col, 'shard', (u) => [D[0] + ex * q * 1.5 * Math.cos(ang), D[1] + q * 1.5 * Math.sin(ang) + 0.1, D[2] + ez * q * 1.5 * Math.cos(ang), 0.22 * (1 - u), ya]); } } return T + 0.05; },
+    claw(src, dst, S, D, k, col, hit) { lunge(src, dst, hit ? 99 : 1.2, 0.5); const T = 0.2, ya = Math.atan2(D[0] - S[0], D[2] - S[2]) + Math.PI / 2, ex = Math.sin(ya), ez = Math.cos(ya); /* three rakes, side by side, top to bottom */
+      for (let c = 0; c < 3; c++) for (let i = 0; i < 10; i++) { const q = i / 9; Pt(T + i * 0.012, 0.3, i > 6 ? WHITE : col, 'shard', (u) => [D[0] + ex * ((c - 1) * 0.36 + q * 0.3 - 0.15), D[1] + 0.8 - q * 1.5, D[2] + ez * ((c - 1) * 0.36 + q * 0.3 - 0.15), 0.26 * k * (1 - u), ya]); } return T + 0.1; },
+    bite(src, dst, S, D, k, col, hit) { lunge(src, dst, hit ? 99 : 1.2, 0.55); const T = 0.3, ya = Math.atan2(D[0] - S[0], D[2] - S[2]) + Math.PI / 2, ex = Math.sin(ya), ez = Math.cos(ya); /* two rows of fangs close on it */
+      for (const jaw of [-1, 1]) for (let i = 0; i < 6; i++) { const q = (i - 2.5) * 0.24; Pt(0.12, 0.34, i % 2 ? WHITE : mixc(col, WHITE, 0.5), 'cube', (u) => { const c = Math.min(1, u / 0.5), open = 1.1 * (1 - c * c) + 0.08; return [D[0] + ex * q, D[1] + jaw * open, D[2] + ez * q, (0.26 - Math.abs(q) * 0.1) * k * (u < 0.8 ? 1 : (1 - u) * 5), 0]; }); } return T; },
+    rush(src, dst, S, D, k, col, hit) { lunge(src, dst, hit ? 99 : 1.2, 0.42); const T = 0.16; for (let i = 0; i < 16; i++) { const o = [rnd(0.35), rnd(0.35), rnd(0.35)]; Pt(i * 0.01, 0.3, i % 2 ? col : WHITE, 'shard', (u) => { const p = lerp3(S, D, Math.min(1, i / 16 + u * 0.3)); return [p[0] + o[0], p[1] + o[1], p[2] + o[2], 0.2 * (1 - u), Math.atan2(D[0] - S[0], D[2] - S[2])]; }); } /* streaks behind it */
+      for (let i = 0; i < 8; i++) { const a = i / 8 * 6.28; for (let j = 1; j < 4; j++) Pt(T + j * 0.02, 0.25, j === 1 ? WHITE : col, 'shard', (u) => [D[0] + Math.cos(a) * j * 0.3, D[1] + Math.sin(a) * j * 0.3, D[2], 0.2 * k * (1 - u), a]); } return T; },
+    slam(src, dst, S, D, k, col, hit) { lunge(src, dst, hit ? 99 : 1.2, 0.7, 2.2); const T = 0.3, g = [D[0], D[1] - 0.55, D[2]]; ringOut(g, col, 18, 2.4 * k, T, 0.45, 0.2); ringOut(g, WHITE, 12, 1.5 * k, T + 0.05, 0.35, 0.12); for (let i = 0; i < 10 * k; i++) { const o = [rnd(1), 0, rnd(1)]; Pt(T, 0.5, i % 2 ? col : [0.55, 0.5, 0.45], 'cube', (u) => [g[0] + o[0], g[1] + Math.sin(u * Math.PI) * 1.3, g[2] + o[2], 0.22 * (1 - u), u * 6]); } return T; },
+    dive(src, dst, S, D, k, col, hit) { lunge(src, dst, hit ? 99 : 1.2, 0.75, 3.4); const T = 0.34; for (let i = 0; i < 14; i++) Pt(0.12 + i * 0.012, 0.3, i % 2 ? col : WHITE, 'shard', (u) => [D[0] + rnd(0.2), D[1] + 3.2 * (1 - i / 14) + 0.3, D[2] + rnd(0.2), 0.24 * (1 - u), 0]); burst(D, WHITE, 8 * k, 2.2, T, 'shard', 0.14); ringOut([D[0], D[1] - 0.5, D[2]], col, 14, 2 * k, T, 0.4, 0.16); return T; },
+    flurry(src, dst, S, D, k, col, hit) { lunge(src, dst, hit ? 99 : 1.2, 0.8); for (let h = 0; h < 5; h++) { const c = [D[0] + rnd(0.5), D[1] + rnd(0.6), D[2] + rnd(0.5)], dl = 0.2 + h * 0.09; for (let i = 0; i < 6; i++) { const a = i / 6 * 6.28; Pt(dl, 0.16, i % 2 ? WHITE : col, 'shard', (u) => [c[0] + Math.cos(a) * u * 0.5, c[1] + Math.sin(a) * u * 0.5, c[2], 0.2 * k * (1 - u), a]); } } return 0.56; },
+    tail(src, dst, S, D, k, col, hit) { lunge(src, dst, hit ? 99 : 1.2, 0.6); const T = 0.28, base = Math.atan2(D[2] - S[2], D[0] - S[0]) + Math.PI; for (let i = 0; i < 18; i++) { const a = base - 1.5 + i / 17 * 3; Pt(0.18 + i * 0.007, 0.25, i % 3 ? col : WHITE, 'shard', (u) => [D[0] + Math.cos(a) * 1.0, D[1] - 0.2 + Math.sin(i / 17 * Math.PI) * 0.25, D[2] + Math.sin(a) * 1.0, 0.28 * k * (1 - u), -a]); } return T; },
+    drill(src, dst, S, D, k, col, hit) { lunge(src, dst, hit ? 99 : 1.2, 0.7); for (let i = 0; i < 24; i++) { const q = i / 24; Pt(0.1 + q * 0.3, 0.25, i % 3 ? col : WHITE, 'shard', (u) => { const p = lerp3(S, D, 0.5 + q * 0.5), r = 0.6 * (1 - q); return [p[0] + Math.cos(q * 20 + u * 6) * r, p[1] + Math.sin(q * 20 + u * 6) * r, p[2], 0.18 * k * (1 - u), q * 20]; }); } return 0.42; },
+  };
   // plays a move and returns the seconds until it lands. hit = false: it goes wide and nothing bursts on the target
   function playMove(src, dst, move, hit) {
-    const col = U.hexToRgb(ELEM_COLOR[move.elem] || '#ffffff'), k = move.tech ? 1.6 : 1; const S = ctr(src, 0.6); let D = ctr(dst, 0.5);
+    const col = U.hexToRgb(ELEM_COLOR[move.elem] || '#ffffff'), k = move.tech ? 1.6 : move.grown ? 1.2 : 1; const S = ctr(src, 0.6); let D = ctr(dst, 0.5);
     if (!hit) { const dx = D[0] - S[0], dz = D[2] - S[2], d = Math.hypot(dx, dz) || 1; D = [D[0] - dz / d * 1.6, D[1], D[2] + dx / d * 1.6]; }
-    if (move.kind === 'phys') { /* a lunge, a streak behind it, three cuts across the target and a puff of its element */
-      lunge(src, dst, hit ? 99 : 1.2, 0.5); const T = 0.2;
-      for (let i = 0; i < 10; i++) Pt(i * 0.015, 0.25, i % 2 ? col : WHITE, 'ball', (u) => { const p = lerp3(S, D, Math.min(1, 0.1 + i * 0.07)); return [p[0], p[1] + rnd(0.1), p[2], 0.2 * (1 - u), 0]; });
-      if (hit || true) for (let c = 0; c < 3 * (move.tech ? 2 : 1); c++) { const ang = -0.7 + c * 0.7 + rnd(0.2), ya = Math.atan2(D[0] - S[0], D[2] - S[2]) + Math.PI / 2, ex = Math.sin(ya), ez = Math.cos(ya); for (let i = 0; i < 9; i++) { const q = i / 8 - 0.5; Pt(T + c * 0.05 + i * 0.006, 0.22, i % 3 === 1 ? WHITE : col, 'shard', (u) => [D[0] + ex * q * 1.5 * Math.cos(ang), D[1] + q * 1.5 * Math.sin(ang) + 0.1, D[2] + ez * q * 1.5 * Math.cos(ang), 0.22 * (1 - u), ya]); } }
-      if (hit) { burst(D, col, 12 * k, 1.8, T + 0.04, 'cube', 0.14); ringOut([D[0], D[1] - 0.4, D[2]], WHITE, 10, 1.2, T + 0.04, 0.25, 0.1); }
-      return T + 0.05; }
-    lunge(src, dst, 0.35, 0.3); const fn = ELFX[move.elem] || ELFX.Light; return fn(S, D, k, col);
+    if (move.kind === 'phys') { const T = (PHYS[move.fx] || PHYS.slash)(src, dst, S, D, k, col, hit);
+      for (let i = 0; i < 8; i++) Pt(i * 0.015, 0.25, i % 2 ? col : WHITE, 'ball', (u) => { const p = lerp3(S, D, Math.min(1, 0.1 + i * 0.09)); return [p[0], p[1] + rnd(0.1), p[2], 0.18 * (1 - u), 0]; });
+      if (hit) { burst(D, col, 12 * k, 1.8, T, ESHAPE[move.elem] || 'cube', 0.14); ringOut([D[0], D[1] - 0.4, D[2]], WHITE, 10, 1.2, T, 0.25, 0.1); }
+      return T; }
+    lunge(src, dst, 0.35, 0.3); const g = move.fx && move.fx !== 'own' ? GEN[move.fx] : null;
+    return g ? g(S, D, k, col, ESHAPE[move.elem] || 'ball', move.elem) : (ELFX[move.elem] || ELFX.Light)(S, D, k, col);
   }
   function playUtil(src, move) { /* an aura climbs round the user: green for healing, stone for a guard, white wind for speed */
     const heal = /Mend|Regrowth/.test(move.name), guard = /Guard|Bulwark/.test(move.name), col = heal ? [0.5, 1, 0.5] : guard ? [0.75, 0.85, 1] : /Focus/.test(move.name) ? [1, 0.6, 0.3] : [0.9, 1, 1]; const C = ctr(src, 0.1), h = (src.model.height || 1) * (src.model.scale || 1);
@@ -444,7 +493,7 @@ const Battle = (() => {
   function tick(dt) {
     for (let i = fx.length - 1; i >= 0; i--) { const f = fx[i]; f.t += dt; if (f.t > f.dur) fx.splice(i, 1); }
     if (shakeT > 0) shakeT = Math.max(0, shakeT - dt);
-    for (let i = lunges.length - 1; i >= 0; i--) { const L = lunges[i]; L.t += dt; const u = Math.min(1, L.t / L.dur), q = u < 0.35 ? u / 0.35 : 1 - (u - 0.35) / 0.65, e2 = q * q * (3 - 2 * q); L.e.x = L.bx + L.dx * e2; L.e.z = L.bz + L.dz * e2; if (u >= 1) { L.e.x = L.bx; L.e.z = L.bz; lunges.splice(i, 1); } }
+    for (let i = lunges.length - 1; i >= 0; i--) { const L = lunges[i]; L.t += dt; const u = Math.min(1, L.t / L.dur), q = u < 0.35 ? u / 0.35 : 1 - (u - 0.35) / 0.65, e2 = q * q * (3 - 2 * q); L.e.x = L.bx + L.dx * e2; L.e.z = L.bz + L.dz * e2; if (L.hop) L.e.y = L.by + L.hop * Math.sin(Math.min(1, u / 0.4) * Math.PI); if (u >= 1) { L.e.x = L.bx; L.e.z = L.bz; L.e.y = L.by; lunges.splice(i, 1); } }
     if (!active) return;
     if (mineE && mineE.hitT > 0) mineE.hitT -= dt;
     if (wildE && wildE.hitT > 0) wildE.hitT -= dt;
@@ -454,6 +503,6 @@ const Battle = (() => {
   function calcDamage(att, def, move) { att.buffs = att.buffs || buffs(); def.buffs = def.buffs || buffs(); return damage(att, def, move); }
   function dodges(att, def) { att.buffs = att.buffs || buffs(); def.buffs = def.buffs || buffs(); return Math.random() > (move0(att).acc || 0.95) || Math.random() < dodgeChance(att, def); }
   function move0(k) { return KIN.moves(k)[0]; }
-  function fxTest(elem, kind, tech, hit) { if (!mineE || !wildE) return -1; return kind === 'util' ? (playUtil(mineE, { name: elem }), 0) : playMove(mineE, wildE, { elem, kind, tech }, hit !== false); } // test hook
+  function fxTest(elem, kind, tech, hit) { if (!mineE || !wildE) return -1; return kind === 'util' ? (playUtil(mineE, { name: elem }), 0) : playMove(mineE, wildE, { elem, kind, tech: tech === true, fx: typeof tech === 'string' ? tech : undefined }, hit !== false); } // test hook
   return { fxTest, init, start, tick, camera, fxEntities, spawnFx, calcDamage, dodges, abort, get active() { return active; }, get mineEntity() { return mineE; }, get wildEntity() { return wildE; } };
 })();
