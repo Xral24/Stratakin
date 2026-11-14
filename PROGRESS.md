@@ -184,6 +184,8 @@ Scope (Alexander, 8 Nov evening): EVERYTHING visible goes to the same standard: 
 
 - 14 Nov: player build (look.build: man, woman, stout, slim) chosen on the new-game screen (Body select) or at a mirror hall; KIN.formName(line, i) gives a form's crafted name and the sheet tests label with it. Water riding checked in the sea by a reef village (tools/test/t-ridewater.js): mounts and sits; view was underwater and murky. Fish and serpent fins were already per-design (tailFin type, dorsal shape, pects options). Noted plain: Snowgrum (stage 2 snowman).
 
+- 14 Nov: Snowgrum and Yetundra carry the snow sprite's frost heart, three ice horns and wind scarf (one line now). Sporeling eyes centred. Hats seat on the skull, not on horns (landmarks counts only blobs toward the crown). Headless bodies always take the belt; boxy ones (round < 0.6) get a square belt. Indians: long black hair and varied builds; foes: build and hair by kind; elders grey.
+
 ## Still to do
 UI polish as feedback comes in. Card battle screen still used for scripted encounters (raids at the walls, thief, citadel duel, holds) and the snare mini-game; converting those to live is the next big step if wanted. (Old list: train/ships, combat animation, eggs, avatar hair/paint, buddy WEAR cosmetics, Silas and Finch, UI polish (item icons), quality toggles in settings (state.shadows, state.grassQuality, state.dprCap).
 
