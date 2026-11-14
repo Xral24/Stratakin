@@ -270,5 +270,5 @@ const Keeps = (() => {
     return true;
   }
   function mapMarks() { if (!onEarth()) return []; const p = G.player; return Citadel.mapMarks().concat(sites().filter(k => st()['seen_' + k.id] || taken(k.id) || (k.core && G.player.has('deepchart'))).map(k => ({ x: k.x, z: k.z, t: taken(k.id) ? '♜' : '☠', name: k.name + (k.core ? ' (deep in the Core)' : '') + (taken(k.id) ? ' (yours)' : '') }))); }
-  return { isTaken: (id) => taken(id), inHold, init, update, onBattle, tableOpen, near, mapMarks, keepFor, sites, gloom, talkWarrior, finalReady, onFinal, COUNT };
+  return { gates: (id) => st()['gate_' + id] || 0, isTaken: (id) => taken(id), inHold, init, update, onBattle, tableOpen, near, mapMarks, keepFor, sites, gloom, talkWarrior, finalReady, onFinal, COUNT };
 })();

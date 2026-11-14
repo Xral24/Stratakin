@@ -228,6 +228,8 @@ Scope (Alexander, 8 Nov evening): EVERYTHING visible goes to the same standard: 
 
 - Earth terrain shape (world.js colInfo, Earth only): mountains ridged, uplands terraced in 5-block shelves where a mask allows, desert buttes 8 high, sea cliffs on parts of the coast. Measured near the start: 1.4% of land columns step 2+, 0.8% are cliff (4+), spawn-to-village walk has no step over 1. NOT seen in a picture: the aerial test camera would not hold in headless (tools/test/t-terrain.js, t-terr2.js). Freed warriors in a taken hold use the new soldier models with gold eyes.
 
+- Tam's rescue: he is always held in one of the first three holds (the one nearest the snow camp), in a cage in the yard's back corner at +6,+6 (clear of the new keep wall). The cage opens when every warrior in the hold is down, tower floors included (or Keeps.gates(id) >= 4, or the hold is taken). Ysolde's lines say so. Test: tools/test/t-tam.js.
+
 ## Still to do
 UI polish as feedback comes in. Card battle screen still used for scripted encounters (raids at the walls, thief, citadel duel, holds) and the snare mini-game; converting those to live is the next big step if wanted. (Old list: train/ships, combat animation, eggs, avatar hair/paint, buddy WEAR cosmetics, Silas and Finch, UI polish (item icons), quality toggles in settings (state.shadows, state.grassQuality, state.dprCap).
 

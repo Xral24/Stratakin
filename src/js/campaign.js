@@ -198,14 +198,14 @@ const Campaign = (() => {
   }
   // where Tam got lost: the same spot every session, and always on land you can stand on (never out on the water or up a cliff face)
   // a dark hold near the snow camp: if there is one, that is where the Bound took Tam
-  function tamHold(s) { if (!s || typeof Keeps === 'undefined') return null; let best = null, bd = 320; for (const k of Keeps.sites()) { if (k.core) continue; const d = Math.hypot(k.x - s.x, k.z - s.z); if (d < bd) { bd = d; best = k; } } return best; }
+  function tamHold(s) { if (!s || typeof Keeps === 'undefined') return null; let best = null, bd = 1e9; for (const k of Keeps.sites()) { if (k.core || (k.i || 0) > 2) continue; const d = Math.hypot(k.x - s.x, k.z - s.z); if (d < bd) { bd = d; best = k; } } return best; } /* always one of the first three holds you meet: whichever of them is nearest the snow camp */
   const holdStamped = (k) => world.getBlock(k.x + 8, k.y + 2, k.z) === B.FORTSTONE;
   // his cell: iron bars in the back corner of the courtyard, and a roof
   function cellBlocks(L, fn) { for (let dx = -1; dx <= 1; dx++) for (let dz = -1; dz <= 1; dz++) { for (let y = L.y + 1; y <= L.y + 2; y++) if (dx || dz) fn(L.x + dx, y, L.z + dz); fn(L.x + dx, L.y + 3, L.z + dz); } }
   function cellOpen(L) { if (!L.hold) return true; return world.getBlock(L.x + 1, L.y + 1, L.z) !== B.IRONWALL; }
   function lostOf(s) {
-    if (!s) return null; if (s.lost && s.lost.v === 4) return s.lost;
-    { const k = tamHold(s); if (k) { const was = s.lost; s.lost = { x: k.x + 5, z: k.z + 5, y: k.y, hold: k.id, holdName: k.name, v: 4, moved: !!was && (was.x !== k.x + 5 || was.z !== k.z + 5) }; return s.lost; } }
+    if (!s) return null; if (s.lost && s.lost.v === 5) return s.lost;
+    { const k = tamHold(s); if (k) { const was = s.lost; s.lost = { x: k.x + 6, z: k.z + 6, y: k.y, hold: k.id, holdName: k.name, v: 5, moved: !!was && (was.x !== k.x + 6 || was.z !== k.z + 6) }; /* the cage stands in the yard's back corner, clear of the keep's wall */ return s.lost; } }
     const was = s.lost; const r = U.rng(U.combine(s.x, s.z, 0x5A)); let fallback = null;
     // the real ground, not the map's guess: no water on it, above the sea
     const dry = (x, z) => { world.ensureAround(Math.floor(x / CH), Math.floor(z / CH), 0, 4); const gy = world.groundY(x, z); if (!(gy > SEA + 1)) return false; const top = world.getBlock(x, gy, z), up = world.getBlock(x, gy + 1, z); return top !== B.WATER && up !== B.WATER; };
@@ -315,7 +315,7 @@ const Campaign = (() => {
       if (S.snow && near(S.snow, p, 90) && !c.st_snow) { c.st_snow = true; stampSnow(S.snow); G.meshPass(99); }
       if (S.snow && c.frost === 1 && lostOf(S.snow) && near(lostOf(S.snow), p, 70)) { const L = lostOf(S.snow), at = L.x + ',' + L.z; if (L.hold) { const k = Keeps.sites().find(x => x.id === L.hold); if (k && holdStamped(k) && c.cellAt !== at) { c.cellAt = at; c.st_shelter = true; c.shelterAt = at; cellBlocks(L, (x, y, z) => set(x, y, z, B.IRONWALL)); G.meshPass(99); }
           // the cell door gives once his warriors are down (or the hold is yours)
-          if (k && c.cellAt === at && !c.cellOpen && ((Combat.forHold(k.id).length && Combat.standingIn(k.id) === 0) || Keeps.isTaken(k.id))) { c.cellOpen = true; cellBlocks(L, (x, y, z) => set(x, y, z, B.AIR)); G.meshPass(99); UI.toast('The warriors are down. The bars of the cell in the corner give way: Tam is in there.', 'good'); } }
+          if (k && c.cellAt === at && !c.cellOpen && ((Combat.forHold(k.id).length && Combat.standingIn(k.id) === 0) || Keeps.gates(k.id) >= 4 || Keeps.isTaken(k.id))) { c.cellOpen = true; cellBlocks(L, (x, y, z) => set(x, y, z, B.AIR)); G.meshPass(99); UI.sfx('quest'); UI.toast('Every warrior in the hold is down. Out in the yard the lock on the cage drops open: Tam is in there, in the back corner.', 'good'); } }
         else if (!c.st_shelter || (c.shelterAt ? c.shelterAt !== at : L.moved)) { c.st_shelter = true; c.shelterAt = at; stampShelter(S.snow); G.meshPass(99); } else if (!c.shelterAt) c.shelterAt = at; }
       if (S.peak && near(S.peak, p, 110) && !c.st_peak) { c.st_peak = true; stampPeak(S.peak); G.meshPass(99); }
       if (S.fort && near(S.fort, p, 120) && !c.st_fort) { c.st_fort = true; stampFort(S.fort); G.meshPass(99); }
@@ -430,7 +430,7 @@ const Campaign = (() => {
     }
     if (n.job === 'hand') return say([['Hale was thrown seven times before he stayed on anything.', 'Feed them berries. They remember.', 'Mind the back legs.'][Math.floor(Math.random() * 3)]]);
     if (n.job === 'snow') {
-      { const L = lostOf(S.snow); if (!c.frost && L && L.hold) return say(['Have you seen my brother? Tam went out after a white Kin three days ago and did not come back.', `A trapper saw the Bound drag him through the gate of ${L.holdName}, the dark hold out in the snow. They keep prisoners in there.`, 'The cold out there kills, and so do they. Take my broth: drink one and you will not freeze for a while. Please bring him back.'], () => { c.frost = 1; G.player.add('broth', 3); }); }
+      { const L = lostOf(S.snow); if (!c.frost && L && L.hold) return say(['Have you seen my brother? Tam went out after a white Kin three days ago and did not come back.', `A trapper saw the Bound drag him through the gate of ${L.holdName}, one of the Kinmaster's dark holds. They keep prisoners there, in a cage in the yard, and it will not open while one of his warriors is standing.`, 'The cold out there kills, and so do they. Take my broth: drink one and you will not freeze for a while. Please bring him back.'], () => { c.frost = 1; G.player.add('broth', 3); }); }
       if (!c.frost) return say(['Have you seen my brother? Tam went out after a white Kin three days ago and did not come back.', 'The cold out there kills. Take my broth: drink one and you will not freeze for a while. Stand by a fire if you can.', 'Out in the snow, that way somewhere. Please.'], () => { c.frost = 1; G.player.add('broth', 3); });
       if ((c.frost === 1 || c.frost === 2) && !G.player.has('broth')) return say(['Out of broth? Here, two more. Find him.'], () => G.player.add('broth', 2));
       if (c.frost === 1 || c.frost === 2) return say([lostOf(S.snow) && lostOf(S.snow).hold ? `He is in ${lostOf(S.snow).holdName}. Get him out of there.` : 'Please. He went out into the snow.']);

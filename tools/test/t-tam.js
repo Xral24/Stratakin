@@ -1,0 +1,10 @@
+const { open } = require('./harness');
+(async () => { const h = await open(); const { page, ev } = h; await h.newGame('gal-1'); await h.calm();
+  const k = await ev(() => { const S = Campaign.sites(); const c = Campaign.C(); c.frost = 1; c.snowKnown = true; const holds = Keeps.sites().filter(x => !x.core && (x.i || 0) <= 2); let best = null, bd = 1e9; for (const x of holds) { const d = Math.hypot(x.x - S.snow.x, x.z - S.snow.z); if (d < bd) { bd = d; best = x; } } const p = G.player; p.flying = true; p.x = best.x + 0.5; p.z = best.z - 14.5; p.y = best.y + 2; G.repelUntil = performance.now() + 600000; return { x: best.x, y: best.y, z: best.z, id: best.id, i: best.i, name: best.name }; });
+  console.log('hold', JSON.stringify(k)); await page.waitForTimeout(7000);
+  const st = () => ev((k) => { const c = Campaign.C(); const w = G.world; return { cellAt: c.cellAt, cellOpen: !!c.cellOpen, bars: w.getBlock(k.x + 7, k.y + 1, k.z + 6), roof: w.getBlock(k.x + 6, k.y + 3, k.z + 6), towerWall: w.getBlock(k.x + 4, k.y + 2, k.z + 5), tam: !!Campaign.getPerson('tam'), tamAt: Campaign.getPerson('tam') ? [Math.round(Campaign.getPerson('tam').x - k.x), Math.round(Campaign.getPerson('tam').z - k.z)] : null, foes: Combat.forHold(k.id).length, standing: Combat.standingIn(k.id), frost: c.frost }; }, k);
+  console.log('before', JSON.stringify(await st()));
+  await ev((k) => { for (const f of Combat.forHold(k.id)) { f.state = 'down'; f.hp = 0; } }, k); await page.waitForTimeout(4000);
+  console.log('after', JSON.stringify(await st()));
+  await ev((k) => { const p = G.player; p.x = k.x + 6.5; p.z = k.z + 5.2; p.y = k.y + 1; p.flying = false; }, k); await page.waitForTimeout(2500); console.log('at cage', JSON.stringify(await st()));
+  console.log('ERRORS:', h.errors.length ? h.errors.slice(0, 3).join('\n') : 'none'); await h.close(); })();
