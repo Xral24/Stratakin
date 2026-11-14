@@ -9308,15 +9308,24 @@ const Village = (() => {
     for (let dx = -wr; dx <= wr; dx++) for (let dz = -wr; dz <= wr; dz++) if (Math.max(Math.abs(dx), Math.abs(dz)) === wr) out.push([v.x + dx, v.z + dz, isGateCol(dx, dz, wr) || railGate(dx, dz)]);
     return out;
   }
-  // the line beyond the wall: ballast and rails laid over the land for a good way, trees cut back from them
+  // the line beyond the wall: dead level at the station's height for a good way, as a railway is. Low ground gets an embankment, a
+  // real drop gets a stone viaduct on piers (water too), a rise gets a cutting. It never steps up or down.
   function stampRail(v, st) {
-    if (v.type !== 'land' || !v.R) return; const rl = layout(v).rail; if (!rl) return; const wr = wallRadius(st);
-    const base = rl.ax ? v.x : v.z;
+    if (v.type !== 'land' || !v.R) return; const rl = layout(v).rail; if (!rl) return; const wr = wallRadius(st); st.railLevel = true;
+    const base = rl.ax ? v.x : v.z, ty = v.y, set = (x, y, z, id) => world.setBlock(x, y, z, id);
     for (let d = wr + 1; d <= wr + 36; d++) {
-      const a = base + rl.sgn * d; const [x, z] = rl.ax ? [a, rl.line] : [rl.line, a]; const gy = world.groundY(x, z, v.y + 10); if (gy < SEA) break;
-      world.setBlock(x, gy, z, B.GRAVEL); world.setBlock(x, gy + 1, z, B.RAIL);
-      for (let y = gy + 2; y <= gy + 4; y++) if (world.getBlock(x, y, z) !== B.AIR) world.setBlock(x, y, z, B.AIR);
-      for (const k of [-1, 1]) { const [x2, z2] = rl.ax ? [a, rl.line + k] : [rl.line + k, a]; for (let y = gy + 1; y <= gy + 4; y++) { const b = world.getBlock(x2, y, z2); if (isLeaf(b) || isTrunk(b)) world.setBlock(x2, y, z2, B.AIR); } }
+      const a = base + rl.sgn * d; const col = (k) => rl.ax ? [a, rl.line + k] : [rl.line + k, a]; const [x, z] = col(0);
+      for (let y = ty - 14; y <= ty + 14; y++) if (y !== ty && world.getBlock(x, y, z) === B.RAIL) set(x, y, z, B.AIR); // a line laid before this stepped with the land: lift it
+      const gy = world.groundY(x, z, ty - 1), drop = (ty - 1) - (gy == null ? ty - 20 : gy); const pier = d % 5 === 0;
+      for (const k of [-1, 0, 1]) { const [x2, z2] = col(k);
+        for (let y = ty; y <= ty + 4; y++) { const bl = world.getBlock(x2, y, z2); if (bl !== B.AIR && !(k === 0 && y === ty)) set(x2, y, z2, B.AIR); } // a cutting through anything that stands in the way
+        const g2 = world.groundY(x2, z2, ty - 1); const low = g2 == null ? ty - 20 : g2;
+        if (drop <= 3) { for (let y = low + 1; y <= ty - 1 - (k ? 1 : 0); y++) set(x2, y, z2, B.GRAVEL); if (k === 0) set(x2, ty - 1, z2, B.GRAVEL); else if (low >= ty - 1 && isSolid(world.getBlock(x2, ty - 1, z2))) { /* level ground or a cutting floor: leave it */ } } // an embankment, its shoulders a step lower
+        else { set(x2, ty - 1, z2, k ? B.MASONRY : B.GRAVEL); if (k) set(x2, ty - 2, z2, B.MASONRY); // a viaduct: a stone deck with a parapet course, piers down to the ground every fifth block, an arch sprung between them
+          if (pier) for (let y = Math.max(low + 1, ty - 40); y <= ty - 2; y++) set(x2, y, z2, B.MASONRY); else if (d % 5 === 1 || d % 5 === 4) set(x2, ty - 3, z2, B.MASONRY); if (k === 0) set(x2, ty - 2, z2, B.MASONRY); }
+      }
+      set(x, ty, z, B.RAIL);
+      for (const k of [-2, 2]) { const [x2, z2] = col(k); for (let y = ty; y <= ty + 4; y++) { const bl = world.getBlock(x2, y, z2); if (isLeaf(bl) || isTrunk(bl)) set(x2, y, z2, B.AIR); } }
     }
   }
   function stampWall(v, st) {
@@ -10217,6 +10226,7 @@ const Village = (() => {
       active = near; remember(near, state(near.id));
       Wild.noSpawn = { x: near.x, z: near.z, r: near.type === 'land' ? (near.R ? near.R + 3 : state(near.id).expanded ? 21 : 15) : 16 };
       if (near.R && !near.patched) patchLoaded(near);
+      if (near.R && near.type === 'land' && state(near.id).stamped && !state(near.id).railLevel) { stampRail(near, state(near.id)); if (G.meshPass) G.meshPass(99); } /* lines laid before they were levelled */
       if (nd < 14) {
         if (!G.lastVillage || G.lastVillage.id !== near.id) G.lastVillage = { id: near.id, x: near.x, y: near.y, z: near.z, name: near.name, world: world.preset.id };
         if (state(near.id).freed) { G.respawnPoint = { x: near.x + 0.5, y: near.y, z: near.z + (near.type === 'deep' ? -4.5 : 4.5) }; if (!near.R && near.type !== 'deep' && G.addRoost) G.addRoost(near.type === 'sea' ? { id: near.id, name: near.name, x: near.x + 17.5, y: near.y, z: near.z - 3, world: world.preset.id, ferry: true } : { id: near.id, name: near.name, x: near.x + 0.5, y: near.y, z: near.z + 4.5, world: world.preset.id }); }

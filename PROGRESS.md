@@ -152,6 +152,8 @@ Scope (Alexander, 8 Nov evening): EVERYTHING visible goes to the same standard: 
 
 - Fortresses dressed as strongholds. Holds (`dress()` in js/keeps.js, once per Hold, flag `dressed_<id>`): twin-turreted gatehouse with a raised portcullis, taller corner towers under slate spires, a wall-walk, ember slots, banners, a keep behind the dais, stakes outside; the courtyard floor, the gate at z - 8 and the cell corner are untouched (tools/test/t-holdchk.js checks). The Core Hold gets the same within its ceiling. Stormspire (js/sky.js): gatehouse, ember slots, banners, a broad stepped keep; the sky's height limit (WH 104, floor at 94) rules out a tall spire. Black Citadel (`dress()` in js/citadel.js, flag `dressed`): merlons, ember slots, spired turrets at every cross-wall, a gatehouse over the thorn gate, a great stepped tower over the throne; rooms untouched (t-fortchk.js).
 
+- The railway beyond a town's wall is dead level at station height (it used to follow the ground block by block, so it stepped up and down cliffs): an embankment over low ground, a stone viaduct on piers over a real drop or water, a cutting through a rise. Lines laid before this are relaid once (`railLevel`). tools/test/t-rail.js checks every rail is at level.
+
 ## Still to do
 UI polish as feedback comes in. Card battle screen still used for scripted encounters (raids at the walls, thief, citadel duel, holds) and the snare mini-game; converting those to live is the next big step if wanted. (Old list: train/ships, combat animation, eggs, avatar hair/paint, buddy WEAR cosmetics, Silas and Finch, UI polish (item icons), quality toggles in settings (state.shadows, state.grassQuality, state.dprCap).
 
