@@ -269,7 +269,7 @@ const Village = (() => {
       const x = vx + dx, z = vz + dz; const h = hN[(dx + RB) * W2 + (dz + RB)], hm = hMax(dx, dz);
       for (let y = Math.min(h, vy - 2); y <= vy - 2; y++) push(x, y, z, M.under);
       const plaza = Math.abs(dx) <= 6 && Math.abs(dz) <= 6;
-      push(x, vy - 1, z, plaza ? (Math.max(Math.abs(dx), Math.abs(dz)) === 6 ? M.plazaEdge : M.plaza) : onStreet(dx, dz) ? M.plaza : M.ground);
+      push(x, vy - 1, z, plaza ? (Math.max(Math.abs(dx), Math.abs(dz)) === 6 ? M.plazaEdge : M.plaza) : onStreet(dx, dz) ? M.plaza : (city && M === MATS.land && Math.max(Math.abs(dx), Math.abs(dz)) < R - 4) ? QUARTERS[quarterOf(dx, dz)].ground : M.ground);
       for (let y = vy; y <= Math.max(hm, vy) + 14; y++) push(x, y, z, B.AIR); // a pine is up to fourteen blocks of trunk and needles
     }
     world.fellCrowns(vx - R - 3, vz - R - 3, vx + R + 3, vz + R + 3, (x, y, z) => push(x, y, z, -1)); // and the crowns of the trees that stood here do not stay hanging beyond the edge (-1: clear only if it is tree)
@@ -380,15 +380,56 @@ const Village = (() => {
         for (const k of [-3, 7]) { const [x, z] = at(along0 + sgn * k, rail.plat2); push(x, vy + 1, z, M.lamp || M.light); }
       }
     }
+    // the quarters: a landmark on a spare lot near the middle of each, and its own clutter on the open ground
+    const quartered = city && M === MATS.land; const marks = [];
+    if (quartered) {
+      const hsh = (x, z, k) => U.hash3(x, k, z, 0x51);
+      for (const q of ['old', 'garden', 'merchant', 'craft']) { const sx = q === 'old' || q === 'merchant' ? -1 : 1, sz = q === 'old' || q === 'garden' ? -1 : 1;
+        const cand = lots.filter(l => !l.used && Math.sign(l.x - vx) === sx && Math.sign(l.z - vz) === sz).sort((a, b) => Math.hypot(a.x - vx - sx * 30, a.z - vz - sz * 30) - Math.hypot(b.x - vx - sx * 30, b.z - vz - sz * 30))[0]; if (!cand) continue;
+        cand.used = true; cand.landmark = q; marks.push({ q, x: cand.x, z: cand.z }); const lx = cand.x, lz = cand.z;
+        if (q === 'old') { // a statue on a stepped plinth, a banner pole at each corner
+          for (let a = -3; a <= 3; a++) for (let b = -3; b <= 3; b++) { push(lx + a, vy - 1, lz + b, B.COBBLE); const m = Math.max(Math.abs(a), Math.abs(b)); if (m <= 2) push(lx + a, vy, lz + b, B.MASONRY); if (m <= 1) push(lx + a, vy + 1, lz + b, B.MASONRY); }
+          push(lx, vy + 2, lz, B.MASONRY); push(lx, vy + 3, lz, B.STATUE);
+          for (const [a, b] of [[-4, -4], [4, -4], [-4, 4], [4, 4]]) { for (let y = vy; y <= vy + 3; y++) push(lx + a, y, lz + b, B.MASONRY); push(lx + a, vy + 4, lz + b, M.light); push(lx + a, vy + 2, lz + b + (b > 0 ? 1 : -1), B.BANNER); }
+        } else if (q === 'garden') { // a pond in a little park: water lilies of fern at the edge, a tree, a bench of fence
+          for (let a = -4; a <= 4; a++) for (let b = -4; b <= 4; b++) { const d = Math.hypot(a, b * 1.2); if (d <= 2.8) { push(lx + a, vy - 2, lz + b, B.SAND); push(lx + a, vy - 1, lz + b, B.WATER); } else { push(lx + a, vy - 1, lz + b, B.GRASS); if (d < 3.8 && hsh(lx + a, lz + b, 3) < 0.5) push(lx + a, vy, lz + b, hsh(lx + a, lz + b, 4) < 0.5 ? B.FLOWERS : B.FERN); } }
+          for (let y = vy; y <= vy + 3; y++) push(lx - 4, y, lz - 4, B.LOG); for (let a = -2; a <= 2; a++) for (let b = -2; b <= 2; b++) for (let y = 3; y <= 5; y++) if (Math.hypot(a, b, (y - 4) * 1.3) <= 2.4 && !(a === 0 && b === 0 && y === 3)) push(lx - 4 + a, vy + y, lz - 4 + b, B.LEAVES);
+          push(lx + 4, vy, lz + 3, B.FENCE); push(lx + 4, vy, lz + 2, B.FENCE); push(lx + 3, vy, lz + 4, M.lamp || M.light);
+        } else if (q === 'merchant') { // a covered market: posts, a striped awning roof, counters heaped with goods
+          for (let a = -4; a <= 4; a++) for (let b = -4; b <= 4; b++) push(lx + a, vy - 1, lz + b, B.PLANKS);
+          for (const [a, b] of [[-3, -3], [3, -3], [-3, 3], [3, 3], [0, -3], [0, 3], [-3, 0], [3, 0]]) for (let y = vy; y <= vy + 2; y++) push(lx + a, y, lz + b, B.BEAM);
+          for (let a = -4; a <= 4; a++) for (let b = -4; b <= 4; b++) push(lx + a, vy + 3, lz + b, B.AWNING);
+          for (const [a, b, id] of [[-2, -1, B.CHEST], [-2, 0, B.BERRY], [-2, 1, B.CHEST], [2, -1, B.PEBBLES], [2, 0, B.CHEST], [2, 1, B.BERRY], [0, -2, B.CHEST], [0, 2, B.CHEST]]) push(lx + a, vy, lz + b, id);
+          push(lx, vy + 2, lz, M.lamp || M.light);
+        } else { // a working yard: a forge fire, a cart, timber stacked along a fence
+          for (let a = -4; a <= 4; a++) for (let b = -4; b <= 4; b++) { push(lx + a, vy - 1, lz + b, B.GRAVEL); if (Math.max(Math.abs(a), Math.abs(b)) === 4 && !(Math.abs(a) <= 1 && b === 4 * cand.dirZ) && !(Math.abs(b) <= 1 && a === 4 * cand.dirX)) push(lx + a, vy, lz + b, B.FENCE); }
+          push(lx, vy, lz, B.FIREPIT); push(lx - 1, vy - 1, lz, B.COBBLE); push(lx + 1, vy - 1, lz, B.COBBLE); push(lx + 2, vy, lz - 2, B.CART);
+          for (let a = -3; a <= -1; a++) { push(lx + a, vy, lz - 3, B.LOG); push(lx + a, vy, lz - 2, B.LOG); if (a > -3) push(lx + a, vy + 1, lz - 3, B.LOG); }
+          push(lx - 2, vy, lz + 3, B.CHEST); push(lx + 3, vy, lz + 3, B.PEBBLES); push(lx + 3, vy, lz, M.lamp || M.light);
+        }
+      }
+      // clutter on the open ground, never on a street or a lot
+      const lotAt = (x, z) => lots.some(l => Math.abs(l.x - x) <= 5 && Math.abs(l.z - z) <= 5);
+      for (let dx = -R + 6; dx <= R - 6; dx++) for (let dz = -R + 6; dz <= R - 6; dz++) {
+        if ((Math.abs(dx) <= 7 && Math.abs(dz) <= 7) || onStreet(dx, dz) || (castle && Math.abs(dx) <= 21 && dz <= -R + 32)) continue; const x = vx + dx, z = vz + dz; if (lotAt(x, z)) continue;
+        let near = false; for (const [a, b] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) if (onStreet(dx + a, dz + b)) near = true; if (near) continue; // keep the street edge clear to walk
+        const q = quarterOf(dx, dz), h = hsh(x, z, 9), k = hsh(x, z, 10);
+        if (q === 'garden') { if (h < 0.16) push(x, vy, z, k < 0.55 ? B.FLOWERS : k < 0.8 ? B.FERN : B.BERRY); }
+        else if (q === 'old') { if (h < 0.012) push(x, vy, z, M.lamp || M.light); }
+        else if (q === 'merchant') { if (h < 0.03) push(x, vy, z, k < 0.6 ? B.CHEST : B.PEBBLES); }
+        else if (h < 0.035) push(x, vy, z, k < 0.5 ? B.LOG : k < 0.8 ? B.PEBBLES : B.CART);
+      }
+    }
     // draw the buildings into the overlay by borrowing the house builder
     const sb = world.setBlock, gb = world.getBlock; world.setBlock = (x, y, z, id) => push(x, y, z, id); world.getBlock = () => B.AIR;
     try {
       const build = M.pod ? pod : house;
-      for (const sh of shops) if (!sh.castle) build(sh.x, sh.z, vy + (sh.raised && rail ? 1 : 0), sh.dirX, sh.dirZ, sh.kind === 'elder' ? B.GOLD : (SHOP_BUILD[sh.kind] || {}).marker || B.LOG, FURNISH[sh.kind] || null);
+      const qs = (x, z) => { QSTYLE = quartered ? QUARTERS[quarterOf(x - vx, z - vz)].house : null; };
+      for (const sh of shops) if (!sh.castle) { qs(sh.x, sh.z); build(sh.x, sh.z, vy + (sh.raised && rail ? 1 : 0), sh.dirX, sh.dirZ, sh.kind === 'elder' ? B.GOLD : (SHOP_BUILD[sh.kind] || {}).marker || B.LOG, FURNISH[sh.kind] || null); }
       const r = U.rng(U.combine(world.seed, U.strHash(v.id)));
-      for (const l of lots) if (!l.used) { if (r() < 0.12) { for (let a = -2; a <= 2; a++) for (let b = -2; b <= 2; b++) if (r() < 0.35 && M.bush) push(l.x + a, vy, l.z + b, M.bush); continue; } build(l.x, l.z, vy, l.dirX, l.dirZ, null, null); l.home = true; }
-    } finally { world.setBlock = sb; world.getBlock = gb; }
-    const L = { R, buckets, shops, homes: lots.filter(l => l.home), streets, plots, rail };
+      for (const l of lots) if (!l.used) { if (r() < 0.12) { for (let a = -2; a <= 2; a++) for (let b = -2; b <= 2; b++) if (r() < 0.35 && M.bush) push(l.x + a, vy, l.z + b, M.bush); continue; } qs(l.x, l.z); build(l.x, l.z, vy, l.dirX, l.dirZ, null, null); l.home = true; }
+    } finally { world.setBlock = sb; world.getBlock = gb; QSTYLE = null; }
+    const L = { R, buckets, shops, homes: lots.filter(l => l.home), streets, plots, rail, marks };
     towns.set(v.id, L); return L;
   }
   // called by the world as each chunk is generated: draw any town that touches it
@@ -659,6 +700,15 @@ const Village = (() => {
     halo: { ground: B.DUNE, under: B.DIRT, plaza: B.SALTCRUST, plazaEdge: B.STONE, post: B.STONE, light: B.RINGSHARD, floor: B.STONE, wall: B.STONE, window: B.GLASS, roof: B.SALTCRUST, eave: B.STONE, counter: B.STONE, bush: B.SULFUR },
   };
   let MAT = MATS.land;
+  // A city is four quarters, split by the two great streets through the square. Each has its own houses, its own ground and a landmark.
+  let QSTYLE = null;
+  const QUARTERS = {
+    old: { name: 'the Old Quarter', ground: B.MASONRY, house: { wall: B.MASONRY, base: B.MASONRY, beam: null, roofs: [B.SLATE] } },          // north-west: dressed stone under slate, paved
+    garden: { name: 'the Garden Quarter', ground: B.GRASS, house: { wall: B.PLASTER, base: B.MASONRY, beam: B.BEAM, roofs: [B.THATCH] } },   // north-east: thatched cottages among flowers
+    merchant: { name: "the Merchants' Quarter", ground: B.COBBLE, house: { wall: B.PLASTER, base: B.MASONRY, beam: B.BEAM, roofs: [B.TILES] } }, // south-west: half-timbered under red tile, cobbled
+    craft: { name: 'the Craft Quarter', ground: B.GRAVEL, house: { wall: B.PLANKS, base: B.MASONRY, beam: B.LOG, roofs: [B.SLATE, B.PLANKS] } }, // south-east: board houses, yards and woodpiles
+  };
+  const quarterOf = (dx, dz) => dz < 0 ? (dx < 0 ? 'old' : 'garden') : (dx < 0 ? 'merchant' : 'craft');
   function stampLand(v) {
     const vx = v.x, vz = v.z, vy = v.y; MAT = MATS[v.style] || MATS.land; const M = MAT;
     const set = (x, y, z, id) => world.setBlock(x, y, z, id);
@@ -702,7 +752,7 @@ const Village = (() => {
   function house(hx, hz, vy, dirX, dirZ, marker, furnish) {
     const M = MAT; const set = (x, y, z, id) => world.setBlock(x, y, z, id);
     const styles = M.houses || [{ wall: M.wall, base: M.wall, beam: null, roofs: [M.roof] }];
-    const h1 = U.hash3(hx, 11, hz, 0x4a), h2 = U.hash3(hx, 12, hz, 0x4b); const st = styles[Math.floor(h1 * styles.length)]; const roof = st.roofs[Math.floor(h2 * st.roofs.length)];
+    const h1 = U.hash3(hx, 11, hz, 0x4a), h2 = U.hash3(hx, 12, hz, 0x4b); const st = QSTYLE || styles[Math.floor(h1 * styles.length)]; const roof = st.roofs[Math.floor(h2 * st.roofs.length)];
     const beam = st.beam; const alongX = dirX !== 0; const sgn = alongX ? dirX : dirZ; // the ridge runs along the door's axis; the door is at a = 3 * sgn
     const A = (dx, dz) => alongX ? dx : dz, Bc = (dx, dz) => alongX ? dz : dx;
     const WT = 3; // the top wall row
@@ -2095,7 +2145,9 @@ const Village = (() => {
     if (G.stats && G.stats.villageFreed && !st.freed && !st.retakenOnce) { st.freed = true; st.income = incomeFor(villages.get('start'), st); if (st.freedDay == null) st.freedDay = curNight(); }
     if (!G.fisherSpot && !G.fisherTried) { G.fisherTried = true; placeFisher(villages.get('start')); }
   }
-  return { plotsOf, plotPrice, ownsPlotAt, buyPlot, enterShow, thiefCaught, layout, townList, init, stamp, restoreStart, update, pick, talk, entities, buy, boardTrain, trainArrive, trainOf, sell, sellValue, raiseDome, shopDef, freed, onBossGone, lieutenantDown, tableChallenge, placeKit, portalList, portalHere, markers, wakeDialogue, questTarget, dawn, pendingIncome, foundingInfo, foundVillage, summaryHtml, ledger, station, recall, upgradeWall, repairWall, expand, build, postShop, levelOf, SHOPS, WALLS,
+  // which quarter of a city a spot is in (null in the square, on the castle hill, or outside a city)
+  function quarterAt(v, x, z) { if (!v || !v.R || v.size !== 'city' || (MATS[v.style] || MATS.land) !== MATS.land) return null; const dx = x - v.x, dz = z - v.z, m = Math.max(Math.abs(dx), Math.abs(dz)); if (m > v.R - 4 || m <= 7 || (Math.abs(dx) <= 14 && dz <= -v.R + 28)) return null; return QUARTERS[quarterOf(dx, dz)].name; }
+  return { quarterAt, plotsOf, plotPrice, ownsPlotAt, buyPlot, enterShow, thiefCaught, layout, townList, init, stamp, restoreStart, update, pick, talk, entities, buy, boardTrain, trainArrive, trainOf, sell, sellValue, raiseDome, shopDef, freed, onBossGone, lieutenantDown, tableChallenge, placeKit, portalList, portalHere, markers, wakeDialogue, questTarget, dawn, pendingIncome, foundingInfo, foundVillage, summaryHtml, ledger, station, recall, upgradeWall, repairWall, expand, build, postShop, levelOf, SHOPS, WALLS,
     get def() { return active ? { x: active.x, y: active.y, z: active.z } : null; }, set def(v) { restoreStart(v); }, get active() { return active; }, get boss() { return active ? active.boss : null; }, get elder() { return active ? active.elder : null; }, get walking() { return !!walkState; }, get fisher() { return fisher; } };
 })();
 

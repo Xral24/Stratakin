@@ -148,6 +148,8 @@ Scope (Alexander, 8 Nov evening): EVERYTHING visible goes to the same standard: 
 
 - Sea villages rebuilt as reef villages: round decks, eight-sided woven houses under tall sea-green sail tents with a curved spar, three corner pavilions, rail fences, coral planted on the seabed under and around the decks. New blocks Woven Wall and Woven Sail (a roof block). The ferry landing, jetty, shops and table are where they were. Villages stamped before this are rebuilt once on the next visit (flag `reef1`).
 
+- Cities are four quarters, split by the two great streets: the Old Quarter (north-west: dressed stone under slate, paved, a statue on a plinth), the Garden Quarter (north-east: thatched cottages in grass and flowers, a pond park), the Merchants' Quarter (south-west: half-timbered under red tile on cobbles, a covered market, crates) and the Craft Quarter (south-east: board houses on gravel, a forge yard, woodpiles and carts). The HUD names the quarter you're in. `QUARTERS`, `quarterOf`, `quarterAt` in js/village.js; `layout()` is recomputed, so existing cities change too.
+
 ## Still to do
 UI polish as feedback comes in. Card battle screen still used for scripted encounters (raids at the walls, thief, citadel duel, holds) and the snare mini-game; converting those to live is the next big step if wanted. (Old list: train/ships, combat animation, eggs, avatar hair/paint, buddy WEAR cosmetics, Silas and Finch, UI polish (item icons), quality toggles in settings (state.shadows, state.grassQuality, state.dprCap).
 

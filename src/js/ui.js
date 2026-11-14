@@ -121,10 +121,10 @@ const UI = (() => {
     const layer0 = G.world.layerAt(Math.floor(p.y), Math.floor(p.x), Math.floor(p.z));
     const layer = (p.inWater || p.underwater) && (layer0 === 'Surface' || layer0 === 'Water') ? 'Water' : layer0;
     const biome = BIOME_NAME[G.world.biomeAt(Math.floor(p.x), Math.floor(p.z))];
-    const va = Village.active; const inV = va && Math.hypot(va.x - p.x, va.z - p.z) < 22;
+    const va = Village.active; const inV = va && Math.hypot(va.x - p.x, va.z - p.z) < Math.max(22, (va.R || 0) * 1.3); const qn = inV ? Village.quarterAt(va, p.x, p.z) : null;
     const inDome = inV && va.type === 'deep' && Math.hypot(va.x - p.x, va.z - p.z) < 11 && p.y < SEA;
     const zl = Wild.zoneLevel ? Wild.zoneLevel(p.x, p.y, p.z, { layer }, G.trainerLevel) : null;
-    el.where.textContent = `${inV ? va.name + ' · ' : ''}${inDome ? 'Dome · ' : layer === 'Surface' ? '' : layer + ' · '}${layer === 'Surface' || layer === 'Water' ? biome + ' · ' : ''}y ${Math.floor(p.y)}${zl != null ? ' · wild ~' + zl : ''}${R.state.fps ? ' · ' + R.state.fps + ' fps' : ''}`;
+    el.where.textContent = `${inV ? va.name + ' · ' : ''}${qn ? qn + ' · ' : ''}${inDome ? 'Dome · ' : layer === 'Surface' ? '' : layer + ' · '}${layer === 'Surface' || layer === 'Water' ? biome + ' · ' : ''}y ${Math.floor(p.y)}${zl != null ? ' · wild ~' + zl : ''}${R.state.fps ? ' · ' + R.state.fps + ' fps' : ''}`;
     const bt = G.buffText ? G.buffText() : ''; const wl = Weather.label();
     const sky = layer === 'Surface' || layer === 'Sky' || layer === 'Water' ? (wl === 'clear' ? ((R.state.day || 0) < 0.3 ? 'night' : 'clear') : wl + ((R.state.day || 0) < 0.3 ? ' · night' : '')) : '';
     if (sky) el.where.textContent += ' · ' + sky; // the weather rides on the end of the place line; the pill below is only for things that need your attention
