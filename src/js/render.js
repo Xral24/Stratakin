@@ -686,6 +686,7 @@ const R = (() => {
     if (!isMobile || document.hidden) return;
     if (fps < 42) { slowSecs++; fastSecs = 0; } else if (fps > 56) { fastSecs++; slowSecs = 0; } else { slowSecs = Math.max(0, slowSecs - 1); fastSecs = 0; }
     if (slowSecs >= 3 && state.dynScale > 0.6) { state.dynScale = Math.max(0.6, +(state.dynScale - 0.1).toFixed(2)); slowSecs = 0; resize(); }
+    else if (slowSecs >= 5 && state.dynScale <= 0.6 && !window.__lowGeo) { window.__lowGeo = true; slowSecs = 0; } /* still slow at the lowest resolution: new Kin and new trees are built with fewer facets from here on */
     else if (fastSecs >= 8 && state.dynScale < 1) { state.dynScale = Math.min(1, +(state.dynScale + 0.1).toFixed(2)); fastSecs = 0; resize(); }
   }
   function resize() {
@@ -1111,7 +1112,7 @@ const R = (() => {
           const dark = 1 - 0.06 * Math.max(0, around - 2); // deeper in the crown, darker
           let c; if (id === B.NEEDLES) { const nv = 0.9 + h1 * 0.2; c = [0.19 * nv, 0.42 * nv, 0.3 * nv]; } else { const warm = id === B.BERRYLEAF ? 1 : 0; c = [tint[0] * (0.9 + warm * 0.25) * vr, tint[1] * 1.02 * vr, tint[2] * 0.72 * vr]; }
           const hue = (h2 - 0.5) * 0.16; c = [c[0] * dark * (1 + hue), c[1] * dark, c[2] * dark * (1 - hue)]; // some puffs yellower, some bluer
-          op.blob(cx - rx, cy - ry, cz - rz, cx + rx, cy + ry, cz + rz, 1, [c[0] * 1.1, c[1] * 1.1, c[2]], { sky: sk, n: lod ? 2 : nLeaf >= 4 ? 5 : 4, under: [c[0] * 0.46, c[1] * 0.58, c[2] * 0.7], split: 0.0, soft: 0.8 }); /* rounder crowns, lit above and cool beneath, like the Kin */
+          op.blob(cx - rx, cy - ry, cz - rz, cx + rx, cy + ry, cz + rz, 1, [c[0] * 1.1, c[1] * 1.1, c[2]], { sky: sk, n: lod || window.__lowGeo ? 2 : nLeaf >= 4 ? 5 : 4, under: [c[0] * 0.46, c[1] * 0.58, c[2] * 0.7], split: 0.0, soft: 0.8 }); /* rounder crowns, lit above and cool beneath, like the Kin */
           if (id === B.BERRYLEAF) for (let k = 0; k < 3; k++) { const a = U.hash3(wx, y, wz, 64 + k) * 6.283, e = 0.2 + U.hash3(wx, y, wz, 67 + k) * 0.6; op.ball(cx + Math.cos(a) * r * 0.85, cy + r * 0.8 * (e - 0.4), cz + Math.sin(a) * r * 0.85, 0.08, [0.9, 0.15, 0.22], { sky: sk, n: 2 }); }
           continue;
         }
