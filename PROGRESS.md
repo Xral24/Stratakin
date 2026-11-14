@@ -196,6 +196,8 @@ Scope (Alexander, 8 Nov evening): EVERYTHING visible goes to the same standard: 
 
 - 14 Nov, world paint pass 1 (render.js world FS): colours kept whole (saturation 0.78 -> 1.04), shade leans cool and keeps colour, stronger sun, quieter per-block grit; grass blades no longer desaturated; dark dressed stone gets pale mortar so fortress courses read; FORTSTONE lifted to a purple-grey. tools/test/t-world.js photographs land, village, city, fort.
 
+- 14 Nov: mantis nymph has real eyes, a bud and leaf wing-buds. Finding (tools/test/t-dex2.js): on Earth 218 of 235 Kindex species use the redesigned line bodies (the other 17 are Lost World dinosaurs); on the Moon and Halo none do, because neon species are excluded from lines in lineClass, so all 470 are the old generated bodies with generated names. They do get the new shader, eyes and leg kinds. Decision for Alexander: give Moon and Halo their own lines, or let them use the Earth lines in neon.
+
 ## Still to do
 UI polish as feedback comes in. Card battle screen still used for scripted encounters (raids at the walls, thief, citadel duel, holds) and the snare mini-game; converting those to live is the next big step if wanted. (Old list: train/ships, combat animation, eggs, avatar hair/paint, buddy WEAR cosmetics, Silas and Finch, UI polish (item icons), quality toggles in settings (state.shadows, state.grassQuality, state.dprCap).
 
