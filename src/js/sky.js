@@ -88,6 +88,21 @@ const Sky = (() => {
       for (let i = -1; i <= 1; i++) for (let j = -1; j <= 1; j++) put(X + i, Y + 1, Z + 4 + j, F); put(X, Y + 2, Z + 4, B.VOID);
       for (let z = Z - 10; z <= Z + 2; z++) put(X, Y, z, B.CORAL_R);
       for (const [a, b] of [[-9, -5], [9, -5], [-9, 5], [9, 5]]) put(X + a, Y + 1, Z + b, B.FIREPIT);
+      // dressed as the Storm Warden's stronghold: dark footings and ember slots in place of pale ones, corner towers under spires, a
+      // twin-turreted gatehouse, and the spire itself: a tower behind the dais that climbs in three stages to a storm light
+      for (let d = -11; d <= 11; d++) for (const [x, z] of [[X + d, Z - 11], [X + d, Z + 11], [X - 11, Z + d], [X + 11, Z + d]]) { if (Math.abs(d) <= 1 && z === Z - 11) continue; put(x, Y + 1, z, B.BASALT); if (d % 3 === 0 && Math.abs(d) < 10) put(x, Y + 4, z, B.EMBER); }
+      // (the sky has a ceiling nine blocks over this floor, so nothing here climbs past it: the spire is broad and stepped, not tall)
+      for (const [a, b] of [[-11, -11], [11, -11], [-11, 11], [11, 11]]) { put(X + a, Y + 6, Z + b + Math.sign(b), B.EMBER); put(X + a + Math.sign(a), Y + 6, Z + b, B.EMBER); put(X + a, Y + 5, Z + b + Math.sign(b) * 2, B.BANNER); for (const [i, j] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) put(X + a + i, Y + 9, Z + b + j, F); }
+      for (const sx of [-1, 1]) { for (let i = 2; i <= 3; i++) for (let j = -13; j <= -11; j++) for (let y = Y + 1; y <= Y + 8; y++) put(X + sx * i, y, Z + j, y === Y + 1 ? B.BASALT : F);
+        put(X + sx * 2, Y + 9, Z - 12, B.VOID); put(X + sx * 3, Y + 9, Z - 13, F); put(X + sx * 3, Y + 9, Z - 11, F); put(X + sx * 3, Y + 4, Z - 14, B.EMBER); put(X + sx * 2, Y + 6, Z - 14, B.BANNER); }
+      for (let d = -1; d <= 1; d++) { for (let j = -13; j <= -11; j++) { for (let y = Y + 1; y <= Y + 3; y++) put(X + d, y, Z + j, B.AIR); for (let y = Y + 5; y <= Y + 7; y++) put(X + d, y, Z + j, F); put(X + d, Y, Z + j, B.BASALT); } put(X + d, Y + 4, Z - 12, B.IRONWALL); put(X + d, Y + 4, Z - 13, F); put(X + d, Y + 4, Z - 11, F); }
+      put(X, Y + 6, Z - 13, B.EMBER); put(-1 + X, Y + 8, Z - 13, F); put(1 + X, Y + 8, Z - 13, F);
+      { for (let a = -4; a <= 4; a++) for (let b = -3; b <= 2; b++) for (let y = Y + 1; y <= Y + 5; y++) put(X + a, y, Z + 8 + b, y === Y + 1 ? B.BASALT : F); // the keep: a broad base against the back wall
+        for (let a = -5; a <= 5; a++) for (let b = -4; b <= 2; b++) if (Math.abs(a) === 5 || b === -4) { put(X + a, Y + 5, Z + 8 + b, F); if ((a + b) % 2 === 0) put(X + a, Y + 6, Z + 8 + b, F); }
+        for (let a = -2; a <= 2; a++) for (let b = -2; b <= 1; b++) for (let y = Y + 6; y <= Y + 8; y++) put(X + a, y, Z + 8 + b, F); // and the spire's stump on it
+        for (let a = -2; a <= 2; a++) for (let b = -2; b <= 1; b++) put(X + a, Y + 9, Z + 8 + b, (Math.abs(a) === 2 || b === -2 || b === 1) ? ((a + b) % 2 === 0 ? F : B.AIR) : B.VOID);
+        for (const a of [-3, 0, 3]) put(X + a, Y + 4, Z + 5, B.EMBER); for (const a of [-1, 1]) put(X + a, Y + 7, Z + 6, B.EMBER);
+        for (let yy = Y + 1; yy <= Y + 3; yy++) put(X, yy, Z + 5, yy === Y + 3 ? B.EMBER : B.BASALT); for (const a of [-2, 2]) put(X + a, Y + 3, Z + 4, B.BANNER); }
     } else if (k.kind === 'tree') {
       const H = k.h, T = Y, s = world.seed || 1;
       // the trunk, five wide with the corners off, and roots spreading at the foot

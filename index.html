@@ -14821,6 +14821,50 @@ const Keeps = (() => {
     for (let z = Z - 7; z <= Z + 1; z++) set(X, y0, z, B.CORAL_R); // a red carpet up to the dais
     G.meshPass(99);
   }
+  // The Hold dressed as a stronghold: a twin-towered gatehouse with a raised portcullis, tall corner towers under dark spires, a wall-walk,
+  // ember-lit slots, banners, a keep rising behind the dais, stakes round the outside. Nothing is put on the courtyard floor: the fight
+  // needs it, and the back corner at +5, +5 stays clear for a cell. `cap` is the highest block it may use (the Core has a ceiling).
+  function dress(k) {
+    const w = W(), y0 = k.y, X = k.x, Z = k.z, F = B.FORTSTONE, D = B.BASALT, cap = k.core ? 12 : y0 + 30;
+    const set = (x, y, z, b) => { if (y <= cap) w.setBlock(x, y, z, b); };
+    const wallTop = k.core ? 11 : y0 + 6;
+    // the walls: a footing of basalt, ember slots at head height, a walk behind the parapet
+    for (let d = -8; d <= 8; d++) for (const [x, z, ox, oz] of [[X + d, Z - 8, 0, 1], [X + d, Z + 8, 0, -1], [X - 8, Z + d, 1, 0], [X + 8, Z + d, -1, 0]]) {
+      if (Math.abs(d) <= 1 && z === Z - 8) continue; // the gate
+      set(x, y0 + 1, z, D); if (Math.abs(d) < 7 && Math.abs(d) % 3 === 0 && !(z === Z - 8 && Math.abs(d) < 5)) set(x, y0 + 4, z, B.EMBER);
+      if (!k.core && Math.abs(d) <= 6) set(x + ox, y0 + 5, z + oz, D);
+    }
+    // corner towers: taller, a ring of battlements, a slate spire with a void light, a banner on the two outer faces
+    for (const [a, b] of [[-8, -8], [8, -8], [-8, 8], [8, 8]]) { const top = k.core ? 11 : y0 + 11;
+      for (let i = -1; i <= 1; i++) for (let j = -1; j <= 1; j++) { for (let y = y0 + 1; y <= top; y++) set(X + a + i, y, Z + b + j, y === y0 + 1 ? D : F); if (!k.core) { if (i || j) { if ((i + j) % 2 !== 0) set(X + a + i, top + 1, Z + b + j, F); } } }
+      if (!k.core) { for (let i = -1; i <= 1; i++) for (let j = -1; j <= 1; j++) set(X + a + i, top + 2, Z + b + j, B.SLATE); set(X + a, top + 3, Z + b, B.SLATE); set(X + a, top + 4, Z + b, B.VOID); set(X + a, top + 1, Z + b, F); }
+      set(X + a, top - 2, Z + b + Math.sign(b), B.EMBER); set(X + a + Math.sign(a), top - 2, Z + b, B.EMBER);
+      set(X + a, y0 + 6, Z + b + Math.sign(b) * 2, B.BANNER); set(X + a + Math.sign(a) * 2, y0 + 6, Z + b, B.BANNER);
+    }
+    // the gatehouse: two turrets standing out from the wall either side of the gate, a block of stone bridging them, the portcullis drawn up into it
+    const gt = k.core ? 11 : y0 + 9;
+    for (const sx of [-1, 1]) { for (let i = 2; i <= 3; i++) for (let j = -10; j <= -8; j++) for (let y = y0 + 1; y <= gt; y++) set(X + sx * i, y, Z + j, y === y0 + 1 ? D : F);
+      if (!k.core) { set(X + sx * 2, gt + 1, Z - 10, F); set(X + sx * 3, gt + 1, Z - 8, F); set(X + sx * 3, gt + 1, Z - 10, F); set(X + sx * 2, gt + 1, Z - 8, F); set(X + sx * 2, gt + 2, Z - 9, B.VOID); }
+      set(X + sx * 3, y0 + 4, Z - 11, B.EMBER); set(X + sx * 2, y0 + 5, Z - 11, B.BANNER); set(X + sx * 4, y0 + 3, Z - 11, B.TORCH); }
+    for (let d = -1; d <= 1; d++) { for (let j = -10; j <= -8; j++) { for (let y = y0 + 1; y <= y0 + 3; y++) if (w.getBlock(X + d, y, Z + j) !== B.AIR) set(X + d, y, Z + j, B.AIR); for (let y = y0 + 5; y <= Math.min(gt - 1, y0 + 7); y++) set(X + d, y, Z + j, F); set(X + d, y0, Z + j, D); }
+      set(X + d, y0 + 4, Z - 9, B.IRONWALL); set(X + d, y0 + 4, Z - 10, F); set(X + d, y0 + 4, Z - 8, F); }
+    if (!k.core) for (let d = -1; d <= 1; d += 2) set(X + d, y0 + 8, Z - 10, F);
+    set(X, y0 + 6, Z - 10, B.EMBER);
+    // the keep: a dark tower against the back wall behind the dais, an ember-lit door niche, banners down its face, a spire
+    const kt = k.core ? 11 : y0 + 14;
+    for (let a = -2; a <= 2; a++) for (let b = 5; b <= 7; b++) for (let y = y0 + 1; y <= kt; y++) set(X + a, y, Z + b, y === y0 + 1 ? D : F);
+    for (let y = y0 + 1; y <= y0 + 3; y++) set(X, y, Z + 5, y === y0 + 3 ? B.EMBER : B.BASALT); // the door, shut
+    for (const a of [-2, 2]) { set(X + a, y0 + 5, Z + 4, B.BANNER); if (!k.core) set(X + a, y0 + 10, Z + 5, B.EMBER); }
+    set(X, y0 + 6, Z + 5, B.EMBER); set(X - 1, y0 + 4, Z + 4, B.TORCH); set(X + 1, y0 + 4, Z + 4, B.TORCH);
+    if (!k.core) { for (let a = -3; a <= 3; a++) for (let b = 4; b <= 8; b++) if (Math.abs(a) === 3 || b === 4 || b === 8) { if ((a + b) % 2 === 0) set(X + a, kt + 1, Z + b, F); set(X + a, kt, Z + b, F); } // the keep's head stands out over its walls, battlemented
+      for (let r = 2; r >= 0; r--) for (let a = -r; a <= r; a++) for (let b = -r; b <= r; b++) if (Math.max(Math.abs(a), Math.abs(b)) === r) set(X + a, kt + 1 + (2 - r), Z + 6 + b, B.SLATE);
+      set(X, kt + 4, Z + 6, B.VOID);
+      // sharpened stakes round the outside, open before the gate; a basalt road up to it
+      for (let d = -10; d <= 10; d++) for (const [x, z] of [[X + d, Z - 10], [X + d, Z + 10], [X - 10, Z + d], [X + 10, Z + d]]) { if (z === Z - 10 && Math.abs(d) <= 5) continue; if ((d + 40) % 2 === 0 && w.getBlock(x, y0 + 1, z) === B.AIR) set(x, y0 + 1, z, B.PALISADE); }
+      for (let j = -13; j <= -11; j++) for (let d = -1; d <= 1; d++) if (isSolid(w.getBlock(X + d, y0, Z + j))) set(X + d, y0, Z + j, D);
+    }
+    G.meshPass(99);
+  }
   function warlordSpecies(k) {
     const pool = KIN.dex('earth').filter(sp => !sp.fusion && sp.home && (sp.rarity || 0) >= 2 && (sp.rarity || 0) <= 3 && KIN.dominant(sp.elem, 1)[0] === 'Void');
     const any = pool.length ? pool : KIN.dex('earth').filter(sp => !sp.fusion && sp.home && (sp.rarity || 0) === 2);
@@ -14833,6 +14877,7 @@ const Keeps = (() => {
       if (k.core && p.y > CORE_TOP + 8) continue; // the Core hold only wakes when you are down there
       const s = st();
       if (!s['stamped_' + k.id] && Math.hypot(k.x - p.x, k.z - p.z) < 110) { s['stamped_' + k.id] = true; stamp(k); }
+      if (s['stamped_' + k.id] && !s['dressed_' + k.id] && Math.hypot(k.x - p.x, k.z - p.z) < 110) { s['dressed_' + k.id] = true; W().ensureAround(Math.floor(k.x / CH), Math.floor(k.z / CH), 1, 99); dress(k); } /* old worlds get the stronghold look once */
       const d = Math.hypot(k.x - p.x, k.z - p.z);
       if (s['stamped_' + k.id] && d < 80 && taken(k.id)) warriors(k);
       if (!taken(k.id) && s['stamped_' + k.id] && d < 70 && !Combat.forHold(k.id).length) muster(k);
@@ -14998,6 +15043,27 @@ const Citadel = (() => {
     C().stamped = true; C().cell = { x: X + 82, y: y0 + 5, z: Z + 7 };
     c().throne = { x: X + L - 3, y: y0 + 6, z: Z }; c().court = { x: X + 26, y: y0 + 1, z: Z }; c().stair = { x: X + 82, y: y0 + 5, z: Z };
   }
+  // The Citadel's outside, dressed to be seen from far off: merlons along every wall head, ember slots, turrets with spires where the
+  // cross-walls meet the sides, a gatehouse over the thorn gate, and a great tower raised on the back wall over the throne. All of it
+  // stands on or above the walls; the rooms inside are untouched.
+  function dress() {
+    const s = site(), w = G.world; const X = s.x, Z = s.z, y0 = s.y; const set = (x, y, z, b) => w.setBlock(X + x, y0 + y, Z + z, b); const F = B.FORTSTONE;
+    for (let cx = -1; cx <= Math.ceil(L / CH) + 1; cx++) w.ensureAround(Math.floor((X + cx * CH) / CH), Math.floor(Z / CH), 2, 99);
+    for (let x = 17; x <= L + 1; x++) for (const z of [-12, 12]) { const top = x <= 34 ? 12 : 12; for (let y = 10; y <= 12; y++) set(x, y, z, F); if (x % 2 === 0) set(x, 13, z, F); if (x % 4 === 0 && x > 20) set(x, 8, z, B.EMBER); set(x, 1, z, B.BASALT); }
+    for (let z = -12; z <= 12; z++) { set(17, 1, z, Math.abs(z) <= 1 ? B.THORN : B.BASALT); if (Math.abs(z) > 3 && z % 3 === 0) set(17, 7, z, B.EMBER); if (z % 2 === 0) set(L + 1, 13, z, F); }
+    // turrets on the wall line at each cross-wall, and taller ones at the four corners
+    const turret = (x, z, h, big) => { const inz = -Math.sign(z); for (let a = -1; a <= 1; a++) for (let b = 0; b <= 1; b++) { for (let y = 13; y <= h; y++) set(x + a, y, z + b * inz, F); if ((a + b) % 2 === 0) set(x + a, h + 1, z + b * inz, F); }
+      for (let a = -1; a <= 1; a++) for (let b = 0; b <= 1; b++) set(x + a, h + 2, z + b * inz, B.SLATE); set(x, h + 3, z, B.SLATE); set(x, h + 4, z, B.VOID); set(x, h - 1, z, B.EMBER); if (big) set(x, h - 4, z, B.EMBER); };
+    for (const z of [-12, 12]) { turret(18, z, 20, true); turret(35, z, 16); turret(60, z, 16); turret(73, z, 17); turret(L, z, 22, true); }
+    // the gatehouse: stone bridged over the thorn gate, ember eyes, banners down the front
+    for (let z = -3; z <= 3; z++) for (let x = 17; x <= 18; x++) { for (let y = 12; y <= 15; y++) set(x, y, z, F); if (z % 2 !== 0) set(x, 16, z, F); }
+    set(17, 14, -2, B.EMBER); set(17, 14, 2, B.EMBER); set(17, 9, 0, B.EMBER); for (const z of [-5, -3, 3, 5]) set(16, 8, z, B.BANNER); for (const z of [-9, 9]) set(16, 9, z, B.BANNER);
+    // the great tower: the back wall raised in steps to a spire over the throne
+    for (const [hw, y0s, y1s] of [[9, 13, 17], [6, 18, 23], [3, 24, 30]]) { for (let z = -hw; z <= hw; z++) for (let x = L; x <= L + 1; x++) { for (let y = y0s; y <= y1s; y++) set(x, y, z, F); if (z % 2 === 0) set(x, y1s + 1, z, F); } for (const z of [-hw + 1, hw - 1, 0]) set(L, y1s - 2, z, B.EMBER); }
+    for (let z = -3; z <= 3; z++) for (let x = L - 1; x <= L + 2; x++) set(x, 31 + Math.min(3 - Math.abs(z), 2), z, B.SLATE); set(L, 34, 0, B.VOID); set(L, 35, 0, B.VOID);
+    for (const z of [-6, 6]) set(L - 1, 12, z, B.BANNER);
+    G.meshPass(99);
+  }
   const c = C;
   // ---------------- running it ----------------
   let km = null;
@@ -15005,6 +15071,7 @@ const Citadel = (() => {
     if (!onEarth() || !open() || G.stats.lightReturned) return; tick += dt; if (tick < 0.5) return; tick = 0;
     const s = site(); const d = Math.hypot(s.x + 40 - p.x, s.z - p.z);
     if (!C().stamped && d < 170) stamp();
+    if (C().stamped && !C().dressed && d < 170) { C().dressed = true; dress(); }
     if (!C().stamped) return;
     // the two waves of his warriors
     if (d < 120) {
@@ -15240,6 +15307,21 @@ const Sky = (() => {
       for (let i = -1; i <= 1; i++) for (let j = -1; j <= 1; j++) put(X + i, Y + 1, Z + 4 + j, F); put(X, Y + 2, Z + 4, B.VOID);
       for (let z = Z - 10; z <= Z + 2; z++) put(X, Y, z, B.CORAL_R);
       for (const [a, b] of [[-9, -5], [9, -5], [-9, 5], [9, 5]]) put(X + a, Y + 1, Z + b, B.FIREPIT);
+      // dressed as the Storm Warden's stronghold: dark footings and ember slots in place of pale ones, corner towers under spires, a
+      // twin-turreted gatehouse, and the spire itself: a tower behind the dais that climbs in three stages to a storm light
+      for (let d = -11; d <= 11; d++) for (const [x, z] of [[X + d, Z - 11], [X + d, Z + 11], [X - 11, Z + d], [X + 11, Z + d]]) { if (Math.abs(d) <= 1 && z === Z - 11) continue; put(x, Y + 1, z, B.BASALT); if (d % 3 === 0 && Math.abs(d) < 10) put(x, Y + 4, z, B.EMBER); }
+      // (the sky has a ceiling nine blocks over this floor, so nothing here climbs past it: the spire is broad and stepped, not tall)
+      for (const [a, b] of [[-11, -11], [11, -11], [-11, 11], [11, 11]]) { put(X + a, Y + 6, Z + b + Math.sign(b), B.EMBER); put(X + a + Math.sign(a), Y + 6, Z + b, B.EMBER); put(X + a, Y + 5, Z + b + Math.sign(b) * 2, B.BANNER); for (const [i, j] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) put(X + a + i, Y + 9, Z + b + j, F); }
+      for (const sx of [-1, 1]) { for (let i = 2; i <= 3; i++) for (let j = -13; j <= -11; j++) for (let y = Y + 1; y <= Y + 8; y++) put(X + sx * i, y, Z + j, y === Y + 1 ? B.BASALT : F);
+        put(X + sx * 2, Y + 9, Z - 12, B.VOID); put(X + sx * 3, Y + 9, Z - 13, F); put(X + sx * 3, Y + 9, Z - 11, F); put(X + sx * 3, Y + 4, Z - 14, B.EMBER); put(X + sx * 2, Y + 6, Z - 14, B.BANNER); }
+      for (let d = -1; d <= 1; d++) { for (let j = -13; j <= -11; j++) { for (let y = Y + 1; y <= Y + 3; y++) put(X + d, y, Z + j, B.AIR); for (let y = Y + 5; y <= Y + 7; y++) put(X + d, y, Z + j, F); put(X + d, Y, Z + j, B.BASALT); } put(X + d, Y + 4, Z - 12, B.IRONWALL); put(X + d, Y + 4, Z - 13, F); put(X + d, Y + 4, Z - 11, F); }
+      put(X, Y + 6, Z - 13, B.EMBER); put(-1 + X, Y + 8, Z - 13, F); put(1 + X, Y + 8, Z - 13, F);
+      { for (let a = -4; a <= 4; a++) for (let b = -3; b <= 2; b++) for (let y = Y + 1; y <= Y + 5; y++) put(X + a, y, Z + 8 + b, y === Y + 1 ? B.BASALT : F); // the keep: a broad base against the back wall
+        for (let a = -5; a <= 5; a++) for (let b = -4; b <= 2; b++) if (Math.abs(a) === 5 || b === -4) { put(X + a, Y + 5, Z + 8 + b, F); if ((a + b) % 2 === 0) put(X + a, Y + 6, Z + 8 + b, F); }
+        for (let a = -2; a <= 2; a++) for (let b = -2; b <= 1; b++) for (let y = Y + 6; y <= Y + 8; y++) put(X + a, y, Z + 8 + b, F); // and the spire's stump on it
+        for (let a = -2; a <= 2; a++) for (let b = -2; b <= 1; b++) put(X + a, Y + 9, Z + 8 + b, (Math.abs(a) === 2 || b === -2 || b === 1) ? ((a + b) % 2 === 0 ? F : B.AIR) : B.VOID);
+        for (const a of [-3, 0, 3]) put(X + a, Y + 4, Z + 5, B.EMBER); for (const a of [-1, 1]) put(X + a, Y + 7, Z + 6, B.EMBER);
+        for (let yy = Y + 1; yy <= Y + 3; yy++) put(X, yy, Z + 5, yy === Y + 3 ? B.EMBER : B.BASALT); for (const a of [-2, 2]) put(X + a, Y + 3, Z + 4, B.BANNER); }
     } else if (k.kind === 'tree') {
       const H = k.h, T = Y, s = world.seed || 1;
       // the trunk, five wide with the corners off, and roots spreading at the foot

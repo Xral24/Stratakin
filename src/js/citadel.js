@@ -71,6 +71,27 @@ const Citadel = (() => {
     C().stamped = true; C().cell = { x: X + 82, y: y0 + 5, z: Z + 7 };
     c().throne = { x: X + L - 3, y: y0 + 6, z: Z }; c().court = { x: X + 26, y: y0 + 1, z: Z }; c().stair = { x: X + 82, y: y0 + 5, z: Z };
   }
+  // The Citadel's outside, dressed to be seen from far off: merlons along every wall head, ember slots, turrets with spires where the
+  // cross-walls meet the sides, a gatehouse over the thorn gate, and a great tower raised on the back wall over the throne. All of it
+  // stands on or above the walls; the rooms inside are untouched.
+  function dress() {
+    const s = site(), w = G.world; const X = s.x, Z = s.z, y0 = s.y; const set = (x, y, z, b) => w.setBlock(X + x, y0 + y, Z + z, b); const F = B.FORTSTONE;
+    for (let cx = -1; cx <= Math.ceil(L / CH) + 1; cx++) w.ensureAround(Math.floor((X + cx * CH) / CH), Math.floor(Z / CH), 2, 99);
+    for (let x = 17; x <= L + 1; x++) for (const z of [-12, 12]) { const top = x <= 34 ? 12 : 12; for (let y = 10; y <= 12; y++) set(x, y, z, F); if (x % 2 === 0) set(x, 13, z, F); if (x % 4 === 0 && x > 20) set(x, 8, z, B.EMBER); set(x, 1, z, B.BASALT); }
+    for (let z = -12; z <= 12; z++) { set(17, 1, z, Math.abs(z) <= 1 ? B.THORN : B.BASALT); if (Math.abs(z) > 3 && z % 3 === 0) set(17, 7, z, B.EMBER); if (z % 2 === 0) set(L + 1, 13, z, F); }
+    // turrets on the wall line at each cross-wall, and taller ones at the four corners
+    const turret = (x, z, h, big) => { const inz = -Math.sign(z); for (let a = -1; a <= 1; a++) for (let b = 0; b <= 1; b++) { for (let y = 13; y <= h; y++) set(x + a, y, z + b * inz, F); if ((a + b) % 2 === 0) set(x + a, h + 1, z + b * inz, F); }
+      for (let a = -1; a <= 1; a++) for (let b = 0; b <= 1; b++) set(x + a, h + 2, z + b * inz, B.SLATE); set(x, h + 3, z, B.SLATE); set(x, h + 4, z, B.VOID); set(x, h - 1, z, B.EMBER); if (big) set(x, h - 4, z, B.EMBER); };
+    for (const z of [-12, 12]) { turret(18, z, 20, true); turret(35, z, 16); turret(60, z, 16); turret(73, z, 17); turret(L, z, 22, true); }
+    // the gatehouse: stone bridged over the thorn gate, ember eyes, banners down the front
+    for (let z = -3; z <= 3; z++) for (let x = 17; x <= 18; x++) { for (let y = 12; y <= 15; y++) set(x, y, z, F); if (z % 2 !== 0) set(x, 16, z, F); }
+    set(17, 14, -2, B.EMBER); set(17, 14, 2, B.EMBER); set(17, 9, 0, B.EMBER); for (const z of [-5, -3, 3, 5]) set(16, 8, z, B.BANNER); for (const z of [-9, 9]) set(16, 9, z, B.BANNER);
+    // the great tower: the back wall raised in steps to a spire over the throne
+    for (const [hw, y0s, y1s] of [[9, 13, 17], [6, 18, 23], [3, 24, 30]]) { for (let z = -hw; z <= hw; z++) for (let x = L; x <= L + 1; x++) { for (let y = y0s; y <= y1s; y++) set(x, y, z, F); if (z % 2 === 0) set(x, y1s + 1, z, F); } for (const z of [-hw + 1, hw - 1, 0]) set(L, y1s - 2, z, B.EMBER); }
+    for (let z = -3; z <= 3; z++) for (let x = L - 1; x <= L + 2; x++) set(x, 31 + Math.min(3 - Math.abs(z), 2), z, B.SLATE); set(L, 34, 0, B.VOID); set(L, 35, 0, B.VOID);
+    for (const z of [-6, 6]) set(L - 1, 12, z, B.BANNER);
+    G.meshPass(99);
+  }
   const c = C;
   // ---------------- running it ----------------
   let km = null;
@@ -78,6 +99,7 @@ const Citadel = (() => {
     if (!onEarth() || !open() || G.stats.lightReturned) return; tick += dt; if (tick < 0.5) return; tick = 0;
     const s = site(); const d = Math.hypot(s.x + 40 - p.x, s.z - p.z);
     if (!C().stamped && d < 170) stamp();
+    if (C().stamped && !C().dressed && d < 170) { C().dressed = true; dress(); }
     if (!C().stamped) return;
     // the two waves of his warriors
     if (d < 120) {

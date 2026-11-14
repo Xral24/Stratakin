@@ -81,6 +81,50 @@ const Keeps = (() => {
     for (let z = Z - 7; z <= Z + 1; z++) set(X, y0, z, B.CORAL_R); // a red carpet up to the dais
     G.meshPass(99);
   }
+  // The Hold dressed as a stronghold: a twin-towered gatehouse with a raised portcullis, tall corner towers under dark spires, a wall-walk,
+  // ember-lit slots, banners, a keep rising behind the dais, stakes round the outside. Nothing is put on the courtyard floor: the fight
+  // needs it, and the back corner at +5, +5 stays clear for a cell. `cap` is the highest block it may use (the Core has a ceiling).
+  function dress(k) {
+    const w = W(), y0 = k.y, X = k.x, Z = k.z, F = B.FORTSTONE, D = B.BASALT, cap = k.core ? 12 : y0 + 30;
+    const set = (x, y, z, b) => { if (y <= cap) w.setBlock(x, y, z, b); };
+    const wallTop = k.core ? 11 : y0 + 6;
+    // the walls: a footing of basalt, ember slots at head height, a walk behind the parapet
+    for (let d = -8; d <= 8; d++) for (const [x, z, ox, oz] of [[X + d, Z - 8, 0, 1], [X + d, Z + 8, 0, -1], [X - 8, Z + d, 1, 0], [X + 8, Z + d, -1, 0]]) {
+      if (Math.abs(d) <= 1 && z === Z - 8) continue; // the gate
+      set(x, y0 + 1, z, D); if (Math.abs(d) < 7 && Math.abs(d) % 3 === 0 && !(z === Z - 8 && Math.abs(d) < 5)) set(x, y0 + 4, z, B.EMBER);
+      if (!k.core && Math.abs(d) <= 6) set(x + ox, y0 + 5, z + oz, D);
+    }
+    // corner towers: taller, a ring of battlements, a slate spire with a void light, a banner on the two outer faces
+    for (const [a, b] of [[-8, -8], [8, -8], [-8, 8], [8, 8]]) { const top = k.core ? 11 : y0 + 11;
+      for (let i = -1; i <= 1; i++) for (let j = -1; j <= 1; j++) { for (let y = y0 + 1; y <= top; y++) set(X + a + i, y, Z + b + j, y === y0 + 1 ? D : F); if (!k.core) { if (i || j) { if ((i + j) % 2 !== 0) set(X + a + i, top + 1, Z + b + j, F); } } }
+      if (!k.core) { for (let i = -1; i <= 1; i++) for (let j = -1; j <= 1; j++) set(X + a + i, top + 2, Z + b + j, B.SLATE); set(X + a, top + 3, Z + b, B.SLATE); set(X + a, top + 4, Z + b, B.VOID); set(X + a, top + 1, Z + b, F); }
+      set(X + a, top - 2, Z + b + Math.sign(b), B.EMBER); set(X + a + Math.sign(a), top - 2, Z + b, B.EMBER);
+      set(X + a, y0 + 6, Z + b + Math.sign(b) * 2, B.BANNER); set(X + a + Math.sign(a) * 2, y0 + 6, Z + b, B.BANNER);
+    }
+    // the gatehouse: two turrets standing out from the wall either side of the gate, a block of stone bridging them, the portcullis drawn up into it
+    const gt = k.core ? 11 : y0 + 9;
+    for (const sx of [-1, 1]) { for (let i = 2; i <= 3; i++) for (let j = -10; j <= -8; j++) for (let y = y0 + 1; y <= gt; y++) set(X + sx * i, y, Z + j, y === y0 + 1 ? D : F);
+      if (!k.core) { set(X + sx * 2, gt + 1, Z - 10, F); set(X + sx * 3, gt + 1, Z - 8, F); set(X + sx * 3, gt + 1, Z - 10, F); set(X + sx * 2, gt + 1, Z - 8, F); set(X + sx * 2, gt + 2, Z - 9, B.VOID); }
+      set(X + sx * 3, y0 + 4, Z - 11, B.EMBER); set(X + sx * 2, y0 + 5, Z - 11, B.BANNER); set(X + sx * 4, y0 + 3, Z - 11, B.TORCH); }
+    for (let d = -1; d <= 1; d++) { for (let j = -10; j <= -8; j++) { for (let y = y0 + 1; y <= y0 + 3; y++) if (w.getBlock(X + d, y, Z + j) !== B.AIR) set(X + d, y, Z + j, B.AIR); for (let y = y0 + 5; y <= Math.min(gt - 1, y0 + 7); y++) set(X + d, y, Z + j, F); set(X + d, y0, Z + j, D); }
+      set(X + d, y0 + 4, Z - 9, B.IRONWALL); set(X + d, y0 + 4, Z - 10, F); set(X + d, y0 + 4, Z - 8, F); }
+    if (!k.core) for (let d = -1; d <= 1; d += 2) set(X + d, y0 + 8, Z - 10, F);
+    set(X, y0 + 6, Z - 10, B.EMBER);
+    // the keep: a dark tower against the back wall behind the dais, an ember-lit door niche, banners down its face, a spire
+    const kt = k.core ? 11 : y0 + 14;
+    for (let a = -2; a <= 2; a++) for (let b = 5; b <= 7; b++) for (let y = y0 + 1; y <= kt; y++) set(X + a, y, Z + b, y === y0 + 1 ? D : F);
+    for (let y = y0 + 1; y <= y0 + 3; y++) set(X, y, Z + 5, y === y0 + 3 ? B.EMBER : B.BASALT); // the door, shut
+    for (const a of [-2, 2]) { set(X + a, y0 + 5, Z + 4, B.BANNER); if (!k.core) set(X + a, y0 + 10, Z + 5, B.EMBER); }
+    set(X, y0 + 6, Z + 5, B.EMBER); set(X - 1, y0 + 4, Z + 4, B.TORCH); set(X + 1, y0 + 4, Z + 4, B.TORCH);
+    if (!k.core) { for (let a = -3; a <= 3; a++) for (let b = 4; b <= 8; b++) if (Math.abs(a) === 3 || b === 4 || b === 8) { if ((a + b) % 2 === 0) set(X + a, kt + 1, Z + b, F); set(X + a, kt, Z + b, F); } // the keep's head stands out over its walls, battlemented
+      for (let r = 2; r >= 0; r--) for (let a = -r; a <= r; a++) for (let b = -r; b <= r; b++) if (Math.max(Math.abs(a), Math.abs(b)) === r) set(X + a, kt + 1 + (2 - r), Z + 6 + b, B.SLATE);
+      set(X, kt + 4, Z + 6, B.VOID);
+      // sharpened stakes round the outside, open before the gate; a basalt road up to it
+      for (let d = -10; d <= 10; d++) for (const [x, z] of [[X + d, Z - 10], [X + d, Z + 10], [X - 10, Z + d], [X + 10, Z + d]]) { if (z === Z - 10 && Math.abs(d) <= 5) continue; if ((d + 40) % 2 === 0 && w.getBlock(x, y0 + 1, z) === B.AIR) set(x, y0 + 1, z, B.PALISADE); }
+      for (let j = -13; j <= -11; j++) for (let d = -1; d <= 1; d++) if (isSolid(w.getBlock(X + d, y0, Z + j))) set(X + d, y0, Z + j, D);
+    }
+    G.meshPass(99);
+  }
   function warlordSpecies(k) {
     const pool = KIN.dex('earth').filter(sp => !sp.fusion && sp.home && (sp.rarity || 0) >= 2 && (sp.rarity || 0) <= 3 && KIN.dominant(sp.elem, 1)[0] === 'Void');
     const any = pool.length ? pool : KIN.dex('earth').filter(sp => !sp.fusion && sp.home && (sp.rarity || 0) === 2);
@@ -93,6 +137,7 @@ const Keeps = (() => {
       if (k.core && p.y > CORE_TOP + 8) continue; // the Core hold only wakes when you are down there
       const s = st();
       if (!s['stamped_' + k.id] && Math.hypot(k.x - p.x, k.z - p.z) < 110) { s['stamped_' + k.id] = true; stamp(k); }
+      if (s['stamped_' + k.id] && !s['dressed_' + k.id] && Math.hypot(k.x - p.x, k.z - p.z) < 110) { s['dressed_' + k.id] = true; W().ensureAround(Math.floor(k.x / CH), Math.floor(k.z / CH), 1, 99); dress(k); } /* old worlds get the stronghold look once */
       const d = Math.hypot(k.x - p.x, k.z - p.z);
       if (s['stamped_' + k.id] && d < 80 && taken(k.id)) warriors(k);
       if (!taken(k.id) && s['stamped_' + k.id] && d < 70 && !Combat.forHold(k.id).length) muster(k);
