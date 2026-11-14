@@ -162,6 +162,8 @@ Scope (Alexander, 8 Nov evening): EVERYTHING visible goes to the same standard: 
 
 - 14 Nov: crouching no longer blocks walking up or down soil slopes (edge guard only stops drops over 2 blocks). Kin pass 3: shared limbs chunkier (quadruped legsOf with shoulders and toed paws; biped legs/arms thicker, mitt hands), fierce brow covers less, glow eyes keep a white, eyes sit proud of face masks, cinder kitten gets real eyes in its mask. Still to do per Kin: bird wings, bespoke limbs (salamander etc.), plain ones (snowman, hawk line), mushroom knight face.
 
+- 14 Nov, limbs by kind: quadruped legsOf builds ten leg kinds (cat, dog, stout, hare, pillar, hoof, cloven, spindle, drake, griffin) chosen by LEGK[plan] or o.kind; bird legsB has raptor/wader/runner/web/perch (BLEG); bird wings have five shapes (WINGK/WPROF: round, pointed, fingered, long, paddle) with a fleshed shoulder. Not yet done: bipeds' own kinds, bespoke-limbed Kin (salamander, serpents' fins, floaters).
+
 ## Still to do
 UI polish as feedback comes in. Card battle screen still used for scripted encounters (raids at the walls, thief, citadel duel, holds) and the snare mini-game; converting those to live is the next big step if wanted. (Old list: train/ships, combat animation, eggs, avatar hair/paint, buddy WEAR cosmetics, Silas and Finch, UI polish (item icons), quality toggles in settings (state.shadows, state.grassQuality, state.dprCap).
 
