@@ -1,0 +1,8 @@
+const { open } = require('./harness'); const fs = require('fs');
+(async () => { const h = await open(); await h.newGame('gal-1'); await h.calm(); const S = +(process.env.S || 300); const only = JSON.parse(process.env.ONLY || 'null');
+  const out = await h.ev(([S, only]) => { const list = [KIN.apexSpecies('rex'), KIN.apexSpecies('mosa'), KIN.mythicSpecies(G.world.seed), KIN.wardenSpecies(G.world.seed, 0), KIN.legendSpecies(PRESETS.moon), KIN.legendSpecies(PRESETS.halo)];
+    for (const b of ['earth', 'moon', 'halo']) for (const sp of KIN.dex(b)) if ((sp.rarity || 0) >= 4 && sp.home) list.push(sp);
+    const L = only ? list.filter(sp => only.includes(KIN.nativeId(sp))) : list; const cols = 3, rows = Math.ceil(L.length / cols); const cv0 = document.createElement('canvas'); cv0.width = S * cols; cv0.height = S * rows; const ctx = cv0.getContext('2d'); ctx.fillStyle = '#5a6a8a'; ctx.fillRect(0, 0, cv0.width, cv0.height); const errs = [];
+    L.forEach((sp, i) => { try { const cv = document.createElement('canvas'); KIN.portrait(cv, sp, 1, S); ctx.drawImage(cv, (i % cols) * S, Math.floor(i / cols) * S, S, S); } catch (e) { errs.push(sp.names[0] + ': ' + e.message); } ctx.fillStyle = '#fff'; ctx.font = '13px sans-serif'; ctx.fillText(sp.names[0] + ' / ' + KIN.nativeId(sp), (i % cols) * S + 6, Math.floor(i / cols) * S + 16); });
+    return { png: cv0.toDataURL('image/png'), errs }; }, [S, only]);
+  fs.writeFileSync(process.env.OUTF || '/home/claude/legends.png', Buffer.from(out.png.split(',')[1], 'base64')); console.log('MODEL ERRORS:', out.errs.length ? out.errs.join('\n') : 'none'); console.log('ERRORS:', h.errors.length ? h.errors.slice(0, 3).join('\n') : 'none'); await h.close(); })();

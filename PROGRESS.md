@@ -218,6 +218,10 @@ Scope (Alexander, 8 Nov evening): EVERYTHING visible goes to the same standard: 
 
 - Fix: your own Kin went pale for good after its first hit in the open (the hit flash on the buddy never faded; buddy.js now counts e.hitT down). Deploy Kin now opens the card battle, Kin against Kin, with the Kin you pick (G.sendIn calls Battle.start); the lead Kin still scraps beside you before that.
 
+- Lost World dinosaurs redone as 9 lines with three stages each (three-horn, armoured club-tail, plated stego, bronto, brachio with a grove on its back, crested para, feathered raptor, bone-head, titan boa), in the element of the species, own palette (NAT_COL.lost), size x1.6. Legendaries redone, one body each: Tyrannorex (x_rex), Abyssaurus (x_mosa), Mantlewyrm (x_mantle), Core Wardens (x_warden), Selenaut (lw_selenaut), Ringwarden (lw_ring), and the habitat legendaries by place (LEGEND map: l_core furnace, l_sky cloud whale, l_amber fossil serpent, lm_crater star bearer, lm_core crystal heart, lm_sky herald, lh_core ring djinn, lh_sky ring bearer). Makers set sp.natId; sizes retuned because single forms now draw full-grown. Tests: t-native.js BODY=lost, t-legend2.js.
+- Accessories on the new bodies: models carry native/fitBody; landmarks() ignores glowing parts, rings and orbits when finding the torso and head, a tube-bodied form names its torso with core(), round bodies wear a collar as a belt, low heads wear it on the head. Test: t-wearnat.js (six items on all 75 new bodies), t-allmodels.js (build + dress + moves for every Kin at every stage: 2115 ok).
+- Fix: alienize() returned a bare part list without bones, so the recoloured rare Kin of the Moon and Halo stood stiff and threw when dressed.
+
 ## Still to do
 UI polish as feedback comes in. Card battle screen still used for scripted encounters (raids at the walls, thief, citadel duel, holds) and the snare mini-game; converting those to live is the next big step if wanted. (Old list: train/ships, combat animation, eggs, avatar hair/paint, buddy WEAR cosmetics, Silas and Finch, UI polish (item icons), quality toggles in settings (state.shadows, state.grassQuality, state.dprCap).
 

@@ -1,0 +1,5 @@
+const { open } = require('./harness');
+(async () => { const h = await open(); await h.newGame('gal-1');
+  const r = await h.ev(() => { const errs = []; let n = 0; const items = ['hat', 'scarf', 'coat', 'sash', 'medal', 'crown', 'collar', 'bow', 'rosette', 'laurelk']; for (const b of ['earth', 'moon', 'halo']) for (const sp of KIN.dex(b)) for (let st = 1; st <= 3; st++) { try { const m = KIN.model(sp, st); n++; if (!m.boxes.length || !isFinite(m.height)) errs.push(sp.names[0] + ' empty'); KIN.dress(KIN.model(sp, st), { item: items[(n) % items.length], col: '#c94c4c' }); KIN.moves && KIN.moves(KIN.create(sp, 20)); } catch (e) { errs.push(b + ' ' + sp.names[0] + ' ' + st + ' ' + e.message); } }
+    const dn = KIN.dex('earth').filter(sp => sp.dino).map(sp => sp.names[0] + ':' + KIN.nativeId(sp) + ':' + sp.size.toFixed(1)); return { n, nerr: errs.length, errs: errs.slice(0, 6), dn }; });
+  console.log(JSON.stringify(r)); console.log('ERRORS:', h.errors.length ? h.errors.slice(0, 3).join('\n') : 'none'); await h.close(); })();
