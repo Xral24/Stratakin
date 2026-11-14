@@ -103,8 +103,8 @@ const Citadel = (() => {
     if (!C().stamped) return;
     // the two waves of his warriors
     if (d < 120) {
-      if (!C().wave1 && !Combat.forHold('cit1').length) spawnWave('cit1', C().court, [['captain', -4, -5], ['captain', 4, 5], ['shield', 0, -2], ['shield', 0, 2], ['axeman', 3, -6], ['archer', -6, 8], ['archer', 6, -8]]);
-      if (!C().wave2 && !Combat.forHold('cit2').length) spawnWave('cit2', C().stair, [['captain', 0, -4], ['captain', 0, 4], ['archer', 2, -7], ['archer', 2, 7], ['axeman', -2, 0]]);
+      if (!C().wave1 && !Combat.forHold('cit1').length) spawnWave('cit1', C().court, [['captain', -4, -5], ['captain', 4, 5], ['shield', 0, -2], ['shield', 0, 2], ['brute', 3, -6], ['lancer', -3, 6], ['archer', -6, 8], ['hexer', 6, -8]]);
+      if (!C().wave2 && !Combat.forHold('cit2').length) spawnWave('cit2', C().stair, [['captain', 0, -4], ['captain', 0, 4], ['hexer', 2, -7], ['hexer', 2, 7], ['brute', -2, 0]]);
       if (!C().wave1 && Combat.forHold('cit1').length && Combat.standingIn('cit1') === 0) { C().wave1 = true; UI.toast('The outer court is quiet. On to the dead gate.', 'good'); }
       if (!C().wave2 && Combat.forHold('cit2').length && Combat.standingIn('cit2') === 0) { C().wave2 = true; UI.toast('His captains are down. He is waiting at the throne.', 'good'); }
       if (C().cell && !C().profFree && !Campaign.hasPerson('prof_cell')) { const cl = C().cell; const n = Campaign.spawnPerson('prof_cell', 'Professor Aldous Finch', 'professor', cl.x, cl.z, { body: '#e8e8e0', belly: '#c9a87a', accent: '#4a8ad0', eye: '#222222' }, ['scientist', 'professor']); n.y = cl.y; n.yaw = Math.PI; }

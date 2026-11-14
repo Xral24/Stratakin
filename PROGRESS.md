@@ -230,6 +230,8 @@ Scope (Alexander, 8 Nov evening): EVERYTHING visible goes to the same standard: 
 
 - Tam's rescue: he is always held in one of the first three holds (the one nearest the snow camp), in a cage in the yard's back corner at +6,+6 (clear of the new keep wall). The cage opens when every warrior in the hold is down, tower floors included (or Keeps.gates(id) >= 4, or the hold is taken). Ysolde's lines say so. Test: tools/test/t-tam.js.
 
+- The Citadel's two waves and the sky fort now field brutes, lancers and hexers too. Terrain seen at last in a picture (tools/test/t-terr3.js: freeze the player, ensureAround, meshPass, as t-world.js does): a sea cliff over a beach and a snow ridge look right; shelves and buttes still unseen. Thornhold and the Citadel left as they are: both are already a run of rooms with a challenge each.
+
 ## Still to do
 UI polish as feedback comes in. Card battle screen still used for scripted encounters (raids at the walls, thief, citadel duel, holds) and the snare mini-game; converting those to live is the next big step if wanted. (Old list: train/ships, combat animation, eggs, avatar hair/paint, buddy WEAR cosmetics, Silas and Finch, UI polish (item icons), quality toggles in settings (state.shadows, state.grassQuality, state.dprCap).
 
