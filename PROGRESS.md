@@ -236,6 +236,8 @@ Scope (Alexander, 8 Nov evening): EVERYTHING visible goes to the same standard: 
 
 - Checks only, no game change: the new Kin stand in the world and render with faces, shadows and sensible sizes (tools/test/t-inworld.js: Moon, Halo, dinosaurs); travelling to the Moon and the Halo works with no errors and their steeds are natives (Moon: mooncalf, isopod, water bear, jerboa; Halo: oryx, girdled lizard, camel) (tools/test/t-moonplay.js). Open design question left for Alexander: the element chart gives Gale and Bloom three weaknesses each and Flame and Light one; evening that out means changing who beats whom.
 
+- Status effects show up more: a named status move lands its effect half the time (was 35%), and every other thrown move of Flame, Bloom, Frost, Spark and Void has an 18% chance of its element's effect (kin.js castMove). About 23% of moves now carry one (was 9%) and they are about 4% of all damage in simulated fights (was 2%). Bloom moved up to about 50% wins. Looked at land, village, city and hold pictures again (t-world.js): nothing wrong found.
+
 ## Still to do
 UI polish as feedback comes in. Card battle screen still used for scripted encounters (raids at the walls, thief, citadel duel, holds) and the snare mini-game; converting those to live is the next big step if wanted. (Old list: train/ships, combat animation, eggs, avatar hair/paint, buddy WEAR cosmetics, Silas and Finch, UI polish (item icons), quality toggles in settings (state.shadows, state.grassQuality, state.dprCap).
 

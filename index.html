@@ -5061,7 +5061,9 @@ const KIN = (() => {
   const TECH = {}; for (const t of TECHLIST) TECH[t.name] = t;
   function techFor(k) { const el = dominant(k.sp.elem, 1)[0]; const mine = TECHLIST.filter(t => t.elem === el); return mine[((k.sp.seed >>> 7) % 997) % mine.length].name; }
   function techByName(nm) { return TECH[nm] || null; }
-  function castMove(el, idx, st, bonus) { const c = CAST[el][idx % 4]; const m = { name: c[0], elem: el, kind: 'spec', power: Math.round((58 + 10 * st + (bonus || 0)) * c[2]), acc: c[3], fx: c[1] }; if (c[4]) { if (AILS[c[4]]) { m.ail = c[4]; m.ailP = 0.35; } else m[c[4]] = true; m.desc = FLAGDESC[c[4]]; } return m; }
+  function castMove(el, idx, st, bonus) { const c = CAST[el][idx % 4]; const m = { name: c[0], elem: el, kind: 'spec', power: Math.round((58 + 10 * st + (bonus || 0)) * c[2]), acc: c[3], fx: c[1] }; if (c[4]) { if (AILS[c[4]]) { m.ail = c[4]; m.ailP = 0.5; } else m[c[4]] = true; m.desc = FLAGDESC[c[4]]; }
+    else { const ea = ({ Flame: 'burn', Bloom: 'poison', Frost: 'frost', Spark: 'shock', Void: 'curse' })[el]; if (ea) { m.ail = ea; m.ailP = 0.18; m.desc = 'A small chance to ' + ({ burn: 'burn', poison: 'poison', frost: 'frostbite', shock: 'shock', curse: 'curse' })[ea] + '.'; } } /* every thrown move of a burning, poisoning, freezing, shocking or cursing element can leave its mark: the named ones often, the plain ones now and then */
+    return m; }
   function moves(k) {
     const dom = dominant(k.sp.elem, 2);
     const e1 = dom[0], e2 = dom[1] || dom[0];
