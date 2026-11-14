@@ -85,7 +85,7 @@ const Citadel = (() => {
     for (const z of [-12, 12]) { turret(18, z, 20, true); turret(35, z, 16); turret(60, z, 16); turret(73, z, 17); turret(L, z, 22, true); }
     // the gatehouse: stone bridged over the thorn gate, ember eyes, banners down the front
     for (let z = -3; z <= 3; z++) for (let x = 17; x <= 18; x++) { for (let y = 12; y <= 15; y++) set(x, y, z, F); if (z % 2 !== 0) set(x, 16, z, F); }
-    set(17, 14, -2, B.EMBER); set(17, 14, 2, B.EMBER); set(17, 9, 0, B.EMBER); for (const z of [-5, -3, 3, 5]) set(16, 8, z, B.BANNER); for (const z of [-9, 9]) set(16, 9, z, B.BANNER);
+    set(17, 14, -2, B.EMBERLIGHT); set(17, 14, 2, B.EMBERLIGHT); set(17, 9, 0, B.EMBERLIGHT); for (const z of [-5, -3, 3, 5]) set(16, 8, z, B.BANNER); for (const z of [-9, 9]) set(16, 9, z, B.BANNER);
     // the great tower: the back wall raised in steps to a spire over the throne
     for (const [hw, y0s, y1s] of [[9, 13, 17], [6, 18, 23], [3, 24, 30]]) { for (let z = -hw; z <= hw; z++) for (let x = L; x <= L + 1; x++) { for (let y = y0s; y <= y1s; y++) set(x, y, z, F); if (z % 2 === 0) set(x, y1s + 1, z, F); } for (const z of [-hw + 1, hw - 1, 0]) set(L, y1s - 2, z, B.EMBER); }
     for (let z = -3; z <= 3; z++) for (let x = L - 1; x <= L + 2; x++) set(x, 31 + Math.min(3 - Math.abs(z), 2), z, B.SLATE); set(L, 34, 0, B.VOID); set(L, 35, 0, B.VOID);

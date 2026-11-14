@@ -90,7 +90,7 @@ const Sky = (() => {
       for (const [a, b] of [[-9, -5], [9, -5], [-9, 5], [9, 5]]) put(X + a, Y + 1, Z + b, B.FIREPIT);
       // dressed as the Storm Warden's stronghold: dark footings and ember slots in place of pale ones, corner towers under spires, a
       // twin-turreted gatehouse, and the spire itself: a tower behind the dais that climbs in three stages to a storm light
-      for (let d = -11; d <= 11; d++) for (const [x, z] of [[X + d, Z - 11], [X + d, Z + 11], [X - 11, Z + d], [X + 11, Z + d]]) { if (Math.abs(d) <= 1 && z === Z - 11) continue; put(x, Y + 1, z, B.BASALT); if (d % 3 === 0 && Math.abs(d) < 10) put(x, Y + 4, z, B.EMBER); }
+      for (let d = -11; d <= 11; d++) for (const [x, z] of [[X + d, Z - 11], [X + d, Z + 11], [X - 11, Z + d], [X + 11, Z + d]]) { if (Math.abs(d) <= 1 && z === Z - 11) continue; put(x, Y + 1, z, B.BASALT); if (d % 3 === 0 && Math.abs(d) < 10) put(x, Y + 4, z, B.EMBERLIGHT); }
       // (the sky has a ceiling nine blocks over this floor, so nothing here climbs past it: the spire is broad and stepped, not tall)
       for (const [a, b] of [[-11, -11], [11, -11], [-11, 11], [11, 11]]) { put(X + a, Y + 6, Z + b + Math.sign(b), B.EMBER); put(X + a + Math.sign(a), Y + 6, Z + b, B.EMBER); put(X + a, Y + 5, Z + b + Math.sign(b) * 2, B.BANNER); for (const [i, j] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) put(X + a + i, Y + 9, Z + b + j, F); }
       for (const sx of [-1, 1]) { for (let i = 2; i <= 3; i++) for (let j = -13; j <= -11; j++) for (let y = Y + 1; y <= Y + 8; y++) put(X + sx * i, y, Z + j, y === Y + 1 ? B.BASALT : F);

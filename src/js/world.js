@@ -14,7 +14,7 @@ const B = {
   TORCH: 18, FUSION: 19, GRAVEL: 20, CACTUS: 21, STARMETAL: 22, MOSS: 23, STATUE: 24, PLANKS: 25, BERRY: 26, GLASS: 27, CAMPFIRE: 28, IRONWALL: 29, VOIDWALL: 30, GLOWWORM: 31, BERRYLEAF: 32, DOOR: 33, DOOR_OPEN: 34, PORTAL: 35,
   CHEST: 36, SELENITE: 37, TYCHO: 38, STARSALT: 39, MOONGLOW: 40, AMBER: 41, SULFUR: 42, RINGSHARD: 43, BRINE: 44, CORAL_R: 45, CORAL_B: 46, CORAL_Y: 47, PEARLCORAL: 48, GOLD: 49, DIAMOND: 50, FERN: 51, SELGLASS: 52, INCUBATOR: 53, REGOLITH: 54, DUNE: 55, SALTCRUST: 56, LADDER: 57, TARGET: 58, BALLOON: 59, FORTSTONE: 60, THORN: 61, DEADGATE: 62, RUBBLE: 63, DARKTABLE: 64,
   NEEDLES: 65, FROND: 66, BIRCHLOG: 67, BOULDER: 68, MUSHROOM: 69, FLOWERS: 70, PEBBLES: 71, PALMLOG: 72,
-  TILES: 73, SLATE: 74, THATCH: 75, PLASTER: 76, BEAM: 77, LAMP: 78, COBBLE: 79, FLOWERBOX: 80, PALISADE: 81, MASONRY: 82, FOUNTAIN: 83, BASIN: 84, AWNING: 85, BANNER: 86, SLIT: 87, TIPI: 88, HIDE: 89, LODGE: 90, FENCE: 91, FIREPIT: 92, TOTEM: 93, RAIL: 94, CART: 95, ROPEBRIDGE: 96, WEAVE: 97, SAIL: 98
+  TILES: 73, SLATE: 74, THATCH: 75, PLASTER: 76, BEAM: 77, LAMP: 78, COBBLE: 79, FLOWERBOX: 80, PALISADE: 81, MASONRY: 82, FOUNTAIN: 83, BASIN: 84, AWNING: 85, BANNER: 86, SLIT: 87, TIPI: 88, HIDE: 89, LODGE: 90, FENCE: 91, FIREPIT: 92, TOTEM: 93, RAIL: 94, CART: 95, ROPEBRIDGE: 96, WEAVE: 97, SAIL: 98, EMBERLIGHT: 99
 };
 
 // name, top colour, side colour, solid, hardness (seconds to mine), drop item id, emissive, fluid
@@ -83,6 +83,7 @@ defBlock(B.GOLD, 'Gold Ore', '#8e8e97', '#85858e', { hard: 1.6, drop: 'gold' });
 defBlock(B.DIAMOND, 'Diamond Ore', '#8e8e97', '#85858e', { hard: 2.2, drop: 'diamond' });
 defBlock(B.FERN, 'Fern', '#3f8a33', '#2f7a2a', { solid: false, hard: 0.15, drop: 'frond', partial: true, transparent: true });
 defBlock(B.SELGLASS, 'Selenite Glass', '#dff4ff', '#cfeafc', { hard: 0.5, drop: 'selglass', transparent: true });
+defBlock(B.EMBERLIGHT, 'Ember Window', '#ff9a3a', '#ff7a1a', { hard: Infinity, emissive: true }); /* a slot in a fortress wall with fire behind it */
 defBlock(B.FORTSTONE, 'Fortress Stone', '#5c5470', '#4e4762', { hard: Infinity });
 defBlock(B.THORN, 'Thorn Wall', '#3a5a22', '#2a4418', { hard: Infinity, transparent: true }); // drawn as a tangle of vines
 defBlock(B.DEADGATE, 'Dead Gate', '#5a6670', '#46525c', { hard: Infinity });

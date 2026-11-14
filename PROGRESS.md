@@ -200,6 +200,8 @@ Scope (Alexander, 8 Nov evening): EVERYTHING visible goes to the same standard: 
 
 - 14 Nov, Moon and Halo Kin: neon species (rarity < 5) now use the designed lines and pass through alienize() in kin.js: every colour is turned toward the body's own light (Moon cyan-violet-magenta, Halo rose-gold), Moon Kin get glow-tipped feelers and a brow gem, Halo Kin a ring of light with motes. Names are 'Lunar X' / 'Astral X' where free (about 90 of 235 each; the rest keep generated names). Titans keep their old shapes. This was the quick route, not new alien designs; tools/test/t-alien.js.
 
+- 14 Nov: new block EMBERLIGHT (99, 'Ember Window', emissive) replaces the raw ember ore used as glowing slots on fortresses, the citadel and the sky fort. Worlds where a fort was already dressed keep the old blocks.
+
 ## Still to do
 UI polish as feedback comes in. Card battle screen still used for scripted encounters (raids at the walls, thief, citadel duel, holds) and the snare mini-game; converting those to live is the next big step if wanted. (Old list: train/ships, combat animation, eggs, avatar hair/paint, buddy WEAR cosmetics, Silas and Finch, UI polish (item icons), quality toggles in settings (state.shadows, state.grassQuality, state.dprCap).
 
