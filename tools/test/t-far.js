@@ -1,0 +1,6 @@
+const { open } = require('./harness');
+(async () => { const h = await open(); const { page, ev } = h; await h.newGame('look-3'); await h.calm();
+  await ev(() => { G.repelUntil = performance.now() + 9e7; G.stats.buddyOff = true; G.explain = () => {}; G.player.frozen = true; G.thirdPerson = false; try { G.player.inv.clear(); } catch (e) {} for (const id of ['hud', 'controls', 'hotbar']) { const e = document.getElementById(id); if (e) e.style.display = 'none'; } });
+  const views = [[0.33, 0.6, -0.02], [0.33, 2.4, 0.05], [0.72, 4.0, 0.0], [0.33, 5.2, -0.1]];
+  for (let i = 0; i < views.length; i++) { await ev((a) => { const p = G.player, w = G.world, v = Village.def; G.world.time = a[0]; p.x = v.x + 60; p.z = v.z - 30; w.ensureAround(Math.floor(p.x / CH), Math.floor(p.z / CH), 5, 9999); p.y = w.groundY(Math.floor(p.x), Math.floor(p.z)) + 9; p.yaw = a[1]; p.pitch = a[2]; G.meshPass(999); }, views[i]); await page.waitForTimeout(2500); await ev(() => { const t = document.getElementById('toasts'); if (t) t.innerHTML = ''; }); await page.screenshot({ path: `/home/claude/far-${i}.png` }); }
+  console.log('ERRORS:', h.errors.length ? h.errors.slice(0, 3).join('\n') : 'none'); await h.close(); })();

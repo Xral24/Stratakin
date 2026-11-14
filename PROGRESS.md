@@ -244,6 +244,8 @@ Scope (Alexander, 8 Nov evening): EVERYTHING visible goes to the same standard: 
 
 - Blocks the player places inside a protected place (town, hold, rail) are remembered and can be mined back. Loose stone, dirt or sand level with the Fusion Table and within 3 of it also comes up, which frees blocks placed before this change. The ground under the table stays protected.
 
+- 14 Nov, soul pass 1 (Alexander sent references: cosy block towns with dressed streets, lush valleys, sky villages, hill villages with terracotta roofs; wants soul and better graphics, spirit not copies). Far mountain ranges are painted on the sky (render.js RANGES / farRanges, shared by the sky shader and skyFog so land melts into them): two lilac ranges, the back one snow-capped, coloured from the sky so they dim at night and work on every world. Haze starts later (fogNear 0.68 of fogFar, was 0.56). Next in this pass: street dressing in towns (barrels, crates, awnings, bunting, signposts, planters), warmer plaster and roofs, grass-topped rock outcrops, waterfalls and streams, then Moon and Halo.
+
 ## Still to do
 UI polish as feedback comes in. Card battle screen still used for scripted encounters (raids at the walls, thief, citadel duel, holds) and the snare mini-game; converting those to live is the next big step if wanted. (Old list: train/ships, combat animation, eggs, avatar hair/paint, buddy WEAR cosmetics, Silas and Finch, UI polish (item icons), quality toggles in settings (state.shadows, state.grassQuality, state.dprCap).
 
