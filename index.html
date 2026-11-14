@@ -7816,8 +7816,12 @@ const KIN = (() => {
     const discZ = (x, y, z, r, th, c, o) => blob(x - r, y - r, z - th / 2, x + r, y + r, z + th / 2, 1, c, Object.assign({ n: 4 }, o || {})); // a disc standing up, facing forward (a badge on the chest)
     const onHead = () => { H.bone = head.bone; }, onBody = () => { H.bone = 0; };
     const top = head.y1 + 0.005, front = body.z1;
-    if (long && ['scarf', 'coat', 'collar', 'sash', 'medal'].includes(wear.item)) { /* on a long body these become bands round it, a third of the way back from the nose */
-      onBody(); const zc = head.fake ? body.cz - body.d * 0.05 : Math.min(neck.z - nr * 0.9, body.z1 - body.d * 0.25); let rx = (head.fake ? body.w : Math.min(body.w, hr * 2.2)) * 0.52, ry = (head.fake ? body.h : Math.min(body.h, hr * 2.2)) * 0.52, cy = head.fake ? body.cy : neck.y - ry * 0.3, cx = body.cx;
+    const lying = !long && body.d > body.h * 1.1; /* a four-legged body: its back is level, so a sash or a medal goes round it like a dog's collar, not down its front */
+    if (!long && !lying && head.fake && (wear.item === 'sash' || wear.item === 'medal')) { /* a body with no head of its own (a coal, an orb): worn as a belt round the middle */
+      onBody(); const y = body.y0 + body.h * (wear.item === 'sash' ? 0.3 : 0.36), rx = body.w * 0.54, rz = body.d * 0.54; ring(body.cx, y, body.cz, rx, rz, wear.item === 'sash' ? 0.05 : 0.02, red); discZ(body.cx, y - (wear.item === 'sash' ? 0 : 0.05), body.z1 + 0.03, wear.item === 'sash' ? 0.05 : 0.06, 0.025, gold);
+      m.height = Math.max(m.height, ...m.boxes.map(b => b.y + b.h)); return m; }
+    if ((long && ['scarf', 'coat', 'collar', 'sash', 'medal'].includes(wear.item)) || (lying && ['sash', 'medal'].includes(wear.item))) { /* on a long body these become bands round it, a third of the way back from the nose */
+      onBody(); const zc = lying ? body.cz + body.d * (wear.item === 'medal' ? 0.3 : 0.05) : head.fake ? body.cz - body.d * 0.05 : Math.min(neck.z - nr * 0.9, body.z1 - body.d * 0.25); let rx = (head.fake ? body.w : Math.min(body.w, hr * 2.2)) * 0.52, ry = (head.fake ? body.h : Math.min(body.h, hr * 2.2)) * 0.52, cy = head.fake ? body.cy : neck.y - ry * 0.3, cx = body.cx;
       { let best = 0; for (const b of m.boxes) { if ((b.bone || 0) !== 0) continue; /* the body's own section where the band goes: the fattest piece of it that passes that point */
           if (b.k === 'tube' && b.path) { let bi = 0, bd = 1e9; b.path.forEach((q, i) => { const dd = Math.abs(q[2] - zc); if (dd < bd) { bd = dd; bi = i; } }); const r0 = b.radii[bi], r = Array.isArray(r0) ? Math.max(r0[0], r0[1]) : r0; if (bd < 0.25 && r > best) { best = r; cx = b.path[bi][0]; cy = b.path[bi][1]; rx = Array.isArray(r0) ? r0[0] : r0; ry = Array.isArray(r0) ? r0[1] : r0; } }
           else if (b.k === 'blob' && b.w && zc > b.z && zc < b.z + b.d) { const q = (zc - b.z - b.d / 2) / (b.d / 2), f = Math.sqrt(Math.max(0.05, 1 - q * q)), r = Math.max(b.w, b.h) / 2 * f; if (r > best) { best = r; cx = b.x + b.w / 2; cy = b.y + b.h / 2; rx = b.w / 2 * f; ry = b.h / 2 * f; } } } }
@@ -7826,7 +7830,7 @@ const KIN = (() => {
       else if (wear.item === 'coat') { for (let i = 0; i < 4; i++) band(zc - i * 0.075, 0.045, i % 3 === 0 ? dark : col); ball(cx, cy + ry + 0.03, zc + 0.05, 0.03, gold); }
       else if (wear.item === 'collar') { band(zc, 0.03, col); ball(cx, cy - ry - 0.03, zc, 0.04, gold); }
       else if (wear.item === 'sash') { band(zc, 0.05, red); ball(cx + rx + 0.04, cy, zc, 0.04, gold); }
-      else { band(zc, 0.018, red); ball(cx, cy - ry - 0.05, zc, 0.05, gold); ball(cx, cy - ry - 0.05, zc + 0.03, 0.03, '#fff1a8'); }
+      else { band(zc, 0.028, red); for (const sx of [-1, 1]) { ball(cx + sx * (rx + 0.05), cy - ry * 0.25, zc, 0.055, gold); ball(cx + sx * (rx + 0.085), cy - ry * 0.25, zc, 0.03, '#fff1a8'); } } /* a collar with the medal hanging at each side, where it can be seen */
       m.height = Math.max(m.height, ...m.boxes.map(b => b.y + b.h)); return m; }
     switch (wear.item) {
       case 'scarf': { onBody(); ring(neck.x, neck.y, neck.z, nr * 1.08, nr * 1.08, nr * 0.24, col); // a wound ring at the neck and a tail hanging down the back

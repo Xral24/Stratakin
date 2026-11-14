@@ -176,6 +176,8 @@ Scope (Alexander, 8 Nov evening): EVERYTHING visible goes to the same standard: 
 
 - 14 Nov: player blows land mid-swing (combat.js pendingHit/land), foes use the keyframed swings (wind-up maps to the raise, strike to the blow). Folk torso is one tapered tube; gem pupil visible. Face paint is laid in short strips on a better face surface (avatar.js strip, kin.js faceZ); stripes are cheek bars, mask frames the eyes. Wear bands verified on serpent, millipede, shark, koi.
 
+- 14 Nov: sash and medal are worn as a collar round the body on four-legged and long Kin (medal hangs at each side), and as a belt on headless bodies (coal, orbs).
+
 ## Still to do
 UI polish as feedback comes in. Card battle screen still used for scripted encounters (raids at the walls, thief, citadel duel, holds) and the snare mini-game; converting those to live is the next big step if wanted. (Old list: train/ships, combat animation, eggs, avatar hair/paint, buddy WEAR cosmetics, Silas and Finch, UI polish (item icons), quality toggles in settings (state.shadows, state.grassQuality, state.dprCap).
 
