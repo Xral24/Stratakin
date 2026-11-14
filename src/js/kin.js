@@ -632,7 +632,8 @@ const KIN = (() => {
         el(sd, 0, 0.04, 0.26, 0.96, 1.16, 0.5, '#f8f6f0', { n: 5 });
         el(sd, inn * 0.1, -0.06, 0.6, 0.68, 0.88, 0.26, glow ? col : deep, { n: 5, emis: glow });
         el(sd, inn * 0.1, -0.42, 0.66, 0.5, 0.42, 0.2, glow ? hexMix(col, '#ffffff', 0.5) : lite, { n: 4, emis: glow });
-        el(sd, inn * 0.1, 0.0, 0.8, 0.24, 0.44, 0.1, '#08060e', { n: 4 });
+        if (o.pupil === 'diamond') { const q = (u, v) => pt(sd, inn * 0.1 + u, v, 0.66); plate([q(0, 0.52), q(0.27, 0), q(0, -0.52), q(-0.27, 0)], er * 0.045, '#08060e'); } /* the folk's eyes: a cut-gem pupil */
+        else el(sd, inn * 0.1, 0.0, 0.8, 0.24, 0.44, 0.1, '#08060e', { n: 4 });
         el(sd, inn * 0.1 + gx, 0.42, 0.84, 0.25, 0.27, 0.08, '#ffffff', { n: 3, emis: true });
         el(sd, inn * 0.1 - gx * 0.9, -0.46, 0.86, 0.11, 0.11, 0.05, '#ffffff', { n: 3, emis: true });
         const arc = [], rr = []; const a0 = o.brow ? 0.8 : 0.3, a1 = o.brow ? 1.2 : 0.3;
@@ -2877,26 +2878,39 @@ const KIN = (() => {
         if (f.wings) wings(0.45, 1.0, -0.2, 1.0);
         break;
       }
-      case 'human': { // the folk of Stratakin: not humans. Big egg heads, long leaf ears that twitch, round noses, four thick fingers, stocky legs and big boots
+      case 'human': { /* the folk of Stratakin. Not humans, and not elves: a people of the layered world, and it shows on them. Three things mark them out:
+           ears that grow in three stacked fins like shelves of rock, great eyes with a cut-gem pupil over two short bands of light on each cheek,
+           and hair in bold clumps with one bright lock. Built like a hero in a comic: small waist, big forearms, big hands, big boots. */
         kind = 'human';
-        const skin = C.belly, cloth = C.body, dark = C.dark, hair = sp.hair || hexMix(C.dark, '#2a1a10', 0.5), skin2 = hexMix(skin, '#c8604a', 0.22);
-        blob(-0.32, 0.6, -0.21, 0.32, 1.26, 0.21, 0.7, cloth, { tap: [1.0, 0.9], bulge: 0.05, n: 4 });
-        ring(0, 0.67, 0, 0.3, 0.19, 0.03, dark); blob(-0.1, 0.6, 0.12, 0.1, 0.74, 0.24, 0.5, hexMix(C.accent, '#000000', 0.15), { n: 2 }); // belt, and the buckle on the front only (it used to poke out of the back too, so from behind he seemed to face you)
-        tube([[0, 1.18, 0], [0, 1.36, 0]], [0.09, 0.09], skin, { cap0: 'none', cap1: 'none', segs: 6 });
+        const skin = C.belly, cloth = C.body, dark = C.dark, hair = sp.hair || hexMix(C.dark, '#2a1a10', 0.5), skin2 = hexMix(skin, '#c8604a', 0.22), trim = C.accent, glowc = hexMix(C.accent, '#ffffff', 0.35);
+        blob(-0.33, 0.84, -0.2, 0.33, 1.27, 0.2, 0.75, cloth, { tap: [0.8, 1.04], n: 4 }); /* a chest that narrows to the waist */
+        blob(-0.25, 0.6, -0.17, 0.25, 0.92, 0.17, 0.6, cloth, { n: 3 });
+        blob(-0.31, 0.5, -0.22, 0.31, 0.7, 0.22, 0.5, cloth, { tap: [1.12, 0.84], n: 3 }); hring(0, 0.515, 0, 0.3, 0.018, trim); /* the tunic's hem flares, with a line of trim */
+        ring(0, 0.67, 0, 0.3, 0.19, 0.03, dark); blob(-0.1, 0.6, 0.12, 0.1, 0.74, 0.24, 0.5, hexMix(C.accent, '#000000', 0.15), { n: 2 }); // belt, and the buckle on the front only
+        plate([[-0.09, 1.25, 0.172], [0.09, 1.25, 0.172], [0, 1.1, 0.198]], 0.014, trim); /* a collar cut in a V */
+        tube([[0, 1.18, 0], [0, 1.36, 0]], [0.085, 0.08], skin, { cap0: 'none', cap1: 'none', segs: 6 });
         B(1, 'head', [0, 1.3, 0]);
-        blob(-0.27, 1.28, -0.28, 0.27, 1.88, 0.28, 0.92, skin, { n: 5, tap: [0.86, 1.0] }); // egg head: narrower jaw, wide crown
-        if (!sp.bald) { blob(-0.29, 1.56, -0.31, 0.29, 1.92, 0.19, 0.9, hair, { n: 4, tap: [0.98, 0.92] }); blob(-0.12, 1.84, 0.02, 0.1, 2.02, 0.27, 0.9, hair, { n: 3 }); } // cap and a quiff
-        for (const sd of [-1, 1]) {
-          ball(sd * 0.105, 1.6, 0.22, 0.078, '#ffffff', { n: 3, emis: true }); ball(sd * 0.105, 1.6, 0.272, 0.042, C.eye === '#222222' ? '#3a5a8a' : C.eye, { n: 2 }); ball(sd * 0.105, 1.6, 0.3, 0.022, '#111111', { n: 2 }); ball(sd * 0.085, 1.63, 0.306, 0.012, '#ffffff', { n: 2, emis: true });
-          blob(sd * 0.105 - 0.075, 1.7, 0.2, sd * 0.105 + 0.075, 1.735, 0.27, 0.6, hair, { n: 2 }); // brow
-        }
-        ball(0, 1.5, 0.3, 0.065, skin2, { n: 3 }); // the nose
-        plate([[-0.06, 1.41, 0.265], [0.06, 1.41, 0.265], [0.04, 1.385, 0.268], [-0.04, 1.385, 0.268]], 0.012, hexMix(skin, '#5a1a1a', 0.55));
-        for (const sd of [-1, 1]) { B(sd < 0 ? 7 : 8, 'ear', [sd * 0.27, 1.6, 0], { side: sd, phase: sd }); plate([[sd * 0.25, 1.52, 0.02], [sd * 0.27, 1.66, 0.04], [sd * 0.5, 1.78, -0.02], [sd * 0.46, 1.7, -0.03], [sd * 0.3, 1.5, 0.0]], 0.035, skin, { edge: skin2 }); plate([[sd * 0.3, 1.56, 0.02], [sd * 0.31, 1.64, 0.03], [sd * 0.43, 1.72, 0.0], [sd * 0.4, 1.66, -0.01]], 0.01, skin2); }
+        blob(-0.27, 1.28, -0.28, 0.27, 1.88, 0.28, 0.92, skin, { n: 5, tap: [0.82, 1.0] }); // the head: a soft chin, a wide crown
+        if (!sp.bald) { blob(-0.29, 1.56, -0.31, 0.29, 1.92, 0.19, 0.9, hair, { n: 4, tap: [0.98, 0.92] });
+          for (const [x, w, c, ln] of [[-0.19, 0.075, hair, -0.03], [-0.07, 0.07, hair, -0.02], [0.03, 0.06, glowc, 0.03], [0.14, 0.08, hair, 0.05], [0.22, 0.05, hair, 0.03]]) plate([[x - w, 1.83, 0.185], [x + w, 1.83, 0.185], [x + ln, 1.71, 0.272]], 0.03, c, c === glowc ? { emis: true } : undefined); /* a fringe of pointed clumps, one of them bright */
+          for (const [x, z, dx, dz, l] of [[-0.14, -0.1, -0.5, -0.5, 0.2], [0.14, -0.1, 0.5, -0.5, 0.2], [0, -0.2, 0, -1, 0.24], [0, 0.02, 0.15, -0.2, 0.16]]) cone([x, 1.84, z], [dx, 0.8, dz], l, 0.085, hair, { segs: 6 }); } /* clumps swept back off the crown */
+        LOOK(0.1, 1.57, 0.19, 0.068, { col: C.eye === '#222222' ? null : C.eye, pupil: 'diamond' });
+        for (const sd of [-1, 1]) { tube([[sd * 0.035, 1.692, 0.268], [sd * 0.11, 1.708, 0.255], [sd * 0.185, 1.685, 0.22]], [0.008, 0.013, 0.005], hair, { cap0: 'round', cap1: 'round', segs: 5 }); /* a brow with a lift to it */
+          for (const [y, w, z] of [[1.455, 0.036, 0.18], [1.42, 0.024, 0.178]]) blob(sd * 0.15 - w, y - 0.013, z, sd * 0.15 + w, y + 0.013, z + 0.022, 0.9, glowc, { emis: true, n: 2 }); } /* two bands of light under each eye, like strata in a cliff */
+        ball(0, 1.475, 0.268, 0.024, skin2, { n: 2 }); // a small nose
+        tube([[-0.05, 1.402, 0.245], [0, 1.385, 0.262], [0.05, 1.402, 0.245]], [0.008, 0.012, 0.008], hexMix(skin, '#5a1a1a', 0.6), { cap0: 'round', cap1: 'round', segs: 5 });
+        for (const sd of [-1, 1]) { B(sd < 0 ? 7 : 8, 'ear', [sd * 0.27, 1.6, 0], { side: sd, phase: sd });
+          for (let i = 0; i < 3; i++) { const k2 = 1 - i * 0.24, y = 1.69 - i * 0.085; plate([[sd * 0.245, y + 0.035, 0.05], [sd * (0.3 + 0.13 * k2), y + 0.07, -0.01], [sd * (0.29 + 0.2 * k2), y + 0.05, -0.1 - 0.08 * k2], [sd * (0.27 + 0.08 * k2), y - 0.02, -0.12 * k2 - 0.02], [sd * 0.25, y - 0.035, -0.02]], 0.028, skin, { edge: i === 0 ? glowc : skin2 }); } } /* three fins, each smaller than the one above */
         B(1, 'head', [0, 1.3, 0]); bone = 0;
-        for (const sd of [-1, 1]) { B(sd < 0 ? 2 : 3, 'arm', [sd * 0.34, 1.18, 0], { phase: sd < 0 ? 0 : Math.PI, side: sd }); tube([[sd * 0.31, 1.2, 0], [sd * 0.41, 0.9, 0.0]], [0.095, 0.08], cloth, { cap0: 'round', cap1: 'none', segs: 6 }); tube([[sd * 0.41, 0.9, 0.0], [sd * 0.45, 0.62, 0.05]], [0.075, 0.07], skin, { cap0: 'none', cap1: 'none', segs: 6 }); ball(sd * 0.45, 0.55, 0.06, 0.095, skin, { n: 3 }); ball(sd * 0.39, 0.55, 0.12, 0.045, skin, { n: 2 }); }
+        for (const sd of [-1, 1]) { B(sd < 0 ? 2 : 3, 'arm', [sd * 0.34, 1.18, 0], { phase: sd < 0 ? 0 : Math.PI, side: sd });
+          ball(sd * 0.335, 1.2, 0, 0.125, cloth, { n: 3 }); hring(sd * 0.36, 1.1, 0, 0.1, 0.014, trim); /* a round shoulder with a band of trim */
+          tube([[sd * 0.32, 1.2, 0], [sd * 0.41, 0.9, 0.0]], [0.1, 0.075], cloth, { cap0: 'round', cap1: 'none', segs: 8 });
+          tube([[sd * 0.41, 0.9, 0.0], [sd * 0.435, 0.76, 0.03], [sd * 0.45, 0.62, 0.05]], [0.07, 0.098, 0.088], hexMix(dark, cloth, 0.25), { cap0: 'round', cap1: 'none', segs: 8 }); hring(sd * 0.45, 0.64, 0.05, 0.09, 0.014, trim); /* a bracer that swells toward the wrist */
+          ball(sd * 0.45, 0.55, 0.06, 0.105, skin, { n: 3 }); ball(sd * 0.385, 0.56, 0.125, 0.048, skin, { n: 2 }); for (const a of [-1, 0, 1]) ball(sd * 0.45 + a * 0.05, 0.475, 0.085, 0.04, skin, { n: 2 }); } /* a big hand: a thumb and three knuckles */
         legLen = 0.6;
-        for (const sd of [-1, 1]) { B(sd < 0 ? 4 : 5, 'leg', [sd * 0.15, 0.62, 0], { phase: sd < 0 ? 0 : Math.PI, len: 0.6, amp: 0.5 }); tube([[sd * 0.15, 0.64, 0], [sd * 0.16, 0.35, 0]], [0.125, 0.108], dark, { cap0: 'none', cap1: 'round', segs: 6 }); B(sd < 0 ? 6 : 9, 'shin', [sd * 0.16, 0.35, 0], { leg: sd < 0 ? 4 : 5 }); tube([[sd * 0.16, 0.37, 0], [sd * 0.16, 0.12, 0.01]], [0.106, 0.1], dark, { cap0: 'round', cap1: 'none', segs: 6 }); /* a knee: the shin is its own bone, so he can crouch and sit properly */ blob(sd * 0.16 - 0.12, 0, -0.1, sd * 0.16 + 0.12, 0.15, 0.24, 0.55, hexMix(dark, '#000000', 0.3), { n: 2 }); }
+        for (const sd of [-1, 1]) { B(sd < 0 ? 4 : 5, 'leg', [sd * 0.15, 0.62, 0], { phase: sd < 0 ? 0 : Math.PI, len: 0.6, amp: 0.5 }); tube([[sd * 0.15, 0.64, 0], [sd * 0.16, 0.35, 0]], [0.125, 0.105], dark, { cap0: 'none', cap1: 'round', segs: 8 }); B(sd < 0 ? 6 : 9, 'shin', [sd * 0.16, 0.35, 0], { leg: sd < 0 ? 4 : 5 });
+          tube([[sd * 0.16, 0.37, 0], [sd * 0.16, 0.12, 0.01]], [0.105, 0.125], hexMix(dark, '#000000', 0.3), { cap0: 'round', cap1: 'none', segs: 8 }); hring(sd * 0.16, 0.33, 0, 0.125, 0.022, trim); /* the boot's cuff, turned over */
+          blob(sd * 0.16 - 0.135, 0, -0.12, sd * 0.16 + 0.135, 0.17, 0.27, 0.6, hexMix(dark, '#000000', 0.3), { n: 3 }); blob(sd * 0.16 - 0.11, 0.0, 0.14, sd * 0.16 + 0.11, 0.1, 0.29, 0.8, hexMix(dark, '#ffffff', 0.12), { n: 2 }); } /* a big boot with a toe-cap */
         bone = 0; break;
       }
       default: {

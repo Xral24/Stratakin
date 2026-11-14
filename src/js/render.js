@@ -368,7 +368,7 @@ const R = (() => {
     light = mix(light, vec3(1.0), emis);
     vec3 vc = vCol.rgb; float lum = dot(vc, vec3(0.3, 0.59, 0.11)); vc = clamp(mix(vec3(lum), vc, 1.14), 0.0, 1.0);
     float lit = clamp(ramp * (0.4 + 0.6 * sh), 0.0, 1.0);
-    vec3 shadeC = clamp(mix(vec3(lum), vc, 1.3), 0.0, 1.0) * vec3(0.9, 0.86, 1.04); /* shadows keep their colour and lean cool, the way painted cels do */
+    vec3 shadeC = clamp(mix(vec3(lum), vc, 1.1), 0.0, 1.0) * vec3(0.9, 0.88, 1.03); /* shadows keep their colour and lean cool, the way painted cels do */
     vec3 col = mix(shadeC, vc, max(lit, emis)) * light;
     float rim = pow(1.0 - max(dot(n, V), 0.0), 3.5) * (0.16 + 0.16 * (1.0 - lam)) * skyL * (0.35 + 0.65 * uDay) * (1.0 - emis);
     col += (uZenith * 0.5 + vc * 0.5 + vec3(0.1)) * rim;
@@ -1484,7 +1484,7 @@ const R = (() => {
     const tx = (x0 + x1) / 2, ty = (y0 + y1) / 2 + (opts.lift || 0), tz = (z0 + z1) / 2;
     const cx = tx - fwd[0] * dist, cy = ty - fwd[1] * dist, cz = tz - fwd[2] * dist;
     const pv = U.m4mul(U.m4perspective(0.64, 1, 0.1, 60), U.m4view(cx, cy, cz, yaw, pitch));
-    const saved = { fog: state.fogColor, fn: state.fogNear, ff: state.fogFar, sun: state.sun, sc: state.sunCol, sa: state.sunAmt, day: state.dayLight, z: state.zenith, tint: state.tint, amb: state.ambient, sp: state.skyPass, sh: state.shadowOn }; state.shadowOn = 0;
+    const saved = { fog: state.fogColor, fn: state.fogNear, ff: state.fogFar, sun: state.sun, sc: state.sunCol, sa: state.sunAmt, day: state.dayLight, z: state.zenith, tint: state.tint, amb: state.ambient, sp: state.skyPass, sh: state.shadowOn }; state.shadowOn = 0; const cg0 = state.coreGlow; state.coreGlow = false; /* a portrait is drawn near y 0, where the world's core would light it red from below */
     state.fogColor = [0.5, 0.6, 0.7]; state.fogNear = 50; state.fogFar = 60; state.sun = [-0.45, 0.72, 0.53]; state.sunCol = [1.0, 0.95, 0.86]; state.sunAmt = 1; state.dayLight = 1; state.zenith = [0.5, 0.65, 0.95]; state.tint = [1, 1, 1]; state.ambient = 0.06; state.skyPass = true;
     const L = new Float32Array(24), LR = new Float32Array(8); for (let i = 0; i < 8; i++) { L[i * 3 + 1] = -999; LR[i] = 0.001; }
     setEntityUniforms(pv, { x: cx, y: cy, z: cz }, L, LR);
@@ -1492,7 +1492,7 @@ const R = (() => {
     gl.enable(gl.DEPTH_TEST); gl.disable(gl.BLEND);
     const ol = state.outlines; state.outlines = opts.outline === false ? false : true; const vd = state.viewDist; state.viewDist = 100;
     drawEntities([ent], { x: cx, y: cy, z: cz }, performance.now()); state.outlines = ol; state.viewDist = vd;
-    Object.assign(state, { fogColor: saved.fog, fogNear: saved.fn, fogFar: saved.ff, sun: saved.sun, sunCol: saved.sc, sunAmt: saved.sa, dayLight: saved.day, zenith: saved.z, tint: saved.tint, ambient: saved.amb, skyPass: saved.sp, shadowOn: saved.sh });
+    Object.assign(state, { fogColor: saved.fog, fogNear: saved.fn, fogFar: saved.ff, sun: saved.sun, sunCol: saved.sc, sunAmt: saved.sa, dayLight: saved.day, zenith: saved.z, tint: saved.tint, ambient: saved.amb, skyPass: saved.sp, shadowOn: saved.sh }); state.coreGlow = cg0;
     const px = new Uint8Array(S * S * 4); gl.readPixels(0, 0, S, S, gl.RGBA, gl.UNSIGNED_BYTE, px);
     gl.bindFramebuffer(gl.FRAMEBUFFER, null); gl.viewport(0, 0, canvas.width, canvas.height);
     // flip rows (GL is bottom-up) and un-premultiply nothing: alpha is 0 or 1
