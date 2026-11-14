@@ -211,7 +211,11 @@ const Combat = (() => {
     const w = air ? Object.assign({}, w0, { dmg: w0.dmg * 1.5, reach: w0.reach + 0.3 }) : w0;
     const sk0 = p.selected() || ''; p.swingKind = w.kind === 'axe' || sk0.startsWith('ax_') ? 'chop' : sk0.startsWith('sp_') ? 'thrust' : 'slash'; p.swingDur = p.swingKind === 'chop' ? 0.46 : p.swingKind === 'thrust' ? 0.34 : 0.36; if (air) p.swingDur += 0.14;
     p.swingN = (p.swingN || 0) + 1; p.swingAir = air; if (air) UI.toast('Leaping strike!');
-    swingCd = Math.max(w.cd, p.swingDur * 0.8); p.swingT = p.swingDur; UI.sfx('miss'); const fx = -Math.sin(p.yaw), fz = -Math.cos(p.yaw); let hit = false;
+    swingCd = Math.max(w.cd, p.swingDur * 0.8); p.swingT = p.swingDur; UI.sfx('miss'); pendingHit = { t: p.swingDur * 0.48, w }; return true; /* the blow lands when the blade gets there, not when the arm starts */
+  }
+  let pendingHit = null;
+  function land(w) {
+    const p = G.player; const fx = -Math.sin(p.yaw), fz = -Math.cos(p.yaw); let hit = false;
     for (const f of foes) {
       if (f.state === 'down') continue; const dx = f.x - p.x, dz = f.z - p.z, d = Math.hypot(dx, dz); if (d > w.reach + 0.4 || Math.abs(f.y - p.y) > 2) continue;
       const ang = Math.acos(U.clamp((dx * fx + dz * fz) / (d || 1), -1, 1)); if (ang > w.arc * 0.5 + 0.25) continue;
@@ -271,7 +275,7 @@ const Combat = (() => {
   function nearestFoe(p, maxD = 10) { let best = null, bd = maxD; for (const f of foes) { if (f.state === 'down' || !f.aware) continue; const d = Math.hypot(f.x - p.x, f.z - p.z); if (d < bd && Math.abs(f.y - p.y) < 3) { bd = d; best = f; } } return best; }
   function hurtFoe(f, dmg, fromX, fromZ) { if (f.state === 'down') return; f.wasAware = f.aware; hurt(f, dmg, {}); const dx = f.x - fromX, dz = f.z - fromZ, d = Math.hypot(dx, dz) || 1; f.rockT = 0.3; f.rockDir = Math.atan2(-dx, -dz); const nx = f.x + dx / d * 0.3, nz = f.z + dz / d * 0.3; const gy = G.world.groundY(Math.floor(nx), Math.floor(nz), Math.floor(f.y) + 2); if (gy != null && Math.abs(gy + 1 - f.y) < 1.2) { f.x = nx; f.z = nz; } }
   function update(dt, p, input) {
-    swingCd = Math.max(0, swingCd - dt); if (p.swingT > 0) p.swingT -= dt; if (G.kinFocusT > 0) G.kinFocusT -= dt;
+    swingCd = Math.max(0, swingCd - dt); if (p.swingT > 0) p.swingT -= dt; if (pendingHit) { pendingHit.t -= dt; if (pendingHit.t <= 0) { const w1 = pendingHit.w; pendingHit = null; land(w1); } } if (G.kinFocusT > 0) G.kinFocusT -= dt;
     armT -= dt; if (armT <= 0) { armT = 1; const hb = G.buffOn ? G.buffOn('hearts') : null; const mx = 10 + (wornPerk('heart', true) ? 2 : 0) + (hb ? hb.amt : 0); if (p.maxHp !== mx) { p.maxHp = mx; if (p.hp > mx) p.hp = mx; } }
     // holding a weapon with a shield in the bag: hold means block, not dig
     const w = weapon(); const sh = shield();
@@ -286,7 +290,8 @@ const Combat = (() => {
       f.t -= dt; if (f.hitT > 0) f.hitT -= dt; if (f.rockT > 0) f.rockT -= dt; if (f.strikeT > 0) f.strikeT -= dt;
       // the pose: arm drawn back while he winds up, the blow when it lands, the shield up when he faces you, a stagger when hit
       { const an = f._an || (f._an = Anim.fresh(f, performance.now())); const windK = f.state === 'wind' ? 1 - Math.max(0, f.t) / (f.wind || 1) : 0;
-        an.attack = f.strikeT > 0 ? Math.sin(Math.min(1, f.strikeT / 0.22) * Math.PI) : -0.3 * windK;
+        { const dk = (KINDS[f.kind] && KINDS[f.kind].deco) || ''; an.atkKind = /axe/.test(dk) ? 'chop' : /spear|pike|lance/.test(dk) ? 'thrust' : 'slash'; an.atkN = 0; an.attack = 0; /* they fight the way you do: the arm goes back as he winds up, and the blow comes through when it lands */
+          an.atkU = f.strikeT > 0 ? 0.3 + 0.7 * (1 - f.strikeT / 0.22) : windK > 0 ? 0.3 * windK : null; an.atkLean = an.atkU != null ? Math.sin(Math.min(1, Math.max(0, (an.atkU - 0.25) / 0.5)) * Math.PI) * 0.25 : 0; }
         an.block = (f.block && f.state !== 'stun' && f.state !== 'down' && f.aware) ? 1 : 0;
         an.sit = f.state === 'down' ? 1 : 0;
         an.lean = (f.rockT > 0 ? -0.35 * Math.sin(Math.min(1, f.rockT / 0.3) * Math.PI) : 0) + (f.state === 'wind' ? 0.12 * windK : 0) + (f.state === 'stun' ? 0.25 : 0) + (f.state === 'down' ? 0.3 : 0);

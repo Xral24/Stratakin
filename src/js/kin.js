@@ -632,7 +632,7 @@ const KIN = (() => {
         el(sd, 0, 0.04, 0.26, 0.96, 1.16, 0.5, '#f8f6f0', { n: 5 });
         el(sd, inn * 0.1, -0.06, 0.6, 0.68, 0.88, 0.26, glow ? col : deep, { n: 5, emis: glow });
         el(sd, inn * 0.1, -0.42, 0.66, 0.5, 0.42, 0.2, glow ? hexMix(col, '#ffffff', 0.5) : lite, { n: 4, emis: glow });
-        if (o.pupil === 'diamond') { const q = (u, v) => pt(sd, inn * 0.1 + u, v, 0.66); plate([q(0, 0.52), q(0.27, 0), q(0, -0.52), q(-0.27, 0)], er * 0.045, '#08060e'); } /* the folk's eyes: a cut-gem pupil */
+        if (o.pupil === 'diamond') { const q = (u, v) => pt(sd, inn * 0.1 + u, v, 0.875); plate([q(0, 0.56), q(0.3, 0), q(0, -0.56), q(-0.3, 0)], er * 0.03, '#08060e'); } /* the folk's eyes: a cut-gem pupil */
         else el(sd, inn * 0.1, 0.0, 0.8, 0.24, 0.44, 0.1, '#08060e', { n: 4 });
         el(sd, inn * 0.1 + gx, 0.42, 0.84, 0.25, 0.27, 0.08, '#ffffff', { n: 3, emis: true });
         el(sd, inn * 0.1 - gx * 0.9, -0.46, 0.86, 0.11, 0.11, 0.05, '#ffffff', { n: 3, emis: true });
@@ -2883,9 +2883,7 @@ const KIN = (() => {
            and hair in bold clumps with one bright lock. Built like a hero in a comic: small waist, big forearms, big hands, big boots. */
         kind = 'human';
         const skin = C.belly, cloth = C.body, dark = C.dark, hair = sp.hair || hexMix(C.dark, '#2a1a10', 0.5), skin2 = hexMix(skin, '#c8604a', 0.22), trim = C.accent, glowc = hexMix(C.accent, '#ffffff', 0.35);
-        blob(-0.33, 0.84, -0.2, 0.33, 1.27, 0.2, 0.75, cloth, { tap: [0.8, 1.04], n: 4 }); /* a chest that narrows to the waist */
-        blob(-0.25, 0.6, -0.17, 0.25, 0.92, 0.17, 0.6, cloth, { n: 3 });
-        blob(-0.31, 0.5, -0.22, 0.31, 0.7, 0.22, 0.5, cloth, { tap: [1.12, 0.84], n: 3 }); hring(0, 0.515, 0, 0.3, 0.018, trim); /* the tunic's hem flares, with a line of trim */
+        tube([[0, 0.5, 0], [0, 0.6, 0], [0, 0.74, 0], [0, 0.9, 0], [0, 1.08, 0], [0, 1.22, 0], [0, 1.28, 0]], [[0.31, 0.225], [0.285, 0.205], [0.255, 0.18], [0.24, 0.165], [0.315, 0.195], [0.325, 0.195], [0.26, 0.16]], cloth, { cap0: 'flat', cap1: 'round', segs: 16 }); hring(0, 0.515, 0, 0.3, 0.018, trim); /* one line from hem to shoulder: flared tunic, small waist, wide chest */
         ring(0, 0.67, 0, 0.3, 0.19, 0.03, dark); blob(-0.1, 0.6, 0.12, 0.1, 0.74, 0.24, 0.5, hexMix(C.accent, '#000000', 0.15), { n: 2 }); // belt, and the buckle on the front only
         plate([[-0.09, 1.25, 0.172], [0.09, 1.25, 0.172], [0, 1.1, 0.198]], 0.014, trim); /* a collar cut in a V */
         tube([[0, 1.18, 0], [0, 1.36, 0]], [0.085, 0.08], skin, { cap0: 'none', cap1: 'none', segs: 6 });
@@ -3165,7 +3163,7 @@ const KIN = (() => {
     H.ring = (cx, cy, cz, hx, hz, th, c, o, ax) => { const pts = []; for (let i = 0; i <= 14; i++) { const a = i / 14 * Math.PI * 2; pts.push(ax === 'z' ? [cx + Math.cos(a) * hx, cy + Math.sin(a) * hz, cz] : [cx + Math.cos(a) * hx, cy, cz + Math.sin(a) * hz]); } H.tube(pts, pts.map(() => th), c, Object.assign({ cap0: 'none', cap1: 'none', segs: 6 }, o || {})); };
     H.cone = (b, dir, len, r, c, o) => { const l = Math.hypot(dir[0], dir[1], dir[2]) || 1; const u = [dir[0] / l, dir[1] / l, dir[2] / l]; H.tube([b, [b[0] + u[0] * len * 0.5, b[1] + u[1] * len * 0.5, b[2] + u[2] * len * 0.5], [b[0] + u[0] * len, b[1] + u[1] * len, b[2] + u[2] * len]], [r, r * 0.55, 0.0005], c, Object.assign({ cap0: 'flat', cap1: 'none', segs: 6 }, o || {})); };
     H.disc = (x, y, z, r, th, c, o) => H.blob(x - r, y - th / 2, z - r, x + r, y + th / 2, z + r, 1, c, Object.assign({ n: 4 }, o || {}));
-    H.faceZ = (x, y) => 0.28 * Math.sqrt(Math.max(0, 1 - (x / 0.27) ** 2 - ((y - 1.58) / 0.3) ** 2)) + 0.03; // the folk face is an ellipsoid: where its surface is at (x, y)
+    H.faceZ = (x, y) => { const k = y < 1.58 ? 1 - 0.18 * Math.min(1, (1.58 - y) / 0.3) : 1, q = Math.pow(Math.abs(x / (0.27 * k)), 2.6) + Math.pow(Math.abs((y - 1.58) / 0.3), 2.6); return 0.28 * k * Math.pow(Math.max(0, 1 - q), 1 / 2.6) + 0.02; }; // where the folk's face is at (x, y): a rounded box narrowing to the chin, not a ball
     H.ribbon = (spine, widths, c, o) => { const pp = spine.map(S3); const xs = pp.map(p => p[0]), ys = pp.map(p => p[1]), zs = pp.map(p => p[2]); const mw = Math.max(...widths) * s; P.push({ k: 'ribbon', spine: pp, widths: widths.map(w => w * s), x: Math.min(...xs) - mw, y: Math.min(...ys) - mw, z: Math.min(...zs) - mw, w: Math.max(...xs) - Math.min(...xs) + 2 * mw, h: Math.max(...ys) - Math.min(...ys) + 2 * mw, d: Math.max(...zs) - Math.min(...zs) + 2 * mw, c, emis: !!(o && o.emis), o, bone: H.bone }); };
     H.feather = (x, y, z, len, c, lean) => H.plate([[x, y, z], [x + 0.03 + lean * 0.3, y + len * 0.5, z - 0.02], [x + lean * 0.5, y + len, z - 0.06], [x - 0.03 + lean * 0.5, y + len * 0.5, z - 0.02]], 0.02, c);
     H.done = () => { m.height = Math.max(m.height, ...m.boxes.map(b => b.y + b.h)); return m; };

@@ -41,10 +41,12 @@ const Avatar = (() => {
     crownbraid: (H, c) => { H.blob(-0.3, 1.55, -0.31, 0.3, 1.93, 0.2, 0.9, c, { n: 4, tap: [0.98, 0.9] }); const pts = []; for (let i = 0; i <= 16; i++) { const a = i / 16 * 6.283; pts.push([Math.cos(a) * 0.3, 1.8 + Math.sin(a * 8) * 0.012, Math.sin(a) * 0.3]); } H.tube(pts, pts.map((p, i) => 0.05 + 0.015 * Math.sin(i * 2.4)), c, { segs: 6, cap0: 'none', cap1: 'none' }); },
   };
   // face paint: patches laid on the face, following its curve
+  /* paint follows the curve of the face: a band is laid in short pieces, each sitting on the surface, never one flat board cutting through the head */
+  const strip = (H, x0, x1, yT, yB, c) => { const n = 10; for (let i = 0; i < n; i++) { const a = x0 + (x1 - x0) * i / n, b = x0 + (x1 - x0) * (i + 1) / n; H.plate([[a, yT, H.faceZ(a, yT) + 0.004], [b, yT, H.faceZ(b, yT) + 0.004], [b, yB, H.faceZ(b, yB) + 0.004], [a, yB, H.faceZ(a, yB) + 0.004]], 0.006, c); } };
   const PAINT = {
-    stripes: (H, c) => { for (const y of [1.52, 1.42]) H.plate([[-0.22, y, H.faceZ(-0.22, y) + 0.006], [0.22, y, H.faceZ(0.22, y) + 0.006], [0.22, y - 0.045, H.faceZ(0.22, y - 0.045) + 0.006], [-0.22, y - 0.045, H.faceZ(-0.22, y - 0.045) + 0.006]], 0.004, c); },
+    stripes: (H, c) => { for (const sd of [-1, 1]) for (const y of [1.48, 1.41]) strip(H, sd * 0.09, sd * 0.23, y, y - 0.04, c); }, /* two bars on each cheek */
     dots: (H, c) => { for (const [x, y] of [[-0.2, 1.47], [0.2, 1.47], [0, 1.36], [-0.12, 1.7], [0.12, 1.7]]) H.ball(x, y, H.faceZ(x, y) + 0.004, 0.028, c, { n: 1 }); },
-    mask: (H, c) => H.plate([[-0.25, 1.56, H.faceZ(-0.25, 1.56) + 0.006], [-0.1, 1.68, H.faceZ(-0.1, 1.68) + 0.006], [0.1, 1.68, H.faceZ(0.1, 1.68) + 0.006], [0.25, 1.56, H.faceZ(0.25, 1.56) + 0.006], [0.25, 1.5, H.faceZ(0.25, 1.5) + 0.006], [0.0, 1.46, H.faceZ(0, 1.46) + 0.006], [-0.25, 1.5, H.faceZ(-0.25, 1.5) + 0.006]], 0.004, c),
+    mask: (H, c) => { strip(H, -0.25, 0.25, 1.735, 1.675, c); for (const sd of [-1, 1]) strip(H, sd * 0.19, sd * 0.25, 1.675, 1.5, c); strip(H, -0.03, 0.03, 1.675, 1.56, c); }, /* a band over the brow that comes down beside and between the eyes */
     tribal: (H, c) => { H.plate([[-0.025, 1.3, H.faceZ(-0.025, 1.3) + 0.006], [0.025, 1.3, H.faceZ(0.025, 1.3) + 0.006], [0.02, 1.47, H.faceZ(0.02, 1.47) + 0.006], [-0.02, 1.47, H.faceZ(-0.02, 1.47) + 0.006]], 0.004, c); for (const sd of [-1, 1]) H.plate([[sd * 0.1, 1.5, H.faceZ(sd * 0.1, 1.5) + 0.006], [sd * 0.25, 1.46, H.faceZ(sd * 0.25, 1.46) + 0.006], [sd * 0.25, 1.42, H.faceZ(sd * 0.25, 1.42) + 0.006], [sd * 0.1, 1.46, H.faceZ(sd * 0.1, 1.46) + 0.006]], 0.004, c); },
     star: (H, c) => { const x0 = 0.16, y0 = 1.44; const pts = []; for (let i = 0; i < 10; i++) { const a = i / 10 * 6.283 - 1.57; const r = i % 2 ? 0.03 : 0.07; const x = x0 + Math.cos(a) * r, y = y0 + Math.sin(a) * r; pts.push([x, y, H.faceZ(x, y) + 0.006]); } H.plate(pts, 0.004, c); },
   };
