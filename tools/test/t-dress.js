@@ -1,0 +1,7 @@
+const { open } = require('./harness');
+(async () => { const h = await open(); const { page, ev } = h; await h.newGame(process.env.SEED || 'look-3'); await h.calm();
+  await ev(() => { G.repelUntil = performance.now() + 9e7; G.stats.buddyOff = true; G.explain = () => {}; G.player.frozen = true; G.thirdPerson = false; G.world.time = 0.36; try { G.player.inv.clear(); } catch (e) {} for (const id of ['hud', 'controls', 'hotbar']) { const e = document.getElementById(id); if (e) e.style.display = 'none'; } });
+  // offsets from the village centre: [dx, dz, up, lookAt dx, lookAt dz, pitch]
+  const views = [[5, 5, 3, -10, -12, -0.15], [-5, 5, 3, 10, -12, -0.15], [0, 12, 2, 0, 0, -0.02], [-9, -16, 2, -9, -9, 0.0]];
+  for (let i = 0; i < views.length; i++) { await ev((a) => { const p = G.player, w = G.world, v = Village.def; p.x = v.x + 0.5 + a[0]; p.z = v.z + 0.5 + a[1]; w.ensureAround(Math.floor(p.x / CH), Math.floor(p.z / CH), 4, 9999); for (let k = 0; k < 3; k++) Village.update(0.5, p, false); const vy = Village.active ? Village.active.y : w.groundY(Math.floor(p.x), Math.floor(p.z)) + 1; p.y = vy + a[2]; p.yaw = Math.atan2(-(v.x + a[3] - p.x), -(v.z + a[4] - p.z)); p.pitch = a[5]; G.meshPass(999); }, views[i]); await page.waitForTimeout(2500); await ev(() => { const t = document.getElementById('toasts'); if (t) t.innerHTML = ''; }); await page.screenshot({ path: `/home/claude/dress-${i}.png` }); }
+  console.log('ERRORS:', h.errors.length ? h.errors.slice(0, 3).join('\n') : 'none'); await h.close(); })();

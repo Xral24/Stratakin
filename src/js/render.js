@@ -963,11 +963,64 @@ const R = (() => {
           const b0 = wa.nv; wa.vert(cx, y + 1.98, cz, 0, 1, 0, 0, 0, 0, sk, false); for (let i = 0; i < 12; i++) { const a = i / 12 * 6.2832; wa.vert(cx + Math.cos(a) * 0.72, y + 1.98, cz + Math.sin(a) * 0.72, 0, 1, 0, 0, 0, 0, sk, false); } for (let i = 0; i < 12; i++) wa.tri(b0, b0 + 1 + i, b0 + 1 + (i + 1) % 12);
           continue;
         }
+        if (id === B.BARREL) { // a cooper's barrel: bulged staves, two iron hoops, sometimes a lid of apples or a little keg beside it
+          const sk = skyAt(lx, y + 1, lz); const gy = gnd(lx, y, lz); const hv = U.hash3(wx, y, wz, 190), hj = U.hash3(wx, y, wz, 191); const cx = lx + 0.5 + (hj - 0.5) * 0.12, cz = lz + 0.5 + (U.hash3(wx, y, wz, 192) - 0.5) * 0.12;
+          const wood = [0.58 + hv * 0.08, 0.38 + hv * 0.05, 0.19], dark = [0.2, 0.19, 0.2];
+          op.tube([[cx, gy, cz], [cx, gy + 0.28, cz], [cx, gy + 0.6, cz], [cx, gy + 0.86, cz]], [0.28, 0.35, 0.35, 0.28], wood, { sky: sk, segs: 10, cap0: 'flat', cap1: 'flat', shade: (p, nx, ny, nz) => { const k = 0.86 + U.hash3(Math.floor(Math.atan2(nz, nx) * 2.6 + 9), wx, wz, 7) * 0.26; return [wood[0] * k, wood[1] * k, wood[2] * k]; } });
+          for (const hy of [0.2, 0.68]) op.tube([[cx, gy + hy, cz], [cx, gy + hy + 0.05, cz]], [0.355, 0.355], dark, { sky: sk, segs: 10, cap0: 'none', cap1: 'none' });
+          if (hv < 0.3) for (let k = 0; k < 5; k++) { const a = k * 1.256 + hj * 6; const r = k ? 0.15 : 0; op.blob(cx + Math.cos(a) * r - 0.09, gy + 0.82, cz + Math.sin(a) * r - 0.09, cx + Math.cos(a) * r + 0.09, gy + 1.0, cz + Math.sin(a) * r + 0.09, 0.9, k % 2 ? [0.82, 0.16, 0.14] : [0.7, 0.78, 0.2], { sky: sk, n: 1 }); }
+          else op.tube([[cx, gy + 0.86, cz], [cx, gy + 0.87, cz]], [0.24, 0.24], [wood[0] * 0.7, wood[1] * 0.7, wood[2] * 0.7], { sky: sk, segs: 10, cap0: 'flat', cap1: 'flat' });
+          continue;
+        }
+        if (id === B.CRATE) { // a slatted crate, sometimes a second one stacked askew, sometimes full of produce
+          const sk = skyAt(lx, y + 1, lz); const gy = gnd(lx, y, lz); const hv = U.hash3(wx, y, wz, 193), hj = U.hash3(wx, y, wz, 194); const cx = lx + 0.5, cz = lz + 0.5;
+          const crate = (x, y0, z, w, hh, rot) => { const c = [0.72, 0.56, 0.32], e = [0.5, 0.36, 0.2]; op.push(); op.rotate(0, rot, 0, [x, y0, z]);
+            op.box(x - w, y0, z - w, x + w, y0 + hh, z + w, c, sk, false);
+            for (const sx of [-1, 1]) for (const sz of [-1, 1]) { const x0 = sx < 0 ? x - w - 0.012 : x + w - 0.068, z0 = sz < 0 ? z - w - 0.012 : z + w - 0.068; op.box(x0, y0, z0, x0 + 0.08, y0 + hh + 0.012, z0 + 0.08, e, sk, false); }
+            for (const yy of [0.02, hh - 0.08]) { op.box(x - w - 0.012, y0 + yy, z - w - 0.012, x + w + 0.012, y0 + yy + 0.07, z + w + 0.012, e, sk, false); }
+            op.pop(); };
+          crate(cx, gy, cz, 0.36, 0.62, (hj - 0.5) * 0.5);
+          if (hv < 0.35) crate(cx + 0.04, gy + 0.63, cz - 0.03, 0.24, 0.4, 0.6 + hj);
+          else if (hv < 0.7) for (let k = 0; k < 6; k++) { const px = cx - 0.2 + U.hash3(wx, k, wz, 195) * 0.4, pz = cz - 0.2 + U.hash3(wx, k, wz, 196) * 0.4; op.blob(px - 0.1, gy + 0.56, pz - 0.1, px + 0.1, gy + 0.76, pz + 0.1, 0.9, hv < 0.5 ? [0.95, 0.55, 0.12] : [0.5, 0.75, 0.25], { sky: sk, n: 1 }); }
+          continue;
+        }
+        if (id === B.PLANTER) { // a clay pot with a clipped bush, a flowering shrub or a little fan of fronds
+          const sk = skyAt(lx, y + 1, lz); const gy = gnd(lx, y, lz); const hv = U.hash3(wx, y, wz, 197), hj = U.hash3(wx, y, wz, 198); const cx = lx + 0.5, cz = lz + 0.5; const clay = [0.76, 0.42, 0.26];
+          op.tube([[cx, gy, cz], [cx, gy + 0.3, cz], [cx, gy + 0.36, cz]], [0.2, 0.3, 0.32], clay, { sky: sk, segs: 9, cap0: 'flat', cap1: 'flat' });
+          op.curMat = 15;
+          if (hv < 0.4) { op.blob(cx - 0.32, gy + 0.34, cz - 0.32, cx + 0.32, gy + 0.95, cz + 0.32, 0.9, [0.2, 0.52, 0.22], { sky: sk, n: 3 }); op.blob(cx - 0.2, gy + 0.85, cz - 0.2, cx + 0.2, gy + 1.25, cz + 0.2, 0.95, [0.24, 0.58, 0.24], { sky: sk, n: 2 }); }
+          else if (hv < 0.75) { op.blob(cx - 0.36, gy + 0.32, cz - 0.36, cx + 0.36, gy + 0.86, cz + 0.36, 0.85, [0.22, 0.55, 0.24], { sky: sk, n: 3 }); const fc = [[0.95, 0.35, 0.45], [0.98, 0.82, 0.25], [0.95, 0.95, 0.98], [0.7, 0.45, 0.9]][Math.floor(hj * 4)]; for (let k = 0; k < 7; k++) { const a = k * 0.9 + hj * 6, r = 0.14 + U.hash3(wx, k, wz, 199) * 0.16, hh = 0.62 + U.hash3(wx, k, wz, 200) * 0.24; op.blob(cx + Math.cos(a) * r - 0.07, gy + hh, cz + Math.sin(a) * r - 0.07, cx + Math.cos(a) * r + 0.07, gy + hh + 0.13, cz + Math.sin(a) * r + 0.07, 0.9, fc, { sky: sk, n: 1 }); } }
+          else for (let k = 0; k < 7; k++) { const a = k / 7 * 6.2832 + hj * 6; const path = []; for (let i = 0; i <= 4; i++) { const t = i / 4; path.push([cx + Math.cos(a) * 0.5 * t, gy + 0.36 + 0.75 * t - 0.5 * t * t * t, cz + Math.sin(a) * 0.5 * t]); } op.tube(path, [0.05, 0.075, 0.07, 0.05, 0.015], [0.25, 0.6, 0.24], { sky: sk, segs: 4, cap0: 'none', cap1: 'none' }); }
+          op.curMat = 0; continue;
+        }
+        if (id === B.SIGNPOST) { // a fingerpost: a tall post with three boards pointing three ways
+          const sk = skyAt(lx, y + 1, lz); const gy = gnd(lx, y, lz); const hj = U.hash3(wx, y, wz, 201); const cx = lx + 0.5, cz = lz + 0.5; const wood = [0.5, 0.35, 0.19], board = [0.74, 0.58, 0.36];
+          op.tube([[cx, gy, cz], [cx, gy + 2.15, cz]], [0.075, 0.06], wood, { sky: sk, segs: 6, cap0: 'flat', cap1: 'round' });
+          for (let k = 0; k < 3; k++) { const yy = gy + 1.92 - k * 0.3; const rot = hj * 6.283 + k * 2.3; const dirn = k === 1 ? -1 : 1; op.push(); op.rotate(0, rot, 0, [cx, yy, cz]);
+            op.box(cx - 0.12 * dirn, yy - 0.12, cz - 0.11, cx + 0.66 * dirn, yy + 0.12, cz - 0.06, board, sk, false);
+            op.plate([[cx + 0.66 * dirn, yy - 0.12, cz - 0.085], [cx + 0.66 * dirn, yy + 0.12, cz - 0.085], [cx + 0.86 * dirn, yy, cz - 0.085]], 0.05, board, { sky: sk });
+            op.box(cx + 0.04 * dirn, yy - 0.025, cz - 0.118, cx + 0.54 * dirn, yy + 0.025, cz - 0.11, [0.32, 0.22, 0.12], sk, false); op.pop(); }
+          continue;
+        }
+        if (id === B.BUNTING) { // a string of little flags: it sags across the whole run of bunting blocks
+          const sk = skyAt(lx, y, lz); const runX = get(lx + 1, y, lz) === B.BUNTING || get(lx - 1, y, lz) === B.BUNTING;
+          let i0 = 0, i1 = 0; while (i0 < 14 && (runX ? get(lx - i0 - 1, y, lz) : get(lx, y, lz - i0 - 1)) === B.BUNTING) i0++; while (i1 < 14 && (runX ? get(lx + i1 + 1, y, lz) : get(lx, y, lz + i1 + 1)) === B.BUNTING) i1++;
+          const len = i0 + i1 + 1; const yAt = (t) => y + 0.9 - 0.3 * Math.sin(Math.PI * (i0 + t) / len); const P = (t) => runX ? [lx + t, yAt(t), lz + 0.5] : [lx + 0.5, yAt(t), lz + t];
+          const pal = [[0.9, 0.22, 0.22], [0.98, 0.8, 0.2], [0.2, 0.5, 0.85], [0.25, 0.7, 0.35], [0.95, 0.5, 0.75], [0.95, 0.95, 0.9]];
+          op.tube([P(0), P(0.25), P(0.5), P(0.75), P(1)], [0.012, 0.012, 0.012, 0.012, 0.012], [0.3, 0.24, 0.18], { sky: sk, segs: 3, cap0: 'none', cap1: 'none' });
+          if (get(lx, y - 1, lz) === B.AIR && get(lx, y - 2, lz) === B.AIR && isOpaque(get(lx, y - 3, lz))) { // strung across open ground: a pole at each end of the run
+            if (i0 === 0) { const e = P(0.08); op.tube([[e[0], y - 2, e[2]], [e[0], y + 0.98, e[2]]], [0.07, 0.05], [0.5, 0.35, 0.19], { sky: sk, segs: 6, cap0: 'flat', cap1: 'round' }); }
+            if (i1 === 0) { const e = P(0.92); op.tube([[e[0], y - 2, e[2]], [e[0], y + 0.98, e[2]]], [0.07, 0.05], [0.5, 0.35, 0.19], { sky: sk, segs: 6, cap0: 'flat', cap1: 'round' }); } }
+          for (let k = 0; k < 3; k++) { const t = (k + 0.5) / 3; const a = P(t - 0.13), b = P(t + 0.13), m = P(t); const c = pal[U.mod((runX ? wx : wz) * 3 + k + Math.floor(U.hash3(Math.floor(wx / 8), 3, Math.floor(wz / 8), 202) * 6), 6)]; op.plate([a, b, [m[0], m[1] - 0.3, m[2]]], 0.012, c, { sky: sk }); }
+          continue;
+        }
         if (id === B.AWNING) { // a market awning: striped canvas with a scalloped fringe, sagging a little between its posts
           const sk = skyAt(lx, y + 1, lz); const h0 = U.hash3(Math.floor(wx / 4), 1, Math.floor(wz / 4), 160); const pal = [[0.82, 0.22, 0.2], [0.2, 0.42, 0.78], [0.22, 0.6, 0.32], [0.9, 0.6, 0.15], [0.6, 0.3, 0.7]]; const c1 = pal[Math.floor(h0 * 5)], c2 = [0.94, 0.9, 0.82];
           const runX = get(lx + 1, y, lz) === B.AWNING || get(lx - 1, y, lz) === B.AWNING; // the run of awning blocks: stripes go across it
           const endA = runX ? get(lx - 1, y, lz) !== B.AWNING : get(lx, y, lz - 1) !== B.AWNING, endB = runX ? get(lx + 1, y, lz) !== B.AWNING : get(lx, y, lz + 1) !== B.AWNING;
           const yAt = (u) => y + 0.92 - (endA && endB ? 0 : 0.08 * Math.sin(Math.PI * u) * ((endA || endB) ? 0.5 : 1)); // a sag along the run
+          { const free = (ax, az) => get(ax, y - 1, az) === B.AIR && get(ax, y - 2, az) === B.AIR && ![[1, 0], [-1, 0], [0, 1], [0, -1]].some(([a, b]) => isOpaque(get(ax + a, y - 1, az + b))); // a free-standing stall: a slim pole under each end
+            if (free(lx, lz)) for (const [e, t] of [[endA, 0.06], [endB, 0.94]]) if (e) for (const o of [0.08, 0.92]) { const px = runX ? lx + t : lx + o, pz = runX ? lz + o : lz + t; op.tube([[px, y - 2, pz], [px, y + 0.9, pz]], [0.045, 0.04], [0.5, 0.35, 0.19], { sky: sk, segs: 5, cap0: 'flat', cap1: 'flat' }); } }
           const stripes = 4;
           for (let i = 0; i < stripes; i++) { const t0 = i / stripes, t1 = (i + 1) / stripes; const c = i % 2 ? c2 : c1;
             const q = runX ? [[lx + t0, yAt(t0), lz], [lx + t0, yAt(t0), lz + 1], [lx + t1, yAt(t1), lz + 1], [lx + t1, yAt(t1), lz]] : [[lx, yAt(t0), lz + t0], [lx + 1, yAt(t0), lz + t0], [lx + 1, yAt(t1), lz + t1], [lx, yAt(t1), lz + t1]];

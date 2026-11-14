@@ -278,7 +278,7 @@ const Village = (() => {
       for (let a = -2; a <= 2; a++) for (let b = -2; b <= 2; b++) { push(vx + a, vy - 1, vz + b, B.MASONRY); if (Math.hypot(a, b) <= 2.5) push(vx + a, vy, vz + b, (a || b) ? B.BASIN : B.FOUNTAIN); }
       push(vx + 5, vy, vz - 5, B.FUSION);
     } else {
-      push(vx, vy, vz, B.FUSION);
+      push(vx, vy, vz, B.FUSION); if (M.houses) push(vx + 3, vy, vz - 6, B.SIGNPOST);
       // the town well, off to one side of the square: a stone kerb round the water, two posts and a little tiled roof
       const wx0 = vx - 4, wz0 = vz + 4;
       for (let a = -1; a <= 1; a++) for (let b = -1; b <= 1; b++) { push(wx0 + a, vy - 1, wz0 + b, M.plazaEdge); push(wx0 + a, vy, wz0 + b, (a || b) ? B.MASONRY : B.WATER); }
@@ -339,6 +339,13 @@ const Village = (() => {
     }
     const lamp = (x, z) => { if (M.lamp) push(x, vy, z, M.lamp); else { push(x, vy, z, M.post); push(x, vy + 1, z, M.light); } };
     for (const [a, b] of [[-6, -6], [6, -6], [-6, 6], [6, 6]]) lamp(vx + a, vz + b);
+    if (M.houses) { // the square is dressed for a fair: bunting round its four sides, pots at the inner corners, and in a town two stalls with their wares
+      for (let d = -5; d <= 5; d++) { push(vx + d, vy + 2, vz - 6, B.BUNTING); push(vx + d, vy + 2, vz + 6, B.BUNTING); push(vx - 6, vy + 2, vz + d, B.BUNTING); push(vx + 6, vy + 2, vz + d, B.BUNTING); }
+      for (const [a, b] of [[5, 5], [5, -5], [-5, -5]]) push(vx + a, vy, vz + b, B.PLANTER);
+      if (!city) for (const [sx, sz, wares] of [[4, -3, B.CRATE], [-4, -3, B.BARREL]]) { const x = vx + sx, z = vz + sz;
+        push(x, vy, z, B.CHEST); push(x + Math.sign(sx) * 2, vy, z, wares); push(x, vy, z - 1, wares === B.CRATE ? B.BARREL : B.CRATE);
+        for (let a = -1; a <= 1; a++) push(x + a, vy + 2, z, B.AWNING); }
+    }
     // lamps along the streets
     for (const s0 of streets) for (let d = 9; d < R - 3; d += 8) for (const sg of [-1, 1]) { lamp(vx + s0 + 2 * sg, vz + d * sg); lamp(vx + d * sg, vz + s0 + 2 * sg); }
     // lots: a house on every free plot, its door turned to the nearest street
@@ -723,7 +730,7 @@ const Village = (() => {
       }
     }
     for (let dx = -3; dx <= 3; dx++) for (let dz = -3; dz <= 3; dz++) set(vx + dx, vy - 1, vz + dz, (Math.abs(dx) === 3 || Math.abs(dz) === 3) ? M.plazaEdge : M.plaza);
-    set(vx, vy, vz, B.FUSION);
+    set(vx, vy, vz, B.FUSION); if (M.houses && world.preset.id === 'earth') set(vx - 2, vy, vz + 3, B.SIGNPOST);
     const lamp = (x, z) => { if (M.lamp) set(x, vy, z, M.lamp); else { set(x, vy, z, M.post); set(x, vy + 1, z, M.light); } };
     for (const [dx, dz] of [[-3, -3], [3, -3], [-3, 3], [3, 3]]) lamp(vx + dx, vz + dz);
     const build = M.pod ? pod : house;
@@ -791,6 +798,11 @@ const Village = (() => {
     }
     if (M.lamp) set(hx, vy + WT, hz, M.lamp); else set(hx, vy + 2, hz, M.light);
     if (furnish) furnish(hx, hz, dirX, dirZ, vy);
+    // the front of the house is lived in: an awning over a shop's door, bunting under the eaves of some homes, and barrels, crates or potted plants by the wall
+    if (M.houses && world.preset.id === 'earth') { const F = (b, y, id) => { const x = hx + (alongX ? 4 * sgn : b), z = hz + (alongX ? b : 4 * sgn); set(x, y, z, id); }; const hd = (n) => U.hash3(hx, 20 + n, hz, 0x4d);
+      if (marker && furnish) { for (let b = -1; b <= 1; b++) F(b, vy + 2, B.AWNING); } else if (hd(0) < 0.45) { for (let b = -2; b <= 2; b++) F(b, vy + 3, B.BUNTING); }
+      for (const [b, n] of [[-2, 1], [2, 2], [-3, 3], [3, 4]]) { const k = hd(n); const lim = Math.abs(b) === 2 ? 0.7 : 0.35; if (k < lim) F(b, vy, [B.BARREL, B.CRATE, B.PLANTER, B.PLANTER, B.BARREL, B.CRATE, B.PLANTER][Math.floor(k / lim * 7)]); }
+    }
   }
   // an alien pod: a hemisphere of selenite glass on a regolith floor, a doorway cut in the rim, a moonglow keystone
   function pod(hx, hz, vy, dirX, dirZ, marker, furnish) {
