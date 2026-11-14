@@ -180,6 +180,8 @@ Scope (Alexander, 8 Nov evening): EVERYTHING visible goes to the same standard: 
 
 - 14 Nov, folk builds: sp.build (man, woman, stout, slim) shapes the torso and hem; sp.hairVar 0-3 (spiked, swept, bowl, long); sp.hair colour. Villagers roll all three plus a height (scale 0.93-1.07) in village.js villagerSpecies/makeNpc. Player, Indians and foes still use the default man build. tools/test/t-builds.js.
 
+- 14 Nov: biped leg/arm kinds by plan (BLK: stocky, lanky, mech, stump; default plain). Snow sprite rebuilt (frost heart, ice horns, floating mittens, wind scarf). Hawk line rebuilt as storm birds (slate, bolt crest, cloud ruff, lightning chevrons, wind streamers; eaglet is a cloud puff with a spark). Mushroom knight: visor replaced by cheek guards and a plume.
+
 ## Still to do
 UI polish as feedback comes in. Card battle screen still used for scripted encounters (raids at the walls, thief, citadel duel, holds) and the snare mini-game; converting those to live is the next big step if wanted. (Old list: train/ships, combat animation, eggs, avatar hair/paint, buddy WEAR cosmetics, Silas and Finch, UI polish (item icons), quality toggles in settings (state.shadows, state.grassQuality, state.dprCap).
 

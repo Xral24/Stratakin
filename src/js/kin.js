@@ -1389,10 +1389,16 @@ const KIN = (() => {
           const H = (y, z) => B(1, 'head', [0, y, z || 0]);
           const nose = (x, y, z, r, c) => ball(x, y, z, r, c || dk, { n: 2 });
           const mouth = (y, z, w, c) => tube([[-w, y + 0.015, z - 0.015], [0, y, z], [w, y + 0.015, z - 0.015]], [0.013, 0.013, 0.013], c || dk, { cap0: 'round', cap1: 'round' });
+          /* two-legged Kin stand on different legs too: stocky (short, heavy thighs), lanky (thin, with knobs for knees and elbows), mech (jointed, the joints lit), stump (a straight column that flares at the ground) */
+          const BLK = {}; for (const [kd, list] of [['stocky', 'magmagorilla torchmandrill sumofrog polarbear polarcub sunbear waxgiant thunderboxer drillmole minermole pangolinknight fungelder riverfrog'], ['lanky', 'embermonkey lemurkid skylemur gibbon mantisnymph orchidmantis ayeaye nightshaman batpup galebat tempestbat meerkatpup sunsentinel stoat redpanda'], ['mech', 'windupbot coilsoldier thundermech conductor puppet marionette puppeteer crystalknight paladin prismsprite'], ['stump', 'sporeling mushknight wick menhir mimic']]) for (const n of list.split(' ')) BLK[n] = kd;
+          const bkind = BLK[P] || 'plain';
           const legs = (hip, xw, th, c, foot, o = {}) => { // two legs with a knee; feet: paw, boot, web, talon, hoof, root
+            th *= bkind === 'stocky' ? 1.25 : bkind === 'lanky' ? 0.82 : 1; if (bkind === 'stocky' && !o.thigh) o = Object.assign({ thigh: true }, o);
             th *= 1.25; for (const sd of [-1, 1]) { B(sd < 0 ? 4 : 5, 'leg', [sd * xw, hip, 0], { phase: sd < 0 ? 0 : Math.PI, len: hip });
               if (o.thigh) blob(sd * xw - th * 1.4, hip * 0.5, -th * 1.4, sd * xw + th * 1.4, hip + th * 0.8, th * 1.3, 1, c || bd, { under: bl });
-              tube([[sd * xw, hip, 0], [sd * xw * 1.06, hip * 0.5, o.digi ? -0.07 : 0.04], [sd * xw, 0.1, 0]], [th, th * 0.85, th * 0.75], c || bd, { cap0: 'round', cap1: 'none' });
+              if (bkind === 'stump') tube([[sd * xw, hip, 0], [sd * xw, hip * 0.4, 0], [sd * xw, 0.06, 0]], [th, th * 0.95, th * 1.35], c || bd, { cap0: 'round', cap1: 'flat' });
+              else tube([[sd * xw, hip, 0], [sd * xw * 1.06, hip * 0.5, o.digi ? -0.07 : 0.04], [sd * xw, 0.1, 0]], [th, th * 0.85, th * 0.75], c || bd, { cap0: 'round', cap1: 'none' });
+              if (bkind === 'lanky') ball(sd * xw * 1.06, hip * 0.5, o.digi ? -0.07 : 0.04, th * 1.2, c || bd); else if (bkind === 'mech') { ball(sd * xw * 1.06, hip * 0.5, o.digi ? -0.07 : 0.04, th * 1.15, glw, { emis: true }); ball(sd * xw, hip, 0, th * 1.2, dk); }
               const fc = o.fc || dk;
               if (foot === 'web') { blob(sd * xw - th, 0, -th, sd * xw + th, 0.1, th, 0.8, fc, { n: 2 }); plate([[sd * xw, 0.02, 0], [sd * xw - th * 2.2, 0.02, th * 3.2], [sd * xw + th * 2.2, 0.02, th * 3.2]], 0.025, fc); }
               else if (foot === 'talon') { for (const a of [-0.5, 0, 0.5]) tube([[sd * xw, 0.08, 0], [sd * xw + a * th * 2, 0.03, th * 2.8]], [th * 0.4, th * 0.25], fc, { cap0: 'round', cap1: 'round' }); }
@@ -1404,7 +1410,8 @@ const KIN = (() => {
           const arms = (sh, xw, len, th, c, hand, o = {}) => { // two arms hung from the shoulders; hands: paw, fist, claw, fin, wing, none
             for (const sd of [-1, 1]) { B(sd < 0 ? 2 : 3, 'arm', [sd * xw, sh, 0], { phase: sd < 0 ? 0 : Math.PI, side: sd });
               const fw = o.fwd || 0.04, el = [sd * (xw + len * (o.out || 0.3)), sh - len * 0.5, fw], wr = [sd * (xw + len * (o.out || 0.3) * 1.25), sh - len, fw * 2 + 0.04];
-              tube([[sd * xw, sh, 0], el, wr], [th * 1.25, th * 1.0, th * 1.1], c || bd, { cap0: 'round', cap1: 'round' }); /* a full upper arm, a forearm that swells toward the hand */
+              const am = bkind === 'stocky' ? [1.5, 1.2, 1.45] : bkind === 'lanky' ? [0.9, 0.75, 0.8] : bkind === 'stump' ? [1.1, 1.1, 1.1] : [1.25, 1.0, 1.1]; tube([[sd * xw, sh, 0], el, wr], [th * am[0], th * am[1], th * am[2]], c || bd, { cap0: 'round', cap1: 'round' }); /* a full upper arm, a forearm that swells toward the hand */
+              if (bkind === 'lanky') ball(el[0], el[1], el[2], th * 1.05, c || bd); else if (bkind === 'mech') { ball(el[0], el[1], el[2], th * 1.1, glw, { emis: true }); ball(sd * xw, sh, 0, th * 1.5, dk); }
               const hc = o.hc || c || bd;
               if (hand === 'fist') blob(wr[0] - th * 1.8, wr[1] - th * 2.2, wr[2] - th * 1.6, wr[0] + th * 1.8, wr[1] + th * 1.2, wr[2] + th * 1.9, 0.6, hc, { n: 2 });
               else if (hand === 'claw') { ball(wr[0], wr[1], wr[2], th * 1.15, hc, { n: 2 }); for (const a of [-0.5, 0, 0.5]) cone([wr[0] + a * th, wr[1] - th * 0.6, wr[2] + th * 0.5], [a * 0.3, -1, 0.5], th * 2.4, th * 0.35, o.cc || '#f4f0e6'); }
@@ -1516,7 +1523,7 @@ const KIN = (() => {
             plate(Array.from({ length: 12 }, (_, i) => { const a = i / 12 * Math.PI * 2; return [Math.cos(a) * cw * 0.92, cy - 0.02, Math.sin(a) * cw * 0.84]; }), 0.012, '#c8b48a');
             for (let i = 0; i < 6 + 3 * k; i++) { const a = i * 2.4, rr = (0.3 + (i % 3) * 0.22) * cw; ball(Math.cos(a) * rr, cy + cw * [0.9, 0.7, 0.55][k] * Math.sqrt(1 - (rr / cw) ** 2) * 0.95, Math.sin(a) * rr * 0.9, 0.045 + 0.02 * k, spot, { n: 2 }); }
             const fy = top - [0.2, 0.2, 0.28][k], fz = 0.18 + 0.05 * k; look(0.08 + 0.02 * k, fy, fz, 0.05 + 0.005 * k, { brow: k ? '#b8a888' : null }); mouth(fy - 0.12, fz + 0.04, 0.04);
-            if (k === 1) { plate([[-0.18, fy + 0.1, fz + 0.02], [0.18, fy + 0.1, fz + 0.02], [0.16, fy + 0.02, fz + 0.04], [-0.16, fy + 0.02, fz + 0.04]], 0.02, cap); } // a visor of cap
+            if (k === 1) { for (const sd of [-1, 1]) blob(sd * 0.2 - 0.05, fy - 0.2, fz - 0.1, sd * 0.2 + 0.05, fy + 0.02, fz + 0.02, 0.8, cap, { n: 2 }); cone([0, cy + cw * 0.7, 0], [0.2, 1, -0.3], 0.26, 0.04, spot); } /* cheek guards cut from the cap, and a plume of spore on the crown: the face stays clear */
             if (k === 2) { for (let i = 0; i < 9; i++) { const a = (i / 8 - 0.5) * 1.8; cone([Math.sin(a) * 0.18, fy - 0.14, fz - 0.02 + Math.cos(a) * 0.04], [Math.sin(a) * 0.2, -1, 0.2], 0.4 + (i % 2) * 0.14, 0.04, i % 2 ? '#5f8a3a' : '#7aa04a'); }
               for (const [x, z, h] of [[-0.4, 0.1, 0.22], [0.3, -0.3, 0.28], [0.1, 0.4, 0.18], [-0.2, -0.44, 0.2]]) { const yy = cy + cw * 0.55 * Math.sqrt(Math.max(0, 1 - (x * x + z * z) / (cw * cw))); tube([[x, yy - 0.04, z], [x, yy + h, z]], [0.03, 0.025], stalk, { cap0: 'none', cap1: 'none' }); blob(x - 0.08, yy + h - 0.02, z - 0.08, x + 0.08, yy + h + 0.08, z + 0.08, 1, cap, { under: spot }); }
               for (let i = 0; i < 8; i++) { const a = i * 2.2; ball(Math.cos(a) * 0.9, cy + 0.3 + (i % 3) * 0.2, Math.sin(a) * 0.7, 0.025, glw, { emis: true, n: 1 }); } }
@@ -2014,10 +2021,14 @@ const KIN = (() => {
           } else if (BP === 'puff') { // a puff of cloud with a face, tufts all round, drifting
             for (const [x, y, z, r] of [[0, 0.5, 0, 0.32], [-0.3, 0.42, -0.04, 0.22], [0.3, 0.42, -0.04, 0.22], [-0.14, 0.7, -0.08, 0.2], [0.16, 0.7, -0.06, 0.2], [0, 0.34, -0.2, 0.22]]) ball(x, y, z, r, '#f4f8ff', { n: 3 });
             face(0.5, 0.3, 0.07, 0.12); for (const sd of [-1, 1]) ball(sd * 0.22, 0.42, 0.28, 0.04, '#ffb0c8', { n: 1 }); hover = 0.2; legLen = 0.06;
-          } else if (BP === 'snowball') { // two stacked snowballs come alive: twig arms, an icicle quiff, a carrot of a nose
-            ball(0, 0.3, 0, 0.32, '#f4f8ff', { n: 3 }); ball(0, 0.74, 0.02, 0.22, '#f4f8ff', { n: 3 }); for (const sd of [-1, 1]) tube([[sd * 0.26, 0.42, 0.04], [sd * 0.5, 0.56, 0.06], [sd * 0.6, 0.6, 0.02]], [0.025, 0.02, 0.01], '#6b4a2a', { cap0: 'none', cap1: 'round' });
-            for (let i = 0; i < 3; i++) cone([(i - 1) * 0.06, 0.92, -0.02], [(i - 1) * 0.4, 1, -0.3], 0.2, 0.04, glw, { emis: true }); cone([0, 0.72, 0.2], [0, 0, 1], 0.14, 0.035, '#ff9a4a');
-            face(0.8, 0.18, 0.05, 0.08, { noMouth: true }); legLen = 0.04;
+          } else if (BP === 'snowball') { /* a flurry that packed itself into a body: a frost heart glowing through its belly, horns of ice, mittens of snow that hang in the air beside it, a scarf made of wind */
+            const snow = '#f4f8ff', ice = '#5fd0ff';
+            blob(-0.32, 0.02, -0.3, 0.32, 0.62, 0.3, 1, snow, { under: '#d8e6f8' }); ball(0, 0.3, 0.2, 0.11, ice, { emis: true, n: 3 }); for (let i = 0; i < 6; i++) { const a = i / 6 * 6.28; cone([Math.cos(a) * 0.1, 0.3 + Math.sin(a) * 0.1, 0.27], [Math.cos(a), Math.sin(a), 0.4], 0.07, 0.02, ice, { emis: true }); } /* the frost heart, with a flake's six points */
+            ball(0, 0.78, 0.02, 0.24, snow, { n: 3 });
+            for (const sd of [-1, 1]) { curl([sd * 0.13, 0.96, -0.02], [sd * 0.5, 1, -0.2], 0.3, 0.05, ice, [sd * 0.3, 0.2, -0.5], { emis: true }); ball(sd * 0.5, 0.42 + sd * 0.04, 0.1, 0.1, snow, { n: 2 }); ball(sd * 0.56, 0.47 + sd * 0.04, 0.16, 0.045, snow, { n: 2 }); ball(sd * 0.2, 0.7, 0.2, 0.035, '#ffc8d8', { n: 2 }); }
+            cone([0, 1.0, 0], [0, 1, -0.2], 0.2, 0.05, ice, { emis: true });
+            { const pts = []; for (let i = 0; i <= 10; i++) { const a = i / 10 * 6.28; pts.push([Math.cos(a) * 0.2, 0.6 + Math.sin(a * 2) * 0.015, Math.sin(a) * 0.19 + 0.01]); } tube(pts, pts.map(() => 0.04), ice, { cap0: 'none', cap1: 'none', segs: 6 }); tube([[0.16, 0.6, -0.1], [0.34, 0.66, -0.3], [0.5, 0.58, -0.46], [0.66, 0.66, -0.56]], [0.04, 0.035, 0.028, 0.006], ice, { cap0: 'none', cap1: 'none' }); }
+            face(0.82, 0.19, 0.055, 0.085, { col: '#2aa8e8' }); for (const sd of [-1, 1]) ball(sd * 0.14, 0.03, 0.1, 0.1, '#d8e6f8', { n: 2 }); legLen = 0.04;
           } else if (BP === 'icicle') { // an icicle on two feet: a spike of clear ice with a face in it
             cone([0, 0.12, 0], [0, 1, 0], 1.0, 0.3, hexMix(C.body, '#ffffff', 0.3)); for (let i = 0; i < 4; i++) { const a = i / 4 * Math.PI * 2 + 0.4; cone([Math.cos(a) * 0.14, 0.16, Math.sin(a) * 0.14], [Math.cos(a), 1.6, Math.sin(a)], 0.4, 0.08, glw, { emis: true }); }
             face(0.42, 0.18, 0.06, 0.09); feet(0.1, 0.14, C.accent); legLen = 0.12;
@@ -2237,6 +2248,7 @@ const KIN = (() => {
             plate([[b[0] - w * Math.cos(a), b[1], b[2] - w * Math.sin(a)], [tip[0] - w * 0.7 * Math.cos(a), tip[1], tip[2]], [tip[0] + w * 0.7 * Math.cos(a), tip[1], tip[2]], [b[0] + w * Math.cos(a), b[1], b[2]]], 0.014, Array.isArray(c) ? c[i % c.length] : c, o.edge ? { edge: o.edge, emis: !!o.emis } : { emis: !!o.emis }); if (o.eye) { ball(tip[0], tip[1] + 0.01, tip[2], o.eyeR || 0.05, o.eye, { emis: !!o.emis, n: 2 }); } }
             bone = 0; };
           const egg = (cy, cz, rx, ry, rz, c, u, tap) => blob(-rx, cy - ry, cz - rz, rx, cy + ry, cz + rz, 1, c || bd, { under: u || bl, tap });
+          const onTailStream = (big) => { if (bones[6]) bone = 6; for (const sd of [-1, 1]) tube([[sd * 0.06, 0.54, -0.5], [sd * 0.16, 0.5, -0.8], [sd * 0.1, 0.56, -1.05], [sd * 0.2, 0.5, big ? -1.5 : -1.25]], [0.022, 0.02, 0.016, 0.004], '#8fe8ff', { emis: true, cap0: 'round', cap1: 'none' }); bone = 0; }; /* two streamers of wind off the tail */
           const chick = (c, fluff, beakC, o = {}) => { // a round fluffy chick: the first stage of most bird lines
             legsB(0.14, 0.08, beakC || orange, 0.025); egg(0.42, 0, 0.3, 0.3, 0.3, c, o.u || bl);
             for (let i = 0; i < 10; i++) { const a = i * 2.4, u = ((i * 0.618) % 1) * 1.4 - 0.4, k = Math.sqrt(Math.max(0, 1 - u * u)); cone([Math.cos(a) * k * 0.28, 0.42 + u * 0.28, Math.sin(a) * k * 0.28], [Math.cos(a) * k, u, Math.sin(a) * k], 0.08, 0.03, fluff || c); }
@@ -2361,16 +2373,17 @@ const KIN = (() => {
             wings2(0.24, 1.14, 0.04, 1.1, { c: grey, n: 8 }); fanTail([0, 0.86, -0.3], 4, 0.2, 0.5, grey); hover = 0;
 
           // ======== GALE ========
-          } else if (P === 'eaglet') chick('#f2ece2', '#ffffff', '#3a3230', { beak: 'hook', beakL: 0.12, glow: false });
-          else if (P === 'hawk' || P === 'stormeagle') { // a hawk with a barred chest; then an eagle of the storm, white-headed, cloud at its wingtips, lightning in its talons
-            const big = P === 'stormeagle', brown = hexMix(bd, '#6a4a2e', 0.5), white = '#f6f8fa', k = big ? 1.25 : 1;
-            legsB(0.32, 0.1, '#e8c23a', 0.035 * k, { thigh: true, thighC: brown }); egg(0.66, 0, 0.24 * k, 0.28 * k, 0.36 * k, brown, big ? brown : '#e8dcc8');
-            if (!big) for (let i = 0; i < 4; i++) ring(0, 0.5 + i * 0.07, 0.26, 0.14, 0.02, 0.012, brown);
-            H(0.94, 0.26); ball(0, 1.0, 0.3, 0.16 * k, big ? white : brown, { n: 3 }); look(0.09, 1.04, 0.42, 0.04, { brow: big ? '#c8ccd4' : dk, col: '#ffcf5a' }); beak('hook', 0.98, 0.46, 0.04, 0.14 * k, '#e8c23a');
-            if (big) for (let i = 0; i < 6; i++) { const a = i / 6 * Math.PI * 2; cone([Math.cos(a) * 0.12, 0.9 + Math.sin(a) * 0.06, 0.26], [Math.cos(a), -0.4, -0.3], 0.12, 0.04, white); } bone = 0;
-            if (big) { display2(0.22 * k, 0.84, 0.02, 1.2, { c: brown, n: 11, f: brown, f2: hexMix(brown, dk, 0.3), tip: '#ffffff', up: 0.8 }); for (const sd of [-1, 1]) { bone = sd < 0 ? 7 : 8; for (let i = 0; i < 3; i++) ball(sd * (0.8 + i * 0.14), 1.34 + (i % 2) * 0.1, -0.24, 0.12 - i * 0.02, '#e8ecf2', { n: 2 }); bone = 0; } } else wings2(0.22 * k, 0.8, 0.04, 1.0, { c: brown, n: 8, f: brown, f2: hexMix(brown, dk, 0.3) });
-            fanTail([0, 0.56, -0.36], 6, big ? 0.5 : 0.38, 0.6, big ? white : [brown, '#c8b48a']);
-            if (big) for (const sd of [-1, 1]) { bone = sd < 0 ? 4 : 5; plate([[sd * 0.12, 0.06, 0.2], [sd * 0.14, 0.2, 0.32], [sd * 0.12, 0.14, 0.32], [sd * 0.14, 0.3, 0.44]], 0.02, ac, { emis: true }); bone = 0; }
+          } else if (P === 'eaglet') chick('#dfe6f2', '#ffffff', '#e8c23a', { beak: 'hook', beakL: 0.12, glow: false, eye: '#ffcf5a', head: () => { plate([[-0.02, 0.96, 0.08], [0.04, 1.08, 0.02], [0.0, 1.06, 0.02], [0.05, 1.18, -0.06], [-0.04, 1.05, 0.0], [0.0, 1.07, 0.0]], 0.018, '#ffe65a', { emis: true }); }, after: () => { for (let i = 0; i < 5; i++) { const a = i / 5 * 6.28; ball(Math.cos(a) * 0.2, 0.6, Math.sin(a) * 0.18 + 0.02, 0.07, '#ffffff', { n: 2 }); } } }); /* a puff of storm cloud with a spark of a crest and a collar of cloud */
+          else if (P === 'hawk' || P === 'stormeagle') { /* birds of the storm front, not of the field guide: slate as a thundercloud, a bolt for a crest, a ruff of cloud, lightning barred down the chest; the eagle carries cloud at its wingtips and lightning in its talons */
+            const big = P === 'stormeagle', slate = hexMix(bd, '#4a5a7e', 0.65), white = '#f6f8fa', k = big ? 1.25 : 1, bolt = '#ffe65a', cy0 = '#8fe8ff';
+            legsB(0.32, 0.1, '#e8c23a', 0.035 * k, { thigh: true, thighC: slate }); egg(0.66, 0, 0.24 * k, 0.28 * k, 0.36 * k, slate, big ? '#c8d2e6' : '#dfe6f2');
+            for (let i = 0; i < 3; i++) { const y = 0.74 - i * 0.1, z = 0.3 * k + 0.02 - i * 0.02, w = 0.11 - i * 0.02; plate([[-w, y, z], [-w * 0.3, y - 0.05, z + 0.01], [0, y - 0.01, z + 0.012], [w * 0.3, y - 0.06, z + 0.01], [w, y, z], [w * 0.3, y - 0.035, z + 0.012], [0, y + 0.012, z + 0.014], [-w * 0.3, y - 0.03, z + 0.012]], 0.012, i % 2 ? bolt : cy0, { emis: true }); } /* chevrons of lightning */
+            H(0.94, 0.26); ball(0, 1.0, 0.3, 0.16 * k, big ? white : slate, { n: 3 }); look(0.09, 1.04, 0.42, 0.045, { brow: big ? '#c8ccd4' : dk, col: '#ffcf5a' }); beak('hook', 0.98, 0.46, 0.04, 0.14 * k, '#e8c23a');
+            plate([[-0.02, 1.13 * (big ? 1.03 : 1), 0.3], [0.05, 1.3, 0.2], [0.0, 1.27, 0.2], [0.06, 1.44, 0.08], [-0.05, 1.26, 0.18], [0.0, 1.29, 0.18], [-0.06, 1.14, 0.26]], 0.02, bolt, { emis: true }); /* the crest is a bolt */
+            for (let i = 0; i < (big ? 9 : 6); i++) { const a = i / (big ? 9 : 6) * Math.PI * 2; ball(Math.cos(a) * 0.15 * k, 0.88 + Math.sin(a) * 0.05, 0.24 + Math.sin(a) * 0.08, (big ? 0.075 : 0.055), white, { n: 2 }); } bone = 0;
+            if (big) { display2(0.22 * k, 0.84, 0.02, 1.2, { c: slate, n: 11, f: slate, f2: hexMix(slate, dk, 0.3), tip: cy0, up: 0.8 }); for (const sd of [-1, 1]) { bone = sd < 0 ? 7 : 8; for (let i = 0; i < 3; i++) ball(sd * (0.8 + i * 0.14), 1.34 + (i % 2) * 0.1, -0.24, 0.12 - i * 0.02, '#e8ecf2', { n: 2 }); bone = 0; } } else wings2(0.22 * k, 0.8, 0.04, 1.0, { c: slate, n: 8, f: slate, f2: hexMix(slate, dk, 0.3), tip: cy0 });
+            fanTail([0, 0.56, -0.36], 6, big ? 0.5 : 0.38, 0.6, big ? white : [slate, '#c8d2e6'], { edge: cy0 }); onTailStream(big);
+            if (big) for (const sd of [-1, 1]) { bone = sd < 0 ? 4 : 5; plate([[sd * 0.12, 0.06, 0.2], [sd * 0.14, 0.2, 0.32], [sd * 0.12, 0.14, 0.32], [sd * 0.14, 0.3, 0.44]], 0.02, bolt, { emis: true }); bone = 0; }
           } else if (P === 'swallow' || P === 'swift') { // a barn swallow with a forked tail; then a swift, all scythe wings, a dart on the wind
             const big = P === 'swift', navy = hexMix(bd, '#203060', 0.5);
             legsB(0.12, 0.06, '#3a3230', 0.016); egg(0.4, 0, 0.14, 0.15, 0.3, navy, big ? navy : '#f2e2d0', [0.8, 1]); if (!big) blob(-0.08, 0.36, 0.18, 0.08, 0.5, 0.28, 1, '#c8503a', { n: 2 });
