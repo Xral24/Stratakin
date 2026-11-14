@@ -574,7 +574,31 @@ const KIN = (() => {
     };
     const B = (i, kind, piv, extra) => { bones[i] = Object.assign({ kind, piv: P3(piv) }, extra || {}); bone = i; };
     // eyes: a bright eye with a white glint, looking +z; r is the eye radius
-    const eyes = (x, y, z, r, o) => { const col = (o && o.col) || C.eye; const bright = (o && o.bright) != null ? o.bright : true; for (const sd of [-1, 1]) { ball(sd * x, y, z, r, col, { emis: bright, n: 3 }); ball(sd * x + sd * r * 0.25, y + r * 0.32, z + r * 0.78, r * 0.32, '#ffffff', { emis: true, n: 2 }); if (o && o.brow) blob(sd * x - r * 0.9, y + r * 0.95, z - r * 0.5, sd * x + r * 0.9, y + r * 1.25, z + r * 0.75, 0.5, o.brow, { n: 2 }); } };
+    const eyes = (x, y, z, r, o) => LOOK(x, y, z, r, { col: (o && o.col) || C.eye, brow: o && o.brow });
+    /* the one eye every Kin shares: a shallow lens, not a ball. White of the eye, an iris dark at the top and bright below, a tall pupil,
+       a big glint and a small one (both on the light's side, never mirrored), a dark upper lid. o.brow slants the lid for a fierce look;
+       o.glow makes a dark eye with a lit iris; side = the eye faces out sideways (fish). */
+    const LOOK = (ex, ey, ez, er, o = {}, side) => {
+      let col = o.col || C.eye; { const q = U.hexToRgb(col); if (q[0] + q[1] + q[2] < (q[0] > 1 ? 150 : 0.6)) col = hexMix(C.accent, '#3a2416', 0.4); } /* a plain black eye takes its colour from the Kin's accent */ const glow = !!o.glow; er *= er < 0.06 ? 1.3 : 1.12;
+      const pt = (sd, u, v, w) => side ? [sd * (ex + w * er), ey + v * er, ez + u * er] : [sd * ex + u * er, ey + v * er, ez + w * er];
+      const el = (sd, u, v, w, hu, hv, hw, c, oo) => { const p = pt(sd, u, v, w); const hx = (side ? hw : hu) * er, hy = hv * er, hz = (side ? hu : hw) * er; blob(p[0] - hx, p[1] - hy, p[2] - hz, p[0] + hx, p[1] + hy, p[2] + hz, 1, c, oo); };
+      const deep = hexMix(col, '#0b0a16', 0.55), lite = hexMix(col, '#ffffff', 0.38), gx = side ? 0.3 : -0.3;
+      for (const sd of [-1, 1]) {
+        const inn = side ? 0 : -sd; /* toward the nose */
+        el(sd, 0, 0.04, 0.26, 0.96, 1.16, 0.5, glow ? '#15101c' : '#f8f6f0', { n: 5 });
+        el(sd, inn * 0.1, -0.06, 0.6, 0.68, 0.88, 0.26, glow ? col : deep, { n: 5, emis: glow });
+        el(sd, inn * 0.1, -0.42, 0.66, 0.5, 0.42, 0.2, glow ? hexMix(col, '#ffffff', 0.5) : lite, { n: 4, emis: glow });
+        el(sd, inn * 0.1, 0.0, 0.8, 0.24, 0.44, 0.1, glow ? '#ffffff' : '#08060e', { n: 4, emis: glow });
+        el(sd, inn * 0.1 + gx, 0.42, 0.84, 0.25, 0.27, 0.08, '#ffffff', { n: 3, emis: true });
+        el(sd, inn * 0.1 - gx * 0.9, -0.46, 0.86, 0.11, 0.11, 0.05, '#ffffff', { n: 3, emis: true });
+        const arc = [], rr = []; const a0 = o.brow ? 0.62 : 0.3, a1 = o.brow ? 1.12 : 0.3;
+        for (let i = 0; i <= 6; i++) { const k = i / 6, a = Math.PI * (0.94 - 0.88 * k); const base = 0.04 + 1.17 * Math.sin(a); const cut = a0 + (a1 - a0) * (inn < 0 ? 1 - k : k); /* k runs -u to +u */
+          arc.push(pt(sd, 0.99 * Math.cos(a), o.brow ? Math.min(base, side ? 0.95 : cut) : base, 0.5 + 0.18 * Math.sin(a))); rr.push((i === 0 || i === 6 ? 0.05 : 0.12) * er * (o.brow ? 1.35 : 1)); }
+        tube(arc, rr, '#17111f', { segs: 6, cap0: 'round', cap1: 'round' });
+        if (o.brow) { const b0 = pt(sd, inn * 1.05, 0.78, 0.5), b1 = pt(sd, -inn * 1.1 + (side ? 1.0 : 0), 1.42, 0.42); if (side) { b0[2] = ez + er * 1.05; b0[1] = ey + er * 0.85; b1[2] = ez - er * 1.05; b1[1] = ey + er * 1.3; }
+          tube([b0, [(b0[0] + b1[0]) / 2, (b0[1] + b1[1]) / 2 + er * 0.08, (b0[2] + b1[2]) / 2 + (side ? 0 : er * 0.12)], b1], [er * 0.26, er * 0.34, er * 0.22], o.brow, { segs: 8, cap0: 'round', cap1: 'round' }); }
+      }
+    };
     // a ring of colour round an ellipsoid section (stripes, collars): centre (cx,cy,z), half-sizes hx,hy
     const ring = (cx, cy, z, hx, hy, th, c, o) => { const pts = []; for (let i = 0; i <= 14; i++) { const a = i / 14 * Math.PI * 2; pts.push([cx + Math.cos(a) * hx, cy + Math.sin(a) * hy, z]); } const rr = pts.map(() => th); tube(pts, rr, c, Object.assign({ cap0: 'none', cap1: 'none', segs: 6 }, o || {})); };
     const BPD = new Set(['embermonkey', 'torchmandrill', 'magmagorilla', 'wick', 'waxgiant', 'redpanda', 'froglet', 'riverfrog', 'sumofrog', 'otterpup', 'shellotter', 'axolotl', 'sporeling', 'mushknight', 'fungelder', 'mantisnymph', 'orchidmantis', 'mosssloth', 'molekit', 'minermole', 'drillmole', 'pangolinpup', 'pangolinknight', 'menhir', 'batpup', 'galebat', 'tempestbat', 'lemurkid', 'skylemur', 'gibbon', 'penguinchick', 'emperor', 'icegeneral', 'polarcub', 'polarbear', 'stoat', 'windupbot', 'coilsoldier', 'thundermech', 'voltjoey', 'thunderboxer', 'conductor', 'puppet', 'marionette', 'puppeteer', 'ayeaye', 'nightshaman', 'mimic', 'prismsprite', 'crystalknight', 'paladin', 'meerkatpup', 'sunsentinel', 'sunbear']);
@@ -613,7 +637,7 @@ const KIN = (() => {
         const arch = (sp.steed || sp.fast || sp.tame || sp.dino) ? 'steed' : form.plan && ARCH.includes(form.plan) ? form.plan : ARCH[((sp.seed >>> 0) % 997) % ARCH.length];
         {
           const glw = hexMix(C.accent, '#ffffff', 0.3), pawC = hexMix(C.dark, C.belly, 0.2);
-          const look = (ex, ey, ez, er, o = {}) => { // layered eyes: dark base, coloured iris, pupil, two glints; an adult's brow
+          const look = (ex, ey, ez, er, o = {}) => LOOK(ex, ey, ez, er, o, false); const lookOld = (ex, ey, ez, er, o = {}) => { // layered eyes: dark base, coloured iris, pupil, two glints; an adult's brow
             for (const sd of [-1, 1]) { ball(sd * ex, ey, ez, er, '#16121e', { n: 3 }); ball(sd * (ex + er * 0.04), ey - er * 0.12, ez + er * 0.5, er * 0.62, o.col || C.eye, { emis: !!o.glow, n: 3 });
               ball(sd * (ex + er * 0.05), ey - er * 0.1, ez + er * 0.78, er * 0.3, '#0a0810', { n: 2 }); ball(sd * (ex - er * 0.22), ey + er * 0.34, ez + er * 0.82, er * 0.3, '#ffffff', { emis: true, n: 2 }); ball(sd * (ex + er * 0.3), ey - er * 0.36, ez + er * 0.84, er * 0.13, '#ffffff', { emis: true, n: 2 });
               if (o.brow) blob(sd * ex - er * 1.1, ey + er * 0.88, ez - er * 0.3, sd * ex + er * 1.1, ey + er * 1.18, ez + er * 0.9, 0.5, o.brow, { n: 2 }); } };
@@ -1285,7 +1309,7 @@ const KIN = (() => {
           // Two-legged Kin with bodies of their own, each anchored to a real animal or thing and grown along a line that follows
           // from it. Bones: head 1, arms 2/3, legs 4/5, tail 6, wings 7/8.
           const P = form.plan, dk = C.dark, bl = C.belly, bd = C.body, ac = C.accent, glw = hexMix(C.accent, '#ffffff', 0.3);
-          const look = (ex, ey, ez, er, o = {}) => { for (const sd of [-1, 1]) { ball(sd * ex, ey, ez, er, '#16121e', { n: 3 }); ball(sd * (ex + er * 0.04), ey - er * 0.12, ez + er * 0.5, er * 0.62, o.col || C.eye, { emis: !!o.glow, n: 3 });
+          const look = (ex, ey, ez, er, o = {}) => LOOK(ex, ey, ez, er, o, false); const lookOld = (ex, ey, ez, er, o = {}) => { for (const sd of [-1, 1]) { ball(sd * ex, ey, ez, er, '#16121e', { n: 3 }); ball(sd * (ex + er * 0.04), ey - er * 0.12, ez + er * 0.5, er * 0.62, o.col || C.eye, { emis: !!o.glow, n: 3 });
             ball(sd * (ex + er * 0.05), ey - er * 0.1, ez + er * 0.78, er * 0.3, '#0a0810', { n: 2 }); ball(sd * (ex - er * 0.22), ey + er * 0.34, ez + er * 0.82, er * 0.3, '#ffffff', { emis: true, n: 2 });
             if (o.brow) blob(sd * ex - er * 1.1, ey + er * 0.88, ez - er * 0.3, sd * ex + er * 1.1, ey + er * 1.18, ez + er * 0.9, 0.5, o.brow, { n: 2 }); } };
           const H = (y, z) => B(1, 'head', [0, y, z || 0]);
@@ -1711,7 +1735,7 @@ const KIN = (() => {
           // the body sways as one.
           const P = form.plan, dk = C.dark, bl = C.belly, bd = C.body, ac = C.accent, glw = hexMix(C.accent, '#ffffff', 0.3);
           kind = 'serpent'; legLen = 0.5;
-          const look = (ex, ey, ez, er, o = {}) => { for (const sd of [-1, 1]) { ball(sd * ex, ey, ez, er, '#16121e', { n: 3 }); ball(sd * (ex + er * 0.04), ey - er * 0.12, ez + er * 0.5, er * 0.62, o.col || C.eye, { emis: !!o.glow, n: 3 });
+          const look = (ex, ey, ez, er, o = {}) => LOOK(ex, ey, ez, er, o, false); const lookOld = (ex, ey, ez, er, o = {}) => { for (const sd of [-1, 1]) { ball(sd * ex, ey, ez, er, '#16121e', { n: 3 }); ball(sd * (ex + er * 0.04), ey - er * 0.12, ez + er * 0.5, er * 0.62, o.col || C.eye, { emis: !!o.glow, n: 3 });
             ball(sd * (ex + er * 0.05), ey - er * 0.1, ez + er * 0.78, er * 0.3, '#0a0810', { n: 2 }); ball(sd * (ex - er * 0.22), ey + er * 0.34, ez + er * 0.82, er * 0.3, '#ffffff', { emis: true, n: 2 });
             if (o.brow) blob(sd * ex - er * 1.2, ey + er * 0.8, ez - er * 0.5, sd * ex + er * 1.1, ey + er * 1.2, ez + er * 0.9, 0.5, o.brow, { n: 2 }); } };
           const rgb = (h) => U.hexToRgb(h);
@@ -1872,7 +1896,7 @@ const KIN = (() => {
         const BP = form.plan;
         if (BP) { // a starter with a design of its own: what it is should be plain at a glance
           const glw = hexMix(C.accent, '#ffffff', 0.3), dk = C.dark, bel = C.belly, bl = C.belly, bd = C.body, ac = C.accent;
-          const face = (y, z, r, x = 0.17, o = {}) => { for (const sd of [-1, 1]) { ball(sd * x, y, z, r, '#16121e', { n: 3 }); ball(sd * (x + r * 0.04), y - r * 0.12, z + r * 0.5, r * 0.62, o.col || C.eye, { emis: !!o.glow, n: 2 }); ball(sd * (x - r * 0.2), y + r * 0.34, z + r * 0.82, r * 0.32, '#ffffff', { emis: true, n: 2 }); } if (!o.noMouth) plate([[-0.06, y - r * 1.6, z + 0.04], [0.06, y - r * 1.6, z + 0.04], [0, y - r * 2.1, z + 0.05]], 0.01, dk); };
+          const face = (y, z, r, x = 0.17, o = {}) => { LOOK(x, y, z, r, o); if (!o.noMouth) plate([[-0.06, y - r * 1.6, z + 0.04], [0.06, y - r * 1.6, z + 0.04], [0, y - r * 2.1, z + 0.05]], 0.01, dk); };
           const feet = (y, x = 0.2, c = dk) => { for (const sd of [-1, 1]) blob(sd * x - 0.1, 0, -0.04, sd * x + 0.1, y, 0.2, 0.7, c, { n: 2 }); };
           if (BP === 'ember') { // a living flame: a teardrop of fire with a crown that licks upward, little arms, a hot core
             blob(-0.36, 0.06, -0.32, 0.36, 0.7, 0.32, 1, C.body, { under: bel, tap: [0.75, 0.6] }); ball(0, 0.32, 0.18, 0.14, glw, { emis: true, n: 2 });
@@ -2085,7 +2109,7 @@ const KIN = (() => {
           // Birds with bodies of their own, each a real bird (or a legend grown from one). Bones: head 1, legs 4/5, tail 6, wings 7/8.
           const P = form.plan, dk = C.dark, bl = C.belly, bd = C.body, ac = C.accent, glw = hexMix(C.accent, '#ffffff', 0.3), orange = '#e8a03a';
           flyer = true; hover = 0.1;
-          const look = (ex, ey, ez, er, o = {}) => { if (er < 0.06) { er *= 1.4; ex = Math.max(ex, er * 1.15); } for (const sd of [-1, 1]) { ball(sd * ex, ey, ez, er, '#16121e', { n: 3 }); ball(sd * (ex + er * 0.04), ey - er * 0.12, ez + er * 0.5, er * 0.62, o.col || C.eye, { emis: !!o.glow, n: 3 });
+          const look = (ex, ey, ez, er, o = {}) => LOOK(ex, ey, ez, er, o, false); const lookOld = (ex, ey, ez, er, o = {}) => { if (er < 0.06) { er *= 1.4; ex = Math.max(ex, er * 1.15); } for (const sd of [-1, 1]) { ball(sd * ex, ey, ez, er, '#16121e', { n: 3 }); ball(sd * (ex + er * 0.04), ey - er * 0.12, ez + er * 0.5, er * 0.62, o.col || C.eye, { emis: !!o.glow, n: 3 });
             ball(sd * (ex + er * 0.05), ey - er * 0.1, ez + er * 0.78, er * 0.3, '#0a0810', { n: 2 }); ball(sd * (ex - er * 0.22), ey + er * 0.34, ez + er * 0.82, er * 0.3, '#ffffff', { emis: true, n: 2 });
             if (o.brow) blob(sd * ex - er * 1.1, ey + er * 0.88, ez - er * 0.3, sd * ex + er * 1.1, ey + er * 1.18, ez + er * 0.9, 0.5, o.brow, { n: 2 }); } };
           const H = (y, z) => B(1, 'head', [0, y, z || 0]);
@@ -2475,7 +2499,7 @@ const KIN = (() => {
           // Fish with bodies of their own, each a real fish (or the legend it grows into). The tail fin is bone 6 and the body sways.
           const P = form.plan, dk = C.dark, bl = C.belly, bd = C.body, ac = C.accent, glw = hexMix(C.accent, '#ffffff', 0.3);
           hover = 0.15; legLen = 0.5; sway = { amp: 0.05 * s, freq: 4 / s, speed: 7, from: 0.35 * s };
-          const look = (ex, ey, ez, er, o = {}) => { for (const sd of [-1, 1]) { ball(sd * ex, ey, ez, er, '#16121e', { n: 3 }); ball(sd * (ex + er * 0.5), ey - er * 0.08, ez + er * 0.2, er * 0.62, o.col || C.eye, { emis: !!o.glow, n: 3 });
+          const look = (ex, ey, ez, er, o = {}) => LOOK(ex, ey, ez, er, o, true); const lookOld = (ex, ey, ez, er, o = {}) => { for (const sd of [-1, 1]) { ball(sd * ex, ey, ez, er, '#16121e', { n: 3 }); ball(sd * (ex + er * 0.5), ey - er * 0.08, ez + er * 0.2, er * 0.62, o.col || C.eye, { emis: !!o.glow, n: 3 });
             ball(sd * (ex + er * 0.78), ey - er * 0.06, ez + er * 0.25, er * 0.3, '#0a0810', { n: 2 }); ball(sd * (ex + er * 0.82), ey + er * 0.3, ez + er * 0.45, er * 0.28, '#ffffff', { emis: true, n: 2 });
             if (o.brow) blob(sd * ex - er * 0.6, ey + er * 0.8, ez - er * 1.1, sd * ex + er * 1.0, ey + er * 1.2, ez + er * 1.1, 0.5, o.brow, { n: 2 }); } };
           const rgb = (h) => U.hexToRgb(h);
@@ -2794,7 +2818,7 @@ const KIN = (() => {
           // Floaters with bodies of their own: things that drift (seeds, lanterns, kites, snowflakes, moons) grown into creatures.
           const P = form.plan, dk = C.dark, bl = C.belly, bd = C.body, ac = C.accent, glw = hexMix(C.accent, '#ffffff', 0.3);
           flyer = true; hover = 0.25; legLen = 0.4;
-          const look = (ex, ey, ez, er, o = {}) => { for (const sd of [-1, 1]) { ball(sd * ex, ey, ez, er, '#16121e', { n: 3 }); ball(sd * (ex + er * 0.04), ey - er * 0.12, ez + er * 0.5, er * 0.62, o.col || C.eye, { emis: !!o.glow, n: 3 });
+          const look = (ex, ey, ez, er, o = {}) => LOOK(ex, ey, ez, er, o, false); const lookOld = (ex, ey, ez, er, o = {}) => { for (const sd of [-1, 1]) { ball(sd * ex, ey, ez, er, '#16121e', { n: 3 }); ball(sd * (ex + er * 0.04), ey - er * 0.12, ez + er * 0.5, er * 0.62, o.col || C.eye, { emis: !!o.glow, n: 3 });
             ball(sd * (ex + er * 0.05), ey - er * 0.1, ez + er * 0.78, er * 0.3, '#0a0810', { n: 2 }); ball(sd * (ex - er * 0.22), ey + er * 0.34, ez + er * 0.82, er * 0.3, '#ffffff', { emis: true, n: 2 });
             if (o.brow) blob(sd * ex - er * 1.2, ey + er * 0.8, ez - er * 0.5, sd * ex + er * 1.1, ey + er * 1.2, ez + er * 0.9, 0.5, o.brow, { n: 2 }); } };
           const smile = (y, z, w, c) => tube([[-w, y + w * 0.4, z - 0.01], [0, y, z], [w, y + w * 0.4, z - 0.01]], [0.014, 0.014, 0.014], c || dk, { cap0: 'round', cap1: 'round' });
@@ -3185,6 +3209,8 @@ const KIN = (() => {
     for (const b of m.boxes) {
       mb.setBone(b.bone || 0); const col = U.hexToRgb(b.c); const o = Object.assign({ emis: !!b.emis }, b.o || {});
       if (b.rot) { mb.push(); mb.rotate(b.rot.rx || 0, b.rot.ry || 0, b.rot.rz || 0, b.rot.piv); }
+      if (b.k === 'blob' && b.round > 0.01) { const sz = Math.max(b.w, b.h, b.d) / 2; o.n = Math.max(o.n || 0, sz >= 0.26 ? 9 : sz >= 0.1 ? 6 : sz >= 0.04 ? 4 : 3); } /* rounder forms: no visible facets on a body */
+      if (b.k === 'tube') { let mr = 0; for (const r of b.radii) mr = Math.max(mr, Array.isArray(r) ? Math.max(r[0], r[1]) : r); o.segs = Math.max(o.segs || 8, mr >= 0.12 ? 14 : mr >= 0.05 ? 10 : 6); }
       if (b.k === 'blob') mb.blob(b.x, b.y, b.z, b.x + b.w, b.y + b.h, b.z + b.d, b.round, col, o);
       else if (b.k === 'tube') mb.tube(b.path, b.radii, col, o);
       else if (b.k === 'plate') mb.plate(b.pts, b.t, col, o);

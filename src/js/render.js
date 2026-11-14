@@ -351,7 +351,7 @@ const R = (() => {
   void main(){
     vec3 toCam = uCam - vWorld; float dist = length(toCam); vec3 V = toCam / max(dist, 0.0001);
     float f = clamp((dist - uFogNear) / (uFogFar - uFogNear), 0.0, 1.0); f = f * f * (3.0 - 2.0 * f);
-    if (uOutline > 0.0) { gl_FragColor = vec4(tonemap(mix(vec3(0.07, 0.06, 0.09), skyFog(-V), f)), uAlpha); return; }
+    if (uOutline > 0.0) { vec3 oc = vCol.rgb; float ol = dot(oc, vec3(0.3, 0.59, 0.11)); oc = clamp(mix(vec3(ol), oc, 1.5), 0.0, 1.0) * 0.26 + vec3(0.02, 0.015, 0.035); /* the line is the surface's own colour, deepened: ink, not black wire */ gl_FragColor = vec4(tonemap(mix(oc, skyFog(-V), f)), uAlpha); return; }
     vec3 n = normalize(vNorm); if (dot(n, V) < -0.15) n = -n;
     float sky = vCol.a; float emis = step(0.999, sky); float skyL = sky * uSkyMul;
     float torch = 0.0;
@@ -359,19 +359,20 @@ const R = (() => {
     torch = torch * torch * (3.0 - 2.0 * torch);
     float lam = max(dot(n, uSun), 0.0) * uSunAmt;
     float hl = (dot(n, uSun) * 0.5 + 0.5) * uSunAmt; // half-lambert: the shadow side still turns toward the light, the way toon shading does
-    float ramp = smoothstep(0.3, 0.52, hl) * 0.62 + smoothstep(0.68, 0.9, hl) * 0.38;
+    float ramp = smoothstep(0.4, 0.5, hl) * 0.8 + smoothstep(0.74, 0.92, hl) * 0.2; /* one clean shadow edge, then a soft lift toward the light */
     float sh = shadowAt(vWorld, n); ramp *= mix(0.25, 1.0, sh);
     vec3 amb = vec3(0.86, 0.9, 1.02) * (0.42 + 0.24 * uDay) * (0.84 + 0.2 * n.y);
     vec3 light = skyL * (amb * (0.88 + 0.12 * sh) + uSunCol * ramp * 0.78 * uDay);
     light = max(light, vec3(uAmbient)); light = max(light, vec3(1.0, 0.78, 0.52) * torch * 0.95);
     if (vWorld.y < 14.5 && uCoreGlow > 0.5) { float up = clamp((vWorld.y - 3.5) / 9.0, 0.0, 1.0); light = max(light, vec3(1.0, 0.42, 0.1) * (1.0 - up * 0.75) * (0.55 - 0.45 * n.y) * 1.1 + vec3(0.6, 0.16, 0.05) * 0.45); }
     light = mix(light, vec3(1.0), emis);
-    vec3 vc = vCol.rgb; float lum = dot(vc, vec3(0.3, 0.59, 0.11)); vc = mix(vec3(lum), vc, 0.84);
-    float g = hash3(floor(vLocal * 11.0 + 0.5)); vc *= 0.955 + 0.09 * g;
-    vec3 col = vc * light;
-    float rim = pow(1.0 - max(dot(n, V), 0.0), 3.0) * (0.3 + 0.3 * (1.0 - lam)) * skyL * (0.35 + 0.65 * uDay) * (1.0 - emis);
-    col += (uZenith * 0.7 + vec3(0.2)) * rim;
-    vec3 H = normalize(uSun + V); float spec = pow(max(dot(n, H), 0.0), 36.0) * uSunAmt * uDay * 0.22 * skyL * (1.0 - emis); col += uSunCol * spec;
+    vec3 vc = vCol.rgb; float lum = dot(vc, vec3(0.3, 0.59, 0.11)); vc = clamp(mix(vec3(lum), vc, 1.14), 0.0, 1.0);
+    float lit = clamp(ramp * (0.4 + 0.6 * sh), 0.0, 1.0);
+    vec3 shadeC = clamp(mix(vec3(lum), vc, 1.3), 0.0, 1.0) * vec3(0.9, 0.86, 1.04); /* shadows keep their colour and lean cool, the way painted cels do */
+    vec3 col = mix(shadeC, vc, max(lit, emis)) * light;
+    float rim = pow(1.0 - max(dot(n, V), 0.0), 3.5) * (0.16 + 0.16 * (1.0 - lam)) * skyL * (0.35 + 0.65 * uDay) * (1.0 - emis);
+    col += (uZenith * 0.5 + vc * 0.5 + vec3(0.1)) * rim;
+    vec3 H = normalize(uSun + V); float spec = smoothstep(0.55, 0.75, pow(max(dot(n, H), 0.0), 48.0)) * uSunAmt * uDay * 0.1 * skyL * (1.0 - emis) * sh; col += (vc * 0.5 + uSunCol * 0.5) * spec;
     col = mix(col, vec3(1.0, 0.95, 0.9), uFlash);
     float toward = pow(max(dot(-V, uSun), 0.0), 6.0) * uSunAmt;
     vec3 haze = mix(skyFog(-V), uSunCol, toward * 0.45); // far things fade into the sky behind them, whatever its colour up there
@@ -1441,7 +1442,7 @@ const R = (() => {
     bindShadow(eloc, 1);
   }
   function drawEntities(entities, cam, now) {
-    const outlineW = state.outlines === false ? 0 : (isMobile ? 0.022 : 0.026);
+    const outlineW = state.outlines === false ? 0 : (isMobile ? 0.013 : 0.015);
     let bonesId = true; gl.uniformMatrix4fv(eloc.uBones, false, IDENT_BONES);
     const drawOne = (e, outline) => {
       gl.uniformMatrix4fv(eloc.uModel, false, e.M || U.m4model(e.x, e.y + (e.hover || 0), e.z, e.yaw, e.scale || 1)); // an entity may bring its own matrix (a felled tree tipping over)
@@ -1669,7 +1670,7 @@ const R = (() => {
     gl.uniformMatrix4fv(eloc.uBones, false, IDENT_BONES); gl.uniformMatrix4fv(eloc.uModel, false, M);
     gl.uniform1f(eloc.uSkyMul, h.skyMul == null ? 1 : h.skyMul);
     drawEntityMesh(h.mesh);
-    const outlineW = state.outlines === false ? 0 : (isMobile ? 0.022 : 0.026);
+    const outlineW = state.outlines === false ? 0 : (isMobile ? 0.013 : 0.015);
     if (outlineW > 0) { gl.enable(gl.CULL_FACE); gl.cullFace(gl.FRONT); gl.uniform1f(eloc.uOutline, outlineW * 0.6); drawEntityMesh(h.mesh); gl.disable(gl.CULL_FACE); gl.uniform1f(eloc.uOutline, 0); }
     // the other hand: the shield rising square in front as you block, mirrored so the strap arm is the left one
     if (h.offhand && h.offhand.count && h.offK > 0.02) {
