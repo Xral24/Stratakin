@@ -208,6 +208,10 @@ Scope (Alexander, 8 Nov evening): EVERYTHING visible goes to the same standard: 
 
 - 14 Nov: children have their own lines (village.js CHILD_LINES, CHILD_LINES2, two per talk, fixed per child); the elder's tall hat no longer has hair clumps poking through.
 
+- Native Kin for the Moon and the Halo: neither world borrows Earth's Kin now. Moon 13 lines (water bear, phase ibex, jerboa, crater crab, moon rabbit, tarsier, bubble walker, bead worm, comet serpent, luna moth, sickle swift, moonlet, moon jelly). Halo 16 lines (sun scarab, girdled lizard, crystal camel, live wheel, meerkat sundial, frilled lizard, sand-to-glass golem, hoop snake, chain, flamingo, sunbird, annulet, sun dog, halite cube, brine shrimp, lens fish). Each line takes the species' element (colours, what it grows), with its own names (Regopig, Lumabex, Heliobearer, Salcrown). Fusions there are native too. Only the one rare Kin per habitat is an Earth line changed by the place (6 Moon, 7 Halo). Code: kin.js NATIVE / NAT_STEM / NAT_TOK / NAT_COL, nativeId, nativize, and the native block at the top of model(). Tests: tools/test/t-native.js (BODY, IDS, ELS), t-moondex.js (BODY). Each line still repeats across about 7 elements and up to 9 species share a line and element (told apart by tint only): more lines per world is the next step.
+- Portraits step the camera back when the near end of a long body would be clipped.
+- Frame guard: if the phone stays slow at the lowest resolution, new Kin and trees are built with fewer facets (window.__lowGeo).
+
 ## Still to do
 UI polish as feedback comes in. Card battle screen still used for scripted encounters (raids at the walls, thief, citadel duel, holds) and the snare mini-game; converting those to live is the next big step if wanted. (Old list: train/ships, combat animation, eggs, avatar hair/paint, buddy WEAR cosmetics, Silas and Finch, UI polish (item icons), quality toggles in settings (state.shadows, state.grassQuality, state.dprCap).
 

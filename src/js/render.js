@@ -1484,8 +1484,12 @@ const R = (() => {
     // the box's extent across the view: project its half-sizes onto the camera's right and up axes (generous, so nothing is clipped)
     const rx = Math.cos(yaw), rz = -Math.sin(yaw); const hw = Math.abs((x1 - x0) / 2 * rx) + Math.abs((z1 - z0) / 2 * rz), hh = (y1 - y0) / 2 * Math.cos(pitch) + (Math.abs((x1 - x0) / 2 * fwd[0]) + Math.abs((z1 - z0) / 2 * fwd[2])) * Math.abs(Math.sin(pitch));
     const half = Math.max(hw, hh, 0.3) * 0.98 / (opts.zoom || 1); const depth = Math.hypot((x1 - x0) / 2, (z1 - z0) / 2, (y1 - y0) / 2);
-    const dist = half / Math.tan(0.32) + depth * 0.3;
+    let dist = half / Math.tan(0.32) + depth * 0.3;
     const tx = (x0 + x1) / 2, ty = (y0 + y1) / 2 + (opts.lift || 0), tz = (z0 + z1) / 2;
+    { /* the near end of a long body looms in perspective: check the box's corners as the camera sees them, and step back until all fit */
+      const upv = [rz * fwd[1], rx * fwd[2] - rz * fwd[0], -rx * fwd[1]]; let need = 0;
+      for (const X of [x0, x1]) for (const Y of [y0, y1]) for (const Z of [z0, z1]) { const dx = X - tx, dy = Y - ty - (opts.lift || 0) * 0, dz = Z - tz; const d = dist + dx * fwd[0] + dy * fwd[1] + dz * fwd[2]; if (d < 0.05) continue; const r = Math.abs(dx * rx + dz * rz), u = Math.abs(dx * upv[0] + dy * upv[1] + dz * upv[2]); need = Math.max(need, Math.max(r, u) / d); }
+      const lim = Math.tan(0.32) * 0.96; if (need > lim && !opts.zoom) dist *= need / lim; }
     const cx = tx - fwd[0] * dist, cy = ty - fwd[1] * dist, cz = tz - fwd[2] * dist;
     const pv = U.m4mul(U.m4perspective(0.64, 1, 0.1, 60), U.m4view(cx, cy, cz, yaw, pitch));
     const saved = { fog: state.fogColor, fn: state.fogNear, ff: state.fogFar, sun: state.sun, sc: state.sunCol, sa: state.sunAmt, day: state.dayLight, z: state.zenith, tint: state.tint, amb: state.ambient, sp: state.skyPass, sh: state.shadowOn }; state.shadowOn = 0; const cg0 = state.coreGlow; state.coreGlow = false; /* a portrait is drawn near y 0, where the world's core would light it red from below */
