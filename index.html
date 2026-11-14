@@ -6080,6 +6080,7 @@ const KIN = (() => {
             for (const [y, x] of [[0.9, 0.12], [0.66, -0.14]]) { for (let p = 0; p < 5; p++) { const a = p / 5 * Math.PI * 2; ball(x + Math.cos(a) * 0.04, y + Math.sin(a) * 0.04, -0.32, 0.03, '#f4a3d2', { n: 1 }); } }
             arms(1.0, 0.3, 0.86, 0.07, bd, 'none', { out: 0.15, hand: (sd, w) => { for (const a of [-1, 0, 1]) curl([w[0] + a * 0.04, w[1], w[2]], [0, -1, 0.3], 0.22, 0.025, '#e8dcc0', [0, 0, 0.8]); } });
             H(1.1); ball(0, 1.26, 0.04, 0.24, bd, { n: 3 }); blob(-0.18, 1.12, 0.12, 0.18, 1.36, 0.28, 1, bl);
+            for (let i = 0; i < 6; i++) { const a = i / 6 * 6.28 + 0.3, x = Math.cos(a) * 0.17, z = 0.04 + Math.sin(a) * 0.17; ball(x, 1.47, z, 0.045, i % 2 ? '#f4a3d2' : '#ffe08a', { n: 2 }); plate([[x, 1.45, z], [x * 1.5, 1.5, z * 1.4 + 0.02], [x * 1.3, 1.44, z * 1.3 - 0.04]], 0.012, '#5f8a3a'); } tube([[0, 1.48, 0.02], [0.02, 1.62, 0.0], [0.08, 1.7, -0.02]], [0.018, 0.014, 0.008], '#5f8a3a', { cap0: 'none', cap1: 'round' }); plate([[0.06, 1.68, -0.02], [0.2, 1.76, 0.0], [0.12, 1.66, 0.04]], 0.012, '#7aa04a'); /* a crown of flowers has taken root on its head, and a sprout */
             for (const sd of [-1, 1]) blob(sd * 0.1 - 0.08, 1.18, 0.22, sd * 0.1 + 0.08, 1.3, 0.29, 0.8, dk, { n: 2 }); look(0.1, 1.24, 0.26, 0.035);
             ball(0, 1.16, 0.3, 0.035, dk, { n: 2 }); tube([[-0.06, 1.1, 0.28], [0, 1.08, 0.3], [0.06, 1.1, 0.28]], [0.01, 0.01, 0.01], dk, { cap0: 'round', cap1: 'round' }); bone = 0;
 
@@ -6149,7 +6150,8 @@ const KIN = (() => {
             blob(-0.2, hip - 0.04, -0.18, 0.2, top, 0.18, 1, bd, { under: bl, tap: [0.85, 1] });
             arms(top - 0.08, 0.18, big ? 0.5 : 0.3, big ? 0.05 : 0.04, bd, 'paw', { hc: dk });
             if (big) for (const sd of [-1, 1]) plate([[sd * 0.18, top - 0.1, 0], [sd * 0.56, top - 0.36, 0.02], [sd * 0.4, hip, -0.02], [sd * 0.18, hip - 0.02, -0.04]], 0.015, hexMix(bd, bl, 0.4), { edge: dk });
-            H(top); ball(0, top + 0.18, 0.02, 0.22, bd, { n: 3 }); blob(-0.16, top + 0.04, 0.1, 0.16, top + 0.28, 0.24, 1, '#f4f0e6'); cone([0, top + 0.08, 0.22], [0, -0.2, 1], 0.1, 0.06, dk); nose(0, top + 0.07, 0.31, 0.025);
+            for (let i = 0; i < 7; i++) { const a = i / 7 * 6.28; ball(Math.cos(a) * 0.19, top - 0.02, Math.sin(a) * 0.17, 0.075, '#ffffff', { n: 2 }); } /* a collar of cloud */
+            H(top); ball(0, top + 0.18, 0.02, 0.22, bd, { n: 3 }); curl([0, top + 0.38, 0], [0.2, 1, -0.2], 0.24, 0.035, '#8fe8ff', [0.9, -0.3, -0.5], { emis: true }); blob(-0.16, top + 0.04, 0.1, 0.16, top + 0.28, 0.24, 1, '#f4f0e6'); cone([0, top + 0.08, 0.22], [0, -0.2, 1], 0.1, 0.06, dk); nose(0, top + 0.07, 0.31, 0.025);
             for (const sd of [-1, 1]) blob(sd * 0.09 - 0.07, top + 0.14, 0.16, sd * 0.09 + 0.07, top + 0.28, 0.24, 1, dk, { n: 2 });
             look(0.09, top + 0.21, 0.22, 0.065, { col: '#ffb02a' }); ears(0.2, top + 0.32, -0.02, 0.06, bd, dk);
             if (big) fur(0, top + 0.1, 0, 0.22, 0.1, 0.2, 14, 0.1, 0.03, '#f4f0e6'); bone = 0;
@@ -6190,7 +6192,8 @@ const KIN = (() => {
             blob(-w, hip - 0.06, -w * 0.85, w, top, w * 0.85, 1, white, { under: '#d8dce4' });
             arms(top - 0.12, w - 0.04, big ? 0.82 : 0.32, big ? 0.13 : 0.07, white, 'claw', { out: 0.15, fwd: 0.08, cc: '#3a3230' });
             if (big) for (const sd of [-1, 1]) { for (let i = 0; i < 5; i++) cone([sd * (w - 0.06), top - 0.06, -0.16 + i * 0.08], [sd * 0.8, 1, (i - 2) * 0.2], 0.22 + (i % 2) * 0.1, 0.06, glw, { emis: true }); }
-            H(top - 0.06, 0.06); const hy = top + (big ? 0.16 : 0.12); ball(0, hy, 0.06, big ? 0.3 : 0.24, white, { n: 3 });
+            { const fy = hip + (top - hip) * 0.55, fz = w * 0.86, fr = big ? 0.1 : 0.07; ball(0, fy, fz - 0.02, fr, '#5fd0ff', { emis: true, n: 3 }); for (let i = 0; i < 6; i++) { const a = i / 6 * 6.28; cone([Math.cos(a) * fr * 0.8, fy + Math.sin(a) * fr * 0.8, fz + 0.03], [Math.cos(a), Math.sin(a), 0.35], fr * 1.2, fr * 0.25, '#5fd0ff', { emis: true }); } if (!big) for (const sd of [-1, 1]) cone([sd * (w - 0.04), top - 0.08, 0], [sd, 1, 0], 0.12, 0.04, '#5fd0ff', { emis: true }); } /* a flake of frost on the chest; the cub's shoulders are already budding ice */
+            H(top - 0.06, 0.06); const hy = top + (big ? 0.16 : 0.12); ball(0, hy, 0.06, big ? 0.3 : 0.24, white, { n: 3 }); cone([0, hy + (big ? 0.26 : 0.2), 0.1], [0, 1, 0.1], big ? 0.2 : 0.14, 0.045, '#5fd0ff', { emis: true });
             blob(-0.12, hy - 0.14, 0.2, 0.12, hy + 0.02, big ? 0.48 : 0.38, 1, '#e8eaee'); nose(0, hy - 0.02, big ? 0.48 : 0.38, 0.045);
             ears(big ? 0.22 : 0.18, hy + (big ? 0.24 : 0.2), 0.0, big ? 0.07 : 0.07, white, '#d8dce4'); look(big ? 0.12 : 0.1, hy + 0.06, big ? 0.3 : 0.24, big ? 0.04 : 0.055, { brow: big ? '#c8ccd4' : null }); mouth(hy - 0.12, big ? 0.44 : 0.35, 0.04); bone = 0;
             tail([[0, hip + 0.1, -w * 0.8], [0, hip + 0.06, -w * 0.9]], [0.07, 0.05], white);
@@ -6322,6 +6325,7 @@ const KIN = (() => {
             legs(0.4, 0.18, 0.1, black, 'paw', { fc: black, thigh: true }); blob(-0.36, 0.36, -0.3, 0.36, 1.3, 0.3, 1, black, { under: hexMix(black, bd, 0.3) });
             const moon = []; for (let i = 0; i <= 8; i++) { const a = Math.PI * (0.15 + 0.7 * i / 8); moon.push([Math.cos(a) * 0.22, 1.14 - Math.sin(a) * 0.18, 0.3]); } tube(moon, moon.map((_, i) => 0.02 + 0.04 * Math.sin(i / 8 * Math.PI)), gold, { emis: true, cap0: 'round', cap1: 'round' });
             arms(1.2, 0.34, 0.66, 0.1, black, 'claw', { out: 0.15, fwd: 0.08 });
+            for (let i = 0; i < 11; i++) { const a = i / 11 * 6.28; cone([Math.cos(a) * 0.3, 1.26, Math.sin(a) * 0.25], [Math.cos(a), 0.45, Math.sin(a)], 0.2 + (i % 2) * 0.08, 0.05, i % 2 ? gold : '#ff9a2a', { emis: true }); } /* a mane of sun rays round its neck */
             H(1.28); ball(0, 1.46, 0.06, 0.24, black, { n: 3 }); blob(-0.11, 1.32, 0.18, 0.11, 1.46, 0.38, 1, '#c8a070'); nose(0, 1.43, 0.38, 0.04);
             ears(0.2, 1.64, 0.0, 0.06, black, hexMix(black, bd, 0.3)); look(0.09, 1.52, 0.24, 0.035, { col: '#ffb02a' });
             tube([[0, 1.34, 0.34], [0, 1.26, 0.4], [0.02, 1.2, 0.38]], [0.03, 0.025, 0.015], '#e04a6a', { cap0: 'round', cap1: 'round' }); bone = 0;
