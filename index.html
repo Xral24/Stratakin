@@ -4694,7 +4694,7 @@ const KIN = (() => {
     const taken = new Map();
     for (const body of ['earth', 'moon', 'halo']) for (const [layer, biome] of HABITATS[body]) {
       for (const sp of habitat(body, layer, biome)) {
-        { const cn = craftedNames(sp); if (cn && !taken.has(cn[0])) sp.names = cn; } /* a second species on the same line keeps its own made-up name */
+        { let cn = craftedNames(sp); if (cn && sp.neon) { const pre = body === 'halo' ? 'Astral ' : 'Lunar '; cn = cn.map(n => pre + n); } if (cn && !taken.has(cn[0])) sp.names = cn; } /* a second species on the same line keeps its own made-up name */
         let nm = sp.names[0];
         if (taken.has(nm)) {
           const r = U.rng(sp.seed ^ 0x77);
@@ -4917,7 +4917,7 @@ const KIN = (() => {
   const LAND_LINE = new Set(['quadruped', 'blob']); // two-legged Kin get lines of their own next, built on two-legged bodies
   const FAM_OF = { biped: 'biped', bird: 'bird', serpent: 'serpent', floater: 'floater', fish: 'water' };
   function lineClass(sp) {
-    if (!sp || sp.dino || sp.mythic || sp.neon) return null;
+    if (!sp || sp.dino || sp.mythic || (sp.neon && (sp.rarity || 0) >= 5)) return null; /* the Moon's and the Halo's Kin grow on the same lines as Earth's, changed by where they live (alienize); only the titans keep their old shapes */
     if (sp.steed || sp.fast || sp.tame) return (sp.evolveAt && sp.evolveAt[0] >= 999) || sp.fast || sp.tame || (sp.rarity || 0) >= 4 ? 'steedFull' : 'steed'; // horses you ride: camp horses, Thunderhoof and the legendary steeds are full-grown
     if ((sp.rarity || 0) >= 4) return LAND_LINE.has(sp.shape) ? 'legend' : FAM_OF[sp.shape] ? 'legend:' + FAM_OF[sp.shape] : null;
     if (LAND_LINE.has(sp.shape)) return 'land'; if (sp.shape === 'biped') return 'biped'; if (sp.shape === 'bird') return 'bird'; if (sp.shape === 'serpent') return 'serpent'; if (sp.shape === 'floater') return 'floater'; if (sp.shape === 'fish') return 'water'; return null; }
@@ -7697,11 +7697,12 @@ const KIN = (() => {
         legLen = 0.4;
       }
     }
-    if (sp.mythic || sp.neon) for (const b of parts) if (b.c === C.accent || b.c === C.belly || b.c === C.eye) b.emis = true;
+    if ((sp.mythic || sp.neon) && !form.plan) for (const b of parts) if (b.c === C.accent || b.c === C.belly || b.c === C.eye) b.emis = true;
     if (!bones[0]) bones[0] = { kind: 'body', piv: [0, 0, 0], runPitch: sp.shape === 'raptor' ? 0.08 : 0 };
     const height = Math.max(...parts.map(b => b.y + b.h));
     const radius = Math.max(...parts.map(b => Math.max(Math.abs(b.x), Math.abs(b.x + b.w), Math.abs(b.z), Math.abs(b.z + b.d))));
-    return { boxes: parts, scale: s, hover, height, radius, bones, legLen: legLen * SY, kind, flyer, sway, shape };
+    const M = { boxes: parts, scale: s, hover, height, radius, bones, legLen: legLen * SY, kind, flyer, sway, shape };
+    return sp.neon && form.plan ? alienize(M, sp) : M;
   }
   // A Kin turned into an object: material comes from the items, glow from anything burning. The Kin's level makes it bigger and brighter.
   const MATERIALS = [
@@ -7744,6 +7745,22 @@ const KIN = (() => {
   // outfits and gear for the folk: hats, beards, masks, packs, tools. Built with the same primitives as the bodies.
   // Landmarks of the folk model: head centre (0, 1.58, 0), radius 0.27 (0.3 tall), crown at 1.88; shoulders at (±0.33, 1.2); hands at (±0.45, 0.55, 0.06); hips 0.62.
   // part helpers bound to a model: everything is in the model's local units (scaled by m.scale); H.bone picks the bone of the next parts
+  /* Kin of the Moon and the Halo. The same lines as Earth's, but no Earth Kin looks like this: the Moon turns every colour toward its own cold light (cyan through violet to magenta)
+     and gives its Kin feelers tipped with glow and a gem in the brow; the Halo turns them toward rose and gold and hangs a ring of light over each head, with motes circling it. */
+  function alienize(m, sp) {
+    const halo = !!(sp.home && sp.home.body === 'halo') || (!sp.home && (sp.seed & 1) === 1); const off = ((sp.seed >>> 4) % 9) * 9;
+    const shift = (rgb) => { const r = rgb[0], g = rgb[1], b = rgb[2], mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2, d = mx - mn; if (d < 0.04) return [r * (halo ? 1 : 0.94), g * (halo ? 0.96 : 0.97), b * (halo ? 0.94 : 1.04)].map(v => Math.min(1, v));
+      let sat = d / (1 - Math.abs(2 * l - 1) + 1e-6), h = mx === r ? ((g - b) / d + 6) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4; h *= 60;
+      const t = ((h + off) % 360) / 360; h = halo ? (300 + t * 130) % 360 : 170 + t * 160; if (sat > 0.12) sat = Math.min(0.86, Math.max(sat, 0.55) * 1.05); const l2 = Math.min(0.92, l * (halo ? 1.04 : 0.96) + (halo ? 0.03 : 0));
+      const c = (1 - Math.abs(2 * l2 - 1)) * sat, x = c * (1 - Math.abs((h / 60) % 2 - 1)), mm = l2 - c / 2, q = h < 60 ? [c, x, 0] : h < 120 ? [x, c, 0] : h < 180 ? [0, c, x] : h < 240 ? [0, x, c] : h < 300 ? [x, 0, c] : [c, 0, x]; return [q[0] + mm, q[1] + mm, q[2] + mm]; };
+    const fix = (c) => typeof c === 'string' ? U.rgbToHex(shift(U.hexToRgb(c))) : Array.isArray(c) ? shift(c) : c;
+    for (const b of m.boxes) { b.c = fix(b.c); if (b.o) { const o = b.o = Object.assign({}, b.o); if (o.under) o.under = fix(o.under); if (o.edge) o.edge = fix(o.edge); if (typeof o.shade === 'function') { const f0 = o.shade; o.shade = (...a) => { const v = f0(...a); return Array.isArray(v) ? shift(v) : v; }; } } }
+    const L = landmarks(m), hd = L.head, H = partHelpers({ scale: 1, boxes: m.boxes, height: m.height }); const glow = halo ? '#ffe9a0' : '#8ff6ff', gem = halo ? '#ff8ad0' : '#c79bff';
+    const cx = hd.cx, top = hd.y1, r = Math.max(0.06, L.hr); H.bone = hd.fake ? 0 : hd.bone;
+    if (halo) { H.ring(cx, top + r * 0.55, hd.cz, r * 0.85, r * 0.85, Math.max(0.012, r * 0.09), glow, { emis: true }); for (let i = 0; i < 3; i++) { const a = i / 3 * 6.28 + 0.5; H.ball(cx + Math.cos(a) * r * 1.25, top + r * (0.3 + i * 0.2), hd.cz + Math.sin(a) * r * 1.25, Math.max(0.018, r * 0.13), gem, { emis: true }); } }
+    else { for (const sd of [-1, 1]) { const b0 = [cx + sd * r * 0.35, top - r * 0.1, hd.cz + r * 0.1], b1 = [cx + sd * r * 0.75, top + r * 0.75, hd.cz + r * 0.05], b2 = [cx + sd * r * 1.05, top + r * 1.15, hd.cz + r * 0.3]; H.tube([b0, b1, b2], [Math.max(0.01, r * 0.07), Math.max(0.008, r * 0.05), Math.max(0.006, r * 0.035)], m.boxes[0].c, { cap0: 'none', cap1: 'round', segs: 5 }); H.ball(b2[0], b2[1], b2[2], Math.max(0.02, r * 0.17), glow, { emis: true }); }
+      if (!hd.fake) H.ball(cx, hd.y0 + hd.h * 0.78, hd.z1 - r * 0.05, Math.max(0.016, r * 0.12), gem, { emis: true }); }
+    return H.done(); }
   function partHelpers(m) {
     const s = m.scale; const P = m.boxes; const H = { bone: 0 };
     const S3 = (p) => [p[0] * s, p[1] * s, p[2] * s];

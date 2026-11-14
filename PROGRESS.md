@@ -198,6 +198,8 @@ Scope (Alexander, 8 Nov evening): EVERYTHING visible goes to the same standard: 
 
 - 14 Nov: mantis nymph has real eyes, a bud and leaf wing-buds. Finding (tools/test/t-dex2.js): on Earth 218 of 235 Kindex species use the redesigned line bodies (the other 17 are Lost World dinosaurs); on the Moon and Halo none do, because neon species are excluded from lines in lineClass, so all 470 are the old generated bodies with generated names. They do get the new shader, eyes and leg kinds. Decision for Alexander: give Moon and Halo their own lines, or let them use the Earth lines in neon.
 
+- 14 Nov, Moon and Halo Kin: neon species (rarity < 5) now use the designed lines and pass through alienize() in kin.js: every colour is turned toward the body's own light (Moon cyan-violet-magenta, Halo rose-gold), Moon Kin get glow-tipped feelers and a brow gem, Halo Kin a ring of light with motes. Names are 'Lunar X' / 'Astral X' where free (about 90 of 235 each; the rest keep generated names). Titans keep their old shapes. This was the quick route, not new alien designs; tools/test/t-alien.js.
+
 ## Still to do
 UI polish as feedback comes in. Card battle screen still used for scripted encounters (raids at the walls, thief, citadel duel, holds) and the snare mini-game; converting those to live is the next big step if wanted. (Old list: train/ships, combat animation, eggs, avatar hair/paint, buddy WEAR cosmetics, Silas and Finch, UI polish (item icons), quality toggles in settings (state.shadows, state.grassQuality, state.dprCap).
 

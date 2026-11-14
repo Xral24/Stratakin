@@ -1,0 +1,6 @@
+const { open } = require('./harness'); const fs = require('fs');
+(async () => { const h = await open(); const { ev } = h; await h.newGame('gal-1'); await h.calm();
+  const r = await ev(() => { const S = 300, cols = 5; const cv0 = document.createElement('canvas'); cv0.width = S * cols; cv0.height = S * 4; const ctx = cv0.getContext('2d'); ctx.fillStyle = '#1a2038'; ctx.fillRect(0, 0, cv0.width, cv0.height); ctx.font = '15px sans-serif'; ctx.fillStyle = '#fff'; const names = []; let k = 0;
+    for (const b of ['moon', 'halo']) { const dx = KIN.dex(b); const st = { n: dx.length, line: dx.filter(s => KIN.lineOf(s)).length, crafted: dx.filter(s => /^(Lunar|Astral) /.test(s.names[0])).length }; names.push(b + JSON.stringify(st)); for (let i = 0; i < 10; i++) { const sp = dx[Math.floor(i * dx.length / 10) + 3]; const stg = 1 + (i % 3); const c = document.createElement('canvas'); KIN.portrait(c, sp, stg, S); ctx.drawImage(c, (k % cols) * S, Math.floor(k / cols) * S, S, S); ctx.fillText(sp.names[Math.min(stg, 3) - 1], (k % cols) * S + 6, Math.floor(k / cols) * S + 18); k++; } }
+    return { png: cv0.toDataURL('image/png'), names }; });
+  fs.writeFileSync('/home/claude/alien.png', Buffer.from(r.png.split(',')[1], 'base64')); console.log(r.names.join(' '), 'ERRORS:', h.errors.length ? h.errors.slice(0, 3).join('\n') : 'none'); await h.close(); })();
