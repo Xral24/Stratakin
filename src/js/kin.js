@@ -4380,12 +4380,13 @@ const KIN = (() => {
   }
   function wearKey(wear) { return wear && wear.item && wear.item !== 'none' ? ':w' + wear.item + (wear.col || '') : ''; }
   function buildMesh(mb, m) {
+    const busy = m.boxes.length > 130; /* a body made of a great many small pieces (scales, spines, plates) spends fewer facets on each: nobody sees them, and the phone draws every one */
     const stoop = m.stoop || 0, hipY = 0.62 * (m.scale || 1); /* a stoop: all that is above the hips turns forward about them, whatever was put on the figure and whenever */
     if (stoop && !m._stooped) { m._stooped = true; const c = Math.cos(stoop), sn = Math.sin(stoop); for (const bn of m.bones) if (bn && bn.piv && bn.piv[1] > hipY) { const y = bn.piv[1] - hipY, z = bn.piv[2]; bn.piv = [bn.piv[0], hipY + y * c - z * sn, y * sn + z * c]; } }
     for (const b of m.boxes) { const lean = stoop && !b.noStoop && b.y + b.h / 2 > hipY; if (lean) { mb.push(); mb.rotate(stoop, 0, 0, [0, hipY, 0]); }
       mb.setBone(b.bone || 0); const col = U.hexToRgb(b.c); const o = Object.assign({ emis: !!b.emis }, b.o || {});
       if (b.rot) { mb.push(); mb.rotate(b.rot.rx || 0, b.rot.ry || 0, b.rot.rz || 0, b.rot.piv); }
-      if (b.k === 'blob' && b.round > 0.01) { const sz = Math.max(b.w, b.h, b.d) / 2, lg = typeof window !== 'undefined' && window.__lowGeo; o.n = Math.max(o.n || 0, lg ? (sz >= 0.26 ? 6 : sz >= 0.1 ? 4 : 3) : sz >= 0.26 ? 9 : sz >= 0.1 ? 6 : sz >= 0.04 ? 4 : 3); } /* rounder forms: no visible facets on a body */
+      if (b.k === 'blob' && b.round > 0.01) { const sz = Math.max(b.w, b.h, b.d) / 2, lg = (typeof window !== 'undefined' && window.__lowGeo) || (b.o && b.o.n && b.o.n <= 2 && sz < 0.26 && !(typeof window !== 'undefined' && window.__fine)); /* a piece its design marked as plain (a scale, a puff, one of dozens) is rounded, but not as finely as a body */ o.n = Math.max(o.n || 0, lg ? (sz >= 0.26 ? 6 : sz >= 0.1 ? 4 : 3) : sz >= 0.26 ? 9 : sz >= 0.1 ? (busy ? 5 : 6) : sz >= 0.04 && !busy ? 4 : 3); if (busy && sz < 0.1 && o.n > 3) o.n = 3; } /* rounder forms: no visible facets on a body */
       if (b.k === 'tube') { let mr = 0; for (const r of b.radii) mr = Math.max(mr, Array.isArray(r) ? Math.max(r[0], r[1]) : r); o.segs = Math.max(o.segs || 8, mr >= 0.12 ? 14 : mr >= 0.05 ? 10 : 6); }
       if (b.k === 'blob') mb.blob(b.x, b.y, b.z, b.x + b.w, b.y + b.h, b.z + b.d, b.round, col, o);
       else if (b.k === 'tube') mb.tube(b.path, b.radii, col, o);

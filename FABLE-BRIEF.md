@@ -69,3 +69,15 @@ Done today, all shipped: painted cel shader and one shared eye (LOOK) for every 
 Not yet reviewed in play by Alexander: almost all of the above beyond the still pictures. He asked for work to continue without waiting for approval.
 
 Open: children and elder bodies; mantis nymph and a few other plain forms; mountain accessories; damage/ailment balance; frame rate on the phone with the rounder meshes and 2.25 resolution cap; water riding seen only from underwater; legendaries, steeds and duplicate-line species still on old names.
+
+## Update, 14 November (evening): what changed after that
+
+Read PROGRESS.md for the detail; this is the map.
+
+- **Worlds have their own Kin.** The Moon (24 lines) and the Halo (28 lines) no longer borrow Earth's bodies; the Lost World's dinosaurs are 9 lines of their own; 14 legendaries each have one body. All of it lives in one block at the top of `model()` in `src/js/kin.js` (search `natDone`), driven by `NATIVE`, `LEGEND`, `nativeId`, `nativize`. A form is a chain of `if (P === 'm_...')` branches drawn with the block's helpers (`look`, `grow`, `leg4`, `leg2`, `arm2`, `arc`, `loop`, `core`). `grow()` draws the species' element; every form calls it, so one body appears in several elements.
+- **Accessories** find the torso and head through `landmarks()`. Native models carry `native: true`; glowing parts, rings and orbits are ignored; a tube-bodied form names its torso with `core()`.
+- **Holds** have a four-level keep (`tower()` in `keeps.js`), gates that open floor by floor, and redrawn warriors with three new kinds (`combat.js`). Tam's cage is in the yard of one of the first three holds.
+- **Battle numbers** were tuned from simulated fights, not from play: `tools/test/t-balance.js`. The element chart is now two strengths and two weaknesses each.
+- **Earth terrain** has ridges, shelves, buttes and sea cliffs (`colInfo` in `world.js`).
+- **Tests** are in `tools/test/`. The ones that matter most: `t-smoke.js`, `t-allmodels.js` (builds, dresses and gives moves to every Kin at every stage), `t-native.js`, `t-wearnat.js`, `t-keep.js`, `t-balance.js`. To photograph the world, freeze the player and call `ensureAround` and `meshPass` as `t-world.js` and `t-terr3.js` do; anything else gives fog or sky.
+- **Not verified by a person playing:** frame rate on the phone, combat timing, hold difficulty, how the balance feels. Alexander plays on an Android phone and sends screenshots; fix what he reports first.
