@@ -164,6 +164,8 @@ Scope (Alexander, 8 Nov evening): EVERYTHING visible goes to the same standard: 
 
 - 14 Nov, limbs by kind: quadruped legsOf builds ten leg kinds (cat, dog, stout, hare, pillar, hoof, cloven, spindle, drake, griffin) chosen by LEGK[plan] or o.kind; bird legsB has raptor/wader/runner/web/perch (BLEG); bird wings have five shapes (WINGK/WPROF: round, pointed, fingered, long, paddle) with a fleshed shoulder. Not yet done: bipeds' own kinds, bespoke-limbed Kin (salamander, serpents' fins, floaters).
 
+- 14 Nov, names: KNAMES in kin.js gives every form on every line its own crafted name (346, e.g. Coalby > Smoggle > Volcrag), applied in buildUniverse and to starters; a second species sharing a line keeps its procedural name; legends, steeds and off-line species unchanged. Battle: attacks are animated (battle.js ELFX: one picture per element, phys = lunge and slashes, tech = bigger, util = aura), the blow lands when the animation does, camera shake, damage numbers pop off the card; misses go wide. Battle.fxTest is a test hook; tools/test/t-fx.js plays them all.
+
 ## Still to do
 UI polish as feedback comes in. Card battle screen still used for scripted encounters (raids at the walls, thief, citadel duel, holds) and the snare mini-game; converting those to live is the next big step if wanted. (Old list: train/ships, combat animation, eggs, avatar hair/paint, buddy WEAR cosmetics, Silas and Finch, UI polish (item icons), quality toggles in settings (state.shadows, state.grassQuality, state.dprCap).
 
