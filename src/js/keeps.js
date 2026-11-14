@@ -125,6 +125,40 @@ const Keeps = (() => {
     }
     G.meshPass(99);
   }
+  /* The keep is a tower you climb. Behind its door: the hall with the Dark Fusion Table, then the gallery, then the guardroom, then the roof where the
+     warlord waits. Each floor is held by its own men and the way up stays barred until they are down: the door for the courtyard, an iron hatch over each ladder after that. */
+  const LADS = [[3, 7], [-3, 7], [3, 2]]; // where the ladder from floor n+1 to the one above stands (offsets from the hold's middle)
+  function tower(k) {
+    const w = W(), y0 = k.y, X = k.x, Z = k.z, F = B.FORTSTONE, D = B.BASALT, set = (x, y, z, b) => w.setBlock(x, y, z, b); const g = (st()['gate_' + k.id] || 0), open = taken(k.id) ? 4 : g;
+    w.ensureAround(Math.floor(X / CH), Math.floor(Z / CH), 1, 99);
+    for (let a = -4; a <= 4; a++) for (let b = 1; b <= 8; b++) for (let y = y0 + 1; y <= y0 + 26; y++) set(X + a, y, Z + b, B.AIR); // the old keep, the old dais
+    for (let a = -3; a <= 3; a++) for (let b = 4; b <= 8; b++) for (let y = y0 + 15; y <= y0 + 26; y++) if (w.getBlock(X + a, y, Z + b) !== B.AIR) set(X + a, y, Z + b, B.AIR);
+    for (let a = -4; a <= 4; a++) for (let b = 1; b <= 8; b++) { const wall = Math.abs(a) === 4 || b === 1 || b === 8; set(X + a, y0, Z + b, D);
+      for (let y = y0 + 1; y <= y0 + 16; y++) { const slab = (y - y0) % 5 === 0; if (wall || slab) set(X + a, y, Z + b, (y === y0 + 1 || slab) && wall ? D : F); }
+      if (wall && ((a + b) % 2 === 0 || (Math.abs(a) === 4 && (b === 1 || b === 8)))) set(X + a, y0 + 17, Z + b, F); }
+    for (let n = 0; n < 3; n++) { const fy = y0 + 1 + n * 5; // light and windows on every floor
+      for (const [a, b] of [[-4, 3], [-4, 6], [4, 3], [4, 6], [-2, 8], [2, 8]]) set(X + a, fy + 2, Z + b, B.EMBERLIGHT);
+      for (const a of [-2, 2]) set(X + a, fy + 2, Z + 1, B.EMBERLIGHT); if (n > 0) set(X, fy + 2, Z + 1, B.EMBERLIGHT);
+      for (const a2 of [-3, 3]) set(X + a2, fy, Z + 4, B.TORCH); /* and real fire to see by */
+      const [la, lb] = LADS[n]; for (let y = fy; y <= fy + 3; y++) set(X + la, y, Z + lb, B.LADDER); set(X + la, fy + 4, Z + lb, open > n + 1 ? B.LADDER : B.IRONWALL); }
+    for (let y = y0 + 1; y <= y0 + 3; y++) set(X, y, Z + 1, open > 0 ? B.AIR : B.IRONWALL); // the door
+    for (const a of [-2, 2]) { set(X + a, y0 + 9, Z, B.BANNER); set(X + a, y0 + 14, Z, B.BANNER); } set(X - 1, y0 + 4, Z, B.TORCH); set(X + 1, y0 + 4, Z, B.TORCH);
+    // the hall: the dais and the table at the back, a carpet to it
+    for (let i = -1; i <= 1; i++) for (let j = 5; j <= 7; j++) set(X + i, y0 + 1, Z + j, F); set(X, y0 + 2, Z + 6, B.DARKTABLE); for (let b = 1; b <= 4; b++) set(X, y0, Z + b, B.CORAL_R);
+    // the gallery: pillars to fight round
+    for (const [a, b] of [[-1, 4], [1, 4], [-1, 6], [1, 6]]) for (let y = y0 + 6; y <= y0 + 9; y++) set(X + a, y, Z + b, y === y0 + 6 ? D : F);
+    // the guardroom: a carpet down the middle, banners on the back wall
+    for (let b = 2; b <= 7; b++) set(X, y0 + 10, Z + b, B.CORAL_R); for (const a of [-2, 0, 2]) set(X + a, y0 + 13, Z + 7, B.BANNER);
+    // the roof: a plinth for the shard, fire at the corners
+    set(X, y0 + 16, Z + 7, F); set(X, y0 + 17, Z + 7, B.VOID); for (const [a, b] of [[-3, 2], [3, 7], [-3, 7]]) set(X + a, y0 + 16, Z + b, B.TORCH);
+    G.meshPass(99);
+  }
+  const FLOOR_NAMES = ['The courtyard is clear. The keep\'s door grinds open.', 'The hall is clear. The hatch over the ladder slides back.', 'The gallery is clear. The way up to the guardroom is open.', 'The guardroom is clear. Only the roof is left, and the warlord is on it.'];
+  function openGate(k, n) {
+    const w = W(), y0 = k.y, X = k.x, Z = k.z; st()['gate_' + k.id] = n + 1;
+    if (n === 0) for (let y = y0 + 1; y <= y0 + 3; y++) w.setBlock(X, y, Z + 1, B.AIR); else { const [la, lb] = LADS[n - 1]; w.setBlock(X + la, y0 + (n - 1) * 5 + 5, Z + lb, B.LADDER); }
+    G.meshPass(99); UI.sfx('quest'); UI.toast(FLOOR_NAMES[n], 'good');
+  }
   function warlordSpecies(k) {
     const pool = KIN.dex('earth').filter(sp => !sp.fusion && sp.home && (sp.rarity || 0) >= 2 && (sp.rarity || 0) <= 3 && KIN.dominant(sp.elem, 1)[0] === 'Void');
     const any = pool.length ? pool : KIN.dex('earth').filter(sp => !sp.fusion && sp.home && (sp.rarity || 0) === 2);
@@ -139,18 +173,21 @@ const Keeps = (() => {
       if (!s['stamped_' + k.id] && Math.hypot(k.x - p.x, k.z - p.z) < 110) { s['stamped_' + k.id] = true; stamp(k); }
       if (s['stamped_' + k.id] && !s['dressed_' + k.id] && Math.hypot(k.x - p.x, k.z - p.z) < 110) { s['dressed_' + k.id] = true; W().ensureAround(Math.floor(k.x / CH), Math.floor(k.z / CH), 1, 99); dress(k); } /* old worlds get the stronghold look once */
       const d = Math.hypot(k.x - p.x, k.z - p.z);
+      if (!k.core && s['dressed_' + k.id] && !s['tower_' + k.id] && d < 110) { s['tower_' + k.id] = true; tower(k); }
+      const tw = !k.core && s['tower_' + k.id];
+      if (tw && !taken(k.id) && d < 60) { const gN = s['gate_' + k.id] || 0, fl = Combat.forHold(k.id); if (gN < 4 && fl.some(f => f.floor === gN) && !fl.some(f => f.floor === gN && f.state !== 'down')) openGate(k, gN); } /* a floor opens when its own men are down: men who are there, and down */
       if (s['stamped_' + k.id] && d < 80 && taken(k.id)) warriors(k);
       if (!taken(k.id) && s['stamped_' + k.id] && d < 70 && !Combat.forHold(k.id).length) muster(k);
       if (!taken(k.id) && d > 150 && Combat.forHold(k.id).length) Combat.clearHold(k.id);
-      if (!taken(k.id) && d < 50 && Combat.standingIn(k.id) > 0) continue; // his warriors first; the warlord waits on the dais
+      if (!taken(k.id) && d < 50 && (Combat.standingIn(k.id) > 0 || (tw && (s['gate_' + k.id] || 0) < 4))) continue; // his warriors first; the warlord waits (on the roof of the keep, where there is one)
       if (!taken(k.id) && d < 50) {
         const b = bosses[k.id];
         if (!b || !Wild.list.includes(b)) {
           const sp = warlordSpecies(k); if (!sp) continue;
           const zl = Wild.zoneLevel(k.x, k.y + 1, k.z, { layer: 'Surface' }, G.trainerLevel || 1);
           const lv = Math.max(14, Math.min(KIN.capOf(sp) + 10, zl + 10));
-          const e = Wild.makeEntity(sp, lv, k.x + 0.5, k.y + 1, k.z - 1 + 0.5, { senseR: 6 }); e.keepBoss = k.id; e.elite = true; e.speed = 0; e.patrol = { ax: k.x - 3.5, az: k.z - 1.5, bx: k.x + 4.5, bz: k.z - 1.5, period: 10, phase: 0 };
-          Wild.list.push(e); bosses[k.id] = e; if (Combat.forHold(k.id).length) UI.toast('His warriors are down. The warlord comes off the dais with his Kin.', 'bad');
+          const e = tw ? Wild.makeEntity(sp, lv, k.x + 0.5, k.y + 16, k.z + 4.5, { senseR: 6 }) : Wild.makeEntity(sp, lv, k.x + 0.5, k.y + 1, k.z - 1 + 0.5, { senseR: 6 }); e.keepBoss = k.id; e.elite = true; e.speed = 0; e.patrol = tw ? { ax: k.x - 1.5, az: k.z + 4.5, bx: k.x + 2.5, bz: k.z + 4.5, period: 10, phase: 0 } : { ax: k.x - 3.5, az: k.z - 1.5, bx: k.x + 4.5, bz: k.z - 1.5, period: 10, phase: 0 };
+          Wild.list.push(e); bosses[k.id] = e; if (!tw && Combat.forHold(k.id).length) UI.toast('His warriors are down. The warlord comes off the dais with his Kin.', 'bad');
           if (!s['seen_' + k.id]) { s['seen_' + k.id] = true; UI.toast(`${k.name}: one of the Kinmaster's keeps. His warlord holds the Dark Fusion Table inside.`, 'bad'); }
         }
       }
@@ -180,11 +217,18 @@ const Keeps = (() => {
       const n = Campaign.spawnPerson(id, ['Bound Guard', 'Bound Archer', 'Bound Captain'][j], 'spellbound', k.x + pos[0], k.z + pos[1], cols, ['warrior']); n.holdId = k.id; n.yaw = Math.PI; }
   }
   function muster(k) {
-    const i = k.i || 0; const lv = Math.min(7, i);
-    const plan = [['guard', -3, -5], ['guard', 3, -5], ['shield', 0, -3], ['archer', -6, 5], ['archer', 6, 5], ['axeman', -4, 0], ['axeman', 4, 0], ['captain', 0, 1]];
-    const n = Math.min(plan.length, 4 + Math.floor(i * 0.6)); const use = plan.slice(0, n - 1).concat([plan[7]]);
-    for (const [kind, ox, oz] of use) { const x = k.x + ox + 0.5, z = k.z + oz + 0.5; Combat.spawn(kind, x, k.y + 1, z, k.id, lv); }
-    if (!G.stats.holdFightTold) { G.stats.holdFightTold = true; G.explain('His warriors', 'Inside a hold you fight on foot. Hold a sword or an axe and tap to swing: a sword hits one, an axe cleaves everything in its arc. With a shield in your bag, hold to block; raise it just as a blow lands to parry and stagger them. Your bow works too, and every arrow type has its trick. Catch one from behind and the first hit counts double. No wild Kin come inside these walls. Put them all on their knees and the warlord comes down from the dais with his Kin.'); }
+    const i = k.i || 0; const lv = Math.min(7, i); const s = st(); s['must_' + k.id] = true;
+    if (k.core || !s['tower_' + k.id]) { // the Core's hold has no tower: everyone is in the yard
+      const plan = [['guard', -3, -5], ['guard', 3, -5], ['shield', 0, -3], ['archer', -6, 5], ['archer', 6, 5], ['axeman', -4, 0], ['brute', 4, 0], ['captain', 0, 1]];
+      const n = Math.min(plan.length, 4 + Math.floor(i * 0.6)); for (const [kind, ox, oz] of plan.slice(0, n - 1).concat([plan[7]])) Combat.spawn(kind, k.x + ox + 0.5, k.y + 1, k.z + oz + 0.5, k.id, lv).floor = 0; }
+    else { const gN = s['gate_' + k.id] || 0; // floor by floor, and a floor you have cleared stays cleared
+      const FL = [
+        [[['guard', -3, -5], ['guard', 3, -5], ['shield', 0, -3], ['archer', -6, 5], ['archer', 6, 5], ['axeman', -5, -1], ['lancer', 5, -1]], Math.min(7, 3 + Math.floor(i * 0.5)), 1],
+        [[['axeman', -2, 3], ['brute', 0, 4], ['axeman', 2, 3], ['shield', 0, 3]], 1 + Math.min(3, Math.ceil(i / 2)), 1],
+        [[['archer', -3, 2], ['archer', 2, 2], ['hexer', 0, 3], ['lancer', -3, 5], ['hexer', 3, 5]], 2 + Math.min(3, Math.floor(i / 2)), 6],
+        [[['captain', 0, 4], ['shield', -2, 3], ['shield', 2, 3], ['lancer', 0, 6], ['brute', -2, 6]], 1 + Math.min(4, Math.floor((i + 1) / 2)), 11]];
+      FL.forEach(([plan, n, dy], fl) => { if (fl < gN) return; for (const [kind, ox, oz] of plan.slice(0, n)) Combat.spawn(kind, k.x + ox + 0.5, k.y + dy, k.z + oz + 0.5, k.id, lv).floor = fl; }); }
+    if (!G.stats.holdFightTold) { G.stats.holdFightTold = true; G.explain('His warriors', 'Inside a hold you fight on foot. Hold a sword or an axe and tap to swing: a sword hits one, an axe cleaves everything in its arc. With a shield in your bag, hold to block; raise it just as a blow lands to parry and stagger them. Your bow works too, and every arrow type has its trick. Catch one from behind and the first hit counts double. A keep has floors: clear the yard and its door opens, clear a floor and the hatch over the ladder opens, and the warlord is on the roof. No wild Kin come inside these walls. Put them all on their knees and the warlord comes down from the dais with his Kin.'); }
   }
   function inHold(p) { return near(p.x, p.z, 12).some(k => !taken(k.id) && Math.abs(p.y - k.y) < 12); }
   function talkWarrior(n, say) {

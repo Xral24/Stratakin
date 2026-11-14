@@ -1091,7 +1091,7 @@ G.protectedAt = function (hit) {
   if (this.worldId !== 'earth') return null; const p = this.player;
   const kind = p.toolKind(hit.id);
   { const fo = (Campaign.sites() || {}).fort, b = fo && fo.bridge; if (b && (this.stats.camp || {}).bridgeFixed && hit.x >= b.x0 - 1 && hit.x <= b.x1 + 1 && Math.abs(hit.z - b.z) <= 2 && Math.abs(hit.y - b.y) <= 2) return { kind: 'bridge' }; }
-  for (const k of Keeps.sites()) if (Math.abs(hit.x - k.x) <= 12 && Math.abs(hit.z - k.z) <= 12 && Math.abs(hit.y - k.y) <= 16) { if ((this.stats.holdDeeds || {})[k.id] && Math.abs(hit.x - k.x) <= 7 && Math.abs(hit.z - k.z) <= 7 && hit.id !== B.DARKTABLE) return null; return { kind: 'dark' }; }
+  for (const k of Keeps.sites()) if (Math.abs(hit.x - k.x) <= 12 && Math.abs(hit.z - k.z) <= 12 && Math.abs(hit.y - k.y) <= 22) { if ((this.stats.holdDeeds || {})[k.id] && Math.abs(hit.x - k.x) <= 7 && Math.abs(hit.z - k.z) <= 7 && hit.z - k.z <= 0 && hit.id !== B.DARKTABLE) return null; return { kind: 'dark' }; }
   { const cs = Citadel.open() ? Citadel.site() : null; if (cs && hit.x >= cs.x - 8 && hit.x <= cs.x + 94 && Math.abs(hit.z - cs.z) <= 19) return { kind: 'dark' }; }
   { const fo = (Campaign.sites() || {}).fort; if (fo && (this.stats.camp || {}).st_fort && hit.x >= fo.x - 18 && hit.x <= fo.x + 78 && Math.abs(hit.z - fo.z) <= 14) return { kind: 'dark' }; }
   for (const f of Farms.sites()) if (Math.abs(hit.x - f.x) <= 13 && Math.abs(hit.z - f.z) <= 13) { if (hit.id === B.CHEST) return null; return { kind: 'farm', f }; }

@@ -1,0 +1,6 @@
+const { open } = require('./harness'); const fs = require('fs');
+(async () => { const h = await open(); await h.newGame('gal-1'); await h.calm();
+  const out = await h.ev(() => { const kinds = Object.keys(Combat.KINDS); const S = 260, cols = 4; const cv0 = document.createElement('canvas'); cv0.width = S * cols; cv0.height = S * Math.ceil(kinds.length / cols); const ctx = cv0.getContext('2d'); ctx.fillStyle = '#6a6478'; ctx.fillRect(0, 0, cv0.width, cv0.height); const errs = [];
+    kinds.forEach((k, i) => { try { const p = G.player; const f = Combat.spawn(k, p.x + 30, p.y, p.z + 30, 'test', 0); const c = document.createElement('canvas'); R.renderPortrait(c, f.mesh, f.model, S, { yaw: -0.55, pitch: -0.1 }); ctx.drawImage(c, (i % cols) * S, Math.floor(i / cols) * S, S, S); } catch (e) { errs.push(k + ' ' + e.message); } ctx.fillStyle = '#fff'; ctx.font = '14px sans-serif'; ctx.fillText(k, (i % cols) * S + 6, Math.floor(i / cols) * S + 16); }); Combat.clearHold('test');
+    return { png: cv0.toDataURL('image/png'), errs }; });
+  fs.writeFileSync('/home/claude/guards.png', Buffer.from(out.png.split(',')[1], 'base64')); console.log('MODEL ERRORS:', out.errs.length ? out.errs.join('\n') : 'none'); console.log('ERRORS:', h.errors.length ? h.errors.slice(0, 3).join('\n') : 'none'); await h.close(); })();

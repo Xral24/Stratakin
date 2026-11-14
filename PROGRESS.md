@@ -224,6 +224,8 @@ Scope (Alexander, 8 Nov evening): EVERYTHING visible goes to the same standard: 
 
 - Elder: stooped (model.stoop, applied in buildMesh as a lean of everything above the hips, bone pivots included) and carries a staff. Children say something new each time and each day (talk counter + G.dayCount). Riding: the new bodies carry you by their shape, so a wingless native no longer counts as a flier (G.rideMode). Checked riding six of the new Kin in the world (tools/test/t-ridenat.js).
 
+- Holds: the keep is now a tower you climb (keeps.js tower(), flag tower_<id>, surface holds only; the Core hold keeps its yard fight). Yard, then hall (Dark Fusion Table on the dais), gallery (pillars), guardroom, roof with the warlord's Kin. Each level has its own men (Combat foes carry .floor); the keep's door and an iron hatch over each ladder open when that level is down (gate_<id> 0..4, openGate); cleared levels stay cleared. Hold deed covers the yard only. Warriors redrawn as soldiers with gear on the arm bones (combat.js warriorModel) and three new kinds: brute (maul), lancer (long reach), hexer (bolts). Tests: tools/test/t-guards.js, t-keep.js, t-keep2.js. Castle exterior seen clearly at last (gloom off in the test).
+
 ## Still to do
 UI polish as feedback comes in. Card battle screen still used for scripted encounters (raids at the walls, thief, citadel duel, holds) and the snare mini-game; converting those to live is the next big step if wanted. (Old list: train/ships, combat animation, eggs, avatar hair/paint, buddy WEAR cosmetics, Silas and Finch, UI polish (item icons), quality toggles in settings (state.shadows, state.grassQuality, state.dprCap).
 

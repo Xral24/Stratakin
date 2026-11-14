@@ -149,23 +149,54 @@ const Combat = (() => {
     axeman: { name: 'Bound Axeman', hp: 55, dmg: 2, speed: 2.2, reach: 2.0, wind: 0.85, rest: 1.4, deco: 'axe', cols: { body: '#2e2a3a', belly: '#a8835a', accent: '#5a2a8a' } },
     shield: { name: 'Bound Shieldbearer', hp: 50, dmg: 1, speed: 2.0, reach: 1.8, wind: 0.7, rest: 1.2, deco: 'shield', block: 0.7, cols: { body: '#40384a', belly: '#e0b08a', accent: '#8a3ab8' } },
     archer: { name: 'Bound Archer', hp: 32, dmg: 1, speed: 2.4, reach: 13, wind: 1.0, rest: 1.8, deco: 'bow', archer: true, cols: { body: '#33303e', belly: '#d8b090', accent: '#6a2a9a' } },
+    brute: { name: 'Bound Brute', hp: 120, dmg: 3, speed: 1.7, reach: 2.3, wind: 1.15, rest: 1.7, deco: 'maul', big: 1.22, cols: { body: '#2a2434', belly: '#b8926a', accent: '#6a2a9a' } },
+    lancer: { name: 'Bound Lancer', hp: 48, dmg: 2, speed: 2.9, reach: 3.0, wind: 0.75, rest: 1.3, deco: 'lance', cols: { body: '#34304a', belly: '#d8b090', accent: '#9a3ac8' } },
+    hexer: { name: 'Bound Hexer', hp: 36, dmg: 2, speed: 2.0, reach: 12, wind: 1.3, rest: 2.2, deco: 'staff', archer: true, hex: true, cols: { body: '#2a1640', belly: '#c9b48a', accent: '#b026ff' } },
     captain: { name: 'Bound Captain', hp: 90, dmg: 2, speed: 2.5, reach: 2.2, wind: 0.65, rest: 1.0, deco: 'captain', block: 0.5, cols: { body: '#241c30', belly: '#c9b48a', accent: '#b026ff' } },
   };
+  /* The Kinmaster's bound warriors, drawn as soldiers and not as boxes: a helm for each trade, plate at the chest and shoulders, a violet light in the
+     eye slit, and the weapon in the hand that swings it (it rides the arm, so a blow is a blow). Seven of them now: the brute, the hexer and the lancer hold the keep's upper floors. */
   function warriorModel(kind, freed) {
-    const K = KINDS[kind]; const sp = { build: ({ axeman: 'stout', archer: 'slim' })[kind] || 'man', hairVar: ({ guard: 1, axeman: 2, archer: 3, captain: 0 })[kind] || 0, hair: '#1a1018', shape: 'human', feat: { crest: false, ears: false, horns: false, spikes: false, tail: false, wings: false, bigEyes: false }, colors: Object.assign({ dark: '#120818', eye: freed ? '#ffe08a' : '#c04cff' }, K.cols), size: 1, gen: 0, names: ['warrior'] };
-    const m = KIN.model(sp, 2); const s = m.scale; const add = (x, y, z, w, h, d, c, emis) => m.boxes.push({ x: x * s, y: y * s, z: z * s, w: w * s, h: h * s, d: d * s, c, emis });
-    add(-0.34, 1.72, -0.32, 0.68, 0.3, 0.64, '#2a2a34'); add(-0.36, 1.68, 0.28, 0.72, 0.06, 0.06, K.cols.accent); // helmet and band
-    add(-0.42, 1.05, -0.26, 0.84, 0.5, 0.06, '#3a3a46'); // breastplate edge
-    if (K.deco === 'sword' || K.deco === 'captain') { add(0.46, 0.7, 0.18, 0.08, 1.1, 0.08, '#c8c8d0'); add(0.4, 0.68, 0.14, 0.2, 0.06, 0.16, '#6b4a2b'); }
-    if (K.deco === 'axe') { add(0.46, 0.4, 0.18, 0.07, 1.4, 0.07, '#6b4a2b'); add(0.38, 1.55, 0.12, 0.26, 0.34, 0.08, '#b8b8c4'); }
-    if (K.deco === 'shield' || K.deco === 'captain') add(-0.6, 0.55, -0.05, 0.1, 0.85, 0.65, K.cols.accent);
-    if (K.deco === 'bow') { add(0.44, 0.5, 0.15, 0.06, 1.3, 0.06, '#6b4a2b'); add(-0.3, 1.0, -0.42, 0.18, 0.7, 0.16, '#5a3f22'); }
-    if (K.deco === 'captain') { for (let i = 0; i < 3; i++) add(-0.2 + i * 0.15, 2.0, -0.05, 0.08, 0.3, 0.08, '#b026ff', true); add(-0.4, 0.4, -0.38, 0.8, 1.1, 0.05, '#3a1458'); }
-    return m;
+    const K = KINDS[kind]; const glow = freed ? '#ffe08a' : '#c04cff', steel = '#4a4a5a', dsteel = '#2c2c38', lsteel = '#8a8a9c', wood = '#6b4a2b', ac = K.cols.accent;
+    const sp = { build: ({ axeman: 'stout', brute: 'stout', archer: 'slim', hexer: 'slim', lancer: 'slim' })[kind] || 'man', hairVar: ({ guard: 1, axeman: 2, archer: 3, captain: 0 })[kind] || 0, hair: '#1a1018', shape: 'human', feat: { crest: false, ears: false, horns: false, spikes: false, tail: false, wings: false, bigEyes: false }, colors: Object.assign({ dark: '#120818', eye: glow }, K.cols), size: 1, gen: 0, names: ['warrior'] };
+    const m = KIN.model(sp, 2); const H = KIN.partHelpers(m); const { blob, ball, tube, plate, ring, cone } = H; const G1 = { emis: true };
+    const hooded = kind === 'archer' || kind === 'hexer';
+    /* head */
+    H.bone = 1;
+    if (hooded) { blob(-0.31, 1.5, -0.33, 0.31, 1.97, 0.26, 0.9, kind === 'hexer' ? '#2a1640' : '#2c2a34', { n: 4 }); cone([0, 1.9, -0.1], [0, kind === 'hexer' ? 1 : 0.4, -0.8], kind === 'hexer' ? 0.5 : 0.34, 0.2, kind === 'hexer' ? '#2a1640' : '#2c2a34', { segs: 8 }); if (kind === 'hexer') { ball(0, 2.36, -0.42, 0.06, glow, G1); plate([[-0.06, 1.8, 0.262], [0.06, 1.8, 0.262], [0, 1.92, 0.25]], 0.01, glow, G1); } }
+    else { blob(-0.32, 1.6, -0.32, 0.32, 1.98, 0.32, kind === 'shield' ? 0.45 : 0.9, steel, { n: 4 }); blob(-0.3, 1.36, -0.3, 0.3, 1.66, -0.02, 0.7, dsteel, { n: 3 }); tube([[0, 1.9, 0.3], [0, 1.6, 0.325], [0, 1.44, 0.3]], [0.04, 0.045, 0.03], lsteel, { segs: 5, cap0: 'round', cap1: 'round' }); ring(0, 1.7, 0, 0.325, 0.325, 0.025, ac);
+      if (kind === 'guard') cone([0, 1.96, 0], [0, 1, 0], 0.16, 0.05, lsteel);
+      if (kind === 'axeman' || kind === 'brute') for (const sd of [-1, 1]) { const p = []; for (let i = 0; i <= 5; i++) { const a = i / 5 * 1.5; p.push([sd * (0.3 + Math.sin(a) * (kind === 'brute' ? 0.3 : 0.2)), 1.8 + (1 - Math.cos(a)) * (kind === 'brute' ? 0.4 : 0.26), 0]); } tube(p, p.map((_, i) => 0.06 * (1 - i / 6.5)), '#e8dcc0', { segs: 6, cap0: 'flat', cap1: 'round' }); }
+      if (kind === 'shield') { blob(-0.33, 1.94, -0.33, 0.33, 2.0, 0.33, 0.3, dsteel, { n: 2 }); for (const x of [-0.1, 0.1]) tube([[x, 1.5, 0.325], [x, 1.62, 0.33]], [0.012, 0.012], '#0a0810', { segs: 3 }); }
+      if (kind === 'lancer') for (const sd of [-1, 1]) plate([[sd * 0.3, 1.74, 0.0], [sd * 0.52, 2.08, -0.2], [sd * 0.3, 1.9, -0.16]], 0.02, ac, { edge: lsteel });
+      if (kind === 'captain') { for (let i = 0; i < 5; i++) plate([[0, 1.96, 0.2 - i * 0.1], [0, 2.26 + Math.sin(i / 4 * Math.PI) * 0.1, 0.12 - i * 0.12], [0, 1.95, 0.08 - i * 0.1]], 0.03, glow, G1); } }
+    tube([[-0.13, 1.6, hooded ? 0.268 : 0.327], [0.13, 1.6, hooded ? 0.268 : 0.327]], [0.03, 0.03], glow, { emis: true, segs: 5, cap0: 'round', cap1: 'round' }); /* the light behind the eyes */
+    /* body */
+    H.bone = 0;
+    if (kind === 'hexer') { tube([[0, 1.3, 0], [0, 0.8, 0], [0, 0.3, 0]], [0.3, 0.33, 0.42], '#2a1640', { cap0: 'none', cap1: 'flat', segs: 10 }); ring(0, 1.0, 0.33, 0.07, 0.07, 0.015, glow, { emis: true }); }
+    else { blob(-0.37, 0.92, -0.25, 0.37, 1.42, 0.28, 0.6, kind === 'captain' ? dsteel : steel, { n: 3 }); blob(-0.2, 1.0, 0.2, 0.2, 1.36, 0.3, 0.7, kind === 'captain' ? steel : dsteel, { n: 3 }); ball(0, 1.2, 0.3, 0.05, glow, G1);
+      for (let i = -1; i <= 1; i++) blob(i * 0.2 - 0.1, 0.62, 0.14, i * 0.2 + 0.1, 0.92, 0.26, 0.4, i ? dsteel : ac, { n: 2 }); }
+    if (kind === 'captain') plate([[-0.34, 1.36, -0.27], [0.34, 1.36, -0.27], [0.44, 0.3, -0.42], [-0.44, 0.3, -0.42]], 0.025, '#3a1458', { edge: ac });
+    if (kind === 'archer') { blob(-0.26, 0.9, -0.42, -0.06, 1.5, -0.26, 0.6, wood, { n: 3 }); for (let i = 0; i < 3; i++) tube([[-0.22 + i * 0.05, 1.46, -0.34], [-0.24 + i * 0.06, 1.66, -0.36]], [0.012, 0.012], '#e8e4dc', { segs: 3 }); }
+    for (const sd of [-1, 1]) { H.bone = sd < 0 ? 2 : 3; if (kind !== 'hexer') { ball(sd * 0.4, 1.3, 0, kind === 'brute' ? 0.2 : 0.16, kind === 'captain' ? ac : steel, { n: 3 }); if (kind === 'brute' || kind === 'captain') cone([sd * 0.44, 1.4, 0], [sd, 1, 0], 0.16, 0.05, lsteel); blob(sd * 0.45 - 0.1, 0.62, -0.06, sd * 0.45 + 0.1, 0.84, 0.16, 0.6, dsteel, { n: 2 }); } }
+    /* in the right hand */
+    H.bone = 3; const hx = 0.47, hy = 0.56, hz = 0.1;
+    if (K.deco === 'sword' || K.deco === 'captain') { const L = K.deco === 'captain' ? 1.2 : 1.0; tube([[hx, hy - 0.1, hz], [hx, hy + 0.1, hz]], [0.03, 0.03], wood, { segs: 5, cap0: 'round', cap1: 'flat' }); blob(hx - 0.14, hy + 0.09, hz - 0.035, hx + 0.14, hy + 0.14, hz + 0.035, 0.4, K.deco === 'captain' ? ac : lsteel, { n: 2 }); plate([[hx - 0.055, hy + 0.14, hz], [hx - 0.045, hy + L, hz], [hx, hy + L + 0.12, hz], [hx + 0.045, hy + L, hz], [hx + 0.055, hy + 0.14, hz]], 0.018, '#d8dae6', { edge: lsteel }); if (K.deco === 'captain') tube([[hx, hy + 0.2, hz + 0.022], [hx, hy + L, hz + 0.022]], [0.01, 0.006], glow, { emis: true, segs: 3 }); }
+    if (K.deco === 'axe') { tube([[hx, hy - 0.3, hz], [hx, hy + 1.1, hz]], [0.03, 0.03], wood, { segs: 5, cap0: 'round', cap1: 'round' }); plate([[hx, hy + 1.06, hz], [hx, hy + 0.7, hz], [hx + 0.3, hy + 0.62, hz], [hx + 0.36, hy + 0.88, hz], [hx + 0.3, hy + 1.14, hz]], 0.03, '#c4c6d2', { edge: lsteel }); }
+    if (K.deco === 'maul') { tube([[hx, hy - 0.3, hz], [hx, hy + 1.2, hz]], [0.04, 0.04], wood, { segs: 6, cap0: 'round', cap1: 'round' }); blob(hx - 0.26, hy + 0.96, hz - 0.16, hx + 0.26, hy + 1.36, hz + 0.16, 0.35, '#3a3440', { n: 2 }); for (const sd of [-1, 1]) { cone([hx + sd * 0.26, hy + 1.16, hz], [sd, 0, 0], 0.14, 0.07, lsteel, { segs: 4 }); } ball(hx, hy + 1.16, hz + 0.17, 0.06, glow, G1); }
+    if (K.deco === 'lance') { tube([[hx, hy - 0.5, hz], [hx, hy + 1.7, hz]], [0.028, 0.026], wood, { segs: 5, cap0: 'round', cap1: 'flat' }); cone([hx, hy + 1.7, hz], [0, 1, 0], 0.34, 0.06, '#d8dae6', { segs: 4 }); plate([[hx, hy + 1.62, hz], [hx - 0.34, hy + 1.5, hz - 0.02], [hx, hy + 1.38, hz]], 0.012, ac, { edge: glow }); blob(hx - 0.07, hy + 0.1, hz - 0.07, hx + 0.07, hy + 0.2, hz + 0.07, 0.6, lsteel, { n: 2 }); }
+    if (K.deco === 'bow') { const p = []; for (let i = 0; i <= 8; i++) { const a = -1.2 + i / 8 * 2.4; p.push([hx, hy + 0.2 + Math.sin(a) * 0.62, hz + Math.cos(a) * 0.3 - 0.1]); } tube(p, p.map((_, i) => 0.012 + 0.02 * Math.sin(i / 8 * Math.PI)), wood, { segs: 5, cap0: 'round', cap1: 'round' }); tube([p[0], p[8]], [0.005, 0.005], '#e8e4dc', { segs: 3 }); }
+    if (K.deco === 'staff') { tube([[hx, hy - 0.5, hz], [hx, hy + 1.3, hz]], [0.026, 0.03], '#3a2a1a', { segs: 5, cap0: 'round', cap1: 'round' }); for (let i = 0; i < 3; i++) { const a = i / 3 * 6.283; tube([[hx, hy + 1.2, hz], [hx + Math.cos(a) * 0.12, hy + 1.38, hz + Math.sin(a) * 0.12], [hx + Math.cos(a) * 0.07, hy + 1.56, hz + Math.sin(a) * 0.07]], [0.02, 0.016, 0.006], '#3a2a1a', { segs: 4 }); } ball(hx, hy + 1.44, hz, 0.09, glow, G1); }
+    /* on the left arm */
+    H.bone = 2;
+    if (K.deco === 'shield') { blob(-0.66, 0.42, -0.1, -0.56, 1.36, 0.56, 0.5, ac, { n: 3 }); blob(-0.68, 0.46, -0.06, -0.64, 1.32, 0.52, 0.4, dsteel, { n: 2 }); blob(-0.7, 0.56, 0.04, -0.66, 1.22, 0.42, 0.4, ac, { n: 2 }); ball(-0.71, 0.9, 0.23, 0.07, lsteel, { n: 3 }); }
+    if (K.deco === 'captain') { blob(-0.64, 0.56, 0.0, -0.56, 1.16, 0.46, 0.9, ac, { n: 3 }); ball(-0.66, 0.86, 0.23, 0.06, glow, G1); }
+    if (K.deco === 'staff') { ball(-0.5, 0.52, 0.2, 0.07, glow, G1); for (let i = 0; i < 3; i++) cone([-0.5 + Math.cos(i * 2.1) * 0.14, 0.52 + Math.sin(i * 2.1) * 0.14, 0.2], [Math.cos(i * 2.1), Math.sin(i * 2.1), 0], 0.08, 0.02, glow, G1); }
+    H.bone = 0; return H.done();
   }
   function spawn(kind, x, y, z, holdId, level) {
     const K = KINDS[kind]; const m = warriorModel(kind, false); const lv = level || 0;
-    const f = { kind, name: K.name, x, y, z, yaw: 0, hx: x, hz: z, model: m, mesh: R.entityMesh('foe:' + kind, (mb) => KIN.buildMesh(mb, m)), scale: 1, hover: 0, skyMul: 1,
+    const f = { kind, name: K.name, x, y, z, yaw: 0, hx: x, hz: z, model: m, mesh: R.entityMesh('foe3:' + kind, (mb) => KIN.buildMesh(mb, m)), scale: K.big || 1, hover: 0, hex: !!K.hex, skyMul: 1,
       hp: Math.round(K.hp * (1 + lv * 0.45)), max: Math.round(K.hp * (1 + lv * 0.45)), dmg: K.dmg + Math.floor(lv / 2), speed: K.speed, reach: K.reach, wind: K.wind, rest: K.rest, block: K.block || 0, archer: !!K.archer,
       state: 'idle', t: 0, aware: false, holdId, lv, burn: 0, bleed: 0, slowT: 0, stun: 0, hitT: 0, isFoe: true };
     foes.push(f); return f;
@@ -176,7 +207,7 @@ const Combat = (() => {
     const P = G.player; const gold = weapon() && weapon().fx === 'loot' ? 2 : 1; const sh = Math.round((8 + f.lv * 6) * gold * (f.kind === 'captain' ? 3 : 1)); G.shards += sh;
     let msg = `${f.name} drops to his knees, dazed. +${sh} shards.`;
     // what he fought with is yours: his sword, axe, shield or bow, as good as his rank (one you already carry turns into shards)
-    const takes = { guard: ['sword'], axeman: ['axe'], shield: ['shield'], captain: ['sword', 'shield'], archer: ['bow'] }[f.kind] || [];
+    const takes = { guard: ['sword'], axeman: ['axe'], brute: ['axe'], lancer: ['sword'], shield: ['shield'], captain: ['sword', 'shield'], archer: ['bow'] }[f.kind] || [];
     for (const kind of takes) {
       if (kind === 'bow') { if (!P.has('bow')) { P.add('bow', 1); msg += ' You take his bow.'; } else { P.add('arrow', 4); msg += ' You take his arrows.'; } continue; }
       const pool = Object.values(GEAR).filter(g => g.kind === kind && g.tier <= Math.max(1, f.lv) && g.tier >= Math.max(0, f.lv - 2)); const g = pool[Math.floor(Math.random() * pool.length)]; if (!g) continue;
@@ -290,7 +321,7 @@ const Combat = (() => {
       f.t -= dt; if (f.hitT > 0) f.hitT -= dt; if (f.rockT > 0) f.rockT -= dt; if (f.strikeT > 0) f.strikeT -= dt;
       // the pose: arm drawn back while he winds up, the blow when it lands, the shield up when he faces you, a stagger when hit
       { const an = f._an || (f._an = Anim.fresh(f, performance.now())); const windK = f.state === 'wind' ? 1 - Math.max(0, f.t) / (f.wind || 1) : 0;
-        { const dk = (KINDS[f.kind] && KINDS[f.kind].deco) || ''; an.atkKind = /axe/.test(dk) ? 'chop' : /spear|pike|lance/.test(dk) ? 'thrust' : 'slash'; an.atkN = 0; an.attack = 0; /* they fight the way you do: the arm goes back as he winds up, and the blow comes through when it lands */
+        { const dk = (KINDS[f.kind] && KINDS[f.kind].deco) || ''; an.atkKind = /axe|maul/.test(dk) ? 'chop' : /spear|pike|lance/.test(dk) ? 'thrust' : 'slash'; an.atkN = 0; an.attack = 0; /* they fight the way you do: the arm goes back as he winds up, and the blow comes through when it lands */
           an.atkU = f.strikeT > 0 ? 0.3 + 0.7 * (1 - f.strikeT / 0.22) : windK > 0 ? 0.3 * windK : null; an.atkLean = an.atkU != null ? Math.sin(Math.min(1, Math.max(0, (an.atkU - 0.25) / 0.5)) * Math.PI) * 0.25 : 0; }
         an.block = (f.block && f.state !== 'stun' && f.state !== 'down' && f.aware) ? 1 : 0;
         an.sit = f.state === 'down' ? 1 : 0;
@@ -300,7 +331,7 @@ const Combat = (() => {
       if (f.burn > 0) { f.burn -= dt; if (Math.random() < dt * 1.2) { f.hp -= 2; if (f.hp <= 0) { down(f); continue; } } }
       if (f.bleed > 0) { f.bleed -= dt; if (Math.random() < dt * 1.5) { f.hp -= 2; if (f.hp <= 0) { down(f); continue; } } }
       if (f.slowT > 0) f.slowT -= dt;
-      const dx = p.x - f.x, dz = p.z - f.z, d = Math.hypot(dx, dz);
+      const dx = p.x - f.x, dz = p.z - f.z, d = Math.hypot(dx, dz) || 0.001; /* never exactly on top of him: a zero here used to send him to nowhere */
       const sneakR = p.wingsOn && p.y - f.y > 2.5 ? 1.5 : p.sneak ? 5 : 11; if (!f.aware && d < sneakR && Math.abs(p.y - f.y) < 4) f.aware = true;
       if (f.state === 'stun') { if (f.t <= 0) f.state = 'idle'; continue; }
       if (Battle.active) { continue; } // a Kin duel is on: his men stand back
@@ -316,7 +347,7 @@ const Combat = (() => {
         if (f.t <= 0) {
           f.hover = 0;
           f.strikeT = 0.22;
-          if (f.archer) { const tt = d / 16; shots.push({ x: f.x, y: f.y + 1.4, z: f.z, vx: dx / tt, vy: (p.y + 1.2 - f.y - 1.4) / tt + 3 * tt, vz: dz / tt, t: 0, dmg: f.dmg }); UI.sfx('miss'); }
+          if (f.archer) { const tt = d / 16; shots.push({ hex: f.hex, x: f.x, y: f.y + 1.4, z: f.z, vx: dx / tt, vy: (p.y + 1.2 - f.y - 1.4) / tt + 3 * tt, vz: dz / tt, t: 0, dmg: f.dmg }); UI.sfx('miss'); }
           else if (d <= f.reach + 0.5) {
             const r = takeBlow(f.dmg, f.x, f.z, 'warrior', f);
             if (r.result === 'parry') { f.state = 'stun'; f.t = 1.2; continue; }
@@ -327,7 +358,7 @@ const Combat = (() => {
     }
   }
   function entities() {
-    const out = foes.concat(shots.map(s => ({ x: s.x, y: s.y, z: s.z, yaw: Math.atan2(s.vx, s.vz), scale: 1, hover: 0, skyMul: 1, isFx: true, noOutline: true, mesh: R.entityMesh('fx:foearrow2', (mb) => { mb.tube([[0, 0, -0.4], [0, 0, 0.36]], [0.02, 0.02], [0.55, 0.4, 0.22], { segs: 5, cap0: 'none', cap1: 'none' }); mb.plate([[0, 0.0, 0.36], [0.04, 0, 0.3], [0, 0, 0.5], [-0.04, 0, 0.3]], 0.01, [0.6, 0.62, 0.66]); for (const sgn of [-1, 1]) mb.plate([[0, 0, -0.4], [sgn * 0.06, 0.02, -0.3], [0, 0, -0.2]], 0.006, [0.9, 0.9, 0.92]); }) })));
+    const out = foes.concat(shots.map(s => s.hex ? { x: s.x, y: s.y, z: s.z, yaw: 0, scale: 1, hover: 0, skyMul: 1, isFx: true, noOutline: true, mesh: R.entityMesh('fx:hexbolt', (mb) => { mb.blob(-0.14, -0.14, -0.14, 0.14, 0.14, 0.14, 1, [0.75, 0.3, 1.0], { emis: true, n: 3 }); mb.blob(-0.07, -0.07, -0.07, 0.07, 0.07, 0.07, 1, [1, 0.9, 1], { emis: true, n: 2 }); }) } : ({ x: s.x, y: s.y, z: s.z, yaw: Math.atan2(s.vx, s.vz), scale: 1, hover: 0, skyMul: 1, isFx: true, noOutline: true, mesh: R.entityMesh('fx:foearrow2', (mb) => { mb.tube([[0, 0, -0.4], [0, 0, 0.36]], [0.02, 0.02], [0.55, 0.4, 0.22], { segs: 5, cap0: 'none', cap1: 'none' }); mb.plate([[0, 0.0, 0.36], [0.04, 0, 0.3], [0, 0, 0.5], [-0.04, 0, 0.3]], 0.01, [0.6, 0.62, 0.66]); for (const sgn of [-1, 1]) mb.plate([[0, 0, -0.4], [sgn * 0.06, 0.02, -0.3], [0, 0, -0.2]], 0.006, [0.9, 0.9, 0.92]); }) })));
     if (swoosh) { const p = G.player; const u = swoosh.t / swoosh.dur; const f0 = U.forwardVec(swoosh.yaw, 0); out.push({ x: p.x + f0[0] * 0.3, y: p.y + 1.0 + swoosh.pitch * 0.6, z: p.z + f0[2] * 0.3, yaw: swoosh.yaw + (u - 0.5) * swoosh.wide * 0.6, scale: 1, hover: 0, skyMul: 1, isFx: true, noOutline: true, alpha: (1 - u) * 0.55,
       mesh: R.entityMesh('swoosh:' + Math.round(swoosh.wide * 10) + ':' + Math.round(swoosh.reach * 10), (mb) => { const r0 = Math.max(0.3, swoosh.reach - 0.7), r1 = swoosh.reach + 0.2, W = swoosh.wide; const pts = []; const N = 9; for (let i = 0; i <= N; i++) { const a = -W / 2 + W * i / N; pts.push([Math.sin(a) * r1, (i / N - 0.5) * -0.25, -Math.cos(a) * r1]); } for (let i = N; i >= 0; i--) { const a = -W / 2 + W * i / N; pts.push([Math.sin(a) * r0, (i / N - 0.5) * -0.25, -Math.cos(a) * r0]); } mb.plate(pts, 0.01, [1.0, 0.98, 0.9], { emis: true }); }) }); }
     return out; }

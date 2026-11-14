@@ -1,0 +1,17 @@
+const { open } = require('./harness');
+(async () => { const h = await open(); const { page, ev } = h; await h.newGame('gal-1'); await h.calm();
+  const k = await ev(() => { const k = Keeps.sites().filter(x => !x.core)[0]; const p = G.player; p.x = k.x + 0.5; p.z = k.z - 20.5; p.y = k.y + 3; G.world.time = 0.5; G.stats.lightReturned = true; G.repelUntil = performance.now() + 600000; return { x: k.x, y: k.y, z: k.z, id: k.id, name: k.name }; });
+  await page.waitForTimeout(5000);
+  const log = []; const step = async (tag, fn, arg) => { const r = await ev(fn, arg); console.log(tag + ' ' + JSON.stringify(r)); };
+  const hide = () => ev(() => { for (const id of ['hud', 'controls', 'hotbar']) { const e = document.getElementById(id); if (e) e.style.display = 'none'; } });
+  const at = async (dx, dy, dz, yaw, pitch, name) => { await ev(([k, dx, dy, dz, yaw, pitch]) => { const p = G.player; p.x = k.x + dx + 0.5; p.y = k.y + dy; p.z = k.z + dz + 0.5; p.yaw = yaw; p.pitch = pitch; p.vx = p.vy = p.vz = 0; p.flying = true; }, [k, dx, dy, dz, yaw, pitch]); await page.waitForTimeout(1800); await hide(); await page.screenshot({ path: '/home/claude/keep-' + name + '.png', clip: { x: 0, y: 130, width: 390, height: 520 } }); };
+  await step('state', (k) => { const s = G.stats.keeps || {}; return { stamped: s['stamped_' + k.id], dressed: s['dressed_' + k.id], tower: s['tower_' + k.id], foes: Combat.forHold(k.id).map(f => f.kind + ':' + f.floor + ':' + Math.round(f.y - k.y)).join(' '), gate: s['gate_' + k.id] }; }, k);
+  await at(-9, 12, -24, Math.PI + 0.35, -0.2, 'out'); await step('state2', (k) => { const s = G.stats.keeps || {}; return { tower: s['tower_' + k.id], foes: Combat.forHold(k.id).map(f => f.kind + ':' + f.floor + ':' + Math.round(f.y - k.y)).join(' '), gate: s['gate_' + k.id] }; }, k);
+  const clear = (n) => step('clear' + n, ([k, n]) => { for (const f of Combat.forHold(k.id)) if (f.floor === n) { f.state = 'down'; f.hp = 0; } return n; }, [k, n]);
+  await clear(0); await at(0, 1, -3, Math.PI, 0.05, 'door'); await step('g', (k) => (G.stats.keeps || {})['gate_' + k.id], k);
+  await at(-2.4, 1, 2, Math.PI - 0.6, 0.0, 'hall'); await clear(1); await page.waitForTimeout(1200);
+  await at(2.4, 6, 6, 0.5, 0.0, 'gallery'); await clear(2); await page.waitForTimeout(1200);
+  await at(-2.4, 11, 2, Math.PI - 0.5, 0.0, 'guard'); await clear(3); await page.waitForTimeout(1500);
+  await at(-2.4, 16, 2, Math.PI - 0.5, 0.0, 'roof');
+  await step('end', (k) => { const s = G.stats.keeps || {}; return { gate: s['gate_' + k.id], boss: Wild.list.filter(e => e.keepBoss === k.id).map(e => KIN.name(e.kin) + '@' + Math.round(e.y - k.y)), hatch: [G.world.getBlock(k.x + 3, k.y + 5, k.z + 7), G.world.getBlock(k.x - 3, k.y + 10, k.z + 7), G.world.getBlock(k.x + 3, k.y + 15, k.z + 2), G.world.getBlock(k.x, k.y + 2, k.z + 1)] }; }, k);
+  console.log(log.join('\n')); console.log('ERRORS:', h.errors.length ? h.errors.slice(0, 3).join('\n') : 'none'); await h.close(); })();
