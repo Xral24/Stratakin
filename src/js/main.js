@@ -136,7 +136,7 @@ G.stealthSnare = function () {
   Battle.start(e, true, { stealth: true });
 };
 // ---------- deploy: send your Kin in against the one that is on you ----------
-// Your lead Kin already fights beside you; Deploy is how you pick which one does, or send one in when nobody is at your side
+// Your lead Kin already scraps beside you in the open; Deploy starts the real thing: a battle, Kin against Kin, with the Kin you pick
 G.deployKin = function () {
   const p = this.player; if (Battle.active) return;
   const e = Wild.engagedNear(p) || Wild.pick(p); if (!e) { UI.toast('Nothing is on you.'); return; }
@@ -149,8 +149,9 @@ G.knockout = function (x, y, z) { this.slowT = 0.45; const f = document.getEleme
 G.sendIn = function (k, e) {
   if (!k || k.hp <= 0 || !this.kin.includes(k)) return;
   this.stats.buddyOff = false;
-  const was = this.kin[this.activeIdx]; this.activeIdx = this.kin.indexOf(k); if (k !== was) UI.toast(`${KIN.name(k)} leads.`); else UI.toast(`${KIN.name(k)} goes in.`);
-  Buddy.rally(e);
+  this.activeIdx = this.kin.indexOf(k);
+  if (e && e.kin && !e.isFoe && !Battle.active) { UI.closePanel && UI.closePanel(); Battle.start(e, false); if (Battle.active) return; } /* Deploy is the battle: Kin against Kin, on the battle card */
+  UI.toast(`${KIN.name(k)} goes in.`); Buddy.rally(e);
 };
 // ---------- riding ----------
 // what a Kin's body lets it carry you through: legs on land, fins in water, wings or hovering in the air

@@ -35,11 +35,11 @@ const Buddy = (() => {
     if (move.drain) { const st = KIN.stats(k); k.hp = Math.min(st.hp, k.hp + Math.round(dealt / 3)); }
   }
   function fight(dt, p, k) {
-    if (flinchT > 0) flinchT -= dt;
+    if (flinchT > 0) flinchT -= dt; if (e && e.hitT > 0) e.hitT -= dt; /* the white of a hit fades: it used to stay, and washed the Kin's colours out for good */
     if (pending) { pending.t -= dt; if (pending.t <= 0) { land(k, pending.T, pending.move); pending = null; } }
     const T = foeNear(p);
     if (!T || gone(T)) { if (dash) dash = null; if (lastFoe && !T) { atkCd = 1.0; } lastFoe = null; return false; }
-    if (lastFoe !== T) { lastFoe = T; atkCd = Math.min(atkCd, 0.6); if (G.stats && !G.stats.buddyFightTold) { G.stats.buddyFightTold = true; G.explain(`${KIN.name(k)} fights beside you`, 'Your lead Kin takes on whatever turns on you, with its own moves and the strength it has in a battle: far more than any blade of yours. It takes the lunges too, and goes down if they are too much; Deploy picks another to send in, and with nobody at your side it is just you.'); } }
+    if (lastFoe !== T) { lastFoe = T; atkCd = Math.min(atkCd, 0.6); if (G.stats && !G.stats.buddyFightTold) { G.stats.buddyFightTold = true; G.explain(`${KIN.name(k)} fights beside you`, 'Your lead Kin takes on whatever turns on you, with its own moves and the strength it has in a battle: far more than any blade of yours. It takes the lunges too, and goes down if they are too much. Press Deploy Kin for a proper battle, Kin against Kin, where you choose every move.'); } }
     const r0 = (T.isFoe ? 0.5 : (T.model.radius || 0.6) * T.scale) + (e.model.radius || 0.6) * e.scale + 0.35;
     const dx = T.x - e.x, dz = T.z - e.z, d = Math.hypot(dx, dz); atkCd -= dt;
     const pd = Math.hypot(p.x - e.x, p.z - e.z);

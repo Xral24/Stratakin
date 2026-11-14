@@ -216,6 +216,8 @@ Scope (Alexander, 8 Nov evening): EVERYTHING visible goes to the same standard: 
 
 - Railway and bridges can't be taken apart: the track, its bed, embankment and viaduct (Village.railAt, checked in G.protectedAt on every world) and the mended canyon bridge refuse the pick and show a hint. Villagers: bodies have width (roomAt), they step round posts and corners instead of stopping against them, go round each other, and step apart from each other and from you. Tests: tools/test/t-rail.js, t-walk.js.
 
+- Fix: your own Kin went pale for good after its first hit in the open (the hit flash on the buddy never faded; buddy.js now counts e.hitT down). Deploy Kin now opens the card battle, Kin against Kin, with the Kin you pick (G.sendIn calls Battle.start); the lead Kin still scraps beside you before that.
+
 ## Still to do
 UI polish as feedback comes in. Card battle screen still used for scripted encounters (raids at the walls, thief, citadel duel, holds) and the snare mini-game; converting those to live is the next big step if wanted. (Old list: train/ships, combat animation, eggs, avatar hair/paint, buddy WEAR cosmetics, Silas and Finch, UI polish (item icons), quality toggles in settings (state.shadows, state.grassQuality, state.dprCap).
 
