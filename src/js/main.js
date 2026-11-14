@@ -851,7 +851,7 @@ G.loop = function (t) {
   if ((this.frame & 15) === 0) this.updateMusic(inBattle);
   if ((this.frame & 1) === 0) UI.renderSky(cam, this.world, R.state);
   if ((this.frame & 7) === 0) { // the shield button: up whenever a Bound warrior has seen you and there is a shield in your bag
-    const foe = !inBattle && !p.mount && Combat.shield() && Combat.nearestFoe(p, 14); const bb = document.getElementById('btn-block');
+    const foe = !inBattle && !p.mount && Combat.shield() && (Combat.nearestFoe(p, 14) || (Combat.weapon && Combat.weapon())); /* the shield button is there whenever you own a shield and either a foe is near or a weapon is in your hand */ const bb = document.getElementById('btn-block');
     if (bb) { bb.classList.toggle('hidden', !foe); if (!foe && this.blockHeld) { this.blockHeld = false; bb.classList.remove('held'); } }
     if (foe && !this.stats.blockTip) { this.stats.blockTip = true; UI.toast('Your shield: hold 🛡 to raise it and take the blow. Raise it just as he strikes and you parry, leaving him open. Let go to swing back.', 'good'); }
   }
