@@ -160,6 +160,8 @@ Scope (Alexander, 8 Nov evening): EVERYTHING visible goes to the same standard: 
 
 - Kin graphics pass 2 (14 Nov): portraits are supersampled (drawn 2-3x and shrunk, up to 640 px) so edges are smooth; mobile resolution cap 1.75 -> 2.25. Frost biped line redone as ice Kin: floe chick, glacier skater, ice general (navy and ice, no black-and-white penguin).
 
+- 14 Nov: crouching no longer blocks walking up or down soil slopes (edge guard only stops drops over 2 blocks). Kin pass 3: shared limbs chunkier (quadruped legsOf with shoulders and toed paws; biped legs/arms thicker, mitt hands), fierce brow covers less, glow eyes keep a white, eyes sit proud of face masks, cinder kitten gets real eyes in its mask. Still to do per Kin: bird wings, bespoke limbs (salamander etc.), plain ones (snowman, hawk line), mushroom knight face.
+
 ## Still to do
 UI polish as feedback comes in. Card battle screen still used for scripted encounters (raids at the walls, thief, citadel duel, holds) and the snare mini-game; converting those to live is the next big step if wanted. (Old list: train/ships, combat animation, eggs, avatar hair/paint, buddy WEAR cosmetics, Silas and Finch, UI polish (item icons), quality toggles in settings (state.shadows, state.grassQuality, state.dprCap).
 

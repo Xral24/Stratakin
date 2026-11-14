@@ -580,23 +580,23 @@ const KIN = (() => {
        o.glow makes a dark eye with a lit iris; side = the eye faces out sideways (fish). */
     const LOOK = (ex, ey, ez, er, o = {}, side) => {
       let col = o.col || C.eye; { const q = U.hexToRgb(col); if (q[0] + q[1] + q[2] < (q[0] > 1 ? 150 : 0.6)) col = hexMix(C.accent, '#3a2416', 0.4); } /* a plain black eye takes its colour from the Kin's accent */ const glow = !!o.glow; er *= er < 0.06 ? 1.3 : 1.12;
-      const pt = (sd, u, v, w) => side ? [sd * (ex + w * er), ey + v * er, ez + u * er] : [sd * ex + u * er, ey + v * er, ez + w * er];
+      const pt = (sd, u, v, w) => (w += 0.22, 0) || side ? [sd * (ex + w * er), ey + v * er, ez + u * er] : [sd * ex + u * er, ey + v * er, ez + w * er];
       const el = (sd, u, v, w, hu, hv, hw, c, oo) => { const p = pt(sd, u, v, w); const hx = (side ? hw : hu) * er, hy = hv * er, hz = (side ? hu : hw) * er; blob(p[0] - hx, p[1] - hy, p[2] - hz, p[0] + hx, p[1] + hy, p[2] + hz, 1, c, oo); };
       const deep = hexMix(col, '#0b0a16', 0.55), lite = hexMix(col, '#ffffff', 0.38), gx = side ? 0.3 : -0.3;
       for (const sd of [-1, 1]) {
         const inn = side ? 0 : -sd; /* toward the nose */
-        el(sd, 0, 0.04, 0.26, 0.96, 1.16, 0.5, glow ? '#15101c' : '#f8f6f0', { n: 5 });
+        el(sd, 0, 0.04, 0.26, 0.96, 1.16, 0.5, '#f8f6f0', { n: 5 });
         el(sd, inn * 0.1, -0.06, 0.6, 0.68, 0.88, 0.26, glow ? col : deep, { n: 5, emis: glow });
         el(sd, inn * 0.1, -0.42, 0.66, 0.5, 0.42, 0.2, glow ? hexMix(col, '#ffffff', 0.5) : lite, { n: 4, emis: glow });
-        el(sd, inn * 0.1, 0.0, 0.8, 0.24, 0.44, 0.1, glow ? '#ffffff' : '#08060e', { n: 4, emis: glow });
+        el(sd, inn * 0.1, 0.0, 0.8, 0.24, 0.44, 0.1, '#08060e', { n: 4 });
         el(sd, inn * 0.1 + gx, 0.42, 0.84, 0.25, 0.27, 0.08, '#ffffff', { n: 3, emis: true });
         el(sd, inn * 0.1 - gx * 0.9, -0.46, 0.86, 0.11, 0.11, 0.05, '#ffffff', { n: 3, emis: true });
-        const arc = [], rr = []; const a0 = o.brow ? 0.62 : 0.3, a1 = o.brow ? 1.12 : 0.3;
+        const arc = [], rr = []; const a0 = o.brow ? 0.8 : 0.3, a1 = o.brow ? 1.2 : 0.3;
         for (let i = 0; i <= 6; i++) { const k = i / 6, a = Math.PI * (0.94 - 0.88 * k); const base = 0.04 + 1.17 * Math.sin(a); const cut = a0 + (a1 - a0) * (inn < 0 ? 1 - k : k); /* k runs -u to +u */
-          arc.push(pt(sd, 0.99 * Math.cos(a), o.brow ? Math.min(base, side ? 0.95 : cut) : base, 0.5 + 0.18 * Math.sin(a))); rr.push((i === 0 || i === 6 ? 0.05 : 0.12) * er * (o.brow ? 1.35 : 1)); }
+          arc.push(pt(sd, 0.99 * Math.cos(a), o.brow ? Math.min(base, side ? 0.95 : cut) : base, 0.5 + 0.18 * Math.sin(a))); rr.push((i === 0 || i === 6 ? 0.05 : 0.12) * er * (o.brow ? 1.15 : 1)); }
         tube(arc, rr, '#17111f', { segs: 6, cap0: 'round', cap1: 'round' });
-        if (o.brow) { const b0 = pt(sd, inn * 1.05, 0.78, 0.5), b1 = pt(sd, -inn * 1.1 + (side ? 1.0 : 0), 1.42, 0.42); if (side) { b0[2] = ez + er * 1.05; b0[1] = ey + er * 0.85; b1[2] = ez - er * 1.05; b1[1] = ey + er * 1.3; }
-          tube([b0, [(b0[0] + b1[0]) / 2, (b0[1] + b1[1]) / 2 + er * 0.08, (b0[2] + b1[2]) / 2 + (side ? 0 : er * 0.12)], b1], [er * 0.26, er * 0.34, er * 0.22], o.brow, { segs: 8, cap0: 'round', cap1: 'round' }); }
+        if (o.brow) { const b0 = pt(sd, inn * 1.0, 1.0, 0.52), b1 = pt(sd, -inn * 1.1 + (side ? 1.0 : 0), 1.5, 0.42); if (side) { b0[2] = ez + er * 1.05; b0[1] = ey + er * 1.05; b1[2] = ez - er * 1.05; b1[1] = ey + er * 1.4; }
+          tube([b0, [(b0[0] + b1[0]) / 2, (b0[1] + b1[1]) / 2 + er * 0.08, (b0[2] + b1[2]) / 2 + (side ? 0 : er * 0.12)], b1], [er * 0.16, er * 0.22, er * 0.14], o.brow, { segs: 8, cap0: 'round', cap1: 'round' }); }
       }
     };
     // a ring of colour round an ellipsoid section (stripes, collars): centre (cx,cy,z), half-sizes hx,hy
@@ -642,14 +642,15 @@ const KIN = (() => {
               ball(sd * (ex + er * 0.05), ey - er * 0.1, ez + er * 0.78, er * 0.3, '#0a0810', { n: 2 }); ball(sd * (ex - er * 0.22), ey + er * 0.34, ez + er * 0.82, er * 0.3, '#ffffff', { emis: true, n: 2 }); ball(sd * (ex + er * 0.3), ey - er * 0.36, ez + er * 0.84, er * 0.13, '#ffffff', { emis: true, n: 2 });
               if (o.brow) blob(sd * ex - er * 1.1, ey + er * 0.88, ez - er * 0.3, sd * ex + er * 1.1, ey + er * 1.18, ez + er * 0.9, 0.5, o.brow, { n: 2 }); } };
           const legsOf = (leg, L, xw, thick, front, back, o = {}) => { // four legs on bones 2..5; front/back z; a hock on the hind legs
-            const LG = [[-xw, front, 2, 0], [xw, front, 3, Math.PI], [-xw, back, 4, Math.PI], [xw, back, 5, 0]];
+            thick *= 1.3; /* sturdy legs, not sticks */ const LG = [[-xw, front, 2, 0], [xw, front, 3, Math.PI], [-xw, back, 4, Math.PI], [xw, back, 5, 0]];
             for (const [lx, lz, bi, ph] of LG) { const hind = lz < 0; B(bi, 'leg', [lx, leg + 0.06, lz], { phase: ph, len: leg + 0.05 });
               if (hind && o.haunch !== false) blob(lx - thick * 1.0, leg * 0.5, lz - thick * 1.2, lx + thick * 1.0, leg + 0.2, lz + thick * 1.1, 1, C.body, { under: C.belly });
+              if (!hind) blob(lx - thick * 0.95, leg * 0.6, lz - thick * 0.95, lx + thick * 0.95, leg + 0.18, lz + thick * 0.95, 1, C.body); /* a shoulder */
               const sock = t >= 1 ? hexMix(C.body, C.dark, 0.38) : C.body; // from the youngster on, darker 'socks' below the knee: legs read as legs
               if (hind) { tube([[lx, leg + 0.1, lz], [lx * 1.04, leg * 0.58, lz + 0.08], [lx, leg * 0.26, lz - 0.07]], [thick, thick * 0.78, thick * 0.62], C.body, { cap0: 'none', cap1: 'round' }); tube([[lx, leg * 0.3, lz - 0.06], [lx, 0.1, lz]], [thick * 0.64, thick * 0.66], sock, { cap0: 'round', cap1: 'none' }); }
               else { tube([[lx, leg + 0.1, lz], [lx * 1.03, leg * 0.48, lz + 0.02], [lx, leg * 0.3, lz + 0.035]], [thick, thick * 0.74, thick * 0.66], C.body, { cap0: 'none', cap1: 'round' }); tube([[lx, leg * 0.34, lz + 0.035], [lx, 0.1, lz + 0.03]], [thick * 0.66, thick * 0.66], sock, { cap0: 'round', cap1: 'none' }); }
               if (o.hoof) blob(lx - thick * 0.7, 0, lz - thick * 0.6, lx + thick * 0.7, 0.14, lz + thick * 0.8, 0.4, C.dark, { n: 2 });
-              else blob(lx - thick * 0.85, 0, lz - thick * 0.6, lx + thick * 0.85, 0.13, lz + thick * 1.3, 0.7, pawC, { n: 2 }); }
+              else { blob(lx - thick * 0.95, 0, lz - thick * 0.7, lx + thick * 0.95, Math.max(0.13, thick * 1.1), lz + thick * 1.25, 0.85, pawC, { n: 2 }); for (const a of [-1, 0, 1]) ball(lx + a * thick * 0.55, thick * 0.38, lz + thick * 1.2, thick * 0.4, pawC); } } /* a round paw with three toes */
             bone = 0; legLen = leg + 0.05; };
           // element anatomy: the element does not just colour a Kin, it changes what grows on it. Anchors come from each body plan:
           // A.head (x,y,z of the head's crown), A.hs (head size), A.neck, A.back (y, z0, z1), A.tail (tip), A.jaw, A.feet [[x,z,bone]].
@@ -1225,7 +1226,7 @@ const KIN = (() => {
             B(1, 'head', ht); const hy = ht[1], hz = ht[2]; const hs = [1.3, 1, 0.92][t];
             blob(-0.22 * hs, hy - 0.06, hz - 0.12, 0.22 * hs, hy + 0.3 * hs, hz + 0.18, 1, C.body);
             for (const sd of [-1, 1]) plate([[sd * 0.08 * hs, hy + 0.24 * hs, hz], [sd * 0.26 * hs, hy + 0.26 * hs, hz - 0.06], [sd * (0.24 + 0.04 * t) * hs, hy + (0.5 + 0.14 * t) * hs, hz - 0.08 - 0.04 * t]], 0.03, C.body, { edge: C.accent }); // ears, longer each stage
-            if (t === 0) { blob(-0.23 * hs, hy + 0.1 * hs, hz + 0.02, 0.23 * hs, hy + 0.23 * hs, hz + 0.2, 1, maskC); for (const sd of [-1, 1]) ball(sd * 0.1 * hs, hy + 0.165 * hs, hz + 0.2, 0.035 * hs, glw, { emis: true, n: 1 }); blob(-0.07, hy - 0.02, hz + 0.16, 0.07, hy + 0.08, hz + 0.24, 0.9, C.belly); } // a kitten's half-mask
+            if (t === 0) { blob(-0.24 * hs, hy + 0.06 * hs, hz + 0.0, 0.24 * hs, hy + 0.25 * hs, hz + 0.17, 1, maskC); LOOK(0.11 * hs, hy + 0.15 * hs, hz + 0.1, 0.07 * hs, { col: glw }); /* a bandit's mask with bright eyes in it */ blob(-0.07, hy - 0.02, hz + 0.16, 0.07, hy + 0.08, hz + 0.24, 0.9, C.belly); } // a kitten's half-mask
             else { blob(-0.2, hy - 0.12, hz + 0.14, 0.2, hy + 0.28, hz + 0.26, 0.95, maskC, { tap: [1, 0.7] });
               for (const sd of [-1, 1]) plate([[sd * 0.035, hy + 0.12, hz + 0.27], [sd * 0.16, hy + 0.17, hz + 0.25], [sd * 0.14, hy + 0.1, hz + 0.26]], 0.014, glw, { emis: true });
               plate([[-0.014, hy + 0.27, hz + 0.265], [0.014, hy + 0.27, hz + 0.265], [0, hy - 0.06, hz + 0.29]], 0.01, C.accent); for (const sd of [-1, 1]) plate([[sd * 0.05, hy + 0.02, hz + 0.28], [sd * 0.13, hy + 0.06, hz + 0.26], [sd * 0.08, hy - 0.06, hz + 0.27]], 0.01, C.accent);
@@ -1316,7 +1317,7 @@ const KIN = (() => {
           const nose = (x, y, z, r, c) => ball(x, y, z, r, c || dk, { n: 2 });
           const mouth = (y, z, w, c) => tube([[-w, y + 0.015, z - 0.015], [0, y, z], [w, y + 0.015, z - 0.015]], [0.013, 0.013, 0.013], c || dk, { cap0: 'round', cap1: 'round' });
           const legs = (hip, xw, th, c, foot, o = {}) => { // two legs with a knee; feet: paw, boot, web, talon, hoof, root
-            for (const sd of [-1, 1]) { B(sd < 0 ? 4 : 5, 'leg', [sd * xw, hip, 0], { phase: sd < 0 ? 0 : Math.PI, len: hip });
+            th *= 1.25; for (const sd of [-1, 1]) { B(sd < 0 ? 4 : 5, 'leg', [sd * xw, hip, 0], { phase: sd < 0 ? 0 : Math.PI, len: hip });
               if (o.thigh) blob(sd * xw - th * 1.4, hip * 0.5, -th * 1.4, sd * xw + th * 1.4, hip + th * 0.8, th * 1.3, 1, c || bd, { under: bl });
               tube([[sd * xw, hip, 0], [sd * xw * 1.06, hip * 0.5, o.digi ? -0.07 : 0.04], [sd * xw, 0.1, 0]], [th, th * 0.85, th * 0.75], c || bd, { cap0: 'round', cap1: 'none' });
               const fc = o.fc || dk;
@@ -1330,12 +1331,12 @@ const KIN = (() => {
           const arms = (sh, xw, len, th, c, hand, o = {}) => { // two arms hung from the shoulders; hands: paw, fist, claw, fin, wing, none
             for (const sd of [-1, 1]) { B(sd < 0 ? 2 : 3, 'arm', [sd * xw, sh, 0], { phase: sd < 0 ? 0 : Math.PI, side: sd });
               const fw = o.fwd || 0.04, el = [sd * (xw + len * (o.out || 0.3)), sh - len * 0.5, fw], wr = [sd * (xw + len * (o.out || 0.3) * 1.25), sh - len, fw * 2 + 0.04];
-              tube([[sd * xw, sh, 0], el, wr], [th, th * 0.85, th * 0.75], c || bd, { cap0: 'round', cap1: 'round' });
+              tube([[sd * xw, sh, 0], el, wr], [th * 1.25, th * 1.0, th * 1.1], c || bd, { cap0: 'round', cap1: 'round' }); /* a full upper arm, a forearm that swells toward the hand */
               const hc = o.hc || c || bd;
               if (hand === 'fist') blob(wr[0] - th * 1.8, wr[1] - th * 2.2, wr[2] - th * 1.6, wr[0] + th * 1.8, wr[1] + th * 1.2, wr[2] + th * 1.9, 0.6, hc, { n: 2 });
               else if (hand === 'claw') { ball(wr[0], wr[1], wr[2], th * 1.15, hc, { n: 2 }); for (const a of [-0.5, 0, 0.5]) cone([wr[0] + a * th, wr[1] - th * 0.6, wr[2] + th * 0.5], [a * 0.3, -1, 0.5], th * 2.4, th * 0.35, o.cc || '#f4f0e6'); }
               else if (hand === 'fin') plate([[sd * xw, sh, 0.02], [wr[0] + sd * th, wr[1] - th * 2, wr[2]], [wr[0] - sd * th, wr[1], wr[2] - th]], 0.03, hc);
-              else if (hand !== 'none') ball(wr[0], wr[1], wr[2], th * 1.25, hc, { n: 2 });
+              else if (hand !== 'none') { ball(wr[0], wr[1], wr[2], th * 1.5, hc, { n: 2 }); ball(wr[0] - sd * th * 0.9, wr[1] + th * 0.2, wr[2] + th * 0.9, th * 0.6, hc); } /* a mitt with a thumb */
               if (o.hand) o.hand(sd, wr); }
             bone = 0; };
           const tail = (pts, rr, c, o = {}) => { B(6, 'tail', pts[0]); tube(pts, rr, c || bd, Object.assign({ cap0: 'none', cap1: 'round' }, o)); if (o.tip) o.tip(pts[pts.length - 1]); bone = 0; };

@@ -274,7 +274,7 @@ class Player {
       const ahead = [this.x + mx * 0.7, this.y, this.z + mz * 0.7];
       if (this.collides(ahead[0], this.y + 0.1, ahead[2])) { if (!this.collides(ahead[0], this.y + 1.05, ahead[2])) this.vy = 6.5; else if (!this.collides(ahead[0], this.y + 1.75, ahead[2])) this.vy = 8; } // a ledge up to a block above the water: haul yourself up
     }
-    if ((hitX || hitZ) && this.onGround && !this.sneak && ml > 0.2 && !this.mount) {
+    if ((hitX || hitZ) && this.onGround && ml > 0.2 && !this.mount) { /* crouched or not: a slope is a slope */
       const ax = this.x + mx * 0.55, az = this.z + mz * 0.55, fy = Math.floor(this.y + 0.01);
       const b = w.getBlock(Math.floor(ax), fy, Math.floor(az));
       if (R.isSoil(b) && w.getBlock(Math.floor(ax), fy + 1, Math.floor(az)) !== undefined && !this.collides(this.x, fy + 1.02, this.z) && !this.collides(ax, fy + 1.02, az)) {
@@ -324,7 +324,7 @@ class Player {
       this.vy = 0;
     } else if (this.vy !== 0) this.onGround = false;
     // sneaking: do not walk off edges
-    if (this.sneak && this.onGround && !this.collides(this.x, this.y - 0.1, this.z)) {
+    if (this.sneak && this.onGround && !this.collides(this.x, this.y - 0.1, this.z) && !this.collides(this.x, this.y - 2.1, this.z)) { /* only a real drop stops you: a step or two down a hillside does not */
       // stepped off: nudge back
       this.x -= this.vx * dt * 1.2; this.z -= this.vz * dt * 1.2; this.vx = 0; this.vz = 0;
     }
