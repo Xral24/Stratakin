@@ -154,6 +154,8 @@ Scope (Alexander, 8 Nov evening): EVERYTHING visible goes to the same standard: 
 
 - The railway beyond a town's wall is dead level at station height (it used to follow the ground block by block, so it stepped up and down cliffs): an embankment over low ground, a stone viaduct on piers over a real drop or water, a cutting through a rise. Lines laid before this are relaid once (`railLevel`). tools/test/t-rail.js checks every rail is at level.
 
+- The mine dressed as a working one (`dressMine()` in js/campaign.js, flag `mineLook1`, old worlds included). Camp: raking legs on the headframe, an upright winding wheel, a tub road west to a spoil heap with carts on it, stacked props, sorted ore, lamps. Below: ore in slanting seams through the gallery walls (copper, iron, some gold and ember), a tub road along the gallery turning into a timbered drift at each end with a working face of rubble and ore, more lamps. The shaft and ladder are untouched (tools/test/t-minechk.js).
+
 ## Still to do
 UI polish as feedback comes in. Card battle screen still used for scripted encounters (raids at the walls, thief, citadel duel, holds) and the snare mini-game; converting those to live is the next big step if wanted. (Old list: train/ships, combat animation, eggs, avatar hair/paint, buddy WEAR cosmetics, Silas and Finch, UI polish (item icons), quality toggles in settings (state.shadows, state.grassQuality, state.dprCap).
 

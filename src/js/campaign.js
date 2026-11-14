@@ -111,6 +111,35 @@ const Campaign = (() => {
     set(s.x + 6, y0 + 1, s.z - 5, B.FUSION);
     for (const [a, b] of [[-5, 4], [-4, 4], [-5, 5]]) { set(s.x + a, y0 + 1, s.z + b, B.PLANKS); set(s.x + a, y0 + 2, s.z + b, U.hash3(a, b, 1, 2) < 0.5 ? B.COPPER : B.IRON); }
   }
+  // The mine dressed as a working one. Above: a braced headframe with a winding wheel, a track from the shaft to a spoil heap with
+  // carts on it, stacked timber, sorted ore, lamps. Below: seams of ore running through the gallery walls, a track down the gallery
+  // into a drift at each end with timber sets and a working face, lamps on the props. The shaft and its ladder are not touched.
+  function dressMine(s) {
+    world.ensureAround(Math.floor(s.x / CH), Math.floor(s.z / CH), 1, 99);
+    const y0 = s.y0 != null ? s.y0 : world.colInfo(s.x, s.z).h, bottom = s.bottom != null ? s.bottom : Math.max(18, y0 - 26), X = s.x, Z = s.z;
+    const air = (x, y, z) => world.getBlock(x, y, z) === B.AIR;
+    // --- the camp ---
+    for (const [a, b] of [[-2, -2], [-2, 2], [2, 2]]) for (let i = 1; i <= 3; i++) { const x = X + a + Math.sign(a) * i, z = Z + b + Math.sign(b) * i, y = y0 + 7 - i * 2; set(x, y, z, B.LOG); set(x, y + 1, z, B.LOG); if (i === 3) for (let yy = y0 + 1; yy < y; yy++) set(x, yy, z, B.LOG); } // raking legs
+    for (const [dx, dy] of [[-1, 9], [1, 9], [-1, 11], [1, 11], [0, 11], [-1, 10], [1, 10]]) set(X + dx, y0 + dy, Z, B.IRONWALL); set(X, y0 + 9, Z, B.IRONWALL); set(X, y0 + 10, Z, B.BEAM); set(X, y0 + 12, Z, B.TORCH); // the winding wheel, upright over the shaft
+    for (let d = 3; d <= 9; d++) { const x = X - d; for (let y = y0 - 2; y < y0; y++) if (!isSolid(world.getBlock(x, y, Z))) set(x, y, Z, B.DIRT); set(x, y0, Z, B.GRAVEL); clearAbove(x, Z, y0 + 1, 4); set(x, y0 + 1, Z, d === 5 || d === 8 ? B.CART : B.RAIL); } // the tub road west to the tip
+    for (let a = -3; a <= 2; a++) for (let b = -3; b <= 3; b++) { const h = Math.max(0, 3 - Math.round(Math.hypot(a, b * 0.9))); const x = X - 12 + a, z = Z + b; for (let y = y0 - 2; y <= y0; y++) if (!isSolid(world.getBlock(x, y, z))) set(x, y, z, B.GRAVEL); for (let y = y0 + 1; y <= y0 + h; y++) set(x, y, z, y === y0 + h && U.hash3(x, y, z, 5) < 0.4 ? B.RUBBLE : B.GRAVEL); } // the spoil heap
+    for (let i = 0; i < 3; i++) { set(X - 6 + i, y0 + 1, Z + 6, B.LOG); set(X - 6 + i, y0 + 1, Z + 7, B.LOG); if (i < 2) set(X - 6 + i, y0 + 2, Z + 6, B.LOG); } // pit props, stacked
+    for (const [a, b] of [[-7, -7], [7, 7], [-7, 7], [3, -7]]) if (air(X + a, y0 + 1, Z + b)) set(X + a, y0 + 1, Z + b, B.LAMP);
+    for (const [a, b, id] of [[1, 6, B.COPPER], [2, 6, B.IRON], [1, 7, B.IRON], [3, 6, B.CHEST]]) if (air(X + a, y0 + 1, Z + b)) set(X + a, y0 + 1, Z + b, id); // ore sorted by the sheds
+    // --- the gallery ---
+    const ore = (x, y, z) => { const a = U.mod(x + y * 2, 13), b = U.mod(x * 2 - y * 3 + z, 17), c = U.mod(z * 3 + y * 2 + x, 23); return a < 2 ? B.COPPER : b < 2 ? B.IRON : c === 0 ? B.GOLD : c === 7 ? B.EMBER : null; }; // seams run slantwise through the rock
+    for (let dx = -9; dx <= 9; dx++) for (let dz = -4; dz <= 4; dz++) for (let y = bottom + 1; y <= bottom + 4; y++) { const wall = Math.abs(dx) === 9 || Math.abs(dz) === 4 || y === bottom + 4; if (!wall) continue; const x = X + dx, z = Z + dz; const id = world.getBlock(x, y, z); if (id === B.STONE || id === B.COPPER || id === B.IRON || id === B.EMBER) set(x, y, z, ore(x, y, z) || B.STONE); }
+    const drift = (sg) => { // a heading driven on from the end of the gallery: three wide, timbered, ending in a face of broken rock and ore
+      for (let d = 9; d <= 15; d++) for (let dz = -2; dz <= 2; dz++) for (let y = bottom - 1; y <= bottom + 3; y++) { const x = X + sg * d, z = Z + dz; const inside = Math.abs(dz) <= 1 && y >= bottom && y <= bottom + 2 && d < 15;
+        set(x, y, z, inside ? B.AIR : (y >= bottom && ore(x, y, z)) || B.STONE); }
+      for (const d of [10, 13]) { for (let y = bottom; y <= bottom + 1; y++) for (const dz of [-1, 1]) set(X + sg * d, y, Z + dz, B.LOG); for (let dz = -1; dz <= 1; dz++) set(X + sg * d, bottom + 2, Z + dz, B.PLANKS); }
+      set(X + sg * 14, bottom, Z, B.RUBBLE); set(X + sg * 14, bottom, Z + 1, B.RUBBLE); set(X + sg * 14, bottom + 1, Z + 1, sg > 0 ? B.GOLD : B.EMBER); set(X + sg * 15, bottom + 1, Z, sg > 0 ? B.GOLD : B.VOID); set(X + sg * 15, bottom, Z - 1, B.COPPER); set(X + sg * 12, bottom + 1, Z - 1, B.TORCH); };
+    drift(-1); drift(1);
+    for (let dx = -13; dx <= 12; dx++) { const x = X + dx; if (!air(x, bottom, Z - 2) && Math.abs(dx) < 9) continue; const z = Math.abs(dx) >= 9 ? Z : Z - 2; if (Math.abs(dx) === 9) { set(x, bottom, Z - 1, B.RAIL); } if (air(x, bottom, z)) set(x, bottom, z, dx === -11 || dx === 5 ? B.CART : B.RAIL); } // the tub road: along the north side of the gallery, turning into each drift
+    for (const dx of [-6, -2, 2, 6]) if (air(X + dx, bottom + 2, Z + 2)) set(X + dx, bottom + 2, Z + 2, B.TORCH);
+    for (const [dx, dz] of [[-8, 3], [8, -3]]) if (air(X + dx, bottom, Z + dz)) set(X + dx, bottom, Z + dz, B.LAMP);
+    for (const [dx, dz, id] of [[-7, 3, B.LOG], [-6, 3, B.LOG], [5, 3, B.CHEST]]) if (air(X + dx, bottom, Z + dz)) set(X + dx, bottom, Z + dz, id);
+  }
   function stampDiver(s) {
     world.ensureAround(Math.floor(s.x / CH), Math.floor(s.z / CH), 1, 99);
     if (s.lake) { // no deep shore near enough: Marisol dug herself a lake
@@ -278,6 +307,7 @@ const Campaign = (() => {
     const S = sites(); const c = C();
     tick += dt; if (tick > 0.4) { tick = 0;
       if (near(S.mine, p, 90) && !c.st_mine) { c.st_mine = true; stampMine(S.mine); G.meshPass(99); }
+      if (near(S.mine, p, 90) && c.st_mine && !c.mineLook1) { c.mineLook1 = true; dressMine(S.mine); G.meshPass(99); }
       else if (near(S.mine, p, 90) && c.st_mine && !c.mineShaftFix2) { c.mineShaftFix2 = true; const m = S.mine; openShaft(m, Math.max(18, world.colInfo(m.x, m.z).h - 26)); G.meshPass(99); } // worlds stamped before the fix: the plug over the shaft comes out
       if (S.diver && near(S.diver, p, 90) && !c.st_diver) { c.st_diver = true; stampDiver(S.diver); G.meshPass(99); }
       else if (S.diver && near(S.diver, p, 60) && c.st_diver && pierWays(S.diver)) G.meshPass(99); // keeps the pier ladders whole, old worlds included (terrain can fill in after the stamp)

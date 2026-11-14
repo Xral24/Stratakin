@@ -56,3 +56,7 @@ New games now default to one shared world, seed "Stratakin" (an empty World box 
 - **Ground:** the soil is drawn as smooth slopes between block corners. Anything that stands on it should use `R.standY(world, x, z, blockTop, radius)`, which the buddy and wild Kin now do; the player has its own version in `js/player.js`.
 - **Gotcha:** in a one-line JS edit, a `//` comment swallows the rest of the line. Use `/* */`.
 
+
+
+## Update, 14 November: the visual jobs have had a first pass
+Jobs 1 to 4 are done once each (see the last entries in PROGRESS.md): reef villages, four city quarters, the fortresses dressed, the mine dressed, and the railway levelled. Known gaps: sea-village roofs are straight tents because roof blocks only slope at 45 degrees; Stormspire cannot have a tall spire unless the island is lowered (world height 104, its floor at 94); the four quarter landmarks, the Citadel's great tower and the mine's drifts were verified by block checks, not by good screenshots, because fog and tight spaces defeat the headless camera. Alexander has not yet reviewed any of these in play.
