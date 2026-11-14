@@ -1086,8 +1086,10 @@ G.giveLostMap = function (from) {
 };
 // towns and farms are not yours to dig up: the first knock on a wall brings someone running
 G.protectedAt = function (hit) {
+  if (Village.railAt(hit.x, hit.y, hit.z)) return { kind: 'rail' };
   if (this.worldId !== 'earth') return null; const p = this.player;
   const kind = p.toolKind(hit.id);
+  { const fo = (Campaign.sites() || {}).fort, b = fo && fo.bridge; if (b && (this.stats.camp || {}).bridgeFixed && hit.x >= b.x0 - 1 && hit.x <= b.x1 + 1 && Math.abs(hit.z - b.z) <= 2 && Math.abs(hit.y - b.y) <= 2) return { kind: 'bridge' }; }
   for (const k of Keeps.sites()) if (Math.abs(hit.x - k.x) <= 12 && Math.abs(hit.z - k.z) <= 12 && Math.abs(hit.y - k.y) <= 16) { if ((this.stats.holdDeeds || {})[k.id] && Math.abs(hit.x - k.x) <= 7 && Math.abs(hit.z - k.z) <= 7 && hit.id !== B.DARKTABLE) return null; return { kind: 'dark' }; }
   { const cs = Citadel.open() ? Citadel.site() : null; if (cs && hit.x >= cs.x - 8 && hit.x <= cs.x + 94 && Math.abs(hit.z - cs.z) <= 19) return { kind: 'dark' }; }
   { const fo = (Campaign.sites() || {}).fort; if (fo && (this.stats.camp || {}).st_fort && hit.x >= fo.x - 18 && hit.x <= fo.x + 78 && Math.abs(hit.z - fo.z) <= 14) return { kind: 'dark' }; }
@@ -1101,6 +1103,8 @@ G.onProtectedMine = function (pr, hit) {
   const p = this.player; const fx = -Math.sin(p.yaw), fz = -Math.cos(p.yaw);
   const bring = (n) => { if (!n) return; n.x = p.x - fx * 1.8; n.z = p.z - fz * 1.8; const gy = this.world.groundY(Math.floor(n.x), Math.floor(n.z), Math.floor(p.y) + 2); if (gy != null) n.y = gy + 1; n.yaw = Math.atan2(p.x - n.x, p.z - n.z); if (n.home) n.home = { x: n.x, z: n.z }; this.talkNpc = n; };
   let who = null, lines;
+  if (pr.kind === 'rail') { UI.sfx('miss'); UI.toast('Leave the line alone. Take up the track or the bridge under it and the train never runs again.'); return; }
+  if (pr.kind === 'bridge') { UI.sfx('miss'); UI.toast('Leave the bridge standing. It is the only way across, and you paid for it.'); return; }
   if (pr.kind === 'dark') { UI.sfx('miss'); UI.toast('The stone does not even scratch. Whatever the Kinmaster built here, he built it to keep out exactly you. Find the way in.', 'bad'); return; }
   if (pr.kind === 'farm') {
     who = Campaign.getPerson('farmer_' + pr.f.id); bring(who);

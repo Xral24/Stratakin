@@ -1837,13 +1837,28 @@ const Village = (() => {
       if (n.moving) {
         const mdx = n.tx - n.x, mdz = n.tz - n.z, md = Math.hypot(mdx, mdz);
         if (md < 0.3) n.moving = false;
-        else { const step = Math.min(md, 1.3 * dt); const nx = n.x + mdx / md * step, nz = n.z + mdz / md * step; const gy = standY(nx, n.y, nz); if (gy == null) n.moving = false; else { n.x = nx; n.z = nz; n.y += (gy - n.y) * Math.min(1, dt * 8); n.yaw = Math.atan2(mdx, mdz); } }
+        else { const step = Math.min(md, 1.3 * dt), ux = mdx / md, uz = mdz / md; let went = false; /* a post or a corner in the way: step round it instead of standing against it */
+          for (const ang of (n.side ? [0, n.side * 0.9, n.side * 1.7, -n.side * 0.9] : [0, 0.9, -0.9, 1.7, -1.7])) { const c = Math.cos(ang), sn = Math.sin(ang), vx = ux * c - uz * sn, vz = ux * sn + uz * c; const gy = roomAt(n.x + vx * (step + 0.25), n.y, n.z + vz * (step + 0.25)); if (gy == null) continue;
+            { let crowd = false; const qx = n.x + vx * (step + 0.2), qz = n.z + vz * (step + 0.2); for (const m of v.npcs) { if (m === n || m.hidden || Math.abs(m.y - n.y) > 1.5) continue; const d1 = Math.hypot(m.x - qx, m.z - qz); if (d1 < 0.85 && d1 < Math.hypot(m.x - n.x, m.z - n.z)) { crowd = true; break; } } if (crowd) continue; } /* someone is standing there: go round them too */
+            n.x += vx * step; n.z += vz * step; n.y += (gy - n.y) * Math.min(1, dt * 8); n.yaw = Math.atan2(vx, vz); n.side = ang ? Math.sign(ang) : 0; went = true; break; }
+          if (!went) { n.moving = false; n.side = 0; n.wait = Math.min(n.wait, 0.8); } }
       }
     }
+    /* nobody walks through anybody: two people too close step apart, and they give you room as well */
+    { const ppl = v.npcs.filter(n => !n.hidden); for (let i = 0; i < ppl.length; i++) { const a = ppl[i];
+        for (let j = i + 1; j < ppl.length; j++) { const b = ppl[j]; if (Math.abs(a.y - b.y) > 1.5) continue; let dx = b.x - a.x, dz = b.z - a.z, d = Math.hypot(dx, dz); if (d >= 0.8) continue; if (d < 0.01) { dx = 1; dz = 0; d = 1; } const push = (0.8 - d) / 2 * Math.min(1, dt * 6), ux = dx / d, uz = dz / d;
+          if (a.wander !== false && !(a === v.elder && walkState) && roomAt(a.x - ux * push, a.y, a.z - uz * push) != null) { a.x -= ux * push; a.z -= uz * push; }
+          if (b.wander !== false && !(b === v.elder && walkState) && roomAt(b.x + ux * push, b.y, b.z + uz * push) != null) { b.x += ux * push; b.z += uz * push; } }
+        if (a.wander !== false && !(a === v.elder && walkState) && Math.abs(a.y - player.y) < 1.5) { const dx = a.x - player.x, dz = a.z - player.z, d = Math.hypot(dx, dz); if (d < 0.7 && d > 0.01) { const push = (0.7 - d) * Math.min(1, dt * 6); if (roomAt(a.x + dx / d * push, a.y, a.z + dz / d * push) != null) { a.x += dx / d * push; a.z += dz / d * push; } } } } }
     if (walkState && !inBattle) elderWalk(dt, player);
     trainTick(dt, player);
   }
   // someone standing inside a prop (a lamp post, a fence, a flower box: the props came after the villagers' homes were set) steps to the nearest clear square, and his home moves with him
+  /* room for a body, not just a point: the square ahead and a shoulder's width to each side */
+  function roomAt(x, y, z) { const g = standY(x, y, z); if (g == null) return null; for (const [ox, oz] of [[0.3, 0], [-0.3, 0], [0, 0.3], [0, -0.3]]) { const g2 = standY(x + ox, y, z + oz); if (g2 == null || Math.abs(g2 - g) > 1.1) return null; } return g; }
+  /* the railway belongs to everyone: the track, its bed, its embankment and its viaduct, from the station out to the end of the line */
+  function railAt(x, y, z) { for (const v of townList()) { if (v.type !== 'land' || Math.abs(x - v.x) + Math.abs(z - v.z) > 140) continue; const st = state(v.id); if (!st.stamped && v !== active) continue; const rl = layout(v).rail; if (!rl) continue;
+      const k = (rl.ax ? z : x) - rl.line, base = rl.ax ? v.x : v.z, d = ((rl.ax ? x : z) - base) * rl.sgn, d0 = (rl.along0 - base) * rl.sgn - 3; if (Math.abs(k) <= 1 && d >= d0 && d <= wallRadius(st) + 36 && y <= v.y && y >= v.y - 42) return v; } return null; }
   function unstick(n) {
     if (standY(n.x, n.y, n.z) != null) return;
     for (const r of [1, 1.5, 2.2]) for (let k = 0; k < 8; k++) { const a = k / 8 * 6.283; const nx = Math.floor(n.x + Math.cos(a) * r) + 0.5, nz = Math.floor(n.z + Math.sin(a) * r) + 0.5; const gy = standY(nx, n.y, nz); if (gy != null) { n.x = nx; n.z = nz; n.y = gy; if (n.home && standY(n.home.x, n.y, n.home.z) == null) n.home = { x: nx, z: nz }; return; } }
@@ -2187,7 +2202,7 @@ const Village = (() => {
   }
   // which quarter of a city a spot is in (null in the square, on the castle hill, or outside a city)
   function quarterAt(v, x, z) { if (!v || !v.R || v.size !== 'city' || (MATS[v.style] || MATS.land) !== MATS.land) return null; const dx = x - v.x, dz = z - v.z, m = Math.max(Math.abs(dx), Math.abs(dz)); if (m > v.R - 4 || m <= 7 || (Math.abs(dx) <= 14 && dz <= -v.R + 28)) return null; return QUARTERS[quarterOf(dx, dz)].name; }
-  return { quarterAt, plotsOf, plotPrice, ownsPlotAt, buyPlot, enterShow, thiefCaught, layout, townList, init, stamp, restoreStart, update, pick, talk, entities, buy, boardTrain, trainArrive, trainOf, sell, sellValue, raiseDome, shopDef, freed, onBossGone, lieutenantDown, tableChallenge, placeKit, portalList, portalHere, markers, wakeDialogue, questTarget, dawn, pendingIncome, foundingInfo, foundVillage, summaryHtml, ledger, station, recall, upgradeWall, repairWall, expand, build, postShop, levelOf, SHOPS, WALLS,
+  return { railAt, quarterAt, plotsOf, plotPrice, ownsPlotAt, buyPlot, enterShow, thiefCaught, layout, townList, init, stamp, restoreStart, update, pick, talk, entities, buy, boardTrain, trainArrive, trainOf, sell, sellValue, raiseDome, shopDef, freed, onBossGone, lieutenantDown, tableChallenge, placeKit, portalList, portalHere, markers, wakeDialogue, questTarget, dawn, pendingIncome, foundingInfo, foundVillage, summaryHtml, ledger, station, recall, upgradeWall, repairWall, expand, build, postShop, levelOf, SHOPS, WALLS,
     get def() { return active ? { x: active.x, y: active.y, z: active.z } : null; }, set def(v) { restoreStart(v); }, get active() { return active; }, get boss() { return active ? active.boss : null; }, get elder() { return active ? active.elder : null; }, get walking() { return !!walkState; }, get fisher() { return fisher; } };
 })();
 
