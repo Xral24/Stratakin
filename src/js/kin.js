@@ -3257,7 +3257,7 @@ const KIN = (() => {
     const H = partHelpers(m); const { box, blob, ball, tube, plate, ring, cone, disc, faceZ, feather } = H;
     const setB = (b) => { H.bone = b; };
     /* headgear and the folk's own head: a helmet hides the ears and all the hair, a hat or crown sits where the swept clumps were, a mask lies where the fringe was */
-    { const drop = kind === 'visor' ? ['hairtop', 'fringe', 'ear'] : ['hat', 'lamp', 'crown', 'veil', 'miner', 'silas'].includes(kind) ? ['hairtop'] : ['mask', 'voodoo', 'diver'].includes(kind) ? ['fringe'] : null; if (drop) { for (let i = m.boxes.length - 1; i >= 0; i--) if (m.boxes[i].tag && drop.includes(m.boxes[i].tag)) m.boxes.splice(i, 1); } }
+    { const drop = kind === 'visor' ? ['hairtop', 'fringe', 'ear'] : ['hat', 'lamp', 'crown', 'veil', 'miner', 'silas', 'elder'].includes(kind) ? ['hairtop'] : ['mask', 'voodoo', 'diver'].includes(kind) ? ['fringe'] : null; if (drop) { for (let i = m.boxes.length - 1; i >= 0; i--) if (m.boxes[i].tag && drop.includes(m.boxes[i].tag)) m.boxes.splice(i, 1); } }
     const brimHat = (c, band, crownH, crownR, brimR) => { setB(1); disc(0, 1.86, 0, brimR, 0.05, c); blob(-crownR, 1.86, -crownR, crownR, 1.86 + crownH, crownR, 0.55, c, { tap: [1, 0.85] }); if (band) ring(0, 1.93, 0, crownR + 0.01, crownR + 0.01, 0.025, band); setB(0); };
     if (kind === 'elder') {
       setB(1); disc(0, 1.86, 0, 0.5, 0.05, '#3b2a4a'); blob(-0.3, 1.86, -0.3, 0.3, 2.34, 0.3, 0.5, '#3b2a4a', { tap: [1, 0.72] }); ring(0, 1.96, 0, 0.31, 0.31, 0.03, '#e0b84a', { emis: true });

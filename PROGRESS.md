@@ -206,6 +206,8 @@ Scope (Alexander, 8 Nov evening): EVERYTHING visible goes to the same standard: 
 
 - 14 Nov: children. One plain villager in four is a child: slim build, entity scale 0.64, and KIN.childify(m, 1.32) enlarges everything on the head bones (hat included) after clothing. They talk like any villager for now. tools/test/t-child.js.
 
+- 14 Nov: children have their own lines (village.js CHILD_LINES, CHILD_LINES2, two per talk, fixed per child); the elder's tall hat no longer has hair clumps poking through.
+
 ## Still to do
 UI polish as feedback comes in. Card battle screen still used for scripted encounters (raids at the walls, thief, citadel duel, holds) and the snare mini-game; converting those to live is the next big step if wanted. (Old list: train/ships, combat animation, eggs, avatar hair/paint, buddy WEAR cosmetics, Silas and Finch, UI polish (item icons), quality toggles in settings (state.shadows, state.grassQuality, state.dprCap).
 

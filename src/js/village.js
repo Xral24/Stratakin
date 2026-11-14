@@ -1933,6 +1933,28 @@ const Village = (() => {
     if (!target || isFreed(target.id)) { target = fisher ? nearestUnfreed(fisher.x, fisher.z, true) : null; G.fisherTarget = target ? target.id : null; }
     return target;
   }
+  const CHILD_LINES = [
+    'Is that your Kin? Does it bite? Can I hold it? I will be careful.',
+    'I saw a wild one by the well this morning. It looked right at me and I did not even run.',
+    'When I am big I am going to have eight Kin. All of them the fast kind.',
+    'Mine is going to be a fire one. Ma says not in the house.',
+    'Do yours sleep? Where do they sleep? Do they dream?',
+    'My brother says the ones in the mines have no eyes. He has never been in the mines.',
+    'I found an egg once. It was a stone. I kept it anyway.',
+    'You smell like outside. Did you come a long way?',
+    'I am not allowed past the fence. I have been past the fence.',
+    'If you hold very still the little ones come up and look at you. I counted to forty once.',
+  ];
+  const CHILD_LINES2 = [
+    'Bring it back to show me when it gets big. Promise.',
+    'The elder says they choose you. I am waiting to be chosen. It is taking ages.',
+    'I know where the berries are. I am not telling. All right, by the old wall.',
+    'Do not tell anyone I said that.',
+    'I have to go. I am meant to be fetching water. That was a while ago.',
+    'Can it do a trick? Any trick. That was a good trick.',
+    'They say the Moon has Kin with lights on. I want one of those too.',
+    'You can have my lucky stone if you want. No, wait. I need it.',
+  ];
   function talk(n) {
     G.talkNpc = n; // the camera turns to whoever is speaking
     if (n.shop && active && active.R && fixShop(n)) return;
@@ -1941,6 +1963,8 @@ const Village = (() => {
     if (n.shop) { UI.openPanel('shop', shopDef(n.shop, active)); return; }
     if (n.role === 'voodoo') { UI.openPanel('shop', shopDef('voodoo', active)); return; }
     if (n.role === 'hermit') { talkHermit(n); return; }
+    if (n.child) { const day = Math.floor((G.world.day || 0)); const r = U.rng(U.combine(U.strHash((active ? active.id : 'v') + ':' + n.id), day)); /* children say what children say: what they saw, what they want, what they were told not to do */
+      Dialogue.show(n.name, [r.pick(CHILD_LINES), r.pick(CHILD_LINES2)]); return; }
     if (n.role === 'traveller') {
       const o = n.offer; const give = Object.keys(o.give).map(k => `${o.give[k]} ${ITEMS[k].name}`).join(' and '); const get = Object.keys(o.get).map(k => `${o.get[k] > 1 ? o.get[k] + ' ' : ''}${ITEMS[k].name}`).join(', ');
       Dialogue.show(n.name, [U.rng(U.combine(n.day, U.strHash(active.id))).pick(TRAVELLER_LINES), `I have ${get}. Yours for ${give}.`], () => UI.openPanel('shop', { title: 'Traveller', keeper: 'passing through', greet: `${get} for ${give}. Take it or leave it.`, stock: [{ barter: o.give, item: Object.keys(o.get)[0], n: o.get[Object.keys(o.get)[0]], traveller: n }] }));
