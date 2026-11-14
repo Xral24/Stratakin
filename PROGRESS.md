@@ -212,6 +212,8 @@ Scope (Alexander, 8 Nov evening): EVERYTHING visible goes to the same standard: 
 - Portraits step the camera back when the near end of a long body would be clipped.
 - Frame guard: if the phone stays slow at the lowest resolution, new Kin and trees are built with fewer facets (window.__lowGeo).
 
+- More native bodies: Moon now 24 lines (+ mooncalf, isopod, geode, dream sheep, fiddler crab, moon snail, moonbow, nightjar, firefly, tide drop, orbit urchin), Halo 28 (+ oryx, tortoise, walking dune, oil lamp, cactus, charmer's rope, ammonite, roadrunner, dragonfly, mirage, pearl clam, tadpole shrimp). A habitat now deals its lines out in turn (sp.natIdx) instead of by seed, so they spread evenly. About 125 line-and-element pairs per world, at most 5 species sharing one.
+
 ## Still to do
 UI polish as feedback comes in. Card battle screen still used for scripted encounters (raids at the walls, thief, citadel duel, holds) and the snare mini-game; converting those to live is the next big step if wanted. (Old list: train/ships, combat animation, eggs, avatar hair/paint, buddy WEAR cosmetics, Silas and Finch, UI polish (item icons), quality toggles in settings (state.shadows, state.grassQuality, state.dprCap).
 
