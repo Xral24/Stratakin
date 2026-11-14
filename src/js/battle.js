@@ -199,7 +199,7 @@ const Battle = (() => {
       return afterTurn();
     }
     if (action.type === 'swap') {
-      mine = action.kin; mine.buffs = buffs(); placeMine(); refresh(); log(`Go, ${KIN.name(mine)}!`, 'good'); await sleep(500);
+      mine = action.kin; mine.buffs = buffs(); placeMine(); if (mineE) arriveFx(mineE, KIN.dominant(mine.sp.elem, 1)[0]); refresh(); log(`Go, ${KIN.name(mine)}!`, 'good'); await sleep(500);
       await useMove(wild, mine, wildChoose(), false);
       return afterTurn();
     }
@@ -222,10 +222,10 @@ const Battle = (() => {
     // few seconds. A blow that finishes it outright from above that line staggers it instead, so the moment is never skipped
     if (!stunUsed && mine.hp > 0 && (wild.hp <= 0 || wild.hp <= strongestHit())) { stunUsed = true; if (wild.hp <= 0) wild.hp = 1; refresh(); return stunWindow(); }
     if (wild.hp <= 0) {
-      log(`${KIN.name(wild)} is defeated!`, 'good'); G.sfx('win'); await sleep(600); return end('won');
+      log(`${KIN.name(wild)} is defeated!`, 'good'); faintFx(wildE); G.sfx('win'); await sleep(600); return end('won');
     }
     if (mine.hp <= 0) {
-      log(`${KIN.name(mine)} is down!`, 'bad'); G.sfx('down'); await sleep(700);
+      log(`${KIN.name(mine)} is down!`, 'bad'); faintFx(mineE); G.sfx('down'); await sleep(700);
       const next = G.healthyKin();
       if (!next.length) { log('All your Kin are down…', 'bad'); await sleep(900); return end('lost'); }
       busy = false; showSwap(true); return;
@@ -285,7 +285,7 @@ const Battle = (() => {
     const what = !can ? rule.why : cc.hopeless ? `too strong to hold yet (Lv ${wild.level}; raise your trainer level)` : `${ITEMS[rule.list[0]].name} · about ${Math.max(1, Math.round(Math.min(1, cc.chance * (bossKin() ? 1 : 1.8)) * 100))}%${bossKin() ? ' · one chance' : ''}`;
     el.actions.innerHTML = `<button class="act snare stun" data-a="stunsnare" ${can && !cc.hopeless ? '' : 'disabled'}><b>Snare it!</b><small>${what} · <span id="stun-left">4</span>s</small><i class="stunbar"><i id="stun-fill"></i></i></button><button class="act" data-a="finish"><b>Finish it</b><small>win the fight</small></button>`;
     const fill = document.getElementById('stun-fill');
-    const done = (snare) => { if (!stunned) return; stunned = false; clearInterval(stunTimer); stunTimer = null; if (snare) { busy = false; beginSnare(); } else { wild.hp = 0; refresh(); log(`${KIN.name(wild)} is defeated!`, 'good'); G.sfx('win'); end('won'); } };
+    const done = (snare) => { if (!stunned) return; stunned = false; clearInterval(stunTimer); stunTimer = null; if (snare) { busy = false; beginSnare(); } else { wild.hp = 0; refresh(); log(`${KIN.name(wild)} is defeated!`, 'good'); faintFx(wildE); G.sfx('win'); end('won'); } };
     el.actions.querySelector('[data-a="stunsnare"]').addEventListener('click', () => done(true));
     el.actions.querySelector('[data-a="finish"]').addEventListener('click', () => done(false));
     stunTimer = setInterval(() => { left -= 0.1; if (fill) fill.style.width = Math.max(0, left / 4 * 100) + '%'; const s = document.getElementById('stun-left'); if (s) s.textContent = Math.max(0, Math.ceil(left)); if (left <= 0) done(false); }, 100);
@@ -359,7 +359,7 @@ const Battle = (() => {
     stunned = false; if (stunTimer) { clearInterval(stunTimer); stunTimer = null; }
     stealth = false;
     if (camState) { G.player.yaw = camState.yaw; G.player.pitch = Math.max(-0.3, Math.min(0.1, camState.pitch)); }
-    for (const L of lunges) { L.e.x = L.bx; L.e.z = L.bz; L.e.y = L.by; } lunges.length = 0; shakeT = 0;
+    for (const L of lunges) { L.e.x = L.bx; L.e.z = L.bz; L.e.y = L.by; } lunges.length = 0; for (const F of faints) { F.e.scale = F.s0; F.e._fainting = false; } faints.length = 0; shakeT = 0;
     active = false; busy = false; snareState = null; camState = null; fx.length = 0;
     el.root.classList.add('hidden'); el.root.classList.remove('snaring');
     if (mine && mine.equip && mine.equip.charm && ITEMS[mine.equip.charm] && ITEMS[mine.equip.charm].relic) Relics.wear(mine.equip.charm, 0.01);
@@ -372,6 +372,10 @@ const Battle = (() => {
   let shakeT = 0; const lunges = [];
   const rnd = (a) => (Math.random() - 0.5) * 2 * a, mixc = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
   const WHITE = [1, 1, 1], lerp3 = (a, b, u) => [a[0] + (b[0] - a[0]) * u, a[1] + (b[1] - a[1]) * u, a[2] + (b[2] - a[2]) * u];
+  /* a Kin that is beaten does not just vanish: it sinks and shrinks while light leaves it; one that is sent out arrives in a ring of its own colour */
+  const faints = [];
+  function faintFx(e) { if (!e || !e.model || e._fainting) return; e._fainting = true; faints.push({ e, t: 0, s0: e.scale || 1 }); const C = ctr(e, 0.5); burst(C, WHITE, 18, 1.6, 0, 'ball', 0.14); for (let i = 0; i < 14; i++) { const o = [rnd(0.6), 0, rnd(0.6)]; Pt(0.1 + Math.random() * 0.4, 0.9, i % 2 ? WHITE : [0.8, 0.9, 1], 'ball', (u) => [C[0] + o[0] * (1 - u * 0.5), C[1] - 0.3 + u * 2.6, C[2] + o[2] * (1 - u * 0.5), 0.12 * (1 - u), 0]); } }
+  function arriveFx(e, elem) { if (!e || !e.model) return; const col = U.hexToRgb(ELEM_COLOR[elem] || '#ffffff'), C = ctr(e, 0.1); ringOut(C, col, 16, 1.6, 0, 0.45, 0.16); ringOut([C[0], C[1] + 0.5, C[2]], WHITE, 12, 1.1, 0.08, 0.4, 0.12); for (let i = 0; i < 10; i++) { const a = i / 10 * 6.28; Pt(0, 0.5, i % 2 ? col : WHITE, 'ball', (u) => [C[0] + Math.cos(a + u * 4) * 0.8 * (1 - u), C[1] + u * 1.8, C[2] + Math.sin(a + u * 4) * 0.8 * (1 - u), 0.14 * (1 - u * 0.6), 0]); } }
   function Pt(delay, dur, col, shape, fn) { if (fx.length < 700) fx.push({ t: -delay, dur, col, shape, fn }); }
   function ctr(e, k) { return [e.x, e.y + (e.model.height || 1) * (e.model.scale || 1) * k, e.z]; }
   function burst(c, col, n, sp, delay, shape, size) { for (let i = 0; i < n; i++) { const v = [rnd(sp), Math.random() * sp * 1.2, rnd(sp)], sz = (size || 0.14) * (0.6 + Math.random() * 0.8), cc = Math.random() < 0.3 ? mixc(col, WHITE, 0.6) : col; Pt(delay, 0.4 + Math.random() * 0.25, cc, shape || 'cube', (u) => [c[0] + v[0] * u, c[1] + v[1] * u - 2.2 * u * u, c[2] + v[2] * u, sz * (1 - u), u * 9]); } }
@@ -493,6 +497,7 @@ const Battle = (() => {
   function tick(dt) {
     for (let i = fx.length - 1; i >= 0; i--) { const f = fx[i]; f.t += dt; if (f.t > f.dur) fx.splice(i, 1); }
     if (shakeT > 0) shakeT = Math.max(0, shakeT - dt);
+    for (let i = faints.length - 1; i >= 0; i--) { const F = faints[i]; F.t += dt; const u = Math.min(1, F.t / 0.7); F.e.scale = F.s0 * (1 - u * u * 0.85); if (u >= 1) faints.splice(i, 1); }
     for (let i = lunges.length - 1; i >= 0; i--) { const L = lunges[i]; L.t += dt; const u = Math.min(1, L.t / L.dur), q = u < 0.35 ? u / 0.35 : 1 - (u - 0.35) / 0.65, e2 = q * q * (3 - 2 * q); L.e.x = L.bx + L.dx * e2; L.e.z = L.bz + L.dz * e2; if (L.hop) L.e.y = L.by + L.hop * Math.sin(Math.min(1, u / 0.4) * Math.PI); if (u >= 1) { L.e.x = L.bx; L.e.z = L.bz; L.e.y = L.by; lunges.splice(i, 1); } }
     if (!active) return;
     if (mineE && mineE.hitT > 0) mineE.hitT -= dt;

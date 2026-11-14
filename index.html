@@ -7154,13 +7154,13 @@ const KIN = (() => {
           const look = (ex, ey, ez, er, o = {}) => LOOK(ex, ey, ez, er, o, true); const lookOld = (ex, ey, ez, er, o = {}) => { for (const sd of [-1, 1]) { ball(sd * ex, ey, ez, er, '#16121e', { n: 3 }); ball(sd * (ex + er * 0.5), ey - er * 0.08, ez + er * 0.2, er * 0.62, o.col || C.eye, { emis: !!o.glow, n: 3 });
             ball(sd * (ex + er * 0.78), ey - er * 0.06, ez + er * 0.25, er * 0.3, '#0a0810', { n: 2 }); ball(sd * (ex + er * 0.82), ey + er * 0.3, ez + er * 0.45, er * 0.28, '#ffffff', { emis: true, n: 2 });
             if (o.brow) blob(sd * ex - er * 0.6, ey + er * 0.8, ez - er * 1.1, sd * ex + er * 1.0, ey + er * 1.2, ez + er * 1.1, 0.5, o.brow, { n: 2 }); } };
-          const rgb = (h) => U.hexToRgb(h);
+          const rgb = (h) => U.hexToRgb(h); let lastFish = null;
           // the body: a tube from snout to tail with a fish's profile; w the half-width, h the half-height
           const fish = (o) => { const n = 12, L = o.L || 1.0, cy = o.cy || 0.5, pts = [], rr = []; const z0 = o.z0 == null ? L * 0.5 : o.z0;
             for (let i = 0; i <= n; i++) { const t = i / n, prof = o.prof ? o.prof(t) : Math.pow(Math.sin(Math.min(1, 0.12 + t * 0.95) * Math.PI), 0.7) * (1 - t * 0.55); pts.push([0, cy + (o.dip ? o.dip(t) : 0), z0 - t * L]); rr.push(i === 0 ? [0.0005, 0.0005] : [Math.max(0.01, (o.w || 0.16) * prof), Math.max(0.01, (o.h || 0.26) * prof)]); }
             const top = rgb(o.c || bd), bel = rgb(o.belly || bl);
             tube(pts, rr, o.c || bd, { cap0: 'none', cap1: 'round', segs: 10, emis: !!o.emis, shade: (p, nx, ny, nz, t) => { if (o.shade) { const c = o.shade(p, nx, ny, nz, t); if (c) return rgb(c); } return ny < -0.3 ? bel : top; } });
-            return { pts, rr, cy, L, z0, tail: pts[n], snout: pts[0], at: (t) => { const i = Math.round(t * n); return { p: pts[i], w: rr[i][0], h: rr[i][1] }; } }; };
+            return (lastFish = { pts, rr, cy, L, z0, tail: pts[n], snout: pts[0], at: (t) => { const i = Math.round(t * n); return { p: pts[i], w: rr[i][0], h: rr[i][1] }; } }); };
           const tailFin = (f, type, size, c, o = {}) => { const [x, y, z] = f.tail, S = size || 0.4; B(6, 'tailfin', [x, y, z + 0.04]);
             const pl = (pts) => plate(pts, 0.025, c || ac, { edge: o.edge, emis: !!o.emis });
             if (type === 'fork') pl([[0, y + 0.04, z + 0.06], [0, y + S * 0.9, z - S * 0.7], [0, y + S * 0.3, z - S * 0.45], [0, y, z - S * 0.3], [0, y - S * 0.3, z - S * 0.45], [0, y - S * 0.9, z - S * 0.7], [0, y - 0.04, z + 0.06]]);
@@ -7374,6 +7374,18 @@ const KIN = (() => {
           else if (P === 'moonfish') { const silver = '#d8dce4', red = '#e8503a'; const f = fish({ L: 1.0, cy: 0.7, w: 0.2, h: 0.5, c: silver, belly: silver, prof: (t) => Math.pow(Math.sin(Math.min(1, 0.12 + t * 0.95) * Math.PI), 0.4) * (1 - t * 0.6), shade: (p, nx, ny, nz, t) => (Math.sin(p[1] * 22) * Math.sin(p[2] * 22) > 0.85) ? '#fbfaf6' : null });
             eyesAt(f, 0.12, 0.07, { col: '#ffd25a' }); mouthAt(f, 0.03); dorsal(f, 0.2, 0.75, 0.42, red, { shape: (u) => u < 0.2 ? u / 0.2 : 1 - (u - 0.2) * 0.9 }); belowFin(f, 0.5, 0.8, 0.2, red); pects(f, 0.3, 0.26, red, { out: 0.6, down: 0 }); tailFin(f, 'lunate', 0.36, red);
             const a = f.at(0.42); const pts = []; for (let i = 0; i <= 10; i++) { const q = Math.PI * 0.2 + i / 10 * Math.PI * 1.2; pts.push([0, a.p[1] + Math.sin(q) * 0.22, a.p[2] + Math.cos(q) * 0.22]); } for (const sd of [-1, 1]) tube(pts.map(p => [sd * (a.w * 0.98), p[1], p[2]]), pts.map((_, i) => 0.012 + 0.03 * Math.sin(i / 10 * Math.PI)), '#fff3c0', { emis: true, cap0: 'round', cap1: 'round' }); }
+          /* the plain fish wear their element on their flanks and back: a shark that is only a shark gets surf breaking off its fin, a char gets rime, and so on */
+          if (lastFish && ['minnow', 'reefshark', 'megalodon', 'charfry', 'arcticchar', 'narwhal', 'neontetra', 'viperfish', 'butterflyfish'].includes(P)) { const f = lastFish, el = dominant(sp.elem || [], 1)[0] || 'Tide'; bone = 0;
+            for (let i = 0; i < 6; i++) { const t = 0.22 + i * 0.1, a = f.at(t), p = a.p, k = Math.max(0.05, a.h * 0.55), y = p[1] + a.h * 0.9, odd = i % 2;
+              if (el === 'Flame') cone([0, y, p[2]], [0, 1, -0.5], k * (1.6 + odd), k * 0.4, odd ? '#ffd25a' : '#ff7a2a', { emis: true });
+              else if (el === 'Tide') { for (const sd of [-1, 1]) { curl([sd * a.w * 0.95, p[1] + a.h * 0.2, p[2]], [sd * 0.6, 0.6, -0.6], k * 1.8, k * 0.28, '#eaf8ff', [sd * -0.6, 0.6, -0.6]); if (odd) ball(sd * (a.w + k * 1.3), p[1] + a.h * 0.8, p[2] - k, k * 0.28, '#bfe8ff', { emis: true }); } } /* curls of surf peel off its sides */
+              else if (el === 'Bloom') { plate([[0, y - k * 0.2, p[2] + k * 0.5], [0, y + k * 1.6, p[2] - k * 0.3], [0, y - k * 0.2, p[2] - k * 0.9]], 0.014, odd ? '#7ad04a' : '#4a9a3a'); if (odd) ball(0, y + k * 1.5, p[2] - k * 0.3, k * 0.4, '#ff9ac8'); }
+              else if (el === 'Stone') blob(-k * 0.8, y - k * 0.5, p[2] - k * 0.7, k * 0.8, y + k * (0.5 + odd * 0.5), p[2] + k * 0.7, 0.25, odd ? '#8a8078' : '#a89a8a', { n: 2 });
+              else if (el === 'Gale') for (const sd of [-1, 1]) ball(sd * (a.w + k * 0.4), p[1] + a.h * 0.5, p[2], k * 0.7, '#ffffff');
+              else if (el === 'Frost') cone([0, y, p[2]], [(odd ? 0.3 : -0.3), 1, -0.4], k * (1.8 + odd * 0.8), k * 0.4, '#8fe6ff', { emis: true });
+              else if (el === 'Spark') plate([[0, y - k * 0.2, p[2] + k * 0.3], [k * 0.5, y + k * 0.9, p[2]], [-k * 0.1, y + k * 0.8, p[2]], [k * 0.5, y + k * (1.9 + odd * 0.6), p[2] - k * 0.4], [-k * 0.5, y + k * 0.7, p[2] - k * 0.2], [k * 0.05, y + k * 0.8, p[2] - k * 0.2]], 0.014, '#ffe65a', { emis: true });
+              else if (el === 'Void') curl([0, y, p[2]], [(odd ? 0.5 : -0.5), 1, -0.4], k * 2.2, k * 0.3, '#a65cff', [(odd ? -0.8 : 0.8), 0.2, -0.4], { emis: true });
+              else if (el === 'Light') { if (odd) hring(0, y + k * 1.1, p[2], k * 0.8, k * 0.12, '#ffe9a0', { emis: true }); else ball(0, y + k * 0.3, p[2], k * 0.35, '#fff6c8', { emis: true }); } } }
           break;
         }
         hover = 0.15; sway = { amp: 0.05 * s, freq: 4 / s, speed: 7, from: 0.35 * s };
@@ -11039,7 +11051,7 @@ const Battle = (() => {
       return afterTurn();
     }
     if (action.type === 'swap') {
-      mine = action.kin; mine.buffs = buffs(); placeMine(); refresh(); log(`Go, ${KIN.name(mine)}!`, 'good'); await sleep(500);
+      mine = action.kin; mine.buffs = buffs(); placeMine(); if (mineE) arriveFx(mineE, KIN.dominant(mine.sp.elem, 1)[0]); refresh(); log(`Go, ${KIN.name(mine)}!`, 'good'); await sleep(500);
       await useMove(wild, mine, wildChoose(), false);
       return afterTurn();
     }
@@ -11062,10 +11074,10 @@ const Battle = (() => {
     // few seconds. A blow that finishes it outright from above that line staggers it instead, so the moment is never skipped
     if (!stunUsed && mine.hp > 0 && (wild.hp <= 0 || wild.hp <= strongestHit())) { stunUsed = true; if (wild.hp <= 0) wild.hp = 1; refresh(); return stunWindow(); }
     if (wild.hp <= 0) {
-      log(`${KIN.name(wild)} is defeated!`, 'good'); G.sfx('win'); await sleep(600); return end('won');
+      log(`${KIN.name(wild)} is defeated!`, 'good'); faintFx(wildE); G.sfx('win'); await sleep(600); return end('won');
     }
     if (mine.hp <= 0) {
-      log(`${KIN.name(mine)} is down!`, 'bad'); G.sfx('down'); await sleep(700);
+      log(`${KIN.name(mine)} is down!`, 'bad'); faintFx(mineE); G.sfx('down'); await sleep(700);
       const next = G.healthyKin();
       if (!next.length) { log('All your Kin are down…', 'bad'); await sleep(900); return end('lost'); }
       busy = false; showSwap(true); return;
@@ -11125,7 +11137,7 @@ const Battle = (() => {
     const what = !can ? rule.why : cc.hopeless ? `too strong to hold yet (Lv ${wild.level}; raise your trainer level)` : `${ITEMS[rule.list[0]].name} · about ${Math.max(1, Math.round(Math.min(1, cc.chance * (bossKin() ? 1 : 1.8)) * 100))}%${bossKin() ? ' · one chance' : ''}`;
     el.actions.innerHTML = `<button class="act snare stun" data-a="stunsnare" ${can && !cc.hopeless ? '' : 'disabled'}><b>Snare it!</b><small>${what} · <span id="stun-left">4</span>s</small><i class="stunbar"><i id="stun-fill"></i></i></button><button class="act" data-a="finish"><b>Finish it</b><small>win the fight</small></button>`;
     const fill = document.getElementById('stun-fill');
-    const done = (snare) => { if (!stunned) return; stunned = false; clearInterval(stunTimer); stunTimer = null; if (snare) { busy = false; beginSnare(); } else { wild.hp = 0; refresh(); log(`${KIN.name(wild)} is defeated!`, 'good'); G.sfx('win'); end('won'); } };
+    const done = (snare) => { if (!stunned) return; stunned = false; clearInterval(stunTimer); stunTimer = null; if (snare) { busy = false; beginSnare(); } else { wild.hp = 0; refresh(); log(`${KIN.name(wild)} is defeated!`, 'good'); faintFx(wildE); G.sfx('win'); end('won'); } };
     el.actions.querySelector('[data-a="stunsnare"]').addEventListener('click', () => done(true));
     el.actions.querySelector('[data-a="finish"]').addEventListener('click', () => done(false));
     stunTimer = setInterval(() => { left -= 0.1; if (fill) fill.style.width = Math.max(0, left / 4 * 100) + '%'; const s = document.getElementById('stun-left'); if (s) s.textContent = Math.max(0, Math.ceil(left)); if (left <= 0) done(false); }, 100);
@@ -11199,7 +11211,7 @@ const Battle = (() => {
     stunned = false; if (stunTimer) { clearInterval(stunTimer); stunTimer = null; }
     stealth = false;
     if (camState) { G.player.yaw = camState.yaw; G.player.pitch = Math.max(-0.3, Math.min(0.1, camState.pitch)); }
-    for (const L of lunges) { L.e.x = L.bx; L.e.z = L.bz; L.e.y = L.by; } lunges.length = 0; shakeT = 0;
+    for (const L of lunges) { L.e.x = L.bx; L.e.z = L.bz; L.e.y = L.by; } lunges.length = 0; for (const F of faints) { F.e.scale = F.s0; F.e._fainting = false; } faints.length = 0; shakeT = 0;
     active = false; busy = false; snareState = null; camState = null; fx.length = 0;
     el.root.classList.add('hidden'); el.root.classList.remove('snaring');
     if (mine && mine.equip && mine.equip.charm && ITEMS[mine.equip.charm] && ITEMS[mine.equip.charm].relic) Relics.wear(mine.equip.charm, 0.01);
@@ -11212,6 +11224,10 @@ const Battle = (() => {
   let shakeT = 0; const lunges = [];
   const rnd = (a) => (Math.random() - 0.5) * 2 * a, mixc = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
   const WHITE = [1, 1, 1], lerp3 = (a, b, u) => [a[0] + (b[0] - a[0]) * u, a[1] + (b[1] - a[1]) * u, a[2] + (b[2] - a[2]) * u];
+  /* a Kin that is beaten does not just vanish: it sinks and shrinks while light leaves it; one that is sent out arrives in a ring of its own colour */
+  const faints = [];
+  function faintFx(e) { if (!e || !e.model || e._fainting) return; e._fainting = true; faints.push({ e, t: 0, s0: e.scale || 1 }); const C = ctr(e, 0.5); burst(C, WHITE, 18, 1.6, 0, 'ball', 0.14); for (let i = 0; i < 14; i++) { const o = [rnd(0.6), 0, rnd(0.6)]; Pt(0.1 + Math.random() * 0.4, 0.9, i % 2 ? WHITE : [0.8, 0.9, 1], 'ball', (u) => [C[0] + o[0] * (1 - u * 0.5), C[1] - 0.3 + u * 2.6, C[2] + o[2] * (1 - u * 0.5), 0.12 * (1 - u), 0]); } }
+  function arriveFx(e, elem) { if (!e || !e.model) return; const col = U.hexToRgb(ELEM_COLOR[elem] || '#ffffff'), C = ctr(e, 0.1); ringOut(C, col, 16, 1.6, 0, 0.45, 0.16); ringOut([C[0], C[1] + 0.5, C[2]], WHITE, 12, 1.1, 0.08, 0.4, 0.12); for (let i = 0; i < 10; i++) { const a = i / 10 * 6.28; Pt(0, 0.5, i % 2 ? col : WHITE, 'ball', (u) => [C[0] + Math.cos(a + u * 4) * 0.8 * (1 - u), C[1] + u * 1.8, C[2] + Math.sin(a + u * 4) * 0.8 * (1 - u), 0.14 * (1 - u * 0.6), 0]); } }
   function Pt(delay, dur, col, shape, fn) { if (fx.length < 700) fx.push({ t: -delay, dur, col, shape, fn }); }
   function ctr(e, k) { return [e.x, e.y + (e.model.height || 1) * (e.model.scale || 1) * k, e.z]; }
   function burst(c, col, n, sp, delay, shape, size) { for (let i = 0; i < n; i++) { const v = [rnd(sp), Math.random() * sp * 1.2, rnd(sp)], sz = (size || 0.14) * (0.6 + Math.random() * 0.8), cc = Math.random() < 0.3 ? mixc(col, WHITE, 0.6) : col; Pt(delay, 0.4 + Math.random() * 0.25, cc, shape || 'cube', (u) => [c[0] + v[0] * u, c[1] + v[1] * u - 2.2 * u * u, c[2] + v[2] * u, sz * (1 - u), u * 9]); } }
@@ -11333,6 +11349,7 @@ const Battle = (() => {
   function tick(dt) {
     for (let i = fx.length - 1; i >= 0; i--) { const f = fx[i]; f.t += dt; if (f.t > f.dur) fx.splice(i, 1); }
     if (shakeT > 0) shakeT = Math.max(0, shakeT - dt);
+    for (let i = faints.length - 1; i >= 0; i--) { const F = faints[i]; F.t += dt; const u = Math.min(1, F.t / 0.7); F.e.scale = F.s0 * (1 - u * u * 0.85); if (u >= 1) faints.splice(i, 1); }
     for (let i = lunges.length - 1; i >= 0; i--) { const L = lunges[i]; L.t += dt; const u = Math.min(1, L.t / L.dur), q = u < 0.35 ? u / 0.35 : 1 - (u - 0.35) / 0.65, e2 = q * q * (3 - 2 * q); L.e.x = L.bx + L.dx * e2; L.e.z = L.bz + L.dz * e2; if (L.hop) L.e.y = L.by + L.hop * Math.sin(Math.min(1, u / 0.4) * Math.PI); if (u >= 1) { L.e.x = L.bx; L.e.z = L.bz; L.e.y = L.by; lunges.splice(i, 1); } }
     if (!active) return;
     if (mineE && mineE.hitT > 0) mineE.hitT -= dt;

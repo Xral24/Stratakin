@@ -2625,13 +2625,13 @@ const KIN = (() => {
           const look = (ex, ey, ez, er, o = {}) => LOOK(ex, ey, ez, er, o, true); const lookOld = (ex, ey, ez, er, o = {}) => { for (const sd of [-1, 1]) { ball(sd * ex, ey, ez, er, '#16121e', { n: 3 }); ball(sd * (ex + er * 0.5), ey - er * 0.08, ez + er * 0.2, er * 0.62, o.col || C.eye, { emis: !!o.glow, n: 3 });
             ball(sd * (ex + er * 0.78), ey - er * 0.06, ez + er * 0.25, er * 0.3, '#0a0810', { n: 2 }); ball(sd * (ex + er * 0.82), ey + er * 0.3, ez + er * 0.45, er * 0.28, '#ffffff', { emis: true, n: 2 });
             if (o.brow) blob(sd * ex - er * 0.6, ey + er * 0.8, ez - er * 1.1, sd * ex + er * 1.0, ey + er * 1.2, ez + er * 1.1, 0.5, o.brow, { n: 2 }); } };
-          const rgb = (h) => U.hexToRgb(h);
+          const rgb = (h) => U.hexToRgb(h); let lastFish = null;
           // the body: a tube from snout to tail with a fish's profile; w the half-width, h the half-height
           const fish = (o) => { const n = 12, L = o.L || 1.0, cy = o.cy || 0.5, pts = [], rr = []; const z0 = o.z0 == null ? L * 0.5 : o.z0;
             for (let i = 0; i <= n; i++) { const t = i / n, prof = o.prof ? o.prof(t) : Math.pow(Math.sin(Math.min(1, 0.12 + t * 0.95) * Math.PI), 0.7) * (1 - t * 0.55); pts.push([0, cy + (o.dip ? o.dip(t) : 0), z0 - t * L]); rr.push(i === 0 ? [0.0005, 0.0005] : [Math.max(0.01, (o.w || 0.16) * prof), Math.max(0.01, (o.h || 0.26) * prof)]); }
             const top = rgb(o.c || bd), bel = rgb(o.belly || bl);
             tube(pts, rr, o.c || bd, { cap0: 'none', cap1: 'round', segs: 10, emis: !!o.emis, shade: (p, nx, ny, nz, t) => { if (o.shade) { const c = o.shade(p, nx, ny, nz, t); if (c) return rgb(c); } return ny < -0.3 ? bel : top; } });
-            return { pts, rr, cy, L, z0, tail: pts[n], snout: pts[0], at: (t) => { const i = Math.round(t * n); return { p: pts[i], w: rr[i][0], h: rr[i][1] }; } }; };
+            return (lastFish = { pts, rr, cy, L, z0, tail: pts[n], snout: pts[0], at: (t) => { const i = Math.round(t * n); return { p: pts[i], w: rr[i][0], h: rr[i][1] }; } }); };
           const tailFin = (f, type, size, c, o = {}) => { const [x, y, z] = f.tail, S = size || 0.4; B(6, 'tailfin', [x, y, z + 0.04]);
             const pl = (pts) => plate(pts, 0.025, c || ac, { edge: o.edge, emis: !!o.emis });
             if (type === 'fork') pl([[0, y + 0.04, z + 0.06], [0, y + S * 0.9, z - S * 0.7], [0, y + S * 0.3, z - S * 0.45], [0, y, z - S * 0.3], [0, y - S * 0.3, z - S * 0.45], [0, y - S * 0.9, z - S * 0.7], [0, y - 0.04, z + 0.06]]);
@@ -2845,6 +2845,18 @@ const KIN = (() => {
           else if (P === 'moonfish') { const silver = '#d8dce4', red = '#e8503a'; const f = fish({ L: 1.0, cy: 0.7, w: 0.2, h: 0.5, c: silver, belly: silver, prof: (t) => Math.pow(Math.sin(Math.min(1, 0.12 + t * 0.95) * Math.PI), 0.4) * (1 - t * 0.6), shade: (p, nx, ny, nz, t) => (Math.sin(p[1] * 22) * Math.sin(p[2] * 22) > 0.85) ? '#fbfaf6' : null });
             eyesAt(f, 0.12, 0.07, { col: '#ffd25a' }); mouthAt(f, 0.03); dorsal(f, 0.2, 0.75, 0.42, red, { shape: (u) => u < 0.2 ? u / 0.2 : 1 - (u - 0.2) * 0.9 }); belowFin(f, 0.5, 0.8, 0.2, red); pects(f, 0.3, 0.26, red, { out: 0.6, down: 0 }); tailFin(f, 'lunate', 0.36, red);
             const a = f.at(0.42); const pts = []; for (let i = 0; i <= 10; i++) { const q = Math.PI * 0.2 + i / 10 * Math.PI * 1.2; pts.push([0, a.p[1] + Math.sin(q) * 0.22, a.p[2] + Math.cos(q) * 0.22]); } for (const sd of [-1, 1]) tube(pts.map(p => [sd * (a.w * 0.98), p[1], p[2]]), pts.map((_, i) => 0.012 + 0.03 * Math.sin(i / 10 * Math.PI)), '#fff3c0', { emis: true, cap0: 'round', cap1: 'round' }); }
+          /* the plain fish wear their element on their flanks and back: a shark that is only a shark gets surf breaking off its fin, a char gets rime, and so on */
+          if (lastFish && ['minnow', 'reefshark', 'megalodon', 'charfry', 'arcticchar', 'narwhal', 'neontetra', 'viperfish', 'butterflyfish'].includes(P)) { const f = lastFish, el = dominant(sp.elem || [], 1)[0] || 'Tide'; bone = 0;
+            for (let i = 0; i < 6; i++) { const t = 0.22 + i * 0.1, a = f.at(t), p = a.p, k = Math.max(0.05, a.h * 0.55), y = p[1] + a.h * 0.9, odd = i % 2;
+              if (el === 'Flame') cone([0, y, p[2]], [0, 1, -0.5], k * (1.6 + odd), k * 0.4, odd ? '#ffd25a' : '#ff7a2a', { emis: true });
+              else if (el === 'Tide') { for (const sd of [-1, 1]) { curl([sd * a.w * 0.95, p[1] + a.h * 0.2, p[2]], [sd * 0.6, 0.6, -0.6], k * 1.8, k * 0.28, '#eaf8ff', [sd * -0.6, 0.6, -0.6]); if (odd) ball(sd * (a.w + k * 1.3), p[1] + a.h * 0.8, p[2] - k, k * 0.28, '#bfe8ff', { emis: true }); } } /* curls of surf peel off its sides */
+              else if (el === 'Bloom') { plate([[0, y - k * 0.2, p[2] + k * 0.5], [0, y + k * 1.6, p[2] - k * 0.3], [0, y - k * 0.2, p[2] - k * 0.9]], 0.014, odd ? '#7ad04a' : '#4a9a3a'); if (odd) ball(0, y + k * 1.5, p[2] - k * 0.3, k * 0.4, '#ff9ac8'); }
+              else if (el === 'Stone') blob(-k * 0.8, y - k * 0.5, p[2] - k * 0.7, k * 0.8, y + k * (0.5 + odd * 0.5), p[2] + k * 0.7, 0.25, odd ? '#8a8078' : '#a89a8a', { n: 2 });
+              else if (el === 'Gale') for (const sd of [-1, 1]) ball(sd * (a.w + k * 0.4), p[1] + a.h * 0.5, p[2], k * 0.7, '#ffffff');
+              else if (el === 'Frost') cone([0, y, p[2]], [(odd ? 0.3 : -0.3), 1, -0.4], k * (1.8 + odd * 0.8), k * 0.4, '#8fe6ff', { emis: true });
+              else if (el === 'Spark') plate([[0, y - k * 0.2, p[2] + k * 0.3], [k * 0.5, y + k * 0.9, p[2]], [-k * 0.1, y + k * 0.8, p[2]], [k * 0.5, y + k * (1.9 + odd * 0.6), p[2] - k * 0.4], [-k * 0.5, y + k * 0.7, p[2] - k * 0.2], [k * 0.05, y + k * 0.8, p[2] - k * 0.2]], 0.014, '#ffe65a', { emis: true });
+              else if (el === 'Void') curl([0, y, p[2]], [(odd ? 0.5 : -0.5), 1, -0.4], k * 2.2, k * 0.3, '#a65cff', [(odd ? -0.8 : 0.8), 0.2, -0.4], { emis: true });
+              else if (el === 'Light') { if (odd) hring(0, y + k * 1.1, p[2], k * 0.8, k * 0.12, '#ffe9a0', { emis: true }); else ball(0, y + k * 0.3, p[2], k * 0.35, '#fff6c8', { emis: true }); } } }
           break;
         }
         hover = 0.15; sway = { amp: 0.05 * s, freq: 4 / s, speed: 7, from: 0.35 * s };

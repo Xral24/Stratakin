@@ -60,3 +60,12 @@ New games now default to one shared world, seed "Stratakin" (an empty World box 
 
 ## Update, 14 November: the visual jobs have had a first pass
 Jobs 1 to 4 are done once each (see the last entries in PROGRESS.md): reef villages, four city quarters, the fortresses dressed, the mine dressed, and the railway levelled. Known gaps: sea-village roofs are straight tents because roof blocks only slope at 45 degrees; Stormspire cannot have a tall spire unless the island is lowered (world height 104, its floor at 94); the four quarter landmarks, the Citadel's great tower and the mine's drifts were verified by block checks, not by good screenshots, because fog and tight spaces defeat the headless camera. Alexander has not yet reviewed any of these in play.
+
+
+## Update, 14 November (later): where things stand after the long session
+
+Done today, all shipped: painted cel shader and one shared eye (LOOK) for every Kin; supersampled portraits; limbs by kind (quadruped LEGK, biped BLK, bird BLEG, wing shapes WINGK); crafted names for every form (KNAMES); movesets from pools with 27 techniques and five ailments; 27 attack animations plus faint and arrival; the folk redesigned (fin ears, gem pupil, cheek bands, builds, hair variants) with headgear and paint refitted; keyframed weapon swings, leaping somersault, shield guard and SHIELD button; Kin wear fitted to torsos, long bodies and headless bodies; element growths on plain serpents, fish and bipeds.
+
+Not yet reviewed in play by Alexander: almost all of the above beyond the still pictures. He asked for work to continue without waiting for approval.
+
+Open: children and elder bodies; mantis nymph and a few other plain forms; mountain accessories; damage/ailment balance; frame rate on the phone with the rounder meshes and 2.25 resolution cap; water riding seen only from underwater; legendaries, steeds and duplicate-line species still on old names.
