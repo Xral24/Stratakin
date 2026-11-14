@@ -76,6 +76,7 @@ G.newWorld = function (seed, starterIdx, name) {
     this.stats.recipes = { earth: [0, 1], moon: [0], halo: [0] };
     const starter = KIN.create(KIN.starters(seed)[starterIdx], 5);
     this.kin.push(starter);
+    if (typeof window !== 'undefined' && window.__pickBuild && window.__pickBuild !== 'man') { this.stats.look = Object.assign(this.stats.look || {}, { build: window.__pickBuild }); } /* the body you chose on the way in */
     p.add('torch', 2); p.add('snare', 1); p.add('bread', 1);
     this.start();
     UI.toast(`Welcome to Stratakin. ${KIN.name(starter)} is with you.`, 'good');

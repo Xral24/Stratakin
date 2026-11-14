@@ -53,6 +53,7 @@ const Avatar = (() => {
   function model(s) {
     const L = look(); const sp = species(s); sp.colors = Object.assign({}, sp.colors); if (L.tone) sp.colors.belly = L.tone; if (L.outfit) sp.colors.body = L.outfit; if (L.trim) sp.colors.accent = L.trim;
     const styled = L.hair && HAIR[L.hair] && !s.deco.some(d => d === 'crown' || d === 'visor' || d === 'hat');
+    if (L.build) sp.build = L.build;
     if (styled) sp.bald = true; else if (L.hairCol) sp.hair = L.hairCol;
     const m = KIN.model(sp, 2); for (const d of s.deco) KIN.decorate(m, d);
     const H = KIN.partHelpers(m); H.bone = 1;

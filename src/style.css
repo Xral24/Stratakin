@@ -450,3 +450,5 @@ body.desktop #joy, body.desktop #btn-jump, body.desktop #btn-sneak { display: no
 @keyframes dmgpop{0%{transform:translateY(8px) scale(.5);opacity:0}18%{transform:translateY(-10px) scale(1.25);opacity:1}100%{transform:translateY(-44px) scale(1);opacity:0}}
 
 .ailtag{position:absolute;left:8px;bottom:-9px;font-size:10px;font-weight:800;color:#14101c;padding:1px 7px;border-radius:8px;z-index:4;box-shadow:0 1px 0 rgba(0,0,0,.4)}
+select { font-family: var(--font); font-size: 14px; padding: 9px 11px; border-radius: 10px; border: 1px solid rgba(255,255,255,.22); background: rgba(0,0,0,.3); color: var(--ui); }
+#start select { background: rgba(255,255,255,.7); border-color: rgba(60,40,10,.18); color: #2b2216; }
