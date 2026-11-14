@@ -252,6 +252,8 @@ Scope (Alexander, 8 Nov evening): EVERYTHING visible goes to the same standard: 
 
 - 14 Nov, soul pass 4, the village green (layout(), villages and towns, not cities): the four pockets between the square and the first lots hold a great old tree (NE), a windmill (NW: 3x3 plaster tower, tiled cap, new block 106 SAILS drawn against the wall behind it), a fenced kitchen garden (SE) and a woodyard (SW); flowers and ferns in the grass band.
 
+- 14 Nov, soul pass 5, crags (world.js colInfo, Earth, land above the shore and below the mountains): in about four of ten 44-block cells a table of rock 3-6 high and 2.6-6 across stands out of the land, grass on its flat top, a rim of bare and mossy stone, often a lower shelf round it. colInfo returns crag and cragRim; a crag column is stone right under its turf. Cells are worked out on wrapped coordinates so the land is the same either side of the world seam. Test photo: tools/test/t-crag.js. Still to do in this pass: streams and waterfalls, tile eaves checked up close in a town, Moon and Halo land and buildings.
+
 ## Still to do
 UI polish as feedback comes in. Card battle screen still used for scripted encounters (raids at the walls, thief, citadel duel, holds) and the snare mini-game; converting those to live is the next big step if wanted. (Old list: train/ships, combat animation, eggs, avatar hair/paint, buddy WEAR cosmetics, Silas and Finch, UI polish (item icons), quality toggles in settings (state.shadows, state.grassQuality, state.dprCap).
 

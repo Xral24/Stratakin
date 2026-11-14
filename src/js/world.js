@@ -240,12 +240,20 @@ class World {
     let h = 40 + (cont - 0.5) * 48 + (hills - 0.5) * 16;
     let mountain = 0;
     if (cont > 0.64) { mountain = (cont - 0.64) * 160; h += mountain; }
+    let crag = 0, cragRim = false;
     if (this.preset.id === 'earth') { /* Earth's land has shape: mountains break into ridges, uplands step down in shelves, the desert stands up in buttes, and parts of the coast are cliff */
       if (mountain > 0) { const rg = 1 - Math.abs(U.fbm2(x, z, 90, 3, s + 43, P) - 0.5) * 2; h += (rg - 0.55) * Math.min(1, mountain / 10) * 16; }
       const tm = U.vnoise2(x, z, 140, P, s + 45);
       if (tm > 0.6 && h > SEA + 5) { const k = Math.min(1, (tm - 0.6) / 0.08), step = 5, f = (h / step) % 1, e = Math.max(0, (f - 0.7) / 0.3), hq = Math.floor(h / step) * step + step * e * e * (3 - 2 * e); h += (hq - h) * k; }
       if (temp > 0.62 && moist < 0.47 && h > SEA + 3) { const mm = U.vnoise2(x, z, 110, P, s + 47); if (mm > 0.68) h += Math.min(1, (mm - 0.68) / 0.025) * 8; }
       if (h >= SEA + 1 && h <= SEA + 7) { const cf = U.vnoise2(x, z, 120, P, s + 49); if (cf > 0.62) h += Math.min(1, (cf - 0.62) / 0.05) * 5; }
+      if (h > SEA + 3 && mountain <= 8) { /* crags: here and there a table of bare rock stands out of the meadow with grass on its flat top, often with a lower shelf round it */
+        const CW = 44, xm = U.mod(x, WORLD_W), zm = U.mod(z, WORLD_W), cxi = Math.floor(xm / CW), czi = Math.floor(zm / CW);
+        for (let a = -1; a <= 1 && !crag; a++) for (let b = -1; b <= 1; b++) { const ci = cxi + a, cj = czi + b; const k0 = U.hash3(ci, 31, cj, s + 961); if (k0 > 0.42) continue;
+          const px = (ci + 0.2 + 0.6 * U.hash3(ci, 32, cj, s + 962)) * CW, pz = (cj + 0.2 + 0.6 * U.hash3(ci, 33, cj, s + 963)) * CW; const dd = Math.hypot(xm - px, zm - pz); if (dd > 12) continue;
+          const k1 = U.hash3(ci, 34, cj, s + 964); const rr = (2.6 + k1 * 3.4) * (0.78 + 0.5 * U.vnoise2(x, z, 5, P, s + 965)); const hh = 3 + Math.floor(U.hash3(ci, 35, cj, s + 966) * 4);
+          if (dd < rr) { crag = hh; cragRim = dd > rr - 1.4; } else if (k1 < 0.6 && dd < rr * 1.7 + 1) { crag = Math.max(1, hh >> 1); cragRim = true; } if (crag) break; }
+        h += crag; }
     }
     if (this.preset.craters) {
       // bowls punched into the highlands
@@ -296,7 +304,7 @@ class World {
       if (h >= SEA + 1) { const dn = U.vnoise2(x, z, 9, P, s + 81) * 0.7 + U.vnoise2(x, z, 4, P, s + 83) * 0.3; if (dn > 0.6) h += 1; }
     }
     const sky = U.fbm2(x + 777, z - 777, 128, 2, s + 59, P);
-    return { h, biome, temp, moist, sky, beach };
+    return { h, biome, temp, moist, sky, beach, crag, cragRim };
   }
   grassTint(biome, temp, moist) {
     switch (biome) {
@@ -447,6 +455,7 @@ class World {
           if (depth === 0) b = biome === BIOME.DUNES ? B.DUNE : biome === BIOME.FLATS ? (U.hash3(x, 9, z, s + 619) < 0.12 ? B.SULFUR : B.SALTCRUST) : (h > 68 && U.hash3(x, 9, z, s + 621) < 0.2 ? B.BASALT : B.STONE);
           else if (depth < 4) b = biome === BIOME.DUNES ? B.DUNE : biome === BIOME.MESA ? B.STONE : B.DIRT;
         }
+        else if (info.crag && (depth > 0 || info.cragRim)) b = (depth === 0 && U.hash3(x, 36, z, s + 967) < 0.35) ? B.MOSS : B.STONE; /* a crag is rock right up to its turf */
         else if (info.lost) { if (depth === 0) b = B.GRASS; else if (depth < 3) b = B.DIRT; }
         else if (depth === 0) {
           if (biome === BIOME.SNOW) b = B.SNOW;
