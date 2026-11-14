@@ -183,6 +183,13 @@
   const Anim = (() => {
     const mats = new Float32Array(160), sway = new Float32Array(4); const legAt = []; const CROUCH = 0.85; // how far the thighs come forward in a full crouch
     // bone i: rotate (rx about x, ry about y, rz about z) around piv, then move by (tx,ty,tz); optional scale sy
+    const ATK = {
+      slash: { main: [[0, 0, 0, 0], [0.3, -2.75, -0.35, 0.55], [0.55, -0.85, 0.95, 0.05], [0.72, -0.45, 1.05, 0.05], [1, 0, 0, 0]], off: [[0, 0, 0, 0], [0.3, -0.5, 0, 0.5], [0.6, 0.35, 0, 0.55], [1, 0, 0, 0]] }, /* down from the shoulder and across */
+      slashB: { main: [[0, 0, 0, 0], [0.3, -1.45, 1.25, 0], [0.55, -1.35, -0.75, 0.85], [0.72, -1.15, -0.95, 0.9], [1, 0, 0, 0]], off: [[0, 0, 0, 0], [0.3, 0.3, 0, 0.4], [0.6, -0.4, 0, 0.5], [1, 0, 0, 0]] }, /* the backhand: from the far hip out and up */
+      chop: { main: [[0, 0, 0, 0], [0.4, -3.05, 0.25, 0.05], [0.62, -0.75, 0.3, 0], [0.8, -0.6, 0.3, 0], [1, 0, 0, 0]], off: [[0, 0, 0, 0], [0.4, -2.95, 0.3, 0.05], [0.62, -0.8, 0.35, 0], [0.8, -0.65, 0.35, 0], [1, 0, 0, 0]] }, /* both hands over the head and down */
+      thrust: { main: [[0, 0, 0, 0], [0.32, 0.75, 0, 0.25], [0.55, -1.55, 0.15, 0], [0.72, -1.5, 0.15, 0], [1, 0, 0, 0]], off: [[0, 0, 0, 0], [0.32, -1.1, 0.3, 0], [0.55, -0.4, 0, 0.3], [1, 0, 0, 0]] }, /* drawn back past the hip, then straight out */
+      jab: { main: [[0, 0, 0, 0], [0.25, 0.4, 0, 0.2], [0.5, -1.5, 0.2, 0], [1, 0, 0, 0]], off: [[0, 0, 0, 0], [0.5, -0.5, 0, 0.3], [1, 0, 0, 0]] },
+    };
     function set(i, piv, rx, ry, rz, tx, ty, tz, sx, sy, sz) {
       const cx = Math.cos(rx), sxx = Math.sin(rx), cy = Math.cos(ry), syy = Math.sin(ry), cz = Math.cos(rz), szz = Math.sin(rz);
       // R = Ry * Rx * Rz (column-major)
@@ -230,8 +237,17 @@
             const flex = 0.45 * mv * (1 - air) * Math.max(0, Math.sin(ph + phs + 1.9)); // the knee gives a little on each stride
             const ang = L.ang + 1.25 * sit + 2 * CROUCH * cr + flex;
             const K = L.ky, ck = L.crossK || 0; const sa = ang * (1 - ck) + -1.45 * ck, sy = -L.side * 1.95 * ck; set(i, b.piv, sa, sy, L.rz, -lt * K[0], L.ty + lt - lt * K[1], -lt * K[2]); break; }
-          case 'arm': { const sw = Math.sin(ph + phs + Math.PI); const amp = (b.amp || 0.4) * mv; const atk = a.attack || 0; const sit = a.sit || 0; const blk = a.block || 0; const shieldArm = (b.side || 0) > 0; // blocking: the left arm (+x: the figure faces +z) comes up square in front with the shield, the right stays low and a little out
-            const rx = (-sw * amp - atk * 1.9 + idle * Math.sin(t * 1.3 + seed + phs) * 0.03) * (1 - sit) - 0.55 * sit - (shieldArm ? blk * 1.0 : 0); set(i, b.piv, rx, shieldArm ? blk * 0.5 : 0, (b.side || 0) * (0.08 + air * 1.1 + blk * (shieldArm ? 0.1 : 0.4)), 0, bob, 0); break; }
+          case 'arm': { const sw = Math.sin(ph + phs + Math.PI); const amp = (b.amp || 0.4) * mv; const atk = a.attack || 0; const sit = a.sit || 0; const blk = a.block || 0; const shieldArm = (b.side || 0) > 0; const side = b.side || 0;
+            /* a swing is a movement with a beginning, a blow and an end, and each weapon has its own. The weapon is in the right hand (side < 0); the left balances it, joins it on a two-handed chop, or holds the shield.
+               Keys are [time, lift (negative raises the arm forward and up), turn across the body, spread away from the body]. */
+            let ax = 0, ay = 0, az = 0, used = false;
+            if (a.atkKind && a.atkU != null && a.atkU < 1) { used = true; const u = a.atkU; const K = ATK[a.atkKind + (a.atkKind === 'slash' && (a.atkN & 1) ? 'B' : '')] || ATK.slash; const keys = shieldArm ? K.off : K.main;
+              let k0 = keys[0], k1 = keys[keys.length - 1]; for (let q = 0; q < keys.length - 1; q++) if (u >= keys[q][0] && u <= keys[q + 1][0]) { k0 = keys[q]; k1 = keys[q + 1]; break; }
+              const f0 = (u - k0[0]) / Math.max(1e-4, k1[0] - k0[0]), f = f0 * f0 * (3 - 2 * f0); ax = k0[1] + (k1[1] - k0[1]) * f; ay = k0[2] + (k1[2] - k0[2]) * f; az = k0[3] + (k1[3] - k0[3]) * f; }
+            else if (atk) { ax = shieldArm ? -atk * 0.3 : -atk * 1.9; az = shieldArm ? 0.2 * atk : 0; } /* others who fight: the weapon arm strikes, the other only stirs */
+            const guard = blk * (1 - (used ? 0.6 : 0)); /* behind the shield: the left forearm comes up and across so the shield covers the chest and chin, the weapon hand drops back, ready */
+            const rx = (-sw * amp * (used ? 0.3 : 1) + ax + idle * Math.sin(t * 1.3 + seed + phs) * 0.03) * (1 - sit) - 0.55 * sit - (shieldArm ? guard * 0.8 : -guard * 0.35 * (1 - (used ? 1 : 0)));
+            set(i, b.piv, rx, (shieldArm ? -guard * 0.3 : 0) - side * ay, side * (0.08 + air * 1.1 + az + guard * (shieldArm ? -0.32 : 0.45)), 0, bob, 0); break; }
           case 'head': { const look = a.look || 0; set(i, b.piv, Math.sin(ph * 2) * 0.05 * mv + idle * Math.sin(t * 0.9 + seed) * 0.03 + (a.nod || 0), idle * Math.sin(t * 0.55 + seed * 2) * 0.16 + look, 0, 0, bob, 0); break; }
           case 'tail': { const sw = Math.sin(ph + 1.1) * 0.25 * mv + Math.sin(t * 1.6 + seed) * (0.09 + 0.1 * idle); set(i, b.piv, Math.sin(t * 1.1 + seed) * 0.04, sw * (b.amp || 1), 0, 0, bob, 0); break; }
           case 'tailfin': { const sw = Math.sin(t * (5 + 3 * mv) + seed) * (0.3 + 0.2 * mv); set(i, b.piv, 0, sw, 0, 0, bob, 0); break; }
@@ -246,13 +262,16 @@
         }
       }
       // leaning into a hill: everything above the hips tips forward together, round the hips, while the legs keep to the ground
-      const HL = a.hlean || 0;
+      const HL = (a.hlean || 0) + (a.atkLean || 0);
       if (HL && m.kind === 'human') {
         const leg = bones.find(b => b && b.kind === 'leg'); const hy = leg ? leg.piv[1] : 0.62; const c = Math.cos(HL), sn = Math.sin(HL);
         for (let i = 0; i < bones.length; i++) { const b = bones[i]; if (!b || b.kind === 'leg' || b.kind === 'shin') continue; const o = i * 16;
           for (const k of [o, o + 4, o + 8]) { const y = mats[k + 1], z = mats[k + 2]; mats[k + 1] = c * y - sn * z; mats[k + 2] = sn * y + c * z; }
           const y = mats[o + 13] - hy, z = mats[o + 14]; mats[o + 13] = c * y - sn * z + hy; mats[o + 14] = sn * y + c * z; }
       }
+      if (a.flip && m.kind === 'human') { /* a leaping strike: the whole figure turns head over heels about its middle */
+        const hy = 0.95, c = Math.cos(a.flip), sn = Math.sin(a.flip);
+        for (let i = 0; i < 10; i++) { const o = i * 16; for (const k of [o, o + 4, o + 8]) { const y = mats[k + 1], z = mats[k + 2]; mats[k + 1] = c * y - sn * z; mats[k + 2] = sn * y + c * z; } const y = mats[o + 13] - hy, z = mats[o + 14]; mats[o + 13] = c * y - sn * z + hy; mats[o + 14] = sn * y + c * z; } }
       if (m.sway) { const S = m.sway; sway[0] = S.amp * (0.45 + 0.55 * Math.max(mv, swim, air)); sway[1] = S.freq; sway[2] = t * S.speed + seed; sway[3] = S.from; } // all in the model's own units: the shader sways aPos before uModel
       else { sway[0] = 0; sway[1] = 0; sway[2] = 0; sway[3] = 0; }
       return { mats, sway };

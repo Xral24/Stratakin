@@ -3487,6 +3487,13 @@ const R = (() => {
   const Anim = (() => {
     const mats = new Float32Array(160), sway = new Float32Array(4); const legAt = []; const CROUCH = 0.85; // how far the thighs come forward in a full crouch
     // bone i: rotate (rx about x, ry about y, rz about z) around piv, then move by (tx,ty,tz); optional scale sy
+    const ATK = {
+      slash: { main: [[0, 0, 0, 0], [0.3, -2.75, -0.35, 0.55], [0.55, -0.85, 0.95, 0.05], [0.72, -0.45, 1.05, 0.05], [1, 0, 0, 0]], off: [[0, 0, 0, 0], [0.3, -0.5, 0, 0.5], [0.6, 0.35, 0, 0.55], [1, 0, 0, 0]] }, /* down from the shoulder and across */
+      slashB: { main: [[0, 0, 0, 0], [0.3, -1.45, 1.25, 0], [0.55, -1.35, -0.75, 0.85], [0.72, -1.15, -0.95, 0.9], [1, 0, 0, 0]], off: [[0, 0, 0, 0], [0.3, 0.3, 0, 0.4], [0.6, -0.4, 0, 0.5], [1, 0, 0, 0]] }, /* the backhand: from the far hip out and up */
+      chop: { main: [[0, 0, 0, 0], [0.4, -3.05, 0.25, 0.05], [0.62, -0.75, 0.3, 0], [0.8, -0.6, 0.3, 0], [1, 0, 0, 0]], off: [[0, 0, 0, 0], [0.4, -2.95, 0.3, 0.05], [0.62, -0.8, 0.35, 0], [0.8, -0.65, 0.35, 0], [1, 0, 0, 0]] }, /* both hands over the head and down */
+      thrust: { main: [[0, 0, 0, 0], [0.32, 0.75, 0, 0.25], [0.55, -1.55, 0.15, 0], [0.72, -1.5, 0.15, 0], [1, 0, 0, 0]], off: [[0, 0, 0, 0], [0.32, -1.1, 0.3, 0], [0.55, -0.4, 0, 0.3], [1, 0, 0, 0]] }, /* drawn back past the hip, then straight out */
+      jab: { main: [[0, 0, 0, 0], [0.25, 0.4, 0, 0.2], [0.5, -1.5, 0.2, 0], [1, 0, 0, 0]], off: [[0, 0, 0, 0], [0.5, -0.5, 0, 0.3], [1, 0, 0, 0]] },
+    };
     function set(i, piv, rx, ry, rz, tx, ty, tz, sx, sy, sz) {
       const cx = Math.cos(rx), sxx = Math.sin(rx), cy = Math.cos(ry), syy = Math.sin(ry), cz = Math.cos(rz), szz = Math.sin(rz);
       // R = Ry * Rx * Rz (column-major)
@@ -3534,8 +3541,17 @@ const R = (() => {
             const flex = 0.45 * mv * (1 - air) * Math.max(0, Math.sin(ph + phs + 1.9)); // the knee gives a little on each stride
             const ang = L.ang + 1.25 * sit + 2 * CROUCH * cr + flex;
             const K = L.ky, ck = L.crossK || 0; const sa = ang * (1 - ck) + -1.45 * ck, sy = -L.side * 1.95 * ck; set(i, b.piv, sa, sy, L.rz, -lt * K[0], L.ty + lt - lt * K[1], -lt * K[2]); break; }
-          case 'arm': { const sw = Math.sin(ph + phs + Math.PI); const amp = (b.amp || 0.4) * mv; const atk = a.attack || 0; const sit = a.sit || 0; const blk = a.block || 0; const shieldArm = (b.side || 0) > 0; // blocking: the left arm (+x: the figure faces +z) comes up square in front with the shield, the right stays low and a little out
-            const rx = (-sw * amp - atk * 1.9 + idle * Math.sin(t * 1.3 + seed + phs) * 0.03) * (1 - sit) - 0.55 * sit - (shieldArm ? blk * 1.0 : 0); set(i, b.piv, rx, shieldArm ? blk * 0.5 : 0, (b.side || 0) * (0.08 + air * 1.1 + blk * (shieldArm ? 0.1 : 0.4)), 0, bob, 0); break; }
+          case 'arm': { const sw = Math.sin(ph + phs + Math.PI); const amp = (b.amp || 0.4) * mv; const atk = a.attack || 0; const sit = a.sit || 0; const blk = a.block || 0; const shieldArm = (b.side || 0) > 0; const side = b.side || 0;
+            /* a swing is a movement with a beginning, a blow and an end, and each weapon has its own. The weapon is in the right hand (side < 0); the left balances it, joins it on a two-handed chop, or holds the shield.
+               Keys are [time, lift (negative raises the arm forward and up), turn across the body, spread away from the body]. */
+            let ax = 0, ay = 0, az = 0, used = false;
+            if (a.atkKind && a.atkU != null && a.atkU < 1) { used = true; const u = a.atkU; const K = ATK[a.atkKind + (a.atkKind === 'slash' && (a.atkN & 1) ? 'B' : '')] || ATK.slash; const keys = shieldArm ? K.off : K.main;
+              let k0 = keys[0], k1 = keys[keys.length - 1]; for (let q = 0; q < keys.length - 1; q++) if (u >= keys[q][0] && u <= keys[q + 1][0]) { k0 = keys[q]; k1 = keys[q + 1]; break; }
+              const f0 = (u - k0[0]) / Math.max(1e-4, k1[0] - k0[0]), f = f0 * f0 * (3 - 2 * f0); ax = k0[1] + (k1[1] - k0[1]) * f; ay = k0[2] + (k1[2] - k0[2]) * f; az = k0[3] + (k1[3] - k0[3]) * f; }
+            else if (atk) { ax = shieldArm ? -atk * 0.3 : -atk * 1.9; az = shieldArm ? 0.2 * atk : 0; } /* others who fight: the weapon arm strikes, the other only stirs */
+            const guard = blk * (1 - (used ? 0.6 : 0)); /* behind the shield: the left forearm comes up and across so the shield covers the chest and chin, the weapon hand drops back, ready */
+            const rx = (-sw * amp * (used ? 0.3 : 1) + ax + idle * Math.sin(t * 1.3 + seed + phs) * 0.03) * (1 - sit) - 0.55 * sit - (shieldArm ? guard * 0.8 : -guard * 0.35 * (1 - (used ? 1 : 0)));
+            set(i, b.piv, rx, (shieldArm ? -guard * 0.3 : 0) - side * ay, side * (0.08 + air * 1.1 + az + guard * (shieldArm ? -0.32 : 0.45)), 0, bob, 0); break; }
           case 'head': { const look = a.look || 0; set(i, b.piv, Math.sin(ph * 2) * 0.05 * mv + idle * Math.sin(t * 0.9 + seed) * 0.03 + (a.nod || 0), idle * Math.sin(t * 0.55 + seed * 2) * 0.16 + look, 0, 0, bob, 0); break; }
           case 'tail': { const sw = Math.sin(ph + 1.1) * 0.25 * mv + Math.sin(t * 1.6 + seed) * (0.09 + 0.1 * idle); set(i, b.piv, Math.sin(t * 1.1 + seed) * 0.04, sw * (b.amp || 1), 0, 0, bob, 0); break; }
           case 'tailfin': { const sw = Math.sin(t * (5 + 3 * mv) + seed) * (0.3 + 0.2 * mv); set(i, b.piv, 0, sw, 0, 0, bob, 0); break; }
@@ -3550,13 +3566,16 @@ const R = (() => {
         }
       }
       // leaning into a hill: everything above the hips tips forward together, round the hips, while the legs keep to the ground
-      const HL = a.hlean || 0;
+      const HL = (a.hlean || 0) + (a.atkLean || 0);
       if (HL && m.kind === 'human') {
         const leg = bones.find(b => b && b.kind === 'leg'); const hy = leg ? leg.piv[1] : 0.62; const c = Math.cos(HL), sn = Math.sin(HL);
         for (let i = 0; i < bones.length; i++) { const b = bones[i]; if (!b || b.kind === 'leg' || b.kind === 'shin') continue; const o = i * 16;
           for (const k of [o, o + 4, o + 8]) { const y = mats[k + 1], z = mats[k + 2]; mats[k + 1] = c * y - sn * z; mats[k + 2] = sn * y + c * z; }
           const y = mats[o + 13] - hy, z = mats[o + 14]; mats[o + 13] = c * y - sn * z + hy; mats[o + 14] = sn * y + c * z; }
       }
+      if (a.flip && m.kind === 'human') { /* a leaping strike: the whole figure turns head over heels about its middle */
+        const hy = 0.95, c = Math.cos(a.flip), sn = Math.sin(a.flip);
+        for (let i = 0; i < 10; i++) { const o = i * 16; for (const k of [o, o + 4, o + 8]) { const y = mats[k + 1], z = mats[k + 2]; mats[k + 1] = c * y - sn * z; mats[k + 2] = sn * y + c * z; } const y = mats[o + 13] - hy, z = mats[o + 14]; mats[o + 13] = c * y - sn * z + hy; mats[o + 14] = sn * y + c * z; } }
       if (m.sway) { const S = m.sway; sway[0] = S.amp * (0.45 + 0.55 * Math.max(mv, swim, air)); sway[1] = S.freq; sway[2] = t * S.speed + seed; sway[3] = S.from; } // all in the model's own units: the shader sways aPos before uModel
       else { sway[0] = 0; sway[1] = 0; sway[2] = 0; sway[3] = 0; }
       return { mats, sway };
@@ -7400,15 +7419,15 @@ const KIN = (() => {
         B(1, 'head', [0, 1.3, 0]);
         blob(-0.27, 1.28, -0.28, 0.27, 1.88, 0.28, 0.92, skin, { n: 5, tap: [0.82, 1.0] }); // the head: a soft chin, a wide crown
         if (!sp.bald) { blob(-0.29, 1.56, -0.31, 0.29, 1.92, 0.19, 0.9, hair, { n: 4, tap: [0.98, 0.92] });
-          for (const [x, w, c, ln] of [[-0.19, 0.075, hair, -0.03], [-0.07, 0.07, hair, -0.02], [0.03, 0.06, glowc, 0.03], [0.14, 0.08, hair, 0.05], [0.22, 0.05, hair, 0.03]]) plate([[x - w, 1.83, 0.185], [x + w, 1.83, 0.185], [x + ln, 1.71, 0.272]], 0.03, c, c === glowc ? { emis: true } : undefined); /* a fringe of pointed clumps, one of them bright */
-          for (const [x, z, dx, dz, l] of [[-0.14, -0.1, -0.5, -0.5, 0.2], [0.14, -0.1, 0.5, -0.5, 0.2], [0, -0.2, 0, -1, 0.24], [0, 0.02, 0.15, -0.2, 0.16]]) cone([x, 1.84, z], [dx, 0.8, dz], l, 0.085, hair, { segs: 6 }); } /* clumps swept back off the crown */
+          { const t0 = parts.length; for (const [x, w, c, ln] of [[-0.19, 0.075, hair, -0.03], [-0.07, 0.07, hair, -0.02], [0.03, 0.06, glowc, 0.03], [0.14, 0.08, hair, 0.05], [0.22, 0.05, hair, 0.03]]) plate([[x - w, 1.83, 0.185], [x + w, 1.83, 0.185], [x + ln, 1.71, 0.272]], 0.03, c, c === glowc ? { emis: true } : undefined); for (let i = t0; i < parts.length; i++) parts[i].tag = 'fringe'; } /* a fringe of pointed clumps, one of them bright */
+          { const t0 = parts.length; for (const [x, z, dx, dz, l] of [[-0.14, -0.1, -0.5, -0.5, 0.2], [0.14, -0.1, 0.5, -0.5, 0.2], [0, -0.2, 0, -1, 0.24], [0, 0.02, 0.15, -0.2, 0.16]]) cone([x, 1.84, z], [dx, 0.8, dz], l, 0.085, hair, { segs: 6 }); for (let i = t0; i < parts.length; i++) parts[i].tag = 'hairtop'; } } /* clumps swept back off the crown */
         LOOK(0.1, 1.57, 0.19, 0.068, { col: C.eye === '#222222' ? null : C.eye, pupil: 'diamond' });
         for (const sd of [-1, 1]) { tube([[sd * 0.035, 1.692, 0.268], [sd * 0.11, 1.708, 0.255], [sd * 0.185, 1.685, 0.22]], [0.008, 0.013, 0.005], hair, { cap0: 'round', cap1: 'round', segs: 5 }); /* a brow with a lift to it */
           for (const [y, w, z] of [[1.455, 0.036, 0.18], [1.42, 0.024, 0.178]]) blob(sd * 0.15 - w, y - 0.013, z, sd * 0.15 + w, y + 0.013, z + 0.022, 0.9, glowc, { emis: true, n: 2 }); } /* two bands of light under each eye, like strata in a cliff */
         ball(0, 1.475, 0.268, 0.024, skin2, { n: 2 }); // a small nose
         tube([[-0.05, 1.402, 0.245], [0, 1.385, 0.262], [0.05, 1.402, 0.245]], [0.008, 0.012, 0.008], hexMix(skin, '#5a1a1a', 0.6), { cap0: 'round', cap1: 'round', segs: 5 });
         for (const sd of [-1, 1]) { B(sd < 0 ? 7 : 8, 'ear', [sd * 0.27, 1.6, 0], { side: sd, phase: sd });
-          for (let i = 0; i < 3; i++) { const k2 = 1 - i * 0.24, y = 1.69 - i * 0.085; plate([[sd * 0.245, y + 0.035, 0.05], [sd * (0.3 + 0.13 * k2), y + 0.07, -0.01], [sd * (0.29 + 0.2 * k2), y + 0.05, -0.1 - 0.08 * k2], [sd * (0.27 + 0.08 * k2), y - 0.02, -0.12 * k2 - 0.02], [sd * 0.25, y - 0.035, -0.02]], 0.028, skin, { edge: i === 0 ? glowc : skin2 }); } } /* three fins, each smaller than the one above */
+          for (let i = 0; i < 3; i++) { const k2 = 1 - i * 0.24, y = 1.69 - i * 0.085; const t0 = parts.length; plate([[sd * 0.245, y + 0.035, 0.05], [sd * (0.3 + 0.13 * k2), y + 0.07, -0.01], [sd * (0.29 + 0.2 * k2), y + 0.05, -0.1 - 0.08 * k2], [sd * (0.27 + 0.08 * k2), y - 0.02, -0.12 * k2 - 0.02], [sd * 0.25, y - 0.035, -0.02]], 0.028, skin, { edge: i === 0 ? glowc : skin2 }); for (let q = t0; q < parts.length; q++) parts[q].tag = 'ear'; } } /* three fins, each smaller than the one above */
         B(1, 'head', [0, 1.3, 0]); bone = 0;
         for (const sd of [-1, 1]) { B(sd < 0 ? 2 : 3, 'arm', [sd * 0.34, 1.18, 0], { phase: sd < 0 ? 0 : Math.PI, side: sd });
           ball(sd * 0.335, 1.2, 0, 0.125, cloth, { n: 3 }); hring(sd * 0.36, 1.1, 0, 0.1, 0.014, trim); /* a round shoulder with a band of trim */
@@ -7619,7 +7638,7 @@ const KIN = (() => {
     if (!bones[0]) bones[0] = { kind: 'body', piv: [0, 0, 0], runPitch: sp.shape === 'raptor' ? 0.08 : 0 };
     const height = Math.max(...parts.map(b => b.y + b.h));
     const radius = Math.max(...parts.map(b => Math.max(Math.abs(b.x), Math.abs(b.x + b.w), Math.abs(b.z), Math.abs(b.z + b.d))));
-    return { boxes: parts, scale: s, hover, height, radius, bones, legLen: legLen * SY, kind, flyer, sway };
+    return { boxes: parts, scale: s, hover, height, radius, bones, legLen: legLen * SY, kind, flyer, sway, shape };
   }
   // A Kin turned into an object: material comes from the items, glow from anything burning. The Kin's level makes it bigger and brighter.
   const MATERIALS = [
@@ -7673,7 +7692,7 @@ const KIN = (() => {
     H.ring = (cx, cy, cz, hx, hz, th, c, o, ax) => { const pts = []; for (let i = 0; i <= 14; i++) { const a = i / 14 * Math.PI * 2; pts.push(ax === 'z' ? [cx + Math.cos(a) * hx, cy + Math.sin(a) * hz, cz] : [cx + Math.cos(a) * hx, cy, cz + Math.sin(a) * hz]); } H.tube(pts, pts.map(() => th), c, Object.assign({ cap0: 'none', cap1: 'none', segs: 6 }, o || {})); };
     H.cone = (b, dir, len, r, c, o) => { const l = Math.hypot(dir[0], dir[1], dir[2]) || 1; const u = [dir[0] / l, dir[1] / l, dir[2] / l]; H.tube([b, [b[0] + u[0] * len * 0.5, b[1] + u[1] * len * 0.5, b[2] + u[2] * len * 0.5], [b[0] + u[0] * len, b[1] + u[1] * len, b[2] + u[2] * len]], [r, r * 0.55, 0.0005], c, Object.assign({ cap0: 'flat', cap1: 'none', segs: 6 }, o || {})); };
     H.disc = (x, y, z, r, th, c, o) => H.blob(x - r, y - th / 2, z - r, x + r, y + th / 2, z + r, 1, c, Object.assign({ n: 4 }, o || {}));
-    H.faceZ = (x, y) => 0.28 * Math.sqrt(Math.max(0, 1 - (x / 0.27) ** 2 - ((y - 1.58) / 0.3) ** 2)); // the folk face is an ellipsoid: where its surface is at (x, y)
+    H.faceZ = (x, y) => 0.28 * Math.sqrt(Math.max(0, 1 - (x / 0.27) ** 2 - ((y - 1.58) / 0.3) ** 2)) + 0.03; // the folk face is an ellipsoid: where its surface is at (x, y)
     H.ribbon = (spine, widths, c, o) => { const pp = spine.map(S3); const xs = pp.map(p => p[0]), ys = pp.map(p => p[1]), zs = pp.map(p => p[2]); const mw = Math.max(...widths) * s; P.push({ k: 'ribbon', spine: pp, widths: widths.map(w => w * s), x: Math.min(...xs) - mw, y: Math.min(...ys) - mw, z: Math.min(...zs) - mw, w: Math.max(...xs) - Math.min(...xs) + 2 * mw, h: Math.max(...ys) - Math.min(...ys) + 2 * mw, d: Math.max(...zs) - Math.min(...zs) + 2 * mw, c, emis: !!(o && o.emis), o, bone: H.bone }); };
     H.feather = (x, y, z, len, c, lean) => H.plate([[x, y, z], [x + 0.03 + lean * 0.3, y + len * 0.5, z - 0.02], [x + lean * 0.5, y + len, z - 0.06], [x - 0.03 + lean * 0.5, y + len * 0.5, z - 0.02]], 0.02, c);
     H.done = () => { m.height = Math.max(m.height, ...m.boxes.map(b => b.y + b.h)); return m; };
@@ -7684,6 +7703,8 @@ const KIN = (() => {
   function decorate(m, kind) {
     const H = partHelpers(m); const { box, blob, ball, tube, plate, ring, cone, disc, faceZ, feather } = H;
     const setB = (b) => { H.bone = b; };
+    /* headgear and the folk's own head: a helmet hides the ears and all the hair, a hat or crown sits where the swept clumps were, a mask lies where the fringe was */
+    { const drop = kind === 'visor' ? ['hairtop', 'fringe', 'ear'] : ['hat', 'lamp', 'crown', 'veil', 'miner', 'silas'].includes(kind) ? ['hairtop'] : ['mask', 'voodoo', 'diver'].includes(kind) ? ['fringe'] : null; if (drop) { for (let i = m.boxes.length - 1; i >= 0; i--) if (m.boxes[i].tag && drop.includes(m.boxes[i].tag)) m.boxes.splice(i, 1); } }
     const brimHat = (c, band, crownH, crownR, brimR) => { setB(1); disc(0, 1.86, 0, brimR, 0.05, c); blob(-crownR, 1.86, -crownR, crownR, 1.86 + crownH, crownR, 0.55, c, { tap: [1, 0.85] }); if (band) ring(0, 1.93, 0, crownR + 0.01, crownR + 0.01, 0.025, band); setB(0); };
     if (kind === 'elder') {
       setB(1); disc(0, 1.86, 0, 0.5, 0.05, '#3b2a4a'); blob(-0.3, 1.86, -0.3, 0.3, 2.34, 0.3, 0.5, '#3b2a4a', { tap: [1, 0.72] }); ring(0, 1.96, 0, 0.31, 0.31, 0.03, '#e0b84a', { emis: true });
@@ -7775,7 +7796,9 @@ const KIN = (() => {
   function landmarks(m) {
     const bb = (pred) => { let x0 = 1e9, y0 = 1e9, z0 = 1e9, x1 = -1e9, y1 = -1e9, z1 = -1e9, n = 0; for (const b of m.boxes) { if (!pred(b)) continue; n++; x0 = Math.min(x0, b.x); y0 = Math.min(y0, b.y); z0 = Math.min(z0, b.z); x1 = Math.max(x1, b.x + b.w); y1 = Math.max(y1, b.y + b.h); z1 = Math.max(z1, b.z + b.d); } return n ? { x0, y0, z0, x1, y1, z1, cx: (x0 + x1) / 2, cy: (y0 + y1) / 2, cz: (z0 + z1) / 2, w: x1 - x0, h: y1 - y0, d: z1 - z0 } : null; };
     const headIdx = m.bones.findIndex(b => b && b.kind === 'head');
-    const body = bb(b => (b.bone || 0) === 0) || bb(() => true); let head = headIdx > 0 ? bb(b => b.bone === headIdx) : null;
+    let body = bb(b => (b.bone || 0) === 0) || bb(() => true); let head = headIdx > 0 ? bb(b => b.bone === headIdx) : null;
+    /* what clothes hang on is the torso, not the box round every spine, tail and peak: the biggest rounded piece of the body, if it has one */
+    { let big = null; for (const b of m.boxes) if ((b.bone || 0) === 0 && b.k === 'blob' && b.w && b.h && b.d && (!big || b.w * b.h * b.d > big.w * big.h * big.d)) big = b; if (big && big.w * big.h * big.d > body.w * body.h * body.d * 0.12) body = { x0: big.x, y0: big.y, z0: big.z, x1: big.x + big.w, y1: big.y + big.h, z1: big.z + big.d, cx: big.x + big.w / 2, cy: big.y + big.h / 2, cz: big.z + big.d / 2, w: big.w, h: big.h, d: big.d, torso: true }; }
     if (!head || head.w < 0.08) { // no head of its own: the top of the body's main mass stands in for it (horns and spines do not count)
       const bp = m.boxes.filter(b => (b.bone || 0) === 0); const big = Math.max(...bp.map(b => b.w * b.d)); let t = body.y1; { let tt = -1e9; for (const b of bp) if (b.w * b.d >= big * 0.3) tt = Math.max(tt, b.y + b.h); if (tt > -1e8) t = tt; }
       head = { x0: body.cx - body.w * 0.3, x1: body.cx + body.w * 0.3, y0: t - body.h * 0.35, y1: t, z0: body.cz, z1: body.z1, cx: body.cx, cy: t - body.h * 0.17, cz: body.cz + body.d * 0.25, w: body.w * 0.6, h: body.h * 0.35, d: body.d * 0.5, bone: 0, fake: true }; } else head.bone = headIdx;
@@ -7784,16 +7807,29 @@ const KIN = (() => {
     const hr = Math.max(0.08, Math.max(head.w, head.d) / 2); // the head's radius
     const neck = head.fake ? { x: body.cx, y: body.y1 - body.h * 0.3, z: body.cz + body.d * 0.1 } : { x: head.cx, y: Math.max(head.y0, body.y1 - 0.08), z: head.cz - head.d * 0.15 }; // where a collar sits
     const nr = head.fake ? Math.max(body.w, body.d) * 0.42 : Math.max(0.08, Math.min(hr * 0.95, Math.max(body.w, body.d) * 0.45)); // and how wide
-    return { body, head, hr, neck, nr };
+    const long = m.shape === 'fish' || m.shape === 'serpent' || (body.d > body.h * 1.7 && body.d > body.w * 1.7); /* a fish, an eel, a millipede: things go round it, not down it */
+    return { body, head, hr, neck, nr: head.fake && long ? Math.min(nr, Math.max(body.w, body.h) * 0.55) : nr, long };
   }
   function dress(m, wear) {
     if (!wear || !wear.item || wear.item === 'none') return m;
-    const L = landmarks(m); const { body, head, hr, neck, nr } = L; const col = wear.col || '#c94c4c'; const dark = U.rgbToHex(U.hexToRgb(col).map(c => c * 0.6)); // parts carry hex colours
+    const L = landmarks(m); const { body, head, hr, neck, nr, long } = L; const col = wear.col || '#c94c4c'; const dark = U.rgbToHex(U.hexToRgb(col).map(c => c * 0.6)); // parts carry hex colours
     const gold = '#ffd14d', green = '#4d853d', red = '#c73833', blue = '#4d75cc';
     const H = partHelpers({ scale: 1, boxes: m.boxes, height: m.height }); const { blob, ball, tube, plate, ring, cone, disc, ribbon } = H;
     const discZ = (x, y, z, r, th, c, o) => blob(x - r, y - r, z - th / 2, x + r, y + r, z + th / 2, 1, c, Object.assign({ n: 4 }, o || {})); // a disc standing up, facing forward (a badge on the chest)
     const onHead = () => { H.bone = head.bone; }, onBody = () => { H.bone = 0; };
     const top = head.y1 + 0.005, front = body.z1;
+    if (long && ['scarf', 'coat', 'collar', 'sash', 'medal'].includes(wear.item)) { /* on a long body these become bands round it, a third of the way back from the nose */
+      onBody(); const zc = head.fake ? body.cz - body.d * 0.05 : Math.min(neck.z - nr * 0.9, body.z1 - body.d * 0.25); let rx = (head.fake ? body.w : Math.min(body.w, hr * 2.2)) * 0.52, ry = (head.fake ? body.h : Math.min(body.h, hr * 2.2)) * 0.52, cy = head.fake ? body.cy : neck.y - ry * 0.3, cx = body.cx;
+      { let best = 0; for (const b of m.boxes) { if ((b.bone || 0) !== 0) continue; /* the body's own section where the band goes: the fattest piece of it that passes that point */
+          if (b.k === 'tube' && b.path) { let bi = 0, bd = 1e9; b.path.forEach((q, i) => { const dd = Math.abs(q[2] - zc); if (dd < bd) { bd = dd; bi = i; } }); const r0 = b.radii[bi], r = Array.isArray(r0) ? Math.max(r0[0], r0[1]) : r0; if (bd < 0.25 && r > best) { best = r; cx = b.path[bi][0]; cy = b.path[bi][1]; rx = Array.isArray(r0) ? r0[0] : r0; ry = Array.isArray(r0) ? r0[1] : r0; } }
+          else if (b.k === 'blob' && b.w && zc > b.z && zc < b.z + b.d) { const q = (zc - b.z - b.d / 2) / (b.d / 2), f = Math.sqrt(Math.max(0.05, 1 - q * q)), r = Math.max(b.w, b.h) / 2 * f; if (r > best) { best = r; cx = b.x + b.w / 2; cy = b.y + b.h / 2; rx = b.w / 2 * f; ry = b.h / 2 * f; } } } }
+      const band = (z, th, c) => ring(cx, cy, z, rx + th * 0.4, ry + th * 0.4, th, c, null, 'z');
+      if (wear.item === 'scarf') { band(zc, nr * 0.2 + 0.02, col); ribbon([[cx + rx * 0.4, cy + ry, zc], [cx + rx * 0.7, cy + ry * 0.9, zc - 0.18], [cx + rx * 0.8, cy + ry * 0.5, zc - 0.34]], [0.07, 0.075, 0.06], col, { droop: 0.3 }); }
+      else if (wear.item === 'coat') { for (let i = 0; i < 4; i++) band(zc - i * 0.075, 0.045, i % 3 === 0 ? dark : col); ball(cx, cy + ry + 0.03, zc + 0.05, 0.03, gold); }
+      else if (wear.item === 'collar') { band(zc, 0.03, col); ball(cx, cy - ry - 0.03, zc, 0.04, gold); }
+      else if (wear.item === 'sash') { band(zc, 0.05, red); ball(cx + rx + 0.04, cy, zc, 0.04, gold); }
+      else { band(zc, 0.018, red); ball(cx, cy - ry - 0.05, zc, 0.05, gold); ball(cx, cy - ry - 0.05, zc + 0.03, 0.03, '#fff1a8'); }
+      m.height = Math.max(m.height, ...m.boxes.map(b => b.y + b.h)); return m; }
     switch (wear.item) {
       case 'scarf': { onBody(); ring(neck.x, neck.y, neck.z, nr * 1.08, nr * 1.08, nr * 0.24, col); // a wound ring at the neck and a tail hanging down the back
         ribbon([[neck.x + nr * 0.1, neck.y, neck.z - nr * 0.9], [neck.x + nr * 0.3, neck.y - nr * 0.9, neck.z - nr * 1.1], [neck.x + nr * 0.45, neck.y - nr * 1.9, neck.z - nr * 0.95]], [nr * 0.5, nr * 0.55, nr * 0.42], col, { droop: 0.3 }); break; }
@@ -13442,11 +13478,15 @@ const Avatar = (() => {
   function entity(p, moving) {
     const s = skin(); const mm = mesh(s, heldKeys(p));
     const seat = p.mount ? 0.75 : p.flying ? 0.35 : 0;
-    an.attack = p.swingT > 0 ? Math.sin(Math.min(1, p.swingT / 0.25) * Math.PI) : 0; an.block = p.blocking ? 1 : 0;
+    an.attack = 0; an.block = p.blocking ? 1 : 0;
+    if (p.swingT > 0 && p.swingDur) { const u = 1 - p.swingT / p.swingDur; an.atkU = u; an.atkKind = p.swingKind || 'slash'; an.atkN = p.swingN || 0;
+      an.atkLean = Math.sin(Math.min(1, Math.max(0, (u - 0.25) / 0.5)) * Math.PI) * (an.atkKind === 'chop' ? 0.5 : an.atkKind === 'thrust' ? 0.4 : 0.22); /* the body goes into the blow */
+      an.flip = p.swingAir ? (u < 0.75 ? u / 0.75 : 1) * Math.PI * 2 : 0; if (an.flip >= Math.PI * 2 - 0.001) an.flip = 0; }
+    else { an.atkU = null; an.atkKind = null; an.atkLean = 0; an.flip = 0; if (p.swingT > 0) an.attack = Math.sin(Math.min(1, p.swingT / 0.25) * Math.PI); }
     if (p.mount || p.flying) { an.mv = 0; an.sit = 1; } else an.sit = 0;
     an.hlean = p.mount || p.flying ? 0 : (p.hillLean || 0) + 0.12 * (an.crouch || 0); // into the hill, and a touch forward in a crouch
     // sneaking: knees bend and he sinks by just what the bend takes, so his boots stay on the ground
-    { const want = p.sneak && !p.mount && !p.flying && !p.inWater ? 1 : 0; const now = performance.now(); const dt = Math.min(0.1, (now - (an.ct || now)) / 1000); an.ct = now; an.crouch = (an.crouch || 0) + (want - (an.crouch || 0)) * Math.min(1, dt * 10); }
+    { const want = (p.sneak && !p.mount && !p.flying && !p.inWater) ? 1 : an.flip ? 0.9 : p.blocking && !p.mount && !p.flying ? 0.3 : 0; /* tucked in a flip, knees a little bent behind a shield */ const now = performance.now(); const dt = Math.min(0.1, (now - (an.ct || now)) / 1000); an.ct = now; an.crouch = (an.crouch || 0) + (want - (an.crouch || 0)) * Math.min(1, dt * 10); }
     const hip = (() => { const leg = (mm.model.bones || []).find(b => b && b.kind === 'leg'); return leg ? leg.piv[1] : 0.62; })();
     const sink = hip * (1 - Math.cos(0.85 * (an.crouch || 0))) * (look().height || 1) * (1 - 0.8 * (p.slopeK || 0)); // on a slope he crouches without sinking, or the hill comes up through him
     return { x: p.x, y: p.y + seat - sink + (p.drawLift ? p.drawLift() : 0), z: p.z, yaw: p.yaw + Math.PI, model: mm.model, mesh: mm.mesh, scale: look().height || 1, hover: 0, skyMul: 1, isMount: true, _an: an };
@@ -13460,7 +13500,7 @@ const Avatar = (() => {
     return Object.assign({}, cam, { x: cam.x - f[0] * d, y: cam.y - f[1] * d + 0.6 * (d / back), z: cam.z - f[2] * d });
   }
   function portrait(cv, s, size) { KIN.portrait(cv, species(s), 2, size, model(s)); }
-  return { init, SKINS, skin, unlocked, entity, thirdCam, portrait, model };
+  return { init, SKINS, skin, unlocked, entity, thirdCam, portrait, model, mesh };
 })();
 
 </script>
@@ -14881,9 +14921,12 @@ const Combat = (() => {
   let swingCd = 0, blockT = 0, armT = 0, swoosh = null;
   function swing() {
     const sk = G.player.selected(); if (sk && GEAR[sk] && broken(sk)) { if (swingCd <= 0) { swingCd = 1; UI.toast(`Your ${GEAR[sk].name} is broken. An armoury will mend it.`, 'bad'); } return true; }
-    const w = weapon(); if (!w || swingCd > 0) return false;
-    swingCd = w.cd; G.player.swingT = 0.25; UI.sfx('miss');
-    const p = G.player; const fx = -Math.sin(p.yaw), fz = -Math.cos(p.yaw); let hit = false;
+    const w0 = weapon(); if (!w0 || swingCd > 0) return false;
+    const p = G.player; const air = !p.onGround && !p.mount && !p.flying && !p.inWater; /* struck from a jump: a somersault and half as much again */
+    const w = air ? Object.assign({}, w0, { dmg: w0.dmg * 1.5, reach: w0.reach + 0.3 }) : w0;
+    const sk0 = p.selected() || ''; p.swingKind = w.kind === 'axe' || sk0.startsWith('ax_') ? 'chop' : sk0.startsWith('sp_') ? 'thrust' : 'slash'; p.swingDur = p.swingKind === 'chop' ? 0.46 : p.swingKind === 'thrust' ? 0.34 : 0.36; if (air) p.swingDur += 0.14;
+    p.swingN = (p.swingN || 0) + 1; p.swingAir = air; if (air) UI.toast('Leaping strike!');
+    swingCd = Math.max(w.cd, p.swingDur * 0.8); p.swingT = p.swingDur; UI.sfx('miss'); const fx = -Math.sin(p.yaw), fz = -Math.cos(p.yaw); let hit = false;
     for (const f of foes) {
       if (f.state === 'down') continue; const dx = f.x - p.x, dz = f.z - p.z, d = Math.hypot(dx, dz); if (d > w.reach + 0.4 || Math.abs(f.y - p.y) > 2) continue;
       const ang = Math.acos(U.clamp((dx * fx + dz * fz) / (d || 1), -1, 1)); if (ang > w.arc * 0.5 + 0.25) continue;

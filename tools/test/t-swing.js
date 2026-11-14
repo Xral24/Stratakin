@@ -1,0 +1,11 @@
+const { open } = require('./harness'); const fs = require('fs');
+(async () => { const h = await open(); const { ev } = h; await h.newGame('gal-1'); await h.calm();
+  const png = await ev((rws) => { if (rws) window.__rows = rws; const S = rws ? 400 : 230; const keys = Object.keys(ITEMS); const sw = keys.find(k => k.startsWith('sw_')), ax = keys.find(k => k.startsWith('ax_')), sp = keys.find(k => k.startsWith('sp_')), sh = keys.find(k => k.startsWith('sh_'));
+    const rows = (window.__rows || [['slash', sw, 0, 0, 0], ['slash', sw, 1, 0, 0], ['chop', ax, 0, 0, 0], ['thrust', sp, 0, 0, 0], ['slash', sw, 0, 1, 0], ['block', sw, 0, 0, 1]]).map(r => (r[1] = r[0] === 'chop' ? ax : r[0] === 'thrust' ? sp : sw, r)); const us = [0.05, 0.3, 0.45, 0.58, 0.72, 0.9];
+    const cv0 = document.createElement('canvas'); cv0.width = S * us.length; cv0.height = S * rows.length; const ctx = cv0.getContext('2d'); ctx.fillStyle = '#7fb2d8'; ctx.fillRect(0, 0, cv0.width, cv0.height); ctx.font = '14px sans-serif'; ctx.fillStyle = '#123';
+    rows.forEach(([kind, item, n, air, blk], r) => { const mm = Avatar.mesh(Avatar.SKINS[0], { main: item, off: blk || r === 0 ? sh : null });
+      us.forEach((u, c) => { const an = { ph: 0, mv: 0, lx: 0, lz: 0, ly: 0, lt: 0, vy: 0, seed: 3, air: 0, block: blk ? 1 : 0, crouch: blk ? 0.3 : air ? 0.9 : 0 }; if (!blk) { an.atkKind = kind; an.atkU = u; an.atkN = n; an.atkLean = Math.sin(Math.min(1, Math.max(0, (u - 0.25) / 0.5)) * Math.PI) * (kind === 'chop' ? 0.5 : kind === 'thrust' ? 0.4 : 0.22); an.flip = air ? Math.min(1, u / 0.75) * Math.PI * 2 : 0; }
+        const cv = document.createElement('canvas'); R.renderPortrait(cv, mm.mesh, mm.model, S, { yaw: blk ? [-0.6, 0, 0.6, 1.57, -1.57, 3.14][c] : -0.75, pitch: -0.12, zoom: 0.8, anim: an }); ctx.drawImage(cv, c * S, r * S, S, S); });
+      ctx.fillText(blk ? 'shield up, six views' : kind + (n ? ' (backhand)' : '') + (air ? ' from a jump' : ''), 6, r * S + 16); });
+    return cv0.toDataURL('image/png'); }, process.env.ROWS ? JSON.parse(process.env.ROWS) : null);
+  fs.writeFileSync('/home/claude/swing.png', Buffer.from(png.split(',')[1], 'base64')); console.log('ERRORS:', h.errors.length ? h.errors.slice(0, 3).join('\n') : 'none'); await h.close(); })();

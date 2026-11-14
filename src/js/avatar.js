@@ -101,11 +101,15 @@ const Avatar = (() => {
   function entity(p, moving) {
     const s = skin(); const mm = mesh(s, heldKeys(p));
     const seat = p.mount ? 0.75 : p.flying ? 0.35 : 0;
-    an.attack = p.swingT > 0 ? Math.sin(Math.min(1, p.swingT / 0.25) * Math.PI) : 0; an.block = p.blocking ? 1 : 0;
+    an.attack = 0; an.block = p.blocking ? 1 : 0;
+    if (p.swingT > 0 && p.swingDur) { const u = 1 - p.swingT / p.swingDur; an.atkU = u; an.atkKind = p.swingKind || 'slash'; an.atkN = p.swingN || 0;
+      an.atkLean = Math.sin(Math.min(1, Math.max(0, (u - 0.25) / 0.5)) * Math.PI) * (an.atkKind === 'chop' ? 0.5 : an.atkKind === 'thrust' ? 0.4 : 0.22); /* the body goes into the blow */
+      an.flip = p.swingAir ? (u < 0.75 ? u / 0.75 : 1) * Math.PI * 2 : 0; if (an.flip >= Math.PI * 2 - 0.001) an.flip = 0; }
+    else { an.atkU = null; an.atkKind = null; an.atkLean = 0; an.flip = 0; if (p.swingT > 0) an.attack = Math.sin(Math.min(1, p.swingT / 0.25) * Math.PI); }
     if (p.mount || p.flying) { an.mv = 0; an.sit = 1; } else an.sit = 0;
     an.hlean = p.mount || p.flying ? 0 : (p.hillLean || 0) + 0.12 * (an.crouch || 0); // into the hill, and a touch forward in a crouch
     // sneaking: knees bend and he sinks by just what the bend takes, so his boots stay on the ground
-    { const want = p.sneak && !p.mount && !p.flying && !p.inWater ? 1 : 0; const now = performance.now(); const dt = Math.min(0.1, (now - (an.ct || now)) / 1000); an.ct = now; an.crouch = (an.crouch || 0) + (want - (an.crouch || 0)) * Math.min(1, dt * 10); }
+    { const want = (p.sneak && !p.mount && !p.flying && !p.inWater) ? 1 : an.flip ? 0.9 : p.blocking && !p.mount && !p.flying ? 0.3 : 0; /* tucked in a flip, knees a little bent behind a shield */ const now = performance.now(); const dt = Math.min(0.1, (now - (an.ct || now)) / 1000); an.ct = now; an.crouch = (an.crouch || 0) + (want - (an.crouch || 0)) * Math.min(1, dt * 10); }
     const hip = (() => { const leg = (mm.model.bones || []).find(b => b && b.kind === 'leg'); return leg ? leg.piv[1] : 0.62; })();
     const sink = hip * (1 - Math.cos(0.85 * (an.crouch || 0))) * (look().height || 1) * (1 - 0.8 * (p.slopeK || 0)); // on a slope he crouches without sinking, or the hill comes up through him
     return { x: p.x, y: p.y + seat - sink + (p.drawLift ? p.drawLift() : 0), z: p.z, yaw: p.yaw + Math.PI, model: mm.model, mesh: mm.mesh, scale: look().height || 1, hover: 0, skyMul: 1, isMount: true, _an: an };
@@ -119,5 +123,5 @@ const Avatar = (() => {
     return Object.assign({}, cam, { x: cam.x - f[0] * d, y: cam.y - f[1] * d + 0.6 * (d / back), z: cam.z - f[2] * d });
   }
   function portrait(cv, s, size) { KIN.portrait(cv, species(s), 2, size, model(s)); }
-  return { init, SKINS, skin, unlocked, entity, thirdCam, portrait, model };
+  return { init, SKINS, skin, unlocked, entity, thirdCam, portrait, model, mesh };
 })();

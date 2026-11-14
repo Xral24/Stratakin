@@ -206,9 +206,12 @@ const Combat = (() => {
   let swingCd = 0, blockT = 0, armT = 0, swoosh = null;
   function swing() {
     const sk = G.player.selected(); if (sk && GEAR[sk] && broken(sk)) { if (swingCd <= 0) { swingCd = 1; UI.toast(`Your ${GEAR[sk].name} is broken. An armoury will mend it.`, 'bad'); } return true; }
-    const w = weapon(); if (!w || swingCd > 0) return false;
-    swingCd = w.cd; G.player.swingT = 0.25; UI.sfx('miss');
-    const p = G.player; const fx = -Math.sin(p.yaw), fz = -Math.cos(p.yaw); let hit = false;
+    const w0 = weapon(); if (!w0 || swingCd > 0) return false;
+    const p = G.player; const air = !p.onGround && !p.mount && !p.flying && !p.inWater; /* struck from a jump: a somersault and half as much again */
+    const w = air ? Object.assign({}, w0, { dmg: w0.dmg * 1.5, reach: w0.reach + 0.3 }) : w0;
+    const sk0 = p.selected() || ''; p.swingKind = w.kind === 'axe' || sk0.startsWith('ax_') ? 'chop' : sk0.startsWith('sp_') ? 'thrust' : 'slash'; p.swingDur = p.swingKind === 'chop' ? 0.46 : p.swingKind === 'thrust' ? 0.34 : 0.36; if (air) p.swingDur += 0.14;
+    p.swingN = (p.swingN || 0) + 1; p.swingAir = air; if (air) UI.toast('Leaping strike!');
+    swingCd = Math.max(w.cd, p.swingDur * 0.8); p.swingT = p.swingDur; UI.sfx('miss'); const fx = -Math.sin(p.yaw), fz = -Math.cos(p.yaw); let hit = false;
     for (const f of foes) {
       if (f.state === 'down') continue; const dx = f.x - p.x, dz = f.z - p.z, d = Math.hypot(dx, dz); if (d > w.reach + 0.4 || Math.abs(f.y - p.y) > 2) continue;
       const ang = Math.acos(U.clamp((dx * fx + dz * fz) / (d || 1), -1, 1)); if (ang > w.arc * 0.5 + 0.25) continue;
