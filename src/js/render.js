@@ -321,6 +321,7 @@ const R = (() => {
           col += uSunCol * step(0.988, hash3(vec3(floor(uv * 12.0), 5.0))) * (1.0 - smoothstep(0.1, 0.28, length(fract(uv * 12.0) - 0.5))) * uSunAmt * 0.3 * near;
         } else if (mat == 6) { // wood: grain lines running along the boards
           float grain = sin(uv.y * 38.0 + vn(uv * vec2(2.0, 0.4)) * 7.0) * 0.5 + 0.5; col *= 0.93 + 0.1 * smoothstep(0.3, 0.8, grain) * near;
+          { float shd = 1.0 - clamp(lam * sh * 1.6, 0.0, 1.0); col = mix(col, vec3(dot(col, vec3(0.3, 0.59, 0.11))) * vec3(0.94, 0.97, 1.08), 0.5 * shd); } // shade on boards is cool and quiet: it used to lie on a deck like red stains
         } else if (mat == 7) { // leaves: dapple, leaf-sized light and dark, and an outline broken into leaves instead of the smooth edge of a ball
           col *= 0.9 + 0.2 * vn(vWorld.xz * 2.2 + vWorld.y * 0.7); col *= 0.87 + 0.26 * vn(vec2(vWorld.x * 9.0 + vWorld.y * 5.3, vWorld.z * 9.0 - vWorld.y * 6.1));
           float rim = abs(dot(n, V)); if (rim < 0.45 && dist < 80.0) { float lf = vn(vec2(vWorld.x * 6.0 + vWorld.y * 3.1, vWorld.z * 6.0 - vWorld.y * 4.3)) * 0.6 + vn(vec2(vWorld.z * 11.0 + vWorld.y * 7.0, vWorld.x * 11.0 - vWorld.y * 5.0)) * 0.4; if (lf > 0.3 + rim * 1.4 + smoothstep(45.0, 80.0, dist) * 0.7) discard; }
@@ -982,6 +983,56 @@ const R = (() => {
       if (door != null) { const pd = Math.asin(2.35 / R); for (const sd of [-1, 1]) rib(door + sd * 0.31, 0, pd, 0.1); const pts = []; for (let k = 0; k <= 6; k++) pts.push(P(door - 0.31 + 0.62 * k / 6, pd, R + 0.02)); op.tube(pts, pts.map(() => 0.1), bs, { sky: sk, segs: 5, cap0: 'round', cap1: 'round' }); }
       op.blob(X - 0.5, cy - 0.25, Z - 0.5, X + 0.5, cy + 0.75, Z + 0.5, 0.85, bs, { sky: sk, n: 3 }); // the crown the lamp stands on
     };
+    // ---- reef villages: nothing of theirs is drawn as blocks. A sail tent is found by its peak; the chunk that holds the peak draws the whole roof as one swept shell
+    // of sail on bent ribs, and under a house roof the woven wall as one round basket with an arched door, standing on a round deck with a rope rim ----
+    let _tents = null, _reefHere = null;
+    const reefHere = () => { if (_reefHere != null) return _reefHere; _reefHere = false; if (!world.preset.water) return false; for (let x = -1; x <= 16 && !_reefHere; x++) for (let z = -1; z <= 16 && !_reefHere; z++) for (let y = SEA + 1; y <= SEA + 13; y++) { const b = get(x, y, z); if (b === B.SAIL || b === B.WEAVE) { _reefHere = true; break; } } return _reefHere; };
+    const reefTents = () => { if (_tents) return _tents; _tents = []; if (!reefHere()) return _tents;
+      for (let x = -9; x <= 24; x++) for (let z = -9; z <= 24; z++) for (let y = SEA + 4; y <= SEA + 13; y++) {
+        if (get(x, y, z) !== B.SAIL || get(x, y + 1, z) === B.SAIL || get(x + 1, y - 1, z + 1) !== B.SAIL || get(x - 1, y - 1, z - 1) !== B.SAIL) continue;
+        if (get(x + 1, y, z) === B.SAIL || get(x - 1, y, z) === B.SAIL || get(x, y, z + 1) === B.SAIL || get(x, y, z - 1) === B.SAIL) continue;
+        let rr = 0; for (const [a, b] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { let k = 0; while (k < 7 && get(x + a * (k + 1), y - k - 1, z + b * (k + 1)) === B.SAIL) k++; if (k > rr) rr = k; } if (rr < 2) continue; // its reach, measured down whichever side is whole (a walkway or the jetty cuts a gap in the lowest ring)
+        const t = { x, y, z, rr, house: false, dx: 0, dz: 0 };
+        if (get(x, y + 1, z) === B.BEAM) for (const [a, b] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) if (get(x + a, y + 2, z + b) === B.BEAM) { t.house = true; t.dx = -a; t.dz = -b; } // the spar runs back from the peak: the door faces the other way
+        _tents.push(t); }
+      return _tents; };
+    const ring2 = (cx, cz, r0, r1, y, col, sk, mat) => { const N = 26; op.curMat = mat; for (let i = 0; i < N; i++) { const a0 = i / N * 6.2832, a1 = (i + 1) / N * 6.2832; const v = [[cx + Math.cos(a0) * r0, y, cz + Math.sin(a0) * r0], [cx + Math.cos(a1) * r0, y, cz + Math.sin(a1) * r0], [cx + Math.cos(a1) * r1, y, cz + Math.sin(a1) * r1], [cx + Math.cos(a0) * r1, y, cz + Math.sin(a0) * r1]]; const m = 0.92 + 0.1 * ((i * 7) % 5) / 5, c = [col[0] * m, col[1] * m, col[2] * m], cs = [c, c, c, c], ss = [sk, sk, sk, sk], up = [[0, 1, 0], [0, 1, 0], [0, 1, 0], [0, 1, 0]]; op.quad(v, cs, ss, false, up); op.quad([v[1], v[0], v[3], v[2]], cs, ss, false, up); } op.curMat = 0; };
+    const loop = (cx, cz, r, y, rad, col, sk, a0 = 0, a1 = 6.2832) => { const pts = [], N = 26; for (let i = 0; i <= N; i++) { const a = a0 + (a1 - a0) * i / N; pts.push([cx + Math.cos(a) * r, y, cz + Math.sin(a) * r]); } op.tube(pts, pts.map(() => rad), col, { sky: sk, segs: 5, cap0: 'round', cap1: 'round' }); };
+    const deckApron = (cx, cz, rOut, sk) => { const pc = BLOCKS[B.PLANKS].top; ring2(cx, cz, rOut - 2.6, rOut, SEA + 0.93, [pc[0] * 0.95, pc[1] * 0.95, pc[2] * 0.95], sk, 6); loop(cx, cz, rOut, SEA + 0.9, 0.16, [0.66, 0.54, 0.34], sk); loop(cx, cz, rOut - 0.05, SEA + 0.55, 0.1, [0.5, 0.4, 0.25], sk); }; // the deck runs out to a true round edge, bound with rope
+    const WOODC = [0.33, 0.22, 0.13];
+    const drawTent = (t) => {
+      const X = t.x + 0.5, Z = t.z + 0.5, rr = t.rr, y0 = t.y - rr + 0.2, sk = skyAt(t.x, t.y + 1, t.z), sx = -t.dx, sz = -t.dz, fa = Math.atan2(t.dz, t.dx);
+      const R0 = rr + 1.0, AX = X + sx * 0.9, AZ = Z + sz * 0.9, AY = t.y + (t.house ? 1.9 : 1.3), sc = BLOCKS[B.SAIL].top, N = 20, TS = [0, 0.15, 0.32, 0.52, 0.72, 0.89, 1];
+      // the sail: a shell that flares at its rim, lifts like a brow over the door, sags a little between its ribs, and sweeps up and back to its peak
+      const S = (tt, a) => { const lift = t.house ? Math.pow(Math.max(0, Math.cos(a - fa)), 2) * 1.1 : 0, rim = y0 + lift - 0.3 * Math.abs(Math.sin(a * 3 + t.x)), r = R0 * Math.pow(1 - tt, 0.92) * (1 + 0.05 * Math.cos(4 * a)), k = Math.pow(tt, 1.3); return [X + (AX - X) * k + Math.cos(a) * r, rim + (AY - rim) * Math.pow(tt, 1.55), Z + (AZ - Z) * k + Math.sin(a) * r]; };
+      const P = (ti, ai) => S(TS[ti], (ai % N) / N * 6.2832);
+      const Nv = (ti, ai) => { const a = P(Math.min(6, ti + 1), ai), b = P(Math.max(0, ti - 1), ai), c = P(ti, ai + 1), d = P(ti, ai + N - 1); const ux = a[0] - b[0], uy = a[1] - b[1], uz = a[2] - b[2], vx = c[0] - d[0], vy = c[1] - d[1], vz = c[2] - d[2]; let nx = uy * vz - uz * vy, ny = uz * vx - ux * vz, nz = ux * vy - uy * vx; const l = Math.hypot(nx, ny, nz) || 1; if (ny < 0) { nx = -nx; ny = -ny; nz = -nz; } return ti === 6 ? [0, 1, 0] : [nx / l, ny / l, nz / l]; };
+      op.curMat = 12;
+      for (let ti = 0; ti < 6; ti++) for (let ai = 0; ai < N; ai++) { const m = (ai % 2 ? 1.0 : 0.95) * (0.84 + 0.2 * TS[ti + 1]), c = [sc[0] * m, sc[1] * m, sc[2] * m], u = [c[0] * 0.55, c[1] * 0.6, c[2] * 0.66];
+        const v = [P(ti, ai + 1), P(ti, ai), P(ti + 1, ai), P(ti + 1, ai + 1)], n = [Nv(ti, ai + 1), Nv(ti, ai), Nv(ti + 1, ai), Nv(ti + 1, ai + 1)];
+        op.quad(v, [c, c, c, c], [sk, sk, sk, sk], false, n); op.quad([v[1], v[0], v[3], v[2]], [u, u, u, u], [sk, sk, sk, sk], false, [n[1], n[0], n[3], n[2]].map((q) => [-q[0], -q[1], -q[2]])); }
+      op.curMat = 0;
+      for (let k = 0; k < 6; k++) { const a = (k + 0.5) / 6 * 6.2832, pts = [], e = S(0, a), o = [X + Math.cos(a) * (R0 + 0.55), e[1] - 0.12, Z + Math.sin(a) * (R0 + 0.55)]; pts.push(o); for (const tt of [0, 0.25, 0.5, 0.75, 0.97]) { const q = S(tt, a); pts.push([q[0], q[1] + 0.07, q[2]]); } op.tube(pts, [0.05, 0.075, 0.08, 0.08, 0.07, 0.06], WOODC, { sky: sk, segs: 5, cap0: 'round', cap1: 'round' }); } // bent ribs, their tips standing out past the rim
+      if (t.house) { // the spar: a great curved horn of wood rising behind the house and curling forward over its peak, a shell hung from its tip
+        const sp = [[X + sx * (R0 + 0.2), y0 - 3.2, Z + sz * (R0 + 0.2)], [X + sx * (R0 + 0.75), y0 - 0.9, Z + sz * (R0 + 0.75)], [X + sx * (R0 * 0.72), y0 + rr * 0.58, Z + sz * (R0 * 0.72)], [AX + sx * 0.45, AY + 0.45, AZ + sz * 0.45], [AX - sx * 1.2, AY + 1.5, AZ - sz * 1.2], [AX - sx * 2.4, AY + 1.2, AZ - sz * 2.4]];
+        op.tube(sp, [0.2, 0.18, 0.16, 0.14, 0.1, 0.045], WOODC, { sky: sk, segs: 6, cap0: 'flat', cap1: 'round' });
+        const tip = sp[5]; op.tube([tip, [tip[0], tip[1] - 0.6, tip[2]]], [0.015, 0.015], [0.8, 0.75, 0.6], { sky: sk, segs: 3, cap0: 'none', cap1: 'none' }); op.ball(tip[0], tip[1] - 0.7, tip[2], 0.13, [0.96, 0.9, 0.82], { sky: sk, n: 2 });
+        // the house: one round basket of weave, bellied a little, with an arched doorway and round windows, rope round its foot and its brim
+        const HX = X + t.dx, HZ = Z + t.dz, wy = t.y - rr - 3, WR = 3.5, wc = BLOCKS[B.WEAVE].side, NS = 28, HB = [0, 0.75, 1.55, 2.35, 3.1];
+        const Wp = (hi, ai) => { const a = (ai % NS) / NS * 6.2832, h = HB[hi], r = WR + 0.24 * Math.sin(h / 3.1 * Math.PI); return [HX + Math.cos(a) * r, wy + h, HZ + Math.sin(a) * r]; }, Wn = (ai) => { const a = (ai % NS) / NS * 6.2832; return [Math.cos(a), 0, Math.sin(a)]; };
+        const wrap = (d) => Math.atan2(Math.sin(d), Math.cos(d)), wins = [fa + 1.3, fa - 1.3, fa + 2.45, fa - 2.45];
+        op.curMat = 12;
+        for (let hi = 0; hi < 4; hi++) for (let ai = 0; ai < NS; ai++) { const am = (ai + 0.5) / NS * 6.2832; if (hi < 3 && Math.abs(wrap(am - fa)) < 0.46) continue; if (hi === 1 && wins.some((w) => Math.abs(wrap(am - w)) < 0.2)) continue;
+          const m = (0.94 + 0.08 * (hi % 2)) * (0.97 + 0.05 * U.hash3(ai, hi, t.x, 7)), c = [wc[0] * m, wc[1] * m, wc[2] * m], u = [c[0] * 0.7, c[1] * 0.68, c[2] * 0.66], v = [Wp(hi, ai + 1), Wp(hi, ai), Wp(hi + 1, ai), Wp(hi + 1, ai + 1)], n = [Wn(ai + 1), Wn(ai), Wn(ai), Wn(ai + 1)];
+          op.quad(v, [c, c, c, c], [sk, sk, sk, sk], false, n); op.quad([v[1], v[0], v[3], v[2]], [u, u, u, u], [sk, sk, sk, sk], false, [n[1], n[0], n[3], n[2]].map((q) => [-q[0], 0, -q[2]])); }
+        op.curMat = 0;
+        loop(HX, HZ, WR + 0.03, wy + 0.08, 0.1, [0.5, 0.38, 0.22], sk, fa + 0.46, fa - 0.46 + 6.2832); loop(HX, HZ, WR + 0.03, wy + 3.1, 0.11, [0.5, 0.38, 0.22], sk);
+        const dp = (sgn, h, out) => [HX + Math.cos(fa + sgn * 0.46) * (WR + out), wy + h, HZ + Math.sin(fa + sgn * 0.46) * (WR + out)];
+        for (const sgn of [-1, 1]) op.tube([dp(sgn, -0.1, 0.05), dp(sgn, 1.3, 0.2), dp(sgn, 2.35, 0.1)], [0.13, 0.12, 0.11], WOODC, { sky: sk, segs: 5, cap0: 'flat', cap1: 'round' });
+        const mid = [HX + Math.cos(fa) * (WR + 0.3), wy + 2.8, HZ + Math.sin(fa) * (WR + 0.3)]; op.tube([dp(-1, 2.3, 0.1), mid, dp(1, 2.3, 0.1)], [0.11, 0.12, 0.11], WOODC, { sky: sk, segs: 5, cap0: 'round', cap1: 'round' }); // the door arch
+        deckApron(HX, HZ, 5.25, sk);
+      } else deckApron(X, Z, 3.05, sk);
+    };
     const blocks = chunk.blocks;
     const col0 = [0, 0, 0];
     for (let lx = 0; lx < CH; lx++) for (let lz = 0; lz < CH; lz++) {
@@ -994,12 +1045,18 @@ const R = (() => {
         const wx = ox + lx, wz = oz + lz;
         const vr = SOIL.has(id) ? 0.98 + U.hash3(wx, y, wz, 5) * 0.03 : 0.92 + U.hash3(wx, y, wz, 5) * 0.12; // per-block variation (the ground keeps almost none: its shader paints it smoothly)
         if (id === B.STATUE) continue; // drawn as an entity
+        if ((id === B.SAIL || id === B.WEAVE || id === B.BEAM) && reefHere()) { let mine = null, skip = false; // part of a reef house or its sail: drawn whole, by the peak
+          for (const t of reefTents()) { const ax = Math.abs(lx - t.x), az = Math.abs(lz - t.z);
+            if (id === B.SAIL) { if (ax <= t.rr && az <= t.rr && y <= t.y && y >= t.y - t.rr) { skip = true; if (ax === 0 && az === 0 && y === t.y) mine = t; } }
+            else if (t.house) { const wy = t.y - t.rr - 3; if ((Math.abs(lx - t.x - t.dx) <= 3 && Math.abs(lz - t.z - t.dz) <= 3 && y >= wy && y <= wy + 2) || (id === B.BEAM && ax <= 2 && az <= 2 && y > t.y && y <= t.y + 3)) skip = true; } }
+          if (mine) drawTent(mine); if (skip) continue; }
+        if (id === B.FUSION && y === SEA + 1 && world.preset.water && get(lx, SEA, lz) === B.PLANKS && get(lx + 4, SEA, lz - 4) === B.PLANKS && get(lx + 5, SEA, lz - 5) !== B.PLANKS && get(lx - 4, SEA, lz + 4) === B.PLANKS) deckApron(lx + 0.5, lz + 0.5, 6.65, skyAt(lx, y + 1, lz)); // the village's middle deck
         // a shop's marker block over its doorway: drawn as the wall it sits in, with a sign hanging out over the street in the marker's colour
         if (SIGNABLE.has(id) && y >= 2 && get(lx, y - 1, lz) === B.AIR && get(lx, y - 2, lz) === B.AIR) {
           const axis = (WALLY(get(lx + 1, y, lz)) && WALLY(get(lx - 1, y, lz))) ? 'x' : (WALLY(get(lx, y, lz + 1)) && WALLY(get(lx, y, lz - 1))) ? 'z' : null;
           if (axis) {
             const wb = axis === 'x' ? get(lx + 1, y, lz) : get(lx, y, lz + 1); const wi = BLOCKS[wb]; const sk = skyAt(lx, y + 1, lz);
-            op.curMat = MAT_OF[wb] || 0; const wpal = world.preset.paletteRgb && world.preset.paletteRgb[wb]; op.box(lx, y, lz, lx + 1, y + 1, lz + 1, wpal ? wpal[1] : wi.side, sk, false);
+            op.curMat = MAT_OF[wb] || 0; const wpal = world.preset.paletteRgb && world.preset.paletteRgb[wb]; if (wb !== B.WEAVE) op.box(lx, y, lz, lx + 1, y + 1, lz + 1, wpal ? wpal[1] : wi.side, sk, false); /* a reef house is a round basket: its sign hangs from the door arch, with no block of wall behind it */
             op.curMat = 0;
             const out = axis === 'x' ? [0, skyAt(lx, y, lz + 1) >= skyAt(lx, y, lz - 1) ? 1 : -1] : [skyAt(lx + 1, y, lz) >= skyAt(lx - 1, y, lz) ? 1 : -1, 0];
             const bx = lx + 0.5, bz = lz + 0.5, ox = out[0], oz = out[1]; const iron = [0.2, 0.2, 0.23], wood = [0.42, 0.29, 0.15], edge = [0.3, 0.2, 0.1];
@@ -1480,6 +1537,13 @@ const R = (() => {
               op.tube(pts, rad, base, { sky: sk, segs: 9, cap0: 'flat', cap1: 'round', shade: (p, nx, ny, nz) => { const k = U.hash3(Math.floor(Math.atan2(nx, nz) * 1.6 + 8), sd, 3, 5), m = 0.8 + k * 0.36; if (birch && k < 0.14) return [0.52, 0.44, 0.34]; return [base[0] * m, base[1] * m, base[2] * m]; } }); // bark in long ridges from root to crown
               for (let k = 0; k < (birch ? 3 : 4); k++) { const a = (k + U.hash3(wx, 88 + k, wz, 5) * 0.8) * (birch ? 2.094 : 1.5708) + hB * 6, L = (0.8 + U.hash3(wx, 92 + k, wz, 5) * 0.5) * (rb / 0.47 + 0.25), dx = Math.cos(a), dz = Math.sin(a); op.tube([[lx + 0.5 + dx * rb * 0.5, yb + 0.45, lz + 0.5 + dz * rb * 0.5], [lx + 0.5 + dx * L * 0.6, gy + 0.1, lz + 0.5 + dz * L * 0.6], [lx + 0.5 + dx * L, gy - 0.15, lz + 0.5 + dz * L]], [rb * 0.5, rb * 0.34, rb * 0.12], base, { sky: sk, segs: 5, cap0: 'none', cap1: 'round' }); }
               if (!pine) for (let k = 0; k < 4; k++) { const tt = 0.64 + 0.28 * U.hash3(wx, 96 + k, wz, 5), o = at(tt), a = (k + U.hash3(wx, 100 + k, wz, 5) * 0.7) * 1.5708 + hA * 6, L = (birch ? 1.0 : 1.5) + U.hash3(wx, 104 + k, wz, 5) * (birch ? 0.7 : 1.1), dx = Math.cos(a), dz = Math.sin(a), rise = 0.8 + U.hash3(wx, 108 + k, wz, 5), r0 = (rb + (tipR - rb) * tt) * 0.62; op.tube([o, [o[0] + dx * L * 0.5, o[1] + rise * 0.4, o[2] + dz * L * 0.5], [o[0] + dx * L, o[1] + rise, o[2] + dz * L]], [r0, r0 * 0.7, r0 * 0.3], base, { sky: sk, segs: 5, cap0: 'none', cap1: 'round' }); }
+              continue; }
+            if (crown === B.PLANKS && yt - yb >= 1 && single && yt <= SEA) { // a pile under a deck: one bowed pole standing in the water on splayed roots, like a mangrove, and no stack of logs
+              if (y !== yb) continue;
+              const sk = skyAt(lx, yt + 1, lz), hA = U.hash3(wx, 3, wz, 221), hB = U.hash3(wx, 4, wz, 222), top = yt + 1.0, bow = 0.16, pc = [0.36, 0.27, 0.17];
+              const at = (t) => [lx + 0.5 + Math.sin(t * 3.1416) * bow * (hA - 0.5) * 2, yb - 0.6 + t * (top - yb + 0.6), lz + 0.5 + Math.sin(t * 3.1416) * bow * (hB - 0.5) * 2];
+              op.tube([at(0), at(0.3), at(0.6), at(1)], [0.3, 0.25, 0.22, 0.21], pc, { sky: sk, segs: 7, cap0: 'flat', cap1: 'flat' });
+              for (let k = 0; k < 3; k++) { const a = (k + hA) * 2.094, o = at(0.62), L = 1.0 + 0.4 * U.hash3(wx, 5 + k, wz, 223), dx = Math.cos(a), dz = Math.sin(a); op.tube([o, [o[0] + dx * L * 0.55, o[1] - (o[1] - yb) * 0.45, o[2] + dz * L * 0.55], [o[0] + dx * L, yb - 0.5, o[2] + dz * L]], [0.12, 0.1, 0.07], pc, { sky: sk, segs: 5, cap0: 'none', cap1: 'round' }); }
               continue; } }
           if (axis === 'y' && perp.every(free)) { // a trunk four logs thick is one great round bole, drawn by the log at its low corner
             let sq = null; for (const sx of [0, -1]) for (const sz of [0, -1]) if (!sq && isLog(get(lx + sx, y, lz + sz)) && isLog(get(lx + sx + 1, y, lz + sz)) && isLog(get(lx + sx, y, lz + sz + 1)) && isLog(get(lx + sx + 1, y, lz + sz + 1))) sq = [sx, sz];

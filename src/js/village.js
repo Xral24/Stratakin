@@ -1321,13 +1321,13 @@ const Village = (() => {
 
   // ---- people ----
   // people by style: Earth villagers in cloth, fluorescent aliens, veiled dune folk, hatted frontier folk, sea people with fins
-  const SKIN_STYLE = { alien: ['#39ff14', '#ff2bd6', '#00f5ff', '#ffe600', '#b026ff', '#00ffb3'], halo: ['#c9955a', '#a8723f', '#e0b47a', '#8a5a30'], atlantis: ['#6fd0c8', '#4aa8b8', '#8fe0d0', '#3f8fa0'], frontier: SKIN };
-  const CLOTH_STYLE = { alien: ['#101828', '#1a1030', '#0a2030', '#201028'], halo: ['#e8d8b0', '#d8c090', '#c0a070', '#f0e0c0', '#b89060'], atlantis: ['#2a5a7a', '#1f4a6a', '#3a7a8a', '#204060'], frontier: ['#7a4a2a', '#4a3a2a', '#8a6a3a', '#5a4a4a', '#9a3a2a', '#3a4a6a'] };
+  const SKIN_STYLE = { alien: ['#39ff14', '#ff2bd6', '#00f5ff', '#ffe600', '#b026ff', '#00ffb3'], halo: ['#c9955a', '#a8723f', '#e0b47a', '#8a5a30'], atlantis: ['#6fd0c8', '#4aa8b8', '#8fe0d0', '#3f8fa0'], sea: ['#58c2b4', '#3fa3a6', '#7ad4c2', '#4d9cbd', '#66b6d4', '#8fdcc8'], frontier: SKIN }; // sea: the reef folk, the colours of shallow water
+  const CLOTH_STYLE = { alien: ['#101828', '#1a1030', '#0a2030', '#201028'], halo: ['#e8d8b0', '#d8c090', '#c0a070', '#f0e0c0', '#b89060'], atlantis: ['#2a5a7a', '#1f4a6a', '#3a7a8a', '#204060'], sea: ['#d9c08a', '#e8dcc0', '#c96a4a', '#e0a04a', '#b8935a', '#d87a5a'], frontier: ['#7a4a2a', '#4a3a2a', '#8a6a3a', '#5a4a4a', '#9a3a2a', '#3a4a6a'] };
   function villagerSpecies(i, role, vid, style) {
     const r = U.rng(U.combine(0x4242, i, U.strHash(vid || 'start')));
     const skins = SKIN_STYLE[style] || SKIN, cloths = CLOTH_STYLE[style] || CLOTH;
     const skin = r.pick(skins), cloth = r.pick(cloths);
-    const plain = style && style !== 'frontier' && style !== 'land';
+    const plain = style && style !== 'frontier' && style !== 'land' && style !== 'sea';
     const body = plain ? cloth : role === 'elder' ? '#f0d090' : role === 'voodoo' ? '#2c3e50' : role === 'fisher' ? '#5b7f95' : role === 'traveller' ? '#6b5a3e' : role === 'hermit' ? '#7a6f5a' : cloth;
     const accent = style === 'alien' ? r.pick(skins) : role === 'elder' ? '#e0b84a' : cloth;
     const build = role === 'elder' || role === 'voodoo' || role === 'hermit' ? 'man' : r.pick(['man', 'woman', 'stout', 'woman', 'slim', 'man']), hairVar = build === 'woman' ? r.pick([3, 3, 2]) : r.pick([0, 1, 2, 0]), hairCol = style === 'alien' ? null : role === 'elder' ? '#d8d8dc' : r.pick(['#3a2a1a', '#1a1410', '#6a4a22', '#b8862e', '#8a3a1a', '#d8c070', '#4a4a52', '#2a1a2a']); /* each villager: a build, a head of hair and its colour, all from the same roll every time */
@@ -1338,7 +1338,7 @@ const Village = (() => {
     const sp = villagerSpecies(i, role, vid, style);
     const child = role === 'villager' && U.strHash((vid || 's') + ':' + i + ':kid') % 4 === 0; if (child) { sp.build = 'slim'; sp.hairVar = U.strHash((vid || 's') + ':' + i) % 3; } /* one villager in four is a child */
     const m = KIN.model(sp, 2);
-    if (style === 'alien') KIN.decorate(m, 'alien'); else if (style === 'halo') KIN.decorate(m, 'veil'); else if (style === 'atlantis') KIN.decorate(m, 'merfolk'); else if (style === 'frontier' && role !== 'hermit' && role !== 'traveller') KIN.decorate(m, 'hat');
+    if (style === 'alien') KIN.decorate(m, 'alien'); else if (style === 'halo') KIN.decorate(m, 'veil'); else if (style === 'atlantis') KIN.decorate(m, 'merfolk'); else if (style === 'sea') KIN.decorate(m, 'reef'); else if (style === 'frontier' && role !== 'hermit' && role !== 'traveller') KIN.decorate(m, 'hat');
     if ((role === 'elder' && (style === 'land' || !style)) || role === 'voodoo' || role === 'fisher' || role === 'traveller' || role === 'hermit') KIN.decorate(m, role);
     if (role === 'elder' && style === 'frontier') KIN.decorate(m, 'star');
     if (child) KIN.childify(m, 1.32);
@@ -1373,7 +1373,7 @@ const Village = (() => {
   function shopOf(v, kind) { return layout(v).shops.find(s => s.kind === kind); }
   function populateTown(v) {
     v.npcs = []; const st = state(v.id); const freed = st.freed; const vy = v.y; const L = layout(v); closures(v, st);
-    const r = U.rng(U.strHash(v.id) ^ 0x99); const people = peopleOf(v); const sty = styleOf(v) || 'land';
+    const r = U.rng(U.strHash(v.id) ^ 0x99); const people = peopleOf(v); const sty = styleOf(v) || (v.type === 'sea' ? 'sea' : 'land');
     const pname = (i) => people[(i + r.int(people.length)) % people.length]; const title = headmanTitle(v);
     let i = 0;
     for (const sh of L.shops) {

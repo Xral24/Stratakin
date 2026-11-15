@@ -4263,6 +4263,12 @@ const KIN = (() => {
     } else if (kind === 'veil') { // Halo folk: a long head veil against the dust and a sash
       setB(1); blob(-0.36, 1.05, -0.4, 0.36, 1.92, 0.2, 0.8, '#f0e0c0', { tap: [0.9, 1.0] }); ring(0, 1.8, -0.04, 0.37, 0.33, 0.03, '#c9a45a'); setB(0);
       ring(0, 0.98, 0.02, 0.34, 0.24, 0.035, '#c9a45a');
+    } else if (kind === 'reef') { // the reef folk: a string of shells at the throat, woven bands on the arms, a wrap at the waist, a shell and a frond in the hair
+      ring(0, 1.42, 0, 0.19, 0.17, 0.022, '#f4efe2'); for (const [x, z] of [[-0.09, 0.15], [0, 0.18], [0.09, 0.15]]) ball(x, 1.38, z, 0.035, '#fff6e6');
+      ball(0, 1.31, 0.19, 0.05, '#ff9a7a'); // a piece of coral hangs at the middle
+      ring(0, 0.8, 0, 0.27, 0.22, 0.05, '#c96a4a'); plate([[-0.1, 0.78, 0.2], [0.1, 0.78, 0.2], [0.07, 0.5, 0.24], [-0.07, 0.5, 0.24]], 0.02, '#e8dcc0');
+      setB(2); ring(-0.5, 0.98, 0, 0.09, 0.09, 0.025, '#d9c08a'); setB(3); ring(0.5, 0.98, 0, 0.09, 0.09, 0.025, '#d9c08a');
+      setB(1); ball(0.26, 1.9, 0.1, 0.06, '#fff6e6'); plate([[0.24, 1.92, 0.06], [0.42, 2.12, -0.04], [0.36, 1.9, -0.1]], 0.02, '#3f9a8c'); setB(0);
     } else if (kind === 'merfolk') { // sea people: a fin crest, webbed fins on the arms, scales down the back
       setB(1); plate([[0, 1.84, 0.16], [0, 2.14, 0.0], [0, 2.1, -0.24], [0, 1.82, -0.32]], 0.035, '#6fd0c8', { emis: true }); setB(0);
       setB(2); plate([[-0.42, 1.1, 0], [-0.68, 0.95, -0.05], [-0.66, 0.7, -0.05], [-0.44, 0.75, 0]], 0.025, '#4aa8b8'); setB(3); plate([[0.42, 1.1, 0], [0.68, 0.95, -0.05], [0.66, 0.7, -0.05], [0.44, 0.75, 0]], 0.025, '#4aa8b8'); setB(0);

@@ -1,0 +1,7 @@
+const { open } = require('./harness');
+(async () => { const h = await open(); const { page, ev } = h; await h.newGame('look-3'); await h.calm();
+  const r = await ev(() => { const p = G.player, w = G.world; const s = Village.markers(p.x, p.z, 12).filter(m => m.kind === 'village' && m.type === 'sea').sort((a, b) => Math.hypot(a.x - p.x, a.z - p.z) - Math.hypot(b.x - p.x, b.z - p.z))[0]; p.x = s.x + 0.5; p.z = s.z + 0.5; w.ensureAround(Math.floor(p.x / CH), Math.floor(p.z / CH), 4, 9999); p.y = SEA + 2; Village.update(0.05, p, false);
+    const out = {}; const cx = Math.floor(s.x) + 11, cz = Math.floor(s.z); for (let y = SEA + 1; y <= SEA + 5; y++) { const rows = []; for (let dz = -5; dz <= 5; dz++) { let row = ''; for (let dx = -6; dx <= 5; dx++) { const b = w.getBlock(cx + dx, y, cz + dz); row += b === B.AIR ? '.' : b === B.WEAVE ? 'W' : b === B.SAIL ? 'S' : b === B.BEAM ? 'B' : b === B.PLANKS ? 'P' : b === B.AWNING ? 'A' : b === B.LAMP ? 'L' : b === B.FENCE ? 'F' : '?'; } rows.push(row); } out['y+' + (y - SEA - 1)] = rows; }
+    const unk = {}; for (let y = SEA + 1; y <= SEA + 5; y++) for (let dz = -5; dz <= 5; dz++) for (let dx = -6; dx <= 5; dx++) { const b = w.getBlock(cx + dx, y, cz + dz); if (![B.AIR, B.WEAVE, B.SAIL, B.BEAM, B.PLANKS, B.AWNING, B.LAMP, B.FENCE].includes(b)) unk[BLOCKS[b].name] = (unk[BLOCKS[b].name] || 0) + 1; }
+    return { out, unk }; });
+  for (const k in r.out) { console.log(k); for (const row of r.out[k]) console.log('  ' + row); } console.log(JSON.stringify(r.unk)); await h.close(); })();

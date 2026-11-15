@@ -1,0 +1,10 @@
+// the reef folk, face to face
+const { open } = require('./harness');
+(async () => { const h = await open(); const { page, ev } = h; await h.newGame(process.env.SEED || 'look-3'); await h.calm();
+  await ev(() => { G.repelUntil = performance.now() + 9e7; G.stats.buddyOff = true; G.explain = () => {}; G.player.frozen = true; G.thirdPerson = false; G.world.time = 0.42; for (const id of ['hud', 'controls', 'hotbar']) { const e = document.getElementById(id); if (e) e.style.display = 'none'; } });
+  const n = await ev(() => { const p = G.player, w = G.world; const s = Village.markers(p.x, p.z, 12).filter(m => m.kind === 'village' && m.type === 'sea').sort((a, b) => Math.hypot(a.x - p.x, a.z - p.z) - Math.hypot(b.x - p.x, b.z - p.z))[0]; p.x = s.x + 0.5; p.z = s.z + 2.5; w.ensureAround(Math.floor(p.x / CH), Math.floor(p.z / CH), 4, 9999); p.y = SEA + 1.05; for (let i = 0; i < 5; i++) Village.update(0.05, p, false); const v = Village.active; for (const q of v.npcs) { q.hidden = false; q.wander = false; } G.meshPass(999); return v.npcs.map(q => [q.role, +q.x.toFixed(1), +q.y.toFixed(1), +q.z.toFixed(1)]); });
+  console.log(JSON.stringify(n));
+  const picks = [n.findIndex(q => q[0] === 'villager'), n.findIndex(q => q[0] === 'keeper'), n.findIndex(q => q[0] === 'elder'), n.map(q => q[0]).lastIndexOf('villager')].filter(i => i >= 0);
+  for (let i = 0; i < picks.length; i++) { await ev((k) => { const p = G.player, v = Village.active, q = v.npcs[k]; const dx = v.x + 0.5 - q.x, dz = v.z + 0.5 - q.z, d = Math.hypot(dx, dz) || 1; p.x = q.x + dx / d * 2.3; p.z = q.z + dz / d * 2.3; p.y = q.y + 0.05; p.yaw = Math.atan2(-(q.x - p.x), -(q.z - p.z)); p.pitch = -0.05; q.yaw = Math.atan2(p.x - q.x, p.z - q.z); for (const o of v.npcs) { o.hidden = false; o.wander = false; } }, picks[i]);
+    await page.waitForTimeout(2200); await ev(() => { const t = document.getElementById('toasts'); if (t) t.innerHTML = ''; }); await page.screenshot({ path: `/home/claude/seafolk-${i}.png` }); }
+  console.log('ERRORS:', h.errors.length ? h.errors.slice(0, 3).join('\n') : 'none'); await h.close(); })();
