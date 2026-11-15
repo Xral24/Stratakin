@@ -165,6 +165,7 @@ const R = (() => {
     vec4 w = uModel * vec4(aPos, 1.0);
     if (uWave > 1.5) { float k = fract(w.y + 0.0005); k = k * k * 3.0; float gust = sin(uTime * 0.7 + w.x * 0.05 + w.z * 0.03) * 0.5 + 0.5; w.x += (sin(uTime * 2.3 + w.x * 0.9 + w.z * 0.4) * 0.05 + gust * 0.07) * k; w.z += cos(uTime * 1.9 + w.z * 0.8 + w.x * 0.3) * 0.04 * k; }
     else if (uWave > 0.5) { w.y += sin(uTime * 1.3 + w.x * 0.55 + w.z * 0.35) * 0.045 + sin(uTime * 2.1 - w.x * 0.9 + w.z * 1.2) * 0.025 - 0.12; }
+    else if (aMat > 6.5 && aMat < 7.5) { float gust = sin(uTime * 0.6 + w.x * 0.05 + w.z * 0.03) * 0.5 + 0.5; w.x += sin(uTime * 0.9 + w.x * 0.35 + w.z * 0.27 + w.y * 0.5) * (0.035 + 0.05 * gust); w.z += cos(uTime * 0.75 + w.z * 0.33 + w.x * 0.21) * 0.045; w.y += sin(uTime * 1.1 + w.x * 0.4 + w.z * 0.2) * 0.025; } // leaves stir in the wind
     vWorld = w.xyz; vCol = aCol;
     gl_Position = uPV * w;
   }`;
@@ -325,6 +326,9 @@ const R = (() => {
           float own = hash3(vec3(cc, row, 4.0));
           float darkSt = 1.0 - smoothstep(0.2, 0.36, lum); /* dark stone is pointed with pale mortar, or its courses vanish and a fortress is one black lump */
           col *= mix(mix(0.6, 1.0, mortar), mix(1.7, 1.0, mortar), darkSt) * (0.86 + 0.28 * own) * (0.96 + 0.08 * vn(uv * 9.0)) * (0.95 + 0.1 * vn(uv * 0.6 + 2.0));
+        } else if (mat == 21) { // chimney smoke: a pale plume eaten away by holes that drift up it and open wider toward the top (how far up comes in the vertex colour)
+          float tt = vCol.r; float sn = vn(vec2(vWorld.x * 2.3 + vWorld.z * 1.9, vWorld.y * 1.5 - uTime * 0.8)) * 0.6 + vn(vec2(vWorld.x * 5.1 - vWorld.z * 4.3, vWorld.y * 3.0 - uTime * 1.4)) * 0.4;
+          if (sn < 0.2 + tt * 0.62) discard; col = mix(vec3(0.7, 0.7, 0.74), vec3(0.96, 0.96, 0.98), sn);
         } else if (mat == 20) { // Halo's walls: dressed sandstone in long courses, a darker foot, and every fourth course a frieze of glazed tiles, teal diamonds on ochre
           if (abs(n.y) < 0.5) { float hu = abs(n.x) > 0.5 ? vWorld.z : vWorld.x; float cy = vWorld.y * 3.0; float row = floor(cy), ry = fract(cy); float cx = hu * 1.34 + mod(row, 2.0) * 0.5; float cc = floor(cx), rx = fract(cx);
             float mortar = min(smoothstep(0.0, 0.1, ry) * smoothstep(1.0, 0.9, ry), smoothstep(0.0, 0.035, rx) * smoothstep(1.0, 0.965, rx)); float own = hash3(vec3(cc, row, 5.0));
@@ -444,7 +448,7 @@ const R = (() => {
     vec2 e = abs(sc.xy - 0.5) * 2.0; float edge = 1.0 - smoothstep(0.78, 1.0, max(e.x, e.y));
     return mix(1.0, s, edge * uShadowOn);
   }` : `float shadowAt(vec3 wp, vec3 n){ return 1.0; }`;
-  const SH_VS_C = `attribute vec3 aPos; uniform mat4 uLightPV; uniform mat4 uModel; void main(){ gl_Position = uLightPV * uModel * vec4(aPos, 1.0); }`;
+  const SH_VS_C = `attribute vec3 aPos; attribute float aMat; uniform mat4 uLightPV; uniform mat4 uModel; void main(){ gl_Position = uLightPV * uModel * vec4(aPos, 1.0); if (aMat > 20.5 && aMat < 21.5) gl_Position = vec4(2.0, 2.0, 2.0, 1.0); }`; // smoke casts no shadow
   const SH_VS_E = `attribute vec3 aPos; attribute float aBone; uniform mat4 uLightPV; uniform mat4 uModel; uniform mat4 uBones[10]; void main(){ int b = int(aBone + 0.5); gl_Position = uLightPV * uModel * uBones[b] * vec4(aPos, 1.0); }`;
   const SH_FS = `precision mediump float; void main(){ }`;
   let shProgC = null, shProgE = null, shFB = null, shTex = null, shSize = 0; const shlocC = {}, shlocE = {}; let lightPV = U.m4identity(); let shadowReady = false;
@@ -452,7 +456,7 @@ const R = (() => {
   function initShadows() {
     if (!isGL2()) return;
     try {
-      shProgC = compile(SH_VS_C, SH_FS); shlocC.aPos = gl.getAttribLocation(shProgC, 'aPos'); shlocC.uLightPV = gl.getUniformLocation(shProgC, 'uLightPV'); shlocC.uModel = gl.getUniformLocation(shProgC, 'uModel');
+      shProgC = compile(SH_VS_C, SH_FS); shlocC.aPos = gl.getAttribLocation(shProgC, 'aPos'); shlocC.aMat = gl.getAttribLocation(shProgC, 'aMat'); shlocC.uLightPV = gl.getUniformLocation(shProgC, 'uLightPV'); shlocC.uModel = gl.getUniformLocation(shProgC, 'uModel');
       shProgE = compile(SH_VS_E, SH_FS); shlocE.aPos = gl.getAttribLocation(shProgE, 'aPos'); shlocE.aBone = gl.getAttribLocation(shProgE, 'aBone'); shlocE.uLightPV = gl.getUniformLocation(shProgE, 'uLightPV'); shlocE.uModel = gl.getUniformLocation(shProgE, 'uModel'); shlocE.uBones = gl.getUniformLocation(shProgE, 'uBones');
       shSize = isMobile ? 1024 : 2048;
       shTex = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, shTex);
@@ -491,7 +495,8 @@ const R = (() => {
     gl.enable(gl.CULL_FACE); gl.cullFace(gl.FRONT); gl.enable(gl.POLYGON_OFFSET_FILL); gl.polygonOffset(1.5, 2.0);
     gl.useProgram(shProgC); gl.uniformMatrix4fv(shlocC.uLightPV, false, lightPV);
     const ident = U.m4identity(); const R2 = (E + 14) * (E + 14);
-    for (const c of world.chunks.values()) { if (!c.mesh || !c.mesh.op) continue; const mx = c.cx * CH + 8, mz = c.cz * CH + 8; if ((mx - cx) ** 2 + (mz - cz) ** 2 > R2) continue; ident[12] = c.cx * CH; ident[14] = c.cz * CH; gl.uniformMatrix4fv(shlocC.uModel, false, ident); gl.bindBuffer(gl.ARRAY_BUFFER, c.mesh.op.vbo); gl.enableVertexAttribArray(shlocC.aPos); gl.vertexAttribPointer(shlocC.aPos, 3, gl.FLOAT, false, 0, 0); gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, c.mesh.op.ibo); gl.drawElements(gl.TRIANGLES, c.mesh.op.count, gl.UNSIGNED_INT, 0); }
+    for (const c of world.chunks.values()) { if (!c.mesh || !c.mesh.op) continue; const mx = c.cx * CH + 8, mz = c.cz * CH + 8; if ((mx - cx) ** 2 + (mz - cz) ** 2 > R2) continue; ident[12] = c.cx * CH; ident[14] = c.cz * CH; gl.uniformMatrix4fv(shlocC.uModel, false, ident); gl.bindBuffer(gl.ARRAY_BUFFER, c.mesh.op.vbo); gl.enableVertexAttribArray(shlocC.aPos); gl.vertexAttribPointer(shlocC.aPos, 3, gl.FLOAT, false, 0, 0); if (shlocC.aMat >= 0) { if (c.mesh.op.mbo) { gl.bindBuffer(gl.ARRAY_BUFFER, c.mesh.op.mbo); gl.enableVertexAttribArray(shlocC.aMat); gl.vertexAttribPointer(shlocC.aMat, 1, gl.UNSIGNED_BYTE, false, 0, 0); } else { gl.disableVertexAttribArray(shlocC.aMat); gl.vertexAttrib1f(shlocC.aMat, 0); } } gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, c.mesh.op.ibo); gl.drawElements(gl.TRIANGLES, c.mesh.op.count, gl.UNSIGNED_INT, 0); }
+    if (shlocC.aMat >= 0) gl.disableVertexAttribArray(shlocC.aMat);
     gl.useProgram(shProgE); gl.uniformMatrix4fv(shlocE.uLightPV, false, lightPV); const now = performance.now();
     for (const e of entities) { if (!e.mesh || !e.mesh.count || e.isFx || e.noShadow) continue; if ((e.x - cx) ** 2 + (e.z - cz) ** 2 > R2) continue;
       gl.uniformMatrix4fv(shlocE.uModel, false, e.M || U.m4model(e.x, e.y + (e.hover || 0), e.z, e.yaw, e.scale || 1));
@@ -800,7 +805,7 @@ const R = (() => {
       if (b === B.WATER || b === B.BRINE) { if (wt < 0) wt = y + 1; continue; }
       if (SOIL.has(b)) { t = y; break; }
       if (y <= 1) break;
-      if (SOIL.has(get(x, y - 1, z))) { cov = isOpaque(get(x, y + 1, z)) ? y - 1 : y; break; } // standing on the ground: it covers the soil. Paving one block deep counts as ground at its own top; under a wall the ground is the soil it stands on. Otherwise it floats over it: keep looking down
+      if (SOIL.has(get(x, y - 1, z))) { cov = y; break; } // standing on the ground: it covers the soil, and counts as ground at its own level (paving, a floor slab under a wall; a wall set straight on the turf gets a little bank against its foot). Otherwise it floats over it: keep looking down
     }
     return [t, wt, cov]; // cov: where the land meets something built here, so the ground beside it can run up to it smoothly
   }
@@ -884,7 +889,7 @@ const R = (() => {
       for (let i = 0; i < SEG; i++) for (let j = 0; j < RING; j++) { const t0 = i / SEG * TAU, t1 = (i + 1) / SEG * TAU, p0 = j / RING * Math.PI / 2, p1 = (j + 1) / RING * Math.PI / 2;
         if (inDoor((t0 + t1) / 2, 0.3) && Math.sin((p0 + p1) / 2) * R < 2.35) continue; // the doorway
         const vo = [P(t1, p0, R), P(t0, p0, R), P(t0, p1, R), P(t1, p1, R)], no = [N(t1, p0), N(t0, p0), N(t0, p1), N(t1, p1)]; const vi = [vo[1], vo[0], vo[3], vo[2]], ni = [neg(no[1]), neg(no[0]), neg(no[3]), neg(no[2])];
-        if (j === 0) { op.curMat = 3; op.quad(vo, bcol, sks, false, no); op.quad(vi, bcol, sks, false, ni); op.curMat = 0; } else { gs.quad(vo, gcol, sks, false, no); gs.quad(vi, gcol, sks, false, ni); } }
+        if (j === 0) { op.curMat = 15; op.quad(vo, bcol, sks, false, no); op.quad(vi, bcol, sks, false, ni); op.curMat = 0; } else { gs.quad(vo, gcol, sks, false, no); gs.quad(vi, gcol, sks, false, ni); } }
       const rib = (th, ph0, ph1, rad) => { const pts = []; for (let k = 0; k <= 6; k++) pts.push(P(th, ph0 + (ph1 - ph0) * k / 6, R + 0.02)); op.tube(pts, pts.map(() => rad), bs, { sky: sk, segs: 5, cap0: 'none', cap1: 'none' }); };
       for (let k = 0; k < 8; k++) { const th = (k + 0.5) / 8 * TAU; if (!inDoor(th, 0.34)) rib(th, Math.PI / 12, Math.PI / 2 - 0.12, 0.045); }
       if (door != null) { const pd = Math.asin(2.35 / R); for (const sd of [-1, 1]) rib(door + sd * 0.31, 0, pd, 0.1); const pts = []; for (let k = 0; k <= 6; k++) pts.push(P(door - 0.31 + 0.62 * k / 6, pd, R + 0.02)); op.tube(pts, pts.map(() => 0.1), bs, { sky: sk, segs: 5, cap0: 'round', cap1: 'round' }); }
@@ -1058,6 +1063,8 @@ const R = (() => {
           const sk = skyAt(lx, y + 1, lz); const hv = U.hash3(wx, y, wz, 217); const br = [0.66, 0.31, 0.21], cap = [0.56, 0.53, 0.5], clay = [0.8, 0.43, 0.26];
           { const below = get(lx, y - 1, lz); const bc = BLOCKS[below] && below !== B.AIR ? BLOCKS[below].side : br; op.curMat = MAT_OF[below] || 0; op.box(lx + 0.001, y - 0.001, lz + 0.001, lx + 0.999, y + 0.16, lz + 0.999, bc, sk, false); } op.curMat = 14; op.box(lx - 0.1, y + 0.16, lz - 0.1, lx + 1.1, y + 0.3, lz + 1.1, cap, sk, false); op.box(lx + 0.03, y + 0.3, lz + 0.03, lx + 0.97, y + 0.38, lz + 0.97, [0.3, 0.27, 0.25], sk, false); op.curMat = 0;
           const pots = hv < 0.35 ? [[0.3, 0.5, 0.5], [0.7, 0.5, 0.36]] : hv < 0.7 ? [[0.28, 0.3, 0.42], [0.7, 0.34, 0.56], [0.5, 0.72, 0.34]] : [[0.5, 0.5, 0.62]];
+          if (U.hash3(wx, y, wz, 219) < 0.65) { const p0 = pots[0]; const sx = lx + p0[0], sz = lz + p0[1], sy = y + 0.36 + p0[2]; const H = 2.6; const pts = [], rad = []; for (let k = 0; k <= 6; k++) { const t = k / 6; pts.push([sx + t * t * 0.9, sy + t * H, sz + t * t * 0.35]); rad.push(0.1 + t * 0.42); } // a wisp of smoke from the first pot, leaning with the wind
+            op.curMat = 21; op.tube(pts, rad, [0, 0, 0], { sky: sk, segs: 8, cap0: 'none', cap1: 'round', shade: (p) => { const t = Math.max(0, Math.min(1, (p[1] - sy) / H)); return [t, t, t]; } }); op.curMat = 0; }
           for (const [px, pz, ph] of pots) { const cx = lx + px, cz = lz + pz; const r = pots.length === 1 ? 0.2 : 0.14; op.tube([[cx, y + 0.36, cz], [cx, y + 0.36 + ph * 0.75, cz], [cx, y + 0.36 + ph * 0.86, cz], [cx, y + 0.36 + ph, cz]], [r * 1.15, r * 0.82, r * 1.02, r * 0.95], clay, { sky: sk, segs: 8, cap0: 'none', cap1: 'flat', shade: (p) => p[1] > y + 0.36 + ph * 0.97 ? [0.12, 0.1, 0.09] : clay }); }
           continue;
         }
@@ -1122,7 +1129,7 @@ const R = (() => {
         if (id === B.PLANTER) { // a clay pot with a clipped bush, a flowering shrub or a little fan of fronds
           const sk = skyAt(lx, y + 1, lz); const gy = gnd(lx, y, lz); const hv = U.hash3(wx, y, wz, 197), hj = U.hash3(wx, y, wz, 198); const cx = lx + 0.5, cz = lz + 0.5; const clay = [0.76, 0.42, 0.26];
           op.tube([[cx, gy, cz], [cx, gy + 0.3, cz], [cx, gy + 0.36, cz]], [0.2, 0.3, 0.32], clay, { sky: sk, segs: 9, cap0: 'flat', cap1: 'flat' });
-          op.curMat = 15;
+          op.curMat = 7;
           if (hv < 0.4) { op.blob(cx - 0.32, gy + 0.34, cz - 0.32, cx + 0.32, gy + 0.95, cz + 0.32, 0.9, [0.2, 0.52, 0.22], { sky: sk, n: 3 }); op.blob(cx - 0.2, gy + 0.85, cz - 0.2, cx + 0.2, gy + 1.25, cz + 0.2, 0.95, [0.24, 0.58, 0.24], { sky: sk, n: 2 }); }
           else if (hv < 0.75) { op.blob(cx - 0.36, gy + 0.32, cz - 0.36, cx + 0.36, gy + 0.86, cz + 0.36, 0.85, [0.22, 0.55, 0.24], { sky: sk, n: 3 }); const fc = [[0.95, 0.35, 0.45], [0.98, 0.82, 0.25], [0.95, 0.95, 0.98], [0.7, 0.45, 0.9]][Math.floor(hj * 4)]; for (let k = 0; k < 7; k++) { const a = k * 0.9 + hj * 6, r = 0.14 + U.hash3(wx, k, wz, 199) * 0.16, hh = 0.62 + U.hash3(wx, k, wz, 200) * 0.24; op.blob(cx + Math.cos(a) * r - 0.07, gy + hh, cz + Math.sin(a) * r - 0.07, cx + Math.cos(a) * r + 0.07, gy + hh + 0.13, cz + Math.sin(a) * r + 0.07, 0.9, fc, { sky: sk, n: 1 }); } }
           else for (let k = 0; k < 7; k++) { const a = k / 7 * 6.2832 + hj * 6; const path = []; for (let i = 0; i <= 4; i++) { const t = i / 4; path.push([cx + Math.cos(a) * 0.5 * t, gy + 0.36 + 0.75 * t - 0.5 * t * t * t, cz + Math.sin(a) * 0.5 * t]); } op.tube(path, [0.05, 0.075, 0.07, 0.05, 0.015], [0.25, 0.6, 0.24], { sky: sk, segs: 4, cap0: 'none', cap1: 'none' }); }

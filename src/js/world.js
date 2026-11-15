@@ -466,7 +466,7 @@ class World {
         else if (this.preset.water && (h <= SEA + 1 || info.beach) && depth < 3) b = (U.hash3(x, 5, z, s) < 0.2 && depth > 0) ? B.GRAVEL : B.SAND;
         else if (this.preset.biomes === 'moon') { if (depth < 2) b = biome === BIOME.MARE ? B.GRAVEL : biome === BIOME.CRATER ? ((depth === 0 && U.hash3(x, 9, z, s + 617) < 0.22) ? B.STARSALT : B.SAND) : B.GRASS; else if (depth < 5) b = B.DIRT; }
         else if (this.preset.biomes === 'halo') {
-          if (depth === 0) b = biome === BIOME.DUNES ? B.DUNE : biome === BIOME.FLATS ? (U.hash3(x, 9, z, s + 619) < 0.12 ? B.SULFUR : B.SALTCRUST) : (h > 68 && U.hash3(x, 9, z, s + 621) < 0.2 ? B.BASALT : B.STONE);
+          if (depth === 0) b = biome === BIOME.DUNES ? B.DUNE : biome === BIOME.FLATS ? (U.hash3(x, 9, z, s + 619) < 0.12 ? B.SULFUR : B.SALTCRUST) : (h > 68 && U.hash3(x, 9, z, s + 621) < 0.2 ? B.GRAVEL : B.STONE);
           else if (depth < 4) b = biome === BIOME.DUNES ? B.DUNE : biome === BIOME.MESA ? B.STONE : B.DIRT;
         }
         else if (info.crag && (depth > 0 || info.cragRim)) b = (depth === 0 && U.hash3(x, 36, z, s + 967) < 0.35) ? B.MOSS : B.STONE; /* a crag is rock right up to its turf */
