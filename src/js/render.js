@@ -319,6 +319,18 @@ const R = (() => {
           float own = hash3(vec3(cc, row, 4.0));
           float darkSt = 1.0 - smoothstep(0.2, 0.36, lum); /* dark stone is pointed with pale mortar, or its courses vanish and a fortress is one black lump */
           col *= mix(mix(0.6, 1.0, mortar), mix(1.7, 1.0, mortar), darkSt) * (0.86 + 0.28 * own) * (0.96 + 0.08 * vn(uv * 9.0)) * (0.95 + 0.1 * vn(uv * 0.6 + 2.0));
+        } else if (mat == 19) { // a timber frame over limewash: a post at every panel's edge, a rail every other course, and in the panels braces one way or the other, crosses, a stud, a little chevron, or nothing
+          if (abs(n.y) < 0.5) { float hu = abs(n.x) > 0.5 ? vWorld.z : vWorld.x; float cu = floor(hu), cv = floor(vWorld.y); float u = fract(hu), v = fract(vWorld.y);
+            float pk = hash3(vec3(cu, cv, abs(n.x) > 0.5 ? 3.0 : 8.0)); float w = 0.075; float beam = 0.0;
+            beam = max(beam, step(u, w) + step(1.0 - w * 0.4, u)); if (mod(cv, 2.0) < 0.5) beam = max(beam, step(1.0 - w * 1.5, v)); else beam = max(beam, step(v, w * 0.5));
+            float d1 = abs(u - v) * 0.7071, d2 = abs(u - (1.0 - v)) * 0.7071;
+            if (pk < 0.2) beam = max(beam, step(d1, w * 0.62)); else if (pk < 0.4) beam = max(beam, step(d2, w * 0.62)); else if (pk < 0.52) beam = max(beam, step(min(d1, d2), w * 0.55));
+            else if (pk < 0.66) beam = max(beam, step(abs(u - 0.53), w * 0.55)); else if (pk < 0.76) beam = max(beam, step(abs(v - 0.25 - abs(u - 0.53) * 0.9), w * 0.6));
+            beam = clamp(beam, 0.0, 1.0);
+            float grain = vn(vec2(hu * 2.0 + vWorld.y * 9.0, vWorld.y * 2.0 + hu * 9.0)); vec3 wood = vec3(0.2, 0.135, 0.09) * (0.8 + 0.5 * grain);
+            vec3 lime = col * (0.95 + 0.08 * vn(vec2(hu, vWorld.y) * 4.0)) * (1.0 - 0.1 * smoothstep(0.0, 0.03, w + 0.03 - u)); // a little dirt in the lee of each post
+            col = mix(lime, wood, beam);
+          }
         } else if (mat == 18) { // falling water: white streaks running down a pale sheet
           float ax = vWorld.x * 3.1 + vWorld.z * 2.7; float st = vn(vec2(ax, vWorld.y * 0.7 + uTime * 2.6)) * 0.6 + vn(vec2(ax * 2.3, vWorld.y * 1.6 + uTime * 4.1)) * 0.4;
           col = mix(vec3(0.5, 0.74, 0.95), vec3(1.0), smoothstep(0.42, 0.74, st)) * (0.72 + 0.4 * lum);
@@ -752,7 +764,7 @@ const R = (() => {
 
   // ---------- chunk meshing ----------
   // material classes for the fragment shader: 1 grass top, 2 sand, 3 rock, 4 earth, 5 snow, 6 wood, 7 leaves, 8 lava, 9 tiles, 10 plaster, 11 cobbles, 12 thatch, 13 slate, 14 dressed stone, 15 basalt, 16 cloud
-  const MAT_OF = {}; for (const [ids, m] of [[[B.SAND, B.DUNE, B.SALTCRUST], 2], [[B.STONE, B.GRAVEL, B.MOSS, B.COPPER, B.IRON, B.EMBER, B.GOLD, B.DIAMOND, B.BEDROCK, B.RUBBLE, B.SELENITE, B.TYCHO, B.AMBER, B.REGOLITH, B.BOULDER], 3], [[B.DIRT], 4], [[B.SNOW], 5], [[B.PLANKS, B.LOG, B.BIRCHLOG, B.PALMLOG, B.BEAM, B.DOOR, B.DOOR_OPEN, B.LADDER, B.CHEST], 6], [[B.LEAVES, B.BERRYLEAF, B.NEEDLES, B.CACTUS], 7], [[B.LAVA], 8], [[B.TILES], 9], [[B.PLASTER], 10], [[B.COBBLE], 11], [[B.THATCH, B.WEAVE, B.SAIL], 12], [[B.SLATE], 13], [[B.MASONRY, B.SLIT, B.FORTSTONE], 14], [[B.BASALT], 15], [[B.CLOUD], 16], [[B.BRICK], 17]]) for (const id of ids) MAT_OF[id] = m;
+  const MAT_OF = {}; for (const [ids, m] of [[[B.SAND, B.DUNE, B.SALTCRUST], 2], [[B.STONE, B.GRAVEL, B.MOSS, B.COPPER, B.IRON, B.EMBER, B.GOLD, B.DIAMOND, B.BEDROCK, B.RUBBLE, B.SELENITE, B.TYCHO, B.AMBER, B.REGOLITH, B.BOULDER], 3], [[B.DIRT], 4], [[B.SNOW], 5], [[B.PLANKS, B.LOG, B.BIRCHLOG, B.PALMLOG, B.BEAM, B.DOOR, B.DOOR_OPEN, B.LADDER, B.CHEST], 6], [[B.LEAVES, B.BERRYLEAF, B.NEEDLES, B.CACTUS], 7], [[B.LAVA], 8], [[B.TILES], 9], [[B.PLASTER], 10], [[B.COBBLE], 11], [[B.THATCH, B.WEAVE, B.SAIL], 12], [[B.SLATE], 13], [[B.MASONRY, B.SLIT, B.FORTSTONE], 14], [[B.BASALT], 15], [[B.CLOUD], 16], [[B.BRICK], 17], [[B.HALFTIMBER], 19]]) for (const id of ids) MAT_OF[id] = m;
   const scratchOpaque = new MeshBuilder(16384, false, true), scratchWater = new MeshBuilder(2048, false, true), scratchGlass = new MeshBuilder(512, false, true), scratchGrass = new MeshBuilder(8192, false, true);
   const SOIL = new Set([B.GRASS, B.DIRT, B.SAND, B.SNOW, B.GRAVEL, B.STONE, B.MOSS, B.GLOWGRASS, B.REGOLITH, B.DUNE, B.SALTCRUST]);
   // things that stand on the ground without stopping it from sloping: air, leaves, trunks, bushes, flowers, pebbles, torches, chests...
@@ -773,7 +785,7 @@ const R = (() => {
   }
   const ROOFB = (b) => b === B.TILES || b === B.SLATE || b === B.THATCH || b === B.SAIL;
   const SIGNABLE = new Set([B.EMBER, B.BERRY, B.COPPER, B.VOID, B.IRON, B.GOLD, B.GLOWWORM, B.LOG, B.MOONGLOW, B.CLOUD, B.SELENITE, B.BERRYLEAF, B.AMBER]);
-  const WALLY = (b) => b === B.PLANKS || b === B.PLASTER || b === B.BEAM || b === B.MASONRY || b === B.BRICK || b === B.IRONWALL || b === B.VOIDWALL || b === B.SELGLASS;
+  const WALLY = (b) => b === B.PLANKS || b === B.PLASTER || b === B.BEAM || b === B.MASONRY || b === B.BRICK || b === B.HALFTIMBER || b === B.IRONWALL || b === B.VOIDWALL || b === B.SELGLASS;
   const surfTop = new Int16Array(18 * 18), surfWet = new Int16Array(18 * 18), cornerH = new Float32Array(17 * 17);
   const FLOWERS = [[0.95, 0.85, 0.25], [0.95, 0.95, 0.95], [0.85, 0.35, 0.55], [0.6, 0.5, 0.95], [0.95, 0.5, 0.25]];
   function buildChunk(world, chunk) {
@@ -987,6 +999,13 @@ const R = (() => {
           // the water surface in the basin, on the water mesh so it shimmers and reflects
           wa.curMat = 0; const wc = [0.1, 0, 0]; const N = 24; const c0 = wa.nv; wa.vert(cx, y + 0.5, cz, 0, 1, 0, wc[0], wc[1], wc[2], sk, false); for (let i = 0; i < N; i++) { const a = i / N * 6.2832; wa.vert(cx + Math.cos(a) * 2.2, y + 0.5, cz + Math.sin(a) * 2.2, 0, 1, 0, wc[0], wc[1], wc[2], sk, false); } for (let i = 0; i < N; i++) wa.tri(c0, c0 + 1 + i, c0 + 1 + (i + 1) % N);
           const b0 = wa.nv; wa.vert(cx, y + 1.98, cz, 0, 1, 0, 0, 0, 0, sk, false); for (let i = 0; i < 12; i++) { const a = i / 12 * 6.2832; wa.vert(cx + Math.cos(a) * 0.72, y + 1.98, cz + Math.sin(a) * 0.72, 0, 1, 0, 0, 0, 0, sk, false); } for (let i = 0; i < 12; i++) wa.tri(b0, b0 + 1 + i, b0 + 1 + (i + 1) % 12);
+          continue;
+        }
+        if (id === B.CHIMNEY) { // the top of a chimney: a corbelled cap wider than the stack, soot round the flues, and two or three clay pots of different heights
+          const sk = skyAt(lx, y + 1, lz); const hv = U.hash3(wx, y, wz, 217); const br = [0.66, 0.31, 0.21], cap = [0.56, 0.53, 0.5], clay = [0.8, 0.43, 0.26];
+          op.curMat = 17; op.box(lx + 0.02, y - 0.02, lz + 0.02, lx + 0.98, y + 0.16, lz + 0.98, br, sk, false); op.curMat = 14; op.box(lx - 0.1, y + 0.16, lz - 0.1, lx + 1.1, y + 0.3, lz + 1.1, cap, sk, false); op.box(lx + 0.03, y + 0.3, lz + 0.03, lx + 0.97, y + 0.38, lz + 0.97, [0.3, 0.27, 0.25], sk, false); op.curMat = 0;
+          const pots = hv < 0.35 ? [[0.3, 0.5, 0.5], [0.7, 0.5, 0.36]] : hv < 0.7 ? [[0.28, 0.3, 0.42], [0.7, 0.34, 0.56], [0.5, 0.72, 0.34]] : [[0.5, 0.5, 0.62]];
+          for (const [px, pz, ph] of pots) { const cx = lx + px, cz = lz + pz; const r = pots.length === 1 ? 0.2 : 0.14; op.tube([[cx, y + 0.36, cz], [cx, y + 0.36 + ph * 0.75, cz], [cx, y + 0.36 + ph * 0.86, cz], [cx, y + 0.36 + ph, cz]], [r * 1.15, r * 0.82, r * 1.02, r * 0.95], clay, { sky: sk, segs: 8, cap0: 'none', cap1: 'flat', shade: (p) => p[1] > y + 0.36 + ph * 0.97 ? [0.12, 0.1, 0.09] : clay }); }
           continue;
         }
         if (id === B.FALLS) { // falling water: a pale sheet down the rock behind it, a lip where it comes over the top, white water where it lands

@@ -785,6 +785,7 @@ const Village = (() => {
     const h1 = U.hash3(hx, 11, hz, 0x4a), h2 = U.hash3(hx, 12, hz, 0x4b); const st = QSTYLE || styles[Math.floor(h1 * styles.length)]; let roof = st.roofs[Math.floor(h2 * st.roofs.length)]; if (M === MATS.land && !QSTYLE) { if (ROOF_OVR === 'thatch') roof = B.THATCH; else if (ROOF_OVR === 'tiles' && roof === B.THATCH) roof = B.TILES; } // villages are thatched; towns and cities go under tile and slate
     const beam = st.beam; const alongX = dirX !== 0; const sgn = alongX ? dirX : dirZ; // the ridge runs along the door's axis; the door is at a = 3 * sgn
     const A = (dx, dz) => alongX ? dx : dz, Bc = (dx, dz) => alongX ? dz : dx;
+    const WALL = beam && st.wall === B.PLASTER ? B.HALFTIMBER : st.wall; // plaster between timbers is drawn as one timber-framed wall: posts, rails and braces across the limewash
     const WT = 3; // the top wall row
     const lvl = (b) => vy + WT + (4 - Math.abs(b)); // the roof block's height across the house: eaves at the wall top, the ridge four higher
     for (let dx = -4; dx <= 4; dx++) for (let dz = -4; dz <= 4; dz++) {
@@ -799,17 +800,17 @@ const Village = (() => {
         for (let y = vy; y <= vy + WT; y++) {
           let id = B.AIR;
           if (wall) {
-            id = y === vy ? st.base : st.wall;
+            id = y === vy ? st.base : WALL;
             if (beam && (corner || y === vy + 2 || (doorPost && y <= vy + 1))) id = beam;
             if ((lowWin && y === vy + 1) || (highWin && y === vy + 3)) id = M.window;
-            if (doorway) id = y === vy + 2 ? (marker || beam || st.wall) : y > vy + 2 ? st.wall : B.AIR;
+            if (doorway) id = y === vy + 2 ? (marker || beam || WALL) : y > vy + 2 ? WALL : B.AIR;
           }
           set(x, y, z, id);
         }
         if (Math.abs(dx) <= 2 && Math.abs(dz) <= 2) set(x, vy + WT + 1, z, M.floor); // the ceiling: the attic is its own dark space under the roof
         if (Math.abs(a) === 3 && Math.abs(b) <= 2) { // the gable: a triangle of wall under the roof, a beam along its foot and up its middle, a little window
-          for (let y = vy + WT + 1; y < lvl(b); y++) set(x, y, z, beam && (y === vy + WT + 1 || b === 0) ? beam : (b === 0 && y === vy + WT + 3) ? M.window : st.wall);
-          if (a === -3 * sgn && b === -2) for (let y = vy + WT + 1; y <= vy + WT + 5; y++) set(x, y, z, B.MASONRY); // the chimney, up through the back gable
+          for (let y = vy + WT + 1; y < lvl(b); y++) set(x, y, z, beam && WALL !== B.HALFTIMBER && (y === vy + WT + 1 || b === 0) ? beam : (b === 0 && y === vy + WT + 3) ? M.window : WALL);
+          if (a === -3 * sgn && b === -2) { const land = M === MATS.land; for (let y = vy + WT + 1; y <= vy + WT + 5; y++) set(x, y, z, land ? (st.wall === B.MASONRY ? B.MASONRY : B.BRICK) : B.MASONRY); if (land) set(x, vy + WT + 6, z, B.CHIMNEY); } // the chimney, up through the back gable: a brick stack, a cap, clay pots
         }
       }
       if (!(a === -3 * sgn && b === -2)) set(x, lvl(b), z, roof); // the roof: a wedge at every spot but the chimney's
