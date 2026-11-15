@@ -996,6 +996,7 @@ const R = (() => {
         if (get(x, y + 1, z) === B.BEAM) for (const [a, b] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) if (get(x + a, y + 2, z + b) === B.BEAM) { t.house = true; t.dx = -a; t.dz = -b; } // the spar runs back from the peak: the door faces the other way
         _tents.push(t); }
       return _tents; };
+    let _decks = null; const reefDecks = () => { if (_decks) return _decks; _decks = reefTents().map((t) => t.house ? [t.x + t.dx + 0.5, t.z + t.dz + 0.5, 5.25] : [t.x + 0.5, t.z + 0.5, 3.05]); for (let x = -9; x <= 24; x++) for (let z = -9; z <= 24; z++) if (get(x, SEA + 1, z) === B.FUSION && get(x, SEA, z) === B.PLANKS) _decks.push([x + 0.5, z + 0.5, 6.65]); return _decks; }; // every round deck near this chunk: centre and radius
     const ring2 = (cx, cz, r0, r1, y, col, sk, mat) => { const N = 26; op.curMat = mat; for (let i = 0; i < N; i++) { const a0 = i / N * 6.2832, a1 = (i + 1) / N * 6.2832; const v = [[cx + Math.cos(a0) * r0, y, cz + Math.sin(a0) * r0], [cx + Math.cos(a1) * r0, y, cz + Math.sin(a1) * r0], [cx + Math.cos(a1) * r1, y, cz + Math.sin(a1) * r1], [cx + Math.cos(a0) * r1, y, cz + Math.sin(a0) * r1]]; const m = 0.92 + 0.1 * ((i * 7) % 5) / 5, c = [col[0] * m, col[1] * m, col[2] * m], cs = [c, c, c, c], ss = [sk, sk, sk, sk], up = [[0, 1, 0], [0, 1, 0], [0, 1, 0], [0, 1, 0]]; op.quad(v, cs, ss, false, up); op.quad([v[1], v[0], v[3], v[2]], cs, ss, false, up); } op.curMat = 0; };
     const loop = (cx, cz, r, y, rad, col, sk, a0 = 0, a1 = 6.2832) => { const pts = [], N = 26; for (let i = 0; i <= N; i++) { const a = a0 + (a1 - a0) * i / N; pts.push([cx + Math.cos(a) * r, y, cz + Math.sin(a) * r]); } op.tube(pts, pts.map(() => rad), col, { sky: sk, segs: 5, cap0: 'round', cap1: 'round' }); };
     const deckApron = (cx, cz, rOut, sk) => { const pc = BLOCKS[B.PLANKS].top; ring2(cx, cz, rOut - 2.6, rOut, SEA + 0.93, [pc[0] * 0.95, pc[1] * 0.95, pc[2] * 0.95], sk, 6); loop(cx, cz, rOut, SEA + 0.9, 0.16, [0.66, 0.54, 0.34], sk); loop(cx, cz, rOut - 0.05, SEA + 0.55, 0.1, [0.5, 0.4, 0.25], sk); }; // the deck runs out to a true round edge, bound with rope
@@ -1014,7 +1015,7 @@ const R = (() => {
       op.curMat = 0;
       for (let k = 0; k < 6; k++) { const a = (k + 0.5) / 6 * 6.2832, pts = [], e = S(0, a), o = [X + Math.cos(a) * (R0 + 0.55), e[1] - 0.12, Z + Math.sin(a) * (R0 + 0.55)]; pts.push(o); for (const tt of [0, 0.25, 0.5, 0.75, 0.97]) { const q = S(tt, a); pts.push([q[0], q[1] + 0.07, q[2]]); } op.tube(pts, [0.05, 0.075, 0.08, 0.08, 0.07, 0.06], WOODC, { sky: sk, segs: 5, cap0: 'round', cap1: 'round' }); } // bent ribs, their tips standing out past the rim
       if (t.house) { // the spar: a great curved horn of wood rising behind the house and curling forward over its peak, a shell hung from its tip
-        const sp = [[X + sx * (R0 + 0.2), y0 - 3.2, Z + sz * (R0 + 0.2)], [X + sx * (R0 + 0.75), y0 - 0.9, Z + sz * (R0 + 0.75)], [X + sx * (R0 * 0.72), y0 + rr * 0.58, Z + sz * (R0 * 0.72)], [AX + sx * 0.45, AY + 0.45, AZ + sz * 0.45], [AX - sx * 1.2, AY + 1.5, AZ - sz * 1.2], [AX - sx * 2.4, AY + 1.2, AZ - sz * 2.4]];
+        const sp = [[X + sx * (R0 + 0.45), y0 - 0.25, Z + sz * (R0 + 0.45)], [X + sx * (R0 + 0.1), y0 + 0.9, Z + sz * (R0 + 0.1)], [X + sx * (R0 * 0.72), y0 + rr * 0.58, Z + sz * (R0 * 0.72)], [AX + sx * 0.45, AY + 0.45, AZ + sz * 0.45], [AX - sx * 1.2, AY + 1.5, AZ - sz * 1.2], [AX - sx * 2.4, AY + 1.2, AZ - sz * 2.4]];
         op.tube(sp, [0.2, 0.18, 0.16, 0.14, 0.1, 0.045], WOODC, { sky: sk, segs: 6, cap0: 'flat', cap1: 'round' });
         const tip = sp[5]; op.tube([tip, [tip[0], tip[1] - 0.6, tip[2]]], [0.015, 0.015], [0.8, 0.75, 0.6], { sky: sk, segs: 3, cap0: 'none', cap1: 'none' }); op.ball(tip[0], tip[1] - 0.7, tip[2], 0.13, [0.96, 0.9, 0.82], { sky: sk, n: 2 });
         // the house: one round basket of weave, bellied a little, with an arched doorway and round windows, rope round its foot and its brim
@@ -1031,7 +1032,7 @@ const R = (() => {
         for (const sgn of [-1, 1]) op.tube([dp(sgn, -0.1, 0.05), dp(sgn, 1.3, 0.2), dp(sgn, 2.35, 0.1)], [0.13, 0.12, 0.11], WOODC, { sky: sk, segs: 5, cap0: 'flat', cap1: 'round' });
         const mid = [HX + Math.cos(fa) * (WR + 0.3), wy + 2.8, HZ + Math.sin(fa) * (WR + 0.3)]; op.tube([dp(-1, 2.3, 0.1), mid, dp(1, 2.3, 0.1)], [0.11, 0.12, 0.11], WOODC, { sky: sk, segs: 5, cap0: 'round', cap1: 'round' }); // the door arch
         deckApron(HX, HZ, 5.25, sk);
-      } else deckApron(X, Z, 3.05, sk);
+      } else { deckApron(X, Z, 3.05, sk); for (let k = 0; k < 4; k++) { const a = k * 1.5708 + 0.7854, cx2 = Math.cos(a), cz2 = Math.sin(a); op.tube([[X + cx2 * 2.1, SEA + 0.95, Z + cz2 * 2.1], [X + cx2 * 2.75, SEA + 2.4, Z + cz2 * 2.75], [X + cx2 * (R0 - 0.5), y0 + 0.12, Z + cz2 * (R0 - 0.5)]], [0.12, 0.1, 0.08], WOODC, { sky: sk, segs: 5, cap0: 'flat', cap1: 'round' }); } } // a pavilion stands on four bowed poles
     };
     const blocks = chunk.blocks;
     const col0 = [0, 0, 0];
@@ -1048,8 +1049,11 @@ const R = (() => {
         if ((id === B.SAIL || id === B.WEAVE || id === B.BEAM) && reefHere()) { let mine = null, skip = false; // part of a reef house or its sail: drawn whole, by the peak
           for (const t of reefTents()) { const ax = Math.abs(lx - t.x), az = Math.abs(lz - t.z);
             if (id === B.SAIL) { if (ax <= t.rr && az <= t.rr && y <= t.y && y >= t.y - t.rr) { skip = true; if (ax === 0 && az === 0 && y === t.y) mine = t; } }
-            else if (t.house) { const wy = t.y - t.rr - 3; if ((Math.abs(lx - t.x - t.dx) <= 3 && Math.abs(lz - t.z - t.dz) <= 3 && y >= wy && y <= wy + 2) || (id === B.BEAM && ax <= 2 && az <= 2 && y > t.y && y <= t.y + 3)) skip = true; } }
+            else if (!t.house) { if (id === B.BEAM && ax <= 2 && az <= 2 && y < t.y - t.rr && y >= t.y - t.rr - 3) skip = true; }
+            else { const wy = t.y - t.rr - 3; if ((Math.abs(lx - t.x - t.dx) <= 3 && Math.abs(lz - t.z - t.dz) <= 3 && y >= wy && y <= wy + 2) || (id === B.BEAM && ax <= 2 && az <= 2 && y > t.y && y <= t.y + 3)) skip = true; } }
           if (mine) drawTent(mine); if (skip) continue; }
+        if (id === B.PLANKS && y === SEA && reefHere() && !reefDecks().some((d) => Math.hypot(lx + 0.5 - d[0], lz + 0.5 - d[1]) < d[2] - 0.2)) { const sk = skyAt(lx, y + 1, lz), rope = [0.66, 0.54, 0.34]; // a walkway or the jetty: rope along every open edge, so no board ends in a bare square corner
+          for (const [a, b] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { if (get(lx + a, y, lz + b) === B.PLANKS) continue; const ex = lx + 0.5 + a * 0.5, ez = lz + 0.5 + b * 0.5; op.tube([[ex - b * 0.5, y + 0.92, ez - a * 0.5], [ex + b * 0.5, y + 0.92, ez + a * 0.5]], [0.11, 0.11], rope, { sky: sk, segs: 5, cap0: 'round', cap1: 'round' }); } }
         if (id === B.FUSION && y === SEA + 1 && world.preset.water && get(lx, SEA, lz) === B.PLANKS && get(lx + 4, SEA, lz - 4) === B.PLANKS && get(lx + 5, SEA, lz - 5) !== B.PLANKS && get(lx - 4, SEA, lz + 4) === B.PLANKS) deckApron(lx + 0.5, lz + 0.5, 6.65, skyAt(lx, y + 1, lz)); // the village's middle deck
         // a shop's marker block over its doorway: drawn as the wall it sits in, with a sign hanging out over the street in the marker's colour
         if (SIGNABLE.has(id) && y >= 2 && get(lx, y - 1, lz) === B.AIR && get(lx, y - 2, lz) === B.AIR) {
