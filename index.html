@@ -1819,6 +1819,7 @@ const R = (() => {
       if (top && depth < 0.16) { float foam = smoothstep(0.16, 0.0, depth) * (0.5 + 0.5 * sin(uTime * 2.0 + vWorld.x * 3.0 + vWorld.z * 2.0)); col = mix(col, vec3(0.95), foam * 0.45); }
       col = max(col, base * torch * 0.9);
       alpha = top ? mix(0.5, 0.94, max(smoothstep(0.0, 0.7, depth), fres)) : 0.7;
+      if (top) alpha *= smoothstep(0.0, 0.05, depth); // the water thins to nothing at its edge: wet sand, not a cut line
     } else {
       int mat0 = int(vMat + 0.5);
       float nearB = 1.0 - smoothstep(24.0, 48.0, dist);
@@ -2260,6 +2261,66 @@ const R = (() => {
     }
     gl.disableVertexAttribArray(gloc.aBlade);
     gl.useProgram(prog);
+  }
+  // ---- small life: butterflies over the grass by day, fireflies over it by night, birds wheeling high up. One instanced quad each; where they are is worked out in the shader ----
+  const LIFE_VS = `#version 300 es
+  precision highp float;
+  in vec2 aQ;
+  uniform mat4 uPV; uniform vec3 uCam; uniform float uTime; uniform highp sampler2D uHM; uniform vec2 uHMO; uniform float uKind; uniform float uBox; uniform float uSize;
+  out vec2 vUv; out vec3 vCol; out float vFade; out float vA;
+  float hash(float n){ return fract(sin(n * 127.1 + 3.7) * 43758.5453); }
+  vec4 hm(ivec2 t){ return texelFetch(uHM, clamp(t, ivec2(0), ivec2(127)), 0); }
+  void main(){
+    float id = float(gl_InstanceID) + uKind * 131.0; float s1 = hash(id), s2 = hash(id + 0.37), s3 = hash(id + 0.71), s4 = hash(id + 0.13); float t = uTime;
+    vec3 p; float flap = 1.0; float alive = 1.0; vec3 col = vec3(1.0); vA = 1.0; float squash = 1.0;
+    if (uKind < 1.5) {
+      vec2 w = vec2(s1, s2) * uBox; float sp = uKind < 0.5 ? 1.0 : 0.45;
+      w += vec2(sin(t * 0.37 * sp + s3 * 6.283) * 2.2 + sin(t * 0.9 * sp + s4 * 9.0) * 0.7, cos(t * 0.31 * sp + s4 * 6.283) * 2.2 + cos(t * 0.8 * sp + s3 * 7.0) * 0.7);
+      vec2 xz = mod(w - uCam.xz + uBox * 0.5, uBox) - uBox * 0.5 + uCam.xz; // each one keeps its place in the world and comes round again as you walk
+      vec4 g = hm(ivec2(floor(xz - uHMO))); alive = step(0.004, g.r + g.g); // only over grass
+      float y = g.a * 255.0 + (uKind < 0.5 ? 0.7 + s3 * 1.3 + sin(t * 2.3 + s1 * 6.283) * 0.25 : 0.9 + s3 * 1.9 + sin(t * 0.7 + s1 * 6.283) * 0.3);
+      p = vec3(xz.x, y, xz.y);
+      if (uKind < 0.5) { flap = abs(sin(t * (11.0 + s2 * 5.0) + s1 * 6.283)); squash = 0.8; col = s4 < 0.25 ? vec3(1.0, 0.96, 0.86) : s4 < 0.5 ? vec3(1.0, 0.8, 0.2) : s4 < 0.75 ? vec3(1.0, 0.5, 0.16) : vec3(0.45, 0.66, 1.0); }
+      else { vA = smoothstep(0.25, 1.0, sin(t * (1.1 + s2) + s1 * 6.283) * 0.5 + 0.5); col = vec3(0.8, 1.0, 0.35); }
+    } else {
+      float a = t * (0.1 + s2 * 0.06) * (s4 < 0.5 ? 1.0 : -1.0) + s1 * 6.283; float r = 16.0 + s3 * 26.0;
+      p = vec3(uCam.x + (s4 - 0.5) * 50.0 + cos(a) * r, 84.0 + s3 * 12.0 + sin(t * 0.3 + s1 * 6.0) * 1.5, uCam.z + (s1 - 0.5) * 50.0 + sin(a) * r);
+      vA = sin(t * (5.0 + s2 * 2.0) + s1 * 6.283) * 0.5 + 0.5; col = vec3(0.13, 0.13, 0.16);
+    }
+    vec3 toCam = uCam - p; vec3 right = normalize(vec3(toCam.z, 0.0, -toCam.x) + vec3(1e-4, 0.0, 0.0)); float sz = uSize * (0.75 + s2 * 0.5);
+    vec3 wp = p + right * aQ.x * sz * (0.2 + 0.8 * flap) + vec3(0.0, 1.0, 0.0) * aQ.y * sz * squash;
+    gl_Position = uPV * vec4(wp, 1.0); if (alive < 0.5) gl_Position = vec4(2.0, 2.0, 2.0, 1.0);
+    vUv = aQ; vCol = col; vFade = uKind > 1.5 ? 1.0 : 1.0 - smoothstep(uBox * 0.36, uBox * 0.48, length(toCam));
+  }`;
+  const LIFE_FS = `#version 300 es
+  precision mediump float;
+  in vec2 vUv; in vec3 vCol; in float vFade; in float vA; uniform highp float uKind; uniform float uLight; out vec4 o;
+  void main(){
+    if (uKind < 0.5) { // a butterfly: two upper wings, two lower, a dark body between
+      vec2 q = vec2(abs(vUv.x), vUv.y); float up = length((q - vec2(0.5, 0.15)) * vec2(1.0, 0.85)), lo = length((q - vec2(0.36, -0.45)) * vec2(1.25, 1.3)); bool body = q.x < 0.08 && abs(vUv.y) < 0.62;
+      if ((up > 0.5 && lo > 0.36 && !body) || vFade < 0.35) discard;
+      vec3 c = body ? vec3(0.16, 0.12, 0.1) : vCol * mix(1.0, 0.4, smoothstep(0.36, 0.5, min(up, lo * 1.39)));
+      o = vec4(c * uLight, 1.0);
+    } else if (uKind < 1.5) { float r = length(vUv); float g = (exp(-r * r * 9.0) * 0.7 + exp(-r * r * 60.0) * 1.3) * vA * vFade * (1.0 - smoothstep(0.8, 1.0, r)); o = vec4(vCol * g, g); } // a firefly: a soft point of light that comes and goes
+    else { float w = abs(vUv.x); float line = mix(-0.25, 0.55, vA) * w - 0.05; if (abs(vUv.y - line) > 0.13 * (1.0 - w * 0.75) + 0.02 || w > 0.97) discard; o = vec4(vCol * uLight, 1.0); } // a bird: a bent line of wing, beating
+  }`;
+  let lifeProg = null, lfloc = {}, lifeBuf = null;
+  function drawLife(world, player, pv, cam) {
+    if (!grassProg || !hmCenter || !state.skyPass || lifeProg === false || world.preset.id !== 'earth' || state.underwater) return;
+    if (!lifeProg) { try { const mk = (t, src) => { const sh = gl.createShader(t); gl.shaderSource(sh, src); gl.compileShader(sh); if (!gl.getShaderParameter(sh, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(sh)); return sh; };
+        const p = gl.createProgram(); gl.attachShader(p, mk(gl.VERTEX_SHADER, LIFE_VS)); gl.attachShader(p, mk(gl.FRAGMENT_SHADER, LIFE_FS)); gl.linkProgram(p); if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(p));
+        lifeProg = p; lfloc.aQ = gl.getAttribLocation(p, 'aQ'); for (const n of ['uPV', 'uCam', 'uTime', 'uHM', 'uHMO', 'uKind', 'uBox', 'uSize', 'uLight']) lfloc[n] = gl.getUniformLocation(p, n);
+        lifeBuf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, lifeBuf); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, 1, 1, -1, -1, 1, 1, -1, 1]), gl.STATIC_DRAW);
+      } catch (e) { console.warn('small life off:', e.message); lifeProg = false; return; } }
+    const day = state.dayLight, night = state.night || 0; const rain = (typeof Weather !== 'undefined' && Weather.label && Weather.label() !== 'clear');
+    gl.useProgram(lifeProg); gl.uniformMatrix4fv(lfloc.uPV, false, pv); gl.uniform3f(lfloc.uCam, cam.x, cam.y, cam.z); gl.uniform1f(lfloc.uTime, (performance.now() / 1000) % 3600);
+    gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, hmTex); gl.uniform1i(lfloc.uHM, 0); gl.uniform2f(lfloc.uHMO, hmCenter.ox, hmCenter.oz); gl.uniform1f(lfloc.uLight, 0.45 + 0.6 * day);
+    gl.bindBuffer(gl.ARRAY_BUFFER, lifeBuf); gl.enableVertexAttribArray(lfloc.aQ); gl.vertexAttribPointer(lfloc.aQ, 2, gl.FLOAT, false, 0, 0);
+    const go = (kind, box, size, n) => { gl.uniform1f(lfloc.uKind, kind); gl.uniform1f(lfloc.uBox, box); gl.uniform1f(lfloc.uSize, size); gl.drawArraysInstanced(gl.TRIANGLES, 0, 6, n); };
+    gl.disable(gl.CULL_FACE);
+    if (day > 0.6 && !rain) { go(0, 34, 0.22, isMobile ? 20 : 30); go(2, 200, 0.95, 7); }
+    if (night > 0.55 && !rain) { gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE); gl.depthMask(false); go(1, 30, 0.55, isMobile ? 30 : 46); gl.depthMask(true); gl.disable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA); }
+    gl.disableVertexAttribArray(lfloc.aQ);
   }
   // ---- the sky: gradient, the sun and its glow, drifting clouds ----
   const SVS = `attribute vec2 aPos; varying vec2 vP; void main(){ vP = aPos; gl_Position = vec4(aPos, 0.999, 1.0); }`;
@@ -3475,6 +3536,7 @@ const R = (() => {
     gl.useProgram(prog); bindShadow(loc, 1);
     for (const c of visible) if (c.mesh.op) { ident[12] = c.cx * CH; ident[14] = c.cz * CH; gl.uniformMatrix4fv(loc.uModel, false, ident); drawMesh(c.mesh.op); }
     drawGrass(world, player, pv, cam);
+    drawLife(world, player, pv, cam);
     gl.useProgram(prog); gl.uniformMatrix4fv(loc.uPV, false, pv);
     // grass: blades within reach, swaying (fallback without instancing)
     gl.uniform1f(loc.uGrid, 0); gl.uniform1f(loc.uWave, 2);
