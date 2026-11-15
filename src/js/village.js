@@ -1433,7 +1433,7 @@ const Village = (() => {
     if (P.thief || !have) { Dialogue.show(n.name, P.say.concat(P.need ? ['You have ' + Object.keys(need).map(it => `${G.player.count(it)}/${need[it]} ${ITEMS[it].name}`).join(', ') + '.'] : [])); return true; }
     Dialogue.show(n.name, ['That is everything. Give me a moment.', k === 'station' ? `There. ${v.name} is back on the line. Any open station, any time.` : 'Open for business. Thank you.'], () => {
       for (const it in need) G.player.take(it, need[it]); delete closed[k]; st.income = incomeFor(v, st); UI.sfx('quest'); G.addTrainerXp(60); setTimeout(() => UI.toast(`${v.name} pays ◆ ${st.income} a day now.`, 'good'), 1500);
-      if (k === 'station') { const sh = shopOf(v, 'station'); G.addRoost({ id: v.id, name: v.name, x: sh.x + sh.dirX * 5 + 0.5, y: v.y, z: sh.z + sh.dirZ * 5 + 0.5, world: world.preset.id }); }
+      if (k === 'station') { const sh = shopOf(v, 'station'); G.addRoost({ id: v.id, name: v.name, x: sh.x + sh.dirX * 5 + 0.5, y: v.y, z: sh.z + sh.dirZ * 5 + 0.5, world: world.preset.id }); setTimeout(() => { try { trainFilm(v); } catch (e) { console.warn(e); } }, 600); /* and the first train comes in */ }
     });
     return true;
   }
@@ -1940,7 +1940,7 @@ const Village = (() => {
           if (b.wander !== false && !(b === v.elder && walkState) && roomAt(b.x + ux * push, b.y, b.z + uz * push) != null) { b.x += ux * push; b.z += uz * push; } }
         if (a.wander !== false && !(a === v.elder && walkState) && Math.abs(a.y - player.y) < 1.5) { const dx = a.x - player.x, dz = a.z - player.z, d = Math.hypot(dx, dz); if (d < 0.7 && d > 0.01) { const push = (0.7 - d) * Math.min(1, dt * 6); if (roomAt(a.x + dx / d * push, a.y, a.z + dz / d * push) != null) { a.x += dx / d * push; a.z += dz / d * push; } } } } }
     if (walkState && !inBattle) elderWalk(dt, player);
-    trainTick(dt, player);
+    tickBubbles(); trainTick(dt, player);
   }
   // someone standing inside a prop (a lamp post, a fence, a flower box: the props came after the villagers' homes were set) steps to the nearest clear square, and his home moves with him
   /* room for a body, not just a point: the square ahead and a shoulder's width to each side */
@@ -2171,21 +2171,59 @@ const Village = (() => {
       if (Math.hypot(player.x - loco.x, player.z - loco.z) < 45) { v.puffT = (v.puffT || 0) - dt; if (v.puffT <= 0) { v.puffT = 1.4 + Math.random() * 1.2; Hazards.smoke(chim.x, chim.y, chim.z, 1, [0.8, 0.8, 0.84], 0.22); } }
       return;
     }
-    run.t += dt; const sp = Math.min(6.5, run.t * 3.2); run.off += sp * dt; // it gathers way
-    run.puffT -= dt; if (run.puffT <= 0) { run.puffT = Math.max(0.08, 0.3 - run.t * 0.06); Hazards.smoke(chim.x, chim.y, chim.z, 2, [0.78, 0.78, 0.8], 0.4); if (((run.t * 4) | 0) !== (((run.t - dt) * 4) | 0)) UI.sfx('place'); }
-    if (run.rider) { const c = pieces[1]; const p = G.player; p.x = c.x; p.z = c.z; p.y = c.y + 1.7; p.vx = p.vy = p.vz = 0; p.onGround = true; p.frozen = true; const want = loco.yaw + Math.PI; let d = want - p.yaw; while (d > Math.PI) d -= Math.PI * 2; while (d < -Math.PI) d += Math.PI * 2; p.yaw += d * Math.min(1, dt * 2); if (G.orbit) { G.orbit.yaw += (want + 0.45 - G.orbit.yaw) * Math.min(1, dt * 1.5); G.orbit.pitch += (-0.3 - G.orbit.pitch) * Math.min(1, dt * 2); } }
-    if (run.t >= run.dur) { trains.delete(v.id); const cb = run.done; run.done = null; if (cb) cb(); }
+    run.t += dt;
+    if (run.arrive) { const k = Math.min(1, run.t / (run.dur - 0.8)), e = 1 - Math.pow(1 - k, 2.4); run.off = run.from * (1 - e); } // it comes in from down the line and slows to a stand at the platform
+    else { const mt = Math.max(0, run.t - (run.wait || 0)); run.off += Math.min(6.5, mt * 3.2) * dt; } // it stands while you board, then gathers way
+    const moving = run.arrive ? run.t < run.dur - 0.8 : run.t > (run.wait || 0);
+    run.puffT -= dt; if (run.puffT <= 0) { run.puffT = moving ? Math.max(0.08, 0.3 - Math.max(0, run.t - (run.wait || 0)) * 0.06) : 0.9; Hazards.smoke(chim.x, chim.y, chim.z, moving ? 2 : 1, [0.78, 0.78, 0.8], moving ? 0.4 : 0.25); if (moving && ((run.t * 4) | 0) !== (((run.t - dt) * 4) | 0)) UI.sfx('place'); }
+    if (run.whistle != null && run.t >= run.whistle) { run.whistle = null; UI.sfx('whistle'); }
+    for (const ln of run.lines || []) if (!ln.said && run.t >= ln.t) { ln.said = true; const q = ln.at(); say(q[0], q[1], q[2], ln.text, ln.secs || 2.4); }
+    const car = pieces[1], p = G.player;
+    if (run.rider) { // the little film of getting aboard: he walks to the carriage, steps up, sits down; then it takes him away
+      const tw = 1.3, sx = run.start[0], sz = run.start[1];
+      const side = run.cam ? run.cam.side : 1, doorX = car.x + (rl.ax ? 0 : side * 0.8), doorZ = car.z + (rl.ax ? side * 0.8 : 0); // the carriage door, on the platform side
+      if (run.t < tw) { const k = run.t / tw, e = k * k * (3 - 2 * k); p.x = sx + (doorX - sx) * e; p.z = sz + (doorZ - sz) * e; p.y = run.y0; p.yaw = Math.atan2(-(doorX - sx), -(doorZ - sz)); const d = Math.hypot(doorX - sx, doorZ - sz) || 1; p.vx = (doorX - sx) / d * 2.2; p.vz = (doorZ - sz) / d * 2.2; p.vy = 0; G.hideMe = false; } // walking to it: the legs go
+      else { p.x = car.x; p.z = car.z; p.y = car.y + 1.3; p.vx = p.vy = p.vz = 0; G.hideMe = true; } // through the door and into a seat: he is inside now, and the carriage takes him with it
+      p.onGround = true; p.frozen = true; }
+    if (run.cam) { const tg = run.arrive ? { x: run.cam.lx, y: run.cam.ly - 1.2, z: run.cam.lz } : (run.t < 1.3 ? p : car), /* coming in, the camera holds on the platform and lets the train roll into the picture; leaving, it follows the carriage */ tx = tg.x, ty = (tg.y || 0) + (tg === p ? 1.0 : 1.2), tz = tg.z; const c = run.cam; c.lx += (tx - c.lx) * Math.min(1, dt * 4); c.ly += (ty - c.ly) * Math.min(1, dt * 4); c.lz += (tz - c.lz) * Math.min(1, dt * 4);
+      G.cutCam = { x: c.x, y: c.y, z: c.z, yaw: Math.atan2(-(c.lx - c.x), -(c.lz - c.z)), pitch: Math.atan2(c.ly - c.y, Math.hypot(c.lx - c.x, c.lz - c.z)) }; } // the camera stands on the platform and turns its head to watch
+    if (run.t >= run.dur && run.done) { const cb = run.done; run.done = null; if (run.arrive) trains.delete(v.id); cb(); } // a train that has left stays gone until the journey is over
   }
-  // you take your seat and the train pulls out; when it is gone, the fade and the journey
+  // ---- the train's little films: words over people's heads, and a camera that stands still and watches ----
+  const bubbles = [];
+  function say(x, y, z, text, secs) { const el = document.createElement('div'); el.textContent = text; el.style.cssText = 'position:fixed;z-index:30;max-width:52vw;padding:6px 11px;border-radius:13px;background:#fffdf4;color:#2a2318;font:600 13px/1.25 system-ui,sans-serif;box-shadow:0 2px 7px rgba(0,0,0,.4);transform:translate(-50%,-100%);pointer-events:none;white-space:normal;text-align:center;'; document.body.appendChild(el); bubbles.push({ x, y, z, el, until: performance.now() + secs * 1000 }); }
+  function tickBubbles() { const now = performance.now(); for (let i = bubbles.length - 1; i >= 0; i--) { const b = bubbles[i]; if (now > b.until) { b.el.remove(); bubbles.splice(i, 1); continue; } const q = R.project(b.x, b.y, b.z); if (!q || !q.on) { b.el.style.display = 'none'; continue; } b.el.style.display = ''; b.el.style.left = q.x + 'px'; b.el.style.top = (q.y - 6) + 'px'; } }
+  function filmCam(v, rl, p) { // a place to stand and watch from: somewhere round the carriage with a clear sight of it and of the engine, on his side of the line if there is one
+    const W = (al, pp) => rl.ax ? [al, rl.line + 0.5 + pp] : [rl.line + 0.5 + pp, al], car = W(rl.along0 + 0.5 + rl.sgn * 2, 0), eng = W(rl.along0 + 0.5 + rl.sgn * 4.9, 0);
+    const perpOf = rl.ax ? p.z - (rl.line + 0.5) : p.x - (rl.line + 0.5), side0 = perpOf >= 0 ? 1 : -1;
+    const open = (x, y, z) => { const b = world.getBlock(Math.floor(x), Math.floor(y), Math.floor(z)); return b === B.AIR || (!isSolid(b) && b !== B.LAMP && b !== B.FENCE && b !== B.PALISADE && !isLeaf(b)); }; // nothing in the way, not even a fence or a lamp post
+    const sees = (x, y, z, t) => { const tx = t[0], ty = rl.y + 1.3, tz = t[1], d = Math.hypot(tx - x, ty - y, tz - z), n = Math.ceil(d / 0.4); for (let i = 0; i < n - 2; i++) { const k = i / n; if (!open(x + (tx - x) * k, y + (ty - y) * k, z + (tz - z) * k)) return false; } return true; };
+    let best = null;
+    for (const hgt of [2.4, 3.6]) for (const dist of [7.5, 6, 4.5]) for (let k = 0; k < 16; k++) { const ang = k / 16 * 6.283, x = car[0] + Math.cos(ang) * dist, z = car[1] + Math.sin(ang) * dist, y = rl.y + hgt; if (!open(x, y, z) || !open(x, y - 1, z)) continue;
+      const pp = rl.ax ? z - (rl.line + 0.5) : x - (rl.line + 0.5); if (Math.abs(pp) < 2.2) continue; // not on the track itself: the train has to get past
+      const sc = (sees(x, y, z, car) ? 4 : 0) + (sees(x, y, z, eng) ? 2 : 0) + ((pp >= 0 ? 1 : -1) === side0 ? 1 : 0) + dist * 0.1 - (hgt > 3 ? 0.3 : 0); if (sc >= 4 && (!best || sc > best.sc)) best = { sc, x, y, z, side: pp >= 0 ? 1 : -1 }; }
+    if (!best) { const [x, z] = W(rl.along0 + 0.5 + rl.sgn * 2, side0 * 3); best = { x, y: rl.y + 5.5, z, side: side0 }; } // nowhere clear: look down on it from above the platform
+    return { x: best.x, y: best.y, z: best.z, lx: car[0], ly: rl.y + 1.3, lz: car[1], side: best.side };
+  }
+  // every ride: you see yourself walk to the carriage and sit down, the whistle goes, the train rolls away with you, and then the dark and the journey
   function boardTrain(v, done) {
-    const rl = trainOf(v); if (!rl) return false;
-    const p = G.player; trains.set(v.id, { t: 0, off: 0, dur: 2.6, puffT: 0, rider: true, done: () => { p.frozen = false; done(); } });
-    const yaw = rl.ax ? (rl.sgn > 0 ? Math.PI / 2 : -Math.PI / 2) : (rl.sgn > 0 ? 0 : Math.PI);
-    const look = yaw + Math.PI; // the mesh faces +z for its yaw, the camera looks down -z for its own: half a turn apart
-    p.frozen = true; p.wasThird = G.thirdPerson; G.thirdPerson = true; p.yaw = look; if (G.orbit) { G.orbit.yaw = look + 0.45; G.orbit.pitch = -0.3; }
+    const rl = trainOf(v); if (!rl) return false; const p = G.player, cam = filmCam(v, rl, p), W = (al, pp) => rl.ax ? [al, rl.line + 0.5 + pp] : [rl.line + 0.5 + pp, al];
+    const carA = rl.along0 + 0.5 + rl.sgn * 2, st = W(carA, cam.side * 2.6), yaw = rl.ax ? (rl.sgn > 0 ? Math.PI / 2 : -Math.PI / 2) : (rl.sgn > 0 ? 0 : Math.PI), lo = W(rl.along0 + 0.5 + rl.sgn * 4.9, 0);
+    trains.set(v.id, { t: 0, off: 0, wait: 2.1, dur: 5.6, puffT: 0, rider: true, cam, start: st, y0: rl.y + 0.05, whistle: 1.75, lines: [{ t: 1.5, at: () => [lo[0], rl.y + 3.3, lo[1]], text: 'All aboard!', secs: 1.8 }], done: () => { done(); } });
+    p.frozen = true; p.wasThird = G.thirdPerson; G.thirdPerson = true; p.x = st[0]; p.z = st[1]; p.y = rl.y + 0.05; p.yaw = yaw + Math.PI;
     UI.sfx('quest'); return true;
   }
-  function trainArrive(v) { const p = G.player; if (p.wasThird != null) { G.thirdPerson = p.wasThird; p.wasThird = null; } trains.delete(v.id); }
+  // the first time, when a station is put right: the train comes in, and the town says what it thinks
+  function trainFilm(v) {
+    const rl = trainOf(v); if (!rl || trains.has(v.id)) return false; if (typeof UI !== 'undefined' && UI.closePanel) { try { UI.closePanel(); } catch (e) {} } const p = G.player, cam = filmCam(v, rl, p);
+    const folk = (v.npcs || []).filter(n => !n.hidden && n.y != null && Math.hypot(n.x - cam.lx, n.z - cam.lz) < 9).sort((a, b) => Math.hypot(a.x - cam.x, a.z - cam.z) - Math.hypot(b.x - cam.x, b.z - cam.z)).slice(0, 3), W = (al, pp) => rl.ax ? [al, rl.line + 0.5 + pp] : [rl.line + 0.5 + pp, al];
+    const spot = (i) => () => { const n = folk[i]; if (n) return [n.x, n.y + 2.4, n.z]; const [x, z] = W(rl.along0 + 0.5 + rl.sgn * (i * 2 - 1), cam.side * 2.4); return [x, rl.y + 2.4, z]; };
+    p.frozen = true; p.wasThird = G.thirdPerson; G.thirdPerson = true;
+    trains.set(v.id, { t: 0, off: 30, from: 30, dur: 6.2, puffT: 0, arrive: true, cam, whistle: 0.5, lines: [{ t: 0.9, at: spot(0), text: 'Listen. That is her whistle!' }, { t: 2.6, at: spot(1), text: 'The line is open again.' }, { t: 4.3, at: spot(2), text: `First train into ${v.name} in years.` }],
+      done: () => { p.frozen = false; if (p.wasThird != null) { G.thirdPerson = p.wasThird; p.wasThird = null; } G.cutCam = null; UI.toast(`${v.name} station is open. Talk to the stationmaster to ride.`, 'good'); } });
+    return true;
+  }
+  function trainArrive(v) { const p = G.player; if (p.wasThird != null) { G.thirdPerson = p.wasThird; p.wasThird = null; } G.cutCam = null; G.hideMe = false; trains.delete(v.id); }
   function ferryMesh() {
     return R.entityMesh('ferry', (mb) => {
       const hull = [0.42, 0.27, 0.16], trim = [0.86, 0.82, 0.72], red = [0.62, 0.15, 0.13], dark = [0.12, 0.11, 0.1], glass = [0.62, 0.8, 0.9], brass = [0.85, 0.68, 0.3];
@@ -2291,7 +2329,7 @@ const Village = (() => {
   }
   // which quarter of a city a spot is in (null in the square, on the castle hill, or outside a city)
   function quarterAt(v, x, z) { if (!v || !v.R || v.size !== 'city' || (MATS[v.style] || MATS.land) !== MATS.land) return null; const dx = x - v.x, dz = z - v.z, m = Math.max(Math.abs(dx), Math.abs(dz)); if (m > v.R - 4 || m <= 7 || (Math.abs(dx) <= 14 && dz <= -v.R + 28)) return null; return QUARTERS[quarterOf(dx, dz)].name; }
-  return { railAt, quarterAt, plotsOf, plotPrice, ownsPlotAt, buyPlot, enterShow, thiefCaught, layout, townList, init, stamp, restoreStart, update, pick, talk, entities, buy, boardTrain, trainArrive, trainOf, sell, sellValue, raiseDome, shopDef, freed, onBossGone, lieutenantDown, tableChallenge, placeKit, portalList, portalHere, markers, wakeDialogue, questTarget, dawn, pendingIncome, foundingInfo, foundVillage, summaryHtml, ledger, station, recall, upgradeWall, repairWall, expand, build, postShop, levelOf, SHOPS, WALLS,
+  return { railAt, quarterAt, plotsOf, plotPrice, ownsPlotAt, buyPlot, enterShow, thiefCaught, layout, townList, init, stamp, restoreStart, update, pick, talk, entities, buy, boardTrain, trainArrive, trainFilm, trainOf, sell, sellValue, raiseDome, shopDef, freed, onBossGone, lieutenantDown, tableChallenge, placeKit, portalList, portalHere, markers, wakeDialogue, questTarget, dawn, pendingIncome, foundingInfo, foundVillage, summaryHtml, ledger, station, recall, upgradeWall, repairWall, expand, build, postShop, levelOf, SHOPS, WALLS,
     get def() { return active ? { x: active.x, y: active.y, z: active.z } : null; }, set def(v) { restoreStart(v); }, get active() { return active; }, get boss() { return active ? active.boss : null; }, get elder() { return active ? active.elder : null; }, get walking() { return !!walkState; }, get fisher() { return fisher; } };
 })();
 
