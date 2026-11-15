@@ -803,7 +803,7 @@ const Village = (() => {
         for (let y = vy; y <= vy + WT; y++) {
           let id = B.AIR;
           if (wall) {
-            id = y === vy ? st.base : WALL;
+            id = y === vy && !framed ? st.base : WALL; // a framed house is limewash to the ground: more of the wall shows under a deep thatch
             if (beam && (corner || y === vy + 2 || (doorPost && y <= vy + 1))) id = beam;
             if ((lowWin && y === vy + 1) || (highWin && y === vy + 3)) id = M.window;
             if (doorway) id = y === vy + 2 ? (marker || beam || WALL) : y > vy + 2 ? WALL : B.AIR;

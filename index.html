@@ -2506,7 +2506,7 @@ const R = (() => {
             const shadeC = (k) => { const m = 0.84 + hq(k + 40) * 0.3; return [topC[0] * m, topC[1] * m, topC[2] * m]; };
             const dbl = (v, c) => { face(v, c, MAT_OF[id], null); face([v[3], v[2], v[1], v[0]], [c[0] * 0.6, c[1] * 0.6, c[2] * 0.6], 6, null); };
             if (!ROOFB(get(lx + dn[0], y - 1, lz + dn[1])) && !ROOFB(get(lx + dn[0], y, lz + dn[1]))) { const n = thatch ? 5 : 4; const ox = cxm + dn[0] * 0.5, oz = czm + dn[1] * 0.5;
-              for (let k = 0; k < n; k++) { const u0 = k / n - 0.5, u1 = (k + 1) / n - 0.5; const L = thatch ? 0.2 + hq(k) * 0.26 : (hq(k) < 0.14 ? 0.3 : 0.07 + hq(k) * 0.13); const dr = thatch ? 1.25 : 0.85; const lift = thatch ? 0.05 : 0.02 + hq(k + 9) * 0.03; const c = shadeC(k);
+              for (let k = 0; k < n; k++) { const u0 = k / n - 0.5, u1 = (k + 1) / n - 0.5; const L = thatch ? 0.2 + hq(k) * 0.26 : (hq(k) < 0.14 ? 0.3 : 0.07 + hq(k) * 0.13); const dr = thatch ? 0.95 : 0.85; const lift = thatch ? 0.05 : 0.02 + hq(k + 9) * 0.03; const c = shadeC(k);
                 const p0 = [ox + ac[0] * u0 - dn[0] * 0.12, y + 0.12 + lift, oz + ac[1] * u0 - dn[1] * 0.12], p1 = [ox + ac[0] * u1 - dn[0] * 0.12, y + 0.12 + lift, oz + ac[1] * u1 - dn[1] * 0.12];
                 const q0 = [ox + ac[0] * u0 + dn[0] * L, y - L * dr + lift, oz + ac[1] * u0 + dn[1] * L], q1 = [ox + ac[0] * u1 + dn[0] * L, y - L * dr + lift, oz + ac[1] * u1 + dn[1] * L];
                 dbl([p0, p1, q1, q0], c);
@@ -3049,6 +3049,14 @@ const R = (() => {
             const bx = (x0, y0, z0, x1, y1, z1) => op.box(lx + x0, y + y0, lz + z0, lx + x1, y + y1, lz + z1, wood, sk, false);
             if (wX) { bx(0, 0, 0.38, 1, 0.12, 0.62); bx(0, 0.88, 0.38, 1, 1, 0.62); bx(0, 0.12, 0.38, 0.12, 0.88, 0.62); bx(0.88, 0.12, 0.38, 1, 0.88, 0.62); bx(0.46, 0.12, 0.42, 0.54, 0.88, 0.58); bx(0.12, 0.46, 0.42, 0.88, 0.54, 0.58); }
             else { bx(0.38, 0, 0, 0.62, 0.12, 1); bx(0.38, 0.88, 0, 0.62, 1, 1); bx(0.38, 0.12, 0, 0.62, 0.88, 0.12); bx(0.38, 0.12, 0.88, 0.62, 0.88, 1); bx(0.42, 0.12, 0.46, 0.58, 0.88, 0.54); bx(0.42, 0.46, 0.12, 0.58, 0.54, 0.88); }
+            if (id === B.GLASS) { // shutters folded back on the wall outside, painted to go with the wash: green on cream, blue on white, oxblood on ochre, cream on brick
+              const SH = (w) => w === B.HALFTIMBER ? [0.42, 0.6, 0.44] : w === B.HALFTIMBER_W ? [0.4, 0.56, 0.76] : w === B.HALFTIMBER_O ? [0.68, 0.33, 0.27] : w === B.BRICK ? [0.9, 0.86, 0.74] : null;
+              const ax = wX ? [1, 0] : [0, 1], nz = wX ? [0, 1] : [1, 0]; const s0 = skyAt(lx - nz[0], y, lz - nz[1]), s1 = skyAt(lx + nz[0], y, lz + nz[1]);
+              if (s0 !== s1) { const out = s0 > s1 ? -1 : 1; const so = Math.max(s0, s1);
+                for (const sd of [-1, 1]) { const c = SH(get(lx + ax[0] * sd, y, lz + ax[1] * sd)); if (!c) continue; const f = out < 0 ? -0.07 : 1.0; const u0 = sd < 0 ? -0.45 : 1.03, u1 = u0 + 0.42;
+                  const B3 = (ua, ub, va, vb, fa, fb, col) => wX ? op.box(lx + ua, y + va, lz + fa, lx + ub, y + vb, lz + fb, col, so, false) : op.box(lx + fa, y + va, lz + ua, lx + fb, y + vb, lz + ub, col, so, false);
+                  B3(u0, u1, 0.08, 0.92, f, f + 0.07, c); const dk = [c[0] * 0.72, c[1] * 0.72, c[2] * 0.72]; const f2 = out < 0 ? f - 0.012 : f + 0.07;
+                  for (let k = 0; k < 5; k++) B3(u0 + 0.05, u1 - 0.05, 0.16 + k * 0.15, 0.2 + k * 0.15, f2, f2 + 0.012, dk); } } }
             op.curMat = 0; const gc = info.top; const gcol = [gc, gc, gc, gc], gsk = [sk, sk, sk, sk];
             if (wX) { gs.quad([[lx, y, lz + 0.49], [lx + 1, y, lz + 0.49], [lx + 1, y + 1, lz + 0.49], [lx, y + 1, lz + 0.49]], gcol, gsk, false, [[0, 0, -1], [0, 0, -1], [0, 0, -1], [0, 0, -1]]); gs.quad([[lx + 1, y, lz + 0.51], [lx, y, lz + 0.51], [lx, y + 1, lz + 0.51], [lx + 1, y + 1, lz + 0.51]], gcol, gsk, false, [[0, 0, 1], [0, 0, 1], [0, 0, 1], [0, 0, 1]]); }
             else { gs.quad([[lx + 0.49, y, lz + 1], [lx + 0.49, y, lz], [lx + 0.49, y + 1, lz], [lx + 0.49, y + 1, lz + 1]], gcol, gsk, false, [[-1, 0, 0], [-1, 0, 0], [-1, 0, 0], [-1, 0, 0]]); gs.quad([[lx + 0.51, y, lz], [lx + 0.51, y, lz + 1], [lx + 0.51, y + 1, lz + 1], [lx + 0.51, y + 1, lz]], gcol, gsk, false, [[1, 0, 0], [1, 0, 0], [1, 0, 0], [1, 0, 0]]); }
@@ -10643,7 +10651,7 @@ const Village = (() => {
         for (let y = vy; y <= vy + WT; y++) {
           let id = B.AIR;
           if (wall) {
-            id = y === vy ? st.base : WALL;
+            id = y === vy && !framed ? st.base : WALL; // a framed house is limewash to the ground: more of the wall shows under a deep thatch
             if (beam && (corner || y === vy + 2 || (doorPost && y <= vy + 1))) id = beam;
             if ((lowWin && y === vy + 1) || (highWin && y === vy + 3)) id = M.window;
             if (doorway) id = y === vy + 2 ? (marker || beam || WALL) : y > vy + 2 ? WALL : B.AIR;
