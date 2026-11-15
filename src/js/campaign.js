@@ -425,7 +425,7 @@ const Campaign = (() => {
     if (n.job === 'rancher') {
       if (!c.ranch) return say(['Ride? You? Nobody rides a Kin they have not been thrown off first.', 'I will teach you. But I need a paddock first, for the wild one they are bringing in. Wall in the square between my four posts, two blocks high, with a gap for a gate.', 'Any solid block does it. Planks are easiest: one log makes four at the table, and you will want about fifteen logs. Dirt or stone works too if you are short.'], () => { c.ranch = 1; });
       if (c.ranch === 1) return say(['The paddock. Two high, all the way round, between my four posts. Planks, logs, stone, dirt: anything solid. Leave one gap for the gate.']);
-      if (c.ranch === 2 && !c.rogueTamed) return say(['They brought him in last night. Thunderhoof. Nobody has stayed on him longer than a breath.', 'He is in your paddock. Walk up and tap him to get on. Tap when he lands his weight, not before, not after. If he throws you, get up and try again.']);
+      if (c.ranch === 2 && !c.rogueTamed) return say(['They brought him in last night. Thunderhoof. Nobody has stayed on him longer than a breath.', 'He is in your paddock. Walk up and tap him to get on. He will throw his weight one way and then the other: lean against it with the stick and keep the needle in the middle. If he throws you, get up and try again.']);
       return say(['You ride now. But only a few kinds will ever take a rider: steeds, dinosaurs, the great ones. Your Kindex marks steeds with ♞.', 'Each one has to be broken in once. Then ride it: trust builds over a couple of hours and it gets faster. Leave it unridden for a long time (hours of play) and the trust slowly fades.']);
     }
     if (n.job === 'hand') return say([['Hale was thrown seven times before he stayed on anything.', 'Feed them berries. They remember.', 'Mind the back legs.'][Math.floor(Math.random() * 3)]]);
@@ -517,29 +517,110 @@ const Campaign = (() => {
   return { getPerson: (id) => people.find(n => n.id === id) || null, removePerson: (id) => { const i = people.findIndex(n => n.id === id); if (i >= 0) people.splice(i, 1); return i; }, kinmasterSp: () => kinmasterSpecies(), spawnPerson: (...a) => person(...a), hasPerson: (id) => people.some(n => n.id === id), init, update, talk, fisherHook, tryGate, onBoss, target, talkable, entities, locked, give, sites, mapMarks, onRogueTamed, stampPosts, get rogue() { return rogue; }, C };
 })();
 
-// ---------- taming: you press Ride on an unbroken Kin and it bucks; tap when it lands its weight ----------
+// ---------- taming: you get on an unbroken Kin and it bucks under you. A big gauge hangs in the middle of the screen, see-through, so you
+// watch the animal through it. It throws its weight to one side and the needle goes with it; you lean against it with the stick (or A and D)
+// to hold the needle in the middle. It swaps sides quicker and throws harder the longer you last. Last long enough and it gives in.
+// The seahorse ring in Atlantis is the same ride with no end to it: it only gets faster, until nobody could stay on. ----------
 const Taming = (() => {
-  let st = null, el = null;
+  let st = null, el = null, needle = null, trustArc = null, tip = null, hint = null;
+  const SWING = 78; // the needle swings this many degrees either side: at the end of the red, you are off
+  const NEED = [6, 7, 8, 10, 12, 15], LEVEL = [0, 0.15, 0.3, 0.6, 0.9, 1.15]; // by rarity: seconds to hold on, and how hard it starts
+  const pt = (deg, r) => { const a = deg * Math.PI / 180; return [200 + Math.sin(a) * r, 205 - Math.cos(a) * r]; };
+  const arc = (d0, d1, r) => { const a = pt(d0, r), b = pt(d1, r); return 'M' + a[0].toFixed(1) + ' ' + a[1].toFixed(1) + ' A' + r + ' ' + r + ' 0 0 1 ' + b[0].toFixed(1) + ' ' + b[1].toFixed(1); };
+  function build() {
+    el = document.createElement('div'); el.id = 'tamegauge'; el.className = 'hidden';
+    el.innerHTML = '<div class="tg-tip"></div><svg viewBox="0 0 400 226" aria-hidden="true"><path class="tg-back" d="' + arc(-SWING - 1.5, SWING + 1.5, 160) + '"/>' +
+      '<path class="tg-band tg-red" d="' + arc(-SWING, -50, 160) + '"/><path class="tg-band tg-amb" d="' + arc(-50, -20, 160) + '"/><path class="tg-band tg-grn" d="' + arc(-20, 20, 160) + '"/>' +
+      '<path class="tg-band tg-amb" d="' + arc(20, 50, 160) + '"/><path class="tg-band tg-red" d="' + arc(50, SWING, 160) + '"/>' +
+      '<path class="tg-edge" d="' + arc(-SWING - 1.5, SWING + 1.5, 176.5) + '"/><path class="tg-tick" d="M200 26 L200 62"/>' +
+      '<path class="tg-rail" d="' + arc(-SWING, SWING, 132) + '"/><path class="tg-trust" d="' + arc(-SWING, SWING, 132) + '"/>' +
+      '<g class="tg-needle"><path d="M200 205 L192 74 L200 30 L208 74 Z"/></g><circle class="tg-hub" cx="200" cy="205" r="13"/></svg><div class="tg-hint"></div>';
+    (document.getElementById('touch-ui') || document.body).appendChild(el);
+    needle = el.querySelector('.tg-needle'); trustArc = el.querySelector('.tg-trust'); tip = el.querySelector('.tg-tip'); hint = el.querySelector('.tg-hint');
+    let len = 360; try { len = trustArc.getTotalLength(); } catch (e) { /* an old browser: the guess will do */ } trustArc.style.strokeDasharray = len; trustArc.dataset.len = len;
+  }
+  // opts: hard (Thunderhoof), need (seconds), level, ramp, endless (no end: the ring in Atlantis), ent (the wild one you got on: hidden while you are on it),
+  // mode ('land' | 'water' | 'air'), onDone(k), onFall(seconds), label(st) -> the big line, noHurt, drive(st, dt, p) -> moves you while you ride
   function start(k, opts = {}) {
     if (st) return;
-    // the rarer the Kin, the harder it bucks: one good tap for most, two for the rarest, three for a mythic; the rarer ones get a faster bar and a narrower zone
-    const rar = Math.min(5, (k.sp && k.sp.rarity) || 0), hard = !!opts.hard;
-    const need = hard ? 3 : [1, 1, 1, 2, 2, 3][rar], speed = hard ? 1.7 : [1.15, 1.25, 1.4, 1.6, 1.8, 1.9][rar], zone = hard ? 0.22 : [0.28, 0.27, 0.24, 0.21, 0.18, 0.17][rar];
-    st = { k, ent: opts.ent || null, hits: 0, need, pos: 0, dir: 1, speed, zone, center: 0.5, onDone: opts.onDone };
-    st.center = 0.2 + Math.random() * 0.6;
-    if (!el) { el = document.createElement('div'); el.id = 'tamebar'; el.innerHTML = '<div class="snare-tip"></div><div class="snare-track"><div class="snare-zone"></div><div class="snare-marker"></div></div>'; document.getElementById('touch-ui').appendChild(el); }
-    el.classList.remove('hidden'); G.player.frozen = true; draw(); UI.sfx('alert');
-    UI.toast(`${KIN.name(k)} bucks! Tap when the marker is in the glow. Stay on ${st.need} times.`);
+    const p = G.player; const rar = Math.min(5, (k.sp && k.sp.rarity) || 0), hard = !!opts.hard;
+    const need = opts.endless ? Infinity : (opts.need || (hard ? 12 : NEED[rar]));
+    st = { k, t: 0, need, level: opts.level != null ? opts.level : (hard ? 0.7 : LEVEL[rar]), ramp: opts.ramp || (opts.endless ? 0.03 : 0.04), endless: !!opts.endless,
+      b: 0, vb: 0, dir: Math.random() < 0.5 ? -1 : 1, mag: 0.35, pushT: 0.9, kickT: 0, spin: 0, ph: Math.random() * 6, hop: 0, said: -1,
+      onDone: opts.onDone, onFall: opts.onFall, label: opts.label, drive: opts.drive, noHurt: !!opts.noHurt, ent: opts.ent || null,
+      was: { mount: p.mount, mode: p.mountMode, frozen: p.frozen } };
+    if (st.ent) { st.ent.ridden = true; p.x = st.ent.x; p.z = st.ent.z; if (Number.isFinite(st.ent.y)) p.y = st.ent.y + 0.02; p.vx = p.vy = p.vz = 0; }
+    p.mount = k; p.mountMode = opts.mode || G.rideMode(k) || 'land'; p.frozen = true; // you are on its back from the first moment: the ride is the taming
+    if (!el) build(); el.classList.remove('hidden'); el.classList.toggle('endless', st.endless);
+    hint.textContent = Controls.isTouch ? 'Lean against it with the left stick' : 'Lean against it: A and D';
+    draw(); UI.sfx('alert');
+    if (!opts.quiet) UI.toast(KIN.name(k) + ' bucks! Keep the needle in the middle: push the stick against the side it goes to.');
   }
-  function draw() { if (!st || !el) return; el.querySelector('.snare-tip').innerHTML = `Hold on! ${st.hits}/${st.need}<small>Tap anywhere when the white line is in the green</small>`; const z = el.querySelector('.snare-zone'); z.style.left = ((st.center - st.zone / 2) * 100) + '%'; z.style.width = (st.zone * 100) + '%'; el.querySelector('.snare-marker').style.left = (st.pos * 100) + '%'; }
-  function update(dt, p) { if (!st) return; st.pos += st.dir * st.speed * dt; if (st.pos > 1) { st.pos = 1; st.dir = -1; } if (st.pos < 0) { st.pos = 0; st.dir = 1; } draw(); }
-  function tap() {
-    if (!st) return false;
-    const ok = Math.abs(st.pos - st.center) <= st.zone / 2;
-    if (ok) { st.hits++; UI.sfx('hit'); if (st.hits >= st.need) { const s = st; end(); s.k.tamed = true; UI.sfx('caught'); UI.toast(`${KIN.name(s.k)} stops fighting. It will carry you now.`, 'good'); if (s.onDone) s.onDone(s.k); else G.mountKin(s.k); return true; } st.center = 0.15 + Math.random() * 0.7; st.speed *= 1.04; draw(); return true; }
-    const s = st; end(); const p = G.player; p.damage(1, 'thrown'); p.vy = 7; p.vx = (Math.random() - 0.5) * 6; p.vz = (Math.random() - 0.5) * 6; UI.sfx('down');
-    UI.toast(`Thrown! ${KIN.name(s.k)} snorts and stands there. Try again.`, 'bad'); return true;
+  function draw() {
+    if (!st || !el) return;
+    needle.setAttribute('transform', 'rotate(' + (st.b * SWING).toFixed(1) + ' 200 205)');
+    const len = +trustArc.dataset.len || 360; const k = st.endless ? 0 : U.clamp(st.t / st.need, 0, 1); trustArc.style.strokeDashoffset = (len * (1 - k)).toFixed(1);
+    const danger = Math.abs(st.b) > 0.64; if (danger !== st.wasDanger) { st.wasDanger = danger; el.classList.toggle('danger', danger); }
+    const line = st.label ? st.label(st) : 'Hold on! ' + Math.max(1, Math.ceil(st.need - st.t)); if (line !== st.said) { st.said = line; tip.innerHTML = line; }
+    if (st.t > 3.5 && !st.hintOff) { st.hintOff = true; hint.classList.add('gone'); } else if (st.t <= 3.5 && st.hintOff !== false) { st.hintOff = false; hint.classList.remove('gone'); }
   }
-  function end() { st = null; if (el) el.classList.add('hidden'); G.player.frozen = false; }
-  return { start, update, tap, end, get active() { return !!st; }, get state() { return st; } };
+  function update(dt, p) {
+    if (!st) return; dt = Math.min(dt, 0.06);
+    st.t += dt; const I = st.level + st.t * st.ramp; st.I = I;
+    // the animal throws its weight one way for a moment, then another: more often than not the way you are already slipping
+    st.pushT -= dt;
+    if (st.pushT <= 0) {
+      const away = Math.abs(st.b) > 0.12 && Math.random() < 0.55; st.dir = away ? Math.sign(st.b) : (Math.random() < 0.75 ? -st.dir : st.dir);
+      st.mag = (0.5 + Math.random() * 0.5) * (0.6 + 0.62 * I); st.pushT = (0.5 + Math.random() * 0.9) / (1 + I);
+      st.vb += st.dir * (0.25 + 0.5 * I) * Math.random(); st.kickT = 1; st.hop = 0.5 + Math.random() * 0.5;
+      if ((st.kicks = (st.kicks || 0) + 1) % 2 === 0) UI.sfx('mine'); try { if (navigator.vibrate) navigator.vibrate(10); } catch (e) { /* no buzz here */ }
+    }
+    const u = U.clamp((Controls.input && Controls.input.mx) || 0, -1, 1); st.u = u;
+    const auth = 1.0 + 0.3 * I; const vT = st.dir * st.mag + u * auth; // what you can put against it grows too, but slower than it does
+    st.vb += (vT - st.vb) * Math.min(1, dt * 7); st.b += st.vb * dt;
+    st.kickT = Math.max(0, st.kickT - dt * 3); st.ph += dt * (7 + 5 * Math.min(2.5, I)); st.spin += st.dir * dt * (0.9 + 0.8 * Math.min(2.5, I));
+    if (st.drive) st.drive(st, dt, p);
+    if (Math.abs(st.b) >= 1) { fall(); return; }
+    if (st.t >= st.need) { win(); return; }
+    draw();
+  }
+  function restore(keepMount) { const p = G.player, w = st.was; if (st.ent) { st.ent.ridden = false; st.ent.x = p.x; st.ent.z = p.z; } if (!keepMount) { p.mount = w.mount || null; p.mountMode = w.mode; } p.frozen = false; st = null; if (el) { el.classList.add('hidden'); el.classList.remove('danger'); } }
+  function win() {
+    const s = st; s.k.tamed = true; UI.sfx('caught');
+    if (s.onDone) { restore(false); UI.toast(KIN.name(s.k) + ' stops fighting. It will carry you now.', 'good'); s.onDone(s.k); }
+    else { restore(true); UI.toast(KIN.name(s.k) + ' stops fighting. It carries you now.', 'good'); }
+  }
+  function fall() {
+    const s = st, p = G.player, side = Math.sign(s.b) || 1; const secs = s.t; restore(false);
+    const f = U.forwardVec(p.yaw, 0); p.vy = 7; p.vx = -f[2] * side * 4 + (Math.random() - 0.5) * 2; p.vz = f[0] * side * 4 + (Math.random() - 0.5) * 2; UI.sfx('down'); // off over the side the needle went
+    if (!s.noHurt) p.damage(1, 'thrown');
+    if (s.onFall) s.onFall(secs, s); else UI.toast('Thrown! ' + KIN.name(s.k) + ' snorts and stands there. Try again.', 'bad');
+  }
+  function end() { if (st) restore(false); }
+  // how the ride looks this frame: the mount and its rider are both turned about the mount's feet. It rears and kicks, hops at every throw,
+  // spins the way it is throwing you and leans the way the needle has gone; you lean further still, sliding off that side
+  const RX = (a) => { const m = U.m4identity(), c = Math.cos(a), s = Math.sin(a); m[5] = c; m[6] = s; m[9] = -s; m[10] = c; return m; };
+  const RY = (a) => { const m = U.m4identity(), c = Math.cos(a), s = Math.sin(a); m[0] = c; m[2] = -s; m[8] = s; m[10] = c; return m; };
+  const RA = (x, y, z, a) => { const m = U.m4identity(), c = Math.cos(a), s = Math.sin(a), t = 1 - c; m[0] = c + x * x * t; m[1] = y * x * t + z * s; m[2] = z * x * t - y * s; m[4] = x * y * t - z * s; m[5] = c + y * y * t; m[6] = z * y * t + x * s; m[8] = x * z * t + y * s; m[9] = y * z * t - x * s; m[10] = c + z * z * t; return m; };
+  const TR = (x, y, z) => { const m = U.m4identity(); m[12] = x; m[13] = y; m[14] = z; return m; };
+  function pose(mt, me, camYaw) {
+    if (!st || !mt) return;
+    const I = Math.min(2.5, st.I || 0), wet = G.player.mountMode === 'water', air = G.player.mountMode === 'air';
+    const hopH = (wet ? 0.12 : air ? 0.3 : 0.34) * (0.6 + 0.4 * I) * (0.35 + 0.65 * st.hop);
+    const dy = Math.abs(Math.sin(st.ph * 0.5)) * hopH + st.kickT * 0.12;
+    const pitch = Math.sin(st.ph * 0.5 + 0.9) * (wet ? 0.16 : 0.24) * (0.7 + 0.3 * I) - st.kickT * 0.16; // negative lifts the front: it rears at every throw
+    const lean = st.b * (wet ? 0.5 : 0.36) + Math.sin(st.ph * 0.37) * 0.05; // toward the side of the screen the needle has gone to, whichever way the animal has spun
+    const dyaw = st.spin + Math.sin(st.ph * 0.23) * 0.3;
+    const f = U.forwardVec(camYaw == null ? G.player.yaw : camYaw, 0);
+    const K = (extra, lift) => U.m4mul(TR(mt.x, mt.y + dy + lift, mt.z), U.m4mul(RA(f[0], 0, f[2], lean + extra), U.m4mul(RY(mt.yaw + dyaw), U.m4mul(RX(pitch), U.m4mul(RY(-mt.yaw), TR(-mt.x, -mt.y, -mt.z))))));
+    const base = (e) => U.m4model(e.x, e.y + (e.hover || 0), e.z, e.yaw, e.scale || 1);
+    mt.M = U.m4mul(K(0, 0), base(mt)); mt.anim = Object.assign({}, mt._an || {}, { ph: st.ph, mv: wet ? 0.6 : 0.95, lt: performance.now() });
+    if (me) { // you stay sat where you were sat: from the seat up you lean further than the animal does, and slide a little toward the side you are losing
+      const sx = me.x, sy = me.y + (me.seatY || 0.5), sz = me.z, rx = -f[2], rz = f[0], sl = st.b * 0.14;
+      const L = U.m4mul(TR(sx + rx * sl, sy, sz + rz * sl), U.m4mul(RA(f[0], 0, f[2], st.b * 0.5), TR(-sx, -sy, -sz)));
+      me.M = U.m4mul(K(0, st.kickT * 0.04), U.m4mul(L, base(me)));
+      if (me._an) me._an.attack = 0.72 + 0.22 * Math.sin(st.ph * 0.5); // one arm in the air, the way anyone rides a thing like this
+    }
+  }
+  return { start, update, tap: () => !!st, end, pose, get active() { return !!st; }, get state() { return st; } };
 })();

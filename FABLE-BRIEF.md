@@ -99,3 +99,13 @@ Where it stands (PROGRESS.md has every change with the function names):
 
 How to check your work: photograph it. `tools/test/t-play.js` takes gameplay-height shots (this is how the grid lines and trunk problems were found, aerial shots hide them), `t-dress.js`, `t-frame.js`, `t-town.js`, `t-bodies.js`, `t-crag.js`, `t-water.js`, `t-river.js`, `t-biomes.js` cover the rest. Towns are built once per world, so changes to them need a new game; land and drawing changes show in an old save.
 
+
+## Direction from Alexander, 15 November (evening)
+
+All references are spirit only, never copies. He said it himself: names and looks are trademarked.
+
+- **Riding and breaking in.** No more tap-the-bar. You are on the animal and see it buck under you. A big see-through gauge sits in the middle of the screen, the needle is shoved to one side, and you hold the left stick against it to keep it in the middle. It gets faster the longer you last. `Taming` in `src/js/campaign.js`; `Taming.pose()` leans mount and rider toward the side of the screen the needle has gone to. The seahorse ring in Atlantis is the same ride with no end, paying gems for time survived, ramping until nobody could stay on.
+- **Atlantis.** One underwater city in every Earth world, named Atlantis, the size of a city, super advanced. A centrepiece in the spirit of a great indoor ring waterfall. Shops with advanced goods (a spear with an electric blue head, Poseidon's trident) unlocked by quest progress and tied to the other worlds and the Lost World. A seahorse you can tame, and the ring in the middle of the market that you can go back to and get good at.
+- **Halo (not started).** A blend of Mad Max and John Carter: the people, the places, an arena town with big monster animals, half-buried dome huts like a desert moisture farm. He likes this one most.
+- **The Moon (not started).** A space-opera port feel for the towns, aliens and animals, no masks or helmets that read as anyone's. Ray guns instead of the bow, a first-person shoot-out part, the Kinmaster behind it all.
+- **Said back to him, waiting for his answer:** the bow fails on the Moon because there is no air for the feathers, not because of gravity. Instead of halving all Kin HP on the Moon: Earth Kin at half strength in the open, full strength inside a dome, cured for good by a breather collar earned up there; Moon-born Kin unaffected. Story thread: the Kinmaster had ships, his garrison on the Moon is the ray-gun part, his warlord runs the Halo arena, Atlantis is the one place he never found.

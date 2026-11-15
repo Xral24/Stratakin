@@ -171,7 +171,7 @@ G.rideRequirement = function (k) {
 };
 G.toggleRide = function () {
   const p = this.player;
-  if (Battle.active || Dialogue.active()) return;
+  if (Battle.active || Dialogue.active() || Taming.active) return;
   if (p.mount) { const was = p.mount; p.mount = null; if (was.borrowed) Camps.horseHome(); else UI.toast('You climb off.'); return; }
   const k = this.activeKin(); if (!k) return;
   if (!(this.stats.camp || {}).rogueTamed && !k.sp.tame && !k.sp.fast) { UI.toast('You do not know how to ride yet. Dusty Hale teaches it, out at his ranch (♞ on the map).'); return; }
@@ -181,7 +181,7 @@ G.toggleRide = function () {
   if (this.trainerLevel < req) { UI.toast(`${KIN.name(k)} will carry you at trainer level ${req}. You are ${this.trainerLevel}.`); return; }
   if (k.level < 8 && !k.sp.tame) { UI.toast(`${KIN.name(k)} is too young to carry you (Lv 8).`); return; }
   const mode = this.rideMode(k);
-  if (!k.tamed && !k.sp.tame) { if (mode === 'water' && !p.inWater) { UI.toast(`Break ${KIN.name(k)} in where it lives: get in the water first.`); return; } Taming.start(k, { onDone: (kk) => this.mountKin(kk) }); return; }
+  if (!k.tamed && !k.sp.tame) { if (mode === 'water' && !p.inWater) { UI.toast(`Break ${KIN.name(k)} in where it lives: get in the water first.`); return; } Taming.start(k, { mode }); return; }
   if (mode === 'water' && !p.inWater) { UI.toast(`${KIN.name(k)} carries you in the water. Get in first.`); return; }
   if (mode === 'air' && this.noKinFlight()) { UI.toast(this.world.preset.airless ? `There is no air here for ${KIN.name(k)} to fly in.` : `No room down here for ${KIN.name(k)} to spread its wings.`); return; }
   p.mount = k; p.mountMode = mode; UI.sfx('util');
@@ -750,7 +750,7 @@ G.loop = function (t) {
       const trig = (Dialogue.active() || Village.walking) ? null : Wild.update(dt, p, performance.now() / 1000, false);
       Buddy.update(dt, p); Gems.update(dt, p); Felling.update(dt); Keeps.update(dt, p); Citadel.update(dt, p); Farms.update(dt, p); Sky.update(dt, p); Combat.update(dt, p, input);
       Wild.ensureHeart(p, this.trainerLevel, this.mythicCaught); Wild.ensureLegend(p); Wild.ensureApex(p);
-      if (trig && !trig.e.cool && !Dialogue.active() && !p.flying && !(this.fightGrace > performance.now()) && !((Keeps.inHold(p) || Citadel.inside(p) || Sky.inFort(p)) && !trig.e.keepBoss && !trig.e.skyBoss)) Wild.engage(trig.e, trig.ambush);
+      if (trig && !trig.e.cool && !Dialogue.active() && !Taming.active && !p.flying && !(this.fightGrace > performance.now()) && !((Keeps.inHold(p) || Citadel.inside(p) || Sky.inFort(p)) && !trig.e.keepBoss && !trig.e.skyBoss)) Wild.engage(trig.e, trig.ambush);
       for (const e of Wild.list) if (e.cool > 0) e.cool -= dt;
       Hazards.update(dt, p, false); Npcs.update(dt, p, false); Campaign.update(dt, p, false); Taming.update(dt, p); if (p.gliding) { this.lastGlide = performance.now(); if (!this.stats.glideTold && !p.mount && !p.wingsOn) { this.stats.glideTold = true; G.explain('Gliding', 'Left stick: push sideways to bank and turn. Push forward to dive and pick up speed, pull back to brake. The arrow on the glide compass is the wind: with it behind you, you go far; into it, you barely move over the ground. Coming in to land, pull back a moment before the ground to flare and you touch down soft. Too fast and too steep, and it hurts. Let go of ▲ to drop, best done low.'); } }
       if (p.landMsg) { if (p.landMsg === 'hard') UI.toast('Hard landing. Pull back on the stick just before the ground to flare.', 'bad'); else if (p.landMsg === 'stall') UI.toast('You stalled her and dropped. Brake less: keep a little speed until the flare.', 'bad'); else if (p.landMsg === 'soft' && !this.stats.flareTold) { this.stats.flareTold = true; UI.toast('A clean flare. Feather-soft.', 'good'); } p.landMsg = null; }
@@ -786,7 +786,8 @@ G.loop = function (t) {
   let cam = { x: eye.x, y: eye.y, z: eye.z, yaw: orbitCam ? this.orbit.yaw : p.yaw, pitch: orbitCam ? this.orbit.pitch : p.pitch, fov: (this.mobile ? 75 : 70) * Math.PI / 180 };
   if (!inBattle && p.mount) { // riding: the camera sits back and up, further for bigger mounts, so the mount never fills the view
     const mm = KIN.model(p.mount.sp, p.mount.stage); const size = Math.max(mm.height, mm.radius * 1.4);
-    cam = Avatar.thirdCam(cam, p, w, 4.5 + size * 1.6, 0.6 + mm.height * 0.45);
+    const tk = Taming.active ? Math.min(1, Taming.state.t / 0.9) : 0, te = tk * tk * (3 - 2 * tk); // breaking it in: the camera comes in close behind you, so the animal fills the middle of the view behind the gauge
+    cam = Avatar.thirdCam(cam, p, w, (4.5 + size * 1.6) * (1 - 0.26 * te), (0.6 + mm.height * 0.45) * (1 - 0.1 * te));
   } else if (this.thirdPerson && !inBattle) cam = Avatar.thirdCam(cam, p, w);
   if (this.cutCam && !inBattle) cam = Object.assign({}, cam, this.cutCam); // a little film is playing: the camera stands where the film put it
   // tall grass: the camera eases up and back over your shoulder (more when you crouch) so you see over the blades
@@ -810,7 +811,7 @@ G.loop = function (t) {
   lines.push(...Wild.rings(p)); lines.push(...Hazards.lines());
   if (!R.state.underwater && !R.state.inCore && p.y >= w.topAt(Math.floor(p.x), Math.floor(p.z)) - 1) { const rl = Weather.rainLines(w, cam, performance.now() / 1000); if (rl) lines.push(rl); }
   document.getElementById('flash').style.opacity = Weather.state.flash > 0.6 ? 0.7 : 0;
-  const ents = Wild.list.slice();
+  const ents = Wild.list.filter(e => !e.ridden); // the one you are sat on is drawn under you, as your mount
   if (Battle.mineEntity) ents.push(Battle.mineEntity);
   ents.push(...Village.entities());
   if (p.flying) { // the Starship: a pale swept hull with a glass canopy, twin engine pods glowing blue, a tail fin, and a wash of sparks behind it when it moves
@@ -836,8 +837,8 @@ G.loop = function (t) {
     const sp = Math.hypot(p.vx, p.vz, p.vy || 0); if (sp > 1.5 && Math.random() < Math.min(0.9, sp * 0.08)) { const b = U.forwardVec(p.yaw, 0); Hazards.sparks(p.x - b[0] * 1.7, p.y - 0.4, p.z - b[2] * 1.7, 2, [0.5, 0.9, 1.0], 1.2); }
   }
   const showMe = !this.hideMe && (inBattle || this.thirdPerson || this.talkK > 0 || !!p.mount || this.grassCamOn); // hideMe: he has gone inside something (a railway carriage)
-  if (showMe) { const me = Avatar.entity(p, Math.hypot(p.vx, p.vz) > 0.6); if (p.mount) { const mm = KIN.model(p.mount.sp, p.mount.stage); const st = seatOf(mm); const f = U.forwardVec(p.yaw, 0); const along = 0.5 + st.zc - 0.06; me.x = p.x + f[0] * along; me.z = p.z + f[2] * along; me.y = G.mountBase(p) + st.top - hipOf(me.model) * (me.scale || 1) + 0.1; me._an.cross = 1; /* sat cross-legged on top: fits a pony and a T-rex alike */ } ents.push(me); }
-  if (p.mount) { const k = p.mount; const m = KIN.dress(KIN.model(k.sp, k.stage), k.wear); const fwd = U.forwardVec(p.yaw, 0); if (!k._an) k._an = { ph: 0, mv: 0, lx: p.x, lz: p.z, ly: p.y, lt: performance.now(), vy: 0, seed: 5, air: 0 }; k._an.swim = p.mountMode === 'water' ? 1 : 0; ents.push({ x: p.x + fwd[0] * 0.5, y: G.mountBase(p), z: p.z + fwd[2] * 0.5, yaw: p.yaw + Math.PI, model: m, mesh: R.entityMesh(KIN.meshKey(k.sp, k.stage) + KIN.wearKey(k.wear), (mb) => KIN.buildMesh(mb, m)), scale: 1, hover: 0, skyMul: 1, isMount: true, flying: p.mountMode === 'air' && !p.onGround, _an: k._an }); }
+  if (showMe) { const me = Avatar.entity(p, Math.hypot(p.vx, p.vz) > 0.6); if (p.mount) { const mm = KIN.model(p.mount.sp, p.mount.stage); const st = seatOf(mm); const f = U.forwardVec(p.yaw, 0); const along = 0.5 + st.zc - 0.06; me.x = p.x + f[0] * along; me.z = p.z + f[2] * along; me.y = G.mountBase(p) + st.top - hipOf(me.model) * (me.scale || 1) + 0.1; me._an.cross = 1; /* sat cross-legged on top: fits a pony and a T-rex alike */ me.seatY = hipOf(me.model) * (me.scale || 1); } me.M = null; ents.push(me); this.meEnt = me; } else this.meEnt = null;
+  if (p.mount) { const k = p.mount; const m = KIN.dress(KIN.model(k.sp, k.stage), k.wear); const fwd = U.forwardVec(p.yaw, 0); if (!k._an) k._an = { ph: 0, mv: 0, lx: p.x, lz: p.z, ly: p.y, lt: performance.now(), vy: 0, seed: 5, air: 0 }; k._an.swim = p.mountMode === 'water' ? 1 : 0; const mt = { x: p.x + fwd[0] * 0.5, y: G.mountBase(p), z: p.z + fwd[2] * 0.5, yaw: p.yaw + Math.PI, model: m, mesh: R.entityMesh(KIN.meshKey(k.sp, k.stage) + KIN.wearKey(k.wear), (mb) => KIN.buildMesh(mb, m)), scale: 1, hover: 0, skyMul: 1, isMount: true, flying: p.mountMode === 'air' && !p.onGround, _an: k._an }; ents.push(mt); if (Taming.active) Taming.pose(mt, this.meEnt, cam.yaw); /* it bucks, and you with it */ }
   ents.push(...Battle.fxEntities()); ents.push(...Sky.puffEntities()); ents.push(...Wild.dropEntities()); ents.push(...Gems.entities()); ents.push(...Buddy.entities()); ents.push(...Felling.entities()); ents.push(...Combat.entities()); ents.push(...Hazards.entities()); ents.push(...Npcs.entities());
   for (const o of w.statues.values()) {
     if ((o.x - p.x) ** 2 + (o.z - p.z) ** 2 > 4000) continue;
@@ -863,9 +864,9 @@ G.loop = function (t) {
     const lead = this.activeKin();
     const eng = Wild.engagedNear(p);
     UI.setButtons({ deploy: !!eng && !(eng.dazed > 0) && !p.flying, snare: !!st && (p.has('snare') || p.has('snare2')) && !(eng && !(eng.dazed > 0)), ride: !p.flying && (!!p.mount || !!(this._rideable = this.rideable())), rideLabel: p.mount ? 'Off' : (this._rideable ? this._rideable.label : 'Ride'), riding: !!p.mount, ship: p.has('ship') && (p.flying || this.world.layerAt(Math.floor(p.y), Math.floor(p.x), Math.floor(p.z)) !== 'Mines'), flying: p.flying, canLand: p.flying && (p.autoLand || this.landHeight() <= G.LAND_REACH) });
-    if (p.mount && !p.mount.borrowed && (p.mount.hp <= 0 || !this.kin.includes(p.mount))) { p.mount = null; UI.toast('Your mount is down.', 'bad'); }
-    if (p.mount && p.mountMode === 'water' && !p.inWater && p.onGround) { p.mount = null; UI.toast('It cannot follow you onto land.'); }
-    if (p.mount && p.mountMode === 'air' && (this.frame & 15) === 0 && this.noKinFlight()) { p.mount = null; UI.toast('No room down here for wings that size. You climb off.'); }
+    if (p.mount && !Taming.active && !p.mount.borrowed && (p.mount.hp <= 0 || !this.kin.includes(p.mount))) { p.mount = null; UI.toast('Your mount is down.', 'bad'); } /* while you are breaking one in, it is not yours yet (Thunderhoof, the seahorse in the ring) */
+    if (p.mount && !Taming.active && p.mountMode === 'water' && !p.inWater && p.onGround) { p.mount = null; UI.toast('It cannot follow you onto land.'); }
+    if (p.mount && !Taming.active && p.mountMode === 'air' && (this.frame & 15) === 0 && this.noKinFlight()) { p.mount = null; UI.toast('No room down here for wings that size. You climb off.'); }
   }
   if ((this.frame & 7) === 0 && !inBattle) { const npc = Village.pick(p); const rn = npc ? null : Npcs.pick(p); const we = (npc || rn) ? null : Wild.pick(p); const hit = (!npc && !we && !rn) ? p.raycast(5.5) : null; const campHit = hit && hit.id === B.CAMPFIRE;
     UI.lookLabel(rn ? Npcs.label(rn) + ' · tap' : npc ? `${npc.name}${npc.shop ? ' · ' + (npc.shopTitle || Village.SHOPS[npc.shop].title) : npc.role === 'voodoo' ? ' · healer' : npc.role === 'elder' ? ' · village ledger' : npc.role === 'traveller' ? ' · has something to trade' : npc.role === 'hermit' ? ' · hermit, has a job for you' : ''} · tap to talk` : we ? `${KIN.name(we.kin)} · Lv ${we.kin.level}${(we.kin.sp.rarity || 0) > 0 ? ' · ' + KIN.RARITY[we.kin.sp.rarity].name : ''}${we.raider ? ' · RAIDER' : we.isBoss ? ' · tyrant' : we.lieutenant ? " · the tyrant's guard" : ''}` : campHit ? 'Camp fire · tap to rest' : (hit && hit.id === B.STARMETAL) ? (this.worldId === 'moon' ? 'Return pad · tap to fly home' : 'Starmetal') : (hit && hit.id === B.FUSION) ? 'Fusion Table · tap' : (hit && hit.id === B.PORTAL) ? 'Portal · tap to travel' : (hit && hit.id === B.CHEST) ? 'Chest · tap to open' : (hit && hit.id === B.INCUBATOR) ? 'Incubator · tap' : (hit && (hit.id === B.DOOR || hit.id === B.DOOR_OPEN)) ? 'Door · tap' : (hit && hit.id === B.SNOW) ? 'Snow · hold to take (Frost Cloak needs 8)' : (hit && (hit.id === B.IRON || hit.id === B.COPPER || hit.id === B.EMBER || hit.id === B.VOID)) ? BLOCKS[hit.id].name + ' · hold to mine' : ''); }
@@ -893,7 +894,7 @@ G.onTap = function () {
   const usable = hit && !e && (hit.id === B.CAMPFIRE || hit.id === B.FUSION || hit.id === B.DARKTABLE || hit.id === B.STARMETAL || hit.id === B.PORTAL || hit.id === B.DOOR || hit.id === B.DOOR_OPEN || hit.id === B.CHEST || hit.id === B.INCUBATOR || hit.id === B.BED || hit.id === B.THORN || hit.id === B.DEADGATE || hit.id === B.RUBBLE);
   if (Combat.weapon() && !usable && !(e && e.rogue) && !(e && e.dazed > 0)) { Combat.swing(); return; }
   if (e && e.dazed > 0) { if (p.has('snare') || p.has('snare2')) { this.stealthSnare(); } else UI.toast('It is dazed. A snare would take it now: 2 wood, 2 stone.'); return; }
-  if (e && e.rogue) { const c = Campaign.C(); if (c.ranch !== 2) { UI.toast('Thunderhoof flattens his ears at you. Talk to Dusty Hale first.'); return; } const k = KIN.create(e.kin.sp, e.kin.level); Taming.start(k, { hard: true, onDone: (kk) => { kk.tamed = true; this.addKin(kk); Campaign.onRogueTamed(kk); UI.toast('Thunderhoof is yours, and you can ride now. Every Kin still has to be broken in once: press Ride and hold on.', 'good'); } }); return; }
+  if (e && e.rogue) { const c = Campaign.C(); if (c.ranch !== 2) { UI.toast('Thunderhoof flattens his ears at you. Talk to Dusty Hale first.'); return; } const k = KIN.create(e.kin.sp, e.kin.level); Taming.start(k, { hard: true, ent: e, onDone: (kk) => { kk.tamed = true; this.addKin(kk); Campaign.onRogueTamed(kk); UI.toast('Thunderhoof is yours, and you can ride now. Every Kin still has to be broken in once: press Ride and hold on.', 'good'); } }); return; }
   if (e && (!hit || Math.hypot(e.x - p.x, e.z - p.z, e.y - p.y) < hit.dist + 0.5)) {
     if (e.cool > 0) e.cool = 0;
     Battle.start(e, e.alert < 0.6); return;
