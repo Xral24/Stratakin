@@ -120,7 +120,7 @@ const Avatar = (() => {
   // a camera behind and a little above you, pulled in when something is in the way
   function thirdCam(cam, p, world, back = 4.2, lift = 0) {
     const f = U.forwardVec(cam.yaw, cam.pitch); cam = Object.assign({}, cam, { y: cam.y + lift });
-    const free = (x, y, z) => { const b = world.getBlock(Math.floor(x), Math.floor(y), Math.floor(z)); return !isSolid(b) || BLOCKS[b].partial; };
+    const free = (x, y, z) => { const b = world.getBlock(Math.floor(x), Math.floor(y), Math.floor(z)); return (!isSolid(b) || BLOCKS[b].partial) && !R.under(world, x, y, z, 0.35); }; // clear of the blocks and of the smooth ground drawn over them: the camera never sits inside a bank looking out through it
     let d = back;
     for (let t = 0.3; t <= back; t += 0.25) { const x = cam.x - f[0] * t, y = cam.y - f[1] * t + 0.45 * (t / back), z = cam.z - f[2] * t; if (!free(x, y, z)) { d = Math.max(0.3, t - 0.3); break; } }
     return Object.assign({}, cam, { x: cam.x - f[0] * d, y: cam.y - f[1] * d + 0.6 * (d / back), z: cam.z - f[2] * d });

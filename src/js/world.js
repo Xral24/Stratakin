@@ -248,26 +248,24 @@ class World {
     let h = 40 + (cont - 0.5) * 48 + (hills - 0.5) * 16;
     let mountain = 0;
     if (cont > 0.64) { mountain = (cont - 0.64) * 160; h += mountain; }
-    let crag = 0, cragRim = false, fall = false, pool = false, river = false;
-    if (this.preset.id === 'earth') { /* Earth's land has shape: mountains break into ridges, uplands step down in shelves, the desert stands up in buttes, and parts of the coast are cliff */
+    let crag = 0, cragRim = false, river = false;
+    if (this.preset.id === 'earth') { /* Earth's land has shape, and all of it can be walked: mountains break into ridges, uplands step down in shelves, the desert rises in broad mesas, parts of the coast stand up in bluffs. Every one of them is a slope, never a wall: the land is drawn as one smooth skin, so a sudden drop of many blocks would bury whoever stands at its foot */
+      const ss = (a, b, v) => { const t = U.clamp((v - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
       if (mountain > 0) { const rg = 1 - Math.abs(U.fbm2(x, z, 90, 3, s + 43, P) - 0.5) * 2; h += (rg - 0.55) * Math.min(1, mountain / 10) * 16; }
       const tm = U.vnoise2(x, z, 140, P, s + 45);
-      if (tm > 0.6 && h > SEA + 5) { const k = Math.min(1, (tm - 0.6) / 0.08), step = 5, f = (h / step) % 1, e = Math.max(0, (f - 0.7) / 0.3), hq = Math.floor(h / step) * step + step * e * e * (3 - 2 * e); h += (hq - h) * k; }
-      if (temp > 0.62 && moist < 0.47 && h > SEA + 3) { const mm = U.vnoise2(x, z, 110, P, s + 47); if (mm > 0.68) h += Math.min(1, (mm - 0.68) / 0.025) * 8; }
-      if (h >= SEA + 1 && h <= SEA + 7) { const cf = U.vnoise2(x, z, 120, P, s + 49); if (cf > 0.62) h += Math.min(1, (cf - 0.62) / 0.05) * 5; }
-      if (h > SEA + 3 && mountain <= 8) { /* crags: here and there a table of bare rock stands out of the meadow with grass on its flat top, often with a lower shelf round it */
+      if (tm > 0.6 && h > SEA + 5) { const k = Math.min(1, (tm - 0.6) / 0.08) * Math.min(1, (h - SEA - 5) / 3), step = 5, f = (h / step) % 1, e = Math.max(0, (f - 0.45) / 0.55), hq = Math.floor(h / step) * step + step * e * e * (3 - 2 * e); h += (hq - h) * k; }
+      { const w = ss(0.62, 0.65, temp) * ss(0.47, 0.44, moist) * U.clamp((h - SEA - 3) / 3, 0, 1); if (w > 0) h += ss(0.62, 0.76, U.vnoise2(x, z, 110, P, s + 47)) * 8 * w; }
+      { const w = ss(SEA + 0.5, SEA + 3.5, h) * (1 - ss(SEA + 5, SEA + 9, h)); if (w > 0) h += ss(0.6, 0.72, U.vnoise2(x, z, 120, P, s + 49)) * 4 * w; }
+      if (h > SEA + 2 && mountain < 10) { /* knolls: here and there a rounded hill stands out of the meadow, rock showing through the turf on its flanks */
         const CW = 44, xm = U.mod(x, WORLD_W), zm = U.mod(z, WORLD_W), cxi = Math.floor(xm / CW), czi = Math.floor(zm / CW);
-        for (let a = -1; a <= 1 && !crag; a++) for (let b = -1; b <= 1; b++) { const ci = cxi + a, cj = czi + b; const k0 = U.hash3(ci, 31, cj, s + 961); if (k0 > 0.42) continue;
-          const px = (ci + 0.2 + 0.6 * U.hash3(ci, 32, cj, s + 962)) * CW, pz = (cj + 0.2 + 0.6 * U.hash3(ci, 33, cj, s + 963)) * CW; const dd = Math.hypot(xm - px, zm - pz); if (dd > 12) continue;
-          const k1 = U.hash3(ci, 34, cj, s + 964); const rr = (2.6 + k1 * 3.4) * (0.78 + 0.5 * U.vnoise2(x, z, 5, P, s + 965)); const hh = 3 + Math.floor(U.hash3(ci, 35, cj, s + 966) * 4);
-          if (dd < rr) { crag = hh; cragRim = dd > rr - 1.4; } else if (k1 < 0.6 && dd < rr * 1.7 + 1) { crag = Math.max(1, hh >> 1); cragRim = true; }
-          if (hh >= 4 && dd >= rr && dd < rr + 4.2 && U.hash3(ci, 37, cj, s + 968) < 0.7) { /* a spring on the bigger crags: it drops off the edge on one side into a little pool */
-            let da = Math.atan2(zm - pz, xm - px) - U.hash3(ci, 38, cj, s + 969) * 6.2832; da = Math.abs(Math.atan2(Math.sin(da), Math.cos(da)));
-            if (dd < rr + 1.2) { if (da < 0.7 / dd) fall = true; } else if (da < 1.9 / dd) pool = true; }
-          if (crag || fall || pool) break; }
-        h += crag; if (pool) h -= 1; }
-      if (!crag && !pool && !fall && mountain <= 0 && h > SEA - 1 && h < SEA + 9) { /* rivers: slow water winding through the lowlands at sea level, fading out where the land climbs */
-        const rw = Math.abs(U.fbm2(x, z, 260, 2, s + 971, P) - 0.5); if (rw < 0.022) { const k = 1 - rw / 0.022, kk = k * k * (3 - 2 * k) * Math.min(1, (SEA + 9 - h) / 3); h += (SEA - 2 - h) * kk; if (kk > 0.05) river = true; } }
+        for (let a = -1; a <= 1; a++) for (let b = -1; b <= 1; b++) { const ci = cxi + a, cj = czi + b; const k0 = U.hash3(ci, 31, cj, s + 961); if (k0 > 0.42) continue;
+          const px = (ci + 0.2 + 0.6 * U.hash3(ci, 32, cj, s + 962)) * CW, pz = (cj + 0.2 + 0.6 * U.hash3(ci, 33, cj, s + 963)) * CW; const dd = Math.hypot(xm - px, zm - pz); if (dd > 17) continue;
+          const k1 = U.hash3(ci, 34, cj, s + 964); const hh = 3 + Math.floor(U.hash3(ci, 35, cj, s + 966) * 3); const r0 = 1.5 + k1 * 2.5, r1 = r0 + hh * 2 + 1; /* the flank runs out over twice its height: never steeper than a walk */
+          const e = U.clamp((r1 - dd - (U.vnoise2(x, z, 7, P, s + 965) - 0.5)) / (r1 - r0), 0, 1), c = hh * e * e * (3 - 2 * e) * U.clamp((h - SEA - 2) / 3, 0, 1) * U.clamp((10 - mountain) / 4, 0, 1); /* fading out toward the shore and the mountains, so it never ends in a step */
+          if (c > crag) { crag = c; cragRim = e > 0.22 && e < 0.9 && U.vnoise2(x, z, 3.5, P, s + 967) > 0.44; } }
+        h += crag; }
+      if (crag < 1.5 && mountain < 3 && h > SEA - 1 && h < SEA + 8) { /* rivers: slow water winding through the lowlands at sea level in a shallow valley, fading out where the land climbs */
+        const rw = Math.abs(U.fbm2(x, z, 260, 2, s + 971, P) - 0.5); if (rw < 0.05) { const kk = (1 - ss(0.012, 0.05, rw)) * U.clamp((SEA + 8 - h) / 5, 0, 1) * U.clamp(1 - mountain / 3, 0, 1) * U.clamp(1 - crag / 1.5, 0, 1); h += (SEA - 2 - h) * kk; if (kk > 0.05) river = true; } }
     }
     if (this.preset.craters) {
       // bowls punched into the highlands
@@ -285,10 +283,10 @@ class World {
       // Halo: amber dunes in long ridges, low salt flats pooled with brine, and flat-topped mesas with sheer sides
       const m = U.vnoise2(x, z, 160, P, s + 63);
       const ridge = 1 - Math.abs(U.vnoise2(x, z, 26, P, s + 65) - 0.5) * 2;
-      let hh;
-      if (m > 0.66) { biome = BIOME.MESA; hh = 58 + Math.min(1, (m - 0.66) / 0.06) * 14 + (hills - 0.5) * 4; }
-      else if (temp < 0.42) { biome = BIOME.FLATS; hh = 38 + (hills - 0.5) * 5 + (cont - 0.5) * 4; }
-      else { biome = BIOME.DUNES; hh = 45 + (hills - 0.5) * 12 + ridge * 7 + (cont - 0.5) * 10; }
+      const ss = (a, b, v) => { const t = U.clamp((v - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
+      const flatsH = 38 + (hills - 0.5) * 5 + (cont - 0.5) * 4, dunesH = 45 + (hills - 0.5) * 12 + ridge * 7 + (cont - 0.5) * 10;
+      let hh = U.lerp(flatsH, dunesH, ss(0.4, 0.44, temp)); biome = temp < 0.42 ? BIOME.FLATS : BIOME.DUNES; /* the flats run up into the dunes, and the mesas stand on steep slopes: nothing here is a wall, because the land is drawn as one smooth skin */
+      if (m > 0.58) { hh = U.lerp(hh, 67 + (hills - 0.5) * 4, ss(0.58, 0.74, m)); if (m > 0.66) biome = BIOME.MESA; }
       h = Math.round(U.clamp(hh, 18, 82));
       return { h, biome, temp, moist, sky: 0 };
     }
@@ -307,7 +305,7 @@ class World {
     else if (temp < 0.36) biome = BIOME.SNOW;
     else if (temp > 0.62) biome = moist < 0.47 ? BIOME.DESERT : BIOME.SWAMP;
     else biome = moist > 0.5 ? BIOME.FOREST : BIOME.PLAINS;
-    if (biome === BIOME.SWAMP && h > SEA - 1 && h < SEA + 3) {
+    if (biome === BIOME.SWAMP && h > SEA - 1 && h < SEA + 0.6) {
       const pool = U.vnoise2(x, z, 8, P, s + 77);
       if (pool > 0.58) h = SEA - 1;
     }
@@ -318,7 +316,7 @@ class World {
       if (h >= SEA + 1) { const dn = U.vnoise2(x, z, 9, P, s + 81) * 0.7 + U.vnoise2(x, z, 4, P, s + 83) * 0.3; if (dn > 0.6) h += 1; }
     }
     const sky = U.fbm2(x + 777, z - 777, 128, 2, s + 59, P);
-    return { h, biome, temp, moist, sky, beach, crag, cragRim, fall, pool, river };
+    return { h, biome, temp, moist, sky, beach, crag, cragRim, river };
   }
   grassTint(biome, temp, moist) {
     switch (biome) {
@@ -469,7 +467,7 @@ class World {
           if (depth === 0) b = biome === BIOME.DUNES ? B.DUNE : biome === BIOME.FLATS ? (U.hash3(x, 9, z, s + 619) < 0.12 ? B.SULFUR : B.SALTCRUST) : (h > 68 && U.hash3(x, 9, z, s + 621) < 0.2 ? B.GRAVEL : B.STONE);
           else if (depth < 4) b = biome === BIOME.DUNES ? B.DUNE : biome === BIOME.MESA ? B.STONE : B.DIRT;
         }
-        else if (info.crag && (depth > 0 || info.cragRim)) b = (depth === 0 && U.hash3(x, 36, z, s + 967) < 0.35) ? B.MOSS : B.STONE; /* a crag is rock right up to its turf */
+        else if (info.crag >= 1 && (depth > 0 ? depth < 4 || info.crag > 2 : info.cragRim)) b = (depth === 0 && U.hash3(x, 36, z, s + 967) < 0.35) ? B.MOSS : B.STONE; /* a knoll is rock under its turf, and shows it in places */
         else if (info.lost) { if (depth === 0) b = B.GRASS; else if (depth < 3) b = B.DIRT; }
         else if (depth === 0) {
           if (biome === BIOME.SNOW) b = B.SNOW;
@@ -538,8 +536,6 @@ class World {
         gal(x + 1, z, 28); gal(z - 47, x, 21);
       }
       if (this.preset.water && h < SEA) for (let y = h + 1; y <= SEA; y++) blocks[base + y] = B.WATER;
-      if (info.pool && h + 1 < WH && h >= SEA) blocks[base + h + 1] = B.WATER;
-      if (info.fall && h >= SEA) { let top = h; for (const [a, b] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const n = infos[(lx + 2 + a) * 20 + (lz + 2 + b)]; if (n.crag > 3 && n.h > top) top = n.h; } if (top - h >= 3) { for (let y = h + 1; y <= Math.min(top, WH - 2); y++) blocks[base + y] = B.FALLS; blocks[base + h] = B.GRAVEL; } }
       if (this.preset.brine && h < this.preset.brineLevel) for (let y = h + 1; y <= this.preset.brineLevel; y++) blocks[base + y] = B.BRINE;
       if (this.preset.ringfall && h >= this.preset.brineLevel && h < WH - 2 && biome !== BIOME.MESA && U.hash3(x, 13, z, s + 931) < 0.0012) blocks[base + h + 1] = B.RINGSHARD;
       // sky islands
@@ -636,7 +632,7 @@ class World {
       const wx = U.mod(ox + lx, WORLD_W), wz = U.mod(oz + lz, WORLD_W);
       const colKey = wx * 65536 + wz; // edits stored per column map to limit lookups
       const col = this.edits.get(colKey);
-      if (col) for (const [y, id] of col) {
+      if (col) for (const [y, id] of col) { if (y < 0) continue; // a note about the column, not a block (see markCut)
         blocks[(lx * CH + lz) * WH + y] = id;
         if (LIGHT_R[id]) this.torches.set((ox + lx) + ',' + y + ',' + (oz + lz), [ox + lx + 0.5, y + 0.6, oz + lz + 0.5, LIGHT_R[id]]);
       }
@@ -655,7 +651,7 @@ class World {
     const ox = chunk.cx * CH, oz = chunk.cz * CH, blocks = chunk.blocks;
     for (let lx = 0; lx < CH; lx++) for (let lz = 0; lz < CH; lz++) {
       const wx = U.mod(ox + lx, WORLD_W), wz = U.mod(oz + lz, WORLD_W); const col = this.edits.get(wx * 65536 + wz);
-      if (col) for (const [y, id] of col) blocks[(lx * CH + lz) * WH + y] = id;
+      if (col) for (const [y, id] of col) if (y >= 0) blocks[(lx * CH + lz) * WH + y] = id;
       const base = (lx * CH + lz) * WH; for (let y = 1; y < WH; y++) { const id = blocks[base + y]; const k = (ox + lx) + ',' + y + ',' + (oz + lz); if (LIGHT_R[id]) this.torches.set(k, [ox + lx + 0.5, y + 0.6, oz + lz + 0.5, LIGHT_R[id]]); else if (this.torches.has(k)) this.torches.delete(k); }
       chunk.recomputeTop(lx, lz);
     }
@@ -697,6 +693,10 @@ class World {
       col.set(y, id);
     }
   }
+  // where the player has dug into the ground or piled it up, the land stops being one smooth skin: it is cut square, as dug ground is.
+  // Kept with the column's edits (under y = -1), so it is saved and loaded with them.
+  markCut(x, z) { const ck = U.mod(x, WORLD_W) * 65536 + U.mod(z, WORLD_W); let col = this.edits.get(ck); if (!col) { col = new Map(); this.edits.set(ck, col); } if (!col.has(-1)) { col.set(-1, 1); this.editSerial = (this.editSerial || 0) + 1; } }
+  isCut(x, z) { const col = this.edits.get(U.mod(x, WORLD_W) * 65536 + U.mod(z, WORLD_W)); return !!col && col.has(-1); }
   markDirty(cx, cz) { const c = this.chunks.get(cx + ',' + cz); if (c) c.dirty = true; }
   topAt(x, z) {
     const cx = Math.floor(x / CH), cz = Math.floor(z / CH);

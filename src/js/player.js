@@ -301,8 +301,11 @@ class Player {
         const a = R.surfaceAt(w, this.x + dx * 0.5, this.z + dz * 0.5), b = R.surfaceAt(w, this.x - dx * 0.5, this.z - dz * 0.5); if (a != null && b != null) grade = Math.max(grade, a - b);
         if (grade > 0.15) lean = U.clamp((grade - 0.15) * 0.42, 0, 0.42); else if (grade < -0.3) lean = U.clamp((grade + 0.3) * 0.12, -0.08, 0); }
       this.hillLean = (this.hillLean || 0) + (lean - (this.hillLean || 0)) * Math.min(1, dt * 6); }
-    { let want = 0; this.slopeK = 0; if (this.onGround && !this.inWater) { const below = w.getBlock(Math.floor(this.x), Math.floor(this.y - 0.05), Math.floor(this.z)); if (R.isSoil(below)) { let s = R.surfaceAt(w, this.x, this.z); if (s != null) { let lo = s; for (const [ox, oz] of [[0.3, 0], [-0.3, 0], [0, 0.3], [0, -0.3]]) { const t = R.surfaceAt(w, this.x + ox, this.z + oz); if (t == null) continue; if (t > s) s = t; if (t < lo) lo = t; } this.slopeK = U.clamp((s - lo) * 2.5, 0, 1); want = U.clamp(s - this.y, -0.85, 0.85); } } } // the highest of the ground under his boots, so a slope never swallows a foot (or a crouch)
-      this.visLift = (this.visLift || 0) + (want - (this.visLift || 0)) * Math.min(1, dt * 14); this.stepLag = (this.stepLag || 0) * Math.exp(-dt * 10); }
+    { let want = 0, floor = null; this.slopeK = 0; // the drawn ground is a smooth skin over the blocks: he stands on it, never in it
+      if (!this.inWater) { const sc = R.surfaceAt(w, this.x, this.z);
+        if (sc != null && this.onGround && R.isSoil(w.getBlock(Math.floor(this.x), Math.floor(this.y - 0.05), Math.floor(this.z)))) { let s = sc, lo = sc; for (const [ox, oz] of [[0.3, 0], [-0.3, 0], [0, 0.3], [0, -0.3]]) { const t = R.surfaceAt(w, this.x + ox, this.z + oz); if (t == null) continue; if (t > s) s = t; if (t < lo) lo = t; } this.slopeK = U.clamp((s - lo) * 2.5, 0, 1); want = U.clamp(s - this.y, -1.2, 3); floor = Math.min(3, sc - this.y); } // the highest of the ground under his boots, so a slope never swallows a foot (or a crouch)
+        else if (sc != null && !this.onGround && R.under(w, this.x, this.y, this.z, 0)) { want = Math.min(3, sc - this.y); floor = want; } } // in the air over a bank (a jump, a step off a ledge): the bank still holds him up
+      this.visLift = (this.visLift || 0) + (want - (this.visLift || 0)) * Math.min(1, dt * 14); if (floor != null && this.visLift < floor) this.visLift = floor; this.stepLag = (this.stepLag || 0) * Math.exp(-dt * 10); }
     const wasFalling = this.vy < 0;
     const hitY = this.moveAxis(1, this.vy * dt);
     if (hitY) {
@@ -485,6 +488,7 @@ class Player {
       if (hit.id === B.BERRYLEAF) { this.world.setBlock(hit.x, hit.y, hit.z, B.LEAVES); this.add('berry', 1 + (Math.random() < 0.5 ? 1 : 0)); (this.world.regrow = this.world.regrow || []).push({ x: hit.x, y: hit.y, z: hit.z, t: performance.now() + 240000, leaf: true }); return { broke: hit.id, drop: 'berry', x: hit.x, y: hit.y, z: hit.z }; }
       if (hit.id === B.STATUE) { const obj = this.world.removeStatue(hit.x, hit.y, hit.z); if (obj) this.objects.push(obj); return { broke: hit.id, x: hit.x, y: hit.y, z: hit.z }; }
       this.wearTool(hit.id);
+      if (R.isSoil(hit.id)) this.world.markCut(hit.x, hit.z); /* dug ground is square from here on */
       this.world.setBlock(hit.x, hit.y, hit.z, B.AIR);
       if (drop) this.add(drop, 1);
       // everything that grows, grows back: logs, leaves, cactus, glowworms
@@ -529,6 +533,7 @@ class Player {
     if (overlaps && isSolid(info.block)) return null;
     this.world.setBlock(px, py, pz, info.block);
     this.take(item, 1);
+    if (R.isSoil(info.block)) this.world.markCut(px, pz);
     if (typeof G !== 'undefined' && G.ownBlock) G.ownBlock(px, py, pz, info.block); /* what you put down is yours to take up again, wherever it is */
     return { placed: info.block, x: px, y: py, z: pz };
   }

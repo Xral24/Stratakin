@@ -40,7 +40,8 @@ class MeshBuilder {
       let fn = null;
       if (!nrm) { const ux = p[1][0] - p[0][0], uy = p[1][1] - p[0][1], uz = p[1][2] - p[0][2], vx = p[3][0] - p[0][0], vy = p[3][1] - p[0][1], vz = p[3][2] - p[0][2]; fn = [uy * vz - uz * vy, uz * vx - ux * vz, ux * vy - uy * vx]; const l = Math.hypot(fn[0], fn[1], fn[2]) || 1; fn[0] /= l; fn[1] /= l; fn[2] /= l; }
       const b = this.nv; for (let i = 0; i < 4; i++) { const n = nrm ? nrm[i] : fn; this.vert(p[i][0], p[i][1], p[i][2], n[0], n[1], n[2], c[i][0], c[i][1], c[i][2], sky[i], emissive); }
-      this.tri(b, b + 1, b + 2); this.tri(b, b + 2, b + 3); return;
+      if (this.autoDiag && Math.abs(p[0][1] - p[2][1]) > Math.abs(p[1][1] - p[3][1])) { this.tri(b + 1, b + 2, b + 3); this.tri(b + 1, b + 3, b); } // sloping ground folds along the diagonal that lies flatter, so a rise meets the level in a curve and not a row of teeth
+      else { this.tri(b, b + 1, b + 2); this.tri(b, b + 2, b + 3); } return;
     }
     this.ensure(4, 6);
     const b = this.nv;
@@ -266,18 +267,28 @@ const R = (() => {
         vec2 uv = abs(n.x) > 0.5 ? vWorld.zy : (abs(n.y) > 0.5 ? vWorld.xz : vWorld.xy);
         vec3 bp = floor(vWorld - n * 0.5);
         float hb = hash3(bp); float speck = hash3(vec3(floor(uv * 8.0), bp.y)); float blot = hash3(vec3(floor(uv * 3.0), bp.x + bp.z));
-        int matp = int(vMat + 0.5); float soil = (matp == 1 || matp == 2 || matp == 4 || matp == 5) ? 1.0 : 0.0; float blocky = (matp == 7 || matp == 0 || matp >= 9 || soil > 0.5) ? 0.0 : 1.0; // leaves, props, the ground and the town's materials are not blocks: no per-block paint on them
+        int matp = int(vMat + 0.5); float soil = (matp == 1 || matp == 2 || matp == 4 || matp == 5) ? 1.0 : 0.0; float blocky = (matp == 7 || matp == 0 || matp >= 9 || soil > 0.5) ? 0.0 : 1.0; if (matp == 3) { float open = smoothstep(0.3, 0.6, sky); blocky *= 1.0 - open; soil = open; } /* rock under the open sky is land like the rest: no block's worth of paint on it */ // leaves, props, the ground and the town's materials are not blocks: no per-block paint on them
         col *= 1.0 + blocky * (-0.06 + 0.07 * hb + (speck - 0.5) * 0.05 * uQuality + (blot - 0.5) * 0.045); /* quieter: a hint of the block, not grit */
         col *= 1.0 + soil * ((vn(uv * 0.7 + 3.0) - 0.5) * 0.1 + (vn(uv * 2.3 + 8.0) - 0.5) * 0.05); // the ground: a soft drift of light and dark instead
         // broad painted drift: warm and cool patches across the land
         vec2 wp = vWorld.xz * 0.045; vec2 wi = floor(wp), wf = fract(wp); wf = wf * wf * (3.0 - 2.0 * wf);
         float d0 = hash3(vec3(wi, 7.0)), d1 = hash3(vec3(wi + vec2(1.0, 0.0), 7.0)), d2 = hash3(vec3(wi + vec2(0.0, 1.0), 7.0)), d3 = hash3(vec3(wi + vec2(1.0, 1.0), 7.0));
         float drift = mix(mix(d0, d1, wf.x), mix(d2, d3, wf.x), wf.y);
-        col *= mix(vec3(1.08, 1.03, 0.86), vec3(0.88, 0.98, 1.06), drift);
+        col *= mix(vec3(1.0), mix(vec3(1.08, 1.03, 0.86), vec3(0.88, 0.98, 1.06), drift), matp == 3 ? 0.3 : 1.0); // rock keeps its own colour: it is not painted warm here and blue there
         vec2 f = fract(uv); float e = min(min(f.x, 1.0 - f.x), min(f.y, 1.0 - f.y));
         float pd = length(vWorld.xz - uPlayer.xz) + abs(vWorld.y - uPlayer.y) * 0.5; float lw = 0.018; float g = 1.0 - smoothstep(lw, lw * 2.2, e); g *= 1.0 - smoothstep(2.5, 4.5, pd); g *= blocky * (1.0 - smoothstep(0.35, 0.7, sky)); // the lines between blocks show only on rock underground, where the world is cubes; never on the land, on leaves or on anything built
         col *= 1.0 - 0.28 * g;
         float near = 1.0 - smoothstep(30.0, 70.0, dist); int mat = int(vMat + 0.5);
+        float gw = 0.0; vec3 cg = col; // how much of the ground here is turf (the mesher sends it in the length of the normal): the land's materials run into one another, they never change along the edge of a block
+        if (mat >= 1 && mat <= 5) { float lt = clamp((1.0 - length(vN)) * 2.0, 0.0, 1.0); gw = mat == 1 ? 1.0 - lt : lt;
+          if (gw > 0.002) { // grass: a carpet of fine blades, with wind rolling over it
+            vec2 q = vWorld.xz; float fine = vn(q * 26.0) * 0.6 + vn(q * 61.0 + 3.1) * 0.4; float tuft = vn(q * 7.0 + 9.0);
+            vec2 wd = normalize(vec2(0.8, 0.45)); float wave = sin(dot(q, wd) * 0.42 - uTime * 1.6 + vn(q * 0.15) * 4.0) * 0.5 + 0.5; wave *= wave * (0.5 + 0.5 * vn(q * 0.07 + uTime * 0.05));
+            cg *= 0.78 + 0.34 * fine + 0.1 * (tuft - 0.5);
+            cg = mix(cg, cg * vec3(1.18, 1.16, 1.0) + vec3(0.035, 0.04, 0.0), wave * 0.42 * (1.0 - smoothstep(60.0, 110.0, dist)));
+            cg *= mix(mix(0.66, 1.0, smoothstep(12.0, 36.0, dist)), 1.0, 1.0 - uBladeShade); // the ground under standing blades is in their shade
+          }
+          if (mat == 1) mat = 3; } // what shows through thin turf is rock
         if (mat == 2) { // sand: soft wind ripples wandering over it, a fine grain, a glint here and there
           vec2 q = vWorld.xz; float warp = vn(q * 0.3) * 4.0 + vn(q * 1.4 + 2.0) * 1.3;
           float rip = sin(dot(q, vec2(0.93, 0.37)) * 3.4 + warp) * 0.5 + 0.5; rip = smoothstep(0.2, 0.9, rip);
@@ -285,17 +296,20 @@ const R = (() => {
           col *= 1.0 + ((rip - 0.5) * 0.08 + (grain - 0.5) * 0.045) * near;
           col *= 0.96 + 0.08 * vn(q * 0.12);
           col += uSunCol * step(0.996, hash3(vec3(floor(q * 20.0), 3.0))) * uSunAmt * 0.1 * near * (0.4 + 0.6 * rip);
-        } else if (mat == 1) { // grass: a carpet of fine blades, with wind rolling over it
-          vec2 q = vWorld.xz; float fine = vn(q * 26.0) * 0.6 + vn(q * 61.0 + 3.1) * 0.4; float tuft = vn(q * 7.0 + 9.0);
-          vec2 wd = normalize(vec2(0.8, 0.45)); float wave = sin(dot(q, wd) * 0.42 - uTime * 1.6 + vn(q * 0.15) * 4.0) * 0.5 + 0.5; wave *= wave * (0.5 + 0.5 * vn(q * 0.07 + uTime * 0.05));
-          col *= 0.78 + 0.34 * fine + 0.1 * (tuft - 0.5);
-          col = mix(col, col * vec3(1.18, 1.16, 1.0) + vec3(0.035, 0.04, 0.0), wave * 0.42 * (1.0 - smoothstep(60.0, 110.0, dist)));
-          col *= mix(mix(0.66, 1.0, smoothstep(12.0, 36.0, dist)), 1.0, 1.0 - uBladeShade); // the ground under standing blades is in their shade
-        } else if (mat == 3) { // rock: large blotches, thin cracks along a noise contour, a lighter dusting on the tops
+        } else if (mat == 3 && gw < 0.998) { // rock: large blotches, thin cracks along a noise contour, a lighter dusting on the tops
+          float open = smoothstep(0.3, 0.6, sky);
           float blot2 = vn(uv * 1.3 + 5.0); float c1 = vn(uv * 2.4 + 2.0); float crack = 1.0 - smoothstep(0.0, 0.012, abs(c1 - 0.5)); crack *= smoothstep(0.58, 0.72, vn(uv * 0.33 + 9.0));
-          col *= 0.86 + 0.28 * blot2; col *= 1.0 - 0.3 * crack * near; col *= 1.0 + 0.06 * n.y;
+          col *= 0.86 + 0.28 * blot2 * (1.0 - 0.65 * open); col *= 1.0 - 0.3 * crack * near * (1.0 - 0.5 * open); col *= 1.0 + 0.06 * n.y;
           float grit = vn(uv * 17.0) ; col *= 0.95 + 0.1 * grit;
           float strata = (1.0 - abs(n.y)) * (sin(vWorld.y * 2.6 + vn(vWorld.xz * 0.4) * 3.0) * 0.5 + 0.5); col *= 1.0 - 0.07 * strata;
+          if (open > 0.01) { // rock under the open sky: warm grey, bedded in thin wavy layers that follow the lie of the land, pale lichen on its tops, pits and pebbles
+            vec2 q = vWorld.xz; vec3 c2 = mix(col, vec3(dot(col, vec3(0.3, 0.59, 0.11))) * vec3(1.08, 1.0, 0.87), 0.5);
+            float bed = sin(vWorld.y * 9.0 + vn(q * 0.45) * 5.0 + vn(q * 1.9) * 1.2) * 0.5 + 0.5; c2 *= 0.95 + 0.085 * bed;
+            c2 *= 0.94 + 0.12 * vn(q * 0.55 + 4.0);
+            float lich = smoothstep(0.6, 0.74, vn(q * 1.6 + 11.0)) * smoothstep(0.75, 0.95, n.y); c2 = mix(c2, c2 * vec3(1.1, 1.13, 1.02) + vec3(0.03, 0.035, 0.02), lich * 0.55);
+            float pit = smoothstep(0.72, 0.8, vn(q * 11.0 + 3.0)); c2 *= 1.0 - 0.14 * pit * near;
+            col = mix(col, c2, open);
+          }
         } else if (mat == 4) { // earth: clods and the odd pale pebble
           float clod = vn(uv * 5.0 + 1.0) * 0.6 + vn(uv * 13.0 + 4.0) * 0.4; col *= 0.82 + 0.34 * clod;
           float peb = step(0.965, hash3(vec3(floor(uv * 9.0), bp.y + 3.0))); col = mix(col, col * 1.5 + 0.08, peb * near);
@@ -363,6 +377,7 @@ const R = (() => {
           float mortar = smoothstep(0.0, 0.16, f2 - f1); float dome = 1.0 - f1 * 0.35;
           col *= mix(0.72, 1.0, mortar) * (0.88 + 0.24 * idc) * dome * (0.94 + 0.1 * vn(uv * 0.3 + 5.0));
         }
+        if (gw > 0.002) col = mix(col, cg, gw);
       }
     }
     // haze: blue with distance, warm toward the sun
@@ -542,7 +557,7 @@ const R = (() => {
     // the ground height, blended from the four soil texels around the blade; a wall, trunk or cliff among them counts as the blade's own ground
     vec4 a = hm(i0), b = hm(i0 + ivec2(1, 0)), c = hm(i0 + ivec2(0, 1)), e = hm(i0 + ivec2(1, 1));
     float ha = soilH(a, h0), hb = soilH(b, h0), hc = soilH(c, h0), he = soilH(e, h0);
-    float grass = step(0.004, own.r + own.g); { float ga = step(0.004, a.r + a.g), gb = step(0.004, b.r + b.g), gc = step(0.004, c.r + c.g), ge = step(0.004, e.r + e.g); float cov = mix(mix(ga, gb, f.x), mix(gc, ge, f.x), f.y); grass *= step(0.12 + 0.7 * hash(cell * 1.37 + 3.1), cov); } /* where grass meets bare ground the blades thin out raggedly, not along the line of a block */ grass *= 1.0 - smoothstep(1.1, 1.9, max(max(ha, hb), max(hc, he)) - min(min(ha, hb), min(hc, he))); // no blades on a rock face
+    float grass = step(0.004, own.r + own.g); { float ga = step(0.004, a.r + a.g), gb = step(0.004, b.r + b.g), gc = step(0.004, c.r + c.g), ge = step(0.004, e.r + e.g); float cov = mix(mix(ga, gb, f.x), mix(gc, ge, f.x), f.y); grass *= step(0.12 + 0.7 * hash(cell * 1.37 + 3.1), cov); } /* where grass meets bare ground the blades thin out raggedly, not along the line of a block */ grass *= 1.0 - smoothstep(2.3, 3.3, max(max(ha, hb), max(hc, he)) - min(min(ha, hb), min(hc, he))); // no blades on a rock face; a hillside he can walk up keeps its grass
     float zone = own.b; float tall = smoothstep(0.6, 0.78, zone), lawn = 1.0 - smoothstep(0.22, 0.4, zone);
     float y = mix(mix(ha, hb, f.x), mix(hc, he, f.x), f.y);
     // clumps: thick patches and thinner ones, so the meadow is not a uniform brush
@@ -851,7 +866,7 @@ const R = (() => {
   // material classes for the fragment shader: 1 grass top, 2 sand, 3 rock, 4 earth, 5 snow, 6 wood, 7 leaves, 8 lava, 9 tiles, 10 plaster, 11 cobbles, 12 thatch, 13 slate, 14 dressed stone, 15 basalt, 16 cloud
   const MAT_OF = {}; for (const [ids, m] of [[[B.SAND, B.DUNE, B.SALTCRUST], 2], [[B.STONE, B.GRAVEL, B.MOSS, B.COPPER, B.IRON, B.EMBER, B.GOLD, B.DIAMOND, B.BEDROCK, B.RUBBLE, B.SELENITE, B.TYCHO, B.AMBER, B.REGOLITH, B.BOULDER], 3], [[B.DIRT], 4], [[B.SNOW], 5], [[B.PLANKS, B.LOG, B.BIRCHLOG, B.PALMLOG, B.BEAM, B.DOOR, B.DOOR_OPEN, B.LADDER, B.CHEST], 6], [[B.LEAVES, B.BERRYLEAF, B.NEEDLES, B.CACTUS], 7], [[B.LAVA], 8], [[B.TILES], 9], [[B.PLASTER, B.SALTROOF], 10], [[B.COBBLE], 11], [[B.THATCH, B.WEAVE, B.SAIL], 12], [[B.SLATE], 13], [[B.MASONRY, B.SLIT, B.FORTSTONE], 14], [[B.BASALT], 15], [[B.CLOUD], 16], [[B.BRICK], 17], [[B.HALFTIMBER, B.HALFTIMBER_O, B.HALFTIMBER_W], 19], [[B.HALOWALL], 20]]) for (const id of ids) MAT_OF[id] = m;
   const scratchOpaque = new MeshBuilder(16384, false, true), scratchWater = new MeshBuilder(2048, false, true), scratchGlass = new MeshBuilder(512, false, true), scratchGrass = new MeshBuilder(8192, false, true);
-  const SLOPE_MAX = 16; // land is never drawn as cubes above ground: drops of up to nine blocks between neighbouring columns become rock slopes; only what you dig is square
+  const SLOPE_MAX = 6; // the land as the world makes it never steps more than two blocks between neighbours, so all of it is one smooth skin. A sharper drop than this was built or cut by somebody (a railway cutting, a tunnel mouth, the edge of a platform) and stays a square face
   const SOIL = new Set([B.GRASS, B.DIRT, B.SAND, B.SNOW, B.GRAVEL, B.STONE, B.MOSS, B.GLOWGRASS, B.REGOLITH, B.DUNE, B.SALTCRUST]);
   // things that stand on the ground without stopping it from sloping: air, leaves, trunks, bushes, flowers, pebbles, torches, chests...
   const DECOR = (b) => b === B.AIR || isLeaf(b) || isTrunk(b) || b === B.BERRY || BLOCKS[b].partial;
@@ -859,12 +874,13 @@ const R = (() => {
   // a bridge, a gate lintel, a cloud city) is looked through: it is the ground below that is the land and gets smoothed. A solid block
   // sitting right on the soil covers it, and covered soil stays square so whatever stands on it has a flat footing.
   function soilScan(get, x, z) {
-    let t = -1, wt = -1, cov = -1;
+    let t = -1, wt = -1, cov = -1, rail = false;
     for (let y = WH - 1; y > 0; y--) {
       const b = get(x, y, z);
+      if (b === B.RAIL || b === B.CART) { rail = true; continue; }
       if (DECOR(b)) continue;
       if (b === B.WATER || b === B.BRINE) { if (wt < 0) wt = y + 1; continue; }
-      if (SOIL.has(b)) { t = y; break; }
+      if (SOIL.has(b)) { if (rail) cov = y; else t = y; break; } // a track bed is built ground: dead level under the rails, never smoothed up over them or down away from them; the land beside it runs up to it
       if (y <= 1) break;
       if (SOIL.has(get(x, y - 1, z))) { cov = y; break; } // standing on the ground: it covers the soil, and counts as ground at its own level (paving, a floor slab under a wall; a wall set straight on the turf gets a little bank against its foot). Otherwise it floats over it: keep looking down
     }
@@ -874,7 +890,7 @@ const R = (() => {
   const ROUNDY = new Set([B.PLASTER, B.BEAM, B.MASONRY, B.BRICK, B.HALOWALL, B.HALFTIMBER, B.HALFTIMBER_O, B.HALFTIMBER_W]);
   const SIGNABLE = new Set([B.EMBER, B.BERRY, B.COPPER, B.VOID, B.IRON, B.GOLD, B.GLOWWORM, B.LOG, B.MOONGLOW, B.CLOUD, B.SELENITE, B.BERRYLEAF, B.AMBER]);
   const WALLY = (b) => b === B.PLANKS || b === B.PLASTER || b === B.BEAM || b === B.MASONRY || b === B.BRICK || b === B.HALOWALL || b === B.HALFTIMBER || b === B.HALFTIMBER_O || b === B.HALFTIMBER_W || b === B.IRONWALL || b === B.VOIDWALL || b === B.SELGLASS;
-  const surfCov = new Int16Array(18 * 18); const surfTop = new Int16Array(18 * 18), surfWet = new Int16Array(18 * 18), cornerH = new Float32Array(17 * 17); const cornerCol = new Float32Array(17 * 17 * 6); const cornerSky = new Float32Array(17 * 17);
+  const surfCov = new Int16Array(18 * 18), surfCut = new Uint8Array(18 * 18); const surfTop = new Int16Array(18 * 18), surfWet = new Int16Array(18 * 18), cornerH = new Float32Array(17 * 17); const cornerCol = new Float32Array(17 * 17 * 6); const cornerTurf = new Float32Array(17 * 17); const cornerSky = new Float32Array(17 * 17);
   const FLOWERS = [[0.95, 0.85, 0.25], [0.95, 0.95, 0.95], [0.85, 0.35, 0.55], [0.6, 0.5, 0.95], [0.95, 0.5, 0.25]];
   function buildChunk(world, chunk) {
     const cx = chunk.cx, cz = chunk.cz, ox = cx * CH, oz = cz * CH;
@@ -900,18 +916,19 @@ const R = (() => {
     // Steps of one or two blocks become slopes; anything steeper stays a sharp edge.
     for (let x = -1; x <= 16; x++) for (let z = -1; z <= 16; z++) {
       const [t, wt, cv] = soilScan(get, x, z);
-      surfTop[(x + 1) * 18 + (z + 1)] = t; surfWet[(x + 1) * 18 + (z + 1)] = wt; surfCov[(x + 1) * 18 + (z + 1)] = cv; // the seabed counts as land: shores slope in under the water
+      surfTop[(x + 1) * 18 + (z + 1)] = t; surfWet[(x + 1) * 18 + (z + 1)] = wt; surfCov[(x + 1) * 18 + (z + 1)] = cv; surfCut[(x + 1) * 18 + (z + 1)] = world.isCut(ox + x, oz + z) ? 1 : 0; // the seabed counts as land: shores slope in under the water
     }
     for (let cx = 0; cx <= 16; cx++) for (let cz = 0; cz <= 16; cz++) {
       let n = 0, dry = false, wl = -1; const ts = [], ws = [];
-      let ncov = 0;
-      for (const [a, b] of [[-1, -1], [0, -1], [-1, 0], [0, 0]]) { const i = (cx + a + 1) * 18 + (cz + b + 1); let t = surfTop[i]; if (t < 0) { t = surfCov[i]; if (t < 0) { n = 0; break; } ncov++; } n++; ts.push(t); const wt = surfWet[i]; ws.push(wt); if (wt < 0) dry = true; else wl = Math.max(wl, wt); }
+      let ncov = 0, cut = false;
+      for (const [a, b] of [[-1, -1], [0, -1], [-1, 0], [0, 0]]) { const i = (cx + a + 1) * 18 + (cz + b + 1); let t = surfTop[i]; if (t < 0) { t = surfCov[i]; if (t < 0) { n = 0; break; } ncov++; } n++; ts.push(t); const wt = surfWet[i]; ws.push(wt); if (wt < 0) dry = true; else wl = Math.max(wl, wt); if (surfCut[i]) cut = true; }
       let v = -1; if (ncov === 4) n = 0; // a corner wholly under a building is not land
       if (n) {
         // at the water's edge a wet column counts as ground at the surface, however deep the seabed really is: a bank up to two blocks above the water slopes down to it instead of standing as cubes over a drop
         const shore = dry && wl >= 0; let sum = 0, lo = 999, hi = -999;
         for (let i = 0; i < 4; i++) { const t = shore && ws[i] >= 0 ? Math.max(ts[i], ws[i] - 2) : ts[i]; sum += t; lo = Math.min(lo, t); hi = Math.max(hi, t); }
-        if (hi - lo <= SLOPE_MAX) v = sum / 4 + 1;
+        if (hi - lo <= (cut ? 0 : SLOPE_MAX)) v = sum / 4 + 1; // ground the player has dug or piled up is square: no slope runs into or out of it
+        if (v >= 0 && hi - lo >= 2) { let k = 0; for (const [a, b] of [[-1, -1], [0, -1], [-1, 0], [0, 0]]) { if (ts[k++] >= lo + 2 && !isOpaque(get(cx + a, lo + 1, cz + b))) { v = -1; break; } } } // the higher ground is hollow at the lower ground's level: a tunnel or cave mouth, an overhang. It stays open, with a square face over it, and no slope is drawn across the hole
         if (v >= 0 && shore) v = Math.max(v, wl - 0.45); // and comes up just clear of the waterline (the surface sits 0.12 down and waves 0.07): never a dry pit below the sea, never a seabed fighting the surface for the same pixels
       }
       cornerH[cx * 17 + cz] = v;
@@ -920,14 +937,14 @@ const R = (() => {
     const CHt = (x, z) => cornerH[x * 17 + z];
     // the colour of the land at each corner, blended from the four columns that share it, so grass, sand, snow and rock run into one another with no hard-edged squares; and the bare rock it turns to where it stands up steeply
     { const stoneP = world.preset.paletteRgb && world.preset.paletteRgb[B.STONE]; const rk0 = stoneP ? stoneP[1] : BLOCKS[B.STONE].side; const ROCK = stoneP ? rk0 : [rk0[0] * 1.1, rk0[1] * 1.02, rk0[2] * 0.9];
-      const colAt = (x, z) => { const t = ST(x, z); if (t < 0) return null; const id = get(x, t, z); if (id === B.GRASS) { const c = chunkAt(x, z); if (c && c.tint) { const i = (((x + 16) & 15) * CH + ((z + 16) & 15)) * 3; return [c.tint[i], c.tint[i + 1], c.tint[i + 2], 0]; } } const pal = world.preset.paletteRgb && world.preset.paletteRgb[id]; const c = pal ? pal[0] : BLOCKS[id].top; return [c[0], c[1], c[2], (id === B.SAND || id === B.DUNE || id === B.SALTCRUST) ? 1 : 0]; };
-      for (let cx = 0; cx <= 16; cx++) for (let cz = 0; cz <= 16; cz++) { let r = 0, g = 0, b = 0, n = 0, sandy = 0; for (const [a, bb] of [[-1, -1], [0, -1], [-1, 0], [0, 0]]) { const c = colAt(cx + a, cz + bb); if (c) { r += c[0]; g += c[1]; b += c[2]; sandy += c[3]; n++; } }
+      const colAt = (x, z) => { const t = ST(x, z); if (t < 0) return null; const id = get(x, t, z); if (id === B.GRASS) { const c = chunkAt(x, z); if (c && c.tint) { const i = (((x + 16) & 15) * CH + ((z + 16) & 15)) * 3; return [c.tint[i], c.tint[i + 1], c.tint[i + 2], 0, 1]; } } const pal = world.preset.paletteRgb && world.preset.paletteRgb[id]; const c = pal ? pal[0] : BLOCKS[id].top; return [c[0], c[1], c[2], (id === B.SAND || id === B.DUNE || id === B.SALTCRUST) ? 1 : 0, 0]; };
+      for (let cx = 0; cx <= 16; cx++) for (let cz = 0; cz <= 16; cz++) { let r = 0, g = 0, b = 0, n = 0, sandy = 0, turf = 0; for (const [a, bb] of [[-1, -1], [0, -1], [-1, 0], [0, 0]]) { const c = colAt(cx + a, cz + bb); if (c) { r += c[0]; g += c[1]; b += c[2]; sandy += c[3]; turf += c[4] || 0; n++; } } cornerTurf[cx * 17 + cz] = n ? turf / n : 0;
         const k = (cx * 17 + cz) * 6; if (!n) { cornerCol[k] = -1; continue; } r /= n; g /= n; b /= n; cornerCol[k] = r; cornerCol[k + 1] = g; cornerCol[k + 2] = b;
         if (sandy > 0) { cornerCol[k + 3] = r * 0.78; cornerCol[k + 4] = g * 0.72; cornerCol[k + 5] = b * 0.64; } else { cornerCol[k + 3] = ROCK[0]; cornerCol[k + 4] = ROCK[1]; cornerCol[k + 5] = ROCK[2]; } } }
     // the waterline: land beside water dips a little under it at the edge, and the water is drawn over that land too, so the shore is the curve where the two surfaces cross and not the outline of the blocks
     for (let lx = 0; lx < CH; lx++) for (let lz = 0; lz < CH; lz++) { const i0 = (lx + 1) * 18 + (lz + 1); if (surfWet[i0] >= 0 || surfTop[i0] < 0) continue; let wl = -1, wx0 = 0, wz0 = 0;
       for (let a = -1; a <= 1; a++) for (let b = -1; b <= 1; b++) { const w = surfWet[(lx + a + 1) * 18 + (lz + b + 1)]; if (w > wl) { wl = w; wx0 = lx + a; wz0 = lz + b; } } if (wl < 0) continue;
-      const hs = [CHt(lx, lz + 1), CHt(lx + 1, lz + 1), CHt(lx + 1, lz), CHt(lx, lz)]; if (hs.some((v) => v < 0) || Math.min(hs[0], hs[1], hs[2], hs[3]) >= wl - 0.1) continue;
+      const hs = [CHt(lx, lz + 1), CHt(lx + 1, lz + 1), CHt(lx + 1, lz), CHt(lx, lz)]; { const lowest = Math.min(hs[0], hs[1], hs[2], hs[3]); if (hs.some((v) => v < 0) || lowest >= wl - 0.1 || lowest < wl - 1.6) continue; } // only a bank that dips just under the surface: where the land falls away below the water there is nothing for the water to lie on, and a sheet of it would hang in the air
       const br = get(wx0, wl - 1, wz0) === B.BRINE ? 1 : 0; const dC = (cx, cz) => { let sum = 0; for (const [a, b] of [[-1, -1], [0, -1], [-1, 0], [0, 0]]) { const j = (cx + a + 1) * 18 + (cz + b + 1); if (surfWet[j] >= 0) sum += Math.min(10, Math.max(1, surfWet[j] - 1 - surfTop[j])); } return [Math.min(1, sum / 36), br, 0]; };
       const sk = skyAt(lx, wl, lz); wa.quad([[lx, wl, lz + 1], [lx + 1, wl, lz + 1], [lx + 1, wl, lz], [lx, wl, lz]], [dC(lx, lz + 1), dC(lx + 1, lz + 1), dC(lx + 1, lz), dC(lx, lz)], [sk, sk, sk, sk], false); }
     // and the daylight reaching each corner, blended the same way, so shade under trees falls off softly and the column a trunk stands on is not a black square
@@ -1701,8 +1718,8 @@ const R = (() => {
             else { const dc = [Math.min(1, dAt(lx, lz) / 9), br, 0]; for (let i = 0; i < 4; i++) cols[i] = dc; }
           }
           const nrms = sloped ? F.v.map(v => cornerN(lx + v[0], lz + v[2])) : null;
-          if (sloped) { let rk = 0; for (let i = 0; i < 4; i++) { const cxx = lx + F.v[i][0], czz = lz + F.v[i][2]; const k = (cxx * 17 + czz) * 6; if (cornerCol[k] < 0) continue; skys[i] = cornerSky[cxx * 17 + czz]; let kr = U.clamp((0.66 - nrms[i][1]) / 0.2, 0, 1); kr = kr * kr * (3 - 2 * kr); rk += kr; const sh = shade * aos[i]; cols[i] = [(cornerCol[k] * (1 - kr) + cornerCol[k + 3] * kr) * sh, (cornerCol[k + 1] * (1 - kr) + cornerCol[k + 4] * kr) * sh, (cornerCol[k + 2] * (1 - kr) + cornerCol[k + 5] * kr) * sh]; } if (rk > 2 && (id === B.GRASS || id === B.DIRT || id === B.SNOW || id === B.GLOWGRASS)) op.curMat = 3; }
-          if (!pf) { if (isWater) wa.quad(verts, cols, skys, false); else if (isGlass) gs.quad(verts, cols, skys, false); else op.quad(verts, cols, skys, emis, nrms); }
+          if (sloped) { let rk = 0; for (let i = 0; i < 4; i++) { const cxx = lx + F.v[i][0], czz = lz + F.v[i][2]; const k = (cxx * 17 + czz) * 6; if (cornerCol[k] < 0) continue; skys[i] = cornerSky[cxx * 17 + czz]; let kr = U.clamp((0.76 - nrms[i][1]) / 0.18, 0, 1); kr = kr * kr * (3 - 2 * kr); rk += kr; { const tf = cornerTurf[cxx * 17 + czz] * (1 - kr), lt = op.curMat === 1 ? 1 - tf : (op.curMat >= 2 && op.curMat <= 5 ? tf : 0), q = 1 - 0.5 * lt; const nn = nrms[i]; nrms[i] = [nn[0] * q, nn[1] * q, nn[2] * q]; } const sh = shade * aos[i]; cols[i] = [(cornerCol[k] * (1 - kr) + cornerCol[k + 3] * kr) * sh, (cornerCol[k + 1] * (1 - kr) + cornerCol[k + 4] * kr) * sh, (cornerCol[k + 2] * (1 - kr) + cornerCol[k + 5] * kr) * sh]; } }
+          if (!pf) { if (isWater) wa.quad(verts, cols, skys, false); else if (isGlass) gs.quad(verts, cols, skys, false); else { op.autoDiag = sloped; op.quad(verts, cols, skys, emis, nrms); op.autoDiag = false; } }
           else {
             // patterned face: sub-rectangles in face coordinates, then studs raised off the plane
             const o = verts[0]; const Uv = [verts[1][0] - o[0], verts[1][1] - o[1], verts[1][2] - o[2]], Vv = [verts[3][0] - o[0], verts[3][1] - o[1], verts[3][2] - o[2]];
@@ -2020,13 +2037,28 @@ const R = (() => {
   }
   // the block outline under the crosshair. Soil on smoothed ground gets a box whose top follows the slope, by the same rule the mesher uses
   function soilTopAt(world, x, z) { return soilScan((x, y, z) => world.getBlock(x, y, z), x, z); }
-  function cornerHeight(world, cx, cz) { // the same rule as the mesher, for the targeting outline
-    let dry = false, wl = -1; const ts = [], ws = [];
-    let ncov = 0; for (const [a, b] of [[-1, -1], [0, -1], [-1, 0], [0, 0]]) { let [t, wt, cv] = soilTopAt(world, cx + a, cz + b); if (t < 0) { if (cv < 0) return -1; t = cv; ncov++; } ts.push(t); ws.push(wt); if (wt < 0) dry = true; else wl = Math.max(wl, wt); }
+  const C4 = [[-1, -1], [0, -1], [-1, 0], [0, 0]];
+  function cornerHeightRaw(world, cx, cz) { // the same rule as the mesher, for whatever stands on the land or looks at it
+    let dry = false, wl = -1, cut = false; const ts = [], ws = [];
+    let ncov = 0; for (const [a, b] of C4) { let [t, wt, cv] = soilTopAt(world, cx + a, cz + b); if (t < 0) { if (cv < 0) return -1; t = cv; ncov++; } ts.push(t); ws.push(wt); if (wt < 0) dry = true; else wl = Math.max(wl, wt); if (world.isCut(cx + a, cz + b)) cut = true; }
     if (ncov === 4) return -1;
     const shore = dry && wl >= 0; let sum = 0, lo = 999, hi = -999;
-    for (let i = 0; i < 4; i++) { const t = shore && ws[i] >= 0 ? Math.max(ts[i], ws[i] - 2) : ts[i]; sum += t; lo = Math.min(lo, t); hi = Math.max(hi, t); }
-    let v = hi - lo <= SLOPE_MAX ? sum / 4 + 1 : -1; if (v >= 0 && shore) v = Math.max(v, wl - 0.45); return v;
+    for (let i = 0; i < 4; i++) { const t = shore && ws[i] >= 0 ? Math.max(ts[i], ws[i] - 2) : ts[i]; ts[i] = t; sum += t; lo = Math.min(lo, t); hi = Math.max(hi, t); }
+    let v = hi - lo <= (cut ? 0 : SLOPE_MAX) ? sum / 4 + 1 : -1;
+    if (v >= 0 && hi - lo >= 2) for (let i = 0; i < 4; i++) if (ts[i] >= lo + 2 && !isOpaque(world.getBlock(cx + C4[i][0], lo + 1, cz + C4[i][1]))) return -1;
+    if (v >= 0 && shore) v = Math.max(v, wl - 0.45); return v;
+  }
+  // asked many times a frame (the player's feet, every creature, the camera): remembered until the world changes, and not for long, since land also arrives as chunks load
+  let chMap = new Map(), chWorld = null, chSerial = -1, chAt = 0;
+  function cornerHeight(world, cx, cz) {
+    const now = performance.now(), ser = world.editSerial || 0;
+    if (chWorld !== world || chSerial !== ser || now - chAt > 1500 || chMap.size > 8000) { chMap.clear(); chWorld = world; chSerial = ser; chAt = now; }
+    const k = (cx + 70000) * 262144 + (cz + 70000); let v = chMap.get(k); if (v === undefined) { v = cornerHeightRaw(world, cx, cz); chMap.set(k, v); } return v;
+  }
+  // is this point in the air but under the drawn ground? The land is drawn as a smooth skin that can stand above the blocks it covers, so a camera that only avoids blocks can end up inside a slope, looking out through it
+  function under(world, x, y, z, pad) {
+    const s = surfaceAt(world, x, z); if (s == null || y >= s + pad) return false;
+    const [t] = soilTopAt(world, Math.floor(x), Math.floor(z)); return t >= 0 && y > t + 0.9;
   }
   let surfCache = { k: null, h: null };
   // where a creature's feet should rest: on soil the drawn ground is a smooth slope between block corners, so stand on the highest
@@ -2034,12 +2066,12 @@ const R = (() => {
   function standY(world, x, z, top, r) {
     const below = world.getBlock(Math.floor(x), Math.floor(top - 0.5), Math.floor(z)); if (!isSoil(below)) return top;
     let s = null; for (const [ox, oz] of [[0, 0], [r, 0], [-r, 0], [0, r], [0, -r]]) { const t = surfaceAt(world, x + ox, z + oz); if (t != null && (s == null || t > s)) s = t; }
-    return s == null ? top : Math.max(top - 0.85, Math.min(top + 0.85, s));
+    return s == null ? top : Math.max(top - 1.2, Math.min(top + 2.5, s)); // never left buried in a bank; the land is gentle, so this is rarely more than half a block
   }
   function surfaceAt(world, x, z) {
-    const bx = Math.floor(x), bz = Math.floor(z); const k = bx + ',' + bz + ',' + (world.editSerial || 0);
+    const bx = Math.floor(x), bz = Math.floor(z); const k = bx + ',' + bz + ',' + (world.editSerial || 0) + ',' + chAt;
     let h = surfCache.k === k ? surfCache.h : null;
-    if (surfCache.k !== k) { const c = [[bx, bz], [bx + 1, bz], [bx, bz + 1], [bx + 1, bz + 1]].map(([cx, cz]) => cornerHeight(world, cx, cz)); h = c.some(v => v < 0) ? null : c; surfCache = { k, h }; }
+    if (surfCache.k !== k) { const c = [[bx, bz], [bx + 1, bz], [bx, bz + 1], [bx + 1, bz + 1]].map(([cx, cz]) => cornerHeight(world, cx, cz)); h = c.some(v => v < 0) || soilTopAt(world, bx, bz)[0] < 0 ? null : c; surfCache = { k, h }; } // only where this column is itself smooth land: a track bed or a paved one is flat, whatever its neighbours do
     if (!h) return null; const fx = x - bx, fz = z - bz;
     return (h[0] * (1 - fx) + h[1] * fx) * (1 - fz) + (h[2] * (1 - fx) + h[3] * fx) * fz;
   }
@@ -2063,5 +2095,5 @@ const R = (() => {
     return out;
   }
 
-  return { grassZone, init, resize, buildChunk, freeChunk, entityMesh, dropEntityMesh, renderPortrait, render, project, surfaceAt, standY, isSoil, boxLines, targetLines, ringLines, state, setQuality, QUALITY, get gl() { return gl; } };
+  return { grassZone, init, resize, buildChunk, freeChunk, entityMesh, dropEntityMesh, renderPortrait, render, project, surfaceAt, standY, under, isSoil, boxLines, targetLines, ringLines, state, setQuality, QUALITY, get gl() { return gl; } };
 })();
