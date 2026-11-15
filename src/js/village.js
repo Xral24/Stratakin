@@ -726,7 +726,7 @@ const Village = (() => {
     frontier: { ground: B.SAND, under: B.SAND, plaza: B.SAND, plazaEdge: B.PLANKS, post: B.LOG, light: B.TORCH, lamp: B.LAMP, floor: B.PLANKS, wall: B.PLANKS, window: B.GLASS, roof: B.THATCH, eave: B.LOG, counter: B.PLANKS, bush: B.CACTUS, boardwalk: true, saloon: true,
       houses: [{ wall: B.PLANKS, base: B.PLANKS, beam: B.LOG, roofs: [B.THATCH, B.THATCH, B.PLANKS] }] },
     alien: { ground: B.REGOLITH, under: B.DIRT, plaza: B.STARSALT, plazaEdge: B.BASALT, post: B.BASALT, light: B.MOONGLOW, floor: B.REGOLITH, wall: B.SELGLASS, window: B.SELGLASS, roof: B.SELGLASS, eave: B.SELGLASS, counter: B.BASALT, bush: null, pod: true },
-    halo: { ground: B.DUNE, under: B.DIRT, plaza: B.SALTCRUST, plazaEdge: B.STONE, post: B.STONE, light: B.RINGSHARD, floor: B.STONE, wall: B.STONE, window: B.GLASS, roof: B.SALTROOF, eave: B.STONE, counter: B.STONE, bush: B.SULFUR },
+    halo: { ground: B.DUNE, under: B.DIRT, plaza: B.SALTCRUST, plazaEdge: B.STONE, post: B.STONE, light: B.RINGSHARD, floor: B.STONE, wall: B.HALOWALL, window: B.GLASS, roof: B.SALTROOF, eave: B.STONE, counter: B.STONE, bush: B.SULFUR },
   };
   let MAT = MATS.land;
   // A city is four quarters, split by the two great streets through the square. Each has its own houses, its own ground and a landmark.
@@ -815,7 +815,7 @@ const Village = (() => {
         if (Math.abs(dx) <= 2 && Math.abs(dz) <= 2) set(x, vy + WT + 1, z, M.floor); // the ceiling: the attic is its own dark space under the roof
         if (Math.abs(a) === 3 && Math.abs(b) <= 2) { // the gable: a triangle of wall under the roof, a beam along its foot and up its middle, a little window
           for (let y = vy + WT + 1; y < lvl(b); y++) set(x, y, z, beam && !framed && (y === vy + WT + 1 || b === 0) ? beam : (b === 0 && y === vy + WT + 3) ? M.window : WALL);
-          if (a === -3 * sgn && b === -2) { const land = M === MATS.land; for (let y = vy + WT + 1; y <= vy + WT + 5; y++) set(x, y, z, land ? (st.wall === B.MASONRY ? B.MASONRY : st.wall === B.BRICK ? B.BRICK : B.PLASTER) : B.MASONRY); if (land) set(x, vy + WT + 6, z, B.CHIMNEY); } // the chimney, up through the back gable: a brick stack, a cap, clay pots
+          if (a === -3 * sgn && b === -2) { const land = M === MATS.land; for (let y = vy + WT + 1; y <= vy + WT + 5; y++) set(x, y, z, land ? (st.wall === B.MASONRY ? B.MASONRY : st.wall === B.BRICK ? B.BRICK : B.PLASTER) : M === MATS.halo ? B.HALOWALL : B.MASONRY); if (land) set(x, vy + WT + 6, z, B.CHIMNEY); } // the chimney, up through the back gable: a brick stack, a cap, clay pots
         }
       }
       if (!(a === -3 * sgn && b === -2)) set(x, lvl(b), z, roof); // the roof: a wedge at every spot but the chimney's
@@ -844,10 +844,11 @@ const Village = (() => {
       for (let dy = 0; dy <= 4; dy++) {
         const d = Math.hypot(dx, dy + 0.5, dz); const y = vy + dy;
         if (d > R + 0.5) { if (world.getBlock(hx + dx, y, hz + dz) !== B.AIR) set(hx + dx, y, hz + dz, B.AIR); continue; }
-        set(hx + dx, y, hz + dz, d >= R - 0.5 ? M.wall : B.AIR);
+        set(hx + dx, y, hz + dz, d >= R - 0.5 ? (dy === 0 && M === MATS.alien ? B.BASALT : M.wall) : B.AIR); // a Moon pod sits on a dark course of basalt
       }
     }
     set(hx, vy + 3, hz, M.light);
+    if (M === MATS.alien) { set(hx, vy + 4, hz, B.BASALT); set(hx, vy + 5, hz, B.MOONGLOW); const px = dirZ, pz = dirX; for (const sd of [-1, 1]) { set(hx + dirX * 4 + px * sd * 2, vy, hz + dirZ * 4 + pz * sd * 2, B.BASALT); set(hx + dirX * 4 + px * sd * 2, vy + 1, hz + dirZ * 4 + pz * sd * 2, B.MOONGLOW); } } // a bulb on the crown and one each side of the door
     set(hx + dirX * 3, vy, hz + dirZ * 3, B.AIR); set(hx + dirX * 3, vy + 1, hz + dirZ * 3, B.AIR); set(hx + dirX * 3, vy + 2, hz + dirZ * 3, marker);
     set(hx + dirX * 4, vy, hz + dirZ * 4, B.AIR); set(hx + dirX * 4, vy + 1, hz + dirZ * 4, B.AIR);
     if (furnish) furnish(hx, hz, dirX, dirZ, vy);

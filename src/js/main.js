@@ -1090,6 +1090,7 @@ G.giveLostMap = function (from) {
 G.ownBlock = function (x, y, z, id) { if (!this.protectedAt({ x, y, z, id })) return; const m = this.stats.myBlocks || (this.stats.myBlocks = {}); const ks = Object.keys(m); if (ks.length > 600) delete m[ks[0]]; m[x + ',' + y + ',' + z] = id; };
 G.protectedAt = function (hit) {
   { const m = this.stats.myBlocks, key = hit.x + ',' + hit.y + ',' + hit.z; if (m && m[key] != null) { if (m[key] === hit.id) return null; delete m[key]; } }
+  if (hit.y <= 4 && hit.y < CORE_TOP && this.world.preset.id === 'earth') return { kind: 'mantle' }; /* the floor of the Core is the rock of the world: nothing cuts it */
   if (hit.id === B.STONE || hit.id === B.DIRT || hit.id === B.SAND) { const v = Village.active, w = this.world; /* and loose stone, earth or sand lying on the ground beside a Fusion Table was dropped there by somebody: it comes up */
     if (v) { let near = false; for (let dx = -3; dx <= 3 && !near; dx++) for (let dz = -3; dz <= 3 && !near; dz++) for (let dy = -2; dy <= 0; dy++) if (w.getBlock(hit.x + dx, hit.y + dy, hit.z + dz) === B.FUSION) { near = true; break; } /* level with the table or above it, never the ground it stands on */ if (near && !Village.railAt(hit.x, hit.y, hit.z)) return null; } }
   if (Village.railAt(hit.x, hit.y, hit.z)) return { kind: 'rail' };
@@ -1109,6 +1110,7 @@ G.onProtectedMine = function (pr, hit) {
   const p = this.player; const fx = -Math.sin(p.yaw), fz = -Math.cos(p.yaw);
   const bring = (n) => { if (!n) return; n.x = p.x - fx * 1.8; n.z = p.z - fz * 1.8; const gy = this.world.groundY(Math.floor(n.x), Math.floor(n.z), Math.floor(p.y) + 2); if (gy != null) n.y = gy + 1; n.yaw = Math.atan2(p.x - n.x, p.z - n.z); if (n.home) n.home = { x: n.x, z: n.z }; this.talkNpc = n; };
   let who = null, lines;
+  if (pr.kind === 'mantle') { UI.sfx('miss'); UI.toast('This is the rock the world stands on. No pick will ever mark it.'); return; }
   if (pr.kind === 'rail') { UI.sfx('miss'); UI.toast('Leave the line alone. Take up the track or the bridge under it and the train never runs again.'); return; }
   if (pr.kind === 'bridge') { UI.sfx('miss'); UI.toast('Leave the bridge standing. It is the only way across, and you paid for it.'); return; }
   if (pr.kind === 'dark') { UI.sfx('miss'); UI.toast('The stone does not even scratch. Whatever the Kinmaster built here, he built it to keep out exactly you. Find the way in.', 'bad'); return; }
