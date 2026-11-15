@@ -420,7 +420,7 @@ const Campaign = (() => {
       if (!c.bulb) { const ok = P.count('glass') >= 2 && P.count('iron') >= 2 && P.count('frond') >= 4; if (!c.diverMet) return say(['Nobody goes under without a bulb. Not even on the back of a fish: they come up, you do not.', 'Bring me two glass, two iron and four fronds and I will blow you a Breathing Bulb.'], () => { c.diverMet = true; }); if (!ok) return say(['Two glass, two iron, four fronds.', `You have ${P.count('glass')}, ${P.count('iron')} and ${P.count('frond')}.`]); return say(['Hold still while it seals.', 'A Breathing Bulb: two minutes under, and more with practice. Now, a favour.', 'My chest went over the side years ago, out past the end of the pier where it gets deep. Fetch what is in it. Keep half.'], () => { P.take('glass', 2); P.take('iron', 2); P.take('frond', 4); c.bulb = 1; c.bulbStep = 1; give('bulb'); }); }
       if (c.bulbStep === 1) return say(['Out past the pier, on the bottom. Look for the coral.']);
       if (c.bulbStep === 2) return say(['My mother\'s pearls. You kept your word.', 'Keep the gold. And the bulb is yours for good.'], () => { c.bulbStep = 3; c.bulbDone = true; G.shards += 80; UI.toast('+80 Shards.', 'good'); });
-      return say(['The sea is bigger than the land. Remember that.', c.bulbDone ? 'And I keep one thing from down there I have never shown anyone. It is not cheap.' : ''], relic('diver'));
+      return say(['The sea is bigger than the land. Remember that.', c.bulbDone && !(G.stats.atl || {}).seen ? 'Out where the water goes dark there are lights under it at night. A whole city of them, under glass. I have never dared go down. I have put it on your map.' : '', c.bulbDone ? 'And I keep one thing from down there I have never shown anyone. It is not cheap.' : ''].filter(Boolean), relic('diver'));
     }
     if (n.job === 'rancher') {
       if (!c.ranch) return say(['Ride? You? Nobody rides a Kin they have not been thrown off first.', 'I will teach you. But I need a paddock first, for the wild one they are bringing in. Wall in the square between my four posts, two blocks high, with a gap for a gate.', 'Any solid block does it. Planks are easiest: one log makes four at the table, and you will want about fifteen logs. Dirt or stone works too if you are short.'], () => { c.ranch = 1; });
@@ -547,7 +547,7 @@ const Taming = (() => {
     const need = opts.endless ? Infinity : (opts.need || (hard ? 12 : NEED[rar]));
     st = { k, t: 0, need, level: opts.level != null ? opts.level : (hard ? 0.7 : LEVEL[rar]), ramp: opts.ramp || (opts.endless ? 0.03 : 0.04), endless: !!opts.endless,
       b: 0, vb: 0, dir: Math.random() < 0.5 ? -1 : 1, mag: 0.35, pushT: 0.9, kickT: 0, spin: 0, ph: Math.random() * 6, hop: 0, said: -1,
-      onDone: opts.onDone, onFall: opts.onFall, label: opts.label, drive: opts.drive, noHurt: !!opts.noHurt, ent: opts.ent || null,
+      onDone: opts.onDone, onFall: opts.onFall, label: opts.label, drive: opts.drive, noHurt: !!opts.noHurt, ent: opts.ent || null, leap: opts.leap || 1,
       was: { mount: p.mount, mode: p.mountMode, frozen: p.frozen } };
     if (st.ent) { st.ent.ridden = true; p.x = st.ent.x; p.z = st.ent.z; if (Number.isFinite(st.ent.y)) p.y = st.ent.y + 0.02; p.vx = p.vy = p.vz = 0; }
     p.mount = k; p.mountMode = opts.mode || G.rideMode(k) || 'land'; p.frozen = true; // you are on its back from the first moment: the ride is the taming
@@ -566,6 +566,7 @@ const Taming = (() => {
   }
   function update(dt, p) {
     if (!st) return; dt = Math.min(dt, 0.06);
+    if (p.hurtFlash > 0) p.hurtFlash = Math.max(0, p.hurtFlash - dt); // nothing else moves you while you ride, so a knock you took just before would stay red on the screen
     st.t += dt; const I = st.level + st.t * st.ramp; st.I = I;
     // the animal throws its weight one way for a moment, then another: more often than not the way you are already slipping
     st.pushT -= dt;
@@ -606,7 +607,7 @@ const Taming = (() => {
   function pose(mt, me, camYaw) {
     if (!st || !mt) return;
     const I = Math.min(2.5, st.I || 0), wet = G.player.mountMode === 'water', air = G.player.mountMode === 'air';
-    const hopH = (wet ? 0.12 : air ? 0.3 : 0.34) * (0.6 + 0.4 * I) * (0.35 + 0.65 * st.hop);
+    const hopH = (wet ? 0.12 * st.leap : air ? 0.3 : 0.34) * (0.6 + 0.4 * I) * (0.35 + 0.65 * st.hop); // in the ring the seahorse comes right out of the water
     const dy = Math.abs(Math.sin(st.ph * 0.5)) * hopH + st.kickT * 0.12;
     const pitch = Math.sin(st.ph * 0.5 + 0.9) * (wet ? 0.16 : 0.24) * (0.7 + 0.3 * I) - st.kickT * 0.16; // negative lifts the front: it rears at every throw
     const lean = st.b * (wet ? 0.5 : 0.36) + Math.sin(st.ph * 0.37) * 0.05; // toward the side of the screen the needle has gone to, whichever way the animal has spun

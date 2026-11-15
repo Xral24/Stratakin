@@ -29,6 +29,16 @@ const Held = (() => {
   function sword(mb, col) { const m = C(col); mb.tube([[0, -0.3, 0], [0, -0.02, 0]], [0.03, 0.03], LEATHER, { segs: 6, cap0: 'round', cap1: 'none' }); mb.box(-0.12, -0.02, -0.025, 0.12, 0.02, 0.025, [0.72, 0.6, 0.3], 1, false); mb.plate([[-0.04, 0.02, 0], [0.04, 0.02, 0], [0.03, 0.62, 0], [0, 0.72, 0], [-0.03, 0.62, 0]], 0.012, m, { edge: [m[0] * 1.3, m[1] * 1.3, m[2] * 1.3] }); mb.ball(0, -0.32, 0, 0.035, [0.72, 0.6, 0.3], { n: 1 }); }
   function battleaxe(mb, col) { const m = C(col); mb.tube([[0.02, -0.5, 0], [0, 0.45, 0]], [0.035, 0.03], DARKWOOD, { segs: 7, cap0: 'round', cap1: 'round' }); for (const sgn of [-1, 1]) mb.plate([[0, 0.12, 0], [sgn * 0.3, 0.02, 0], [sgn * 0.34, 0.42, 0], [0, 0.4, 0]], 0.03, m, { edge: [m[0] * 0.6, m[1] * 0.6, m[2] * 0.6] }); }
   function spear(mb, col) { const m = C(col); mb.tube([[0.04, -0.7, 0], [0, 0.7, 0]], [0.03, 0.024], WOOD, { segs: 6, cap0: 'round', cap1: 'none' }); mb.plate([[-0.05, 0.66, 0], [0.05, 0.66, 0], [0, 0.95, 0]], 0.012, m, { edge: [m[0] * 1.2, m[1] * 1.2, m[2] * 1.2] }); for (let i = 0; i < 2; i++) mb.plate([[0.02, 0.6 - i * 0.03, 0], [0.04, 0.42 - i * 0.05, 0.06], [0.06, 0.4 - i * 0.05, -0.02]], 0.01, i ? [0.9, 0.2, 0.15] : [0.95, 0.9, 0.8]); }
+  // tidesteel: a pale shaft bound in gold, and a head that is light more than metal
+  function stormspear(mb) { const P = [0.86, 0.92, 0.95], G2 = [0.95, 0.8, 0.42], E = [0.3, 0.86, 1.0], W = [0.85, 0.98, 1.0];
+    mb.tube([[0.04, -0.7, 0], [0, 0.62, 0]], [0.028, 0.024], P, { segs: 6, cap0: 'round', cap1: 'none' }); for (const y of [-0.42, 0.1, 0.56]) mb.tube([[0.02, y, 0], [0.02, y + 0.05, 0]], [0.036, 0.036], G2, { segs: 6, cap0: 'flat', cap1: 'flat' });
+    mb.blob(-0.05, 0.6, -0.022, 0.05, 1.0, 0.022, 1, E, { n: 2, emis: true, tap: [1, 0.12] }); mb.blob(-0.022, 0.64, -0.03, 0.022, 0.94, 0.03, 1, W, { n: 2, emis: true, tap: [1, 0.2] });
+    for (const s of [-1, 1]) mb.tube([[s * 0.03, 0.62, 0], [s * 0.1, 0.72, 0.01], [s * 0.05, 0.8, -0.01], [s * 0.11, 0.9, 0]], [0.008, 0.007, 0.006, 0.003], W, { segs: 3, emis: true, cap0: 'none', cap1: 'none' }); }
+  function trident(mb) { const P = [0.86, 0.92, 0.95], G2 = [0.95, 0.8, 0.42], E = [0.48, 0.94, 1.0], W = [0.9, 1.0, 1.0];
+    mb.tube([[0.04, -0.72, 0], [0, 0.56, 0]], [0.03, 0.026], P, { segs: 6, cap0: 'round', cap1: 'none' }); for (const y of [-0.5, -0.1, 0.3]) mb.tube([[0.025, y, 0], [0.025, y + 0.05, 0]], [0.04, 0.04], G2, { segs: 6, cap0: 'flat', cap1: 'flat' });
+    mb.tube([[-0.17, 0.66, 0], [-0.15, 0.56, 0], [0, 0.52, 0], [0.15, 0.56, 0], [0.17, 0.66, 0]], [0.02, 0.026, 0.034, 0.026, 0.02], G2, { segs: 6, cap0: 'none', cap1: 'none' });
+    for (const [x, h] of [[-0.17, 0.92], [0, 1.06], [0.17, 0.92]]) { mb.tube([[x, 0.6, 0], [x, h - 0.12, 0]], [0.022, 0.018], P, { segs: 5, cap0: 'none', cap1: 'none' }); mb.blob(x - 0.035, h - 0.16, -0.018, x + 0.035, h + 0.06, 0.018, 1, E, { n: 2, emis: true, tap: [1, 0.1] }); mb.ball(x, h - 0.1, 0, 0.022, W, { n: 1, emis: true }); }
+    mb.ball(0, 0.53, 0, 0.045, E, { n: 2, emis: true }); }
   function shield(mb, col) { const m = C(col); mb.blob(-0.3, -0.4, -0.04, 0.3, 0.35, 0.02, 0.35, m, { n: 2, tap: [1, 0.75] }); mb.blob(-0.26, -0.36, 0.0, 0.26, 0.31, 0.03, 0.4, [m[0] * 0.85, m[1] * 0.85, m[2] * 0.85], { n: 2, tap: [1, 0.75] }); mb.ball(0, 0, 0.04, 0.06, [0.75, 0.62, 0.3], { n: 2 }); }
   function bow(mb, col) { const m = C(col); const pts = []; for (let i = 0; i <= 8; i++) { const t = i / 8; pts.push([Math.sin(t * Math.PI) * 0.14, -0.55 + t * 1.1, 0]); } mb.tube(pts, pts.map((p, i) => 0.014 + 0.016 * Math.sin(i / 8 * Math.PI)), WOOD, { segs: 6, cap0: 'round', cap1: 'round' }); mb.tube([[0, -0.55, 0], [0, 0.55, 0]], [0.005, 0.005], [0.9, 0.9, 0.9], { segs: 3, cap0: 'none', cap1: 'none' }); mb.box(-0.03, -0.1, -0.025, 0.03, 0.1, 0.025, LEATHER, 1, false); }
   function rod(mb, col) { const m = C(col); mb.tube([[0.04, -0.6, 0], [0, 0.4, 0], [-0.04, 0.95, 0]], [0.03, 0.018, 0.008], WOOD, { segs: 6, cap0: 'round', cap1: 'round' }); mb.tube([[0.0, -0.2, 0.05], [0.0, -0.2, 0.05]], [0.05, 0.05], m, { segs: 8, cap0: 'flat', cap1: 'flat' }); mb.ball(0.02, -0.22, 0.05, 0.055, m, { n: 2 }); }
@@ -50,6 +60,7 @@ const Held = (() => {
     if (key === 'shovel') return shovel(mb, col);
     if (key.startsWith('sw_')) return sword(mb, col);
     if (key.startsWith('ax_')) return battleaxe(mb, col);
+    if (key === 'sp_storm') return stormspear(mb); if (key === 'sp_trident') return trident(mb);
     if (key.startsWith('sp_')) return spear(mb, col);
     if (key.startsWith('sh_')) return shield(mb, col);
     if (key === 'bow' || key.startsWith('bow_')) return bow(mb, col);

@@ -164,7 +164,7 @@ G.rideMode = function (k) {
 };
 G.rideRequirement = function (k) {
   const r = k.sp.rarity || 0;
-  if (k.sp.tame || k.sp.fast) return 1; // Thunderhoof and the camp horses: broken in already, anyone they trust can ride them
+  if (k.sp.tame || k.sp.fast || k.sp.tidal) return 1; // Thunderhoof, the camp horses and the seahorse from the ring in Atlantis: broken in already, anyone they trust can ride them
   const base = { land: 6, water: 10, air: 18 }[this.rideMode(k)];
   if (base == null) return null;
   return base + r * 5 + (k.sp.mythic ? 20 : 0);
@@ -174,12 +174,12 @@ G.toggleRide = function () {
   if (Battle.active || Dialogue.active() || Taming.active) return;
   if (p.mount) { const was = p.mount; p.mount = null; if (was.borrowed) Camps.horseHome(); else UI.toast('You climb off.'); return; }
   const k = this.activeKin(); if (!k) return;
-  if (!(this.stats.camp || {}).rogueTamed && !k.sp.tame && !k.sp.fast) { UI.toast('You do not know how to ride yet. Dusty Hale teaches it, out at his ranch (♞ on the map).'); return; }
+  if (!(this.stats.camp || {}).rogueTamed && !k.sp.tame && !k.sp.fast && !k.sp.tidal) { UI.toast('You do not know how to ride yet. Dusty Hale teaches it, out at his ranch (♞ on the map).'); return; }
   if (this.rideMode(k) === 'land' && !(k.sp.steed || k.sp.fast || k.sp.tame || k.sp.legend || k.sp.apex)) { UI.toast(`${KIN.name(k)} will not carry a rider. Only a few kinds of land Kin ever do: steeds (marked in your Kindex), the dinosaurs, and the legendaries.`); return; }
   const req = this.rideRequirement(k);
   if (req == null) { UI.toast(`${KIN.name(k)} cannot carry you. Legs carry you on land, fins in the water, wings in the air.`); return; }
   if (this.trainerLevel < req) { UI.toast(`${KIN.name(k)} will carry you at trainer level ${req}. You are ${this.trainerLevel}.`); return; }
-  if (k.level < 8 && !k.sp.tame) { UI.toast(`${KIN.name(k)} is too young to carry you (Lv 8).`); return; }
+  if (k.level < 8 && !k.sp.tame && !k.sp.tidal) { UI.toast(`${KIN.name(k)} is too young to carry you (Lv 8).`); return; }
   const mode = this.rideMode(k);
   if (!k.tamed && !k.sp.tame) { if (mode === 'water' && !p.inWater) { UI.toast(`Break ${KIN.name(k)} in where it lives: get in the water first.`); return; } Taming.start(k, { mode }); return; }
   if (mode === 'water' && !p.inWater) { UI.toast(`${KIN.name(k)} carries you in the water. Get in first.`); return; }
@@ -190,11 +190,11 @@ G.toggleRide = function () {
 // can your buddy carry you right now? The button only shows when the answer is yes (or when breaking it in is the next step), and says how: Ride, Fly or Swim
 G.rideable = function () {
   const p = this.player; const k = this.activeKin(); if (!k || k.hp <= 0 || p.flying) return null;
-  if (!(this.stats.camp || {}).rogueTamed && !k.sp.tame && !k.sp.fast) return null;
+  if (!(this.stats.camp || {}).rogueTamed && !k.sp.tame && !k.sp.fast && !k.sp.tidal) return null;
   const mode = this.rideMode(k); if (!mode) return null;
   if (mode === 'land' && !(k.sp.steed || k.sp.fast || k.sp.tame || k.sp.legend || k.sp.apex)) return null;
   const req = this.rideRequirement(k); if (req == null || this.trainerLevel < req) return null;
-  if (k.level < 8 && !k.sp.tame) return null;
+  if (k.level < 8 && !k.sp.tame && !k.sp.tidal) return null;
   if (mode === 'water' && !p.inWater) return null;
   if (mode === 'air' && this.noKinFlight()) return null;
   return { k, mode, label: mode === 'air' ? 'Fly' : mode === 'water' ? 'Swim' : 'Ride' };
@@ -538,6 +538,7 @@ G.onBattleEnd = function (result, wildE, wild, mine, ambush) {
     Wild.remove(wildE);
     if (wildE.isBoss) { Village.onBossGone(wildE.villageId); Village.freed(wildE.villageId); UI.toast('The village is free.', 'good'); }
     if (wildE.isLegend && !this.stats.lostMap) setTimeout(() => this.giveLostMap('A voice on the wind'), 4000);
+    if (wildE.isApex === 'mosa' && !this.stats.atlTooth) { this.stats.atlTooth = true; this.player.add('abysstooth', 1); setTimeout(() => UI.toast('It left a tooth behind, as long as your forearm. Somebody will want that.', 'good'), 2500); }
     if (wildE.isApex) { if (!this.stats.apex) this.stats.apex = {}; this.stats.apex[wildE.isApex] = result === 'caught' ? true : { back: (this.dayCount || 0) + 10 }; UI.sfx('quest'); UI.toast(result === 'caught' ? `${KIN.name(wild)} is yours. Nobody is going to believe this.` : `${KIN.name(wild)} is beaten, not caught. It will be back in about ten days.`, 'good'); this.addTrainerXp(5000); }
     if (wildE.isLegend) { if (!this.stats.legends) this.stats.legends = {}; this.stats.legends[this.worldId] = true; if (!this.stats.legendBack) this.stats.legendBack = {}; this.stats.legendBack[this.worldId] = result === 'caught' ? 'caught' : (this.dayCount || 0) + 6; if (result !== 'caught') setTimeout(() => UI.toast(`${KIN.name(wild)} limps away. It will be back in about six days, for another chance to catch it.`), 2500); UI.sfx('quest'); UI.toast(`${KIN.name(wild)} is ${result === 'caught' ? 'yours' : 'beaten'}. The portals of ${this.world.preset.name} wake: every arch you hold now reaches the other worlds, and theirs reach here.`, 'good'); this.addTrainerXp(2000); }
     if (wildE.lieutenant) Village.lieutenantDown(wildE.lieutenant);
@@ -965,7 +966,7 @@ G.flyTo = function (id) {
       const p = this.player, w = this.world; w.ensureAround(Math.floor(r.x / CH), Math.floor(r.z / CH), 3, 9999);
       p.x = r.x; p.z = r.z; const gy = w.groundY(Math.floor(r.x), Math.floor(r.z)); p.y = Math.max(Number.isFinite(gy) ? gy + 1 : -1, Number.isFinite(r.y) ? r.y : -1, SEA + 1) + 0.05; p.vx = p.vy = p.vz = 0; p.fallStart = null; p.gliding = false; p.frozen = false;
       Village.trainArrive(Village.active); this.meshPass(999); this.paused = false; Controls.setEnabled(true);
-      setTimeout(() => { f.style.opacity = 0; UI.toast(r.ferry || (Village.active && Village.active.type === 'sea') ? `The ferry ties up at ${r.name}.` : `The train pulls into ${r.name}.`, 'good'); }, 300);
+      setTimeout(() => { f.style.opacity = 0; UI.toast(r.tide ? `The Current sets you down in ${r.name}, under the glass.` : r.ferry || (Village.active && Village.active.type === 'sea') ? `The ferry ties up at ${r.name}.` : `The train pulls into ${r.name}.`, 'good'); }, 300);
     }, 1100);
   };
   // where a train stands at the platform you ride out on it first; elsewhere (the old stations) the fade alone
@@ -1103,7 +1104,7 @@ G.protectedAt = function (hit) {
   { const cs = Citadel.open() ? Citadel.site() : null; if (cs && hit.x >= cs.x - 8 && hit.x <= cs.x + 94 && Math.abs(hit.z - cs.z) <= 19) return { kind: 'dark' }; }
   { const fo = (Campaign.sites() || {}).fort; if (fo && (this.stats.camp || {}).st_fort && hit.x >= fo.x - 18 && hit.x <= fo.x + 78 && Math.abs(hit.z - fo.z) <= 14) return { kind: 'dark' }; }
   for (const f of Farms.sites()) if (Math.abs(hit.x - f.x) <= 13 && Math.abs(hit.z - f.z) <= 13) { if (hit.id === B.CHEST) return null; return { kind: 'farm', f }; }
-  const v = Village.active; if (v && !v.founded) { const R = v.type === 'land' ? (v.R || ((this.villageState[v.id] || {}).expanded ? 18 : 12)) + 3 : v.type === 'sea' ? 28 : v.style === 'atlantis' ? 22 : 16;
+  const v = Village.active; if (v && !v.founded) { const R = v.type === 'land' ? (v.R || ((this.villageState[v.id] || {}).expanded ? 18 : 12)) + 3 : v.atlantis ? v.RH + 2 : v.type === 'sea' ? 28 : v.style === 'atlantis' ? 22 : 16;
     if (Math.abs(hit.x - v.x) <= R && Math.abs(hit.z - v.z) <= R) { if (Village.ownsPlotAt(v, hit.x, hit.z)) return null; if (kind === 'hand') return null; return { kind: 'town', v }; } }
   return null;
 };

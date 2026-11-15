@@ -106,6 +106,11 @@ const Combat = (() => {
     G = game; buildArmoury(); buildArmour();
     GEAR.sp_painted = { id: 'sp_painted', kind: 'spear', name: 'Indian Spear', dmg: 9, cd: 0.7, reach: 3.8, arc: 0.6, crit: 0.08, tier: 1, col: '#b0603a', price: 90 };
     ITEMS.sp_painted = { name: 'Indian Spear', col: '#b0603a', melee: true, keep: true, tier: 1, desc: 'An Indian spear: 9 damage, the longest reach of anything you can hold (3.8). Hits one foe at a time. Plain, and it wears out quicker than forged steel.' };
+    // Atlantis: tidesteel. The spear has a head of standing lightning; the trident is the Tidewardens' own, the one thing that cuts a Binding
+    GEAR.sp_storm = { id: 'sp_storm', kind: 'spear', name: 'Stormtide Spear', dmg: 40, cd: 0.6, reach: 4.2, arc: 0.7, crit: 0.12, fx: 'slow', tier: 6, col: '#3fd4ff', price: 4800 };
+    ITEMS.sp_storm = { name: 'Stormtide Spear', col: '#3fd4ff', melee: true, keep: true, tier: 6, desc: 'Atlantean tidesteel with a head of standing lightning: 40 damage, reach 4.2, and quick for a spear. What it strikes is jolted and slows. Hold it and tap to thrust.' };
+    GEAR.sp_trident = { id: 'sp_trident', kind: 'spear', name: 'Poseidon\'s Trident', dmg: 62, cd: 0.7, reach: 4.4, arc: 1.3, crit: 0.15, fx: 'all', tier: 8, col: '#7af0ff', price: 20000 };
+    ITEMS.sp_trident = { name: 'Poseidon\'s Trident', col: '#7af0ff', melee: true, keep: true, tier: 8, desc: 'Three tines, each tipped with a piece of a different world. 62 damage, reach 4.4, and it takes everything in front of you at once. It burns, chills and goes through shields. It is the one thing that cuts a Binding.' };
     ITEMS.bow_painted = { name: 'Indian Bow', col: '#9a6a3a', keep: true, bow: true, desc: 'A plain Indian hunting bow. Shoots like any bow, but it wears out about twice as fast as a good one.' };
     for (const k in ARROWS) { const a = ARROWS[k]; if (!ITEMS[k]) ITEMS[k] = { name: a.name, col: a.col, arrow: a.kin, crafted: true, desc: a.desc }; if (a.needs && !RECIPES.find(r => r.id === k)) RECIPES.push({ id: k, out: k, n: a.n, needs: a.needs }); }
     // a few simple forge recipes so every early tier can be made, not only bought

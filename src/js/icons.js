@@ -72,6 +72,8 @@ const Icons = (() => {
   function greaves(g, col) { const c = rgb(col); for (const x of [16, 36]) { g.fillStyle = css(c); g.fillRect(x, 10, 12, 44); g.fillStyle = css(c, 1.3); g.fillRect(x + 2, 12, 3, 38); g.fillStyle = css(c, 0.6); g.fillRect(x, 30, 12, 3); } }
   function boots(g, col) { const c = rgb(col); for (const [x, m] of [[10, 1], [34, 0.85]]) { g.fillStyle = css(c, m); g.fillRect(x + 4, 14, 12, 26); g.beginPath(); g.moveTo(x + 4, 40); g.lineTo(x + 16, 40); g.lineTo(x + 22, 52); g.lineTo(x + 4, 52); g.closePath(); g.fill(); g.fillStyle = css(c, 0.55); g.fillRect(x + 4, 50, 18, 4); g.fillStyle = css(c, 1.3); g.fillRect(x + 6, 16, 3, 22); } }
   function spear(g, col) { const c = rgb(col); handle(g, 10, 56, 48, 18, 4, '#8a5a2c'); g.fillStyle = css(c); g.beginPath(); g.moveTo(56, 8); g.lineTo(46, 12); g.lineTo(52, 20); g.closePath(); g.fill(); g.fillStyle = '#e0302a'; g.fillRect(40, 20, 6, 8); }
+  function stormspear(g) { g.save(); handle(g, 10, 56, 44, 22, 4, '#dfeaf0'); g.fillStyle = '#f0c868'; g.fillRect(24, 36, 6, 6); g.shadowColor = '#3fd4ff'; g.shadowBlur = 8; g.fillStyle = '#3fd4ff'; g.beginPath(); g.moveTo(58, 6); g.lineTo(40, 16); g.lineTo(48, 26); g.closePath(); g.fill(); g.fillStyle = '#e8fbff'; g.beginPath(); g.moveTo(55, 9); g.lineTo(45, 17); g.lineTo(48, 22); g.closePath(); g.fill(); g.restore(); }
+  function trident(g) { g.save(); handle(g, 8, 58, 36, 30, 4, '#dfeaf0'); g.strokeStyle = '#f0c868'; g.lineWidth = 4; g.lineCap = 'round'; g.beginPath(); g.moveTo(26, 22); g.quadraticCurveTo(34, 34, 46, 38); g.stroke(); g.shadowColor = '#7af0ff'; g.shadowBlur = 8; g.strokeStyle = '#7af0ff'; g.lineWidth = 4; for (const [x0, y0, x1, y1] of [[26, 22, 36, 8], [36, 30, 52, 12], [46, 38, 58, 26]]) { g.beginPath(); g.moveTo(x0, y0); g.lineTo(x1, y1); g.stroke(); } g.restore(); }
   function parcel(g, col) { const c = rgb(col); g.fillStyle = css(c); g.fillRect(14, 20, 36, 30); g.fillStyle = css(c, 1.2); g.fillRect(14, 20, 36, 8); g.strokeStyle = '#8a3a3a'; g.lineWidth = 3; g.beginPath(); g.moveTo(32, 20); g.lineTo(32, 50); g.moveTo(14, 36); g.lineTo(50, 36); g.stroke(); }
   function cube4(g, col) { const c = rgb(col); g.fillStyle = css(c); g.fillRect(14, 14, 36, 36); g.fillStyle = css(c, 1.3); g.fillRect(14, 14, 36, 8); g.fillStyle = css(c, 0.7); g.fillRect(42, 14, 8, 36); }
   // ---- which picture an item gets ----
@@ -86,6 +88,7 @@ const Icons = (() => {
     if (key.startsWith('sw_')) { sword(g, col); return; }
     if (key.startsWith('ax_')) { battleaxe(g, col); return; }
     if (key.startsWith('sh_')) { shield(g, col); return; }
+    if (key === 'sp_storm') { stormspear(g); return; } if (key === 'sp_trident') { trident(g); return; }
     if (key.startsWith('sp_')) { spear(g, col); return; }
     if (item.armour === 'helm') { helm(g, col); return; }
     if (item.armour === 'chest') { chestplate(g, col); return; }

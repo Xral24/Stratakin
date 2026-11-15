@@ -131,6 +131,7 @@ const Village = (() => {
     return out;
   }
   function shopDef(kind, v) {
+    if (v && v.atlantis && kind === 'armoury') return atlForge(v);
     if (kind === 'kinmarket' && v) { const d = SHOPS.kinmarket; const parade = (G.dayCount || 0) % 7 === 6; return Object.assign({}, d, { greet: parade ? 'PARADE DAY! The rare ones are in the ring this morning. Bid quick.' : d.greet + ` The parade is in ${6 - ((G.dayCount || 0) % 7)} day${6 - ((G.dayCount || 0) % 7) === 1 ? '' : 's'}.`, stock: saleStock(v) }); } const st = v && SHOP_STYLE[v.style]; const d = (st && st[kind]) || SHOPS[kind]; if (d && typeof Combat !== 'undefined' && world && world.preset.id === 'earth' && ['trader', 'armoury', 'armourer', 'alchemist'].includes(kind)) return Object.assign({}, d, { stock: d.stock.concat(Combat.rack(v, kind)) }); return d; }
   const POST_POOL = [
     { item: 'iron', n: 4, price: 28 }, { item: 'copper', n: 4, price: 22 }, { item: 'void', n: 2, price: 50 }, { item: 'cloud', n: 4, price: 20 }, { item: 'ember', n: 4, price: 18 },
@@ -190,7 +191,7 @@ const Village = (() => {
   function init(game) {
     G = game; world = game.world; villages.clear(); hermits.clear(); active = null; activeHermit = null; walkState = null; fisher = null;
     const vd = world.preset.villages || { nc: 64, prefix: '', style: 'land' }; NC = vd.nc; CELL = WORLD_W / NC; PREFIX = vd.prefix || ''; STYLE = vd.style || 'land';
-    PLAN = null; PLANNED = null; TRAILS = null; SPECIAL.clear(); LOOK.clear(); towns.clear(); world.overlay = (c) => overlay(c); world.trailWear = (x, z) => trailWear(x, z); world.trackAt = (x, z) => trackAt(x, z);
+    PLAN = null; PLANNED = null; TRAILS = null; ATL = null; world.atlantis = null; SPECIAL.clear(); LOOK.clear(); towns.clear(); world.overlay = (c) => overlay(c); world.trailWear = (x, z) => trailWear(x, z); world.trackAt = (x, z) => trackAt(x, z);
   }
   function state(id) {
     if (!G.villageState) G.villageState = {};
@@ -214,14 +215,35 @@ const Village = (() => {
   // ---- sites: one candidate per cell, decided by the terrain there ----
   // Earth keeps a fixed map of named places, not a village in every cell: a few hamlets by home, towns further out, cities beyond them
   let PLAN = null, planning = false; const SPECIAL = new Map(), LOOK = new Map();
+  // ---- Atlantis: one city under the sea in every Earth world. It is not one of the ordinary sites: the plan looks over all the deep water
+  // within reach of where you start and puts it on the best stretch of it, deep and wide enough for the dome ----
+  const ATL_RH = 40, ATL_RV = 17; let ATL = null;
+  function findAtlantis() {
+    const sx = world.spawn.x, sz = world.spawn.z; let best = null;
+    const ring = (x, z, r, n) => { let hi = -1, sum = 0; for (let i = 0; i < n; i++) { const a = i / n * Math.PI * 2 + r; const c = world.colInfo(Math.round(x + Math.cos(a) * r), Math.round(z + Math.sin(a) * r)); if (c.lost || c.lostRim) return null; hi = Math.max(hi, c.h); sum += c.h; } return { hi, mean: sum / n }; };
+    for (let dx = -2240; dx <= 2240; dx += 64) for (let dz = -2240; dz <= 2240; dz += 64) {
+      const d = Math.hypot(dx, dz); if (d < 420 || d > 2250) continue;
+      const x = Math.round(sx + dx), z = Math.round(sz + dz); const c = world.colInfo(x, z); if (c.lost || c.lostRim || c.h > SEA - 9) continue;
+      const a = ring(x, z, 24, 6); if (!a || a.hi > SEA - 6) continue; const b = ring(x, z, 46, 10); if (!b || b.hi > SEA - 4) continue; // open water over the whole of it
+      const depth = SEA - (c.h + a.mean * 2 + b.mean * 2) / 5; // how much water stands over the place
+      const score = Math.min(depth, 24) * 3 - Math.abs(d - 800) / 40 - (b.hi > SEA - 8 ? 6 : 0); // deep first, then not too far to swim to
+      if (!best || score > best.score) best = { x, z, h: c.h, score, d, depth };
+    }
+    return best;
+  }
   const QUOTA = { hamlet: [2, 140, 650], town: [8, 550, 1500], city: [4, 1300, 2300] };
   function plan() {
     if (PLAN) return PLAN; if (world.preset.id !== 'earth') return null;
     planning = true; const cands = [];
     const sx = Math.floor(U.mod(world.spawn.x, WORLD_W) / CELL), sz = Math.floor(U.mod(world.spawn.z, WORLD_W) / CELL); const R = Math.ceil(2400 / CELL);
     for (let dx = -R; dx <= R; dx++) for (let dz = -R; dz <= R; dz++) { const v = siteFor(sx + dx, sz + dz); if (v && !v.founded) cands.push(v); }
-    planning = false; PLAN = new Map();
-    const byD = cands.sort((a, b) => a.dist - b.dist); const taken = [];
+    planning = false; PLAN = new Map(); const taken = [];
+    { let a = null; try { a = findAtlantis(); } catch (e) { console.warn('no Atlantis:', e.message); } ATL = null; world.atlantis = null;
+      if (a) { const cx = Math.floor(U.mod(a.x, WORLD_W) / CELL), cz = Math.floor(U.mod(a.z, WORLD_W) / CELL), id = PREFIX + cx + ',' + cz; // it takes the place of whatever that stretch of sea would have held
+        const v = { id, x: a.x, z: a.z, y: U.clamp(Math.round(a.h), 20, SEA - ATL_RV - 5), type: 'deep', style: 'atlantis', atlantis: true, RH: ATL_RH, RV: ATL_RV, name: 'Atlantis', dist: a.d, tier: Math.max(4, Math.floor(a.d / 300) + 2), zoneBase: world.preset.zoneBase || 0, npcs: [], boss: null, elder: null, amen: FULL, guardEnts: [] };
+        villages.set(id, v); ATL = v; world.atlantis = { id, x: v.x, y: v.y, z: v.z, RH: ATL_RH, RV: ATL_RV };
+        const i = cands.findIndex(c => c.id === id); if (i >= 0) cands.splice(i, 1); PLAN.set(id, 'city'); taken.push(v); } }
+    const byD = cands.sort((a, b) => a.dist - b.dist);
     const far = (v, r) => taken.every(t => Math.hypot(wd(t.x - v.x), wd(t.z - v.z)) > r);
     for (const size of ['hamlet', 'town', 'city']) { const [n, lo, hi] = QUOTA[size]; let got = 0, sea = 0;
       for (const v of byD) { if (got >= n) break; if (v.dist < lo || v.dist > hi || PLAN.has(v.id) || !far(v, size === 'city' ? 500 : 300)) continue;
@@ -281,7 +303,7 @@ const Village = (() => {
     if (!world.preset.villages) return null;
     cx = U.mod(cx, NC); cz = U.mod(cz, NC);
     const id = PREFIX + cx + ',' + cz;
-    if (!planning && world.preset.id === 'earth') { const P = plan(); const v0 = villages.has(id) ? villages.get(id) : rawSite(cx, cz, id); if (!v0 || !P.has(id)) return null; v0.size = P.get(id); v0.special = SPECIAL.get(id) || null; v0.looks = LOOK.get(id) || []; if (v0.type === 'land') v0.R = TOWN_R[v0.size]; if (v0.size === 'city' && !/^(Great|Old|High|Port) /.test(v0.name)) v0.name = (v0.type !== 'land' ? 'Port ' : 'Great ') + v0.name; if (v0.size === 'city') v0.tier = Math.max(v0.tier, 4); return v0; }
+    if (!planning && world.preset.id === 'earth') { const P = plan(); const v0 = villages.has(id) ? villages.get(id) : rawSite(cx, cz, id); if (!v0 || !P.has(id)) return null; v0.size = P.get(id); v0.special = SPECIAL.get(id) || null; v0.looks = LOOK.get(id) || []; if (v0.type === 'land') v0.R = TOWN_R[v0.size]; if (v0.size === 'city' && !v0.atlantis && !/^(Great|Old|High|Port) /.test(v0.name)) v0.name = (v0.type !== 'land' ? 'Port ' : 'Great ') + v0.name; if (v0.size === 'city') v0.tier = Math.max(v0.tier, 4); return v0; }
     return rawSite(cx, cz, id);
   }
   // ================= towns as part of the world =================
@@ -505,9 +527,63 @@ const Village = (() => {
     const L = { R, buckets, shops, homes: lots.filter(l => l.home), streets, plots, rail, marks };
     towns.set(v.id, L); return L;
   }
+  // ---- Atlantis in the world: drawn into each chunk as it is generated, the way a town is, so none of it goes into the save. The blocks only say
+  // where you can walk and what stops you. None of them is drawn as a block: the mesher draws the whole city as smooth shapes from world.atlantis.
+  // From the middle out: the falls coming down through the eye of the dome, the ring pool they fall into, the market ring, eight halls, the homes
+  // and coral beds, and four gates in the foot of the dome where the sea stands like a wall ----
+  const ATL_HALLS = [['armoury', 'The Tideforge'], ['trader', 'Pearl Exchange'], ['bakery', 'Kelp Kitchen'], ['juice', 'The Drowned Tavern'], ['voodoo', 'Tide Healer'], ['fusing', 'The Fusing Hall'], ['elder', 'The Speaker\'s Hall'], ['station', 'The Current']];
+  const ATL_POOL = 10.4, ATL_FALLS = 2.6, ATL_HALL_AT = 24, ATL_POD_AT = 33.5;
+  function atlLayout() {
+    const A = ATL; if (!A) return null; if (A._lay) return A._lay;
+    const halls = ATL_HALLS.map((h, i) => { const a = (22.5 + i * 45) * Math.PI / 180; return { kind: h[0], name: h[1], a, x: Math.round(Math.cos(a) * ATL_HALL_AT), z: Math.round(Math.sin(a) * ATL_HALL_AT) }; });
+    const pods = []; for (let i = 0; i < 8; i++) { const a = (45 + Math.floor(i / 2) * 90 + (i % 2 ? 17 : -17)) * Math.PI / 180; pods.push({ a, x: Math.round(Math.cos(a) * ATL_POD_AT), z: Math.round(Math.sin(a) * ATL_POD_AT) }); }
+    const spires = []; for (let i = 0; i < 4; i++) { const a = (45 + i * 90) * Math.PI / 180; spires.push({ a, x: Math.round(Math.cos(a) * 15.5), z: Math.round(Math.sin(a) * 15.5), h: 10 }); }
+    const L = { halls, pods, spires, gates: [[1, 0], [0, 1], [-1, 0], [0, -1]], pool: ATL_POOL, falls: ATL_FALLS };
+    A._lay = L; Object.assign(world.atlantis, L); return L;
+  }
+  function stampAtl(chunk) {
+    const A = ATL; if (!A) return; const ox = chunk.cx * CH, oz = chunk.cz * CH, RH = A.RH, RV = A.RV, vy = A.y;
+    if (Math.abs(wd(ox + 8 - A.x)) > RH + 20 || Math.abs(wd(oz + 8 - A.z)) > RH + 20) return;
+    const L = atlLayout(), bl = chunk.blocks;
+    const inside = (dx, dy, dz) => (dx * dx + dz * dz) / (RH * RH) + (dy * dy) / (RV * RV) <= 1;
+    for (let lx = 0; lx < CH; lx++) for (let lz = 0; lz < CH; lz++) {
+      const dx = wd(ox + lx - A.x), dz = wd(oz + lz - A.z), r = Math.hypot(dx, dz), base = (lx * CH + lz) * WH;
+      if (r > RH + 8.5) continue;
+      let gate = null; for (const g of L.gates) { const along = dx * g[0] + dz * g[1], across = Math.abs(dx * g[1] - dz * g[0]); if (along > 0 && across <= 2.5) { gate = { along, across }; break; } }
+      const pool = r <= ATL_POOL, falls = r <= ATL_FALLS, floorY = pool ? vy - 4 : vy - 1;
+      if (r > RH + 2.2) { // outside the dome: only the way in to each gate is touched. Whatever seabed stands over it is taken away, so you can always swim down to the door
+        if (gate) for (let y = vy; y <= SEA; y++) if (bl[base + y] !== B.WATER) bl[base + y] = B.WATER;
+        continue; }
+      for (let y = floorY - 1; y > 2; y--) { const b = bl[base + y]; if (y < floorY - 4 && b !== B.AIR && b !== B.WATER && isSolid(b) && !isTreeBlock(b)) break; bl[base + y] = B.STONE; } // a plinth under the floor, down to whatever ground there is
+      bl[base + floorY] = B.ATLAN;
+      if (r > RH + 0.5) { for (let y = vy; y <= SEA; y++) bl[base + y] = B.WATER; continue; } // a step of the floor runs on outside the glass, with open water over it, so the seabed never leans in against the dome
+      if (pool) for (let y = vy - 3; y < vy; y++) bl[base + y] = B.WATER; // the ring pool: three deep, its top level with the floor
+      for (let y = vy; y <= SEA; y++) { const dy = y - vy; // air under the glass, the glass, the sea over it
+        bl[base + y] = !inside(dx, dy, dz) ? B.WATER : (inside(dx + 1, dy, dz) && inside(dx - 1, dy, dz) && inside(dx, dy, dz + 1) && inside(dx, dy, dz - 1) && inside(dx, dy + 1, dz)) ? B.AIR : B.AGLASS; }
+      if (falls) { for (let y = vy; y <= SEA; y++) bl[base + y] = B.WATER; continue; } // the falls: the sea comes down through the eye of the dome in one column, and you can swim down it
+      if (gate && gate.across <= 1.5 && gate.along > RH - 3) for (let dy = 0; dy <= 3; dy++) if (bl[base + vy + dy] === B.AGLASS) bl[base + vy + dy] = B.AIR; // a gate: the glass is left out and the sea stands in the gap
+      if (pool) continue;
+      for (const h of L.halls) { const hx = dx - h.x, hz = dz - h.z, hr = Math.hypot(hx, hz); if (hr > 5.45) continue;
+        const dirX = -Math.cos(h.a), dirZ = -Math.sin(h.a), fwd = hx * dirX + hz * dirZ, side = Math.abs(hx * dirZ - hz * dirX); // toward the middle of the city is the front
+        const door = fwd > 2 && side <= 1.55;
+        if (hr > 4.3) { for (let dy = 0; dy <= 4; dy++) bl[base + vy + dy] = door && dy <= 3 ? B.AIR : B.ATLAN; }
+        else if (hx === 0 && hz === 0) { bl[base + vy + 4] = B.ALIGHT; if (h.kind === 'fusing') bl[base + vy] = B.FUSION; }
+        else if (h.kind !== 'fusing' && h.kind !== 'elder' && h.kind !== 'station' && fwd > 0.4 && fwd <= 1.5 && side <= 2.5) bl[base + vy] = B.ATLAN; // the counter
+        bl[base + vy + 5] = B.ATLAN; }
+      for (const q of L.pods) { const hx = dx - q.x, hz = dz - q.z, hr = Math.hypot(hx, hz); if (hr > 2.95) continue;
+        const dirX = -Math.cos(q.a), dirZ = -Math.sin(q.a), fwd = hx * dirX + hz * dirZ, side = Math.abs(hx * dirZ - hz * dirX);
+        if (hr > 1.9) { for (let dy = 0; dy <= 2; dy++) bl[base + vy + dy] = (fwd > 1 && side <= 0.6 && dy <= 1) ? B.AIR : B.ATLAN; } else if (hx === 0 && hz === 0) bl[base + vy + 2] = B.ALIGHT;
+        if (bl[base + vy + 3] === B.AIR) bl[base + vy + 3] = B.ATLAN; }
+      for (const sp of L.spires) if (dx === sp.x && dz === sp.z) { for (let dy = 0; dy < sp.h; dy++) bl[base + vy + dy] = B.ATLAN; bl[base + vy + sp.h] = B.ALIGHT; }
+      // coral beds out by the homes, and a pearl light in each: off the avenues, clear of every door
+      if (r > 29.5 && r < 37.5 && !gate && bl[base + vy] === B.AIR && !L.pods.some(q => Math.hypot(dx - q.x, dz - q.z) < 4.6)) { const a = Math.atan2(dz, dx), bed = Math.sin(a * 8) > 0.15 && Math.abs(r - 33.5) < 2.6 + Math.sin(a * 24) * 0.8; const hq = U.hash3(ox + lx, 31, oz + lz, 0xA71);
+        if (bed && hq < 0.5) bl[base + vy] = hq < 0.035 ? B.PEARLCORAL : [B.CORAL_R, B.CORAL_B, B.CORAL_Y][Math.floor(hq * 60) % 3]; }
+    }
+  }
   // called by the world as each chunk is generated: draw any town that touches it
   function overlay(chunk) {
     if (!world || world.preset.id !== 'earth') return;
+    if (!PLAN && world.spawn && !planning && !trailBusy) { try { plan(); } catch (e) { console.warn('plan:', e.message); } }
     const key = U.mod(chunk.cx, NCH) + ',' + U.mod(chunk.cz, NCH);
     for (const v of townList()) {
       const R = v.R + 4; const ccx = Math.floor(U.mod(v.x, WORLD_W) / CH), ccz = Math.floor(U.mod(v.z, WORLD_W) / CH); const cr = Math.ceil(R / CH) + 1;
@@ -515,6 +591,7 @@ const Village = (() => {
       const ops = layout(v).buckets.get(key); if (!ops) continue;
       const bl = chunk.blocks; for (let i = 0; i < ops.length; i += 4) { const j = (ops[i] * CH + ops[i + 2]) * WH + ops[i + 1]; if (ops[i + 3] === -1) { if (isTreeBlock(bl[j])) bl[j] = B.AIR; } else bl[j] = ops[i + 3]; }
     }
+    if (ATL) stampAtl(chunk);
     if (typeof Sky !== 'undefined') Sky.overlay(chunk);
   }
   function patchLoaded(v) {
@@ -1210,6 +1287,7 @@ const Village = (() => {
   }
   function ensureStamped(v) {
     const st = state(v.id);
+    if (v.atlantis) { if (!st.stamped || !st.freed) { st.stamped = true; st.freed = true; if (st.freedDay == null) st.freedDay = G.dayCount || 0; remember(v, st); } return; } /* Atlantis is part of the world, like a town, and nobody has ever held it but its own people */
     if (st.stamped && v.type === 'sea' && !st.reef1) { st.reef1 = true; world.ensureAround(Math.floor(v.x / CH), Math.floor(v.z / CH), 2, 999); stampSea(v); remember(v, st); return; } /* villages stamped before the reef look get it once */
     if (st.stamped) return;
     world.ensureAround(Math.floor(v.x / CH), Math.floor(v.z / CH), 2, 999);
@@ -1437,7 +1515,70 @@ const Village = (() => {
     });
     return true;
   }
+  // ---- the people of Atlantis: who stands where, what they say, the forge, and the ring under the falls ----
+  const atlS = () => { if (!G.stats.atl) G.stats.atl = { best: 0, rides: 0 }; return G.stats.atl; };
+  function populateAtlantis(v) {
+    const L = atlLayout(), vy = v.y, sty = 'atlantis'; v.npcs = []; const people = peopleOf(v); const pname = (i) => people[i % people.length];
+    const put = (n, x, z, o) => { n.x = v.x + x + 0.5; n.z = v.z + z + 0.5; n.tx = n.x; n.tz = n.z; n.yaw = Math.atan2(-x, -z); return Object.assign(n, { hidden: false }, o || {}); }; // everyone faces the middle of the city
+    L.halls.forEach((h, i) => { const bx = h.x + Math.cos(h.a) * 1.7, bz = h.z + Math.sin(h.a) * 1.7; // behind the counter, at the back of the hall
+      if (h.kind === 'voodoo') v.npcs.push(put(makeNpc(13, 'voodoo', 0, 0, shopDef('voodoo', v).keeper, 'voodoo', vy, v.id, sty), bx, bz, { wander: false }));
+      else if (h.kind === 'elder') { v.elder = put(makeNpc(20, 'elder', 0, 0, 'Speaker Nerissa', null, vy, v.id, sty), h.x - Math.cos(h.a) * 7.6, h.z - Math.sin(h.a) * 7.6, { wander: false, atl: 'speaker' }); }
+      else if (h.kind === 'fusing') v.npcs.push(put(makeNpc(21, 'keeper', 0, 0, 'Hallkeeper Ione', null, vy, v.id, sty), h.x - Math.cos(h.a) * 2.2 + Math.sin(h.a) * 1.6, h.z - Math.sin(h.a) * 2.2 - Math.cos(h.a) * 1.6, { wander: false, atl: 'hall' }));
+      else if (h.kind === 'station') v.npcs.push(put(makeNpc(15, 'keeper', 0, 0, 'Tidewarden ' + pname(5), 'station', vy, v.id, sty), bx, bz, { wander: false, ferry: true }));
+      else v.npcs.push(put(makeNpc(10 + i, 'keeper', 0, 0, shopDef(h.kind, v).keeper, h.kind, vy, v.id, sty), bx, bz, { wander: false })); });
+    v.npcs.push(put(makeNpc(22, 'keeper', 0, 0, 'Ringmaster Delphin', null, vy, v.id, sty), 0, 12.4, { wander: false, atl: 'ring' }));
+    for (let i = 0; i < 9; i++) { const a = (i + 0.5) / 9 * Math.PI * 2 + 0.35, r = 13.6 + (i % 3) * 1.3; v.npcs.push(put(makeNpc(i, 'villager', 0, 0, pname(i + 2), null, vy, v.id, sty), Math.round(Math.cos(a) * r), Math.round(Math.sin(a) * r))); }
+    v.npcs.push(v.elder);
+    for (const n of v.npcs) { n.y = vy; n.home = { x: n.x, z: n.z }; }
+    v.wanderR = 2.2; buildGuardEnts(v);
+  }
+  // the seahorse in the ring. Skerry is a great seahorse, Isla's; once she is yours, another takes her place
+  function ringSpecies(spare) {
+    const key = spare ? '_ring2' : '_ring1'; if (atlLayout()[key]) return atlLayout()[key];
+    let sp = null; for (let s = spare ? 0x7B31 : 0x5EA1, n = 0; n < 60; s++, n++) { if ((((s >>> 0) % 1009) % 3) !== 1) continue; const c = KIN.species(s, ['Tide'], 0, { primary: 'Tide', shape: 'fish', total: 440, rarity: 2 }); if (!sp) sp = c; const f = KIN.formOf(c, 2); if (f && f.plan === 'greatseahorse') { sp = c; break; } }
+    const nm = spare ? 'Brine' : 'Skerry'; sp.names = [nm, nm, nm]; sp.noFuse = true; sp.dex = 0; sp.tidal = true; // tidal: broken in already, by the ring
+    sp.colors = spare ? { body: '#3a6fb8', belly: '#cfe4ff', accent: '#9fe0ff', dark: '#1c3a66', eye: '#1a1a1a' } : { body: '#2f93a8', belly: '#c4f0e6', accent: '#ffd25a', dark: '#16485a', eye: '#1a1a1a' };
+    return (atlLayout()[key] = sp);
+  }
+  function atlRide(v) {
+    const a = atlS(), p = G.player, spare = !!a.tamed, sp = ringSpecies(spare); const k = KIN.create(sp, Math.max(15, (G.trainerLevel || 1) + 3)); k.stage = Math.max(k.stage || 1, KIN.maxStage(sp)); k.tamed = true;
+    const cx = v.x + 0.5, cz = v.z + 0.5, R = 6.4; let th = Math.PI / 2, paid = 0, won = 0; const day = G.dayCount || 0; if (a.day !== day) { a.day = day; a.today = 0; } const half = (a.today || 0) >= 5; a.today = (a.today || 0) + 1; a.rides = (a.rides || 0) + 1;
+    const place = () => { p.x = cx + Math.cos(th) * R; p.z = cz + Math.sin(th) * R; p.y = v.y - 0.2; p.yaw = Math.PI - th; p.vx = p.vy = p.vz = 0; p.inWater = true; if (G.orbit) { G.orbit.yaw = p.yaw; G.orbit.pitch = -0.32; } };
+    place();
+    Taming.start(k, { endless: true, mode: 'water', noHurt: true, level: 0.15, ramp: 0.03, quiet: true, leap: 3.2,
+      label: (s) => Math.floor(s.t) + '<small>' + (won ? '◆ ' + won : a.best ? 'best ' + Math.floor(a.best) : 'hold on') + '</small>',
+      drive: (s, dt) => { th += dt * (0.45 + 0.22 * Math.min(3, s.I || 0)); place(); // round the falls, faster as she warms up
+        const n = Math.floor(s.t / 5); if (n > paid) { paid = n; const g = Math.max(1, Math.round((n + 1) * (half ? 0.5 : 1))); won += g; G.shards += g; UI.sfx(n % 4 === 0 ? 'gemBig' : 'gem'); } },
+      onFall: (secs) => { const first = !a.tamed && secs >= 20, record = secs > (a.best || 0) + 0.5 && (a.best || 0) > 0; a.best = Math.max(a.best || 0, secs); a.gems = (a.gems || 0) + won;
+        if (record) { const b = 10; G.shards += b; won += b; }
+        UI.toast(`${Math.floor(secs)} on ${sp.names[0]}.${won ? ' ◆ ' + won + ' won' + (record ? ', a new best' : '') + '.' : ' Nothing yet: the ring pays from five.'}${half && won ? ' Half pay after five rides a day.' : ''}`, won ? 'good' : undefined);
+        if (first) { a.tamed = true; const mine = KIN.create(sp, k.level); mine.stage = k.stage; mine.tamed = true; const where = G.addKin(mine); if (G.seenDex) { try { G.seenDex(sp, 'caught'); } catch (e) { /* not in the book */ } }
+          setTimeout(() => Dialogue.show('Ringmaster Delphin', ['Twenty. On Skerry. I have stood at this ring for thirty years and I have not once paid that out.', `She is coming with you, then. That is the rule, and it is older than I am${where === 'party' ? '' : ' (she is in your storage: your party is full)'}. She will carry you anywhere there is water, and under it.`, 'Go and see the Speaker. She will want to know who Skerry chose.']), 900); } } });
+  }
+  function atlTalk(n) {
+    const a = atlS(), v = active;
+    if (n.atl === 'ring') {
+      if (!a.met) { a.met = true; return Dialogue.show(n.name, ['The ring is the oldest thing in the city. You get on, she goes round the falls, and she does her best to put you in the water.', a.tamed ? 'Brine has the ring now. Every five you last, I pay, and I pay more the longer you stay.' : 'That one is Skerry. Nobody has stayed on her to twenty since the girl she belonged to. Do it and she leaves with you.', 'Lean against her with the stick. It costs nothing to try and it does not hurt, you only get wet.'], () => atlRide(v)); }
+      return Dialogue.show(n.name, [a.best ? `Your best is ${Math.floor(a.best)}. ${a.tamed ? 'Brine is feeling lively.' : a.best >= 12 ? 'Skerry noticed. Twenty and she is yours.' : 'Twenty, and Skerry is yours.'} Up you get.` : 'Up you get.'], () => atlRide(v)); }
+    if (n.atl === 'hall') return Dialogue.show(n.name, ['This is the fusing hall. Every Fusion Table on the land was made on this floor and given away, back when we still went up into the light.', 'The one who kept it was called the Kinmaster. It was only a job then.', a.told ? 'You know the rest. The table still works. He never came back for it.' : 'Ask the Speaker about him. It is hers to tell.']);
+    if (n.atl === 'speaker') {
+      const fled = !!G.stats.lightReturned;
+      if (!a.tamed) { a.spoke = true; return Dialogue.show(n.name, ['A land-walker, in Atlantis. Nobody finds this city unless the sea lets them, so sit down before you fall down.', 'You have met the Bound, and the man who binds them. You call him the Kinmaster. That was a title here once, and an honest one.', 'I will tell you who he was. First the city wants to know who you are. The seahorse in the ring is called Skerry, and she has thrown every rider for thirty years.', 'Stay on her to a count of twenty. Then come back to me.']); }
+      if (!a.told) return Dialogue.show(n.name, ['Twenty, on Skerry. I did not think I would see that again.', 'His name is Calder. He kept the fusing hall, and that is all Kinmaster ever meant. He is my brother.', 'He had a daughter, Isla. She rode before she could walk, and Skerry was hers. I taught her.', 'The old city stood in the shallows, in the light. One night the Mantlewyrm turned over in its sleep, far under the Earth. The seabed dropped and the city went with it. Skerry came back to the ring. Isla did not.', 'We live by trust down here. You earn a Kin and it carries you. Calder said trust had just killed his child, and that anything able to drown a city in its sleep must never be left free again.', 'He took the Concord, the crystal that lets a rider and a Kin feel each other, and he bent it until it stopped asking. That is his Binding Crystal. He bound Kin first. Then people. We cast him out, and we sank this city where he has never looked.', 'He does not want a throne. An Old One sleeps under every world: the Mantlewyrm here, the Selenaut over the Moon, the Ringwarden on Halo. He means to chain them all and fuse them into one beast that answers to him alone. Then nothing wakes unless he allows it.', fled ? 'You broke his crystal on Earth, and he ran for the Moon. He is after the Selenaut now.' : 'He is still gathering what he needs on Earth. When that fails him he will go up, to the Moon first.', 'You are why he is wrong. Skerry carried you because she chose to. Go to the Tideforge. Brann will tell you about the trident, and what it takes to make one.'], () => { a.told = true; UI.sfx('quest'); UI.toast('The Tideforge will deal with you now.', 'good'); });
+      return Dialogue.show(n.name, [G.player.has('sp_trident') ? 'You carry the trident. It cuts a Binding, any Binding. Calder knows that better than anyone alive. He helped forge the last one.' : 'Brann, at the Tideforge. The trident takes a piece of each world, and the first is a tooth from the Abyssaurus, out in the deep by the Lost World.', 'And ride when your head is too full. It is what the ring is for.']); }
+  }
+  // the Tideforge: what Atlantis makes that nobody on the land can. It deals with riders the Speaker has spoken for
+  function atlForge(v) {
+    const a = atlS(), stock = []; if (typeof Combat !== 'undefined') { const m = Combat.rack(v, 'armoury')[0]; if (m) stock.push(m); }
+    if ((G.stats.apex || {}).mosa && !G.stats.atlTooth) { G.stats.atlTooth = true; G.player.add('abysstooth', 1); }
+    const no = (item, sub) => ({ service: 'locked', locked: true, icon: item, name: ITEMS[item].name, sub, price: 0, btn: 'Not yet' });
+    if (a.told) stock.push({ item: 'sp_storm', price: 4800 }); else stock.push(no('sp_storm', 'The forge arms riders the Speaker has spoken for. Stay on Skerry to twenty, then hear Nerissa out.'));
+    if (!G.player.has('sp_trident')) stock.push(a.told ? { barter: { abysstooth: 1, selenite: 8, ringshard: 3 }, item: 'sp_trident', n: 1 } : no('sp_trident', 'Brann does not talk about the trident to strangers.'));
+    stock.push({ item: 'tidelung', price: 3500 });
+    return { title: 'The Tideforge', keeper: 'Brann', greet: !a.told ? 'Tidesteel does not go up to the land with just anyone. The lung I will sell you: nobody should drown on my doorstep.' : G.player.has('sp_trident') ? 'There it is. Mind where you point it.' : 'The trident is three tines and each one is tipped with a piece of a different world: a tooth from the Abyssaurus, selenite off the Moon, a shard of the ring over Halo. Bring me all of it and I will forge it while you wait.', stock };
+  }
   function populate(v) {
+    if (v.atlantis) { populateAtlantis(v); return; }
     if (v.R && v.type === 'land') { populateTown(v); return; }
     v.npcs = []; const st = state(v.id); const freed = st.freed; const vy = v.y;
     const r = U.rng(U.strHash(v.id) ^ 0x99); const people = peopleOf(v); const sty = styleOf(v) || (v.type === 'land' ? 'land' : v.type);
@@ -1885,8 +2026,9 @@ const Village = (() => {
     if (near && nd < 90) {
       frame(near, player.x, player.z);
       if (state(near.id).stamped && near.type === 'sea' && !state(near.id).reef1) { ensureStamped(near); if (G.meshPass) G.meshPass(99); }
+      if (near.atlantis && !state(near.id).stamped) { ensureStamped(near); atlS().seen = true; UI.sfx('quest'); UI.toast('Atlantis. A city under glass on the floor of the sea, lit like day. Swim down the falls through the eye of the dome, or in at one of the four gates at its foot.', 'good'); }
       if (!state(near.id).stamped) { ensureStamped(near); UI.toast(`${near.name}: ${near.style === 'atlantis' ? 'a city of the sea people' : near.type === 'sea' ? 'a village on stilts' : near.type === 'deep' ? 'a village under the sea' : near.style === 'alien' ? 'an alien settlement' : near.style === 'frontier' ? 'a frontier town' : near.style === 'halo' ? 'a caravan town' : 'a village'}${state(near.id).freed ? '' : ', held by a tyrant'}.`); }
-      if (state(near.id).stamped && !near._tableOk && !near.founded) { near._tableOk = true; /* a table that was dug up before tables were made fast goes back where it stood, and the one in your bag goes with it */
+      if (state(near.id).stamped && !near._tableOk && !near.founded && !near.atlantis) { near._tableOk = true; /* a table that was dug up before tables were made fast goes back where it stood, and the one in your bag goes with it */
         const vx = near.x, vy = near.y, vz = near.z; let found = false; for (let dx = -8; dx <= 8 && !found; dx++) for (let dz = -8; dz <= 8 && !found; dz++) for (let dy = -2; dy <= 3; dy++) if (world.getBlock(vx + dx, vy + dy, vz + dz) === B.FUSION) { found = true; break; }
         if (!found && world.getBlock(vx, vy, vz) !== undefined) { const off = near.type === 'deep' || near.style === 'atlantis' ? [3, 3] : near.size === 'city' ? [5, -5] : [0, 0]; world.setBlock(vx + off[0], vy, vz + off[1], B.FUSION); if (G.player.has('fusion')) G.player.take('fusion', 1); UI.toast(`The Fusion Table is back in ${near.name}.`, 'good'); if (G.meshPass) G.meshPass(99); } }
       if (near.founded) { refreshT -= dt; if (refreshT <= 0 || !near.npcs.length) { refreshT = 4; refreshFounded(near); } }
@@ -1894,12 +2036,12 @@ const Village = (() => {
       if (!near.portalChecked) { near.portalChecked = true; clearPortal(near); }
       if (active && active !== near) { if (active.raid && active.raid.state === 'active') endRaid(active, state(active.id)); clearLieutenants(active); }
       active = near; remember(near, state(near.id));
-      Wild.noSpawn = { x: near.x, z: near.z, r: near.type === 'land' ? (near.R ? near.R + 3 : state(near.id).expanded ? 21 : 15) : 16 };
+      Wild.noSpawn = { x: near.x, z: near.z, r: near.atlantis ? near.RH + 8 : near.type === 'land' ? (near.R ? near.R + 3 : state(near.id).expanded ? 21 : 15) : 16 };
       if (near.R && !near.patched) patchLoaded(near);
       if (near.R && near.type === 'land' && state(near.id).stamped && !state(near.id).railLevel) { stampRail(near, state(near.id)); if (G.meshPass) G.meshPass(99); } /* lines laid before they were levelled */
-      if (nd < 14) {
+      if (nd < (near.atlantis ? near.RH - 2 : 14)) {
         if (!G.lastVillage || G.lastVillage.id !== near.id) G.lastVillage = { id: near.id, x: near.x, y: near.y, z: near.z, name: near.name, world: world.preset.id };
-        if (state(near.id).freed) { G.respawnPoint = { x: near.x + 0.5, y: near.y, z: near.z + (near.type === 'deep' ? -4.5 : 4.5) }; if (!near.R && near.type !== 'deep' && G.addRoost) G.addRoost(near.type === 'sea' ? { id: near.id, name: near.name, x: near.x + 17.5, y: near.y, z: near.z - 3, world: world.preset.id, ferry: true } : { id: near.id, name: near.name, x: near.x + 0.5, y: near.y, z: near.z + 4.5, world: world.preset.id }); }
+        if (state(near.id).freed) { G.respawnPoint = { x: near.x + 0.5, y: near.y, z: near.z + (near.atlantis ? 14.5 : near.type === 'deep' ? -4.5 : 4.5) }; if (near.atlantis && G.addRoost) G.addRoost({ id: near.id, name: 'Atlantis', x: near.x + 0.5, y: near.y, z: near.z + 15.5, world: world.preset.id, ferry: true, tide: true }); /* the Current carries you there and back once you have stood in the city */ if (!near.R && near.type !== 'deep' && G.addRoost) G.addRoost(near.type === 'sea' ? { id: near.id, name: near.name, x: near.x + 17.5, y: near.y, z: near.z - 3, world: world.preset.id, ferry: true } : { id: near.id, name: near.name, x: near.x + 0.5, y: near.y, z: near.z + 4.5, world: world.preset.id }); }
       }
       if (nd < 50) ensureBoss(near, G.trainerLevel);
       ensureLieutenants(near, state(near.id), player);
@@ -2061,6 +2203,7 @@ const Village = (() => {
   ];
   function talk(n) {
     G.talkNpc = n; // the camera turns to whoever is speaking
+    if (n.atl) { atlTalk(n); return; }
     if (n.shop && active && active.R && fixShop(n)) return;
     if (n.shop === 'station') { UI.openPanel('train', {}); return; }
     if (n.shop === 'post') { UI.openPanel('shop', postShop(active)); return; }
@@ -2265,6 +2408,7 @@ const Village = (() => {
       return true;
     }
     const price = entry.price; if (G.shards < price) { UI.toast('Not enough Shards.', 'bad'); return false; }
+    if (entry.service === 'locked') { UI.toast(entry.sub || 'Not yet.'); return false; }
     if (entry.service === 'meal') { if (G.shards < price) { UI.toast('Not enough Shards.', 'bad'); return false; } G.shards -= price; G.addBuff(entry.buff, entry.amt, entry.mins); UI.sfx('caught'); UI.toast(entry.name.split(':')[0] + '. ' + entry.name.split(':')[1].trim() + '.', 'good'); return true; }
     if (entry.service === 'teach') { const k = G.kin[G.activeIdx]; if (!k) return false; if (k.tech) { UI.toast(`${KIN.name(k)} already knows ${k.tech}.`); return false; } const pr = 60 + k.level * 12; if (G.shards < pr) { UI.toast(`Teaching ${KIN.name(k)} costs ${pr} shards.`, 'bad'); return false; } G.shards -= pr; k.tech = KIN.techFor(k); UI.sfx('quest'); UI.toast(`${KIN.name(k)} learned ${k.tech}.`, 'good'); return true; }
     if (entry.service === 'kin') { if (G.shards < price) { UI.toast('Not enough Shards.', 'bad'); return false; } const sp = KIN.bySeed(entry.seed); if (!sp) return false; const st0 = G.stats.boughtKin || (G.stats.boughtKin = {}); const key = (G.dayCount || 0) + ':' + entry.seed; if (st0[key]) { UI.toast('Sold already. Come back tomorrow.'); return false; } G.shards -= price; st0[key] = true; const k = KIN.create(sp, entry.level); const where = G.addKin(k); G.seenDex(k.sp, 'caught'); UI.sfx('caught'); UI.toast(`${KIN.name(k)} is yours${where === 'party' ? '' : ' (sent to storage: your party is full)'}.`, 'good'); return true; }
@@ -2329,7 +2473,7 @@ const Village = (() => {
   }
   // which quarter of a city a spot is in (null in the square, on the castle hill, or outside a city)
   function quarterAt(v, x, z) { if (!v || !v.R || v.size !== 'city' || (MATS[v.style] || MATS.land) !== MATS.land) return null; const dx = x - v.x, dz = z - v.z, m = Math.max(Math.abs(dx), Math.abs(dz)); if (m > v.R - 4 || m <= 7 || (Math.abs(dx) <= 14 && dz <= -v.R + 28)) return null; return QUARTERS[quarterOf(dx, dz)].name; }
-  return { railAt, quarterAt, plotsOf, plotPrice, ownsPlotAt, buyPlot, enterShow, thiefCaught, layout, townList, init, stamp, restoreStart, update, pick, talk, entities, buy, boardTrain, trainArrive, trainFilm, trainOf, sell, sellValue, raiseDome, shopDef, freed, onBossGone, lieutenantDown, tableChallenge, placeKit, portalList, portalHere, markers, wakeDialogue, questTarget, dawn, pendingIncome, foundingInfo, foundVillage, summaryHtml, ledger, station, recall, upgradeWall, repairWall, expand, build, postShop, levelOf, SHOPS, WALLS,
+  return { atlantis: () => { if (world && world.preset.id === 'earth') plan(); return ATL; }, railAt, quarterAt, plotsOf, plotPrice, ownsPlotAt, buyPlot, enterShow, thiefCaught, layout, townList, init, stamp, restoreStart, update, pick, talk, entities, buy, boardTrain, trainArrive, trainFilm, trainOf, sell, sellValue, raiseDome, shopDef, freed, onBossGone, lieutenantDown, tableChallenge, placeKit, portalList, portalHere, markers, wakeDialogue, questTarget, dawn, pendingIncome, foundingInfo, foundVillage, summaryHtml, ledger, station, recall, upgradeWall, repairWall, expand, build, postShop, levelOf, SHOPS, WALLS,
     get def() { return active ? { x: active.x, y: active.y, z: active.z } : null; }, set def(v) { restoreStart(v); }, get active() { return active; }, get boss() { return active ? active.boss : null; }, get elder() { return active ? active.elder : null; }, get walking() { return !!walkState; }, get fisher() { return fisher; } };
 })();
 

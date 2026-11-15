@@ -1,0 +1,20 @@
+// Atlantis: the ring, Skerry, the Speaker's story, the Tideforge
+const { open } = require('./harness');
+(async () => { const h = await open(); const { page, ev } = h; await h.newGame(process.env.SEED || 'look-3'); await h.calm();
+  await ev(() => { G.repelUntil = performance.now() + 9e7; G.stats.buddyOff = true; G.explain = () => {}; G.world.time = 0.42; });
+  const go = await ev(() => { const a = Village.atlantis(); const p = G.player, w = G.world; p.x = a.x + 0.5; p.z = a.z + 14.5; p.y = a.y + 0.05; p.vx = p.vy = p.vz = 0; w.ensureAround(Math.floor(p.x / CH), Math.floor(p.z / CH), 4, 99999); for (let k = 0; k < 5; k++) Village.update(0.05, p, false); G.meshPass(9999); const v = Village.active;
+    return { active: v && v.name, npcs: v ? v.npcs.length : 0, atl: v ? v.npcs.filter(n => n.atl).map(n => n.name + ':' + n.atl) : [], seen: (G.stats.atl || {}).seen, freed: Village.freed(v.id), shards: G.shards, quest: (Quests.arcCurrent('deep') || {}).id }; });
+  console.log('arrive', JSON.stringify(go));
+  const talk = (who) => ev((who) => { const v = Village.active; const n = v.npcs.find(x => x.atl === who || x.shop === who); if (!n) return 'nobody'; Village.talk(n); return Dialogue.active() ? 'dialogue' : (document.getElementById('panel') && !document.getElementById('panel').classList.contains('hidden') ? 'panel' : 'nothing'); }, who);
+  const skip = () => ev(() => { let n = 0; const el = document.getElementById('dialogue'); while (Dialogue.active() && n < 30) { el.click(); n++; } return n; });
+  console.log('ring talk', await talk('ring'), 'pages', await skip());
+  console.log('riding', JSON.stringify(await ev(() => ({ active: Taming.active, endless: Taming.state && Taming.state.endless, mount: G.player.mount ? KIN.name(G.player.mount) : null, plan: G.player.mount ? KIN.formOf(G.player.mount.sp, G.player.mount.stage).plan : null, y: +G.player.y.toFixed(2), inWater: G.player.inWater }))));
+  const ride = (secs, hands) => ev(([n, hands]) => { const p = G.player; for (let i = 0; i < n && Taming.active; i++) { const s = Taming.state; Controls.input.mx = hands ? Math.max(-1, Math.min(1, -(2.2 * s.b + 0.7 * s.vb))) : 0; Taming.update(1 / 30, p); } Controls.input.mx = 0; const s = Taming.state; return s ? { t: +s.t.toFixed(1), b: +s.b.toFixed(2), I: +s.I.toFixed(2) } : { ended: true }; }, [Math.round(secs * 30), hands]);
+  console.log('6s', JSON.stringify(await ride(6, true)));
+  await ev(() => { const s = Taming.state; s.b = 0.5; s.kickT = 0.6; }); await page.waitForTimeout(9000); await page.screenshot({ path: '/home/claude/ride-0.png' });
+  console.log('24s', JSON.stringify(await ride(18, true))); console.log('let go', JSON.stringify(await ride(30, false)));
+  await page.waitForTimeout(1500); console.log('after pages', await skip());
+  console.log('after ride', JSON.stringify(await ev(() => ({ atl: G.stats.atl, shards: G.shards, kin: G.kin.map(k => KIN.name(k) + ' s' + k.stage + (k.tamed ? ' tamed' : '')), frozen: G.player.frozen, mount: !!G.player.mount, quest: (Quests.arcCurrent('deep') || {}).id }))));
+  console.log('speaker', await talk('speaker'), 'pages', await skip()); console.log('told', JSON.stringify(await ev(() => ({ told: G.stats.atl.told }))));
+  console.log('forge', JSON.stringify(await ev(() => { const d = Village.shopDef('armoury', Village.active); return { title: d.title, greet: d.greet.slice(0, 60), stock: d.stock.map(e => e.item || e.service + ':' + (e.name || '')) }; })));
+  console.log('ERRORS:', h.errors.length ? h.errors.slice(0, 4).join('\n') : 'none'); await h.close(); })();

@@ -221,6 +221,7 @@ const R = (() => {
       if (top) alpha *= smoothstep(0.0, 0.05, depth); // the water thins to nothing at its edge: wet sand, not a cut line
     } else {
       int mat0 = int(vMat + 0.5);
+      if (mat0 == 28 && dot(normalize(vN), V) < 0.0) discard; // the sea beyond the dome of Atlantis is only there from inside
       float nearB = 1.0 - smoothstep(24.0, 48.0, dist);
       if (nearB > 0.01 && emis < 0.5 && (mat0 == 3 || mat0 == 4 || mat0 == 2 || mat0 == 5 || mat0 == 6)) { // relief: the normal leans with the bumps of the material
         vec2 uvb = abs(n.x) > 0.5 ? vWorld.zy : (abs(n.y) > 0.5 ? vWorld.xz : vWorld.xy);
@@ -263,11 +264,18 @@ const R = (() => {
         float crust = smoothstep(0.42, 0.62, flow); vec3 hot = vec3(1.0, 0.72, 0.18), cool = vec3(0.42, 0.1, 0.03);
         col = mix(hot * (1.05 + 0.25 * sin(uTime * 2.0 + flow * 12.0)), cool, crust) * (0.5 + 0.5 * step(0.5, n.y)) + cool * 0.5 * (1.0 - step(0.5, n.y));
       }
+      if (mat0 == 26) { // light let into the stone of Atlantis: it runs along its lines in slow pulses
+        float pulse = 0.8 + 0.2 * sin(uTime * 2.4 + vWorld.y * 1.3 + vWorld.x * 0.7 + vWorld.z * 0.6); col = vCol.rgb * pulse + vec3(0.3, 0.3, 0.26) * pow(pulse, 8.0);
+      }
+      if (mat0 == 28) { // the sea as you see it through the dome from inside: a wall of deep water, lighter toward the top, with light moving on it
+        float hgt = vCol.r; float ca = vn(vWorld.xz * 0.3 + vec2(uTime * 0.11, uTime * 0.07)) * 0.6 + vn(vec2(vWorld.x + vWorld.z, vWorld.y * 1.4) * 0.35 - vec2(uTime * 0.08, 0.0)) * 0.4; float ray = smoothstep(0.5, 0.82, ca);
+        col = mix(vec3(0.02, 0.13, 0.3), vec3(0.1, 0.5, 0.66), hgt * hgt) * (0.42 + 0.58 * uDay) + vec3(0.22, 0.46, 0.46) * ray * (0.12 + 0.5 * hgt) * (0.3 + 0.7 * uDay); alpha = 0.95;
+      }
       if (uGrid > 0.5 && emis < 0.5) {
         vec2 uv = abs(n.x) > 0.5 ? vWorld.zy : (abs(n.y) > 0.5 ? vWorld.xz : vWorld.xy);
         vec3 bp = floor(vWorld - n * 0.5);
         float hb = hash3(bp); float speck = hash3(vec3(floor(uv * 8.0), bp.y)); float blot = hash3(vec3(floor(uv * 3.0), bp.x + bp.z));
-        int matp = int(vMat + 0.5); float soil = (matp == 1 || matp == 2 || matp == 4 || matp == 5 || matp >= 22) ? 1.0 : 0.0; float blocky = (matp == 7 || matp == 0 || matp >= 9 || soil > 0.5) ? 0.0 : 1.0; if (matp == 3) { float open = smoothstep(0.3, 0.6, sky); blocky *= 1.0 - open; soil = open; } /* rock under the open sky is land like the rest: no block's worth of paint on it */ // leaves, props, the ground and the town's materials are not blocks: no per-block paint on them
+        int matp = int(vMat + 0.5); float soil = (matp == 1 || matp == 2 || matp == 4 || matp == 5 || (matp >= 22 && matp <= 24)) ? 1.0 : 0.0; float blocky = (matp == 7 || matp == 0 || matp >= 9 || soil > 0.5) ? 0.0 : 1.0; if (matp == 3) { float open = smoothstep(0.3, 0.6, sky); blocky *= 1.0 - open; soil = open; } /* rock under the open sky is land like the rest: no block's worth of paint on it */ // leaves, props, the ground and the town's materials are not blocks: no per-block paint on them
         col *= 1.0 + blocky * (-0.06 + 0.07 * hb + (speck - 0.5) * 0.05 * uQuality + (blot - 0.5) * 0.045); /* quieter: a hint of the block, not grit */
         col *= 1.0 + soil * ((vn(uv * 0.7 + 3.0) - 0.5) * 0.1 + (vn(uv * 2.3 + 8.0) - 0.5) * 0.05); // the ground: a soft drift of light and dark instead
         // broad painted drift: warm and cool patches across the land
@@ -280,7 +288,7 @@ const R = (() => {
         col *= 1.0 - 0.28 * g;
         float near = 1.0 - smoothstep(30.0, 70.0, dist); int mat = int(vMat + 0.5);
         float gw = 0.0; vec3 cg = col; // how much of the ground here is turf (the mesher sends it in the length of the normal): the land's materials run into one another, they never change along the edge of a block
-        bool turf = mat == 1 || mat >= 22; // 22, 23, 24: turf beside sand, earth, snow
+        bool turf = mat == 1 || (mat >= 22 && mat <= 24); // 22, 23, 24: turf beside sand, earth, snow
         if ((mat >= 1 && mat <= 5) || turf) { float lt = clamp((1.0 - length(vN)) * 2.0, 0.0, 1.0); gw = turf ? 1.0 - lt : lt;
           if (gw > 0.002) { // grass: a carpet of fine blades, with wind rolling over it
             vec2 q = vWorld.xz; float fine = vn(q * 26.0) * 0.6 + vn(q * 61.0 + 3.1) * 0.4; float tuft = vn(q * 7.0 + 9.0);
@@ -347,6 +355,14 @@ const R = (() => {
           float own = hash3(vec3(cc, row, 4.0));
           float darkSt = 1.0 - smoothstep(0.2, 0.36, lum); /* dark stone is pointed with pale mortar, or its courses vanish and a fortress is one black lump */
           col *= mix(mix(0.6, 1.0, mortar), mix(1.7, 1.0, mortar), darkSt) * (0.86 + 0.28 * own) * (0.96 + 0.08 * vn(uv * 9.0)) * (0.95 + 0.1 * vn(uv * 0.6 + 2.0));
+        } else if (mat == 25) { // pearlstone: nacre, a sheen that shifts from sea-green to rose as the surface turns away from you, faint growth lines
+          float fr = pow(1.0 - max(dot(n, V), 0.0), 2.0); float grow = vn(vec2(vWorld.y * 1.6 + vWorld.x * 0.35, vWorld.z * 0.35 + vWorld.y * 0.2));
+          col *= 0.95 + 0.09 * grow; col = mix(col, col * vec3(0.8, 1.02, 1.08) + vec3(0.0, 0.025, 0.045), fr * 0.6); col = mix(col, col * vec3(1.1, 0.93, 1.04), fr * grow * 0.4);
+        } else if (mat == 27) { // the floor of Atlantis: six-sided pearl tiles with a thread of sea-green between them, and here and there one that glows and fades
+          vec2 q = vWorld.xz * 0.62; vec2 hs = vec2(1.0, 1.7320508); vec2 ha = mod(q, hs) - hs * 0.5, hb = mod(q - hs * 0.5, hs) - hs * 0.5; vec2 hg = dot(ha, ha) < dot(hb, hb) ? ha : hb; vec2 hid = q - hg;
+          float edge = 0.5 - max(abs(hg.x), abs(hg.x) * 0.5 + abs(hg.y) * 0.8660254); float seam = 1.0 - smoothstep(0.0, 0.04, edge); float own = hash3(vec3(floor(hid * 2.0 + 0.5), 9.0));
+          col *= 0.94 + 0.1 * own; col = mix(col, vec3(0.2, 0.55, 0.62) * (0.5 + 0.5 * lum), seam * 0.55);
+          float lit = step(0.9, own) * (0.5 + 0.5 * sin(uTime * 1.1 + own * 60.0)); col += vec3(0.1, 0.45, 0.55) * (seam * 0.22 + lit * 0.3 * smoothstep(0.02, 0.12, edge));
         } else if (mat == 21) { // chimney smoke: a pale plume eaten away by holes that drift up it and open wider toward the top (how far up comes in the vertex colour)
           float tt = vCol.r; float sn = vn(vec2(vWorld.x * 2.3 + vWorld.z * 1.9, vWorld.y * 1.5 - uTime * 0.8)) * 0.6 + vn(vec2(vWorld.x * 5.1 - vWorld.z * 4.3, vWorld.y * 3.0 - uTime * 1.4)) * 0.4;
           if (sn < 0.2 + tt * 0.62) discard; col = mix(vec3(0.7, 0.7, 0.74), vec3(0.96, 0.96, 0.98), sn);
@@ -913,8 +929,11 @@ const R = (() => {
       const c = chunkAt(x, z); if (!c) return B.AIR;
       return c.blocks[(((x + 16) & 15) * CH + ((z + 16) & 15)) * WH + y];
     };
+    let atl = null; { const AT = world.atlantis; if (AT && AT.halls) { const W = WORLD_W, ax = ((AT.x - ox) % W + W * 1.5) % W - W / 2 + 0.5, az = ((AT.z - oz) % W + W * 1.5) % W - W / 2 + 0.5; if (Math.abs(ax - 8) < AT.RH + 22 && Math.abs(az - 8) < AT.RH + 22) atl = { x: ax, z: az, y: AT.y, RH: AT.RH, RV: AT.RV, A: AT }; } }
+    const atlIn = (x, y, z) => { const dx = x + 0.5 - atl.x, dz = z + 0.5 - atl.z, dy = y - atl.y, q = (dx * dx + dz * dz) / (atl.RH * atl.RH); if (dy < -4.5 || q > 1.03) return false; return dy <= 0 || q + dy * dy / (atl.RV * atl.RV) < 1.04; };
     const skyAt = (x, y, z) => {
       if (y >= WH) return 1;
+      if (atl && atlIn(x, y, z)) return 0.92; // under the dome of Atlantis it is light, however much sea lies over it
       const c = chunkAt(x, z); if (!c) return 1;
       const top = c.topFor((x + 16) & 15, y, (z + 16) & 15);
       if (y >= top) return 1;
@@ -1057,6 +1076,101 @@ const R = (() => {
         deckApron(HX, HZ, 5.25, sk);
       } else { deckApron(X, Z, 3.05, sk); for (let k = 0; k < 4; k++) { const a = k * 1.5708 + 0.7854, cx2 = Math.cos(a), cz2 = Math.sin(a); op.tube([[X + cx2 * 2.1, SEA + 0.95, Z + cz2 * 2.1], [X + cx2 * 2.75, SEA + 2.4, Z + cz2 * 2.75], [X + cx2 * (R0 - 0.5), y0 + 0.12, Z + cz2 * (R0 - 0.5)]], [0.12, 0.1, 0.08], WOODC, { sky: sk, segs: 5, cap0: 'flat', cap1: 'round' }); } } // a pavilion stands on four bowed poles
     };
+    // ---- Atlantis: nothing of the city is drawn as blocks. Nearly all of it is turned on a lathe: a profile swept round an upright axis gives the dome,
+    // the falls, the ring pool, every hall, home and spire. Each chunk draws only the pieces whose middle lies in it, so nothing is drawn twice and
+    // nothing drops out at the edge of the screen. Glass goes in with the glass, the sea seen through it with the water, the rest is solid ----
+    const drawAtlantis = () => {
+      const A = atl.A, CX = atl.x, CZ = atl.z, F = atl.y, RH = atl.RH, RV = atl.RV, SK = 0.92, TAU = Math.PI * 2;
+      const PEARL = [0.9, 0.93, 0.95], PEARL2 = [0.8, 0.86, 0.9], GLOW = [0.3, 0.86, 1.0], GOLD = [0.96, 0.8, 0.42], SEAGLASS = [0.3, 0.72, 0.76];
+      const near = (x, z, r) => x + r > -0.5 && x - r < 16.5 && z + r > -0.5 && z - r < 16.5;
+      const here = (x, z) => x >= 0 && x < 16 && z >= 0 && z < 16;
+      // prof: [[r, y], ...] run so that the outside is on your right as you go (upward for an outer wall). o: N, a0, a1, mat, sky, emis, inv (normals inward),
+      // skip(angle, y, r) to leave a piece out, cols(j) for a colour at each point of the profile
+      const lathe = (buf, cx, cz, prof, col, o = {}) => {
+        let R = 0; for (const p of prof) if (p[0] > R) R = p[0]; if (!near(cx, cz, R)) return;
+        const N = o.N || 24, a0 = o.a0 || 0, a1 = o.a1 == null ? a0 + TAU : o.a1, sk = o.sky == null ? SK : o.sky, emis = !!o.emis, sg = o.inv ? -1 : 1, n = prof.length;
+        const sn = []; for (let j = 0; j + 1 < n; j++) { let nr = prof[j + 1][1] - prof[j][1], ny = -(prof[j + 1][0] - prof[j][0]); const l = Math.hypot(nr, ny) || 1; sn.push([nr / l * sg, ny / l * sg]); }
+        const vn = []; for (let j = 0; j < n; j++) { const a = sn[Math.max(0, j - 1)], b = sn[Math.min(n - 2, j)]; let nr = a[0] + b[0], ny = a[1] + b[1]; const l = Math.hypot(nr, ny) || 1; vn.push(o.flat ? null : [nr / l, ny / l]); }
+        const pm = buf.curMat; buf.curMat = o.mat || 0;
+        for (let i = 0; i < N; i++) { const t0 = a0 + (a1 - a0) * i / N, t1 = a0 + (a1 - a0) * (i + 1) / N, tm = (t0 + t1) / 2, c0 = Math.cos(t0), s0 = Math.sin(t0), c1 = Math.cos(t1), s1 = Math.sin(t1), cm = Math.cos(tm), sm = Math.sin(tm);
+          for (let j = 0; j + 1 < n; j++) { const r0 = prof[j][0], y0 = prof[j][1], r1 = prof[j + 1][0], y1 = prof[j + 1][1], rm = (r0 + r1) / 2;
+            if (!here(cx + cm * rm, cz + sm * rm)) continue; if (o.skip && o.skip(tm, (y0 + y1) / 2, rm)) continue;
+            const na = vn[j] || sn[j], nb = vn[j + 1] || sn[j], ca = o.cols ? o.cols(j) : col, cb = o.cols ? o.cols(j + 1) : col;
+            buf.quad([[cx + c1 * r0, y0, cz + s1 * r0], [cx + c0 * r0, y0, cz + s0 * r0], [cx + c0 * r1, y1, cz + s0 * r1], [cx + c1 * r1, y1, cz + s1 * r1]], [ca, ca, cb, cb], [sk, sk, sk, sk], emis,
+              [[c1 * na[0], na[1], s1 * na[0]], [c0 * na[0], na[1], s0 * na[0]], [c0 * nb[0], nb[1], s0 * nb[0]], [c1 * nb[0], nb[1], s1 * nb[0]]]); } }
+        buf.curMat = pm; };
+      const torus = (cx, cz, R, y, rad, col, o = {}) => { const pr = []; for (let k = 0; k <= 6; k++) { const a = k / 6 * TAU - Math.PI / 2; pr.push([R + Math.cos(a) * rad, y + Math.sin(a) * rad]); } lathe(op, cx, cz, pr, col, Object.assign({ N: 40 }, o)); };
+      const glowTube = (pts, rad, col) => { const m = pts[pts.length >> 1]; if (!here(m[0], m[2])) return; op.curMat = 26; op.tube(pts, pts.map(() => rad), col, { sky: 1, emis: true, segs: 5, cap0: 'round', cap1: 'round' }); op.curMat = 0; };
+      const orb = (x, y, z, r, col) => { if (!here(x, z)) return; op.curMat = 26; op.ball(x, y, z, r, col, { sky: 1, emis: true, n: 2 }); op.curMat = 0; };
+      const dCity = Math.hypot(8 - CX, 8 - CZ);
+      // ---- the dome: glass, the sea beyond it as you see it from inside, and a lattice of light in the glass ----
+      const phi1 = Math.asin(4 / RV), phiT = Math.acos(2.9 / RH), NR = 14, phis = [0, phi1]; for (let k = 1; k <= NR; k++) phis.push(phi1 + (phiT - phi1) * k / NR);
+      const dome = (s) => phis.map((p) => [RH * Math.cos(p) * s, F + RV * Math.sin(p) * s]);
+      const NS = 96, off = -Math.PI / NS; // a pane sits square on each of the four gates
+      const gateGap = (t, y) => { if (y > F + 4) return false; const q = ((t / (Math.PI / 2)) % 1 + 1) % 1; return q < 0.5 / (NS / 4) || q > 1 - 0.5 / (NS / 4); };
+      if (dCity < RH + 14) {
+        lathe(gs, CX, CZ, dome(1.012), null, { N: NS, a0: off, skip: gateGap, inv: true, sky: 0.9, mat: 28, cols: (j) => [Math.sin(phis[j]), 0, 1] });
+        lathe(gs, CX, CZ, dome(1), [0.72, 0.93, 0.98], { N: NS, a0: off, skip: gateGap, sky: SK });
+        for (let k = 0; k < 24; k++) { const t = k / 24 * TAU + (k % 6 === 0 ? 0.052 : 0); const w = 0.0034; lathe(op, CX, CZ, dome(0.996).slice(k % 6 === 0 ? 1 : 0), GLOW, { N: 1, a0: t - w, a1: t + w, emis: true, mat: 26, sky: 1 }); if (k % 6 === 0) lathe(op, CX, CZ, dome(0.996).slice(1), GLOW, { N: 1, a0: t - 0.104 - w, a1: t - 0.104 + w, emis: true, mat: 26, sky: 1 }); }
+        for (const j of [1, 5, 9, 13]) { const p = phis[j], e = 0.007; lathe(op, CX, CZ, [[RH * Math.cos(p - e) * 0.996, F + RV * Math.sin(p - e) * 0.996], [RH * Math.cos(p + e) * 0.996, F + RV * Math.sin(p + e) * 0.996]], GLOW, { N: NS, a0: off, emis: true, mat: 26, sky: 1 }); }
+      }
+      // ---- the eye of the dome and the falls: the sea comes down through a ring of pearl in one column, into the ring pool ----
+      const topY = F + RV * Math.sin(phiT);
+      if (near(CX, CZ, 12)) {
+        torus(CX, CZ, 3.15, topY - 0.1, 0.42, PEARL, { mat: 25 }); torus(CX, CZ, 3.75, topY - 0.55, 0.1, GLOW, { emis: true, mat: 26, sky: 1 });
+        lathe(op, CX, CZ, [[4.1, F - 0.25], [3.3, F + 0.5], [2.9, F + 1.6], [2.75, F + 3.5], [2.75, topY - 3.2], [2.95, topY - 1.4], [3.5, topY - 0.3], [4.3, topY + 0.5]], [0.62, 0.84, 0.97], { N: 20, mat: 18, sky: 0.98 });
+        torus(CX, CZ, 4.7, F + 5.6, 0.085, GLOW, { emis: true, mat: 26, sky: 1 }); torus(CX, CZ, 5.6, F + 9.2, 0.085, GLOW, { emis: true, mat: 26, sky: 1 }); torus(CX, CZ, 4.4, F + 12.6, 0.085, GLOW, { emis: true, mat: 26, sky: 1 });
+        // the ring pool: a pearl kerb, a basin that glows under the water
+        lathe(op, CX, CZ, [[11.2, F - 0.02], [11.1, F + 0.3], [10.6, F + 0.44], [10.1, F + 0.34], [9.85, F - 0.2]], PEARL, { N: 64, mat: 25 });
+        lathe(op, CX, CZ, [[9.85, F - 0.2], [9.75, F - 2.2], [9.1, F - 2.95], [3.2, F - 3.0]], [0.42, 0.9, 0.95], { N: 64, cols: (j) => j < 1 ? [0.75, 0.93, 0.96] : [0.3, 0.82, 0.92], sky: 1 });
+        torus(CX, CZ, 10.6, F + 0.47, 0.06, GLOW, { emis: true, mat: 26, sky: 1, N: 64 });
+      }
+      // ---- the floor: pearl tiles wherever you can walk, rings and lines of light let into it ----
+      op.curMat = 27;
+      for (let lx = 0; lx < CH; lx++) for (let lz = 0; lz < CH; lz++) { if (get(lx, F - 1, lz) !== B.ATLAN) continue; const dx = lx + 0.5 - CX, dz = lz + 0.5 - CZ; if (dx * dx + dz * dz > (RH + 1.2) * (RH + 1.2)) continue;
+        op.quad([[lx, F, lz + 1], [lx + 1, F, lz + 1], [lx + 1, F, lz], [lx, F, lz]], [PEARL, PEARL, PEARL, PEARL], [SK, SK, SK, SK], false, [[0, 1, 0], [0, 1, 0], [0, 1, 0], [0, 1, 0]]); }
+      op.curMat = 0;
+      for (const [r, w] of [[11.75, 0.12], [17.6, 0.1], [30.3, 0.1]]) lathe(op, CX, CZ, [[r + w, F + 0.025], [r - w, F + 0.025]], GLOW, { N: 96, emis: true, mat: 26, sky: 1, flat: true });
+      for (const g of A.gates) for (const sd of [-1.7, 1.7]) for (let k = 0; k < 9; k++) { const r0 = 12 + k * 3, r1 = Math.min(39.2, r0 + 3), px = -g[1] * sd, pz = g[0] * sd, mx = CX + g[0] * (r0 + r1) / 2 + px, mz = CZ + g[1] * (r0 + r1) / 2 + pz; if (!here(mx, mz)) continue;
+        const w = 0.07, e = (r, s) => [CX + g[0] * r + px - g[1] * s, F + 0.025, CZ + g[1] * r + pz + g[0] * s]; op.curMat = 26; op.quad([e(r0, -w), e(r1, -w), e(r1, w), e(r0, w)], [GLOW, GLOW, GLOW, GLOW], [1, 1, 1, 1], true, [[0, 1, 0], [0, 1, 0], [0, 1, 0], [0, 1, 0]]); op.curMat = 0; }
+      // ---- the gates: a pearl post each side and an arch of light where the sea stands in the gap ----
+      for (const g of A.gates) { const gx = CX + g[0] * (RH - 0.7), gz = CZ + g[1] * (RH - 0.7); if (!near(gx, gz, 3)) continue; const px = -g[1], pz = g[0];
+        for (const sd of [-1, 1]) { const x = gx + px * sd * 1.75, z = gz + pz * sd * 1.75; if (here(x, z)) { op.curMat = 25; op.tube([[x, F, z], [x, F + 4.2, z]], [0.3, 0.24], PEARL, { sky: SK, segs: 8, cap0: 'flat', cap1: 'round' }); op.curMat = 0; } orb(x, F + 4.55, z, 0.2, GLOW); }
+        const pts = []; for (let k = 0; k <= 10; k++) { const a = k / 10 * Math.PI; pts.push([gx - px * Math.cos(a) * 1.75, F + 4.2 + Math.sin(a) * 0.75, gz - pz * Math.cos(a) * 1.75]); } glowTube(pts, 0.09, GLOW); }
+      // ---- the halls: round, of pearl, each under a sea-glass roof drawn up to a gold point, a band of its own colour under the eaves ----
+      const HALLC = { armoury: [0.25, 0.8, 1.0], trader: [1.0, 0.72, 0.86], bakery: [0.5, 0.95, 0.6], juice: [1.0, 0.75, 0.35], voodoo: [0.75, 0.55, 1.0], fusing: [0.75, 0.97, 1.0], elder: [1.0, 0.86, 0.45], station: [0.35, 1.0, 0.85] };
+      for (const h of A.halls) { const hx = CX + h.x, hz = CZ + h.z; if (!near(hx, hz, 6.5)) continue; const band = HALLC[h.kind] || GLOW, da = Math.atan2(-Math.sin(h.a), -Math.cos(h.a)); // the door looks at the middle of the city
+        const inDoor = (t, y) => { if (y > F + 3.95) return false; const d = Math.atan2(Math.sin(t - da), Math.cos(t - da)); return Math.abs(d) < 0.33; };
+        lathe(op, hx, hz, [[5.3, F], [5.4, F + 0.45], [5.12, F + 0.95], [5.05, F + 2.5], [5.05, F + 3.95], [5.12, F + 4.3], [5.42, F + 4.62], [5.42, F + 4.95]], PEARL, { N: 28, mat: 25, skip: inDoor, a0: da + Math.PI / 28 });
+        lathe(op, hx, hz, [[4.42, F + 4.5], [4.42, F + 3.95], [4.42, F + 2.5], [4.42, F]], PEARL2, { N: 28, mat: 25, skip: inDoor, a0: da + Math.PI / 28, inv: false });
+        lathe(op, hx, hz, [[0.02, F + 4.98], [3.4, F + 4.9], [4.42, F + 4.5]], PEARL2, { N: 28, mat: 25 });
+        lathe(op, hx, hz, [[5.42, F + 4.95], [5.2, F + 5.3], [4.5, F + 6.3], [3.3, F + 7.25], [1.9, F + 7.95], [0.8, F + 8.5], [0.34, F + 9.1]], SEAGLASS, { N: 28, mat: 25, cols: (j) => j < 2 ? [0.36, 0.78, 0.8] : j < 5 ? [0.27, 0.68, 0.74] : [0.22, 0.6, 0.7] });
+        lathe(op, hx, hz, [[0.34, F + 9.1], [0.42, F + 9.45], [0.2, F + 9.9], [0.07, F + 10.9], [0.0, F + 11.2]], GOLD, { N: 10 });
+        torus(hx, hz, 5.45, F + 4.78, 0.09, band, { emis: true, mat: 26, sky: 1, N: 28 }); torus(hx, hz, 3.3, F + 7.3, 0.06, band, { emis: true, mat: 26, sky: 1, N: 20 });
+        for (let k = 0; k < 8; k++) { const t = da + (k + 0.5) / 8 * TAU, pts = []; for (const [r, y] of [[5.25, F + 5.25], [4.5, F + 6.36], [3.3, F + 7.32], [1.9, F + 8.02], [0.8, F + 8.56]]) pts.push([hx + Math.cos(t) * r, y, hz + Math.sin(t) * r]); if (here(pts[2][0], pts[2][2])) { op.curMat = 25; op.tube(pts, [0.1, 0.09, 0.08, 0.07, 0.05], PEARL, { sky: SK, segs: 5, cap0: 'round', cap1: 'round' }); op.curMat = 0; } }
+        for (const k of [-2.2, -1.25, 1.25, 2.2]) orb(hx + Math.cos(da + k) * 5.0, F + 2.5, hz + Math.sin(da + k) * 5.0, 0.4, band); // portholes
+        orb(hx, F + 4.55, hz, 0.34, [0.85, 0.98, 1.0]);
+        { const dx = Math.cos(da), dz = Math.sin(da), sx = -dz, sz = dx, jx = hx + dx * 4.74, jz = hz + dz * 4.74; // the doorway: its reveals, and a frame of light with the hall's sign over it
+          for (const sd of [-1, 1]) { const ax = hx + Math.cos(da + sd * 0.33) * 5.05, az = hz + Math.sin(da + sd * 0.33) * 5.05, bx = hx + Math.cos(da + sd * 0.33) * 4.42, bz = hz + Math.sin(da + sd * 0.33) * 4.42; if (here((ax + bx) / 2, (az + bz) / 2)) { op.curMat = 25; op.quad([[ax, F, az], [bx, F, bz], [bx, F + 3.95, bz], [ax, F + 3.95, az]], [PEARL2, PEARL2, PEARL2, PEARL2], [SK, SK, SK, SK], false); op.curMat = 0; } }
+          lathe(op, hx, hz, [[4.42, F + 3.95], [5.05, F + 3.95]], PEARL2, { N: 3, a0: da - 0.3366, a1: da + 0.3366, mat: 25, flat: true });
+          const pts = []; for (let k = 0; k <= 12; k++) { const u = k / 12, a = da + (u - 0.5) * 0.66, yy = u < 0.12 ? F + u / 0.12 * 3.2 : u > 0.88 ? F + (1 - u) / 0.12 * 3.2 : F + 3.2 + Math.sin((u - 0.12) / 0.76 * Math.PI) * 0.75; pts.push([hx + Math.cos(a) * 5.14, yy, hz + Math.sin(a) * 5.14]); } glowTube(pts, 0.075, band);
+          orb(hx + dx * 5.3, F + 4.45, hz + dz * 5.3, 0.3, band);
+          if (h.kind !== 'fusing' && h.kind !== 'elder' && h.kind !== 'station') { const cx0 = hx + dx * 0.95, cz0 = hz + dz * 0.95; if (here(cx0, cz0)) { op.curMat = 25; op.tube([[cx0 - sx * 2.7, F + 0.48, cz0 - sz * 2.7], [cx0, F + 0.5, cz0], [cx0 + sx * 2.7, F + 0.48, cz0 + sz * 2.7]], [[0.5, 0.5], [0.52, 0.52], [0.5, 0.5]], PEARL, { sky: SK, segs: 8, cap0: 'round', cap1: 'round' }); op.curMat = 0; glowTube([[cx0 - sx * 2.5, F + 1.02, cz0 - sz * 2.5], [cx0, F + 1.05, cz0], [cx0 + sx * 2.5, F + 1.02, cz0 + sz * 2.5]], 0.05, band); } } } }
+      // ---- the homes: buds of pearl with a glass cap ----
+      for (const q of A.pods) { const hx = CX + q.x, hz = CZ + q.z; if (!near(hx, hz, 3.6)) continue; const da = Math.atan2(-Math.sin(q.a), -Math.cos(q.a));
+        const inDoor = (t, y) => { if (y > F + 2.1) return false; const d = Math.atan2(Math.sin(t - da), Math.cos(t - da)); return Math.abs(d) < 0.27; };
+        lathe(op, hx, hz, [[2.9, F], [3.02, F + 0.9], [2.9, F + 2.1], [2.45, F + 3.1]], PEARL, { N: 18, mat: 25, skip: inDoor, a0: da + Math.PI / 18 });
+        lathe(op, hx, hz, [[2.45, F + 3.1], [1.7, F + 3.85], [0.75, F + 4.3], [0.2, F + 4.8], [0.0, F + 5.5]], SEAGLASS, { N: 18, mat: 25 });
+        lathe(op, hx, hz, [[1.95, F + 2.9], [1.95, F]], PEARL2, { N: 18, mat: 25, skip: inDoor, a0: da + Math.PI / 18 });
+        torus(hx, hz, 2.5, F + 3.12, 0.06, GLOW, { emis: true, mat: 26, sky: 1, N: 18 }); orb(hx, F + 2.6, hz, 0.26, [0.85, 0.98, 1.0]);
+        for (const k of [-1.6, 1.6]) orb(hx + Math.cos(da + k) * 2.95, F + 1.6, hz + Math.sin(da + k) * 2.95, 0.3, GLOW); }
+      // ---- the spires: slim, tall, a light at the tip ----
+      for (const s of A.spires) { const hx = CX + s.x + 0, hz = CZ + s.z + 0; if (!near(hx, hz, 2)) continue;
+        lathe(op, hx, hz, [[0.75, F], [0.62, F + 0.5], [0.42, F + 1.2], [0.34, F + 5], [0.28, F + 8.6], [0.5, F + 9.3], [0.44, F + 9.9], [0.2, F + 10.2]], PEARL, { N: 10, mat: 25 });
+        orb(hx, F + 10.75, hz, 0.55, [0.8, 0.97, 1.0]); lathe(op, hx, hz, [[0.16, F + 11.2], [0.05, F + 12.6], [0.0, F + 13.0]], GOLD, { N: 6 });
+        torus(hx, hz, 0.62, F + 3.2, 0.05, GLOW, { emis: true, mat: 26, sky: 1, N: 12 }); torus(hx, hz, 0.56, F + 6.4, 0.05, GLOW, { emis: true, mat: 26, sky: 1, N: 12 }); }
+    };
+    if (atl) drawAtlantis();
     const blocks = chunk.blocks;
     const col0 = [0, 0, 0];
     for (let lx = 0; lx < CH; lx++) for (let lz = 0; lz < CH; lz++) {
@@ -1069,6 +1183,7 @@ const R = (() => {
         const wx = ox + lx, wz = oz + lz;
         const vr = SOIL.has(id) ? 0.98 + U.hash3(wx, y, wz, 5) * 0.03 : 0.92 + U.hash3(wx, y, wz, 5) * 0.12; // per-block variation (the ground keeps almost none: its shader paints it smoothly)
         if (id === B.STATUE) continue; // drawn as an entity
+        if (id === B.ATLAN || id === B.AGLASS || id === B.ALIGHT) continue; // Atlantis is never blocks: drawn whole, above
         if ((id === B.SAIL || id === B.WEAVE || id === B.BEAM) && reefHere()) { let mine = null, skip = false; // part of a reef house or its sail: drawn whole, by the peak
           for (const t of reefTents()) { const ax = Math.abs(lx - t.x), az = Math.abs(lz - t.z);
             if (id === B.SAIL) { if (ax <= t.rr && az <= t.rr && y <= t.y && y >= t.y - t.rr) { skip = true; if (ax === 0 && az === 0 && y === t.y) mine = t; } }
@@ -1681,14 +1796,18 @@ const R = (() => {
           op.blob(lx + 0.42, y + 0.42, lz + 0.04, lx + 0.58, y + 0.66, lz + 0.14, 0.3, brass, { sky: sk, n: 2 }); op.box(lx + 0.47, y + 0.48, lz + 0.02, lx + 0.53, y + 0.56, lz + 0.06, [0.2, 0.15, 0.08], sk, false);
           continue;
         }
-        if (id === B.CORAL_R || id === B.CORAL_B || id === B.CORAL_Y || id === B.PEARLCORAL) {
-          const sk = skyAt(lx, y + 1, lz); const c1 = info.top, c2 = info.side; const pearl = id === B.PEARLCORAL;
-          const h0 = U.hash3(wx, y, wz, 81); const r = (k) => U.hash3(wx, y, wz, 82 + k);
-          op.box(lx + 0.4, y, lz + 0.4, lx + 0.6, y + 0.55 + h0 * 0.35, lz + 0.6, c2, sk, false); // stem
-          op.box(lx + 0.1 + r(1) * 0.2, y + 0.3, lz + 0.42, lx + 0.45, y + 0.42, lz + 0.58, c1, sk, pearl); op.box(lx + 0.55, y + 0.42 + r(2) * 0.2, lz + 0.42, lx + 0.9 - r(3) * 0.2, y + 0.54 + r(2) * 0.2, lz + 0.58, c1, sk, pearl);
-          op.box(lx + 0.42, y + 0.5, lz + 0.1 + r(4) * 0.2, lx + 0.58, y + 0.62, lz + 0.45, c1, sk, pearl); op.box(lx + 0.42, y + 0.36, lz + 0.55, lx + 0.58, y + 0.5, lz + 0.9 - r(5) * 0.2, c1, sk, pearl);
-          op.box(lx + 0.25, y + 0.55 + h0 * 0.35, lz + 0.25, lx + 0.75, y + 0.68 + h0 * 0.35, lz + 0.75, c1, sk, pearl); // fan top
-          if (pearl) { op.box(lx + 0.42, y + 0.68 + h0 * 0.35, lz + 0.42, lx + 0.58, y + 0.84 + h0 * 0.35, lz + 0.58, [1, 0.97, 1], 1, true); }
+        if (id === B.CORAL_R || id === B.CORAL_B || id === B.CORAL_Y || id === B.PEARLCORAL) { // grown, not stacked: red branches like antlers, blue stands in fingers, gold heaps up in mounds, pearl coral holds its pearl up
+          const sk = skyAt(lx, y + 1, lz), c1 = info.top, c2 = info.side, pearl = id === B.PEARLCORAL, hs = (k) => U.hash3(wx, y, wz, 82 + k), X = lx + 0.5, Z = lz + 0.5, gy = gnd(lx, y, lz);
+          if (id === B.CORAL_Y) { const r0 = 0.3 + hs(1) * 0.12; op.blob(X - r0 - 0.06, gy - 0.1, Z - r0, X + r0 + 0.06, gy + r0 * 1.3, Z + r0, 1, c1, { sky: sk, n: lod ? 2 : 3, under: c2 });
+            if (!lod) { const a = hs(2) * 6.283; op.blob(X + Math.cos(a) * 0.3 - 0.19, gy - 0.08, Z + Math.sin(a) * 0.3 - 0.19, X + Math.cos(a) * 0.3 + 0.19, gy + 0.3, Z + Math.sin(a) * 0.3 + 0.19, 1, c1, { sky: sk, n: 2, under: c2 }); } }
+          else if (id === B.CORAL_B) { const n = lod ? 3 : 5; for (let k = 0; k < n; k++) { const a = hs(k + 2) * 6.283, d = k ? 0.12 + hs(k + 9) * 0.2 : 0, h = 0.45 + hs(k + 15) * 0.5, lean = 0.1 + hs(k + 20) * 0.15, bx = X + Math.cos(a) * d, bz = Z + Math.sin(a) * d;
+              op.tube([[bx, gy - 0.06, bz], [bx + Math.cos(a) * lean * 0.4, gy + h * 0.55, bz + Math.sin(a) * lean * 0.4], [bx + Math.cos(a) * lean, gy + h, bz + Math.sin(a) * lean]], [0.085, 0.078, 0.062], k % 2 ? c1 : c2, { sky: sk, segs: 5, cap0: 'none', cap1: 'round' }); } }
+          else { const n = lod ? 2 : 3 + (hs(1) > 0.5 ? 1 : 0), top = [X + (hs(2) - 0.5) * 0.12, gy + 0.28 + hs(3) * 0.12, Z + (hs(4) - 0.5) * 0.12];
+            op.tube([[X, gy - 0.06, Z], top], [0.1, 0.075], c2, { sky: sk, segs: 5, cap0: 'none', cap1: 'round' });
+            for (let k = 0; k < n; k++) { const a = (k + hs(5 + k)) / n * 6.283, sp = 0.2 + hs(9 + k) * 0.14, h = 0.3 + hs(13 + k) * 0.3, m = [top[0] + Math.cos(a) * sp * 0.6, top[1] + h * 0.45, top[2] + Math.sin(a) * sp * 0.6], e = [top[0] + Math.cos(a) * sp, top[1] + h, top[2] + Math.sin(a) * sp];
+              op.tube([top, m, e], [0.07, 0.055, 0.035], c1, { sky: sk, segs: 5, cap0: 'none', cap1: 'round' });
+              if (!lod) { const a2 = a + 1.3, e2 = [m[0] + Math.cos(a2) * 0.13, m[1] + 0.2, m[2] + Math.sin(a2) * 0.13]; op.tube([m, e2], [0.045, 0.028], c1, { sky: sk, segs: 4, cap0: 'none', cap1: 'round' }); } }
+            if (pearl) op.ball(top[0], top[1] + 0.36, top[2], 0.13, [1, 0.97, 1], { sky: 1, emis: true, n: 2 }); }
           continue;
         }
         if (id === B.LADDER) { // two rails and rungs, flat against whichever side has a wall
@@ -1796,7 +1915,7 @@ const R = (() => {
           op.curMat = id === B.GRASS ? (f === 2 ? 1 : 4) : id === B.GLOWGRASS ? 16 : matSide;
           const nx = lx + n[0], ny = y + n[1], nz = lz + n[2];
           const nid = get(nx, ny, nz);
-          if (isWater) { if (nid !== B.AIR && nid !== B.TORCH && nid !== B.GLASS && nid !== B.SELGLASS && !(BLOCKS[nid].partial && !BLOCKS[nid].solid)) continue; }
+          if (isWater) { if (nid !== B.AIR && nid !== B.TORCH && nid !== B.GLASS && nid !== B.SELGLASS && !(BLOCKS[nid].partial && !BLOCKS[nid].solid)) continue; if (atl && nid === B.AIR && y >= atl.y && Math.hypot(lx + 0.5 - atl.x, lz + 0.5 - atl.z) < 3.4) continue; /* the falls of Atlantis are drawn as one column of falling water, not as the sides of blocks */ }
           else if (isGlass) { if (nid === id || isOpaque(nid)) continue; }
           else if (id === B.LAVA) { if (nid !== B.AIR && nid !== B.TORCH && nid !== B.WATER) continue; }
           else if (isOpaque(nid)) { if (!(f === 2 && isTrunk(nid) && SOIL.has(id))) continue; }
@@ -2027,10 +2146,15 @@ const R = (() => {
     else if (wi > 0.02 && (wk === 'rain' || wk === 'storm')) { state.fogNear = U.lerp(state.fogNear, state.viewDist * 0.3, wi); state.fogFar = U.lerp(state.fogFar, state.viewDist * 0.75, wi); }
     state.tint = [1, 1, 1]; state.underwater = false; state.inCore = false; state.coreGlow = world.preset.id === 'earth';
     const eyeBlock = world.getBlock(Math.floor(player.x), Math.floor(player.y + 1.62), Math.floor(player.z));
-    if (eyeBlock === B.WATER || eyeBlock === B.BRINE || eyeBlock === B.LAVA || player.y < CORE_TOP || player.y < world.topAt(Math.floor(player.x), Math.floor(player.z)) - 2) state.skyPass = false;
-    if (eyeBlock === B.WATER) { state.underwater = true; state.fogSky = false; state.fogColor = [0.05, 0.2, 0.45]; state.skyColor = state.fogColor; state.fogNear = 2; state.fogFar = 18; state.tint = [0.6, 0.8, 1.0]; }
+    // under the dome of Atlantis it is day, whatever lies over it: the sun comes down through the sea, and what you see beyond the glass is water, not sky
+    const AT = world.atlantis; let inAtl = false; if (AT && AT.halls && eyeBlock !== B.WATER) { const W = WORLD_W, dx = ((player.x - AT.x - 0.5) % W + W * 1.5) % W - W / 2, dz = ((player.z - AT.z - 0.5) % W + W * 1.5) % W - W / 2, dy = Math.max(0, player.y + 1.5 - AT.y); inAtl = player.y > AT.y - 4 && (dx * dx + dz * dz) / (AT.RH * AT.RH) + dy * dy / (AT.RV * AT.RV) < 1; }
+    state.inAtl = inAtl;
+    if (eyeBlock === B.WATER || eyeBlock === B.BRINE || eyeBlock === B.LAVA || player.y < CORE_TOP || (!inAtl && player.y < world.topAt(Math.floor(player.x), Math.floor(player.z)) - 2)) state.skyPass = false;
+    if (eyeBlock === B.WATER) { state.underwater = true; state.fogSky = false; state.fogColor = [0.05, 0.2, 0.45]; state.skyColor = state.fogColor; state.fogNear = 2; state.fogFar = 18; state.tint = [0.6, 0.8, 1.0];
+      if (AT && AT.halls) { const W = WORLD_W, dx = ((player.x - AT.x) % W + W * 1.5) % W - W / 2, dz = ((player.z - AT.z) % W + W * 1.5) % W - W / 2, k = U.clamp(1 - (Math.hypot(dx, dz) - AT.RH - 30) / 70, 0, 1); state.fogFar = 18 + 66 * k; state.fogNear = 2 + 14 * k; } }
     else if (eyeBlock === B.BRINE) { state.underwater = true; state.fogSky = false; state.fogColor = [0.35, 0.42, 0.08]; state.skyColor = state.fogColor; state.fogNear = 1; state.fogFar = 9; state.tint = [0.9, 1.0, 0.5]; }
     else if (eyeBlock === B.LAVA) { state.fogSky = false; state.fogColor = [0.9, 0.3, 0.05]; state.skyColor = state.fogColor; state.fogNear = 0.5; state.fogFar = 4; state.tint = [1.2, 0.6, 0.3]; }
+    else if (inAtl) { const k = 0.3 + 0.7 * state.dayLight; state.fogSky = false; state.fogColor = [0.05 * k, 0.34 * k, 0.5 * k]; state.skyColor = state.fogColor; state.zenith = [0.16 * k, 0.6 * k, 0.74 * k]; state.clouds = 0; state.fogNear = 46; state.fogFar = 150; state.ambient = 0.18 + 0.3 * state.dayLight; }
     else if (player.y < CORE_TOP) { state.inCore = true; state.fogSky = false; state.fogColor = [0.2, 0.05, 0.015]; state.skyColor = state.fogColor; state.fogNear = 10; state.fogFar = 56; state.ambient = 0.3; state.tint = [1.08, 0.9, 0.82]; }
     else if (player.y < world.topAt(Math.floor(player.x), Math.floor(player.z)) - 2) { state.fogSky = false; state.fogColor = [0.0, 0.0, 0.0]; state.skyColor = state.fogColor; state.fogNear = 10; state.fogFar = 48; }
   }

@@ -111,6 +111,8 @@ const ITEMS = {
   snare_sky: { name: 'Flight Snare', col: '#9fd8ff', snare: 0.55, desc: 'A light cage on a long cord, for the birds that never come down. Only works thrown from the air: off the glider or the back of a flier. Tap the bird as you pass.' },
   feather: { name: 'Sky Feather', col: '#e8f4ff', desc: 'Shed by the high flyers. Shoot one with the bow, or beat one, and feathers come down.' },
   snare2: { name: 'Void Snare', col: '#c07fe0', snare: 0.66, desc: 'A stronger snare laced with void crystal.' },
+  tidelung: { name: 'Tidal Lung', col: '#3fd4ff', gear: true, keep: true, desc: 'Atlantean. A band of living pearl worn at the throat: you breathe water as if it were air, for as long as you like. Does everything a Breathing Bulb does.' },
+  abysstooth: { name: 'Abyssaurus Tooth', col: '#e8e2d0', keep: true, desc: 'As long as your forearm, and still sharp. The Tideforge in Atlantis wants one for the trident.' },
   bulb: { name: 'Breathing Bulb', col: '#9fd8ff', gear: true, desc: 'Breathe underwater for two minutes.' },
   glider: { name: 'Glider', col: '#f0d090', gear: true, desc: 'Hold ▲ while falling to glide. Stick sideways turns, forward dives, back brakes. Pull back just before the ground to flare and land soft.' },
   lavasuit: { name: 'Lava Suit', col: '#ff9050', gear: true, desc: 'Keeps the heat of the Core off you. Without it the heat down there wears you down, the way the cold does on the peaks. It does not make lava safe: nothing does. Stay out of it.' },
@@ -332,11 +334,12 @@ class Player {
       this.x -= this.vx * dt * 1.2; this.z -= this.vz * dt * 1.2; this.vx = 0; this.vz = 0;
     }
     // a mount stays near the surface without a bulb, and nothing on wings goes above the clouds: that is what ships are for
-    if (mountShape === 'water' && !this.has('bulb') && this.y < SEA - 1.1) { this.y = SEA - 1.1; if (this.vy < 0) this.vy = 0; if (!this.warnedBulb) { this.warnedBulb = true; if (typeof UI !== 'undefined') UI.toast('Your Kin will not take you under: you would drown. Marisol makes Breathing Bulbs.'); } }
+    if (mountShape === 'water' && !this.has('bulb') && !this.has('tidelung') && this.y < SEA - 1.1) { this.y = SEA - 1.1; if (this.vy < 0) this.vy = 0; if (!this.warnedBulb) { this.warnedBulb = true; if (typeof UI !== 'undefined') UI.toast('Your Kin will not take you under: you would drown. Marisol makes Breathing Bulbs.'); } }
     if (mountShape === 'air' && this.y > SKY_BASE - 4) { this.y = SKY_BASE - 4; if (this.vy > 0) this.vy = 0; }
     if (this.mount) this.mount.trust = Math.min(1, (this.mount.trust || 0) + dt / 7200);
     // breath
-    if (this.underwater) {
+    if (this.underwater && this.has('tidelung')) { this.breath = Math.min(1, this.breath + dt * 0.5); } // the Tidal Lung: water is air to you
+    else if (this.underwater) {
       const max = (this.has('bulb') ? 120 * this.gearMul('bulb') : 20) * this.breathMul * (this.has('reeffins') ? 2 : 1) * (typeof G !== 'undefined' && G.buffMul ? G.buffMul('breath') : 1);
       this.breath -= dt / max;
       if (this.breath <= 0) { this.breath = 0; this.lavaTick += dt; if (this.lavaTick > 1) { this.lavaTick = 0; this.damage(1, 'drown'); } }

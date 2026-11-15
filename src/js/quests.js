@@ -82,6 +82,10 @@ const QUESTS = [
   { id: 'fuse', title: 'Fuse two Kin', desc: 'Fusing Kin is not the same as crafting: it takes two particular Kin and an element stone, and makes a new Kin. You already know two Kin recipes (tap the table, choose Fuse Kin, and they are listed under the slots). Catch the pair, craft the stone (3 essences and an iron), put all three on the table. Quest people teach you more.', hint: 'Fuse a Kin recipe: tap the table, choose Fuse Kin', check: G => G.stats.fused >= 1 ? 1 : 0, reward: { xp: 60 , items: { draught: 1 } } },
   { id: 'fisher', title: 'Old Brannock', desc: 'The old fisherman on the shore by the village has a rod for you, if you ask. Catch your first fish and go back and tell him.', hint: 'Get a rod from Brannock, catch a fish, tell him', check: G => ((G.stats.camp || {}).rod || 0) >= 2 ? 1 : 0, reward: { xp: 60 } },
   { id: 'diver', title: 'Under the Water', desc: 'Nobody breathes under water, not even on a fish. Marisol the diver (◍ on the map) makes Breathing Bulbs, if you bring the makings, and she has a favour to ask.', hint: 'Get a bulb from Marisol and dive for her chest', check: G => (G.stats.camp || {}).bulbDone ? 1 : 0, reward: { xp: 90 } },
+  { id: 'atlantis', title: 'The City Under Glass', desc: 'Marisol says there are lights under the sea at night, out where the water goes dark. The sea people have a city down there under glass, and nobody from the land has stood in it. It is marked 🔱 on your map. Take your bulb. Swim down the falls through the eye of the dome, or in at one of the gates at its foot.', hint: 'Dive to Atlantis (🔱 on the map)', check: G => (G.stats.atl || {}).seen ? 1 : 0, reward: { xp: 300 } },
+  { id: 'skerry', title: 'Skerry', desc: 'In the ring under the falls there is a seahorse that has thrown every rider for thirty years. The Ringmaster lets anyone try, and it costs nothing. Stay on her to a count of twenty: lean against her with the stick and keep the needle in the middle.', hint: 'Stay on Skerry to 20 in the ring at Atlantis', check: G => (G.stats.atl || {}).tamed ? 1 : Math.min(0.95, ((G.stats.atl || {}).best || 0) / 20), reward: { xp: 500 } },
+  { id: 'calder', title: 'What He Was', desc: 'The Speaker of Atlantis knows who the Kinmaster was before he was that, and why he does what he does. Skerry chose you. Go and hear it.', hint: 'Hear the Speaker out in Atlantis', check: G => (G.stats.atl || {}).told ? 1 : 0, reward: { xp: 800 } },
+  { id: 'trident', title: 'The Trident', desc: 'Brann at the Tideforge will forge Poseidon\'s Trident, the one thing that cuts a Binding, if you bring him a piece of each world: a tooth from the Abyssaurus in the deep by the Lost World, 8 selenite from the Moon and 3 shards of the ring over Halo.', hint: 'Bring Brann the tooth, 8 selenite and 3 ring shards', check: G => G.player.has('sp_trident') ? 1 : 0, reward: { xp: 4000 } },
   { id: 'ranch', title: 'Hale\'s Ranch', desc: 'You cannot ride a Kin you have not broken in, and nobody will teach you but Dusty Hale (♞ on the map). He needs a paddock built first, and there is a wild one nobody can stay on.', hint: 'Build Hale\'s paddock (any solid blocks, two high, between his posts) and ride out Thunderhoof', check: G => (G.stats.camp || {}).rogueTamed ? 1 : 0, reward: { xp: 120 , items: { draught: 1 } } },
   { id: 'frost', title: 'Lost in the Snow', desc: 'Up in the snowfields a woman called Ysolde has a camp, and a brother who has not come home. The cold up there kills. Find her, then find him.', hint: 'Find Ysolde\'s camp in the snow, and her brother', check: G => ((G.stats.camp || {}).frost || 0) >= 4 ? 1 : 0, reward: { xp: 150 } },
   { id: 'glider', title: 'The Nest', desc: 'Old Wren the hermit lives under the tallest peak around, and a sky Kin nests on a pillar of rock beside it. You can only reach the pillar one way: from the peak, on a glider. Bring the egg down and walk it until it hatches.', hint: 'Get Old Wren\'s glider and glide to the nest', check: G => (G.stats.camp || {}).skyEgg ? 1 : 0, reward: { xp: 200 } },
@@ -114,24 +118,24 @@ const QUESTS = [
 const Quests = (() => {
   let G = null;
   // three arcs that run side by side: the journey (your tools, the people, the worlds), the Dark Arc (the Kinmaster), and the Old Ones (the great Kin)
-  const ARC_OF = { kinmaster: 'dark', holds: 'dark', storm: 'dark', citadel: 'dark', scientist: 'dark', ship: 'dark', heart: 'old', mythic: 'old', lost: 'old', abyss: 'old', rex: 'old', legend: 'old' };
-  const AFTER = { storm: 'sky', kinmaster: 'glider', heart: 'legend', moon: 'ship', legend: 'ship' };
-  const ARCS = { main: { name: 'The Journey', col: '#4fb0ff' }, dark: { name: 'The Dark Arc', col: '#b07aff' }, old: { name: 'The Old Ones', col: '#ffc94a' } };
+  const ARC_OF = { kinmaster: 'dark', holds: 'dark', storm: 'dark', citadel: 'dark', scientist: 'dark', ship: 'dark', heart: 'old', mythic: 'old', lost: 'old', abyss: 'old', rex: 'old', legend: 'old', atlantis: 'deep', skerry: 'deep', calder: 'deep', trident: 'deep' };
+  const AFTER = { storm: 'sky', kinmaster: 'glider', heart: 'legend', moon: 'ship', legend: 'ship', atlantis: 'diver' };
+  const ARCS = { main: { name: 'The Journey', col: '#4fb0ff' }, dark: { name: 'The Dark Arc', col: '#b07aff' }, old: { name: 'The Old Ones', col: '#ffc94a' }, deep: { name: 'The Deep', col: '#3fd4ff' } };
   const arcList = (a) => QUESTS.filter(q => (ARC_OF[q.id] || 'main') === a);
   function init(game) { G = game; if (!G.questState) G.questState = { index: 0, bounty: { need: 3, done: 0, round: 1 } }; }
   function doneIds() { const out = new Set(); const A = G.questState.arcs || {}; for (const a in ARCS) arcList(a).slice(0, A[a] || 0).forEach(q => out.add(q.id)); return out; }
   function isDone(id) { return doneIds().has(id); }
   function migrate() { // older saves had one long chain: walk each arc forward over everything already true, quietly
-    const st = G.questState; st.arcs = { main: 0, dark: 0, old: 0 }; st.focus = st.focus || 'main';
+    const st = G.questState; st.arcs = { main: 0, dark: 0, old: 0, deep: 0 }; st.focus = st.focus || 'main';
     for (let pass = 0; pass < 3; pass++) for (const a in ARCS) { const L = arcList(a); while (st.arcs[a] < L.length) { const q = L[st.arcs[a]]; let ok = false; try { ok = q.check(G) >= 1; } catch (e) { ok = false; } if (!ok || (AFTER[q.id] && !isDone(AFTER[q.id]))) break; st.arcs[a]++; } }
   }
-  function arcCurrent(a) { if (!G.questState.arcs) migrate(); const q = arcList(a)[G.questState.arcs[a]]; return q || null; }
+  function arcCurrent(a) { if (!G.questState.arcs) migrate(); if (G.questState.arcs[a] == null) G.questState.arcs[a] = 0; /* an arc added since this game was begun */ const q = arcList(a)[G.questState.arcs[a]]; return q || null; }
   // some quests wait on an item rather than a quest: the Heart only shows itself to someone holding the Deep Chart
   const NEEDS_ITEM = { heart: ['wings', 'the Halo Wings (finish the caravan jobs on Halo)'], mythic: ['wings', 'the Halo Wings'] };
   function gated(q) { if (!q) return null; if (AFTER[q.id] && !isDone(AFTER[q.id])) return AFTER[q.id]; const ni = NEEDS_ITEM[q.id]; if (ni && G && G.player && !G.player.has(ni[0])) return ni[1]; return null; }
   function current() {
     if (!G.questState.arcs) migrate(); const f = G.questState.focus || 'main';
-    for (const a of [f, 'main', 'dark', 'old']) { const q = arcCurrent(a); if (q && !gated(q)) return q; }
+    for (const a of [f, 'main', 'dark', 'old', 'deep']) { const q = arcCurrent(a); if (q && !gated(q)) return q; }
     return null;
   }
   function isActive(id) { for (const a in ARCS) { const q = arcCurrent(a); if (q && q.id === id && !gated(q)) return true; } return false; }
@@ -213,6 +217,8 @@ const Quests = (() => {
   function computeTarget(q) {
     const p = G.player;
     { const ct = Campaign.target(q.id); if (ct) return ct; }
+    if (['atlantis', 'skerry', 'calder'].includes(q.id) || (q.id === 'trident' && G.player.has('abysstooth'))) { const a = Village.atlantis && Village.atlantis(); if (a) { const W = WORLD_W, wdl = (d) => ((d % W) + W * 1.5) % W - W / 2; return { x: p.x + wdl(a.x - p.x), z: p.z + wdl(a.z - p.z), note: 'Atlantis' }; } }
+    if (q.id === 'trident' && typeof Wild !== 'undefined' && Wild.apexSea) { const s = Wild.apexSea(); if (s) return { x: s.x, z: s.z, note: 'the Abyssaurus' }; }
     if (q.id === 'fisher' && G.fisherSpot) return { x: G.fisherSpot.x, z: G.fisherSpot.z, note: 'Old Brannock' };
     if (q.id === 'village' && (Village.def || G.village)) { const v = Village.def || G.village; return { x: v.x, z: v.z }; }
     if (q.id === 'timber') { const b = G.world.findNearest(B.LOG, p.x, p.z, 64); return b ? { x: b.x, z: b.z } : null; }
