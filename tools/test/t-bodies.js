@@ -1,0 +1,9 @@
+const { open } = require('./harness');
+(async () => { const body = process.env.BODY || 'moon'; const h = await open(); const { page, ev } = h; await h.newGame('look-3'); await h.calm();
+  console.log(await ev((body) => { try { G.travel(body); return 'ok'; } catch (e) { return 'ERR ' + e.message; } }, body)); await page.waitForTimeout(9000);
+  await ev(() => { G.repelUntil = performance.now() + 9e7; G.stats.buddyOff = true; G.explain = () => {}; G.player.frozen = true; G.thirdPerson = false; G.world.time = 0.38; for (const id of ['hud', 'controls', 'hotbar']) { const e = document.getElementById(id); if (e) e.style.display = 'none'; } });
+  const T = await ev(() => { const p = G.player; const ms = Village.markers(p.x, p.z, 10).filter(m => m.kind === 'village').sort((a, b) => Math.hypot(a.x - p.x, a.z - p.z) - Math.hypot(b.x - p.x, b.z - p.z)); return ms.slice(0, 3).map(m => [m.name, m.x, m.z]); });
+  console.log(JSON.stringify(T)); const t = T[0];
+  const views = [[9, 9, 4, 0, 0, -0.15], [-10, 8, 3, 0, 0, -0.05], [20, 22, 15, 0, 0, -0.5], [60, 40, 8, 90, 70, -0.1]];
+  for (let i = 0; i < views.length; i++) { await ev((a) => { const p = G.player, w = G.world; const [t, v] = a; p.x = t[1] + 0.5 + v[0]; p.z = t[2] + 0.5 + v[1]; w.ensureAround(Math.floor(p.x / CH), Math.floor(p.z / CH), 4, 9999); for (let k = 0; k < 3; k++) Village.update(0.5, p, false); const vy = i < 3 && Village.active ? Village.active.y : w.groundY(Math.floor(p.x), Math.floor(p.z)) + 1; p.y = vy + v[2]; p.yaw = Math.atan2(-(t[1] + v[3] - p.x), -(t[2] + v[4] - p.z)); p.pitch = v[5]; G.meshPass(999); var i = a[2]; }, [t, views[i], i]); await page.waitForTimeout(2500); await ev(() => { const t = document.getElementById('toasts'); if (t) t.innerHTML = ''; }); await page.screenshot({ path: `/home/claude/${body}-${i}.png` }); }
+  console.log('ERRORS:', h.errors.length ? h.errors.slice(0, 3).join('\n') : 'none'); await h.close(); })();

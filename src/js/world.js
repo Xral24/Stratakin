@@ -14,7 +14,7 @@ const B = {
   TORCH: 18, FUSION: 19, GRAVEL: 20, CACTUS: 21, STARMETAL: 22, MOSS: 23, STATUE: 24, PLANKS: 25, BERRY: 26, GLASS: 27, CAMPFIRE: 28, IRONWALL: 29, VOIDWALL: 30, GLOWWORM: 31, BERRYLEAF: 32, DOOR: 33, DOOR_OPEN: 34, PORTAL: 35,
   CHEST: 36, SELENITE: 37, TYCHO: 38, STARSALT: 39, MOONGLOW: 40, AMBER: 41, SULFUR: 42, RINGSHARD: 43, BRINE: 44, CORAL_R: 45, CORAL_B: 46, CORAL_Y: 47, PEARLCORAL: 48, GOLD: 49, DIAMOND: 50, FERN: 51, SELGLASS: 52, INCUBATOR: 53, REGOLITH: 54, DUNE: 55, SALTCRUST: 56, LADDER: 57, TARGET: 58, BALLOON: 59, FORTSTONE: 60, THORN: 61, DEADGATE: 62, RUBBLE: 63, DARKTABLE: 64,
   NEEDLES: 65, FROND: 66, BIRCHLOG: 67, BOULDER: 68, MUSHROOM: 69, FLOWERS: 70, PEBBLES: 71, PALMLOG: 72,
-  TILES: 73, SLATE: 74, THATCH: 75, PLASTER: 76, BEAM: 77, LAMP: 78, COBBLE: 79, FLOWERBOX: 80, PALISADE: 81, MASONRY: 82, FOUNTAIN: 83, BASIN: 84, AWNING: 85, BANNER: 86, SLIT: 87, TIPI: 88, HIDE: 89, LODGE: 90, FENCE: 91, FIREPIT: 92, TOTEM: 93, RAIL: 94, CART: 95, ROPEBRIDGE: 96, WEAVE: 97, SAIL: 98, EMBERLIGHT: 99, BARREL: 100, CRATE: 101, BUNTING: 102, SIGNPOST: 103, PLANTER: 104, BRICK: 105, SAILS: 106, FALLS: 107, HALFTIMBER: 108, CHIMNEY: 109, HALFTIMBER_O: 110, HALFTIMBER_W: 111
+  TILES: 73, SLATE: 74, THATCH: 75, PLASTER: 76, BEAM: 77, LAMP: 78, COBBLE: 79, FLOWERBOX: 80, PALISADE: 81, MASONRY: 82, FOUNTAIN: 83, BASIN: 84, AWNING: 85, BANNER: 86, SLIT: 87, TIPI: 88, HIDE: 89, LODGE: 90, FENCE: 91, FIREPIT: 92, TOTEM: 93, RAIL: 94, CART: 95, ROPEBRIDGE: 96, WEAVE: 97, SAIL: 98, EMBERLIGHT: 99, BARREL: 100, CRATE: 101, BUNTING: 102, SIGNPOST: 103, PLANTER: 104, BRICK: 105, SAILS: 106, FALLS: 107, HALFTIMBER: 108, CHIMNEY: 109, HALFTIMBER_O: 110, HALFTIMBER_W: 111, GLOWLINE: 112, SALTROOF: 113
 };
 
 // name, top colour, side colour, solid, hardness (seconds to mine), drop item id, emissive, fluid
@@ -104,6 +104,8 @@ defBlock(B.THATCH, 'Thatch', '#d6b05a', '#b8964a', { hard: 0.3, drop: 'frond', t
 defBlock(B.HALFTIMBER, 'Timber-framed Wall', '#f3e3bd', '#eedbb0', { hard: 0.8, drop: 'planks' });
 defBlock(B.HALFTIMBER_O, 'Timber-framed Wall', '#ecd096', '#e6c88c', { hard: 0.8, drop: 'planks' });
 defBlock(B.HALFTIMBER_W, 'Timber-framed Wall', '#f8f2e4', '#f2ecdc', { hard: 0.8, drop: 'planks' });
+defBlock(B.GLOWLINE, 'Glow Line', '#b8ff6a', '#7ad040', { solid: false, hard: 0.1, drop: null, emissive: true, partial: true, transparent: true });
+defBlock(B.SALTROOF, 'Whitewashed Roof', '#f4eedc', '#e2d9c0', { hard: 0.5, drop: 'sulfur', transparent: true });
 defBlock(B.CHIMNEY, 'Chimney Pots', '#b9583c', '#c9623a', { hard: 0.8, drop: 'stone', partial: true, transparent: true });
 defBlock(B.FALLS, 'Waterfall', '#b8dcf8', '#ffffff', { solid: false, hard: 99, drop: null, partial: true, transparent: true });
 defBlock(B.SAILS, 'Windmill Sails', '#efe6cf', '#7a5632', { solid: false, hard: 0.4, drop: 'planks', partial: true, transparent: true });
@@ -144,7 +146,7 @@ defBlock(B.PEBBLES, 'Pebbles', '#8e9197', '#86898f', { solid: false, hard: 0.2, 
 // blocks that light their surroundings, and how far
 const LIGHT_R = { [B.TORCH]: 10, [B.CAMPFIRE]: 14, [B.FIREPIT]: 13, [B.MOONGLOW]: 12, [B.RINGSHARD]: 10, [B.PEARLCORAL]: 8, [B.INCUBATOR]: 9, [B.LAMP]: 12 };
 // blocks the sky light passes through when working out how deep a column is
-const SKY_CLEAR = { [B.CHIMNEY]: 1, [B.FALLS]: 1, [B.BUNTING]: 1, [B.SIGNPOST]: 1, [B.SAILS]: 1, [B.LAMP]: 1, [B.FLOWERBOX]: 1, [B.RAIL]: 1, [B.BANNER]: 1, [B.BASIN]: 1, [B.FOUNTAIN]: 1, [B.TIPI]: 1, [B.LODGE]: 1, [B.HIDE]: 1, [B.FENCE]: 1, [B.FIREPIT]: 1, [B.TOTEM]: 1, [B.FROND]: 1, [B.MUSHROOM]: 1, [B.FLOWERS]: 1, [B.PEBBLES]: 1, [B.LADDER]: 1, [B.TORCH]: 1, [B.GLASS]: 1, [B.SELGLASS]: 1, [B.CAMPFIRE]: 1, [B.MOONGLOW]: 1, [B.GLOWWORM]: 1, [B.FERN]: 1, [B.PORTAL]: 1, [B.BERRY]: 1, [B.RINGSHARD]: 1 };
+const SKY_CLEAR = { [B.GLOWLINE]: 1, [B.CHIMNEY]: 1, [B.FALLS]: 1, [B.BUNTING]: 1, [B.SIGNPOST]: 1, [B.SAILS]: 1, [B.LAMP]: 1, [B.FLOWERBOX]: 1, [B.RAIL]: 1, [B.BANNER]: 1, [B.BASIN]: 1, [B.FOUNTAIN]: 1, [B.TIPI]: 1, [B.LODGE]: 1, [B.HIDE]: 1, [B.FENCE]: 1, [B.FIREPIT]: 1, [B.TOTEM]: 1, [B.FROND]: 1, [B.MUSHROOM]: 1, [B.FLOWERS]: 1, [B.PEBBLES]: 1, [B.LADDER]: 1, [B.TORCH]: 1, [B.GLASS]: 1, [B.SELGLASS]: 1, [B.CAMPFIRE]: 1, [B.MOONGLOW]: 1, [B.GLOWWORM]: 1, [B.FERN]: 1, [B.PORTAL]: 1, [B.BERRY]: 1, [B.RINGSHARD]: 1 };
 const isSolid = (id) => BLOCKS[id].solid;
 const isLeaf = (id) => id === B.LEAVES || id === B.BERRYLEAF || id === B.NEEDLES;
 const isTrunk = (id) => id === B.LOG || id === B.BIRCHLOG || id === B.PALMLOG;

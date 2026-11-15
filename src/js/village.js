@@ -359,9 +359,10 @@ const Village = (() => {
       push(mx + 3, vy + 2, mz + 1, B.BARREL); push(mx + 3, vy + 2, mz - 1, B.CRATE); push(mx + 4, vy + 1, mz + 2, B.PLANTER);
       for (let k = 4; k <= 8; k++) push(mx + k, vy - 1, mz, B.GRAVEL); // a worn path up to the door
     }
-    if (M.houses) { // the square is dressed for a fair: bunting round its four sides, pots at the inner corners, and in a town two stalls with their wares
+    if (M === MATS.alien) for (let d = -5; d <= 5; d++) { push(vx + d, vy + 2, vz - 6, B.GLOWLINE); push(vx + d, vy + 2, vz + 6, B.GLOWLINE); push(vx - 6, vy + 2, vz + d, B.GLOWLINE); push(vx + 6, vy + 2, vz + d, B.GLOWLINE); }
+    if (M.houses || M === MATS.halo) { // the square is dressed for a fair: bunting round its four sides, pots at the inner corners, and in a town two stalls with their wares
       for (let d = -5; d <= 5; d++) { push(vx + d, vy + 2, vz - 6, B.BUNTING); push(vx + d, vy + 2, vz + 6, B.BUNTING); push(vx - 6, vy + 2, vz + d, B.BUNTING); push(vx + 6, vy + 2, vz + d, B.BUNTING); }
-      for (const [a, b] of [[5, 5], [5, -5], [-5, -5]]) push(vx + a, vy, vz + b, B.PLANTER);
+      if (M.houses) for (const [a, b] of [[5, 5], [5, -5], [-5, -5]]) push(vx + a, vy, vz + b, B.PLANTER);
       if (!city) for (const [sx, sz, wares] of [[4, -3, B.CRATE], [-4, -3, B.BARREL]]) { const x = vx + sx, z = vz + sz;
         push(x, vy, z, B.CHEST); push(x + Math.sign(sx) * 2, vy, z, wares); push(x, vy, z - 1, wares === B.CRATE ? B.BARREL : B.CRATE);
         for (let a = -1; a <= 1; a++) push(x + a, vy + 2, z, B.AWNING); }
@@ -725,7 +726,7 @@ const Village = (() => {
     frontier: { ground: B.SAND, under: B.SAND, plaza: B.SAND, plazaEdge: B.PLANKS, post: B.LOG, light: B.TORCH, lamp: B.LAMP, floor: B.PLANKS, wall: B.PLANKS, window: B.GLASS, roof: B.THATCH, eave: B.LOG, counter: B.PLANKS, bush: B.CACTUS, boardwalk: true, saloon: true,
       houses: [{ wall: B.PLANKS, base: B.PLANKS, beam: B.LOG, roofs: [B.THATCH, B.THATCH, B.PLANKS] }] },
     alien: { ground: B.REGOLITH, under: B.DIRT, plaza: B.STARSALT, plazaEdge: B.BASALT, post: B.BASALT, light: B.MOONGLOW, floor: B.REGOLITH, wall: B.SELGLASS, window: B.SELGLASS, roof: B.SELGLASS, eave: B.SELGLASS, counter: B.BASALT, bush: null, pod: true },
-    halo: { ground: B.DUNE, under: B.DIRT, plaza: B.SALTCRUST, plazaEdge: B.STONE, post: B.STONE, light: B.RINGSHARD, floor: B.STONE, wall: B.STONE, window: B.GLASS, roof: B.SALTCRUST, eave: B.STONE, counter: B.STONE, bush: B.SULFUR },
+    halo: { ground: B.DUNE, under: B.DIRT, plaza: B.SALTCRUST, plazaEdge: B.STONE, post: B.STONE, light: B.RINGSHARD, floor: B.STONE, wall: B.STONE, window: B.GLASS, roof: B.SALTROOF, eave: B.STONE, counter: B.STONE, bush: B.SULFUR },
   };
   let MAT = MATS.land;
   // A city is four quarters, split by the two great streets through the square. Each has its own houses, its own ground and a landmark.
@@ -755,6 +756,7 @@ const Village = (() => {
     }
     for (let dx = -3; dx <= 3; dx++) for (let dz = -3; dz <= 3; dz++) set(vx + dx, vy - 1, vz + dz, (Math.abs(dx) === 3 || Math.abs(dz) === 3) ? M.plazaEdge : M.plaza);
     set(vx, vy, vz, B.FUSION); if (M.houses && world.preset.id === 'earth') set(vx - 2, vy, vz + 3, B.SIGNPOST);
+    if (M === MATS.alien || M === MATS.halo) { const L = M === MATS.alien ? B.GLOWLINE : B.BUNTING; for (let d = -3; d <= 3; d++) { set(vx + d, vy + 2, vz - 4, L); set(vx + d, vy + 2, vz + 4, L); set(vx - 4, vy + 2, vz + d, L); set(vx + 4, vy + 2, vz + d, L); } } // lamps strung round the square on the Moon, pennants on Halo
     const lamp = (x, z) => { if (M.lamp) set(x, vy, z, M.lamp); else { set(x, vy, z, M.post); set(x, vy + 1, z, M.light); } };
     for (const [dx, dz] of [[-3, -3], [3, -3], [-3, 3], [3, 3]]) lamp(vx + dx, vz + dz);
     const build = M.pod ? pod : house;
@@ -826,11 +828,12 @@ const Village = (() => {
     if (M.lamp) set(hx, vy + WT, hz, M.lamp); else set(hx, vy + 2, hz, M.light);
     if (furnish) furnish(hx, hz, dirX, dirZ, vy);
     // the front of the house is lived in: an awning over a shop's door, bunting under the eaves of some homes, and barrels, crates or potted plants by the wall
-    if (M.houses && world.preset.id === 'earth') { const F = (b, y, id) => { const x = hx + (alongX ? 4 * sgn : b), z = hz + (alongX ? b : 4 * sgn); set(x, y, z, id); }; const hd = (n) => U.hash3(hx, 20 + n, hz, 0x4d);
+    if ((M.houses && world.preset.id === 'earth') || M === MATS.halo) { const halo = M === MATS.halo; const F = (b, y, id) => { const x = hx + (alongX ? 4 * sgn : b), z = hz + (alongX ? b : 4 * sgn); set(x, y, z, id); }; const hd = (n) => U.hash3(hx, 20 + n, hz, 0x4d);
       if (marker && furnish) { for (let b = -1; b <= 1; b++) F(b, vy + 2, B.AWNING); }
-      else if (hd(5) < 0.4) { for (const b of [-1, 1]) { F(b, vy, B.FENCE); F(b, vy + 1, B.FENCE); F(b, vy + 2, roof); } F(0, vy + 3, roof); } // a little gabled porch over the door on two posts
+      else if (!halo && hd(5) < 0.4) { for (const b of [-1, 1]) { F(b, vy, B.FENCE); F(b, vy + 1, B.FENCE); F(b, vy + 2, roof); } F(0, vy + 3, roof); } // a little gabled porch over the door on two posts
+      else if (halo && hd(5) < 0.5) { for (let b = -1; b <= 1; b++) F(b, vy + 2, B.AWNING); } // on Halo half the homes shade their door with cloth
       else if (hd(0) < 0.45) { for (let b = -2; b <= 2; b++) F(b, vy + 3, B.BUNTING); }
-      for (const [b, n] of [[-2, 1], [2, 2], [-3, 3], [3, 4]]) { const k = hd(n); const lim = Math.abs(b) === 2 ? 0.7 : 0.35; if (k < lim) F(b, vy, [B.BARREL, B.CRATE, B.PLANTER, B.PLANTER, B.BARREL, B.CRATE, B.PLANTER][Math.floor(k / lim * 7)]); }
+      for (const [b, n] of [[-2, 1], [2, 2], [-3, 3], [3, 4]]) { const k = hd(n); const lim = Math.abs(b) === 2 ? 0.7 : 0.35; if (k < lim) F(b, vy, (halo ? [B.BARREL, B.CRATE, B.CRATE, B.BARREL, B.BARREL, B.CRATE, B.BARREL] : [B.BARREL, B.CRATE, B.PLANTER, B.PLANTER, B.BARREL, B.CRATE, B.PLANTER])[Math.floor(k / lim * 7)]); }
     }
   }
   // an alien pod: a hemisphere of selenite glass on a regolith floor, a doorway cut in the rim, a moonglow keystone

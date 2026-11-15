@@ -764,7 +764,7 @@ const R = (() => {
 
   // ---------- chunk meshing ----------
   // material classes for the fragment shader: 1 grass top, 2 sand, 3 rock, 4 earth, 5 snow, 6 wood, 7 leaves, 8 lava, 9 tiles, 10 plaster, 11 cobbles, 12 thatch, 13 slate, 14 dressed stone, 15 basalt, 16 cloud
-  const MAT_OF = {}; for (const [ids, m] of [[[B.SAND, B.DUNE, B.SALTCRUST], 2], [[B.STONE, B.GRAVEL, B.MOSS, B.COPPER, B.IRON, B.EMBER, B.GOLD, B.DIAMOND, B.BEDROCK, B.RUBBLE, B.SELENITE, B.TYCHO, B.AMBER, B.REGOLITH, B.BOULDER], 3], [[B.DIRT], 4], [[B.SNOW], 5], [[B.PLANKS, B.LOG, B.BIRCHLOG, B.PALMLOG, B.BEAM, B.DOOR, B.DOOR_OPEN, B.LADDER, B.CHEST], 6], [[B.LEAVES, B.BERRYLEAF, B.NEEDLES, B.CACTUS], 7], [[B.LAVA], 8], [[B.TILES], 9], [[B.PLASTER], 10], [[B.COBBLE], 11], [[B.THATCH, B.WEAVE, B.SAIL], 12], [[B.SLATE], 13], [[B.MASONRY, B.SLIT, B.FORTSTONE], 14], [[B.BASALT], 15], [[B.CLOUD], 16], [[B.BRICK], 17], [[B.HALFTIMBER, B.HALFTIMBER_O, B.HALFTIMBER_W], 19]]) for (const id of ids) MAT_OF[id] = m;
+  const MAT_OF = {}; for (const [ids, m] of [[[B.SAND, B.DUNE, B.SALTCRUST], 2], [[B.STONE, B.GRAVEL, B.MOSS, B.COPPER, B.IRON, B.EMBER, B.GOLD, B.DIAMOND, B.BEDROCK, B.RUBBLE, B.SELENITE, B.TYCHO, B.AMBER, B.REGOLITH, B.BOULDER], 3], [[B.DIRT], 4], [[B.SNOW], 5], [[B.PLANKS, B.LOG, B.BIRCHLOG, B.PALMLOG, B.BEAM, B.DOOR, B.DOOR_OPEN, B.LADDER, B.CHEST], 6], [[B.LEAVES, B.BERRYLEAF, B.NEEDLES, B.CACTUS], 7], [[B.LAVA], 8], [[B.TILES], 9], [[B.PLASTER, B.SALTROOF], 10], [[B.COBBLE], 11], [[B.THATCH, B.WEAVE, B.SAIL], 12], [[B.SLATE], 13], [[B.MASONRY, B.SLIT, B.FORTSTONE], 14], [[B.BASALT], 15], [[B.CLOUD], 16], [[B.BRICK], 17], [[B.HALFTIMBER, B.HALFTIMBER_O, B.HALFTIMBER_W], 19]]) for (const id of ids) MAT_OF[id] = m;
   const scratchOpaque = new MeshBuilder(16384, false, true), scratchWater = new MeshBuilder(2048, false, true), scratchGlass = new MeshBuilder(512, false, true), scratchGrass = new MeshBuilder(8192, false, true);
   const SOIL = new Set([B.GRASS, B.DIRT, B.SAND, B.SNOW, B.GRAVEL, B.STONE, B.MOSS, B.GLOWGRASS, B.REGOLITH, B.DUNE, B.SALTCRUST]);
   // things that stand on the ground without stopping it from sloping: air, leaves, trunks, bushes, flowers, pebbles, torches, chests...
@@ -783,7 +783,7 @@ const R = (() => {
     }
     return [t, wt];
   }
-  const ROOFB = (b) => b === B.TILES || b === B.SLATE || b === B.THATCH || b === B.SAIL;
+  const ROOFB = (b) => b === B.TILES || b === B.SLATE || b === B.THATCH || b === B.SAIL || b === B.SALTROOF;
   const SIGNABLE = new Set([B.EMBER, B.BERRY, B.COPPER, B.VOID, B.IRON, B.GOLD, B.GLOWWORM, B.LOG, B.MOONGLOW, B.CLOUD, B.SELENITE, B.BERRYLEAF, B.AMBER]);
   const WALLY = (b) => b === B.PLANKS || b === B.PLASTER || b === B.BEAM || b === B.MASONRY || b === B.BRICK || b === B.HALFTIMBER || b === B.HALFTIMBER_O || b === B.HALFTIMBER_W || b === B.IRONWALL || b === B.VOIDWALL || b === B.SELGLASS;
   const surfTop = new Int16Array(18 * 18), surfWet = new Int16Array(18 * 18), cornerH = new Float32Array(17 * 17);
@@ -1071,15 +1071,16 @@ const R = (() => {
             op.box(cx + 0.04 * dirn, yy - 0.025, cz - 0.118, cx + 0.54 * dirn, yy + 0.025, cz - 0.11, [0.32, 0.22, 0.12], sk, false); op.pop(); }
           continue;
         }
-        if (id === B.BUNTING) { // a string of little flags: it sags across the whole run of bunting blocks
-          const sk = skyAt(lx, y, lz); const runX = get(lx + 1, y, lz) === B.BUNTING || get(lx - 1, y, lz) === B.BUNTING;
-          let i0 = 0, i1 = 0; while (i0 < 14 && (runX ? get(lx - i0 - 1, y, lz) : get(lx, y, lz - i0 - 1)) === B.BUNTING) i0++; while (i1 < 14 && (runX ? get(lx + i1 + 1, y, lz) : get(lx, y, lz + i1 + 1)) === B.BUNTING) i1++;
+        if (id === B.BUNTING || id === B.GLOWLINE) { // a string of little flags: it sags across the whole run of bunting blocks
+          const sk = skyAt(lx, y, lz); const runX = get(lx + 1, y, lz) === id || get(lx - 1, y, lz) === id;
+          let i0 = 0, i1 = 0; while (i0 < 14 && (runX ? get(lx - i0 - 1, y, lz) : get(lx, y, lz - i0 - 1)) === id) i0++; while (i1 < 14 && (runX ? get(lx + i1 + 1, y, lz) : get(lx, y, lz + i1 + 1)) === id) i1++;
           const len = i0 + i1 + 1; const yAt = (t) => y + 0.9 - 0.3 * Math.sin(Math.PI * (i0 + t) / len); const P = (t) => runX ? [lx + t, yAt(t), lz + 0.5] : [lx + 0.5, yAt(t), lz + t];
           const pal = [[0.9, 0.22, 0.22], [0.98, 0.8, 0.2], [0.2, 0.5, 0.85], [0.25, 0.7, 0.35], [0.95, 0.5, 0.75], [0.95, 0.95, 0.9]];
           op.tube([P(0), P(0.25), P(0.5), P(0.75), P(1)], [0.012, 0.012, 0.012, 0.012, 0.012], [0.3, 0.24, 0.18], { sky: sk, segs: 3, cap0: 'none', cap1: 'none' });
           if (get(lx, y - 1, lz) === B.AIR && get(lx, y - 2, lz) === B.AIR && isOpaque(get(lx, y - 3, lz))) { // strung across open ground: a pole at each end of the run
             if (i0 === 0) { const e = P(0.08); op.tube([[e[0], y - 2, e[2]], [e[0], y + 0.98, e[2]]], [0.07, 0.05], [0.5, 0.35, 0.19], { sky: sk, segs: 6, cap0: 'flat', cap1: 'round' }); }
             if (i1 === 0) { const e = P(0.92); op.tube([[e[0], y - 2, e[2]], [e[0], y + 0.98, e[2]]], [0.07, 0.05], [0.5, 0.35, 0.19], { sky: sk, segs: 6, cap0: 'flat', cap1: 'round' }); } }
+          if (id === B.GLOWLINE) { const gp = [[0.75, 1.0, 0.45], [0.45, 0.95, 1.0], [0.85, 0.6, 1.0]]; for (let k = 0; k < 3; k++) { const m = P((k + 0.5) / 3); const c = gp[U.mod((runX ? wx : wz) * 3 + k, 3)]; op.blob(m[0] - 0.09, m[1] - 0.22, m[2] - 0.09, m[0] + 0.09, m[1] - 0.02, m[2] + 0.09, 0.92, c, { emis: true, n: 1, sky: 1 }); } continue; } // little lamps strung on the line: green, cyan, violet
           for (let k = 0; k < 3; k++) { const t = (k + 0.5) / 3; const a = P(t - 0.13), b = P(t + 0.13), m = P(t); const c = pal[U.mod((runX ? wx : wz) * 3 + k + Math.floor(U.hash3(Math.floor(wx / 8), 3, Math.floor(wz / 8), 202) * 6), 6)]; op.plate([a, b, [m[0], m[1] - 0.3, m[2]]], 0.012, c, { sky: sk }); }
           continue;
         }
@@ -1418,7 +1419,7 @@ const R = (() => {
         if (id === B.MOONGLOW) {
           const sk = skyAt(lx, y, lz); const pulse = 0.3 + U.hash3(wx, y, wz, 77) * 0.08;
           op.box(lx + 0.44, y, lz + 0.44, lx + 0.56, y + 0.3, lz + 0.56, [0.12, 0.14, 0.2], sk, false);
-          op.box(lx + 0.5 - pulse, y + 0.28, lz + 0.5 - pulse, lx + 0.5 + pulse, y + 0.28 + pulse * 2, lz + 0.5 + pulse, [0.75, 1.0, 0.45], 1, true);
+          op.blob(lx + 0.5 - pulse, y + 0.26, lz + 0.5 - pulse, lx + 0.5 + pulse, y + 0.26 + pulse * 2.1, lz + 0.5 + pulse, 0.92, [0.75, 1.0, 0.45], { emis: true, n: 2, sky: 1 }); for (let k = 0; k < 3; k++) { const a = k * 2.1 + pulse * 20; op.blob(lx + 0.5 + Math.cos(a) * 0.3 - 0.07, y + 0.12 + k * 0.05, lz + 0.5 + Math.sin(a) * 0.3 - 0.07, lx + 0.5 + Math.cos(a) * 0.3 + 0.07, y + 0.28 + k * 0.05, lz + 0.5 + Math.sin(a) * 0.3 + 0.07, 0.9, [0.6, 0.95, 0.7], { emis: true, n: 1, sky: 1 }); } // a round bulb of light with three small buds round its stem
           continue;
         }
         if (info.partial) { // torch: a stick, a bound head, a teardrop flame
