@@ -764,7 +764,7 @@ const R = (() => {
 
   // ---------- chunk meshing ----------
   // material classes for the fragment shader: 1 grass top, 2 sand, 3 rock, 4 earth, 5 snow, 6 wood, 7 leaves, 8 lava, 9 tiles, 10 plaster, 11 cobbles, 12 thatch, 13 slate, 14 dressed stone, 15 basalt, 16 cloud
-  const MAT_OF = {}; for (const [ids, m] of [[[B.SAND, B.DUNE, B.SALTCRUST], 2], [[B.STONE, B.GRAVEL, B.MOSS, B.COPPER, B.IRON, B.EMBER, B.GOLD, B.DIAMOND, B.BEDROCK, B.RUBBLE, B.SELENITE, B.TYCHO, B.AMBER, B.REGOLITH, B.BOULDER], 3], [[B.DIRT], 4], [[B.SNOW], 5], [[B.PLANKS, B.LOG, B.BIRCHLOG, B.PALMLOG, B.BEAM, B.DOOR, B.DOOR_OPEN, B.LADDER, B.CHEST], 6], [[B.LEAVES, B.BERRYLEAF, B.NEEDLES, B.CACTUS], 7], [[B.LAVA], 8], [[B.TILES], 9], [[B.PLASTER], 10], [[B.COBBLE], 11], [[B.THATCH, B.WEAVE, B.SAIL], 12], [[B.SLATE], 13], [[B.MASONRY, B.SLIT, B.FORTSTONE], 14], [[B.BASALT], 15], [[B.CLOUD], 16], [[B.BRICK], 17], [[B.HALFTIMBER], 19]]) for (const id of ids) MAT_OF[id] = m;
+  const MAT_OF = {}; for (const [ids, m] of [[[B.SAND, B.DUNE, B.SALTCRUST], 2], [[B.STONE, B.GRAVEL, B.MOSS, B.COPPER, B.IRON, B.EMBER, B.GOLD, B.DIAMOND, B.BEDROCK, B.RUBBLE, B.SELENITE, B.TYCHO, B.AMBER, B.REGOLITH, B.BOULDER], 3], [[B.DIRT], 4], [[B.SNOW], 5], [[B.PLANKS, B.LOG, B.BIRCHLOG, B.PALMLOG, B.BEAM, B.DOOR, B.DOOR_OPEN, B.LADDER, B.CHEST], 6], [[B.LEAVES, B.BERRYLEAF, B.NEEDLES, B.CACTUS], 7], [[B.LAVA], 8], [[B.TILES], 9], [[B.PLASTER], 10], [[B.COBBLE], 11], [[B.THATCH, B.WEAVE, B.SAIL], 12], [[B.SLATE], 13], [[B.MASONRY, B.SLIT, B.FORTSTONE], 14], [[B.BASALT], 15], [[B.CLOUD], 16], [[B.BRICK], 17], [[B.HALFTIMBER, B.HALFTIMBER_O, B.HALFTIMBER_W], 19]]) for (const id of ids) MAT_OF[id] = m;
   const scratchOpaque = new MeshBuilder(16384, false, true), scratchWater = new MeshBuilder(2048, false, true), scratchGlass = new MeshBuilder(512, false, true), scratchGrass = new MeshBuilder(8192, false, true);
   const SOIL = new Set([B.GRASS, B.DIRT, B.SAND, B.SNOW, B.GRAVEL, B.STONE, B.MOSS, B.GLOWGRASS, B.REGOLITH, B.DUNE, B.SALTCRUST]);
   // things that stand on the ground without stopping it from sloping: air, leaves, trunks, bushes, flowers, pebbles, torches, chests...
@@ -785,7 +785,7 @@ const R = (() => {
   }
   const ROOFB = (b) => b === B.TILES || b === B.SLATE || b === B.THATCH || b === B.SAIL;
   const SIGNABLE = new Set([B.EMBER, B.BERRY, B.COPPER, B.VOID, B.IRON, B.GOLD, B.GLOWWORM, B.LOG, B.MOONGLOW, B.CLOUD, B.SELENITE, B.BERRYLEAF, B.AMBER]);
-  const WALLY = (b) => b === B.PLANKS || b === B.PLASTER || b === B.BEAM || b === B.MASONRY || b === B.BRICK || b === B.HALFTIMBER || b === B.IRONWALL || b === B.VOIDWALL || b === B.SELGLASS;
+  const WALLY = (b) => b === B.PLANKS || b === B.PLASTER || b === B.BEAM || b === B.MASONRY || b === B.BRICK || b === B.HALFTIMBER || b === B.HALFTIMBER_O || b === B.HALFTIMBER_W || b === B.IRONWALL || b === B.VOIDWALL || b === B.SELGLASS;
   const surfTop = new Int16Array(18 * 18), surfWet = new Int16Array(18 * 18), cornerH = new Float32Array(17 * 17);
   const FLOWERS = [[0.95, 0.85, 0.25], [0.95, 0.95, 0.95], [0.85, 0.35, 0.55], [0.6, 0.5, 0.95], [0.95, 0.5, 0.25]];
   function buildChunk(world, chunk) {
@@ -1003,7 +1003,7 @@ const R = (() => {
         }
         if (id === B.CHIMNEY) { // the top of a chimney: a corbelled cap wider than the stack, soot round the flues, and two or three clay pots of different heights
           const sk = skyAt(lx, y + 1, lz); const hv = U.hash3(wx, y, wz, 217); const br = [0.66, 0.31, 0.21], cap = [0.56, 0.53, 0.5], clay = [0.8, 0.43, 0.26];
-          op.curMat = 17; op.box(lx + 0.02, y - 0.02, lz + 0.02, lx + 0.98, y + 0.16, lz + 0.98, br, sk, false); op.curMat = 14; op.box(lx - 0.1, y + 0.16, lz - 0.1, lx + 1.1, y + 0.3, lz + 1.1, cap, sk, false); op.box(lx + 0.03, y + 0.3, lz + 0.03, lx + 0.97, y + 0.38, lz + 0.97, [0.3, 0.27, 0.25], sk, false); op.curMat = 0;
+          { const below = get(lx, y - 1, lz); const bc = BLOCKS[below] && below !== B.AIR ? BLOCKS[below].side : br; op.curMat = MAT_OF[below] || 0; op.box(lx + 0.001, y - 0.001, lz + 0.001, lx + 0.999, y + 0.16, lz + 0.999, bc, sk, false); } op.curMat = 14; op.box(lx - 0.1, y + 0.16, lz - 0.1, lx + 1.1, y + 0.3, lz + 1.1, cap, sk, false); op.box(lx + 0.03, y + 0.3, lz + 0.03, lx + 0.97, y + 0.38, lz + 0.97, [0.3, 0.27, 0.25], sk, false); op.curMat = 0;
           const pots = hv < 0.35 ? [[0.3, 0.5, 0.5], [0.7, 0.5, 0.36]] : hv < 0.7 ? [[0.28, 0.3, 0.42], [0.7, 0.34, 0.56], [0.5, 0.72, 0.34]] : [[0.5, 0.5, 0.62]];
           for (const [px, pz, ph] of pots) { const cx = lx + px, cz = lz + pz; const r = pots.length === 1 ? 0.2 : 0.14; op.tube([[cx, y + 0.36, cz], [cx, y + 0.36 + ph * 0.75, cz], [cx, y + 0.36 + ph * 0.86, cz], [cx, y + 0.36 + ph, cz]], [r * 1.15, r * 0.82, r * 1.02, r * 0.95], clay, { sky: sk, segs: 8, cap0: 'none', cap1: 'flat', shade: (p) => p[1] > y + 0.36 + ph * 0.97 ? [0.12, 0.1, 0.09] : clay }); }
           continue;

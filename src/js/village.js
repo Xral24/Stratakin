@@ -258,7 +258,7 @@ const Village = (() => {
     const R = v.R, vx = v.x, vz = v.z, vy = v.y; const M = MATS[v.style] || MATS.land; MAT = M;
     const buckets = new Map(); const push = (x, y, z, id) => { if (y < 1 || y >= WH) return; const cx = U.mod(Math.floor(x / CH), NCH), cz = U.mod(Math.floor(z / CH), NCH); const k = cx + ',' + cz; let b = buckets.get(k); if (!b) { b = []; buckets.set(k, b); } b.push(U.mod(x, CH), y, U.mod(z, CH), id); };
     const mill = v.size !== 'city' && M.houses && R >= 34; // towns keep a corner of open meadow for a windmill on a knoll
-    const city = v.size === 'city'; ROOF_OVR = city || v.size === 'town' ? 'tiles' : 'thatch';
+    const city = v.size === 'city'; ROOF_OVR = city || v.size === 'town' ? 'tiles' : 'thatch'; VST = city ? null : villageStyle(vx, vz, v.size === 'town');
     const streets = [0].concat(city ? [-40, -20, 20, 40] : v.size === 'town' ? [-24, 24] : []);
     const onStreet = (dx, dz) => { if (Math.max(Math.abs(dx), Math.abs(dz)) >= R - 4 && Math.max(Math.abs(dx), Math.abs(dz)) <= R - 2) return true; for (const s0 of streets) { if (Math.abs(dx - s0) <= 1 && Math.abs(dz) <= R) return true; if (Math.abs(dz - s0) <= 1 && Math.abs(dx) <= R) return true; } return false; };
     // the ground: levelled across the whole footprint. The air above is cleared to the height of the tallest nearby natural column plus
@@ -456,7 +456,7 @@ const Village = (() => {
       for (const sh of shops) if (!sh.castle) { qs(sh.x, sh.z); build(sh.x, sh.z, vy + (sh.raised && rail ? 1 : 0), sh.dirX, sh.dirZ, sh.kind === 'elder' ? B.GOLD : (SHOP_BUILD[sh.kind] || {}).marker || B.LOG, FURNISH[sh.kind] || null); }
       const r = U.rng(U.combine(world.seed, U.strHash(v.id)));
       for (const l of lots) if (!l.used) { if (r() < 0.12) { for (let a = -2; a <= 2; a++) for (let b = -2; b <= 2; b++) if (r() < 0.35 && M.bush) push(l.x + a, vy, l.z + b, M.bush); continue; } qs(l.x, l.z); build(l.x, l.z, vy, l.dirX, l.dirZ, null, null); l.home = true; }
-    } finally { world.setBlock = sb; world.getBlock = gb; QSTYLE = null; ROOF_OVR = null; }
+    } finally { world.setBlock = sb; world.getBlock = gb; QSTYLE = null; ROOF_OVR = null; VST = null; }
     const L = { R, buckets, shops, homes: lots.filter(l => l.home), streets, plots, rail, marks };
     towns.set(v.id, L); return L;
   }
@@ -729,7 +729,10 @@ const Village = (() => {
   };
   let MAT = MATS.land;
   // A city is four quarters, split by the two great streets through the square. Each has its own houses, its own ground and a landmark.
-  let QSTYLE = null; let ROOF_OVR = null;
+  let QSTYLE = null; let ROOF_OVR = null; let VST = null;
+  // one builder's hand per place: every house in a village is timber-framed under the same two limewashes on the same footing; a town adds the odd house built in brick
+  function villageStyle(vx, vz, town) { const k = U.hash3(vx, 40, vz, 0x60), k2 = U.hash3(vx, 41, vz, 0x61); const T = [B.HALFTIMBER, B.HALFTIMBER_W, B.HALFTIMBER_O]; const i = Math.floor(k * 3); const base = k2 < 0.6 ? B.MASONRY : B.BRICK; const roofs = [B.TILES, B.TILES, B.SLATE];
+    return { main: { wall: T[i], base, beam: B.BEAM, roofs }, alt: { wall: T[(i + 1 + Math.floor(k2 * 2)) % 3], base, beam: B.BEAM, roofs }, other: { wall: B.BRICK, base: B.MASONRY, beam: null, roofs: [B.TILES] }, brick: town ? 0.88 : 1.01 }; }
   const QUARTERS = {
     old: { name: 'the Old Quarter', ground: B.MASONRY, house: { wall: B.MASONRY, base: B.MASONRY, beam: null, roofs: [B.SLATE] } },          // north-west: dressed stone under slate, paved
     garden: { name: 'the Garden Quarter', ground: B.GRASS, house: { wall: B.PLASTER, base: B.MASONRY, beam: B.BEAM, roofs: [B.THATCH] } },   // north-east: thatched cottages among flowers
@@ -755,13 +758,13 @@ const Village = (() => {
     const lamp = (x, z) => { if (M.lamp) set(x, vy, z, M.lamp); else { set(x, vy, z, M.post); set(x, vy + 1, z, M.light); } };
     for (const [dx, dz] of [[-3, -3], [3, -3], [-3, 3], [3, 3]]) lamp(vx + dx, vz + dz);
     const build = M.pod ? pod : house;
-    ROOF_OVR = 'thatch';
+    ROOF_OVR = 'thatch'; VST = M === MATS.land ? villageStyle(vx, vz, false) : null;
     build(vx - 9, vz - 9, vy, 1, 0, B.EMBER, furnishBakery);
     build(vx + 9, vz - 9, vy, -1, 0, B.BERRY, furnishJuice);
     build(vx - 9, vz + 9, vy, 1, 0, B.COPPER, furnishTrader);
     build(vx + 9, vz + 9, vy, -1, 0, B.CLOUD, furnishElder);
     build(vx, vz + 10, vy, 0, -1, B.VOID, furnishVoodoo);
-    ROOF_OVR = null;
+    ROOF_OVR = null; VST = null;
     if (M.saloon) { set(vx + 9 - 3, vy, vz - 9, B.DOOR); } // the saloon: swinging doors in the juice bar's doorway
     for (const [dx, dz] of [[-9, -5], [9, -5], [-9, 5], [9, 5], [0, 6]]) lamp(vx + dx, vz + dz);
     if (M.boardwalk) { // plank walks along the fronts of the houses and a hitching rail by the square
@@ -782,10 +785,10 @@ const Village = (() => {
   function house(hx, hz, vy, dirX, dirZ, marker, furnish) {
     const M = MAT; const set = (x, y, z, id) => world.setBlock(x, y, z, id);
     const styles = M.houses || [{ wall: M.wall, base: M.wall, beam: null, roofs: [M.roof] }];
-    const h1 = U.hash3(hx, 11, hz, 0x4a), h2 = U.hash3(hx, 12, hz, 0x4b); const st = QSTYLE || styles[Math.floor(h1 * styles.length)]; let roof = st.roofs[Math.floor(h2 * st.roofs.length)]; if (M === MATS.land && !QSTYLE) { if (ROOF_OVR === 'thatch') roof = B.THATCH; else if (ROOF_OVR === 'tiles' && roof === B.THATCH) roof = B.TILES; } // villages are thatched; towns and cities go under tile and slate
+    const h1 = U.hash3(hx, 11, hz, 0x4a), h2 = U.hash3(hx, 12, hz, 0x4b); const st = QSTYLE || (VST && M === MATS.land ? (h1 < 0.68 ? VST.main : h1 < VST.brick ? VST.alt : VST.other) : styles[Math.floor(h1 * styles.length)]); let roof = st.roofs[Math.floor(h2 * st.roofs.length)]; if (M === MATS.land && !QSTYLE) { if (ROOF_OVR === 'thatch') roof = B.THATCH; else if (ROOF_OVR === 'tiles' && roof === B.THATCH) roof = B.TILES; } // villages are thatched; towns and cities go under tile and slate
     const beam = st.beam; const alongX = dirX !== 0; const sgn = alongX ? dirX : dirZ; // the ridge runs along the door's axis; the door is at a = 3 * sgn
     const A = (dx, dz) => alongX ? dx : dz, Bc = (dx, dz) => alongX ? dz : dx;
-    const WALL = beam && st.wall === B.PLASTER ? B.HALFTIMBER : st.wall; // plaster between timbers is drawn as one timber-framed wall: posts, rails and braces across the limewash
+    const WALL = beam && st.wall === B.PLASTER ? B.HALFTIMBER : st.wall; const framed = WALL === B.HALFTIMBER || WALL === B.HALFTIMBER_O || WALL === B.HALFTIMBER_W; // plaster between timbers is drawn as one timber-framed wall: posts, rails and braces across the limewash
     const WT = 3; // the top wall row
     const lvl = (b) => vy + WT + (4 - Math.abs(b)); // the roof block's height across the house: eaves at the wall top, the ridge four higher
     for (let dx = -4; dx <= 4; dx++) for (let dz = -4; dz <= 4; dz++) {
@@ -809,8 +812,8 @@ const Village = (() => {
         }
         if (Math.abs(dx) <= 2 && Math.abs(dz) <= 2) set(x, vy + WT + 1, z, M.floor); // the ceiling: the attic is its own dark space under the roof
         if (Math.abs(a) === 3 && Math.abs(b) <= 2) { // the gable: a triangle of wall under the roof, a beam along its foot and up its middle, a little window
-          for (let y = vy + WT + 1; y < lvl(b); y++) set(x, y, z, beam && WALL !== B.HALFTIMBER && (y === vy + WT + 1 || b === 0) ? beam : (b === 0 && y === vy + WT + 3) ? M.window : WALL);
-          if (a === -3 * sgn && b === -2) { const land = M === MATS.land; for (let y = vy + WT + 1; y <= vy + WT + 5; y++) set(x, y, z, land ? (st.wall === B.MASONRY ? B.MASONRY : B.BRICK) : B.MASONRY); if (land) set(x, vy + WT + 6, z, B.CHIMNEY); } // the chimney, up through the back gable: a brick stack, a cap, clay pots
+          for (let y = vy + WT + 1; y < lvl(b); y++) set(x, y, z, beam && !framed && (y === vy + WT + 1 || b === 0) ? beam : (b === 0 && y === vy + WT + 3) ? M.window : WALL);
+          if (a === -3 * sgn && b === -2) { const land = M === MATS.land; for (let y = vy + WT + 1; y <= vy + WT + 5; y++) set(x, y, z, land ? (st.wall === B.MASONRY ? B.MASONRY : st.wall === B.BRICK ? B.BRICK : B.PLASTER) : B.MASONRY); if (land) set(x, vy + WT + 6, z, B.CHIMNEY); } // the chimney, up through the back gable: a brick stack, a cap, clay pots
         }
       }
       if (!(a === -3 * sgn && b === -2)) set(x, lvl(b), z, roof); // the roof: a wedge at every spot but the chimney's
@@ -824,7 +827,9 @@ const Village = (() => {
     if (furnish) furnish(hx, hz, dirX, dirZ, vy);
     // the front of the house is lived in: an awning over a shop's door, bunting under the eaves of some homes, and barrels, crates or potted plants by the wall
     if (M.houses && world.preset.id === 'earth') { const F = (b, y, id) => { const x = hx + (alongX ? 4 * sgn : b), z = hz + (alongX ? b : 4 * sgn); set(x, y, z, id); }; const hd = (n) => U.hash3(hx, 20 + n, hz, 0x4d);
-      if (marker && furnish) { for (let b = -1; b <= 1; b++) F(b, vy + 2, B.AWNING); } else if (hd(0) < 0.45) { for (let b = -2; b <= 2; b++) F(b, vy + 3, B.BUNTING); }
+      if (marker && furnish) { for (let b = -1; b <= 1; b++) F(b, vy + 2, B.AWNING); }
+      else if (hd(5) < 0.4) { for (const b of [-1, 1]) { F(b, vy, B.FENCE); F(b, vy + 1, B.FENCE); F(b, vy + 2, roof); } F(0, vy + 3, roof); } // a little gabled porch over the door on two posts
+      else if (hd(0) < 0.45) { for (let b = -2; b <= 2; b++) F(b, vy + 3, B.BUNTING); }
       for (const [b, n] of [[-2, 1], [2, 2], [-3, 3], [3, 4]]) { const k = hd(n); const lim = Math.abs(b) === 2 ? 0.7 : 0.35; if (k < lim) F(b, vy, [B.BARREL, B.CRATE, B.PLANTER, B.PLANTER, B.BARREL, B.CRATE, B.PLANTER][Math.floor(k / lim * 7)]); }
     }
   }
