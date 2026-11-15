@@ -1,0 +1,14 @@
+const { open } = require('./harness');
+(async () => { const h = await open(); const { page, ev } = h; await h.newGame(process.env.SEED || 'look-3'); await h.calm(); await page.waitForTimeout(1500);
+  const r = await ev(() => { const p = G.player, w = G.world; const T = (f, n) => { const t0 = performance.now(); for (let i = 0; i < n; i++) f(i); return +((performance.now() - t0) / n).toFixed(3); };
+    const out = {}; const cam = { x: p.x, y: p.y + 1.6, z: p.z, yaw: p.yaw, pitch: -0.3 };
+    out.gems = T(() => Gems.update(0.016, p), 200);
+    out.thirdCam = T((i) => Avatar.thirdCam(Object.assign({}, cam, { yaw: i * 0.01 }), p, w), 200);
+    out.playerUpdate = T(() => p.update(1 / 60, { mx: 0, mz: 0, moveX: 0, moveZ: 0 }), 200);
+    out.standY = T((i) => R.standY(w, p.x + (i % 20) * 0.37, p.z + (i % 13) * 0.41, p.y, 0.4), 2000);
+    out.colInfo = T((i) => w.colInfo(Math.floor(p.x) + i, Math.floor(p.z) - i), 2000);
+    out.trailWear = T((i) => w.trailWear(p.x + i, p.z - i), 2000);
+    out.wild = Wild && Wild.update ? T(() => Wild.update(0.016, p, performance.now() / 1000, false), 100) : null;
+    out.village = T(() => Village.update(0.016, p, false), 100);
+    return out; });
+  console.log(JSON.stringify(r)); console.log('ERRORS:', h.errors.length ? h.errors.slice(0, 2).join('\n') : 'none'); await h.close(); })();

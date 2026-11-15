@@ -9,7 +9,7 @@ const Gems = (() => {
     glint: { v: 1, col: [0.5, 0.92, 1.0], s: 0.17, back: 6 * 60e3 },
     ember: { v: 3, col: [1.0, 0.66, 0.18], s: 0.21, back: 9 * 60e3 },
     rose: { v: 8, col: [1.0, 0.42, 0.66], s: 0.26, back: 15 * 60e3 },
-    heart: { v: 40, col: [0.7, 0.42, 1.0], s: 0.4, once: true },
+    heart: { v: 40, col: [1.0, 0.18, 0.24], s: 0.4, once: true }, // red: the one worth going out of your way for
     box: { v: 0, col: [0.55, 0.38, 0.2], s: 0.36, once: true },
   };
   function init(g) { G = g; cells = new Map(); curWorld = null; live = []; gone.clear(); }
@@ -22,11 +22,12 @@ const Gems = (() => {
     if (Village.markers(px, pz, 1).some(m => m.kind === 'village' && Math.hypot(m.x - px, m.z - pz) < 54)) return out; // not in a town: the land's own finds
     const add = (kind, x, z, tag) => out.push({ id: wid + ':' + cx + ':' + cz + ':' + tag, kind, x: x + 0.5, z: z + 0.5, hx: x + 0.5, hz: z + 0.5, y: null, ph: U.hash3(x, 7, z, s) * 6.283 });
     const r = H(1), onPath = w.trailWear ? w.trailWear(px, pz) > 0.3 : false;
-    if (U.mod(cx, 7) === 3 && U.mod(cz, 7) === 3 && H(9) < 0.6) add('heart', px, pz, 'h'); // about one to every hundred blocks square, and not in every square
+    const remote = () => { if (Village.markers(px, pz, 2).some(m => m.kind === 'village' && Math.hypot(m.x - px, m.z - pz) < 280)) return false; if (w.trailWear) for (const rr of [0, 18, 40, 70]) for (let k = 0; k < 8; k++) { if (w.trailWear(px + Math.cos(k * 0.785) * rr, pz + Math.sin(k * 0.785) * rr) > 0) return false; if (!rr) break; } return info.h > SEA + 12 || info.biome === BIOME.SNOW || info.biome === BIOME.MOUNTAIN || info.biome === BIOME.SWAMP || info.biome === BIOME.DESERT || w.preset.id !== 'earth'; };
+    if (U.mod(cx, 7) === 3 && U.mod(cz, 7) === 3 && H(9) < 0.7 && remote()) add('heart', px, pz, 'h'); // the red ones lie where nobody goes: far from any village, off every path, up in the hills, the snow, the marsh or the desert
     else if (info.beach && H(8) < 0.05) add('box', px, pz, 'b');
     else if ((info.crag || 0) >= 2.6) { add('rose', px, pz, 'r'); for (let k = 0; k < 4; k++) add('glint', px + Math.round(Math.cos(k * 1.571 + r * 6) * 2), pz + Math.round(Math.sin(k * 1.571 + r * 6) * 2), 'g' + k); }
-    else if (r < (onPath ? 0.5 : info.beach ? 0.22 : 0.13)) { // a string of small ones, bending a little, sometimes ending in a better one
-      const n = 3 + Math.floor(H(4) * 3), a = H(5) * 6.283;
+    else if (r < (onPath ? 0.3 : info.beach ? 0.12 : 0.065)) { // a string of small ones, bending a little, sometimes ending in a better one. Not many: shards have to stay worth something
+      const n = 2 + Math.floor(H(4) * 3), a = H(5) * 6.283;
       for (let k = 0; k < n; k++) { const t = k * 1.5, bend = Math.sin(k * 0.7) * 0.8; add(k === n - 1 && H(6) < 0.3 ? 'ember' : 'glint', Math.round(px + Math.cos(a) * t - Math.sin(a) * bend), Math.round(pz + Math.sin(a) * t + Math.cos(a) * bend), 'g' + k); }
     }
     return out;

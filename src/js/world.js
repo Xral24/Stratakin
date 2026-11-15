@@ -496,14 +496,7 @@ class World {
             if (Math.abs(c - 0.5) < 0.09) b = B.AIR;
           }
           if (b !== B.AIR && y < 32 && U.vnoise3(x, y, z, 26, P, s + 703) > 0.77) b = B.AIR;
-        } else if (y >= h - 3 && y < h && info.h > SEA + 2) {
-          // occasional surface cave mouths
-          const a = U.vnoise3(x, y, z, 14, P, s + 701);
-          if (Math.abs(a - 0.5) < 0.05) {
-            const c = U.vnoise3(x, y * 1.4, z, 16, P, s + 702);
-            if (Math.abs(c - 0.5) < 0.06) b = B.AIR;
-          }
-        }
+        } // caves stay under at least three blocks of ground: the land above is whole, with no holes torn in it. You reach them by digging, as you reach everything below
         if (b === B.STONE) {
           const r = U.hash3(x, y, z, s + 801);
           if (this.preset.biomes === 'moon') {
