@@ -2122,7 +2122,7 @@ const R = (() => {
   out vec3 vC; out vec3 vW; out float vH;
   float hash(vec2 p){ return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
   vec4 hm(ivec2 t){ return texelFetch(uHM, clamp(t, ivec2(0), ivec2(127)), 0); }
-  float soilH(vec4 t, float h0){ float h = t.a * 255.0; bool soil = (t.r + t.g > 0.004) || t.b > 0.998; return (soil && abs(h - h0) <= 2.5) ? h : h0; }
+  float soilH(vec4 t, float h0){ float h = t.a * 255.0; bool soil = (t.r + t.g > 0.004) || t.b > 0.998; return (soil && abs(h - h0) <= 16.5) ? h : h0; }
   void main(){
     int ix = gl_InstanceID % uSide, iz = gl_InstanceID / uSide;
     vec2 cell = uOrigin + vec2(float(ix), float(iz)) * uSpacing;
@@ -2137,7 +2137,7 @@ const R = (() => {
     // the ground height, blended from the four soil texels around the blade; a wall, trunk or cliff among them counts as the blade's own ground
     vec4 a = hm(i0), b = hm(i0 + ivec2(1, 0)), c = hm(i0 + ivec2(0, 1)), e = hm(i0 + ivec2(1, 1));
     float ha = soilH(a, h0), hb = soilH(b, h0), hc = soilH(c, h0), he = soilH(e, h0);
-    float grass = step(0.004, own.r + own.g);
+    float grass = step(0.004, own.r + own.g); { float ga = step(0.004, a.r + a.g), gb = step(0.004, b.r + b.g), gc = step(0.004, c.r + c.g), ge = step(0.004, e.r + e.g); float cov = mix(mix(ga, gb, f.x), mix(gc, ge, f.x), f.y); grass *= step(0.12 + 0.7 * hash(cell * 1.37 + 3.1), cov); } /* where grass meets bare ground the blades thin out raggedly, not along the line of a block */ grass *= 1.0 - smoothstep(1.1, 1.9, max(max(ha, hb), max(hc, he)) - min(min(ha, hb), min(hc, he))); // no blades on a rock face
     float zone = own.b; float tall = smoothstep(0.6, 0.78, zone), lawn = 1.0 - smoothstep(0.22, 0.4, zone);
     float y = mix(mix(ha, hb, f.x), mix(hc, he, f.x), f.y);
     // clumps: thick patches and thinner ones, so the meadow is not a uniform brush
@@ -2386,7 +2386,7 @@ const R = (() => {
   // material classes for the fragment shader: 1 grass top, 2 sand, 3 rock, 4 earth, 5 snow, 6 wood, 7 leaves, 8 lava, 9 tiles, 10 plaster, 11 cobbles, 12 thatch, 13 slate, 14 dressed stone, 15 basalt, 16 cloud
   const MAT_OF = {}; for (const [ids, m] of [[[B.SAND, B.DUNE, B.SALTCRUST], 2], [[B.STONE, B.GRAVEL, B.MOSS, B.COPPER, B.IRON, B.EMBER, B.GOLD, B.DIAMOND, B.BEDROCK, B.RUBBLE, B.SELENITE, B.TYCHO, B.AMBER, B.REGOLITH, B.BOULDER], 3], [[B.DIRT], 4], [[B.SNOW], 5], [[B.PLANKS, B.LOG, B.BIRCHLOG, B.PALMLOG, B.BEAM, B.DOOR, B.DOOR_OPEN, B.LADDER, B.CHEST], 6], [[B.LEAVES, B.BERRYLEAF, B.NEEDLES, B.CACTUS], 7], [[B.LAVA], 8], [[B.TILES], 9], [[B.PLASTER, B.SALTROOF], 10], [[B.COBBLE], 11], [[B.THATCH, B.WEAVE, B.SAIL], 12], [[B.SLATE], 13], [[B.MASONRY, B.SLIT, B.FORTSTONE], 14], [[B.BASALT], 15], [[B.CLOUD], 16], [[B.BRICK], 17], [[B.HALFTIMBER, B.HALFTIMBER_O, B.HALFTIMBER_W], 19], [[B.HALOWALL], 20]]) for (const id of ids) MAT_OF[id] = m;
   const scratchOpaque = new MeshBuilder(16384, false, true), scratchWater = new MeshBuilder(2048, false, true), scratchGlass = new MeshBuilder(512, false, true), scratchGrass = new MeshBuilder(8192, false, true);
-  const SLOPE_MAX = 9; // land is never drawn as cubes above ground: drops of up to nine blocks between neighbouring columns become rock slopes; only what you dig is square
+  const SLOPE_MAX = 16; // land is never drawn as cubes above ground: drops of up to nine blocks between neighbouring columns become rock slopes; only what you dig is square
   const SOIL = new Set([B.GRASS, B.DIRT, B.SAND, B.SNOW, B.GRAVEL, B.STONE, B.MOSS, B.GLOWGRASS, B.REGOLITH, B.DUNE, B.SALTCRUST]);
   // things that stand on the ground without stopping it from sloping: air, leaves, trunks, bushes, flowers, pebbles, torches, chests...
   const DECOR = (b) => b === B.AIR || isLeaf(b) || isTrunk(b) || b === B.BERRY || BLOCKS[b].partial;
@@ -2405,9 +2405,10 @@ const R = (() => {
     return [t, wt];
   }
   const ROOFB = (b) => b === B.TILES || b === B.SLATE || b === B.THATCH || b === B.SAIL || b === B.SALTROOF;
+  const ROUNDY = new Set([B.PLASTER, B.BEAM, B.MASONRY, B.BRICK, B.HALOWALL, B.HALFTIMBER, B.HALFTIMBER_O, B.HALFTIMBER_W]);
   const SIGNABLE = new Set([B.EMBER, B.BERRY, B.COPPER, B.VOID, B.IRON, B.GOLD, B.GLOWWORM, B.LOG, B.MOONGLOW, B.CLOUD, B.SELENITE, B.BERRYLEAF, B.AMBER]);
   const WALLY = (b) => b === B.PLANKS || b === B.PLASTER || b === B.BEAM || b === B.MASONRY || b === B.BRICK || b === B.HALOWALL || b === B.HALFTIMBER || b === B.HALFTIMBER_O || b === B.HALFTIMBER_W || b === B.IRONWALL || b === B.VOIDWALL || b === B.SELGLASS;
-  const surfTop = new Int16Array(18 * 18), surfWet = new Int16Array(18 * 18), cornerH = new Float32Array(17 * 17);
+  const surfTop = new Int16Array(18 * 18), surfWet = new Int16Array(18 * 18), cornerH = new Float32Array(17 * 17); const cornerCol = new Float32Array(17 * 17 * 6); const cornerSky = new Float32Array(17 * 17);
   const FLOWERS = [[0.95, 0.85, 0.25], [0.95, 0.95, 0.95], [0.85, 0.35, 0.55], [0.6, 0.5, 0.95], [0.95, 0.5, 0.25]];
   function buildChunk(world, chunk) {
     const cx = chunk.cx, cz = chunk.cz, ox = cx * CH, oz = cz * CH;
@@ -2442,14 +2443,28 @@ const R = (() => {
       if (n) {
         // at the water's edge a wet column counts as ground at the surface, however deep the seabed really is: a bank up to two blocks above the water slopes down to it instead of standing as cubes over a drop
         const shore = dry && wl >= 0; let sum = 0, lo = 999, hi = -999;
-        for (let i = 0; i < 4; i++) { const t = shore && ws[i] >= 0 ? Math.max(ts[i], ws[i] - 1) : ts[i]; sum += t; lo = Math.min(lo, t); hi = Math.max(hi, t); }
+        for (let i = 0; i < 4; i++) { const t = shore && ws[i] >= 0 ? Math.max(ts[i], ws[i] - 2) : ts[i]; sum += t; lo = Math.min(lo, t); hi = Math.max(hi, t); }
         if (hi - lo <= SLOPE_MAX) v = sum / 4 + 1;
-        if (v >= 0 && shore) v = Math.max(v, wl - 0.02); // and comes up just clear of the waterline (the surface sits 0.12 down and waves 0.07): never a dry pit below the sea, never a seabed fighting the surface for the same pixels
+        if (v >= 0 && shore) v = Math.max(v, wl - 0.45); // and comes up just clear of the waterline (the surface sits 0.12 down and waves 0.07): never a dry pit below the sea, never a seabed fighting the surface for the same pixels
       }
       cornerH[cx * 17 + cz] = v;
     }
     const ST = (x, z) => surfTop[(x + 1) * 18 + (z + 1)];
     const CHt = (x, z) => cornerH[x * 17 + z];
+    // the colour of the land at each corner, blended from the four columns that share it, so grass, sand, snow and rock run into one another with no hard-edged squares; and the bare rock it turns to where it stands up steeply
+    { const stoneP = world.preset.paletteRgb && world.preset.paletteRgb[B.STONE]; const rk0 = stoneP ? stoneP[1] : BLOCKS[B.STONE].side; const ROCK = stoneP ? rk0 : [rk0[0] * 1.1, rk0[1] * 1.02, rk0[2] * 0.9];
+      const colAt = (x, z) => { const t = ST(x, z); if (t < 0) return null; const id = get(x, t, z); if (id === B.GRASS) { const c = chunkAt(x, z); if (c && c.tint) { const i = (((x + 16) & 15) * CH + ((z + 16) & 15)) * 3; return [c.tint[i], c.tint[i + 1], c.tint[i + 2], 0]; } } const pal = world.preset.paletteRgb && world.preset.paletteRgb[id]; const c = pal ? pal[0] : BLOCKS[id].top; return [c[0], c[1], c[2], (id === B.SAND || id === B.DUNE || id === B.SALTCRUST) ? 1 : 0]; };
+      for (let cx = 0; cx <= 16; cx++) for (let cz = 0; cz <= 16; cz++) { let r = 0, g = 0, b = 0, n = 0, sandy = 0; for (const [a, bb] of [[-1, -1], [0, -1], [-1, 0], [0, 0]]) { const c = colAt(cx + a, cz + bb); if (c) { r += c[0]; g += c[1]; b += c[2]; sandy += c[3]; n++; } }
+        const k = (cx * 17 + cz) * 6; if (!n) { cornerCol[k] = -1; continue; } r /= n; g /= n; b /= n; cornerCol[k] = r; cornerCol[k + 1] = g; cornerCol[k + 2] = b;
+        if (sandy > 0) { cornerCol[k + 3] = r * 0.78; cornerCol[k + 4] = g * 0.72; cornerCol[k + 5] = b * 0.64; } else { cornerCol[k + 3] = ROCK[0]; cornerCol[k + 4] = ROCK[1]; cornerCol[k + 5] = ROCK[2]; } } }
+    // the waterline: land beside water dips a little under it at the edge, and the water is drawn over that land too, so the shore is the curve where the two surfaces cross and not the outline of the blocks
+    for (let lx = 0; lx < CH; lx++) for (let lz = 0; lz < CH; lz++) { const i0 = (lx + 1) * 18 + (lz + 1); if (surfWet[i0] >= 0 || surfTop[i0] < 0) continue; let wl = -1, wx0 = 0, wz0 = 0;
+      for (let a = -1; a <= 1; a++) for (let b = -1; b <= 1; b++) { const w = surfWet[(lx + a + 1) * 18 + (lz + b + 1)]; if (w > wl) { wl = w; wx0 = lx + a; wz0 = lz + b; } } if (wl < 0) continue;
+      const hs = [CHt(lx, lz + 1), CHt(lx + 1, lz + 1), CHt(lx + 1, lz), CHt(lx, lz)]; if (hs.some((v) => v < 0) || Math.min(hs[0], hs[1], hs[2], hs[3]) >= wl - 0.1) continue;
+      const br = get(wx0, wl - 1, wz0) === B.BRINE ? 1 : 0; const dC = (cx, cz) => { let sum = 0; for (const [a, b] of [[-1, -1], [0, -1], [-1, 0], [0, 0]]) { const j = (cx + a + 1) * 18 + (cz + b + 1); if (surfWet[j] >= 0) sum += Math.min(10, Math.max(1, surfWet[j] - 1 - surfTop[j])); } return [Math.min(1, sum / 36), br, 0]; };
+      const sk = skyAt(lx, wl, lz); wa.quad([[lx, wl, lz + 1], [lx + 1, wl, lz + 1], [lx + 1, wl, lz], [lx, wl, lz]], [dC(lx, lz + 1), dC(lx + 1, lz + 1), dC(lx + 1, lz), dC(lx, lz)], [sk, sk, sk, sk], false); }
+    // and the daylight reaching each corner, blended the same way, so shade under trees falls off softly and the column a trunk stands on is not a black square
+    for (let cx = 0; cx <= 16; cx++) for (let cz = 0; cz <= 16; cz++) { let sum = 0, n = 0; for (const [a, bb] of [[-1, -1], [0, -1], [-1, 0], [0, 0]]) { const x = cx + a, z = cz + bb; const t = ST(x, z); if (t < 0 || isTrunk(get(x, t + 1, z))) continue; sum += skyAt(x, t + 1, z); n++; } cornerSky[cx * 17 + cz] = n ? sum / n : 0.6; }
     // where a prop standing at (lx, y, lz) meets the ground: the smoothed surface under it, or the block top when the ground there is not smoothed
     const gnd = (lx, y, lz) => {
       if (ST(lx, lz) !== y - 1) return y;
@@ -2631,6 +2646,19 @@ const R = (() => {
         }
         if (id === B.FALLS) { // falling water: a pale sheet down the rock behind it, a lip where it comes over the top, white water where it lands
           const sk = skyAt(lx, y, lz); let d = null; for (const [a, b] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) if (isOpaque(get(lx + a, y, lz + b))) { d = [a, b]; break; } if (!d) { for (const [a, b] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) if (get(lx + a, y, lz + b) === B.FALLS) { d = [a, b]; break; } } if (!d) d = [0, -1];
+          { const h00 = CHt(lx, lz), h10 = CHt(lx + 1, lz), h11 = CHt(lx + 1, lz + 1), h01 = CHt(lx, lz + 1); const lo = Math.min(h00, h10, h11, h01), hi = Math.max(h00, h10, h11, h01);
+            if (lo >= 0 && hi - lo > 1.2) { // the rock here is a slope, so the water runs down it: a ribbon laid on the ground from the lip to the pool
+              if (get(lx, y - 1, lz) === B.FALLS) continue; const wcc = [0.72, 0.87, 0.98]; op.curMat = 18;
+              { const gx = (h10 + h11 - h00 - h01) / 2, gz = (h01 + h11 - h00 - h10) / 2; const alongX = Math.abs(gx) >= Math.abs(gz); const down = alongX ? (gx < 0 ? 1 : -1) : (gz < 0 ? 1 : -1); // the way the water runs: +1 or -1 along x or z
+                const H = (px, pz) => { const u = px - lx, v = pz - lz; return (h00 * (1 - u) + h10 * u) * (1 - v) + (h01 * (1 - u) + h11 * u) * v; };
+                const nA = [cornerN(lx, lz), cornerN(lx + 1, lz), cornerN(lx + 1, lz + 1), cornerN(lx, lz + 1)]; let nn = [0, 0, 0]; for (const q of nA) { nn[0] += q[0]; nn[1] += q[1]; nn[2] += q[2]; } const nl = Math.hypot(nn[0], nn[1], nn[2]) || 1; nn = [nn[0] / nl, nn[1] / nl, nn[2] / nl];
+                // a point on the ribbon: t runs down the flow from -0.7 (back on the level above the lip) to 1.25 (out into the pool), u across it; it stands proud in the middle and tucks into the rock at its edges
+                const P = (t, u) => { const tc = Math.max(0, Math.min(1, t)); const a = down > 0 ? tc : 1 - tc, ax = down > 0 ? t : 1 - t; const px = alongX ? lx + ax : lx + u, pz = alongX ? lz + u : lz + ax; const hx = alongX ? lx + a : lx + u, hz = alongX ? lz + u : lz + a; return [px, H(hx, hz) + 0.16 * Math.sin(Math.PI * (u - 0.08) / 0.84) - 0.04, pz]; };
+                const TS = [-0.7, 0, 0.25, 0.5, 0.75, 1, 1.25], US = [0.08, 0.29, 0.5, 0.71, 0.92];
+                for (let a = 0; a < TS.length - 1; a++) for (let b = 0; b < US.length - 1; b++) { const q = [P(TS[a], US[b]), P(TS[a], US[b + 1]), P(TS[a + 1], US[b + 1]), P(TS[a + 1], US[b])]; const flip = alongX ? down < 0 : down > 0; op.quad(flip ? [q[3], q[2], q[1], q[0]] : q, [wcc, wcc, wcc, wcc], [sk, sk, sk, sk], false, [nn, nn, nn, nn]); } }
+              const cs = [[lx, h00, lz], [lx + 1, h10, lz], [lx + 1, h11, lz + 1], [lx, h01, lz + 1]].sort((a, b) => a[1] - b[1]); const fx0 = (cs[0][0] + cs[1][0]) / 2, fz0 = (cs[0][2] + cs[1][2]) / 2, fy0 = (cs[0][1] + cs[1][1]) / 2;
+              for (let k = 0; k < 7; k++) { const fx = fx0 + (U.hash3(wx, k, wz, 213) - 0.5) * 1.1, fz = fz0 + (U.hash3(wx, k, wz, 214) - 0.5) * 1.1, r = 0.16 + U.hash3(wx, k, wz, 215) * 0.16; op.blob(fx - r, fy0 - 0.05, fz - r, fx + r, fy0 + r * 1.3, fz + r, 0.9, [1, 1, 1], { sky: sk, n: 1 }); }
+              op.curMat = 0; continue; } }
           const wc = [0.72, 0.87, 0.98]; const t = 0.2; op.curMat = 18;
           const x0 = d[0] > 0 ? lx + 1 - t : d[0] < 0 ? lx : lx + 0.1, x1 = d[0] > 0 ? lx + 1 : d[0] < 0 ? lx + t : lx + 0.9, z0 = d[1] > 0 ? lz + 1 - t : d[1] < 0 ? lz : lz + 0.1, z1 = d[1] > 0 ? lz + 1 : d[1] < 0 ? lz + t : lz + 0.9;
           op.box(x0, y, z0, x1, y + 1, z1, wc, sk, false);
@@ -3086,6 +3114,28 @@ const R = (() => {
             continue;
           }
         }
+        if (ROUNDY.has(id)) { // nothing built stands on a knife edge: where two outside faces of a wall meet, the corner is turned
+          const N4 = [[0, 1, 4], [1, 0, 0], [0, -1, 5], [-1, 0, 1]], CN = [[0, 1], [1, 1], [1, 0], [0, 0]], DR = [[1, 0], [0, -1], [-1, 0], [0, 1]]; // edge k runs from corner k to corner k + 1; its outward normal and face
+          const nbr = N4.map(([a, b]) => get(lx + a, y, lz + b)); const exp = nbr.map((q) => !isOpaque(q)); const soft = nbr.map((q) => !isOpaque(q) && q !== B.GLASS && q !== B.SELGLASS && q !== B.DOOR);
+          const rnd = [0, 1, 2, 3].map((k) => soft[k] && soft[(k + 3) & 3]);
+          if (rnd[0] || rnd[1] || rnd[2] || rnd[3]) {
+            const r = 0.3; const pal = world.preset.paletteRgb && world.preset.paletteRgb[id]; const sC = pal ? pal[1] : info.side, tC = pal ? pal[0] : info.top; op.curMat = MAT_OF[id] || 0;
+            const aoB = N4.map(([a, b]) => isOpaque(get(lx + a, y - 1, lz + b)) ? 0.74 : 1), aoT = N4.map(([a, b]) => isOpaque(get(lx + a, y + 1, lz + b)) ? 0.74 : 1), sks = N4.map(([a, b]) => skyAt(lx + a, y, lz + b));
+            const wq = (a, b, na, nb, sa, sb, ab, at, sk) => op.quad([[lx + a[0], y, lz + a[1]], [lx + b[0], y, lz + b[1]], [lx + b[0], y + 1, lz + b[1]], [lx + a[0], y + 1, lz + a[1]]],
+              [[sC[0] * sa * ab, sC[1] * sa * ab, sC[2] * sa * ab], [sC[0] * sb * ab, sC[1] * sb * ab, sC[2] * sb * ab], [sC[0] * sb * at, sC[1] * sb * at, sC[2] * sb * at], [sC[0] * sa * at, sC[1] * sa * at, sC[2] * sa * at]], [sk, sk, sk, sk], false, [[na[0], 0, na[1]], [nb[0], 0, nb[1]], [nb[0], 0, nb[1]], [na[0], 0, na[1]]]);
+            const pts = [];
+            for (let k = 0; k < 4; k++) { const k1 = (k + 1) & 3; const c0 = CN[k], c1 = CN[k1], d = DR[k], n0 = N4[k], n1 = N4[k1]; const s0 = rnd[k] ? r : 0, e0 = rnd[k1] ? r : 0;
+              const p0 = [c0[0] + d[0] * s0, c0[1] + d[1] * s0], p1 = [c1[0] - d[0] * e0, c1[1] - d[1] * e0]; const sh0 = FACE_SHADE[n0[2]] * vr, sh1 = FACE_SHADE[n1[2]] * vr; pts.push(p0);
+              if (exp[k]) wq(p0, p1, n0, n0, sh0, sh0, aoB[k], aoT[k], sks[k]);
+              if (rnd[k1]) { const dn = DR[k1]; const cx0 = c1[0] - d[0] * r + dn[0] * r, cz0 = c1[1] - d[1] * r + dn[1] * r; const at = (t) => { const th = t * Math.PI / 2, cs = Math.cos(th), sn = Math.sin(th); const nx = n0[0] * cs + n1[0] * sn, nz = n0[1] * cs + n1[1] * sn; return [[cx0 + nx * r, cz0 + nz * r], [nx, nz], sh0 + (sh1 - sh0) * t]; };
+                pts.push(p1); const ab = Math.min(aoB[k], aoB[k1]), att = Math.min(aoT[k], aoT[k1]), sk = Math.max(sks[k], sks[k1]);
+                for (let j = 0; j < 3; j++) { const A = at(j / 3), Bq = at((j + 1) / 3); wq(A[0], Bq[0], A[1], Bq[1], A[2], Bq[2], ab, att, sk); if (j < 2) pts.push(Bq[0]); } } }
+            const cap = (yy, up) => { const sk = skyAt(lx, yy + (up ? 0 : -1), lz); const sh = (up ? FACE_SHADE[2] : FACE_SHADE[3]) * vr; const cc = up ? tC : sC; const c = [cc[0] * sh, cc[1] * sh, cc[2] * sh]; const nn = up ? [0, 1, 0] : [0, -1, 0]; const ctr = [lx + 0.5, yy, lz + 0.5];
+              for (let i = 0; i < pts.length; i++) { const a = pts[i], b = pts[(i + 1) % pts.length]; const A = [lx + a[0], yy, lz + a[1]], Bq = [lx + b[0], yy, lz + b[1]]; op.quad(up ? [ctr, A, Bq, Bq] : [ctr, Bq, A, A], [c, c, c, c], [sk, sk, sk, sk], false, [nn, nn, nn, nn]); } };
+            if (!isOpaque(get(lx, y + 1, lz))) cap(y + 1, true); if (!isOpaque(get(lx, y - 1, lz))) cap(y, false);
+            op.curMat = 0; continue;
+          }
+        }
         const matSide = MAT_OF[id] || 0;
         for (let f = 0; f < 6; f++) {
           const F = FACES[f], n = F.n;
@@ -3119,7 +3169,6 @@ const R = (() => {
           const verts = [], cols = [], skys = [], aos = [];
           const a = (n[0] !== 0) ? 0 : (n[1] !== 0) ? 1 : 2; // normal axis
           const sloped = surf && f === 2 && y === ST(lx, lz);
-          if (sloped) { let lo = 1e9, hi = -1e9; for (let i = 0; i < 4; i++) { const hh = CHt(lx + F.v[i][0], lz + F.v[i][2]); if (hh >= 0) { lo = Math.min(lo, hh); hi = Math.max(hi, hh); } } if (hi - lo > 1.7 && id !== B.STONE && id !== B.MOSS) { const rk = BLOCKS[id === B.SAND || id === B.DUNE ? B.SAND : B.STONE].side; const m = 0.9 + U.hash3(wx, y, wz, 218) * 0.2; c = [rk[0] * m * 1.1, rk[1] * m * 1.02, rk[2] * m * 0.9]; op.curMat = id === B.SAND || id === B.DUNE ? 2 : 3; } } // where the land stands up steeply it is bare rock, whatever grows on the level
           const sink = (f !== 2 && f !== 3 && isTrunk(id) && ST(lx, lz) === y - 1) ? 0.5 : 0; // a square trunk standing on sloping ground reaches down into it
           for (let i = 0; i < 4; i++) {
             const v = F.v[i];
@@ -3153,6 +3202,7 @@ const R = (() => {
             else { const dc = [Math.min(1, dAt(lx, lz) / 9), br, 0]; for (let i = 0; i < 4; i++) cols[i] = dc; }
           }
           const nrms = sloped ? F.v.map(v => cornerN(lx + v[0], lz + v[2])) : null;
+          if (sloped) { let rk = 0; for (let i = 0; i < 4; i++) { const cxx = lx + F.v[i][0], czz = lz + F.v[i][2]; const k = (cxx * 17 + czz) * 6; if (cornerCol[k] < 0) continue; skys[i] = cornerSky[cxx * 17 + czz]; let kr = U.clamp((0.66 - nrms[i][1]) / 0.2, 0, 1); kr = kr * kr * (3 - 2 * kr); rk += kr; const sh = shade * aos[i]; cols[i] = [(cornerCol[k] * (1 - kr) + cornerCol[k + 3] * kr) * sh, (cornerCol[k + 1] * (1 - kr) + cornerCol[k + 4] * kr) * sh, (cornerCol[k + 2] * (1 - kr) + cornerCol[k + 5] * kr) * sh]; } if (rk > 2 && (id === B.GRASS || id === B.DIRT || id === B.SNOW || id === B.GLOWGRASS)) op.curMat = 3; }
           if (!pf) { if (isWater) wa.quad(verts, cols, skys, false); else if (isGlass) gs.quad(verts, cols, skys, false); else op.quad(verts, cols, skys, emis, nrms); }
           else {
             // patterned face: sub-rectangles in face coordinates, then studs raised off the plane
@@ -3474,8 +3524,8 @@ const R = (() => {
     let dry = false, wl = -1; const ts = [], ws = [];
     for (const [a, b] of [[-1, -1], [0, -1], [-1, 0], [0, 0]]) { const [t, wt] = soilTopAt(world, cx + a, cz + b); if (t < 0) return -1; ts.push(t); ws.push(wt); if (wt < 0) dry = true; else wl = Math.max(wl, wt); }
     const shore = dry && wl >= 0; let sum = 0, lo = 999, hi = -999;
-    for (let i = 0; i < 4; i++) { const t = shore && ws[i] >= 0 ? Math.max(ts[i], ws[i] - 1) : ts[i]; sum += t; lo = Math.min(lo, t); hi = Math.max(hi, t); }
-    let v = hi - lo <= SLOPE_MAX ? sum / 4 + 1 : -1; if (v >= 0 && shore) v = Math.max(v, wl - 0.02); return v;
+    for (let i = 0; i < 4; i++) { const t = shore && ws[i] >= 0 ? Math.max(ts[i], ws[i] - 2) : ts[i]; sum += t; lo = Math.min(lo, t); hi = Math.max(hi, t); }
+    let v = hi - lo <= SLOPE_MAX ? sum / 4 + 1 : -1; if (v >= 0 && shore) v = Math.max(v, wl - 0.45); return v;
   }
   let surfCache = { k: null, h: null };
   // where a creature's feet should rest: on soil the drawn ground is a smooth slope between block corners, so stand on the highest
