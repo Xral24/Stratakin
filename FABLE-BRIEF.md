@@ -81,3 +81,21 @@ Read PROGRESS.md for the detail; this is the map.
 - **Earth terrain** has ridges, shelves, buttes and sea cliffs (`colInfo` in `world.js`).
 - **Tests** are in `tools/test/`. The ones that matter most: `t-smoke.js`, `t-allmodels.js` (builds, dresses and gives moves to every Kin at every stage), `t-native.js`, `t-wearnat.js`, `t-keep.js`, `t-balance.js`. To photograph the world, freeze the player and call `ensureAround` and `meshPass` as `t-world.js` and `t-terr3.js` do; anything else gives fog or sky.
 - **Not verified by a person playing:** frame rate on the phone, combat timing, hold difficulty, how the balance feels. Alexander plays on an Android phone and sends screenshots; fix what he reports first.
+
+## Update, 15 November: the look is now the job
+
+Alexander's direction, in his words and mine. Read this before touching anything visual.
+
+- **Soul and good graphics.** He sent screenshots of cosy block-building towns, lush valleys, sky villages and hill villages, and named the latest Zelda games as the benchmark for the look. Take the spirit, never copy. Be honest with him that a phone browser and code-made shapes will not match a console studio's detail.
+- **Nothing on the surface or above it looks square.** Land, cliffs, walls, props: fluid, no hard angles, apart from the angles a normal house has. Blocks show only when you dig: the surface coat comes away and it is cubes underneath, mines are cubes, and the rock floor of the Core cannot be dug at all. Fortresses and the Citadel are fine as they are.
+- **A place looks built by one hand.** A village is thatched, a town or city is tiled. Every house in a village shares its limewash (two of cream, white, ochre), its footing and its chimneys; doors and windows may differ. Dark timbers run across the limewash in different shapes. Roof edges are never ruled lines: tiles overlap unevenly, thatch spills over. A windmill stands alone on a knoll with open ground round it, never squeezed between houses.
+
+Where it stands (PROGRESS.md has every change with the function names):
+
+- Land: drops of up to sixteen blocks are drawn as slopes; colour and daylight are blended corner to corner; steep ground turns to rock by slope; shores, pools and the ground beside buildings run in smoothly; crags, rivers and waterfalls exist on Earth. The block grid lines round the player show only on rock underground.
+- Built things: timber-framed walls, shutters, porches, brick, chimney pots and smoke, bunting, stalls, barrels, crates, planters, signposts, a windmill, a great tree; turned corners on every built block; Moon pods are smooth glass domes; Halo has dressed sandstone, a tile frieze and whitewashed sloped roofs. Each world has its own horizon.
+- Life: leaves stir in the wind, smoke rises.
+- Not done: top edges of free-standing walls, plank walls, the last angular steps in the shoreline, land features on the Moon and Halo, anything animated beyond leaves and smoke (birds, butterflies, fireflies would suit).
+
+How to check your work: photograph it. `tools/test/t-play.js` takes gameplay-height shots (this is how the grid lines and trunk problems were found, aerial shots hide them), `t-dress.js`, `t-frame.js`, `t-town.js`, `t-bodies.js`, `t-crag.js`, `t-water.js`, `t-river.js`, `t-biomes.js` cover the rest. Towns are built once per world, so changes to them need a new game; land and drawing changes show in an old save.
+
