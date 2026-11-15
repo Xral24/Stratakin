@@ -318,6 +318,9 @@ const R = (() => {
           float own = hash3(vec3(cc, row, 4.0));
           float darkSt = 1.0 - smoothstep(0.2, 0.36, lum); /* dark stone is pointed with pale mortar, or its courses vanish and a fortress is one black lump */
           col *= mix(mix(0.6, 1.0, mortar), mix(1.7, 1.0, mortar), darkSt) * (0.86 + 0.28 * own) * (0.96 + 0.08 * vn(uv * 9.0)) * (0.95 + 0.1 * vn(uv * 0.6 + 2.0));
+        } else if (mat == 18) { // falling water: white streaks running down a pale sheet
+          float ax = vWorld.x * 3.1 + vWorld.z * 2.7; float st = vn(vec2(ax, vWorld.y * 0.7 + uTime * 2.6)) * 0.6 + vn(vec2(ax * 2.3, vWorld.y * 1.6 + uTime * 4.1)) * 0.4;
+          col = mix(vec3(0.5, 0.74, 0.95), vec3(1.0), smoothstep(0.42, 0.74, st)) * (0.72 + 0.4 * lum);
         } else if (mat == 17) { // brick: four courses to the block, each brick half a block long, pale mortar, every brick fired a little differently
           bool flatTop = abs(n.y) > 0.5; float cy = (flatTop ? vWorld.z : vWorld.y) * 4.0; float row = floor(cy); float ry = fract(cy);
           float cx = (flatTop ? vWorld.x : (abs(n.x) > 0.5 ? vWorld.z : vWorld.x)) * 2.0 + mod(row, 2.0) * 0.5; float cc = floor(cx); float rx = fract(cx);
@@ -985,16 +988,26 @@ const R = (() => {
           const b0 = wa.nv; wa.vert(cx, y + 1.98, cz, 0, 1, 0, 0, 0, 0, sk, false); for (let i = 0; i < 12; i++) { const a = i / 12 * 6.2832; wa.vert(cx + Math.cos(a) * 0.72, y + 1.98, cz + Math.sin(a) * 0.72, 0, 1, 0, 0, 0, 0, sk, false); } for (let i = 0; i < 12; i++) wa.tri(b0, b0 + 1 + i, b0 + 1 + (i + 1) % 12);
           continue;
         }
+        if (id === B.FALLS) { // falling water: a pale sheet down the rock behind it, a lip where it comes over the top, white water where it lands
+          const sk = skyAt(lx, y, lz); let d = null; for (const [a, b] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) if (isOpaque(get(lx + a, y, lz + b))) { d = [a, b]; break; } if (!d) { for (const [a, b] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) if (get(lx + a, y, lz + b) === B.FALLS) { d = [a, b]; break; } } if (!d) d = [0, -1];
+          const wc = [0.72, 0.87, 0.98]; const t = 0.2; op.curMat = 18;
+          const x0 = d[0] > 0 ? lx + 1 - t : d[0] < 0 ? lx : lx + 0.1, x1 = d[0] > 0 ? lx + 1 : d[0] < 0 ? lx + t : lx + 0.9, z0 = d[1] > 0 ? lz + 1 - t : d[1] < 0 ? lz : lz + 0.1, z1 = d[1] > 0 ? lz + 1 : d[1] < 0 ? lz + t : lz + 0.9;
+          op.box(x0, y, z0, x1, y + 1, z1, wc, sk, false);
+          if (get(lx, y + 1, lz) !== B.FALLS) op.box(Math.min(x0, x0 + d[0] * 1.2), y + 1, Math.min(z0, z0 + d[1] * 1.2), Math.max(x1, x1 + d[0] * 1.2), y + 1.07, Math.max(z1, z1 + d[1] * 1.2), wc, sk, false);
+          if (get(lx, y - 1, lz) !== B.FALLS) for (let k = 0; k < 6; k++) { const fx = lx + 0.5 + d[0] * 0.25 + (U.hash3(wx, k, wz, 213) - 0.5) * 0.9, fz = lz + 0.5 + d[1] * 0.25 + (U.hash3(wx, k, wz, 214) - 0.5) * 0.9, r = 0.16 + U.hash3(wx, k, wz, 215) * 0.14; op.blob(fx - r, y - 0.05, fz - r, fx + r, y + r * 1.4, fz + r, 0.9, [1, 1, 1], { sky: sk, n: 1 }); }
+          op.curMat = 0; continue;
+        }
         if (id === B.SAILS) { // a windmill's sails: a hub on the wall behind, four spars, a lattice of canvas along each
           const sk = skyAt(lx, y + 1, lz); let d = [0, -1]; for (const [a, b] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) if (isOpaque(get(lx + a, y, lz + b))) { d = [a, b]; break; }
           const cx = lx + 0.5 + d[0] * 0.15, cy = y + 0.5, cz = lz + 0.5 + d[1] * 0.15; const px = d[0] ? 0 : 1, pz = d[0] ? 1 : 0; const rot = 0.35 + U.hash3(wx, y, wz, 212) * 0.9; const wood = [0.46, 0.32, 0.18], canvas = [0.95, 0.91, 0.8];
           op.tube([[cx + d[0] * 0.4, cy, cz + d[1] * 0.4], [cx - d[0] * 0.25, cy, cz - d[1] * 0.25]], [0.16, 0.12], wood, { sky: sk, segs: 7, cap0: 'flat', cap1: 'round' });
+          op.curMat = 6;
           for (let k = 0; k < 4; k++) { const an = rot + k * Math.PI / 2, c = Math.cos(an), sn = Math.sin(an); const AT = (r, o) => [cx + px * (c * r - sn * o), cy + sn * r + c * o, cz + pz * (c * r - sn * o)];
-            op.tube([AT(0, 0), AT(2.7, 0)], [0.06, 0.04], wood, { sky: sk, segs: 5, cap0: 'none', cap1: 'round' });
-            for (let j = 0; j < 4; j++) { const r0 = 0.6 + j * 0.52, r1 = r0 + 0.46; const q = [AT(r0, 0.07), AT(r1, 0.07), AT(r1, 0.72), AT(r0, 0.72)]; const cc = j % 2 ? canvas : [canvas[0] * 0.93, canvas[1] * 0.92, canvas[2] * 0.9]; const nrm = [-d[0], 0, -d[1]];
+            op.tube([AT(0, 0), AT(3.9, 0)], [0.08, 0.05], wood, { sky: sk, segs: 5, cap0: 'none', cap1: 'round' });
+            for (let j = 0; j < 6; j++) { const r0 = 0.7 + j * 0.53, r1 = r0 + 0.47; const q = [AT(r0, 0.08), AT(r1, 0.08), AT(r1, 0.95), AT(r0, 0.95)]; const cc = j % 2 ? canvas : [canvas[0] * 0.93, canvas[1] * 0.92, canvas[2] * 0.9]; const nrm = [-d[0], 0, -d[1]];
               op.quad(q, [cc, cc, cc, cc], [sk, sk, sk, sk], false, [nrm, nrm, nrm, nrm]); op.quad([q[3], q[2], q[1], q[0]], [cc, cc, cc, cc], [sk, sk, sk, sk], false, [[d[0], 0, d[1]], [d[0], 0, d[1]], [d[0], 0, d[1]], [d[0], 0, d[1]]]); }
-            op.tube([AT(0.55, 0.74), AT(2.7, 0.74)], [0.025, 0.025], wood, { sky: sk, segs: 4, cap0: 'none', cap1: 'none' }); }
-          continue;
+            op.tube([AT(0.65, 0.97), AT(3.9, 0.97)], [0.03, 0.03], wood, { sky: sk, segs: 4, cap0: 'none', cap1: 'none' }); }
+          op.curMat = 0; continue;
         }
         if (id === B.BARREL) { // a cooper's barrel: bulged staves, two iron hoops, sometimes a lid of apples or a little keg beside it
           const sk = skyAt(lx, y + 1, lz); const gy = gnd(lx, y, lz); const hv = U.hash3(wx, y, wz, 190), hj = U.hash3(wx, y, wz, 191); const cx = lx + 0.5 + (hj - 0.5) * 0.12, cz = lz + 0.5 + (U.hash3(wx, y, wz, 192) - 0.5) * 0.12;

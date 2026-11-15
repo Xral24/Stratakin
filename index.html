@@ -774,7 +774,7 @@ const B = {
   TORCH: 18, FUSION: 19, GRAVEL: 20, CACTUS: 21, STARMETAL: 22, MOSS: 23, STATUE: 24, PLANKS: 25, BERRY: 26, GLASS: 27, CAMPFIRE: 28, IRONWALL: 29, VOIDWALL: 30, GLOWWORM: 31, BERRYLEAF: 32, DOOR: 33, DOOR_OPEN: 34, PORTAL: 35,
   CHEST: 36, SELENITE: 37, TYCHO: 38, STARSALT: 39, MOONGLOW: 40, AMBER: 41, SULFUR: 42, RINGSHARD: 43, BRINE: 44, CORAL_R: 45, CORAL_B: 46, CORAL_Y: 47, PEARLCORAL: 48, GOLD: 49, DIAMOND: 50, FERN: 51, SELGLASS: 52, INCUBATOR: 53, REGOLITH: 54, DUNE: 55, SALTCRUST: 56, LADDER: 57, TARGET: 58, BALLOON: 59, FORTSTONE: 60, THORN: 61, DEADGATE: 62, RUBBLE: 63, DARKTABLE: 64,
   NEEDLES: 65, FROND: 66, BIRCHLOG: 67, BOULDER: 68, MUSHROOM: 69, FLOWERS: 70, PEBBLES: 71, PALMLOG: 72,
-  TILES: 73, SLATE: 74, THATCH: 75, PLASTER: 76, BEAM: 77, LAMP: 78, COBBLE: 79, FLOWERBOX: 80, PALISADE: 81, MASONRY: 82, FOUNTAIN: 83, BASIN: 84, AWNING: 85, BANNER: 86, SLIT: 87, TIPI: 88, HIDE: 89, LODGE: 90, FENCE: 91, FIREPIT: 92, TOTEM: 93, RAIL: 94, CART: 95, ROPEBRIDGE: 96, WEAVE: 97, SAIL: 98, EMBERLIGHT: 99, BARREL: 100, CRATE: 101, BUNTING: 102, SIGNPOST: 103, PLANTER: 104, BRICK: 105, SAILS: 106
+  TILES: 73, SLATE: 74, THATCH: 75, PLASTER: 76, BEAM: 77, LAMP: 78, COBBLE: 79, FLOWERBOX: 80, PALISADE: 81, MASONRY: 82, FOUNTAIN: 83, BASIN: 84, AWNING: 85, BANNER: 86, SLIT: 87, TIPI: 88, HIDE: 89, LODGE: 90, FENCE: 91, FIREPIT: 92, TOTEM: 93, RAIL: 94, CART: 95, ROPEBRIDGE: 96, WEAVE: 97, SAIL: 98, EMBERLIGHT: 99, BARREL: 100, CRATE: 101, BUNTING: 102, SIGNPOST: 103, PLANTER: 104, BRICK: 105, SAILS: 106, FALLS: 107
 };
 
 // name, top colour, side colour, solid, hardness (seconds to mine), drop item id, emissive, fluid
@@ -861,6 +861,7 @@ defBlock(B.PALMLOG, 'Palm Trunk', '#a08858', '#8a6e46', { hard: 0.6, drop: 'wood
 defBlock(B.TILES, 'Roof Tiles', '#c9623a', '#b25434', { hard: 0.5, drop: 'planks', transparent: true });
 defBlock(B.SLATE, 'Slate Roof', '#55606e', '#4a5462', { hard: 0.5, drop: 'planks', transparent: true });
 defBlock(B.THATCH, 'Thatch', '#d6b05a', '#b8964a', { hard: 0.3, drop: 'frond', transparent: true });
+defBlock(B.FALLS, 'Waterfall', '#b8dcf8', '#ffffff', { solid: false, hard: 99, drop: null, partial: true, transparent: true });
 defBlock(B.SAILS, 'Windmill Sails', '#efe6cf', '#7a5632', { solid: false, hard: 0.4, drop: 'planks', partial: true, transparent: true });
 defBlock(B.BRICK, 'Brick', '#b9583c', '#b25238', { hard: 1.0, drop: 'stone' });
 defBlock(B.PLASTER, 'Plaster', '#f3e3bd', '#eedbb0', { hard: 0.6, drop: 'planks' });
@@ -899,7 +900,7 @@ defBlock(B.PEBBLES, 'Pebbles', '#8e9197', '#86898f', { solid: false, hard: 0.2, 
 // blocks that light their surroundings, and how far
 const LIGHT_R = { [B.TORCH]: 10, [B.CAMPFIRE]: 14, [B.FIREPIT]: 13, [B.MOONGLOW]: 12, [B.RINGSHARD]: 10, [B.PEARLCORAL]: 8, [B.INCUBATOR]: 9, [B.LAMP]: 12 };
 // blocks the sky light passes through when working out how deep a column is
-const SKY_CLEAR = { [B.LAMP]: 1, [B.FLOWERBOX]: 1, [B.RAIL]: 1, [B.BANNER]: 1, [B.BASIN]: 1, [B.FOUNTAIN]: 1, [B.TIPI]: 1, [B.LODGE]: 1, [B.HIDE]: 1, [B.FENCE]: 1, [B.FIREPIT]: 1, [B.TOTEM]: 1, [B.FROND]: 1, [B.MUSHROOM]: 1, [B.FLOWERS]: 1, [B.PEBBLES]: 1, [B.LADDER]: 1, [B.TORCH]: 1, [B.GLASS]: 1, [B.SELGLASS]: 1, [B.CAMPFIRE]: 1, [B.MOONGLOW]: 1, [B.GLOWWORM]: 1, [B.FERN]: 1, [B.PORTAL]: 1, [B.BERRY]: 1, [B.RINGSHARD]: 1 };
+const SKY_CLEAR = { [B.FALLS]: 1, [B.BUNTING]: 1, [B.SIGNPOST]: 1, [B.SAILS]: 1, [B.LAMP]: 1, [B.FLOWERBOX]: 1, [B.RAIL]: 1, [B.BANNER]: 1, [B.BASIN]: 1, [B.FOUNTAIN]: 1, [B.TIPI]: 1, [B.LODGE]: 1, [B.HIDE]: 1, [B.FENCE]: 1, [B.FIREPIT]: 1, [B.TOTEM]: 1, [B.FROND]: 1, [B.MUSHROOM]: 1, [B.FLOWERS]: 1, [B.PEBBLES]: 1, [B.LADDER]: 1, [B.TORCH]: 1, [B.GLASS]: 1, [B.SELGLASS]: 1, [B.CAMPFIRE]: 1, [B.MOONGLOW]: 1, [B.GLOWWORM]: 1, [B.FERN]: 1, [B.PORTAL]: 1, [B.BERRY]: 1, [B.RINGSHARD]: 1 };
 const isSolid = (id) => BLOCKS[id].solid;
 const isLeaf = (id) => id === B.LEAVES || id === B.BERRYLEAF || id === B.NEEDLES;
 const isTrunk = (id) => id === B.LOG || id === B.BIRCHLOG || id === B.PALMLOG;
@@ -1000,7 +1001,7 @@ class World {
     let h = 40 + (cont - 0.5) * 48 + (hills - 0.5) * 16;
     let mountain = 0;
     if (cont > 0.64) { mountain = (cont - 0.64) * 160; h += mountain; }
-    let crag = 0, cragRim = false;
+    let crag = 0, cragRim = false, fall = false, pool = false, river = false;
     if (this.preset.id === 'earth') { /* Earth's land has shape: mountains break into ridges, uplands step down in shelves, the desert stands up in buttes, and parts of the coast are cliff */
       if (mountain > 0) { const rg = 1 - Math.abs(U.fbm2(x, z, 90, 3, s + 43, P) - 0.5) * 2; h += (rg - 0.55) * Math.min(1, mountain / 10) * 16; }
       const tm = U.vnoise2(x, z, 140, P, s + 45);
@@ -1012,8 +1013,14 @@ class World {
         for (let a = -1; a <= 1 && !crag; a++) for (let b = -1; b <= 1; b++) { const ci = cxi + a, cj = czi + b; const k0 = U.hash3(ci, 31, cj, s + 961); if (k0 > 0.42) continue;
           const px = (ci + 0.2 + 0.6 * U.hash3(ci, 32, cj, s + 962)) * CW, pz = (cj + 0.2 + 0.6 * U.hash3(ci, 33, cj, s + 963)) * CW; const dd = Math.hypot(xm - px, zm - pz); if (dd > 12) continue;
           const k1 = U.hash3(ci, 34, cj, s + 964); const rr = (2.6 + k1 * 3.4) * (0.78 + 0.5 * U.vnoise2(x, z, 5, P, s + 965)); const hh = 3 + Math.floor(U.hash3(ci, 35, cj, s + 966) * 4);
-          if (dd < rr) { crag = hh; cragRim = dd > rr - 1.4; } else if (k1 < 0.6 && dd < rr * 1.7 + 1) { crag = Math.max(1, hh >> 1); cragRim = true; } if (crag) break; }
-        h += crag; }
+          if (dd < rr) { crag = hh; cragRim = dd > rr - 1.4; } else if (k1 < 0.6 && dd < rr * 1.7 + 1) { crag = Math.max(1, hh >> 1); cragRim = true; }
+          if (hh >= 4 && dd >= rr && dd < rr + 4.2 && U.hash3(ci, 37, cj, s + 968) < 0.7) { /* a spring on the bigger crags: it drops off the edge on one side into a little pool */
+            let da = Math.atan2(zm - pz, xm - px) - U.hash3(ci, 38, cj, s + 969) * 6.2832; da = Math.abs(Math.atan2(Math.sin(da), Math.cos(da)));
+            if (dd < rr + 1.2) { if (da < 0.7 / dd) fall = true; } else if (da < 1.9 / dd) pool = true; }
+          if (crag || fall || pool) break; }
+        h += crag; if (pool) h -= 1; }
+      if (!crag && !pool && !fall && mountain <= 0 && h > SEA - 1 && h < SEA + 9) { /* rivers: slow water winding through the lowlands at sea level, fading out where the land climbs */
+        const rw = Math.abs(U.fbm2(x, z, 260, 2, s + 971, P) - 0.5); if (rw < 0.022) { const k = 1 - rw / 0.022, kk = k * k * (3 - 2 * k) * Math.min(1, (SEA + 9 - h) / 3); h += (SEA - 2 - h) * kk; if (kk > 0.05) river = true; } }
     }
     if (this.preset.craters) {
       // bowls punched into the highlands
@@ -1059,12 +1066,12 @@ class World {
     }
     // beaches: a wider band of sand along the shore, with low dunes rolling over it
     let beach = false;
-    if (this.preset.water && h >= SEA - 2 && h <= SEA + 3 && (biome === BIOME.PLAINS || biome === BIOME.FOREST || biome === BIOME.DESERT || biome === BIOME.OCEAN)) {
+    if (!river && this.preset.water && h >= SEA - 2 && h <= SEA + 3 && (biome === BIOME.PLAINS || biome === BIOME.FOREST || biome === BIOME.DESERT || biome === BIOME.OCEAN)) {
       beach = true;
       if (h >= SEA + 1) { const dn = U.vnoise2(x, z, 9, P, s + 81) * 0.7 + U.vnoise2(x, z, 4, P, s + 83) * 0.3; if (dn > 0.6) h += 1; }
     }
     const sky = U.fbm2(x + 777, z - 777, 128, 2, s + 59, P);
-    return { h, biome, temp, moist, sky, beach, crag, cragRim };
+    return { h, biome, temp, moist, sky, beach, crag, cragRim, fall, pool, river };
   }
   grassTint(biome, temp, moist) {
     switch (biome) {
@@ -1284,6 +1291,8 @@ class World {
         gal(x + 1, z, 28); gal(z - 47, x, 21);
       }
       if (this.preset.water && h < SEA) for (let y = h + 1; y <= SEA; y++) blocks[base + y] = B.WATER;
+      if (info.pool && h + 1 < WH && h >= SEA) blocks[base + h + 1] = B.WATER;
+      if (info.fall && h >= SEA) { let top = h; for (const [a, b] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const n = infos[(lx + 2 + a) * 20 + (lz + 2 + b)]; if (n.crag > 3 && n.h > top) top = n.h; } if (top - h >= 3) { for (let y = h + 1; y <= Math.min(top, WH - 2); y++) blocks[base + y] = B.FALLS; blocks[base + h] = B.GRAVEL; } }
       if (this.preset.brine && h < this.preset.brineLevel) for (let y = h + 1; y <= this.preset.brineLevel; y++) blocks[base + y] = B.BRINE;
       if (this.preset.ringfall && h >= this.preset.brineLevel && h < WH - 2 && biome !== BIOME.MESA && U.hash3(x, 13, z, s + 931) < 0.0012) blocks[base + h + 1] = B.RINGSHARD;
       // sky islands
@@ -1904,6 +1913,9 @@ const R = (() => {
           float own = hash3(vec3(cc, row, 4.0));
           float darkSt = 1.0 - smoothstep(0.2, 0.36, lum); /* dark stone is pointed with pale mortar, or its courses vanish and a fortress is one black lump */
           col *= mix(mix(0.6, 1.0, mortar), mix(1.7, 1.0, mortar), darkSt) * (0.86 + 0.28 * own) * (0.96 + 0.08 * vn(uv * 9.0)) * (0.95 + 0.1 * vn(uv * 0.6 + 2.0));
+        } else if (mat == 18) { // falling water: white streaks running down a pale sheet
+          float ax = vWorld.x * 3.1 + vWorld.z * 2.7; float st = vn(vec2(ax, vWorld.y * 0.7 + uTime * 2.6)) * 0.6 + vn(vec2(ax * 2.3, vWorld.y * 1.6 + uTime * 4.1)) * 0.4;
+          col = mix(vec3(0.5, 0.74, 0.95), vec3(1.0), smoothstep(0.42, 0.74, st)) * (0.72 + 0.4 * lum);
         } else if (mat == 17) { // brick: four courses to the block, each brick half a block long, pale mortar, every brick fired a little differently
           bool flatTop = abs(n.y) > 0.5; float cy = (flatTop ? vWorld.z : vWorld.y) * 4.0; float row = floor(cy); float ry = fract(cy);
           float cx = (flatTop ? vWorld.x : (abs(n.x) > 0.5 ? vWorld.z : vWorld.x)) * 2.0 + mod(row, 2.0) * 0.5; float cc = floor(cx); float rx = fract(cx);
@@ -2571,16 +2583,26 @@ const R = (() => {
           const b0 = wa.nv; wa.vert(cx, y + 1.98, cz, 0, 1, 0, 0, 0, 0, sk, false); for (let i = 0; i < 12; i++) { const a = i / 12 * 6.2832; wa.vert(cx + Math.cos(a) * 0.72, y + 1.98, cz + Math.sin(a) * 0.72, 0, 1, 0, 0, 0, 0, sk, false); } for (let i = 0; i < 12; i++) wa.tri(b0, b0 + 1 + i, b0 + 1 + (i + 1) % 12);
           continue;
         }
+        if (id === B.FALLS) { // falling water: a pale sheet down the rock behind it, a lip where it comes over the top, white water where it lands
+          const sk = skyAt(lx, y, lz); let d = null; for (const [a, b] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) if (isOpaque(get(lx + a, y, lz + b))) { d = [a, b]; break; } if (!d) { for (const [a, b] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) if (get(lx + a, y, lz + b) === B.FALLS) { d = [a, b]; break; } } if (!d) d = [0, -1];
+          const wc = [0.72, 0.87, 0.98]; const t = 0.2; op.curMat = 18;
+          const x0 = d[0] > 0 ? lx + 1 - t : d[0] < 0 ? lx : lx + 0.1, x1 = d[0] > 0 ? lx + 1 : d[0] < 0 ? lx + t : lx + 0.9, z0 = d[1] > 0 ? lz + 1 - t : d[1] < 0 ? lz : lz + 0.1, z1 = d[1] > 0 ? lz + 1 : d[1] < 0 ? lz + t : lz + 0.9;
+          op.box(x0, y, z0, x1, y + 1, z1, wc, sk, false);
+          if (get(lx, y + 1, lz) !== B.FALLS) op.box(Math.min(x0, x0 + d[0] * 1.2), y + 1, Math.min(z0, z0 + d[1] * 1.2), Math.max(x1, x1 + d[0] * 1.2), y + 1.07, Math.max(z1, z1 + d[1] * 1.2), wc, sk, false);
+          if (get(lx, y - 1, lz) !== B.FALLS) for (let k = 0; k < 6; k++) { const fx = lx + 0.5 + d[0] * 0.25 + (U.hash3(wx, k, wz, 213) - 0.5) * 0.9, fz = lz + 0.5 + d[1] * 0.25 + (U.hash3(wx, k, wz, 214) - 0.5) * 0.9, r = 0.16 + U.hash3(wx, k, wz, 215) * 0.14; op.blob(fx - r, y - 0.05, fz - r, fx + r, y + r * 1.4, fz + r, 0.9, [1, 1, 1], { sky: sk, n: 1 }); }
+          op.curMat = 0; continue;
+        }
         if (id === B.SAILS) { // a windmill's sails: a hub on the wall behind, four spars, a lattice of canvas along each
           const sk = skyAt(lx, y + 1, lz); let d = [0, -1]; for (const [a, b] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) if (isOpaque(get(lx + a, y, lz + b))) { d = [a, b]; break; }
           const cx = lx + 0.5 + d[0] * 0.15, cy = y + 0.5, cz = lz + 0.5 + d[1] * 0.15; const px = d[0] ? 0 : 1, pz = d[0] ? 1 : 0; const rot = 0.35 + U.hash3(wx, y, wz, 212) * 0.9; const wood = [0.46, 0.32, 0.18], canvas = [0.95, 0.91, 0.8];
           op.tube([[cx + d[0] * 0.4, cy, cz + d[1] * 0.4], [cx - d[0] * 0.25, cy, cz - d[1] * 0.25]], [0.16, 0.12], wood, { sky: sk, segs: 7, cap0: 'flat', cap1: 'round' });
+          op.curMat = 6;
           for (let k = 0; k < 4; k++) { const an = rot + k * Math.PI / 2, c = Math.cos(an), sn = Math.sin(an); const AT = (r, o) => [cx + px * (c * r - sn * o), cy + sn * r + c * o, cz + pz * (c * r - sn * o)];
-            op.tube([AT(0, 0), AT(2.7, 0)], [0.06, 0.04], wood, { sky: sk, segs: 5, cap0: 'none', cap1: 'round' });
-            for (let j = 0; j < 4; j++) { const r0 = 0.6 + j * 0.52, r1 = r0 + 0.46; const q = [AT(r0, 0.07), AT(r1, 0.07), AT(r1, 0.72), AT(r0, 0.72)]; const cc = j % 2 ? canvas : [canvas[0] * 0.93, canvas[1] * 0.92, canvas[2] * 0.9]; const nrm = [-d[0], 0, -d[1]];
+            op.tube([AT(0, 0), AT(3.9, 0)], [0.08, 0.05], wood, { sky: sk, segs: 5, cap0: 'none', cap1: 'round' });
+            for (let j = 0; j < 6; j++) { const r0 = 0.7 + j * 0.53, r1 = r0 + 0.47; const q = [AT(r0, 0.08), AT(r1, 0.08), AT(r1, 0.95), AT(r0, 0.95)]; const cc = j % 2 ? canvas : [canvas[0] * 0.93, canvas[1] * 0.92, canvas[2] * 0.9]; const nrm = [-d[0], 0, -d[1]];
               op.quad(q, [cc, cc, cc, cc], [sk, sk, sk, sk], false, [nrm, nrm, nrm, nrm]); op.quad([q[3], q[2], q[1], q[0]], [cc, cc, cc, cc], [sk, sk, sk, sk], false, [[d[0], 0, d[1]], [d[0], 0, d[1]], [d[0], 0, d[1]], [d[0], 0, d[1]]]); }
-            op.tube([AT(0.55, 0.74), AT(2.7, 0.74)], [0.025, 0.025], wood, { sky: sk, segs: 4, cap0: 'none', cap1: 'none' }); }
-          continue;
+            op.tube([AT(0.65, 0.97), AT(3.9, 0.97)], [0.03, 0.03], wood, { sky: sk, segs: 4, cap0: 'none', cap1: 'none' }); }
+          op.curMat = 0; continue;
         }
         if (id === B.BARREL) { // a cooper's barrel: bulged staves, two iron hoops, sometimes a lid of apples or a little keg beside it
           const sk = skyAt(lx, y + 1, lz); const gy = gnd(lx, y, lz); const hv = U.hash3(wx, y, wz, 190), hj = U.hash3(wx, y, wz, 191); const cx = lx + 0.5 + (hj - 0.5) * 0.12, cz = lz + 0.5 + (U.hash3(wx, y, wz, 192) - 0.5) * 0.12;
@@ -10048,6 +10070,7 @@ const Village = (() => {
     if (towns.has(v.id)) return towns.get(v.id);
     const R = v.R, vx = v.x, vz = v.z, vy = v.y; const M = MATS[v.style] || MATS.land; MAT = M;
     const buckets = new Map(); const push = (x, y, z, id) => { if (y < 1 || y >= WH) return; const cx = U.mod(Math.floor(x / CH), NCH), cz = U.mod(Math.floor(z / CH), NCH); const k = cx + ',' + cz; let b = buckets.get(k); if (!b) { b = []; buckets.set(k, b); } b.push(U.mod(x, CH), y, U.mod(z, CH), id); };
+    const mill = v.size !== 'city' && M.houses && R >= 34; // towns keep a corner of open meadow for a windmill on a knoll
     const city = v.size === 'city'; ROOF_OVR = city || v.size === 'town' ? 'tiles' : 'thatch';
     const streets = [0].concat(city ? [-40, -20, 20, 40] : v.size === 'town' ? [-24, 24] : []);
     const onStreet = (dx, dz) => { if (Math.max(Math.abs(dx), Math.abs(dz)) >= R - 4 && Math.max(Math.abs(dx), Math.abs(dz)) <= R - 2) return true; for (const s0 of streets) { if (Math.abs(dx - s0) <= 1 && Math.abs(dz) <= R) return true; if (Math.abs(dz - s0) <= 1 && Math.abs(dx) <= R) return true; } return false; };
@@ -10134,13 +10157,21 @@ const Village = (() => {
       { const tx = vx + 9, tz = vz - 9; for (let y = vy; y <= vy + 6; y++) push(tx, y, tz, B.LOG); for (const [a, b] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { push(tx + a, vy, tz + b, B.LOG); push(tx + a * 2, vy + 5, tz + b * 2, B.LOG); push(tx + a, vy + 5, tz + b, B.LOG); }
         for (let a = -5; a <= 5; a++) for (let b = -5; b <= 5; b++) for (let c = -2; c <= 3; c++) { const dd = (a * a + b * b) / 22 + (c * c) / (c < 0 ? 5 : 9.5); if (dd <= 1 && (dd > 0.25 || c > 0) && !(a === 0 && b === 0 && c <= 0)) push(tx + a, vy + 7 + c, tz + b, B.LEAVES); }
         for (const [a, b] of [[2, 1], [-2, 1], [1, -2], [-1, 2], [2, -1], [-2, -2]]) push(tx + a, vy, tz + b, B.FLOWERS); }
-      { const mx = vx - 9, mz = vz - 9; for (let a = -1; a <= 1; a++) for (let b = -1; b <= 1; b++) { for (let y = vy; y <= vy + 6; y++) push(mx + a, y, mz + b, y === vy ? B.MASONRY : (Math.abs(a) === 1 && Math.abs(b) === 1) ? B.BEAM : B.PLASTER); }
-        push(mx, vy, mz + 1, B.BEAM); push(mx, vy + 1, mz + 1, B.BEAM); push(mx, vy + 3, mz + 1, B.GLASS); push(mx + 1, vy + 4, mz, B.GLASS);
-        for (let a = -2; a <= 2; a++) for (let b = -2; b <= 2; b++) { const m = Math.max(Math.abs(a), Math.abs(b)); push(mx + a, vy + 9 - m, mz + b, B.TILES); }
-        push(mx, vy + 5, mz + 2, B.SAILS); push(mx + 2, vy, mz + 1, B.BARREL); push(mx - 2, vy, mz + 1, B.CRATE); }
+      { const ox = vx - 9, oz = vz - 9; for (const [a, b] of [[-1, -1], [1, 1]]) { push(ox + a, vy, oz + b, B.LOG); push(ox + a, vy + 1, oz + b, B.LOG); for (let p = -1; p <= 1; p++) for (let q = -1; q <= 1; q++) for (let c = 2; c <= 3; c++) if (c === 2 || (!p || !q)) push(ox + a + p, vy + c, oz + b + q, B.LEAVES); } push(ox + 1, vy, oz - 1, B.PLANTER); push(ox - 1, vy, oz + 1, B.CRATE); } // two apple trees
       { const gx = vx + 9, gz = vz + 9; for (let a = -2; a <= 2; a++) for (let b = -2; b <= 2; b++) { const edge = Math.abs(a) === 2 || Math.abs(b) === 2; if (edge) { if (!(a === 0 && b === -2)) push(gx + a, vy, gz + b, B.FENCE); } else { push(gx + a, vy - 1, gz + b, B.DIRT); push(gx + a, vy, gz + b, (a + b) % 2 ? B.BERRY : B.FERN); } } }
       { const wx0 = vx - 9, wz0 = vz + 9; for (const [a, b, h] of [[0, 0, 2], [1, 0, 1], [0, 1, 1], [-1, 0, 1]]) for (let y = 0; y < h; y++) push(wx0 + a, vy + y, wz0 + b, B.LOG); push(wx0 + 2, vy, wz0 - 1, B.BARREL); push(wx0 - 1, vy, wz0 - 2, B.CRATE); push(wx0 + 1, vy, wz0 + 2, B.PLANTER); }
       for (let dx = -11; dx <= 11; dx++) for (let dz = -11; dz <= 11; dz++) { const m = Math.max(Math.abs(dx), Math.abs(dz)); if (m < 8 || onStreet(dx, dz) || (Math.abs(dx) >= 7 && Math.abs(dz) >= 7)) continue; if (Math.abs(dx) > 10 || Math.abs(dz) > 10) continue; const h = U.hash3(vx + dx, 21, vz + dz, 0x51); if (h < 0.2) push(vx + dx, vy, vz + dz, h < 0.12 ? B.FLOWERS : B.FERN); }
+    }
+    if (mill) { // the windmill stands by itself on a grassy knoll in the north-west meadow, clear of every roof, sails to the town
+      const mx = vx - 20, mz = vz - 20;
+      for (let a = -7; a <= 7; a++) for (let b = -7; b <= 7; b++) { const r = Math.hypot(a, b); const up = r < 4.2 ? 2 : r < 6.2 ? 1 : 0; for (let k = 1; k <= up; k++) push(mx + a, vy - 1 + k, mz + b, k === up ? M.ground : B.DIRT); if (!up && r < 7.5 && U.hash3(mx + a, 22, mz + b, 0x52) < 0.3) push(mx + a, vy, mz + b, B.FLOWERS); else if (up === 1 && U.hash3(mx + a, 23, mz + b, 0x53) < 0.2) push(mx + a, vy + 1, mz + b, B.FLOWERS); }
+      const y0 = vy + 2;
+      for (let a = -2; a <= 2; a++) for (let b = -2; b <= 2; b++) { const q = a * a + b * b; if (q > 5) continue; for (let y = 0; y < 8; y++) { if (y >= 5 && q > 4) continue; push(mx + a, y0 + y, mz + b, y < 2 ? B.MASONRY : B.PLASTER); } }
+      for (let a = -3; a <= 3; a++) for (let b = -3; b <= 3; b++) { const q = a * a + b * b; const lv = q <= 1 ? 3 : q <= 4 ? 2 : q <= 8 ? 1 : q <= 10 ? 0 : -1; if (lv >= 0) push(mx + a, y0 + 8 + lv, mz + b, B.TILES); }
+      push(mx + 2, y0, mz, B.BEAM); push(mx + 2, y0 + 1, mz, B.BEAM); push(mx + 2, y0 + 3, mz, B.GLASS); push(mx - 2, y0 + 3, mz, B.GLASS); push(mx, y0 + 4, mz - 2, B.GLASS);
+      push(mx, y0 + 5, mz + 3, B.SAILS);
+      push(mx + 3, vy + 2, mz + 1, B.BARREL); push(mx + 3, vy + 2, mz - 1, B.CRATE); push(mx + 4, vy + 1, mz + 2, B.PLANTER);
+      for (let k = 4; k <= 8; k++) push(mx + k, vy - 1, mz, B.GRAVEL); // a worn path up to the door
     }
     if (M.houses) { // the square is dressed for a fair: bunting round its four sides, pots at the inner corners, and in a town two stalls with their wares
       for (let d = -5; d <= 5; d++) { push(vx + d, vy + 2, vz - 6, B.BUNTING); push(vx + d, vy + 2, vz + 6, B.BUNTING); push(vx - 6, vy + 2, vz + d, B.BUNTING); push(vx + 6, vy + 2, vz + d, B.BUNTING); }
@@ -10158,6 +10189,7 @@ const Village = (() => {
     for (const gx of AX) for (const gz of AX) {
       if (Math.abs(gx) < 12 && Math.abs(gz) < 12) continue;
       if (castle && Math.abs(gx) <= 21 && gz <= -R + 32) continue;
+      if (mill && gx <= -15 && gz <= -15) continue; // the mill's meadow
       let ok = true; for (let a = -4; a <= 4 && ok; a++) for (let b = -4; b <= 4 && ok; b++) if (onStreet(gx + a, gz + b)) ok = false; if (!ok) continue;
       if (lots.some(l => Math.abs(l.x - vx - gx) < 9 && Math.abs(l.z - vz - gz) < 9)) continue;
       let best = null; for (const s0 of streets) { const dX = Math.abs(gx - s0), dZ = Math.abs(gz - s0); if (!best || dX < best.d) best = { d: dX, dir: [Math.sign(s0 - gx) || 1, 0] }; if (dZ < best.d) best = { d: dZ, dir: [0, Math.sign(s0 - gz) || 1] }; }

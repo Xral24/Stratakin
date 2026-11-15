@@ -257,6 +257,7 @@ const Village = (() => {
     if (towns.has(v.id)) return towns.get(v.id);
     const R = v.R, vx = v.x, vz = v.z, vy = v.y; const M = MATS[v.style] || MATS.land; MAT = M;
     const buckets = new Map(); const push = (x, y, z, id) => { if (y < 1 || y >= WH) return; const cx = U.mod(Math.floor(x / CH), NCH), cz = U.mod(Math.floor(z / CH), NCH); const k = cx + ',' + cz; let b = buckets.get(k); if (!b) { b = []; buckets.set(k, b); } b.push(U.mod(x, CH), y, U.mod(z, CH), id); };
+    const mill = v.size !== 'city' && M.houses && R >= 34; // towns keep a corner of open meadow for a windmill on a knoll
     const city = v.size === 'city'; ROOF_OVR = city || v.size === 'town' ? 'tiles' : 'thatch';
     const streets = [0].concat(city ? [-40, -20, 20, 40] : v.size === 'town' ? [-24, 24] : []);
     const onStreet = (dx, dz) => { if (Math.max(Math.abs(dx), Math.abs(dz)) >= R - 4 && Math.max(Math.abs(dx), Math.abs(dz)) <= R - 2) return true; for (const s0 of streets) { if (Math.abs(dx - s0) <= 1 && Math.abs(dz) <= R) return true; if (Math.abs(dz - s0) <= 1 && Math.abs(dx) <= R) return true; } return false; };
@@ -343,13 +344,21 @@ const Village = (() => {
       { const tx = vx + 9, tz = vz - 9; for (let y = vy; y <= vy + 6; y++) push(tx, y, tz, B.LOG); for (const [a, b] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { push(tx + a, vy, tz + b, B.LOG); push(tx + a * 2, vy + 5, tz + b * 2, B.LOG); push(tx + a, vy + 5, tz + b, B.LOG); }
         for (let a = -5; a <= 5; a++) for (let b = -5; b <= 5; b++) for (let c = -2; c <= 3; c++) { const dd = (a * a + b * b) / 22 + (c * c) / (c < 0 ? 5 : 9.5); if (dd <= 1 && (dd > 0.25 || c > 0) && !(a === 0 && b === 0 && c <= 0)) push(tx + a, vy + 7 + c, tz + b, B.LEAVES); }
         for (const [a, b] of [[2, 1], [-2, 1], [1, -2], [-1, 2], [2, -1], [-2, -2]]) push(tx + a, vy, tz + b, B.FLOWERS); }
-      { const mx = vx - 9, mz = vz - 9; for (let a = -1; a <= 1; a++) for (let b = -1; b <= 1; b++) { for (let y = vy; y <= vy + 6; y++) push(mx + a, y, mz + b, y === vy ? B.MASONRY : (Math.abs(a) === 1 && Math.abs(b) === 1) ? B.BEAM : B.PLASTER); }
-        push(mx, vy, mz + 1, B.BEAM); push(mx, vy + 1, mz + 1, B.BEAM); push(mx, vy + 3, mz + 1, B.GLASS); push(mx + 1, vy + 4, mz, B.GLASS);
-        for (let a = -2; a <= 2; a++) for (let b = -2; b <= 2; b++) { const m = Math.max(Math.abs(a), Math.abs(b)); push(mx + a, vy + 9 - m, mz + b, B.TILES); }
-        push(mx, vy + 5, mz + 2, B.SAILS); push(mx + 2, vy, mz + 1, B.BARREL); push(mx - 2, vy, mz + 1, B.CRATE); }
+      { const ox = vx - 9, oz = vz - 9; for (const [a, b] of [[-1, -1], [1, 1]]) { push(ox + a, vy, oz + b, B.LOG); push(ox + a, vy + 1, oz + b, B.LOG); for (let p = -1; p <= 1; p++) for (let q = -1; q <= 1; q++) for (let c = 2; c <= 3; c++) if (c === 2 || (!p || !q)) push(ox + a + p, vy + c, oz + b + q, B.LEAVES); } push(ox + 1, vy, oz - 1, B.PLANTER); push(ox - 1, vy, oz + 1, B.CRATE); } // two apple trees
       { const gx = vx + 9, gz = vz + 9; for (let a = -2; a <= 2; a++) for (let b = -2; b <= 2; b++) { const edge = Math.abs(a) === 2 || Math.abs(b) === 2; if (edge) { if (!(a === 0 && b === -2)) push(gx + a, vy, gz + b, B.FENCE); } else { push(gx + a, vy - 1, gz + b, B.DIRT); push(gx + a, vy, gz + b, (a + b) % 2 ? B.BERRY : B.FERN); } } }
       { const wx0 = vx - 9, wz0 = vz + 9; for (const [a, b, h] of [[0, 0, 2], [1, 0, 1], [0, 1, 1], [-1, 0, 1]]) for (let y = 0; y < h; y++) push(wx0 + a, vy + y, wz0 + b, B.LOG); push(wx0 + 2, vy, wz0 - 1, B.BARREL); push(wx0 - 1, vy, wz0 - 2, B.CRATE); push(wx0 + 1, vy, wz0 + 2, B.PLANTER); }
       for (let dx = -11; dx <= 11; dx++) for (let dz = -11; dz <= 11; dz++) { const m = Math.max(Math.abs(dx), Math.abs(dz)); if (m < 8 || onStreet(dx, dz) || (Math.abs(dx) >= 7 && Math.abs(dz) >= 7)) continue; if (Math.abs(dx) > 10 || Math.abs(dz) > 10) continue; const h = U.hash3(vx + dx, 21, vz + dz, 0x51); if (h < 0.2) push(vx + dx, vy, vz + dz, h < 0.12 ? B.FLOWERS : B.FERN); }
+    }
+    if (mill) { // the windmill stands by itself on a grassy knoll in the north-west meadow, clear of every roof, sails to the town
+      const mx = vx - 20, mz = vz - 20;
+      for (let a = -7; a <= 7; a++) for (let b = -7; b <= 7; b++) { const r = Math.hypot(a, b); const up = r < 4.2 ? 2 : r < 6.2 ? 1 : 0; for (let k = 1; k <= up; k++) push(mx + a, vy - 1 + k, mz + b, k === up ? M.ground : B.DIRT); if (!up && r < 7.5 && U.hash3(mx + a, 22, mz + b, 0x52) < 0.3) push(mx + a, vy, mz + b, B.FLOWERS); else if (up === 1 && U.hash3(mx + a, 23, mz + b, 0x53) < 0.2) push(mx + a, vy + 1, mz + b, B.FLOWERS); }
+      const y0 = vy + 2;
+      for (let a = -2; a <= 2; a++) for (let b = -2; b <= 2; b++) { const q = a * a + b * b; if (q > 5) continue; for (let y = 0; y < 8; y++) { if (y >= 5 && q > 4) continue; push(mx + a, y0 + y, mz + b, y < 2 ? B.MASONRY : B.PLASTER); } }
+      for (let a = -3; a <= 3; a++) for (let b = -3; b <= 3; b++) { const q = a * a + b * b; const lv = q <= 1 ? 3 : q <= 4 ? 2 : q <= 8 ? 1 : q <= 10 ? 0 : -1; if (lv >= 0) push(mx + a, y0 + 8 + lv, mz + b, B.TILES); }
+      push(mx + 2, y0, mz, B.BEAM); push(mx + 2, y0 + 1, mz, B.BEAM); push(mx + 2, y0 + 3, mz, B.GLASS); push(mx - 2, y0 + 3, mz, B.GLASS); push(mx, y0 + 4, mz - 2, B.GLASS);
+      push(mx, y0 + 5, mz + 3, B.SAILS);
+      push(mx + 3, vy + 2, mz + 1, B.BARREL); push(mx + 3, vy + 2, mz - 1, B.CRATE); push(mx + 4, vy + 1, mz + 2, B.PLANTER);
+      for (let k = 4; k <= 8; k++) push(mx + k, vy - 1, mz, B.GRAVEL); // a worn path up to the door
     }
     if (M.houses) { // the square is dressed for a fair: bunting round its four sides, pots at the inner corners, and in a town two stalls with their wares
       for (let d = -5; d <= 5; d++) { push(vx + d, vy + 2, vz - 6, B.BUNTING); push(vx + d, vy + 2, vz + 6, B.BUNTING); push(vx - 6, vy + 2, vz + d, B.BUNTING); push(vx + 6, vy + 2, vz + d, B.BUNTING); }
@@ -367,6 +376,7 @@ const Village = (() => {
     for (const gx of AX) for (const gz of AX) {
       if (Math.abs(gx) < 12 && Math.abs(gz) < 12) continue;
       if (castle && Math.abs(gx) <= 21 && gz <= -R + 32) continue;
+      if (mill && gx <= -15 && gz <= -15) continue; // the mill's meadow
       let ok = true; for (let a = -4; a <= 4 && ok; a++) for (let b = -4; b <= 4 && ok; b++) if (onStreet(gx + a, gz + b)) ok = false; if (!ok) continue;
       if (lots.some(l => Math.abs(l.x - vx - gx) < 9 && Math.abs(l.z - vz - gz) < 9)) continue;
       let best = null; for (const s0 of streets) { const dX = Math.abs(gx - s0), dZ = Math.abs(gz - s0); if (!best || dX < best.d) best = { d: dX, dir: [Math.sign(s0 - gx) || 1, 0] }; if (dZ < best.d) best = { d: dZ, dir: [0, Math.sign(s0 - gz) || 1] }; }

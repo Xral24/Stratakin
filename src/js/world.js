@@ -14,7 +14,7 @@ const B = {
   TORCH: 18, FUSION: 19, GRAVEL: 20, CACTUS: 21, STARMETAL: 22, MOSS: 23, STATUE: 24, PLANKS: 25, BERRY: 26, GLASS: 27, CAMPFIRE: 28, IRONWALL: 29, VOIDWALL: 30, GLOWWORM: 31, BERRYLEAF: 32, DOOR: 33, DOOR_OPEN: 34, PORTAL: 35,
   CHEST: 36, SELENITE: 37, TYCHO: 38, STARSALT: 39, MOONGLOW: 40, AMBER: 41, SULFUR: 42, RINGSHARD: 43, BRINE: 44, CORAL_R: 45, CORAL_B: 46, CORAL_Y: 47, PEARLCORAL: 48, GOLD: 49, DIAMOND: 50, FERN: 51, SELGLASS: 52, INCUBATOR: 53, REGOLITH: 54, DUNE: 55, SALTCRUST: 56, LADDER: 57, TARGET: 58, BALLOON: 59, FORTSTONE: 60, THORN: 61, DEADGATE: 62, RUBBLE: 63, DARKTABLE: 64,
   NEEDLES: 65, FROND: 66, BIRCHLOG: 67, BOULDER: 68, MUSHROOM: 69, FLOWERS: 70, PEBBLES: 71, PALMLOG: 72,
-  TILES: 73, SLATE: 74, THATCH: 75, PLASTER: 76, BEAM: 77, LAMP: 78, COBBLE: 79, FLOWERBOX: 80, PALISADE: 81, MASONRY: 82, FOUNTAIN: 83, BASIN: 84, AWNING: 85, BANNER: 86, SLIT: 87, TIPI: 88, HIDE: 89, LODGE: 90, FENCE: 91, FIREPIT: 92, TOTEM: 93, RAIL: 94, CART: 95, ROPEBRIDGE: 96, WEAVE: 97, SAIL: 98, EMBERLIGHT: 99, BARREL: 100, CRATE: 101, BUNTING: 102, SIGNPOST: 103, PLANTER: 104, BRICK: 105, SAILS: 106
+  TILES: 73, SLATE: 74, THATCH: 75, PLASTER: 76, BEAM: 77, LAMP: 78, COBBLE: 79, FLOWERBOX: 80, PALISADE: 81, MASONRY: 82, FOUNTAIN: 83, BASIN: 84, AWNING: 85, BANNER: 86, SLIT: 87, TIPI: 88, HIDE: 89, LODGE: 90, FENCE: 91, FIREPIT: 92, TOTEM: 93, RAIL: 94, CART: 95, ROPEBRIDGE: 96, WEAVE: 97, SAIL: 98, EMBERLIGHT: 99, BARREL: 100, CRATE: 101, BUNTING: 102, SIGNPOST: 103, PLANTER: 104, BRICK: 105, SAILS: 106, FALLS: 107
 };
 
 // name, top colour, side colour, solid, hardness (seconds to mine), drop item id, emissive, fluid
@@ -101,6 +101,7 @@ defBlock(B.PALMLOG, 'Palm Trunk', '#a08858', '#8a6e46', { hard: 0.6, drop: 'wood
 defBlock(B.TILES, 'Roof Tiles', '#c9623a', '#b25434', { hard: 0.5, drop: 'planks', transparent: true });
 defBlock(B.SLATE, 'Slate Roof', '#55606e', '#4a5462', { hard: 0.5, drop: 'planks', transparent: true });
 defBlock(B.THATCH, 'Thatch', '#d6b05a', '#b8964a', { hard: 0.3, drop: 'frond', transparent: true });
+defBlock(B.FALLS, 'Waterfall', '#b8dcf8', '#ffffff', { solid: false, hard: 99, drop: null, partial: true, transparent: true });
 defBlock(B.SAILS, 'Windmill Sails', '#efe6cf', '#7a5632', { solid: false, hard: 0.4, drop: 'planks', partial: true, transparent: true });
 defBlock(B.BRICK, 'Brick', '#b9583c', '#b25238', { hard: 1.0, drop: 'stone' });
 defBlock(B.PLASTER, 'Plaster', '#f3e3bd', '#eedbb0', { hard: 0.6, drop: 'planks' });
@@ -139,7 +140,7 @@ defBlock(B.PEBBLES, 'Pebbles', '#8e9197', '#86898f', { solid: false, hard: 0.2, 
 // blocks that light their surroundings, and how far
 const LIGHT_R = { [B.TORCH]: 10, [B.CAMPFIRE]: 14, [B.FIREPIT]: 13, [B.MOONGLOW]: 12, [B.RINGSHARD]: 10, [B.PEARLCORAL]: 8, [B.INCUBATOR]: 9, [B.LAMP]: 12 };
 // blocks the sky light passes through when working out how deep a column is
-const SKY_CLEAR = { [B.LAMP]: 1, [B.FLOWERBOX]: 1, [B.RAIL]: 1, [B.BANNER]: 1, [B.BASIN]: 1, [B.FOUNTAIN]: 1, [B.TIPI]: 1, [B.LODGE]: 1, [B.HIDE]: 1, [B.FENCE]: 1, [B.FIREPIT]: 1, [B.TOTEM]: 1, [B.FROND]: 1, [B.MUSHROOM]: 1, [B.FLOWERS]: 1, [B.PEBBLES]: 1, [B.LADDER]: 1, [B.TORCH]: 1, [B.GLASS]: 1, [B.SELGLASS]: 1, [B.CAMPFIRE]: 1, [B.MOONGLOW]: 1, [B.GLOWWORM]: 1, [B.FERN]: 1, [B.PORTAL]: 1, [B.BERRY]: 1, [B.RINGSHARD]: 1 };
+const SKY_CLEAR = { [B.FALLS]: 1, [B.BUNTING]: 1, [B.SIGNPOST]: 1, [B.SAILS]: 1, [B.LAMP]: 1, [B.FLOWERBOX]: 1, [B.RAIL]: 1, [B.BANNER]: 1, [B.BASIN]: 1, [B.FOUNTAIN]: 1, [B.TIPI]: 1, [B.LODGE]: 1, [B.HIDE]: 1, [B.FENCE]: 1, [B.FIREPIT]: 1, [B.TOTEM]: 1, [B.FROND]: 1, [B.MUSHROOM]: 1, [B.FLOWERS]: 1, [B.PEBBLES]: 1, [B.LADDER]: 1, [B.TORCH]: 1, [B.GLASS]: 1, [B.SELGLASS]: 1, [B.CAMPFIRE]: 1, [B.MOONGLOW]: 1, [B.GLOWWORM]: 1, [B.FERN]: 1, [B.PORTAL]: 1, [B.BERRY]: 1, [B.RINGSHARD]: 1 };
 const isSolid = (id) => BLOCKS[id].solid;
 const isLeaf = (id) => id === B.LEAVES || id === B.BERRYLEAF || id === B.NEEDLES;
 const isTrunk = (id) => id === B.LOG || id === B.BIRCHLOG || id === B.PALMLOG;
@@ -240,7 +241,7 @@ class World {
     let h = 40 + (cont - 0.5) * 48 + (hills - 0.5) * 16;
     let mountain = 0;
     if (cont > 0.64) { mountain = (cont - 0.64) * 160; h += mountain; }
-    let crag = 0, cragRim = false;
+    let crag = 0, cragRim = false, fall = false, pool = false, river = false;
     if (this.preset.id === 'earth') { /* Earth's land has shape: mountains break into ridges, uplands step down in shelves, the desert stands up in buttes, and parts of the coast are cliff */
       if (mountain > 0) { const rg = 1 - Math.abs(U.fbm2(x, z, 90, 3, s + 43, P) - 0.5) * 2; h += (rg - 0.55) * Math.min(1, mountain / 10) * 16; }
       const tm = U.vnoise2(x, z, 140, P, s + 45);
@@ -252,8 +253,14 @@ class World {
         for (let a = -1; a <= 1 && !crag; a++) for (let b = -1; b <= 1; b++) { const ci = cxi + a, cj = czi + b; const k0 = U.hash3(ci, 31, cj, s + 961); if (k0 > 0.42) continue;
           const px = (ci + 0.2 + 0.6 * U.hash3(ci, 32, cj, s + 962)) * CW, pz = (cj + 0.2 + 0.6 * U.hash3(ci, 33, cj, s + 963)) * CW; const dd = Math.hypot(xm - px, zm - pz); if (dd > 12) continue;
           const k1 = U.hash3(ci, 34, cj, s + 964); const rr = (2.6 + k1 * 3.4) * (0.78 + 0.5 * U.vnoise2(x, z, 5, P, s + 965)); const hh = 3 + Math.floor(U.hash3(ci, 35, cj, s + 966) * 4);
-          if (dd < rr) { crag = hh; cragRim = dd > rr - 1.4; } else if (k1 < 0.6 && dd < rr * 1.7 + 1) { crag = Math.max(1, hh >> 1); cragRim = true; } if (crag) break; }
-        h += crag; }
+          if (dd < rr) { crag = hh; cragRim = dd > rr - 1.4; } else if (k1 < 0.6 && dd < rr * 1.7 + 1) { crag = Math.max(1, hh >> 1); cragRim = true; }
+          if (hh >= 4 && dd >= rr && dd < rr + 4.2 && U.hash3(ci, 37, cj, s + 968) < 0.7) { /* a spring on the bigger crags: it drops off the edge on one side into a little pool */
+            let da = Math.atan2(zm - pz, xm - px) - U.hash3(ci, 38, cj, s + 969) * 6.2832; da = Math.abs(Math.atan2(Math.sin(da), Math.cos(da)));
+            if (dd < rr + 1.2) { if (da < 0.7 / dd) fall = true; } else if (da < 1.9 / dd) pool = true; }
+          if (crag || fall || pool) break; }
+        h += crag; if (pool) h -= 1; }
+      if (!crag && !pool && !fall && mountain <= 0 && h > SEA - 1 && h < SEA + 9) { /* rivers: slow water winding through the lowlands at sea level, fading out where the land climbs */
+        const rw = Math.abs(U.fbm2(x, z, 260, 2, s + 971, P) - 0.5); if (rw < 0.022) { const k = 1 - rw / 0.022, kk = k * k * (3 - 2 * k) * Math.min(1, (SEA + 9 - h) / 3); h += (SEA - 2 - h) * kk; if (kk > 0.05) river = true; } }
     }
     if (this.preset.craters) {
       // bowls punched into the highlands
@@ -299,12 +306,12 @@ class World {
     }
     // beaches: a wider band of sand along the shore, with low dunes rolling over it
     let beach = false;
-    if (this.preset.water && h >= SEA - 2 && h <= SEA + 3 && (biome === BIOME.PLAINS || biome === BIOME.FOREST || biome === BIOME.DESERT || biome === BIOME.OCEAN)) {
+    if (!river && this.preset.water && h >= SEA - 2 && h <= SEA + 3 && (biome === BIOME.PLAINS || biome === BIOME.FOREST || biome === BIOME.DESERT || biome === BIOME.OCEAN)) {
       beach = true;
       if (h >= SEA + 1) { const dn = U.vnoise2(x, z, 9, P, s + 81) * 0.7 + U.vnoise2(x, z, 4, P, s + 83) * 0.3; if (dn > 0.6) h += 1; }
     }
     const sky = U.fbm2(x + 777, z - 777, 128, 2, s + 59, P);
-    return { h, biome, temp, moist, sky, beach, crag, cragRim };
+    return { h, biome, temp, moist, sky, beach, crag, cragRim, fall, pool, river };
   }
   grassTint(biome, temp, moist) {
     switch (biome) {
@@ -524,6 +531,8 @@ class World {
         gal(x + 1, z, 28); gal(z - 47, x, 21);
       }
       if (this.preset.water && h < SEA) for (let y = h + 1; y <= SEA; y++) blocks[base + y] = B.WATER;
+      if (info.pool && h + 1 < WH && h >= SEA) blocks[base + h + 1] = B.WATER;
+      if (info.fall && h >= SEA) { let top = h; for (const [a, b] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const n = infos[(lx + 2 + a) * 20 + (lz + 2 + b)]; if (n.crag > 3 && n.h > top) top = n.h; } if (top - h >= 3) { for (let y = h + 1; y <= Math.min(top, WH - 2); y++) blocks[base + y] = B.FALLS; blocks[base + h] = B.GRAVEL; } }
       if (this.preset.brine && h < this.preset.brineLevel) for (let y = h + 1; y <= this.preset.brineLevel; y++) blocks[base + y] = B.BRINE;
       if (this.preset.ringfall && h >= this.preset.brineLevel && h < WH - 2 && biome !== BIOME.MESA && U.hash3(x, 13, z, s + 931) < 0.0012) blocks[base + h + 1] = B.RINGSHARD;
       // sky islands
