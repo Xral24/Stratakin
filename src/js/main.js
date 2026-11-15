@@ -208,6 +208,15 @@ function seatOf(m) { if (m._seat) return m._seat; const bp = m.boxes.filter(b =>
 function hipOf(m) { if (m._hip != null) return m._hip; const leg = (m.bones || []).find(b => b && b.kind === 'leg'); return (m._hip = leg ? leg.piv[1] : 0.7); }
 // where the mount's feet are drawn: on the ground it stands on the visible surface, in the water it sits low like a swimmer
 G.mountBase = function (p) { return p.inWater ? p.y - 0.95 : p.y + p.drawLift(); };
+// designer shortcuts (in the menu): stand somewhere without making the journey, to look at new work. They only move you
+G.designerJump = function (where) {
+  const p = this.player, w = this.world; if (Battle.active || Taming.active) return; let x, y = null, z, say;
+  if (where === 'atlantis') { if (this.worldId !== 'earth') { UI.toast('Atlantis is on Earth.'); return; } const a = Village.atlantis(); if (!a) { UI.toast('This world has no water deep and wide enough for Atlantis.', 'bad'); return; } x = a.x + 0.5; z = a.z + 15.5; y = a.y + 0.1; say = 'Atlantis. The ring is in front of you, the gates are at the foot of the dome, and the way out is up the falls.'; }
+  else { const s = (this.worldId === 'earth' && this.village) ? { x: this.village.x + 0.5, z: this.village.z + 4.5 } : w.spawn; x = s.x; z = s.z; say = 'Back at the first village.'; }
+  p.mount = null; p.flying = false; p.gliding = false; p.vx = p.vy = p.vz = 0; p.fallStart = null; p.frozen = false;
+  w.ensureAround(Math.floor(x / CH), Math.floor(z / CH), 2, 9999); if (y == null) y = w.groundY(Math.floor(x), Math.floor(z)) + 1.2;
+  p.x = x; p.y = y; p.z = z; p.breath = 1; UI.closePanel(); if (this.meshPass) this.meshPass(80); UI.toast(say, 'good');
+};
 G.mountKin = function (k) { const p = this.player; const mode = this.rideMode(k); if (!mode) return; p.mount = k; p.mountMode = mode; UI.sfx('util'); UI.toast(`You climb onto ${KIN.name(k)}.`); };
 G.toast = function (m, c) { UI.toast(m, c); };
 G.toggleCamera = function () { this.thirdPerson = !this.thirdPerson; if (this.orbit) { if (this.thirdPerson) { this.orbit.yaw = this.player.yaw; this.orbit.pitch = this.player.pitch; } else this.player.yaw = this.orbit.yaw; } UI.toast(this.thirdPerson ? 'Third person. You can see yourself now; V or the menu switches back.' : 'First person.'); };

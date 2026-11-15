@@ -395,9 +395,9 @@ const UI = (() => {
     }));
   }
   function renderTrain() {
-    setTitle('Station');
+    const tide = !!(Village.active && Village.active.atlantis); setTitle(tide ? 'The Current' : 'Station');
     const rs = (G.stats.roosts || []).filter(r => (r.world || 'earth') === G.worldId); const here = G.roostHere();
-    el['panel-body'].innerHTML = `<p class="note">${rs.length < 2 ? 'This is the only open station on the line so far. Free other towns and fix their stations, and the train will run to them. Stilt villages on the sea join the line by ferry as soon as you free them.' : 'Where to? The fare goes up with the distance.'} You have ◆ ${G.shards}.</p><div class="roosts">${rs.map(r => { const me = here && here.id === r.id; const c = G.roostCost(r); return `<button class="btn ${me ? 'ghost' : ''}" data-roost="${r.id}" ${!here || me || G.shards < c ? 'disabled' : ''}>${r.name}${me ? ' (here)' : ` · ◆ ${c}`}</button>`; }).join('')}</div>`;
+    el['panel-body'].innerHTML = `<p class="note">${tide ? (rs.length < 2 ? 'The Current runs under the sea to every station and landing you have opened on the land. You have none yet: free a town and fix its station, and I can send you there and bring you back.' : 'The Current runs under the sea to every station and landing you have opened. Where to? The fare goes up with the distance.') : rs.length < 2 ? 'This is the only open station on the line so far. Free other towns and fix their stations, and the train will run to them. Stilt villages on the sea join the line by ferry as soon as you free them.' : 'Where to? The fare goes up with the distance.'} You have ◆ ${G.shards}.</p><div class="roosts">${rs.map(r => { const me = here && here.id === r.id; const c = G.roostCost(r); return `<button class="btn ${me ? 'ghost' : ''}" data-roost="${r.id}" ${!here || me || G.shards < c ? 'disabled' : ''}>${r.name}${me ? ' (here)' : ` · ◆ ${c}`}</button>`; }).join('')}</div>`;
     el['panel-body'].querySelectorAll('[data-roost]').forEach(b => b.addEventListener('click', () => G.flyTo(b.dataset.roost)));
   }
   function renderForge(d) {
@@ -477,6 +477,9 @@ const UI = (() => {
       <button class="btn ghost tog on" id="m-gfx">Graphics <span>${({ full: 'full', balanced: 'balanced', light: 'light' })[R.state.quality || 'full']}</span></button><button class="btn ghost tog ${R.state.shadows === false ? '' : 'on'}" id="m-shadows">Shadows <span>${R.state.shadows === false ? 'off' : 'on'}</span></button></div>
       <p class="small">Graphics: <b>full</b> is shadows, dense grass and a sharp picture; <b>balanced</b> thins the grass and the pixels; <b>light</b> drops the shadows and most of the grass for a steadier frame rate. The number in the corner of the screen is frames per second.</p>
       <div class="settings"><button class="btn ghost tog on" id="m-camera">Camera <span>${G.thirdPerson ? 'third person' : 'first person'}</span></button><button class="btn ghost tog on" id="m-skins">Skin <span>${Avatar.skin().name}</span></button></div>
+      <h4>Designer shortcuts</h4>
+      <p class="small">For looking at new work without making the journey. They move you, nothing else: no quest is skipped and nothing is given.</p>
+      <div class="settings"><button class="btn ghost" id="m-go-atl">Go to Atlantis</button><button class="btn ghost" id="m-go-home">Back to the first village</button></div>
       <h4>How to play</h4>
       <p class="small">${Controls.isTouch ? 'Left stick walks; drag anywhere on the right of the screen to turn the camera. <b>Hold</b> to mine, or to block when you hold a weapon; <b>tap</b> to place a block, swing, talk, or use a Fusion Table. ▲ jumps, ▼ crouches, hold ▲ in the air with a Glider to glide. In third person the camera orbits you: swing it round to see your face, or your Kin\'s.' : 'WASD to move, mouse to look, <b>hold left click</b> to mine or block, <b>right click</b> to place or use. Space jumps, Shift sneaks, 1-9 or the wheel pick an item. E opens Craft, Q opens Kin, J opens Quests, V switches the camera, F deploys a Kin or sets a snare. Esc releases the mouse.'}</p>
       <p class="small">Chests (Craft › Blocks) keep what you store in them through anything. Amulets come from the people by the fires on the road; nobody sells them. Third person shows your skin: unlock more by playing.</p>
@@ -489,6 +492,7 @@ const UI = (() => {
     </div>`;
     q('m-save').addEventListener('click', () => { toast(G.save() ? `Saved${G.gameName ? ' · ' + G.gameName : ''}.` : 'Saving is not available here.'); });
     q('m-games').addEventListener('click', () => G.toGames(false));
+    q('m-go-atl').addEventListener('click', () => G.designerJump('atlantis')); q('m-go-home').addEventListener('click', () => G.designerJump('home'));
     q('m-sound').addEventListener('click', () => { soundOn = !soundOn; if (!soundOn) Music.stop(); renderMenu(); });
     q('m-music').addEventListener('click', () => { Music.setEnabled(!Music.enabled); renderMenu(); });
     q('m-map').addEventListener('click', () => { setMinimap(!MM.on); renderMenu(); });

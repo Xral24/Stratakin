@@ -334,7 +334,11 @@ class Player {
       this.x -= this.vx * dt * 1.2; this.z -= this.vz * dt * 1.2; this.vx = 0; this.vz = 0;
     }
     // a mount stays near the surface without a bulb, and nothing on wings goes above the clouds: that is what ships are for
-    if (mountShape === 'water' && !this.has('bulb') && !this.has('tidelung') && this.y < SEA - 1.1) { this.y = SEA - 1.1; if (this.vy < 0) this.vy = 0; if (!this.warnedBulb) { this.warnedBulb = true; if (typeof UI !== 'undefined') UI.toast('Your Kin will not take you under: you would drown. Marisol makes Breathing Bulbs.'); } }
+    // on a water Kin with no bulb you stay at the top of the water you are in: the sea, or a pool that stands at some other height (the ring in Atlantis). Deep under it already, you are carried up, not thrown there
+    if (mountShape === 'water' && !this.has('bulb') && !this.has('tidelung') && this.inWater) { const bx = Math.floor(this.x), bz = Math.floor(this.z); let sy = Math.floor(this.y + 0.5); while (sy < WH - 1 && (this.world.getBlock(bx, sy, bz) === B.WATER || this.world.getBlock(bx, sy, bz) === B.BRINE)) sy++; const floorY = sy - 2.1; this._wtop = floorY; }
+    else this._wtop = null;
+    if (this._wtop != null && this.y < this._wtop - 1.5) { this.vy = Math.max(this.vy, 3); }
+    else if (this._wtop != null && this.y < this._wtop) { this.y = this._wtop; if (this.vy < 0) this.vy = 0; if (!this.warnedBulb) { this.warnedBulb = true; if (typeof UI !== 'undefined') UI.toast('Your Kin will not take you under: you would drown. Marisol makes Breathing Bulbs.'); } }
     if (mountShape === 'air' && this.y > SKY_BASE - 4) { this.y = SKY_BASE - 4; if (this.vy > 0) this.vy = 0; }
     if (this.mount) this.mount.trust = Math.min(1, (this.mount.trust || 0) + dt / 7200);
     // breath

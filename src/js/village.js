@@ -1530,7 +1530,7 @@ const Village = (() => {
     for (let i = 0; i < 9; i++) { const a = (i + 0.5) / 9 * Math.PI * 2 + 0.35, r = 13.6 + (i % 3) * 1.3; v.npcs.push(put(makeNpc(i, 'villager', 0, 0, pname(i + 2), null, vy, v.id, sty), Math.round(Math.cos(a) * r), Math.round(Math.sin(a) * r))); }
     v.npcs.push(v.elder);
     for (const n of v.npcs) { n.y = vy; n.home = { x: n.x, z: n.z }; }
-    v.wanderR = 2.2; buildGuardEnts(v);
+    v.wanderR = 19; buildGuardEnts(v); // the whole market ring is theirs to walk: they stop at the kerb of the pool and at the walls
   }
   // the seahorse in the ring. Skerry is a great seahorse, Isla's; once she is yours, another takes her place
   function ringSpecies(spare) {
