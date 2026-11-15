@@ -2639,6 +2639,29 @@ const R = (() => {
         const dp = (sgn, h, out) => [HX + Math.cos(fa + sgn * 0.46) * (WR + out), wy + h, HZ + Math.sin(fa + sgn * 0.46) * (WR + out)];
         for (const sgn of [-1, 1]) op.tube([dp(sgn, -0.1, 0.05), dp(sgn, 1.3, 0.2), dp(sgn, 2.35, 0.1)], [0.13, 0.12, 0.11], WOODC, { sky: sk, segs: 5, cap0: 'flat', cap1: 'round' });
         const mid = [HX + Math.cos(fa) * (WR + 0.3), wy + 2.8, HZ + Math.sin(fa) * (WR + 0.3)]; op.tube([dp(-1, 2.3, 0.1), mid, dp(1, 2.3, 0.1)], [0.11, 0.12, 0.11], WOODC, { sky: sk, segs: 5, cap0: 'round', cap1: 'round' }); // the door arch
+        // what the people who live here have put on their walls: every house a little different
+        { const hs = (k) => U.hash3(ox + t.x, k, oz + t.z, 311), onW = (a, h, out) => [HX + Math.cos(a) * (WR + out), wy + h, HZ + Math.sin(a) * (WR + out)], side = hs(2) < 0.5 ? 1 : -1;
+          if (hs(1) < 0.62) { // a sailfish, mounted over the window: the catch somebody never stopped talking about
+            const ac = fa + side * 1.28, sg = hs(3) < 0.5 ? 1 : -1, bl = [0.2, 0.36, 0.62], fin = [0.1, 0.2, 0.5], F = (u, dh, out) => onW(ac + sg * (u - 0.5) * 0.72, 2.42 + dh, 0.36 + (out || 0));
+            op.tube([F(0.02, 0.02), F(0.2, 0), F(0.5, -0.02), F(0.78, 0), F(0.92, 0.02)], [0.035, 0.1, 0.16, 0.12, 0.05], bl, { sky: sk, segs: 6, cap0: 'round', cap1: 'round' });
+            op.tube([F(0.9, 0.02), F(1.24, 0.07)], [0.035, 0.008], [0.75, 0.78, 0.8], { sky: sk, segs: 4, cap0: 'none', cap1: 'round' });
+            op.plate([F(0.24, 0.08), F(0.34, 0.52), F(0.52, 0.6), F(0.7, 0.4), F(0.8, 0.08)], 0.03, fin, { sky: sk });
+            op.plate([F(0.05, 0.02), F(-0.1, 0.34), F(0.0, 0.02), F(-0.1, -0.3)], 0.03, fin, { sky: sk });
+            const e = F(0.84, 0.05, 0.11); op.ball(e[0], e[1], e[2], 0.035, [0.05, 0.05, 0.08], { sky: sk, n: 2 }); }
+          if (hs(4) < 0.5) { // the jaws of a shark, teeth and all, on the other side of the door: a warning, or a boast
+            const aj = fa - side * 1.28, c = onW(aj, 2.42, 0.22), tx = -Math.sin(aj), tz = Math.cos(aj), bone = [0.94, 0.91, 0.82], ring = [], R = (g) => [c[0] + tx * Math.cos(g) * 0.44, c[1] + Math.sin(g) * 0.34, c[2] + tz * Math.cos(g) * 0.44];
+            for (let i = 0; i <= 14; i++) ring.push(R(i / 14 * 6.2832)); op.tube(ring, ring.map(() => 0.05), bone, { sky: sk, segs: 5, cap0: 'round', cap1: 'round' });
+            for (let i = 0; i < 14; i++) { const q = R((i + 0.5) / 14 * 6.2832); op.tube([q, [q[0] + (c[0] - q[0]) * 0.36, q[1] + (c[1] - q[1]) * 0.36, q[2] + (c[2] - q[2]) * 0.36]], [0.034, 0.004], [1, 0.99, 0.95], { sky: sk, segs: 4, cap0: 'none', cap1: 'none' }); } }
+          { // a painting on the far wall, facing the door: the sea at sunset, an island, or the moon on the water
+            const ap = fa + 3.1416, c = onW(ap, 1.72, -0.44), tx = -Math.sin(ap), tz = Math.cos(ap), W2 = 0.64, H2 = 0.43, k = hs(5), top = k < 0.34 ? [0.98, 0.6, 0.34] : k < 0.67 ? [0.55, 0.8, 0.95] : [0.1, 0.12, 0.3], bot = k < 0.34 ? [0.14, 0.36, 0.58] : k < 0.67 ? [0.2, 0.6, 0.42] : [0.08, 0.2, 0.42], orb = k < 0.34 ? [1, 0.86, 0.4] : k < 0.67 ? [0.98, 0.95, 0.7] : [0.92, 0.94, 1.0];
+            const v = [[c[0] - tx * W2, c[1] - H2, c[2] - tz * W2], [c[0] + tx * W2, c[1] - H2, c[2] + tz * W2], [c[0] + tx * W2, c[1] + H2, c[2] + tz * W2], [c[0] - tx * W2, c[1] + H2, c[2] - tz * W2]], cs = [bot, bot, top, top], ss = [sk, sk, sk, sk];
+            op.quad(v, cs, ss, false); op.quad([v[1], v[0], v[3], v[2]], [bot, bot, top, top], ss, false);
+            op.tube([v[0], v[1], v[2], v[3], v[0]], [0.05, 0.05, 0.05, 0.05, 0.05], WOODC, { sky: sk, segs: 4, cap0: 'round', cap1: 'round' });
+            op.ball(c[0] - Math.cos(ap) * 0.05 + tx * 0.2, c[1] + 0.08, c[2] - Math.sin(ap) * 0.05 + tz * 0.2, 0.1, orb, { sky: sk, n: 2 }); }
+          if (hs(6) < 0.65) { // glass floats in a net by the door
+            const af = fa - side * 0.66, cols = [[0.3, 0.78, 0.72], [0.5, 0.78, 0.42], [0.92, 0.66, 0.26]], top = onW(af, 3.0, 0.3); op.tube([top, onW(af, 1.72, 0.34)], [0.02, 0.02], [0.66, 0.54, 0.34], { sky: sk, segs: 3, cap0: 'none', cap1: 'none' });
+            for (let i = 0; i < 3; i++) { const q = onW(af + (i - 1) * 0.045, 2.36 - i * 0.27, 0.36 + (i % 2) * 0.06); op.ball(q[0], q[1], q[2], 0.15, cols[(i + Math.floor(hs(7) * 3)) % 3], { sky: sk, n: 2 }); } }
+        }
         deckApron(HX, HZ, 5.25, sk);
       } else { deckApron(X, Z, 3.05, sk); for (let k = 0; k < 4; k++) { const a = k * 1.5708 + 0.7854, cx2 = Math.cos(a), cz2 = Math.sin(a); op.tube([[X + cx2 * 2.1, SEA + 0.95, Z + cz2 * 2.1], [X + cx2 * 2.75, SEA + 2.4, Z + cz2 * 2.75], [X + cx2 * (R0 - 0.5), y0 + 0.12, Z + cz2 * (R0 - 0.5)]], [0.12, 0.1, 0.08], WOODC, { sky: sk, segs: 5, cap0: 'flat', cap1: 'round' }); } } // a pavilion stands on four bowed poles
     };

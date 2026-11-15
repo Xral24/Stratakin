@@ -1,7 +1,7 @@
 // the nearest sea village (TYPE=sea) or deep one (TYPE=deep): what it is built of and what it looks like from where he stands in it
 const { open } = require('./harness');
 (async () => { const h = await open(); const { page, ev } = h; await h.newGame(process.env.SEED || 'look-3'); await h.calm();
-  await ev(() => { G.repelUntil = performance.now() + 9e7; G.stats.buddyOff = true; G.explain = () => {}; G.player.frozen = true; G.thirdPerson = true; G.world.time = 0.42; for (const id of ['hud', 'controls', 'hotbar']) { const e = document.getElementById(id); if (e) e.style.display = 'none'; } });
+  const FIRST = !!process.env.FIRST; await ev((first) => { G.repelUntil = performance.now() + 9e7; G.stats.buddyOff = true; G.explain = () => {}; G.player.frozen = true; G.thirdPerson = !first; G.world.time = 0.42; for (const id of ['hud', 'controls', 'hotbar']) { const e = document.getElementById(id); if (e) e.style.display = 'none'; } }, FIRST);
   const type = process.env.TYPE || 'sea';
   const site = await ev((type) => { const p = G.player; const ms = Village.markers(p.x, p.z, 12).filter(m => m.kind === 'village' && m.type === type).sort((a, b) => Math.hypot(a.x - p.x, a.z - p.z) - Math.hypot(b.x - p.x, b.z - p.z)); return ms[0] || null; }, type);
   console.log('site', JSON.stringify(site)); if (!site) { await h.close(); return; }
@@ -10,6 +10,6 @@ const { open } = require('./harness');
     return { col: col.slice(-14), gy, active: v ? { id: v.id, type: v.type, size: v.size, R: v.R, y: v.y, npcs: (v.npcs || []).length, roles: (v.npcs || []).map(n => n.role).slice(0, 12) } : null, blocks: Object.entries(ids).sort((a, b) => b[1] - a[1]).slice(0, 18) }; }, site);
   console.log(JSON.stringify(info));
   const views = (process.env.VIEWS ? JSON.parse(process.env.VIEWS) : [[0, 0, 0.6, -0.12], [0, 0, 3.6, -0.12], [6, 5, 2.2, -0.2], [-7, -6, 5.2, -0.15]]);
-  for (let i = 0; i < views.length; i++) { await ev((a) => { const p = G.player, w = G.world, s = a.s, v = a.v; p.x = s.x + v[0] + 0.5; p.z = s.z + v[1] + 0.5; const gy = w.groundY(Math.floor(p.x), Math.floor(p.z)); p.y = gy + 1.05 + (v[4] || 0); p.onGround = true; p.yaw = v[2]; p.pitch = v[3]; if (G.orbit) { G.orbit.yaw = p.yaw; G.orbit.pitch = p.pitch; } for (let k = 0; k < 20; k++) Village.update(0.05, p, false); G.meshPass(999); }, { s: site, v: views[i] });
+  for (let i = 0; i < views.length; i++) { await ev((a) => { const p = G.player, w = G.world, s = a.s, v = a.v; p.x = s.x + v[0] + 0.5; p.z = s.z + v[1] + 0.5; const gy = a.s.type === 'sea' ? SEA : w.groundY(Math.floor(p.x), Math.floor(p.z)); p.y = gy + 1.05 + (v[4] || 0); p.onGround = true; p.yaw = v[2]; p.pitch = v[3]; if (G.orbit) { G.orbit.yaw = p.yaw; G.orbit.pitch = p.pitch; } for (let k = 0; k < 20; k++) Village.update(0.05, p, false); G.meshPass(999); }, { s: site, v: views[i] });
     await page.waitForTimeout(2600); await ev(() => { const t = document.getElementById('toasts'); if (t) t.innerHTML = ''; }); await page.screenshot({ path: `/home/claude/seavil-${i}.png` }); }
   console.log('ERRORS:', h.errors.length ? h.errors.slice(0, 3).join('\n') : 'none'); await h.close(); })();
