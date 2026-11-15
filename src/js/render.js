@@ -267,7 +267,7 @@ const R = (() => {
         vec2 uv = abs(n.x) > 0.5 ? vWorld.zy : (abs(n.y) > 0.5 ? vWorld.xz : vWorld.xy);
         vec3 bp = floor(vWorld - n * 0.5);
         float hb = hash3(bp); float speck = hash3(vec3(floor(uv * 8.0), bp.y)); float blot = hash3(vec3(floor(uv * 3.0), bp.x + bp.z));
-        int matp = int(vMat + 0.5); float soil = (matp == 1 || matp == 2 || matp == 4 || matp == 5) ? 1.0 : 0.0; float blocky = (matp == 7 || matp == 0 || matp >= 9 || soil > 0.5) ? 0.0 : 1.0; if (matp == 3) { float open = smoothstep(0.3, 0.6, sky); blocky *= 1.0 - open; soil = open; } /* rock under the open sky is land like the rest: no block's worth of paint on it */ // leaves, props, the ground and the town's materials are not blocks: no per-block paint on them
+        int matp = int(vMat + 0.5); float soil = (matp == 1 || matp == 2 || matp == 4 || matp == 5 || matp >= 22) ? 1.0 : 0.0; float blocky = (matp == 7 || matp == 0 || matp >= 9 || soil > 0.5) ? 0.0 : 1.0; if (matp == 3) { float open = smoothstep(0.3, 0.6, sky); blocky *= 1.0 - open; soil = open; } /* rock under the open sky is land like the rest: no block's worth of paint on it */ // leaves, props, the ground and the town's materials are not blocks: no per-block paint on them
         col *= 1.0 + blocky * (-0.06 + 0.07 * hb + (speck - 0.5) * 0.05 * uQuality + (blot - 0.5) * 0.045); /* quieter: a hint of the block, not grit */
         col *= 1.0 + soil * ((vn(uv * 0.7 + 3.0) - 0.5) * 0.1 + (vn(uv * 2.3 + 8.0) - 0.5) * 0.05); // the ground: a soft drift of light and dark instead
         // broad painted drift: warm and cool patches across the land
@@ -280,7 +280,8 @@ const R = (() => {
         col *= 1.0 - 0.28 * g;
         float near = 1.0 - smoothstep(30.0, 70.0, dist); int mat = int(vMat + 0.5);
         float gw = 0.0; vec3 cg = col; // how much of the ground here is turf (the mesher sends it in the length of the normal): the land's materials run into one another, they never change along the edge of a block
-        if (mat >= 1 && mat <= 5) { float lt = clamp((1.0 - length(vN)) * 2.0, 0.0, 1.0); gw = mat == 1 ? 1.0 - lt : lt;
+        bool turf = mat == 1 || mat >= 22; // 22, 23, 24: turf beside sand, earth, snow
+        if ((mat >= 1 && mat <= 5) || turf) { float lt = clamp((1.0 - length(vN)) * 2.0, 0.0, 1.0); gw = turf ? 1.0 - lt : lt;
           if (gw > 0.002) { // grass: a carpet of fine blades, with wind rolling over it
             vec2 q = vWorld.xz; float fine = vn(q * 26.0) * 0.6 + vn(q * 61.0 + 3.1) * 0.4; float tuft = vn(q * 7.0 + 9.0);
             vec2 wd = normalize(vec2(0.8, 0.45)); float wave = sin(dot(q, wd) * 0.42 - uTime * 1.6 + vn(q * 0.15) * 4.0) * 0.5 + 0.5; wave *= wave * (0.5 + 0.5 * vn(q * 0.07 + uTime * 0.05));
@@ -288,7 +289,7 @@ const R = (() => {
             cg = mix(cg, cg * vec3(1.18, 1.16, 1.0) + vec3(0.035, 0.04, 0.0), wave * 0.42 * (1.0 - smoothstep(60.0, 110.0, dist)));
             cg *= mix(mix(0.66, 1.0, smoothstep(12.0, 36.0, dist)), 1.0, 1.0 - uBladeShade); // the ground under standing blades is in their shade
           }
-          if (mat == 1) mat = 3; } // what shows through thin turf is rock
+          if (turf) mat = mat == 22 ? 2 : mat == 23 ? 4 : mat == 24 ? 5 : 3; } // what shows through thin turf is whatever lies beside it: rock, or the sand, earth or snow it is running into, so the two sides of that line are painted alike
         if (mat == 2) { // sand: soft wind ripples wandering over it, a fine grain, a glint here and there
           vec2 q = vWorld.xz; float warp = vn(q * 0.3) * 4.0 + vn(q * 1.4 + 2.0) * 1.3;
           float rip = sin(dot(q, vec2(0.93, 0.37)) * 3.4 + warp) * 0.5 + 0.5; rip = smoothstep(0.2, 0.9, rip);
@@ -312,9 +313,10 @@ const R = (() => {
           }
         } else if (mat == 4) { // earth: clods and the odd pale pebble
           float clod = vn(uv * 5.0 + 1.0) * 0.6 + vn(uv * 13.0 + 4.0) * 0.4; col *= 0.82 + 0.34 * clod;
-          float peb = step(0.965, hash3(vec3(floor(uv * 9.0), bp.y + 3.0))); col = mix(col, col * 1.5 + 0.08, peb * near);
-        } else if (mat == 5) { // snow: soft drifts and glitter
-          col *= 0.95 + 0.08 * vn(uv * 2.0); col += uSunCol * step(0.988, hash3(vec3(floor(uv * 12.0), 5.0))) * uSunAmt * 0.3 * near;
+          float peb = step(0.965, hash3(vec3(floor(uv * 9.0), bp.y + 3.0))) * (1.0 - smoothstep(0.2, 0.34, length(fract(uv * 9.0) - 0.5))); col = mix(col, col * 1.5 + 0.08, peb * near); // round pebbles, not square ones
+        } else if (mat == 5) { // snow: soft drifts and glitter; in shade it still holds the light of the sky, blue-white, never the grey of stone
+          col *= 0.95 + 0.08 * vn(uv * 2.0); col += vec3(0.13, 0.16, 0.24) * skyL * uDay * (1.0 - lam * sh);
+          col += uSunCol * step(0.988, hash3(vec3(floor(uv * 12.0), 5.0))) * (1.0 - smoothstep(0.1, 0.28, length(fract(uv * 12.0) - 0.5))) * uSunAmt * 0.3 * near;
         } else if (mat == 6) { // wood: grain lines running along the boards
           float grain = sin(uv.y * 38.0 + vn(uv * vec2(2.0, 0.4)) * 7.0) * 0.5 + 0.5; col *= 0.93 + 0.1 * smoothstep(0.3, 0.8, grain) * near;
         } else if (mat == 7) { // leaves: dapple
@@ -651,7 +653,7 @@ const R = (() => {
       const ti = (lx * CH + lz) * 3;
       // red, green: the grass colour (0 where no grass grows); blue: the kind of grass, or 255 for bare soil; alpha: the height of the top.
       // Blades read their height from the four texels around them, and only from soil ones: a wall or a trunk is not ground they should climb
-      d[k] = grass ? Math.max(1, Math.min(255, ch.tint[ti] * 255)) : 0; d[k + 1] = grass ? Math.max(1, Math.min(255, ch.tint[ti + 1] * 255)) : 0; d[k + 2] = grass ? Math.max(1, Math.min(253, Math.round(grassZone(world, x, z, world.colInfo(x, z).biome) * 253))) : SOIL.has(id) ? 255 : 0; d[k + 3] = Math.min(255, y + 1);
+      d[k] = grass ? Math.max(1, Math.min(255, ch.tint[ti] * 255)) : 0; d[k + 1] = grass ? Math.max(1, Math.min(255, ch.tint[ti + 1] * 255)) : 0; d[k + 2] = grass ? Math.max(1, Math.min(253, Math.round(grassZone(world, x, z, world.colInfo(x, z).biome) * (1 - 0.97 * (ch.wear ? ch.wear[ti / 3] / 255 : 0)) * 253))) : SOIL.has(id) ? 255 : 0; d[k + 3] = Math.min(255, y + 1);
     }
     gl.bindTexture(gl.TEXTURE_2D, hmTex); gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, 128, 128, gl.RGBA, gl.UNSIGNED_BYTE, d);
     hmCenter = { x: cx, z: cz, ox, oz };
@@ -1685,6 +1687,7 @@ const R = (() => {
           const verts = [], cols = [], skys = [], aos = [];
           const a = (n[0] !== 0) ? 0 : (n[1] !== 0) ? 1 : 2; // normal axis
           const sloped = surf && f === 2 && y === ST(lx, lz);
+          if (sloped && id === B.GRASS) { let ns = 0, nd = 0, nw = 0; for (let a = -1; a <= 1; a++) for (let b = -1; b <= 1; b++) { if (!a && !b) continue; const t = ST(lx + a, lz + b); if (t < 0) continue; const q = get(lx + a, t, lz + b); if (q === B.SNOW) nw++; else if (q === B.SAND) ns++; else if (q === B.DIRT) nd++; } if (nw + ns + nd > 0) op.curMat = nw >= ns && nw >= nd ? 24 : ns >= nd ? 22 : 23; } // turf that borders snow, sand or bare earth thins out into that, not into rock
           const sink = (f !== 2 && f !== 3 && isTrunk(id) && ST(lx, lz) === y - 1) ? 0.5 : 0; // a square trunk standing on sloping ground reaches down into it
           for (let i = 0; i < 4; i++) {
             const v = F.v[i];
@@ -1718,7 +1721,7 @@ const R = (() => {
             else { const dc = [Math.min(1, dAt(lx, lz) / 9), br, 0]; for (let i = 0; i < 4; i++) cols[i] = dc; }
           }
           const nrms = sloped ? F.v.map(v => cornerN(lx + v[0], lz + v[2])) : null;
-          if (sloped) { let rk = 0; for (let i = 0; i < 4; i++) { const cxx = lx + F.v[i][0], czz = lz + F.v[i][2]; const k = (cxx * 17 + czz) * 6; if (cornerCol[k] < 0) continue; skys[i] = cornerSky[cxx * 17 + czz]; let kr = U.clamp((0.76 - nrms[i][1]) / 0.18, 0, 1); kr = kr * kr * (3 - 2 * kr); rk += kr; { const tf = cornerTurf[cxx * 17 + czz] * (1 - kr), lt = op.curMat === 1 ? 1 - tf : (op.curMat >= 2 && op.curMat <= 5 ? tf : 0), q = 1 - 0.5 * lt; const nn = nrms[i]; nrms[i] = [nn[0] * q, nn[1] * q, nn[2] * q]; } const sh = shade * aos[i]; cols[i] = [(cornerCol[k] * (1 - kr) + cornerCol[k + 3] * kr) * sh, (cornerCol[k + 1] * (1 - kr) + cornerCol[k + 4] * kr) * sh, (cornerCol[k + 2] * (1 - kr) + cornerCol[k + 5] * kr) * sh]; } }
+          if (sloped) { let rk = 0; for (let i = 0; i < 4; i++) { const cxx = lx + F.v[i][0], czz = lz + F.v[i][2]; const k = (cxx * 17 + czz) * 6; if (cornerCol[k] < 0) continue; skys[i] = cornerSky[cxx * 17 + czz]; let kr = U.clamp((0.76 - nrms[i][1]) / 0.18, 0, 1); kr = kr * kr * (3 - 2 * kr); rk += kr; { const tf = cornerTurf[cxx * 17 + czz] * (1 - kr), lt = (op.curMat === 1 || op.curMat >= 22) ? 1 - tf : (op.curMat >= 2 && op.curMat <= 5 ? tf : 0), q = 1 - 0.5 * lt; const nn = nrms[i]; nrms[i] = [nn[0] * q, nn[1] * q, nn[2] * q]; } const sh = shade * aos[i]; cols[i] = [(cornerCol[k] * (1 - kr) + cornerCol[k + 3] * kr) * sh, (cornerCol[k + 1] * (1 - kr) + cornerCol[k + 4] * kr) * sh, (cornerCol[k + 2] * (1 - kr) + cornerCol[k + 5] * kr) * sh]; } }
           if (!pf) { if (isWater) wa.quad(verts, cols, skys, false); else if (isGlass) gs.quad(verts, cols, skys, false); else { op.autoDiag = sloped; op.quad(verts, cols, skys, emis, nrms); op.autoDiag = false; } }
           else {
             // patterned face: sub-rectangles in face coordinates, then studs raised off the plane

@@ -1,0 +1,9 @@
+// where snow meets grass, from walking height
+const { open } = require('./harness');
+(async () => { const h = await open(); const { page, ev } = h; await h.newGame(process.env.SEED || 'look-3'); await h.calm();
+  await ev(() => { G.repelUntil = performance.now() + 9e7; G.stats.buddyOff = true; G.explain = () => {}; G.player.frozen = true; G.thirdPerson = true; G.world.time = 0.42; for (const id of ['hud', 'controls', 'hotbar']) { const e = document.getElementById(id); if (e) e.style.display = 'none'; } });
+  const spots = await ev(() => { const w = G.world, v = Village.def; const out = []; for (let r = 40; r < 500 && out.length < 3; r += 6) for (let a = 0; a < 6.283 && out.length < 3; a += 6 / r) { const x = Math.round(v.x + Math.cos(a) * r), z = Math.round(v.z + Math.sin(a) * r); const i = w.colInfo(x, z); if (i.h < SEA + 2 || Math.abs(i.temp - 0.36) > 0.004 || i.biome === BIOME.MOUNTAIN || w.treeAt(x, z, i)) continue; if (out.some(o => Math.hypot(o[0] - x, o[1] - z) < 40)) continue; const j = w.colInfo(x + 6, z), k = w.colInfo(x, z + 6); out.push([x, z, i.h, Math.atan2(-(j.temp - i.temp), -(k.temp - i.temp))]); } return out; });
+  console.log('spots', JSON.stringify(spots));
+  for (let i = 0; i < spots.length; i++) { await ev((s) => { const p = G.player, w = G.world; w.ensureAround(Math.floor(s[0] / CH), Math.floor(s[1] / CH), 4, 9999); p.x = s[0] + 0.5; p.z = s[1] + 0.5; p.y = s[2] + 1.02; p.onGround = true; p.yaw = s[3] + Math.PI * 0.5; p.pitch = -0.3; if (G.orbit) { G.orbit.yaw = p.yaw; G.orbit.pitch = p.pitch; } G.meshPass(999); }, spots[i]);
+    await page.waitForTimeout(2400); await ev(() => { const t = document.getElementById('toasts'); if (t) t.innerHTML = ''; }); await page.screenshot({ path: `/home/claude/snow-${i}.png` }); }
+  console.log('ERRORS:', h.errors.length ? h.errors.slice(0, 3).join('\n') : 'none'); await h.close(); })();

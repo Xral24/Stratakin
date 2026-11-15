@@ -177,6 +177,7 @@ class Chunk {
     this.topsSky = new Uint8Array(CH * CH); // same for the sky-island band (y >= SKY_SPLIT)
     this.biome = new Uint8Array(CH * CH);
     this.tint = new Float32Array(CH * CH * 3); // grass tint per column
+    this.wear = new Uint8Array(CH * CH); // how trodden the ground is (a footpath runs here): 0..255
     this.dirty = true;
     this.mesh = null;
     this.generated = false;
@@ -330,7 +331,8 @@ class World {
       default: return [0.46 + temp * 0.25, 0.74, 0.3 + moist * 0.1];
     }
   }
-  treeAt(x, z, info) {
+  treeAt(x, z, info) { const t = this.treeAt0(x, z, info); return t && this.trailWear && this.trailWear(x, z) > 0.1 ? null : t; } // no tree grows in a footpath
+  treeAt0(x, z, info) {
     if (!this.preset.trees) return null;
     if (info.h <= SEA || info.h > 72) return null;
     if (info.lost && this.lost && Math.hypot(x - this.lost.x, z - this.lost.z) < 26) return null; // the tyrant's clearing
@@ -425,7 +427,9 @@ class World {
       const info = infos[(lx + 2) * 20 + (lz + 2)];
       const h = info.h, biome = info.biome;
       chunk.biome[lx * CH + lz] = biome;
-      const tint = this.grassTint(biome, info.temp, info.moist);
+      let tint = this.grassTint(biome, info.temp, info.moist);
+      const wear = this.trailWear && h > SEA ? this.trailWear(x, z) : 0; chunk.wear[lx * CH + lz] = Math.round(wear * 255);
+      if (wear > 0) { const k = wear * 0.8; tint = [U.lerp(tint[0], tint[0] * 0.7 + 0.2, k), U.lerp(tint[1], tint[1] * 0.68 + 0.1, k), U.lerp(tint[2], tint[2] * 0.6 + 0.03, k)]; } /* a footpath: the grass along it is trodden, drier and browner */
       const ti = (lx * CH + lz) * 3; chunk.tint[ti] = tint[0]; chunk.tint[ti + 1] = tint[1]; chunk.tint[ti + 2] = tint[2];
       const base = (lx * CH + lz) * WH;
       const hd2 = heart ? (x - heart.x) * (x - heart.x) + (z - heart.z) * (z - heart.z) : 1e9; const inHeart = hd2 < 121; const inMoat = !inHeart && hd2 < 34 * 34; // a lava sea all round the Heart
@@ -470,7 +474,8 @@ class World {
         else if (info.crag >= 1 && (depth > 0 ? depth < 4 || info.crag > 2 : info.cragRim)) b = (depth === 0 && U.hash3(x, 36, z, s + 967) < 0.35) ? B.MOSS : B.STONE; /* a knoll is rock under its turf, and shows it in places */
         else if (info.lost) { if (depth === 0) b = B.GRASS; else if (depth < 3) b = B.DIRT; }
         else if (depth === 0) {
-          if (biome === BIOME.SNOW) b = B.SNOW;
+          const snowy = info.temp + (U.vnoise2(x, z, 7, P, s + 623) - 0.5) * 0.03 < 0.36; /* the snow line is not the line on the map: it breaks up into drifts and bare patches where the cold country meets the green */
+          if (biome === BIOME.SNOW || biome === BIOME.PLAINS || biome === BIOME.FOREST) b = snowy ? B.SNOW : (wear > 0.7 && U.hash3(x, 41, z, s + 979) < 0.45 ? B.DIRT : B.GRASS); /* mud shows through where a path is walked most */
           else if (biome === BIOME.MOUNTAIN) { const volc = U.vnoise2(x, z, 256, P, s + 611) > 0.6; b = volc ? (h >= 76 ? B.LAVA : (U.hash3(x, 8, z, s) < 0.1 ? B.EMBER : B.BASALT)) : (h > 64 ? B.SNOW : B.STONE); }
           else if (biome === BIOME.SWAMP && U.hash3(x, 6, z, s) < 0.3) b = B.MOSS;
           else b = B.GRASS;
@@ -615,7 +620,7 @@ class World {
     }
     for (let lx = 0; lx < CH; lx++) for (let lz = 0; lz < CH; lz++) {
       const info = infos[(lx + 2) * 20 + (lz + 2)]; const x = ox + lx, z = oz + lz; const h = info.h; const base = (lx * CH + lz) * WH;
-      if (h <= SEA || h >= WH - 3 || blocks[base + h + 1] !== B.AIR) continue;
+      if (h <= SEA || h >= WH - 3 || blocks[base + h + 1] !== B.AIR || chunk.wear[lx * CH + lz] > 70) continue;
       const top = blocks[base + h]; const r = U.hash3(x, 26, z, s + 951);
       if (top === B.GRASS) {
         const bio = info.biome;
