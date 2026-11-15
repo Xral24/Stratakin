@@ -105,7 +105,7 @@ defBlock(B.FALLS, 'Waterfall', '#b8dcf8', '#ffffff', { solid: false, hard: 99, d
 defBlock(B.SAILS, 'Windmill Sails', '#efe6cf', '#7a5632', { solid: false, hard: 0.4, drop: 'planks', partial: true, transparent: true });
 defBlock(B.BRICK, 'Brick', '#b9583c', '#b25238', { hard: 1.0, drop: 'stone' });
 defBlock(B.PLASTER, 'Plaster', '#f3e3bd', '#eedbb0', { hard: 0.6, drop: 'planks' });
-defBlock(B.BEAM, 'Timber Beam', '#6a4830', '#5e3f28', { hard: 0.6, drop: 'planks' });
+defBlock(B.BEAM, 'Timber Beam', '#86603c', '#775334', { hard: 0.6, drop: 'planks' });
 defBlock(B.LAMP, 'Lamp Post', '#ffd36a', '#3a3a40', { solid: false, hard: 0.3, drop: 'torch', emissive: true, partial: true, transparent: true });
 defBlock(B.COBBLE, 'Cobbles', '#8a8680', '#7e7a74', { hard: 0.9, drop: 'stone' });
 defBlock(B.PALISADE, 'Palisade', '#8a6a3c', '#6e5230', { hard: 0.7, drop: 'wood', transparent: true }); // two pointed posts per block

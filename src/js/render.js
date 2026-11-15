@@ -225,6 +225,7 @@ const R = (() => {
       float lam = max(dot(n, uSun), 0.0) * uSunAmt;
       float sh = lam > 0.001 ? shadowAt(vWorld, n) : 1.0;
       vec3 amb = vec3(0.78, 0.86, 1.05) * (0.4 + 0.3 * uDay) * (0.86 + 0.14 * n.y);
+      amb += vec3(0.24, 0.18, 0.09) * uDay * uSunAmt * (1.0 - max(n.y, 0.0)) * (1.0 - 0.6 * lam * sh); // sunlight thrown back off the ground: walls in shade are warm, not grey-blue
       vec3 light = skyL * (amb * (0.88 + 0.12 * sh) + uSunCol * lam * sh * 0.88 * uDay);
       light = max(light, vec3(uAmbient)); light = max(light, vec3(1.0, 0.78, 0.52) * torch * 0.95);
       if (vWorld.y < 14.5 && uCoreGlow > 0.5) { // the Core: the lava sea lights everything from below, orange on the undersides, fading up toward the roof
@@ -1001,6 +1002,9 @@ const R = (() => {
           const sk = skyAt(lx, y + 1, lz); let d = [0, -1]; for (const [a, b] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) if (isOpaque(get(lx + a, y, lz + b))) { d = [a, b]; break; }
           const cx = lx + 0.5 + d[0] * 0.15, cy = y + 0.5, cz = lz + 0.5 + d[1] * 0.15; const px = d[0] ? 0 : 1, pz = d[0] ? 1 : 0; const rot = 0.35 + U.hash3(wx, y, wz, 212) * 0.9; const wood = [0.46, 0.32, 0.18], canvas = [0.95, 0.91, 0.8];
           op.tube([[cx + d[0] * 0.4, cy, cz + d[1] * 0.4], [cx - d[0] * 0.25, cy, cz - d[1] * 0.25]], [0.16, 0.12], wood, { sky: sk, segs: 7, cap0: 'flat', cap1: 'round' });
+          { const tx = lx + 0.5 + d[0] * 3, tz = lz + 0.5 + d[1] * 3; const tc = [0.79, 0.38, 0.23]; op.curMat = 9; // the mill's cap: one round cone of tiles over the tower behind, an uneven skirt at its eave, a finial on top
+            op.tube([[tx, y + 2.9, tz], [tx, y + 3.15, tz], [tx, y + 4.3, tz], [tx, y + 5.7, tz]], [3.25, 3.05, 1.75, 0.06], tc, { sky: sk, segs: 14, cap0: 'flat', cap1: 'round', shade: (p, nx, ny, nz) => { const k = 0.84 + U.hash3(Math.floor(Math.atan2(nz, nx) * 4.4 + 20), Math.floor(p[1] * 2.5), wx + wz, 216) * 0.3; return [tc[0] * k, tc[1] * k, tc[2] * k]; } });
+            op.curMat = 0; op.tube([[tx, y + 5.6, tz], [tx, y + 6.3, tz]], [0.07, 0.03], [0.3, 0.26, 0.22], { sky: sk, segs: 5, cap0: 'none', cap1: 'round' }); op.blob(tx - 0.14, y + 6.2, tz - 0.14, tx + 0.14, y + 6.48, tz + 0.14, 0.95, [0.85, 0.68, 0.25], { sky: sk, n: 1 }); }
           op.curMat = 6;
           for (let k = 0; k < 4; k++) { const an = rot + k * Math.PI / 2, c = Math.cos(an), sn = Math.sin(an); const AT = (r, o) => [cx + px * (c * r - sn * o), cy + sn * r + c * o, cz + pz * (c * r - sn * o)];
             op.tube([AT(0, 0), AT(3.9, 0)], [0.08, 0.05], wood, { sky: sk, segs: 5, cap0: 'none', cap1: 'round' });

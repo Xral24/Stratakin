@@ -354,7 +354,6 @@ const Village = (() => {
       for (let a = -7; a <= 7; a++) for (let b = -7; b <= 7; b++) { const r = Math.hypot(a, b); const up = r < 4.2 ? 2 : r < 6.2 ? 1 : 0; for (let k = 1; k <= up; k++) push(mx + a, vy - 1 + k, mz + b, k === up ? M.ground : B.DIRT); if (!up && r < 7.5 && U.hash3(mx + a, 22, mz + b, 0x52) < 0.3) push(mx + a, vy, mz + b, B.FLOWERS); else if (up === 1 && U.hash3(mx + a, 23, mz + b, 0x53) < 0.2) push(mx + a, vy + 1, mz + b, B.FLOWERS); }
       const y0 = vy + 2;
       for (let a = -2; a <= 2; a++) for (let b = -2; b <= 2; b++) { const q = a * a + b * b; if (q > 5) continue; for (let y = 0; y < 8; y++) { if (y >= 5 && q > 4) continue; push(mx + a, y0 + y, mz + b, y < 2 ? B.MASONRY : B.PLASTER); } }
-      for (let a = -3; a <= 3; a++) for (let b = -3; b <= 3; b++) { const q = a * a + b * b; const lv = q <= 1 ? 3 : q <= 4 ? 2 : q <= 8 ? 1 : q <= 10 ? 0 : -1; if (lv >= 0) push(mx + a, y0 + 8 + lv, mz + b, B.TILES); }
       push(mx + 2, y0, mz, B.BEAM); push(mx + 2, y0 + 1, mz, B.BEAM); push(mx + 2, y0 + 3, mz, B.GLASS); push(mx - 2, y0 + 3, mz, B.GLASS); push(mx, y0 + 4, mz - 2, B.GLASS);
       push(mx, y0 + 5, mz + 3, B.SAILS);
       push(mx + 3, vy + 2, mz + 1, B.BARREL); push(mx + 3, vy + 2, mz - 1, B.CRATE); push(mx + 4, vy + 1, mz + 2, B.PLANTER);
