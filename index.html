@@ -2746,6 +2746,8 @@ const R = (() => {
         torus(CX, CZ, 3.15, topY - 0.1, 0.42, PEARL, { mat: 25 }); torus(CX, CZ, 3.75, topY - 0.55, 0.1, GLOW, { emis: true, mat: 26, sky: 1 });
         lathe(op, CX, CZ, [[4.1, F - 0.25], [3.3, F + 0.5], [2.9, F + 1.6], [2.75, F + 3.5], [2.75, topY - 3.2], [2.95, topY - 1.4], [3.5, topY - 0.3], [4.3, topY + 0.5]], [0.62, 0.84, 0.97], { N: 20, mat: 18, sky: 0.98 });
         torus(CX, CZ, 4.7, F + 5.6, 0.085, GLOW, { emis: true, mat: 26, sky: 1 }); torus(CX, CZ, 5.6, F + 9.2, 0.085, GLOW, { emis: true, mat: 26, sky: 1 }); torus(CX, CZ, 4.4, F + 12.6, 0.085, GLOW, { emis: true, mat: 26, sky: 1 });
+        // where the sea goes in: a whirlpool on the surface over the eye and a column of falling water from there down to the dome, so the city can be found from a boat and followed down
+        { const SY = SEA + 0.8; lathe(op, CX, CZ, [[7.3, SY - 0.22], [6.6, SY + 0.14], [5.7, SY + 0.2], [5.1, SY + 0.02], [4.0, SY - 0.6], [3.2, SY - 1.8], [2.95, SY - 3.4], [2.95, topY + 0.5]], [0.62, 0.84, 0.97], { N: 32, mat: 18, sky: 0.98, cols: (j) => j < 4 ? [0.96, 0.98, 1.0] : [0.62, 0.84, 0.97] }); torus(CX, CZ, 6.05, SY + 0.24, 0.07, GLOW, { emis: true, mat: 26, sky: 1, N: 32 }); } // a lip of foam stands over the water all round, so the hole in the sea has no edge
         // the ring pool: a pearl kerb, a basin that glows under the water
         lathe(op, CX, CZ, [[11.2, F - 0.02], [11.1, F + 0.3], [10.6, F + 0.44], [10.1, F + 0.34], [9.85, F - 0.2]], PEARL, { N: 64, mat: 25 });
         lathe(op, CX, CZ, [[9.85, F - 0.2], [9.75, F - 2.2], [9.1, F - 2.95], [3.2, F - 3.0]], [0.42, 0.9, 0.95], { N: 64, cols: (j) => j < 1 ? [0.75, 0.93, 0.96] : [0.3, 0.82, 0.92], sky: 1 });
@@ -3541,7 +3543,7 @@ const R = (() => {
           op.curMat = id === B.GRASS ? (f === 2 ? 1 : 4) : id === B.GLOWGRASS ? 16 : matSide;
           const nx = lx + n[0], ny = y + n[1], nz = lz + n[2];
           const nid = get(nx, ny, nz);
-          if (isWater) { if (nid !== B.AIR && nid !== B.TORCH && nid !== B.GLASS && nid !== B.SELGLASS && !(BLOCKS[nid].partial && !BLOCKS[nid].solid)) continue; if (atl && nid === B.AIR && y >= atl.y && Math.hypot(lx + 0.5 - atl.x, lz + 0.5 - atl.z) < 3.4) continue; /* the falls of Atlantis are drawn as one column of falling water, not as the sides of blocks */ }
+          if (isWater) { if (nid !== B.AIR && nid !== B.TORCH && nid !== B.GLASS && nid !== B.SELGLASS && !(BLOCKS[nid].partial && !BLOCKS[nid].solid)) continue; if (atl && nid === B.AIR && y >= atl.y && Math.hypot(lx + 0.5 - atl.x, lz + 0.5 - atl.z) < (y >= SEA ? 6.2 : 3.4)) continue; /* the falls of Atlantis are drawn as one column of falling water, not as the sides of blocks; and where the sea goes in at the top there is a whirlpool, not a flat sheet */ }
           else if (isGlass) { if (nid === id || isOpaque(nid)) continue; }
           else if (id === B.LAVA) { if (nid !== B.AIR && nid !== B.TORCH && nid !== B.WATER) continue; }
           else if (isOpaque(nid)) { if (!(f === 2 && isTrunk(nid) && SOIL.has(id))) continue; }
