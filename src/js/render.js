@@ -309,18 +309,20 @@ const R = (() => {
             c2 *= 0.94 + 0.12 * vn(q * 0.55 + 4.0);
             float lich = smoothstep(0.6, 0.74, vn(q * 1.6 + 11.0)) * smoothstep(0.75, 0.95, n.y); c2 = mix(c2, c2 * vec3(1.1, 1.13, 1.02) + vec3(0.03, 0.035, 0.02), lich * 0.55);
             float pit = smoothstep(0.72, 0.8, vn(q * 11.0 + 3.0)); c2 *= 1.0 - 0.14 * pit * near;
-            col = mix(col, c2, open);
+            float sw = smoothstep(0.6, 0.86, dot(vCol.rgb, vec3(0.3, 0.59, 0.11))); // how snowy the ground is here, from its own blended colour: rock running into snow is painted more and more like snow, so no line shows where the blocks change
+            col = mix(col, c2, open * (1.0 - sw)); col += vec3(0.13, 0.16, 0.24) * skyL * uDay * (1.0 - lam * sh) * sw * open;
           }
         } else if (mat == 4) { // earth: clods and the odd pale pebble
           float clod = vn(uv * 5.0 + 1.0) * 0.6 + vn(uv * 13.0 + 4.0) * 0.4; col *= 0.82 + 0.34 * clod;
           float peb = step(0.965, hash3(vec3(floor(uv * 9.0), bp.y + 3.0))) * (1.0 - smoothstep(0.2, 0.34, length(fract(uv * 9.0) - 0.5))); col = mix(col, col * 1.5 + 0.08, peb * near); // round pebbles, not square ones
         } else if (mat == 5) { // snow: soft drifts and glitter; in shade it still holds the light of the sky, blue-white, never the grey of stone
-          col *= 0.95 + 0.08 * vn(uv * 2.0); col += vec3(0.13, 0.16, 0.24) * skyL * uDay * (1.0 - lam * sh);
+          col *= 0.95 + 0.08 * vn(uv * 2.0); col += vec3(0.13, 0.16, 0.24) * skyL * uDay * (1.0 - lam * sh) * smoothstep(0.6, 0.86, dot(vCol.rgb, vec3(0.3, 0.59, 0.11)));
           col += uSunCol * step(0.988, hash3(vec3(floor(uv * 12.0), 5.0))) * (1.0 - smoothstep(0.1, 0.28, length(fract(uv * 12.0) - 0.5))) * uSunAmt * 0.3 * near;
         } else if (mat == 6) { // wood: grain lines running along the boards
           float grain = sin(uv.y * 38.0 + vn(uv * vec2(2.0, 0.4)) * 7.0) * 0.5 + 0.5; col *= 0.93 + 0.1 * smoothstep(0.3, 0.8, grain) * near;
-        } else if (mat == 7) { // leaves: dapple
-          col *= 0.9 + 0.2 * vn(vWorld.xz * 2.2 + vWorld.y * 0.7);
+        } else if (mat == 7) { // leaves: dapple, leaf-sized light and dark, and an outline broken into leaves instead of the smooth edge of a ball
+          col *= 0.9 + 0.2 * vn(vWorld.xz * 2.2 + vWorld.y * 0.7); col *= 0.87 + 0.26 * vn(vec2(vWorld.x * 9.0 + vWorld.y * 5.3, vWorld.z * 9.0 - vWorld.y * 6.1));
+          float rim = abs(dot(n, V)); if (rim < 0.45 && dist < 80.0) { float lf = vn(vec2(vWorld.x * 6.0 + vWorld.y * 3.1, vWorld.z * 6.0 - vWorld.y * 4.3)) * 0.6 + vn(vec2(vWorld.z * 11.0 + vWorld.y * 7.0, vWorld.x * 11.0 - vWorld.y * 5.0)) * 0.4; if (lf > 0.3 + rim * 1.4 + smoothstep(45.0, 80.0, dist) * 0.7) discard; }
         } else if (mat == 9 || mat == 13) { // tiles and slates: rows up the slope, each row offset half a tile, every tile its own shade, a dark seam between
           float along = abs(n.x) > abs(n.z) ? vWorld.z : vWorld.x; float rows = mat == 9 ? 3.0 : 4.5, tw = mat == 9 ? 2.0 : 2.6;
           float row = floor(vWorld.y * rows + 0.5); float ry = fract(vWorld.y * rows + 0.5);
@@ -1400,8 +1402,12 @@ const R = (() => {
           let around = 0; for (let f = 0; f < 6; f++) { const F = FACES[f]; const nid = get(lx + F.n[0], y + F.n[1], lz + F.n[2]); if (isLeaf(nid) || isOpaque(nid)) around++; }
           const dark = 1 - 0.06 * Math.max(0, around - 2); // deeper in the crown, darker
           let c; if (id === B.NEEDLES) { const nv = 0.9 + h1 * 0.2; c = [0.19 * nv, 0.42 * nv, 0.3 * nv]; } else { const warm = id === B.BERRYLEAF ? 1 : 0; c = [tint[0] * (0.9 + warm * 0.25) * vr, tint[1] * 1.02 * vr, tint[2] * 0.72 * vr]; }
+          const cc = chunkAt(lx, lz), bio = cc && cc.biome ? cc.biome[(((lx + 16) & 15) * CH) + ((lz + 16) & 15)] : -1;
+          if (id !== B.NEEDLES && (bio === BIOME.PLAINS || bio === BIOME.FOREST)) { const au = U.vnoise2(wx, wz, 38, WORLD_W, world.seed + 1201), k = U.clamp((au - 0.6) / 0.08, 0, 1); if (k > 0) { const t = U.vnoise2(wx, wz, 19, WORLD_W, world.seed + 1203) < 0.5 ? [0.93, 0.7, 0.16] : [0.84, 0.33, 0.12]; const m = (0.85 + h1 * 0.3) * vr; c = [U.lerp(c[0], t[0] * m, k), U.lerp(c[1], t[1] * m, k), U.lerp(c[2], t[2] * m, k)]; } } // here and there a stand of trees has turned: gold in one place, red in another
           const hue = (h2 - 0.5) * 0.16; c = [c[0] * dark * (1 + hue), c[1] * dark, c[2] * dark * (1 - hue)]; // some puffs yellower, some bluer
           op.blob(cx - rx, cy - ry, cz - rz, cx + rx, cy + ry, cz + rz, 1, [c[0] * 1.1, c[1] * 1.1, c[2]], { sky: sk, n: lod || window.__lowGeo ? 2 : nLeaf >= 4 ? 5 : 4, under: [c[0] * 0.46, c[1] * 0.58, c[2] * 0.7], split: 0.0, soft: 0.8 }); /* rounder crowns, lit above and cool beneath, like the Kin */
+          if (!lod && !window.__lowGeo) for (let k = 0; k < 3; k++) { const a = U.hash3(wx, y, wz, 70 + k) * 6.283, e = U.hash3(wx, y, wz, 73 + k), tr = (0.36 + e * 0.2) * Math.min(rx, rz), uy = 0.1 + 0.65 * U.hash3(wx, y, wz, 76 + k); const tx = cx + Math.cos(a) * (0.7 + 0.2 * e) * rx, ty = cy + uy * ry, tz = cz + Math.sin(a) * (0.7 + 0.2 * e) * rz, lt = 1.02 + 0.22 * uy; op.blob(tx - tr, ty - tr * 0.85, tz - tr, tx + tr, ty + tr * 0.85, tz + tr, 1, [c[0] * 1.1 * lt, c[1] * 1.1 * lt, c[2] * lt], { sky: sk, n: 2, under: [c[0] * 0.5, c[1] * 0.62, c[2] * 0.72], split: 0.0, soft: 0.8 }); } // smaller tufts break the outline: a crown is many clumps of leaf, not one ball
+          if ((bio === BIOME.SNOW || (bio === BIOME.MOUNTAIN && y > 62)) && !isLeaf(get(Math.floor(cx), Math.floor(cy + ry + 0.7), Math.floor(cz)))) { const m0 = op.curMat; op.curMat = 5; op.blob(cx - rx * 0.84, cy + ry * 0.32, cz - rz * 0.84, cx + rx * 0.84, cy + ry * 1.05, cz + rz * 0.84, 1, [0.93, 0.95, 1.0], { sky: sk, n: 2 }); op.curMat = m0; } // in the cold country snow lies on the boughs
           if (id === B.BERRYLEAF) for (let k = 0; k < 3; k++) { const a = U.hash3(wx, y, wz, 64 + k) * 6.283, e = 0.2 + U.hash3(wx, y, wz, 67 + k) * 0.6; op.ball(cx + Math.cos(a) * r * 0.85, cy + r * 0.8 * (e - 0.4), cz + Math.sin(a) * r * 0.85, 0.08, [0.9, 0.15, 0.22], { sky: sk, n: 2 }); }
           continue;
         }
@@ -1452,6 +1458,9 @@ const R = (() => {
             const rr = birch ? 0.4 : 0.5; const seed = wx * 7 + wz * 13 + y;
             const foot = axis === 'y' && !isLog(dn) && SOIL.has(dn); // the foot of a trunk spreads and goes well down into the ground, so it never stands on a slope like a post
             op.tube(foot ? [[a0[0], y - 1.0, a0[2]], [a0[0], y + 0.3, a0[2]], a1] : [a0, a1], foot ? [rr * 1.4, rr * 1.08, rr] : [rr, rr], base, { sky: sk, segs: 11, cap0: isLog(n0) ? 'none' : 'flat', cap1: isLog(n1) || isLeaf(n1) ? 'none' : 'flat', shade: (p, nx, ny, nz, t) => { const seg = Math.floor(Math.atan2(nx, nz) * 1.27 + 8) ; const k = U.hash3(seg, seed, 3, 5); if (birch) return k < 0.22 ? [0.25, 0.22, 0.2] : [0.9 * (0.94 + k * 0.1), 0.88 * (0.94 + k * 0.1), 0.84]; const m = 0.78 + k * 0.4; return [0.5 * m, 0.36 * m, 0.2 * m]; } });
+            if (axis === 'y') { let yy = y; while (yy - y < 16 && isLog(get(lx, yy + 1, lz))) yy++; const topLeaf = get(lx, yy + 1, lz);
+              if (foot && isLeaf(topLeaf) && yy - y >= 2) { const gy = gnd(lx, y, lz); for (let k = 0; k < 4; k++) { const a = (k + U.hash3(wx, y, wz, 88 + k) * 0.8) * 1.5708 + (seed % 7), L = 0.85 + U.hash3(wx, y, wz, 92 + k) * 0.45, dx = Math.cos(a), dz = Math.sin(a); op.tube([[lx + 0.5 + dx * rr * 0.5, y + 0.42, lz + 0.5 + dz * rr * 0.5], [lx + 0.5 + dx * L * 0.62, gy + 0.1, lz + 0.5 + dz * L * 0.62], [lx + 0.5 + dx * L, gy - 0.14, lz + 0.5 + dz * L]], [rr * 0.5, rr * 0.34, rr * 0.12], base, { sky: sk, segs: 5, cap0: 'none', cap1: 'round' }); } } // a tree's roots run out from its foot and into the ground
+              if (yy === y && isLeaf(up) && up !== B.NEEDLES && isLog(dn)) for (let k = 0; k < 4; k++) { const a = (k + U.hash3(wx, y, wz, 96 + k) * 0.7) * 1.5708 + (seed % 5), L = 1.3 + U.hash3(wx, y, wz, 100 + k) * 0.9, dx = Math.cos(a), dz = Math.sin(a), rise = 0.9 + U.hash3(wx, y, wz, 104 + k) * 0.9; op.tube([[lx + 0.5, y + 0.55, lz + 0.5], [lx + 0.5 + dx * L * 0.5, y + 0.9 + rise * 0.35, lz + 0.5 + dz * L * 0.5], [lx + 0.5 + dx * L, y + 1 + rise, lz + 0.5 + dz * L]], [rr * 0.6, rr * 0.4, rr * 0.16], base, { sky: sk, segs: 5, cap0: 'none', cap1: 'round' }); } } // and at its top the trunk forks into limbs that reach up into the crown
             continue;
           }
         }

@@ -342,7 +342,7 @@ class World {
     else switch (info.biome) {
       case BIOME.FOREST: p = 0.006 + 0.022 * U.vnoise2(x, z, 48, WORLD_W, this.seed + 371); type = kind < 0.18 ? 'pine' : kind < 0.3 ? 'birch' : 'oak'; break; // thick in patches, open glades between
       case BIOME.PLAINS: p = 0.004; type = kind < 0.4 ? 'birch' : 'oak'; break;
-      case BIOME.SNOW: p = 0.02; type = 'pine'; break;
+      case BIOME.SNOW: p = 0.02; type = kind < 0.22 ? 'birch' : 'pine'; break; // the cold country is not one tree: dark pines, tall firs standing over them, and pale birches in between
       case BIOME.SWAMP: p = 0.004 + 0.014 * U.vnoise2(x, z, 48, WORLD_W, this.seed + 373); type = 'swamp'; break;
       case BIOME.MOUNTAIN: p = 0.006; type = 'pine'; break;
       case BIOME.DESERT: p = 0.01; type = 'cactus'; break;
@@ -351,9 +351,10 @@ class World {
     }
     if (r >= p) return null;
     const hr = U.hash3(x, 97, z, this.seed);
-    const height = type === 'pine' ? 7 + Math.floor(hr * 5) : type === 'cactus' ? 1 + Math.floor(hr * 3) : type === 'jungle' ? 8 + Math.floor(hr * 5) : type === 'palm' ? 5 + Math.floor(hr * 3) : type === 'birch' ? 5 + Math.floor(hr * 3) : 4 + Math.floor(hr * 3);
+    const fir = type === 'pine' && kind > 0.66 && (info.biome === BIOME.SNOW || info.biome === BIOME.MOUNTAIN), grand = type === 'oak' && U.hash3(x, 94, z, this.seed + 19) < 0.1; // here and there an old giant among the oaks
+    const height = fir ? 11 + Math.floor(hr * 4) : grand ? 7 + Math.floor(hr * 3) : type === 'pine' ? 7 + Math.floor(hr * 5) : type === 'cactus' ? 1 + Math.floor(hr * 3) : type === 'jungle' ? 8 + Math.floor(hr * 5) : type === 'palm' ? 5 + Math.floor(hr * 3) : type === 'birch' ? 5 + Math.floor(hr * 3) : 4 + Math.floor(hr * 3);
     const berries = (type === 'oak' || type === 'swamp' || type === 'jungle') && U.hash3(x, 96, z, this.seed + 17) < 0.45; // nearly half the broadleaf trees carry berries
-    return { type, height, berries, big: type === 'jungle' && hr > 0.6, lean: Math.floor(U.hash3(x, 95, z, this.seed) * 4) };
+    return { type, height, berries, grand, big: type === 'jungle' && hr > 0.6, lean: Math.floor(U.hash3(x, 95, z, this.seed) * 4) };
   }
 
   // a builder that levels a patch of ground takes the trees on it with it, crowns and all: any tree rooted inside the
@@ -406,6 +407,11 @@ class World {
       canopy(x, h + th + 1, z, big ? 5 : 3, 2, B.LEAVES, tree.berries);
       if (big) { canopy(x + 3, h + th - 2, z - 2, 2, 1, B.LEAVES, false); for (let y = th - 4; y <= th - 2; y++) put(x + 3, h + y, z - 2, B.LOG, true); }
       for (let k = 0; k < (big ? 6 : 3); k++) { const a = k / 6 * 6.283 + hs(k, 5, k); const r = (big ? 4 : 2.5); const sx = x + Math.round(Math.cos(a) * r), sz = z + Math.round(Math.sin(a) * r); const len = 3 + Math.floor(hs(k, 8, k) * 4); for (let y = 0; y < len; y++) put(sx, h + th - 1 - y, sz, B.LEAVES, true); }
+      return;
+    }
+    if (tree.grand) { // an old giant: a bole four logs thick, great limbs, a wide crown in three masses
+      for (let ax = 0; ax < 2; ax++) for (let az = 0; az < 2; az++) for (let y = 1; y <= th; y++) put(x + ax, h + y, z + az, B.LOG, false);
+      canopy(x, h + th + 2, z, 4, 3, B.LEAVES, tree.berries); canopy(x + 2, h + th, z + 1, 2, 2, B.LEAVES, false); canopy(x - 2, h + th + 1, z - 1, 2, 2, B.LEAVES, false);
       return;
     }
     // oak: a trunk with one or two branches, a round crown
@@ -476,7 +482,7 @@ class World {
         else if (depth === 0) {
           const snowy = info.temp + (U.vnoise2(x, z, 7, P, s + 623) - 0.5) * 0.03 < 0.36; /* the snow line is not the line on the map: it breaks up into drifts and bare patches where the cold country meets the green */
           if (biome === BIOME.SNOW || biome === BIOME.PLAINS || biome === BIOME.FOREST) b = snowy ? B.SNOW : (wear > 0.7 && U.hash3(x, 41, z, s + 979) < 0.45 ? B.DIRT : B.GRASS); /* mud shows through where a path is walked most */
-          else if (biome === BIOME.MOUNTAIN) { const volc = U.vnoise2(x, z, 256, P, s + 611) > 0.6; b = volc ? (h >= 76 ? B.LAVA : (U.hash3(x, 8, z, s) < 0.1 ? B.EMBER : B.BASALT)) : (h > 64 ? B.SNOW : B.STONE); }
+          else if (biome === BIOME.MOUNTAIN) { const volc = U.vnoise2(x, z, 256, P, s + 611) > 0.6; b = volc ? (h >= 76 ? B.LAVA : (U.hash3(x, 8, z, s) < 0.1 ? B.EMBER : B.BASALT)) : (h + (U.vnoise2(x, z, 6, P, s + 625) - 0.5) * 6 > 64 ? B.SNOW : B.STONE); } /* the snow line on a mountain is ragged: tongues of snow run down, rock shows through above */
           else if (biome === BIOME.SWAMP && U.hash3(x, 6, z, s) < 0.3) b = B.MOSS;
           else b = B.GRASS;
         } else if (depth < 3 + Math.floor(U.hash3(x, 7, z, s) * 2)) {
