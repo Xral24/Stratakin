@@ -23,7 +23,7 @@ const Village = (() => {
     land: WALLS,
     frontier: [{ name: 'Palisade', block: B.PALISADE, bonus: 3, level: 1 }, WALLS[1], WALLS[2], WALLS[3]],
     alien: [{ name: 'Regolith', block: B.REGOLITH, bonus: 2, level: 1 }, { name: 'Basalt', block: B.BASALT, bonus: 8, level: 2, cost: { shards: 60, items: { stone: 40 } } }, { name: 'Tycho', block: B.IRONWALL, bonus: 18, level: 3, cost: { shards: 150, items: { tycho: 10, iron: 10 } } }, WALLS[3]],
-    halo: [{ name: 'Sandstone', block: B.STONE, bonus: 3, level: 1 }, { name: 'Basalt', block: B.BASALT, bonus: 8, level: 2, cost: { shards: 60, items: { stone: 40 } } }, WALLS[2], WALLS[3]],
+    halo: [{ name: 'Sandstone', block: B.HALOWALL, bonus: 3, level: 1 }, { name: 'Basalt', block: B.BASALT, bonus: 8, level: 2, cost: { shards: 60, items: { stone: 40 } } }, WALLS[2], WALLS[3]],
   };
   const wallSet = (v) => WALL_SETS[v.style] || WALLS;
   const WALL_BLOCKS = new Set([B.PLANKS, B.STONE, B.MASONRY, B.PALISADE, B.IRONWALL, B.VOIDWALL, B.TORCH, B.LOG, B.REGOLITH, B.BASALT, B.MOONGLOW, B.RINGSHARD]);
@@ -726,7 +726,7 @@ const Village = (() => {
     frontier: { ground: B.SAND, under: B.SAND, plaza: B.SAND, plazaEdge: B.PLANKS, post: B.LOG, light: B.TORCH, lamp: B.LAMP, floor: B.PLANKS, wall: B.PLANKS, window: B.GLASS, roof: B.THATCH, eave: B.LOG, counter: B.PLANKS, bush: B.CACTUS, boardwalk: true, saloon: true,
       houses: [{ wall: B.PLANKS, base: B.PLANKS, beam: B.LOG, roofs: [B.THATCH, B.THATCH, B.PLANKS] }] },
     alien: { ground: B.REGOLITH, under: B.DIRT, plaza: B.STARSALT, plazaEdge: B.BASALT, post: B.BASALT, light: B.MOONGLOW, floor: B.REGOLITH, wall: B.SELGLASS, window: B.SELGLASS, roof: B.SELGLASS, eave: B.SELGLASS, counter: B.BASALT, bush: null, pod: true },
-    halo: { ground: B.DUNE, under: B.DIRT, plaza: B.SALTCRUST, plazaEdge: B.STONE, post: B.STONE, light: B.RINGSHARD, floor: B.STONE, wall: B.HALOWALL, window: B.GLASS, roof: B.SALTROOF, eave: B.STONE, counter: B.STONE, bush: B.SULFUR },
+    halo: { ground: B.DUNE, under: B.DIRT, plaza: B.SALTCRUST, plazaEdge: B.STONE, post: B.HALOWALL, light: B.RINGSHARD, floor: B.STONE, wall: B.HALOWALL, window: B.GLASS, roof: B.SALTROOF, eave: B.HALOWALL, counter: B.HALOWALL, bush: B.SULFUR },
   };
   let MAT = MATS.land;
   // A city is four quarters, split by the two great streets through the square. Each has its own houses, its own ground and a landmark.

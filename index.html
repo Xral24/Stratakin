@@ -2040,8 +2040,9 @@ const R = (() => {
     vec4 lp = uLightPV * vec4(wp + n * 0.05, 1.0); vec3 sc = lp.xyz / lp.w * 0.5 + 0.5;
     if (sc.x < 0.0 || sc.x > 1.0 || sc.y < 0.0 || sc.y > 1.0 || sc.z > 1.0) return 1.0;
     float z = sc.z - 0.0009;
-    float s = texture(uShadow, vec3(sc.xy, z)) + texture(uShadow, vec3(sc.xy + vec2(uShadowTexel.x, 0.0), z)) + texture(uShadow, vec3(sc.xy + vec2(0.0, uShadowTexel.y), z)) + texture(uShadow, vec3(sc.xy + uShadowTexel, z));
-    s *= 0.25;
+    vec2 o = uShadowTexel * 1.7; // five taps spread wide, each already blended over four texels by the sampler: a shadow's edge is a soft band, not a ruled line
+    float s = texture(uShadow, vec3(sc.xy, z)) * 2.0 + texture(uShadow, vec3(sc.xy + vec2(o.x, o.y), z)) + texture(uShadow, vec3(sc.xy + vec2(-o.x, o.y), z)) + texture(uShadow, vec3(sc.xy + vec2(o.x, -o.y), z)) + texture(uShadow, vec3(sc.xy - o, z));
+    s /= 6.0;
     vec2 e = abs(sc.xy - 0.5) * 2.0; float edge = 1.0 - smoothstep(0.78, 1.0, max(e.x, e.y));
     return mix(1.0, s, edge * uShadowOn);
   }` : `float shadowAt(vec3 wp, vec3 n){ return 1.0; }`;
@@ -2394,21 +2395,22 @@ const R = (() => {
   // a bridge, a gate lintel, a cloud city) is looked through: it is the ground below that is the land and gets smoothed. A solid block
   // sitting right on the soil covers it, and covered soil stays square so whatever stands on it has a flat footing.
   function soilScan(get, x, z) {
-    let t = -1, wt = -1;
+    let t = -1, wt = -1, cov = -1;
     for (let y = WH - 1; y > 0; y--) {
       const b = get(x, y, z);
       if (DECOR(b)) continue;
       if (b === B.WATER || b === B.BRINE) { if (wt < 0) wt = y + 1; continue; }
       if (SOIL.has(b)) { t = y; break; }
-      if (y <= 1 || SOIL.has(get(x, y - 1, z))) break; // standing on the ground: it covers the soil. Otherwise it floats over it: keep looking down
+      if (y <= 1) break;
+      if (SOIL.has(get(x, y - 1, z))) { cov = isOpaque(get(x, y + 1, z)) ? y - 1 : y; break; } // standing on the ground: it covers the soil. Paving one block deep counts as ground at its own top; under a wall the ground is the soil it stands on. Otherwise it floats over it: keep looking down
     }
-    return [t, wt];
+    return [t, wt, cov]; // cov: where the land meets something built here, so the ground beside it can run up to it smoothly
   }
   const ROOFB = (b) => b === B.TILES || b === B.SLATE || b === B.THATCH || b === B.SAIL || b === B.SALTROOF;
   const ROUNDY = new Set([B.PLASTER, B.BEAM, B.MASONRY, B.BRICK, B.HALOWALL, B.HALFTIMBER, B.HALFTIMBER_O, B.HALFTIMBER_W]);
   const SIGNABLE = new Set([B.EMBER, B.BERRY, B.COPPER, B.VOID, B.IRON, B.GOLD, B.GLOWWORM, B.LOG, B.MOONGLOW, B.CLOUD, B.SELENITE, B.BERRYLEAF, B.AMBER]);
   const WALLY = (b) => b === B.PLANKS || b === B.PLASTER || b === B.BEAM || b === B.MASONRY || b === B.BRICK || b === B.HALOWALL || b === B.HALFTIMBER || b === B.HALFTIMBER_O || b === B.HALFTIMBER_W || b === B.IRONWALL || b === B.VOIDWALL || b === B.SELGLASS;
-  const surfTop = new Int16Array(18 * 18), surfWet = new Int16Array(18 * 18), cornerH = new Float32Array(17 * 17); const cornerCol = new Float32Array(17 * 17 * 6); const cornerSky = new Float32Array(17 * 17);
+  const surfCov = new Int16Array(18 * 18); const surfTop = new Int16Array(18 * 18), surfWet = new Int16Array(18 * 18), cornerH = new Float32Array(17 * 17); const cornerCol = new Float32Array(17 * 17 * 6); const cornerSky = new Float32Array(17 * 17);
   const FLOWERS = [[0.95, 0.85, 0.25], [0.95, 0.95, 0.95], [0.85, 0.35, 0.55], [0.6, 0.5, 0.95], [0.95, 0.5, 0.25]];
   function buildChunk(world, chunk) {
     const cx = chunk.cx, cz = chunk.cz, ox = cx * CH, oz = cz * CH;
@@ -2433,13 +2435,14 @@ const R = (() => {
     // smooth land: every column's exposed soil top, then a height for each corner shared by four columns.
     // Steps of one or two blocks become slopes; anything steeper stays a sharp edge.
     for (let x = -1; x <= 16; x++) for (let z = -1; z <= 16; z++) {
-      const [t, wt] = soilScan(get, x, z);
-      surfTop[(x + 1) * 18 + (z + 1)] = t; surfWet[(x + 1) * 18 + (z + 1)] = wt; // the seabed counts as land: shores slope in under the water
+      const [t, wt, cv] = soilScan(get, x, z);
+      surfTop[(x + 1) * 18 + (z + 1)] = t; surfWet[(x + 1) * 18 + (z + 1)] = wt; surfCov[(x + 1) * 18 + (z + 1)] = cv; // the seabed counts as land: shores slope in under the water
     }
     for (let cx = 0; cx <= 16; cx++) for (let cz = 0; cz <= 16; cz++) {
       let n = 0, dry = false, wl = -1; const ts = [], ws = [];
-      for (const [a, b] of [[-1, -1], [0, -1], [-1, 0], [0, 0]]) { const i = (cx + a + 1) * 18 + (cz + b + 1); const t = surfTop[i]; if (t < 0) { n = 0; break; } n++; ts.push(t); const wt = surfWet[i]; ws.push(wt); if (wt < 0) dry = true; else wl = Math.max(wl, wt); }
-      let v = -1;
+      let ncov = 0;
+      for (const [a, b] of [[-1, -1], [0, -1], [-1, 0], [0, 0]]) { const i = (cx + a + 1) * 18 + (cz + b + 1); let t = surfTop[i]; if (t < 0) { t = surfCov[i]; if (t < 0) { n = 0; break; } ncov++; } n++; ts.push(t); const wt = surfWet[i]; ws.push(wt); if (wt < 0) dry = true; else wl = Math.max(wl, wt); }
+      let v = -1; if (ncov === 4) n = 0; // a corner wholly under a building is not land
       if (n) {
         // at the water's edge a wet column counts as ground at the surface, however deep the seabed really is: a bank up to two blocks above the water slopes down to it instead of standing as cubes over a drop
         const shore = dry && wl >= 0; let sum = 0, lo = 999, hi = -999;
@@ -2473,6 +2476,22 @@ const R = (() => {
     };
     // a normal per corner from the slope of the smoothed height field
     const cornerN = (x, z) => { const h = CHt(x, z); if (h < 0) return [0, 1, 0]; const g = (a, b) => { const v = (a >= 0 && a <= 16 && b >= 0 && b <= 16) ? CHt(a, b) : -1; return v >= 0 ? v : h; }; const dx = (g(x + 1, z) - g(x - 1, z)) * 0.5, dz = (g(x, z + 1) - g(x, z - 1)) * 0.5; const l = Math.hypot(dx, 1, dz); return [-dx / l, 1 / l, -dz / l]; };
+    const moonPods = world.preset.id === 'moon'; let _crowns = null;
+    const podCrowns = () => { if (_crowns) return _crowns; _crowns = []; for (let x = -5; x <= 20; x++) for (let z = -5; z <= 20; z++) for (let y = 3; y < WH - 2; y++) if (get(x, y, z) === B.BASALT && get(x, y + 1, z) === B.MOONGLOW && get(x + 1, y - 1, z) === B.SELGLASS && get(x - 1, y - 1, z) === B.SELGLASS) _crowns.push([x, y, z]); return _crowns; };
+    const drawPod = (lx, cy, lz) => { const vy = cy - 4, X = lx + 0.5, Z = lz + 0.5, R = 3.8, SEG = 20, RING = 6, TAU = Math.PI * 2; const sk = skyAt(lx, cy + 1, lz);
+      let door = null; for (const [a, b] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) if (get(lx + a * 3, vy, lz + b * 3) === B.AIR && get(lx + a * 3, vy + 1, lz + b * 3) === B.AIR && get(lx + a * 4, vy, lz + b * 4) === B.AIR) { door = Math.atan2(b, a); break; }
+      const inDoor = (ang, w) => { if (door == null) return false; const d = ang - door; return Math.abs(Math.atan2(Math.sin(d), Math.cos(d))) < w; };
+      const gc = BLOCKS[B.SELGLASS].top, bs = BLOCKS[B.BASALT].side; const gcol = [gc, gc, gc, gc], bcol = [bs, bs, bs, bs], sks = [sk, sk, sk, sk];
+      const N = (th, ph) => [Math.cos(th) * Math.cos(ph), Math.sin(ph), Math.sin(th) * Math.cos(ph)]; const P = (th, ph, r) => { const n = N(th, ph); return [X + n[0] * r, vy + n[1] * r, Z + n[2] * r]; }; const neg = (n) => [-n[0], -n[1], -n[2]];
+      for (let i = 0; i < SEG; i++) for (let j = 0; j < RING; j++) { const t0 = i / SEG * TAU, t1 = (i + 1) / SEG * TAU, p0 = j / RING * Math.PI / 2, p1 = (j + 1) / RING * Math.PI / 2;
+        if (inDoor((t0 + t1) / 2, 0.3) && Math.sin((p0 + p1) / 2) * R < 2.35) continue; // the doorway
+        const vo = [P(t1, p0, R), P(t0, p0, R), P(t0, p1, R), P(t1, p1, R)], no = [N(t1, p0), N(t0, p0), N(t0, p1), N(t1, p1)]; const vi = [vo[1], vo[0], vo[3], vo[2]], ni = [neg(no[1]), neg(no[0]), neg(no[3]), neg(no[2])];
+        if (j === 0) { op.curMat = 3; op.quad(vo, bcol, sks, false, no); op.quad(vi, bcol, sks, false, ni); op.curMat = 0; } else { gs.quad(vo, gcol, sks, false, no); gs.quad(vi, gcol, sks, false, ni); } }
+      const rib = (th, ph0, ph1, rad) => { const pts = []; for (let k = 0; k <= 6; k++) pts.push(P(th, ph0 + (ph1 - ph0) * k / 6, R + 0.02)); op.tube(pts, pts.map(() => rad), bs, { sky: sk, segs: 5, cap0: 'none', cap1: 'none' }); };
+      for (let k = 0; k < 8; k++) { const th = (k + 0.5) / 8 * TAU; if (!inDoor(th, 0.34)) rib(th, Math.PI / 12, Math.PI / 2 - 0.12, 0.045); }
+      if (door != null) { const pd = Math.asin(2.35 / R); for (const sd of [-1, 1]) rib(door + sd * 0.31, 0, pd, 0.1); const pts = []; for (let k = 0; k <= 6; k++) pts.push(P(door - 0.31 + 0.62 * k / 6, pd, R + 0.02)); op.tube(pts, pts.map(() => 0.1), bs, { sky: sk, segs: 5, cap0: 'round', cap1: 'round' }); }
+      op.blob(X - 0.5, cy - 0.25, Z - 0.5, X + 0.5, cy + 0.75, Z + 0.5, 0.85, bs, { sky: sk, n: 3 }); // the crown the lamp stands on
+    };
     const blocks = chunk.blocks;
     const col0 = [0, 0, 0];
     for (let lx = 0; lx < CH; lx++) for (let lz = 0; lz < CH; lz++) {
@@ -3092,6 +3111,13 @@ const R = (() => {
           for (let k = 0; k < 3; k++) { const a = k / 3 * 6.283 + 0.4; op.push(); op.rotate(0.5, a, 0.3, [lx + 0.5 + Math.cos(a) * 0.3, y + 1.3, lz + 0.5 + Math.sin(a) * 0.3]); op.blob(lx + 0.5 + Math.cos(a) * 0.3 - 0.05, y + 1.18, lz + 0.5 + Math.sin(a) * 0.3 - 0.05, lx + 0.5 + Math.cos(a) * 0.3 + 0.05, y + 1.44, lz + 0.5 + Math.sin(a) * 0.3 + 0.05, 0.2, glow, { emis: true, n: 1, tap: [0.4, 0.2], bulge: 1.0 }); op.pop(); }
           continue;
         }
+        if (moonPods && (id === B.SELGLASS || id === B.BASALT)) { // a Moon pod is one smooth dome of glass on a dark footing, not a heap of cubes: its blocks are passed over and the dome is drawn once, from its crown
+          const cr = podCrowns(); let skip = false;
+          for (const c of cr) { const dx = lx - c[0], dz = lz - c[2]; if (Math.abs(dx) > 4 || Math.abs(dz) > 4) continue;
+            if (id === B.BASALT && dx === 0 && dz === 0 && y === c[1]) { drawPod(lx, y, lz); skip = true; break; }
+            if (id === B.SELGLASS ? (y <= c[1] - 1 && y >= c[1] - 4) : (y === c[1] - 4 && Math.hypot(dx, dz) > 2.5 && Math.hypot(dx, dz) <= 4.15)) { skip = true; break; } }
+          if (skip) continue;
+        }
         const isWater = id === B.WATER || id === B.BRINE, isGlass = id === B.GLASS || id === B.SELGLASS;
         if (isGlass) { // glass set in a wall is a window: a frame with a cross, the pane in the middle of the block
           const wX = isOpaque(get(lx + 1, y, lz)) || isOpaque(get(lx - 1, y, lz)), wZ = isOpaque(get(lx, y, lz + 1)) || isOpaque(get(lx, y, lz - 1));
@@ -3114,7 +3140,7 @@ const R = (() => {
             continue;
           }
         }
-        if (ROUNDY.has(id)) { // nothing built stands on a knife edge: where two outside faces of a wall meet, the corner is turned
+        if (ROUNDY.has(id) || (moonPods && id === B.BASALT && skyAt(lx, y + 1, lz) > 0.5)) { // nothing built stands on a knife edge (on the Moon that goes for basalt posts and walls in the open; underground it stays square): where two outside faces of a wall meet, the corner is turned
           const N4 = [[0, 1, 4], [1, 0, 0], [0, -1, 5], [-1, 0, 1]], CN = [[0, 1], [1, 1], [1, 0], [0, 0]], DR = [[1, 0], [0, -1], [-1, 0], [0, 1]]; // edge k runs from corner k to corner k + 1; its outward normal and face
           const nbr = N4.map(([a, b]) => get(lx + a, y, lz + b)); const exp = nbr.map((q) => !isOpaque(q)); const soft = nbr.map((q) => !isOpaque(q) && q !== B.GLASS && q !== B.SELGLASS && q !== B.DOOR);
           const rnd = [0, 1, 2, 3].map((k) => soft[k] && soft[(k + 3) & 3]);
@@ -3522,7 +3548,8 @@ const R = (() => {
   function soilTopAt(world, x, z) { return soilScan((x, y, z) => world.getBlock(x, y, z), x, z); }
   function cornerHeight(world, cx, cz) { // the same rule as the mesher, for the targeting outline
     let dry = false, wl = -1; const ts = [], ws = [];
-    for (const [a, b] of [[-1, -1], [0, -1], [-1, 0], [0, 0]]) { const [t, wt] = soilTopAt(world, cx + a, cz + b); if (t < 0) return -1; ts.push(t); ws.push(wt); if (wt < 0) dry = true; else wl = Math.max(wl, wt); }
+    let ncov = 0; for (const [a, b] of [[-1, -1], [0, -1], [-1, 0], [0, 0]]) { let [t, wt, cv] = soilTopAt(world, cx + a, cz + b); if (t < 0) { if (cv < 0) return -1; t = cv; ncov++; } ts.push(t); ws.push(wt); if (wt < 0) dry = true; else wl = Math.max(wl, wt); }
+    if (ncov === 4) return -1;
     const shore = dry && wl >= 0; let sum = 0, lo = 999, hi = -999;
     for (let i = 0; i < 4; i++) { const t = shore && ws[i] >= 0 ? Math.max(ts[i], ws[i] - 2) : ts[i]; sum += t; lo = Math.min(lo, t); hi = Math.max(hi, t); }
     let v = hi - lo <= SLOPE_MAX ? sum / 4 + 1 : -1; if (v >= 0 && shore) v = Math.max(v, wl - 0.45); return v;
@@ -9946,7 +9973,7 @@ const Village = (() => {
     land: WALLS,
     frontier: [{ name: 'Palisade', block: B.PALISADE, bonus: 3, level: 1 }, WALLS[1], WALLS[2], WALLS[3]],
     alien: [{ name: 'Regolith', block: B.REGOLITH, bonus: 2, level: 1 }, { name: 'Basalt', block: B.BASALT, bonus: 8, level: 2, cost: { shards: 60, items: { stone: 40 } } }, { name: 'Tycho', block: B.IRONWALL, bonus: 18, level: 3, cost: { shards: 150, items: { tycho: 10, iron: 10 } } }, WALLS[3]],
-    halo: [{ name: 'Sandstone', block: B.STONE, bonus: 3, level: 1 }, { name: 'Basalt', block: B.BASALT, bonus: 8, level: 2, cost: { shards: 60, items: { stone: 40 } } }, WALLS[2], WALLS[3]],
+    halo: [{ name: 'Sandstone', block: B.HALOWALL, bonus: 3, level: 1 }, { name: 'Basalt', block: B.BASALT, bonus: 8, level: 2, cost: { shards: 60, items: { stone: 40 } } }, WALLS[2], WALLS[3]],
   };
   const wallSet = (v) => WALL_SETS[v.style] || WALLS;
   const WALL_BLOCKS = new Set([B.PLANKS, B.STONE, B.MASONRY, B.PALISADE, B.IRONWALL, B.VOIDWALL, B.TORCH, B.LOG, B.REGOLITH, B.BASALT, B.MOONGLOW, B.RINGSHARD]);
@@ -10649,7 +10676,7 @@ const Village = (() => {
     frontier: { ground: B.SAND, under: B.SAND, plaza: B.SAND, plazaEdge: B.PLANKS, post: B.LOG, light: B.TORCH, lamp: B.LAMP, floor: B.PLANKS, wall: B.PLANKS, window: B.GLASS, roof: B.THATCH, eave: B.LOG, counter: B.PLANKS, bush: B.CACTUS, boardwalk: true, saloon: true,
       houses: [{ wall: B.PLANKS, base: B.PLANKS, beam: B.LOG, roofs: [B.THATCH, B.THATCH, B.PLANKS] }] },
     alien: { ground: B.REGOLITH, under: B.DIRT, plaza: B.STARSALT, plazaEdge: B.BASALT, post: B.BASALT, light: B.MOONGLOW, floor: B.REGOLITH, wall: B.SELGLASS, window: B.SELGLASS, roof: B.SELGLASS, eave: B.SELGLASS, counter: B.BASALT, bush: null, pod: true },
-    halo: { ground: B.DUNE, under: B.DIRT, plaza: B.SALTCRUST, plazaEdge: B.STONE, post: B.STONE, light: B.RINGSHARD, floor: B.STONE, wall: B.HALOWALL, window: B.GLASS, roof: B.SALTROOF, eave: B.STONE, counter: B.STONE, bush: B.SULFUR },
+    halo: { ground: B.DUNE, under: B.DIRT, plaza: B.SALTCRUST, plazaEdge: B.STONE, post: B.HALOWALL, light: B.RINGSHARD, floor: B.STONE, wall: B.HALOWALL, window: B.GLASS, roof: B.SALTROOF, eave: B.HALOWALL, counter: B.HALOWALL, bush: B.SULFUR },
   };
   let MAT = MATS.land;
   // A city is four quarters, split by the two great streets through the square. Each has its own houses, its own ground and a landmark.
