@@ -14,7 +14,7 @@ const B = {
   TORCH: 18, FUSION: 19, GRAVEL: 20, CACTUS: 21, STARMETAL: 22, MOSS: 23, STATUE: 24, PLANKS: 25, BERRY: 26, GLASS: 27, CAMPFIRE: 28, IRONWALL: 29, VOIDWALL: 30, GLOWWORM: 31, BERRYLEAF: 32, DOOR: 33, DOOR_OPEN: 34, PORTAL: 35,
   CHEST: 36, SELENITE: 37, TYCHO: 38, STARSALT: 39, MOONGLOW: 40, AMBER: 41, SULFUR: 42, RINGSHARD: 43, BRINE: 44, CORAL_R: 45, CORAL_B: 46, CORAL_Y: 47, PEARLCORAL: 48, GOLD: 49, DIAMOND: 50, FERN: 51, SELGLASS: 52, INCUBATOR: 53, REGOLITH: 54, DUNE: 55, SALTCRUST: 56, LADDER: 57, TARGET: 58, BALLOON: 59, FORTSTONE: 60, THORN: 61, DEADGATE: 62, RUBBLE: 63, DARKTABLE: 64,
   NEEDLES: 65, FROND: 66, BIRCHLOG: 67, BOULDER: 68, MUSHROOM: 69, FLOWERS: 70, PEBBLES: 71, PALMLOG: 72,
-  TILES: 73, SLATE: 74, THATCH: 75, PLASTER: 76, BEAM: 77, LAMP: 78, COBBLE: 79, FLOWERBOX: 80, PALISADE: 81, MASONRY: 82, FOUNTAIN: 83, BASIN: 84, AWNING: 85, BANNER: 86, SLIT: 87, TIPI: 88, HIDE: 89, LODGE: 90, FENCE: 91, FIREPIT: 92, TOTEM: 93, RAIL: 94, CART: 95, ROPEBRIDGE: 96, WEAVE: 97, SAIL: 98, EMBERLIGHT: 99, BARREL: 100, CRATE: 101, BUNTING: 102, SIGNPOST: 103, PLANTER: 104, BRICK: 105, SAILS: 106, FALLS: 107, HALFTIMBER: 108, CHIMNEY: 109, HALFTIMBER_O: 110, HALFTIMBER_W: 111, GLOWLINE: 112, SALTROOF: 113, HALOWALL: 114
+  TILES: 73, SLATE: 74, THATCH: 75, PLASTER: 76, BEAM: 77, LAMP: 78, COBBLE: 79, FLOWERBOX: 80, PALISADE: 81, MASONRY: 82, FOUNTAIN: 83, BASIN: 84, AWNING: 85, BANNER: 86, SLIT: 87, TIPI: 88, HIDE: 89, LODGE: 90, FENCE: 91, FIREPIT: 92, TOTEM: 93, RAIL: 94, CART: 95, ROPEBRIDGE: 96, WEAVE: 97, SAIL: 98, EMBERLIGHT: 99, BARREL: 100, CRATE: 101, BUNTING: 102, SIGNPOST: 103, PLANTER: 104, BRICK: 105, SAILS: 106, FALLS: 107, HALFTIMBER: 108, CHIMNEY: 109, HALFTIMBER_O: 110, HALFTIMBER_W: 111, GLOWLINE: 112, SALTROOF: 113, HALOWALL: 114, TRACK: 115
 };
 
 // name, top colour, side colour, solid, hardness (seconds to mine), drop item id, emissive, fluid
@@ -129,6 +129,7 @@ defBlock(B.FENCE, 'Rail Fence', '#a07a44', '#75522c', { hard: 0.5, drop: 'wood',
 defBlock(B.FIREPIT, 'Fire Pit', '#ff9a3a', '#6a6a70', { solid: false, hard: Infinity, emissive: true, partial: true, transparent: true });
 defBlock(B.TOTEM, 'Totem', '#a07a44', '#75522c', { hard: Infinity, partial: true, transparent: true });
 defBlock(B.RAIL, 'Rail', '#6a6a70', '#5a4a30', { solid: false, hard: 0.4, drop: 'iron', partial: true, transparent: true });
+defBlock(B.TRACK, 'Railway', '#6a6a70', '#5a4a30', { solid: false, hard: 0.6, drop: 'iron', partial: true, transparent: true }); // the line between towns: it lies on the land and follows it
 defBlock(B.BARREL, 'Barrel', '#9a6a3a', '#7a4f28', { hard: 0.5, drop: 'planks', partial: true, transparent: true });
 defBlock(B.CRATE, 'Crate', '#b89058', '#96703e', { hard: 0.5, drop: 'planks', partial: true, transparent: true });
 defBlock(B.BUNTING, 'Bunting', '#e8c040', '#d04a4a', { solid: false, hard: 0.1, drop: null, partial: true, transparent: true });
@@ -147,7 +148,7 @@ defBlock(B.PEBBLES, 'Pebbles', '#8e9197', '#86898f', { solid: false, hard: 0.2, 
 // blocks that light their surroundings, and how far
 const LIGHT_R = { [B.TORCH]: 10, [B.CAMPFIRE]: 14, [B.FIREPIT]: 13, [B.MOONGLOW]: 12, [B.RINGSHARD]: 10, [B.PEARLCORAL]: 8, [B.INCUBATOR]: 9, [B.LAMP]: 12 };
 // blocks the sky light passes through when working out how deep a column is
-const SKY_CLEAR = { [B.GLOWLINE]: 1, [B.CHIMNEY]: 1, [B.FALLS]: 1, [B.BUNTING]: 1, [B.SIGNPOST]: 1, [B.SAILS]: 1, [B.LAMP]: 1, [B.FLOWERBOX]: 1, [B.RAIL]: 1, [B.BANNER]: 1, [B.BASIN]: 1, [B.FOUNTAIN]: 1, [B.TIPI]: 1, [B.LODGE]: 1, [B.HIDE]: 1, [B.FENCE]: 1, [B.FIREPIT]: 1, [B.TOTEM]: 1, [B.FROND]: 1, [B.MUSHROOM]: 1, [B.FLOWERS]: 1, [B.PEBBLES]: 1, [B.LADDER]: 1, [B.TORCH]: 1, [B.GLASS]: 1, [B.SELGLASS]: 1, [B.CAMPFIRE]: 1, [B.MOONGLOW]: 1, [B.GLOWWORM]: 1, [B.FERN]: 1, [B.PORTAL]: 1, [B.BERRY]: 1, [B.RINGSHARD]: 1 };
+const SKY_CLEAR = { [B.TRACK]: 1, [B.GLOWLINE]: 1, [B.CHIMNEY]: 1, [B.FALLS]: 1, [B.BUNTING]: 1, [B.SIGNPOST]: 1, [B.SAILS]: 1, [B.LAMP]: 1, [B.FLOWERBOX]: 1, [B.RAIL]: 1, [B.BANNER]: 1, [B.BASIN]: 1, [B.FOUNTAIN]: 1, [B.TIPI]: 1, [B.LODGE]: 1, [B.HIDE]: 1, [B.FENCE]: 1, [B.FIREPIT]: 1, [B.TOTEM]: 1, [B.FROND]: 1, [B.MUSHROOM]: 1, [B.FLOWERS]: 1, [B.PEBBLES]: 1, [B.LADDER]: 1, [B.TORCH]: 1, [B.GLASS]: 1, [B.SELGLASS]: 1, [B.CAMPFIRE]: 1, [B.MOONGLOW]: 1, [B.GLOWWORM]: 1, [B.FERN]: 1, [B.PORTAL]: 1, [B.BERRY]: 1, [B.RINGSHARD]: 1 };
 const isSolid = (id) => BLOCKS[id].solid;
 const isLeaf = (id) => id === B.LEAVES || id === B.BERRYLEAF || id === B.NEEDLES;
 const isTrunk = (id) => id === B.LOG || id === B.BIRCHLOG || id === B.PALMLOG;
@@ -331,7 +332,7 @@ class World {
       default: return [0.46 + temp * 0.25, 0.74, 0.3 + moist * 0.1];
     }
   }
-  treeAt(x, z, info) { const t = this.treeAt0(x, z, info); return t && this.trailWear && this.trailWear(x, z) > 0.1 ? null : t; } // no tree grows in a footpath
+  treeAt(x, z, info) { const t = this.treeAt0(x, z, info); if (!t) return null; if (this.trailWear && this.trailWear(x, z) > 0.1) return null; if (this.trackAt) for (let a = -2; a <= 2; a++) for (let b = -2; b <= 2; b++) if (this.trackAt(x + a, z + b)) return null; return t; } // no tree grows in a footpath or beside the railway
   treeAt0(x, z, info) {
     if (!this.preset.trees) return null;
     if (info.h <= SEA || info.h > 72) return null;
@@ -540,6 +541,7 @@ class World {
         gal(x + 1, z, 28); gal(z - 47, x, 21);
       }
       if (this.preset.water && h < SEA) for (let y = h + 1; y <= SEA; y++) blocks[base + y] = B.WATER;
+      if (this.trackAt && this.trackAt(x, z)) { if (h >= SEA) { blocks[base + h] = B.GRAVEL; blocks[base + h + 1] = B.TRACK; for (let y = h + 2; y <= h + 4 && y < WH; y++) blocks[base + y] = B.AIR; } else if (SEA + 2 < WH) { blocks[base + SEA + 1] = B.PLANKS; blocks[base + SEA + 2] = B.TRACK; } } /* the railway: ballast under it on land, a plank deck where it crosses water */
       if (this.preset.brine && h < this.preset.brineLevel) for (let y = h + 1; y <= this.preset.brineLevel; y++) blocks[base + y] = B.BRINE;
       if (this.preset.ringfall && h >= this.preset.brineLevel && h < WH - 2 && biome !== BIOME.MESA && U.hash3(x, 13, z, s + 931) < 0.0012) blocks[base + h + 1] = B.RINGSHARD;
       // sky islands

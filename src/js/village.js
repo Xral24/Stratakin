@@ -190,7 +190,7 @@ const Village = (() => {
   function init(game) {
     G = game; world = game.world; villages.clear(); hermits.clear(); active = null; activeHermit = null; walkState = null; fisher = null;
     const vd = world.preset.villages || { nc: 64, prefix: '', style: 'land' }; NC = vd.nc; CELL = WORLD_W / NC; PREFIX = vd.prefix || ''; STYLE = vd.style || 'land';
-    PLAN = null; PLANNED = null; TRAILS = null; SPECIAL.clear(); LOOK.clear(); towns.clear(); world.overlay = (c) => overlay(c); world.trailWear = (x, z) => trailWear(x, z);
+    PLAN = null; PLANNED = null; TRAILS = null; SPECIAL.clear(); LOOK.clear(); towns.clear(); world.overlay = (c) => overlay(c); world.trailWear = (x, z) => trailWear(x, z); world.trackAt = (x, z) => trackAt(x, z);
   }
   function state(id) {
     if (!G.villageState) G.villageState = {};
@@ -238,7 +238,7 @@ const Village = (() => {
   // browner along them and a little mud shows through. Each trail finds its own way over the land: round water, up the easy side of a hill.
   let TRAILS = null, PLANNED = null, trailBusy = false;
   function buildTrails() {
-    const T = { cells: new Map(), n: 0 }; TRAILS = T; if (world.preset.id !== 'earth') return T;
+    const T = { cells: new Map(), n: 0, track: new Map() }; TRAILS = T; if (world.preset.id !== 'earth') return T;
     plan(); const st = villages.get('start') || pickStartSite(world.spawn); const pts = (PLANNED || []).filter(v => v.type === 'land').map(v => ({ x: v.x, z: v.z, R: v.R || TOWN_R[PLAN.get(v.id)] || 12 })); if (st) pts.unshift({ x: st.x, z: st.z, R: st.R || TOWN_R.start });
     if (pts.length < 2) return T;
     const D = (a, b) => Math.hypot(wd(a.x - b.x), wd(a.z - b.z)); const edges = new Map(); const add = (i, j) => { if (i !== j) edges.set(Math.min(i, j) + ':' + Math.max(i, j), [Math.min(i, j), Math.max(i, j)]); };
@@ -246,12 +246,15 @@ const Village = (() => {
     for (let i = 0; i < pts.length; i++) { const o = pts.map((p, j) => [D(pts[i], p), j]).filter(e => e[1] !== i).sort((a, b) => a[0] - b[0]); for (const e of o.slice(0, 2)) if (e[0] < 1000) add(i, e[1]); } // then each place to its two nearest, which closes the loops: you can walk the circuit
     const gate = (P, Q) => { const dx = Q.x - P.x, dz = Q.z - P.z, r = P.R + 3; return Math.abs(dx) > Math.abs(dz) ? { x: P.x + Math.sign(dx) * r, z: P.z } : { x: P.x, z: P.z + Math.sign(dz) * r }; }; // a trail leaves by the gate that faces where it is going
     for (const [i, j] of edges.values()) { const A = pts[i], B = { x: A.x + wd(pts[j].x - A.x), z: A.z + wd(pts[j].z - A.z), R: pts[j].R }; routeTrail(T, gate(A, B), gate(B, A)); }
+    // the railway: beyond each station's short level run the line is laid on the land itself, from town to town, finding its way as the trails do. A tree of lines, so every station is on it
+    const stn = []; for (const v of [villages.get('start') || (st ? startRecord(st.x, st.y, st.z) : null)].concat((PLANNED || []).filter(v => v.type === 'land').map((v) => { try { return siteFor(Math.floor(U.mod(v.x, WORLD_W) / CELL), Math.floor(U.mod(v.z, WORLD_W) / CELL)) || v; } catch (e) { return v; } }))) { if (!v || !v.R) continue; try { const rl = layout(v).rail; if (!rl) continue; const d = v.R + 9; stn.push(rl.ax ? { x: v.x + rl.sgn * d, z: rl.line } : { x: rl.line, z: v.z + rl.sgn * d }); } catch (e) { /* a place without a station */ } }
+    const inR = [0]; while (stn.length > 1 && inR.length < stn.length) { let best = null; for (const i of inR) for (let j = 0; j < stn.length; j++) { if (inR.includes(j)) continue; const d = D(stn[i], stn[j]); if (!best || d < best[0]) best = [d, i, j]; } inR.push(best[2]); const A = stn[best[1]], Bq = { x: A.x + wd(stn[best[2]].x - A.x), z: A.z + wd(stn[best[2]].z - A.z) }; routeTrail(T, A, Bq, pts); }
     return T;
   }
-  function routeTrail(T, A, B) {
+  function routeTrail(T, A, B, rail) {
     const G = 12, ti = Math.round((B.x - A.x) / G), tj = Math.round((B.z - A.z) / G), M = 12; const i0 = Math.min(0, ti) - M, i1 = Math.max(0, ti) + M, j0 = Math.min(0, tj) - M, j1 = Math.max(0, tj) + M, W = i1 - i0 + 1, N = W * (j1 - j0 + 1);
     const hs = new Float32Array(N).fill(-1), mul = new Float32Array(N), g = new Float32Array(N).fill(1e9), from = new Int32Array(N).fill(-1), done = new Uint8Array(N); const id = (i, j) => (j - j0) * W + (i - i0);
-    const look = (k, i, j) => { if (hs[k] >= 0) return; const c = world.colInfo(Math.round(A.x + i * G), Math.round(A.z + j * G)); hs[k] = c.h; mul[k] = c.h < SEA + 1 ? 9 : (c.biome === BIOME.MOUNTAIN || c.h > SEA + 28) ? 4 : 1; };
+    const look = (k, i, j) => { if (hs[k] >= 0) return; const wx = Math.round(A.x + i * G), wz = Math.round(A.z + j * G), c = world.colInfo(wx, wz); hs[k] = c.h; mul[k] = c.h < SEA + 1 ? 9 : (c.biome === BIOME.MOUNTAIN || c.h > SEA + 28) ? 4 : 1; if (rail && rail.some(p => Math.hypot(wd(p.x - wx), wd(p.z - wz)) < p.R + 6)) mul[k] = 30; }; // a railway goes round the towns it is not calling at
     const heap = []; const push = (f, k) => { heap.push([f, k]); let c = heap.length - 1; while (c > 0) { const p = (c - 1) >> 1; if (heap[p][0] <= heap[c][0]) break; [heap[p], heap[c]] = [heap[c], heap[p]]; c = p; } };
     const pop = () => { const top = heap[0], last = heap.pop(); if (heap.length) { heap[0] = last; let p = 0; for (;;) { let c = p * 2 + 1; if (c >= heap.length) break; if (c + 1 < heap.length && heap[c + 1][0] < heap[c][0]) c++; if (heap[p][0] <= heap[c][0]) break; [heap[p], heap[c]] = [heap[c], heap[p]]; p = c; } } return top; };
     const s0 = id(0, 0), goal = id(ti, tj); look(s0, 0, 0); g[s0] = 0; push(0, s0);
@@ -261,9 +264,13 @@ const Village = (() => {
     if (from[goal] < 0 && goal !== s0) return;
     let line = []; for (let k = goal; k >= 0; k = from[k]) { line.push([A.x + ((k % W) + i0) * G, A.z + (Math.floor(k / W) + j0) * G]); if (k === s0) break; } line.reverse(); line[0] = [A.x, A.z]; line[line.length - 1] = [B.x, B.z];
     for (let r = 0; r < 3; r++) { const o = [line[0]]; for (let i = 0; i + 1 < line.length; i++) { const p = line[i], q = line[i + 1]; o.push([p[0] * 0.75 + q[0] * 0.25, p[1] * 0.75 + q[1] * 0.25], [p[0] * 0.25 + q[0] * 0.75, p[1] * 0.25 + q[1] * 0.75]); } o.push(line[line.length - 1]); line = o; } // rounded off: a trail has no corners
+    if (rail) { const cells = []; for (let i = 0; i + 1 < line.length; i++) { const p = line[i], q = line[i + 1], d = Math.hypot(q[0] - p[0], q[1] - p[1]), n = Math.max(1, Math.ceil(d / 0.5)); for (let t = 0; t <= n; t++) { const x = Math.round(p[0] + (q[0] - p[0]) * t / n), z = Math.round(p[1] + (q[1] - p[1]) * t / n), l = cells[cells.length - 1]; if (!l || l[0] !== x || l[1] !== z) cells.push([x, z]); } }
+      for (let pass = 0; pass < 2; pass++) for (let i = 1; i + 1 < cells.length; i++) { const a = cells[i - 1], c = cells[i + 1]; if (Math.max(Math.abs(a[0] - c[0]), Math.abs(a[1] - c[1])) <= 1) cells.splice(i, 1); } // one column wide, each touching only the one before and the one after, so the rails can run through them as a curve
+      for (const [x, z] of cells) T.track.set(U.mod(x, WORLD_W) * 65536 + U.mod(z, WORLD_W), 1); return; }
     const NCL = WORLD_W / 8; const put = (x, z) => { const xm = U.mod(x, WORLD_W), zm = U.mod(z, WORLD_W), k = Math.floor(xm / 8) * 4096 + Math.floor(zm / 8); let arr = T.cells.get(k); if (!arr) { arr = []; T.cells.set(k, arr); } arr.push(xm, zm); T.n++; };
     for (let i = 0; i + 1 < line.length; i++) { const p = line[i], q = line[i + 1], d = Math.hypot(q[0] - p[0], q[1] - p[1]), n = Math.max(1, Math.ceil(d / 0.9)); for (let t = 0; t < n; t++) { const x = p[0] + (q[0] - p[0]) * t / n, z = p[1] + (q[1] - p[1]) * t / n; const wob = (U.vnoise2(x, z, 23, WORLD_W, world.seed + 975) - 0.5) * 7; const ux = (q[1] - p[1]) / (d || 1), uz = -(q[0] - p[0]) / (d || 1); put(x + ux * wob, z + uz * wob); } } // and it wanders a little either side of its line
   }
+  function trackAt(x, z) { if (!TRAILS) trailWear(x, z); return !!(TRAILS && TRAILS.track && TRAILS.track.size && TRAILS.track.has(U.mod(x, WORLD_W) * 65536 + U.mod(z, WORLD_W))); }
   function trailWear(x, z) {
     if (!TRAILS) { if (trailBusy || planning || !world.spawn) return 0; trailBusy = true; try { buildTrails(); } catch (e) { console.warn('trails off:', e.message); TRAILS = { cells: new Map(), n: 0 }; } finally { trailBusy = false; } }
     const C = TRAILS.cells; if (!C.size) return 0; const xm = U.mod(x, WORLD_W), zm = U.mod(z, WORLD_W), NCL = WORLD_W / 8, cx = Math.floor(xm / 8), cz = Math.floor(zm / 8); let d2 = 99;
@@ -970,7 +977,7 @@ const Village = (() => {
   function stampRail(v, st) {
     if (v.type !== 'land' || !v.R) return; const rl = layout(v).rail; if (!rl) return; const wr = wallRadius(st); st.railLevel = true;
     const base = rl.ax ? v.x : v.z, ty = v.y, set = (x, y, z, id) => world.setBlock(x, y, z, id);
-    for (let d = wr + 1; d <= wr + 36; d++) {
+    for (let d = wr + 1; d <= wr + 8; d++) { // a short level run out of the station; from there the line lies on the land (see buildTrails)
       const a = base + rl.sgn * d; const col = (k) => rl.ax ? [a, rl.line + k] : [rl.line + k, a]; const [x, z] = col(0);
       for (let y = ty - 14; y <= ty + 14; y++) if (y !== ty && world.getBlock(x, y, z) === B.RAIL) set(x, y, z, B.AIR); // a line laid before this stepped with the land: lift it
       const gy = world.groundY(x, z, ty - 1), drop = (ty - 1) - (gy == null ? ty - 20 : gy); const pier = d % 5 === 0;

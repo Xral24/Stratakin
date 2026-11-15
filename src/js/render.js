@@ -1083,6 +1083,17 @@ const R = (() => {
             for (const sgn of [-1, 1]) op.plate([[ax - fz * sgn * 0.1, y + Hh - 0.1, az + fx * sgn * 0.1], [ax - fz * sgn * 0.75 + fx * 0.2, y + Hh + 0.55, az + fx * sgn * 0.75 + fz * 0.2], [ax - fz * sgn * 0.35 + fx * 0.3, y + Hh - 0.45, az + fx * sgn * 0.35 + fz * 0.3]], 0.02, hide, { sky: sk, edge: [0.6, 0.48, 0.32] }); }
           continue;
         }
+        if (id === B.TRACK) { // the railway out in the country: it lies on the land and runs through this column as a curve, from the neighbour it came from to the one it goes on to
+          const isT = (b) => b === B.TRACK || b === B.RAIL, nb = [];
+          for (const [a, b] of [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]]) { for (const dy of [0, 1, -1, 2, -2]) if (isT(get(lx + a, y + dy, lz + b))) { nb.push([a, b]); break; } if (nb.length === 2) break; }
+          const c00 = CHt(lx, lz), c10 = CHt(lx + 1, lz), c01 = CHt(lx, lz + 1), c11 = CHt(lx + 1, lz + 1), ok = ST(lx, lz) === y - 1 && c00 >= 0 && c10 >= 0 && c01 >= 0 && c11 >= 0;
+          const hAt = (u, v) => ok ? (c00 * (1 - u) + c10 * u) * (1 - v) + (c01 * (1 - u) + c11 * u) * v : y, P = (a, b) => { const u = 0.5 + a * 0.5, v = 0.5 + b * 0.5; return [lx + u, hAt(u, v), lz + v]; };
+          const ends = nb.length === 2 ? [P(nb[0][0], nb[0][1]), P(nb[1][0], nb[1][1])] : nb.length === 1 ? [P(nb[0][0], nb[0][1]), P(-nb[0][0], -nb[0][1])] : [P(-1, 0), P(1, 0)], mid = P(0, 0), sk = skyAt(lx, y, lz);
+          for (const [A, Bp] of [[ends[0], mid], [mid, ends[1]]]) { const dx = Bp[0] - A[0], dz = Bp[2] - A[2], L = Math.hypot(dx, dz) || 1, px = -dz / L, pz = dx / L;
+            for (const sd of [-0.3, 0.3]) op.tube([[A[0] + px * sd, A[1] + 0.13, A[2] + pz * sd], [Bp[0] + px * sd, Bp[1] + 0.13, Bp[2] + pz * sd]], [0.045, 0.045], [0.42, 0.42, 0.46], { sky: sk, segs: 4, cap0: 'none', cap1: 'none' });
+            for (const t of [0.25, 0.75]) { const mx = A[0] + dx * t, my = A[1] + (Bp[1] - A[1]) * t + 0.05, mz = A[2] + dz * t; op.tube([[mx - px * 0.46, my, mz - pz * 0.46], [mx + px * 0.46, my, mz + pz * 0.46]], [0.075, 0.075], [0.36, 0.25, 0.15], { sky: sk, segs: 4, cap0: 'flat', cap1: 'flat' }); } }
+          continue;
+        }
         if (id === B.RAIL) { // mine rails: two iron rails on plank sleepers, running the way the line goes
           const sk = skyAt(lx, y + 1, lz); const iron = [0.42, 0.42, 0.46], sleeper = [0.4, 0.28, 0.14]; const gy = gnd(lx, y, lz);
           const alongX = get(lx + 1, y, lz) === B.RAIL || get(lx - 1, y, lz) === B.RAIL || get(lx + 1, y, lz) === B.CART || get(lx - 1, y, lz) === B.CART;
