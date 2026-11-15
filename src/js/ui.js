@@ -53,6 +53,8 @@ const UI = (() => {
       };
       switch (name) {
         case 'mine': tone(180, 120, 0.06, 'square', 0.05); break;
+        case 'gem': tone(1320, 1760, 0.08, 'sine', 0.06); tone(1980, 2640, 0.11, 'sine', 0.04, 0.05); break;
+        case 'gemBig': tone(880, 1320, 0.12, 'triangle', 0.08); tone(1320, 1760, 0.14, 'sine', 0.07, 0.09); tone(1760, 2640, 0.22, 'sine', 0.06, 0.18); break;
         case 'break': tone(300, 80, 0.15, 'sawtooth', 0.08); break;
         case 'place': tone(220, 330, 0.08, 'triangle', 0.08); break;
         case 'hit': tone(240, 90, 0.18, 'sawtooth', 0.1); break;

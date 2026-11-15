@@ -1,0 +1,13 @@
+// gems: are there some about, does walking into one pay, does it go and stay gone for a while, and what do they look like
+const { open } = require('./harness');
+(async () => { const h = await open(); const { page, ev } = h; await h.newGame(process.env.SEED || 'look-3'); await h.calm();
+  await ev(() => { G.repelUntil = performance.now() + 9e7; G.stats.buddyOff = true; G.explain = () => {}; G.player.frozen = true; G.thirdPerson = true; G.world.time = 0.42; for (const id of ['hud', 'controls', 'hotbar']) { const e = document.getElementById(id); if (e) e.style.display = 'none'; } });
+  const r = await ev(() => { const w = G.world, v = Village.def, p = G.player; const kinds = {}; let cellsWith = 0, n = 0; const spots = [];
+    for (let cx = -14; cx <= 14; cx++) for (let cz = -14; cz <= 14; cz++) { const arr = Gems._make(w, Math.floor(v.x / 14) + cx, Math.floor(v.z / 14) + cz); if (arr.length) cellsWith++; for (const g of arr) { kinds[g.kind] = (kinds[g.kind] || 0) + 1; n++; } if (arr.length >= 3 && spots.length < 3 && Math.hypot(arr[0].x - v.x, arr[0].z - v.z) < 150 && !spots.some(s => Math.hypot(s[0] - arr[0].x, s[1] - arr[0].z) < 40)) spots.push([arr[0].x, arr[0].z, arr[arr.length - 1].x, arr[arr.length - 1].z]); }
+    // walk into the first gem of the first spot
+    const s = spots[0]; let res = null; if (s) { p.x = s[0] - 3; p.z = s[1]; w.ensureAround(Math.floor(p.x / CH), Math.floor(p.z / CH), 3, 9999); p.y = w.colInfo(Math.floor(p.x), Math.floor(p.z)).h + 1.02; Gems.update(0.016, p); const before = G.shards, liveBefore = Gems.entities().length; const y0 = w.colInfo(Math.floor(s[0]), Math.floor(s[1])).h + 1.02; p.x = s[0]; p.z = s[1]; p.y = y0; Gems.update(0.016, p); Gems.update(0.016, p); res = { before, after: G.shards, liveBefore, liveAfter: Gems.entities().length }; }
+    return { cells: 29 * 29, cellsWith, n, kinds, spots, res }; });
+  console.log(JSON.stringify(r));
+  for (let i = 1; i < r.spots.length; i++) { await ev((s) => { const p = G.player, w = G.world; const dx = s[2] - s[0], dz = s[3] - s[1], d = Math.hypot(dx, dz) || 1; p.x = s[0] - dx / d * 3.2; p.z = s[1] - dz / d * 3.2; w.ensureAround(Math.floor(p.x / CH), Math.floor(p.z / CH), 4, 9999); p.y = w.colInfo(Math.floor(p.x), Math.floor(p.z)).h + 1.02; p.onGround = true; p.yaw = Math.atan2(-dx, -dz); p.pitch = -0.3; if (G.orbit) { G.orbit.yaw = p.yaw; G.orbit.pitch = p.pitch; } G.meshPass(999); }, r.spots[i]);
+    await page.waitForTimeout(2400); await ev(() => { const t = document.getElementById('toasts'); if (t) t.innerHTML = ''; }); await page.screenshot({ path: `/home/claude/gem-${i - 1}.png` }); }
+  console.log('ERRORS:', h.errors.length ? h.errors.slice(0, 3).join('\n') : 'none'); await h.close(); })();

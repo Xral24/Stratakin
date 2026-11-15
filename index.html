@@ -1909,6 +1909,7 @@ const R = (() => {
           float grain = vn(q * 40.0) * 0.5 + vn(q * 97.0 + 1.7) * 0.5;
           col *= 1.0 + ((rip - 0.5) * 0.08 + (grain - 0.5) * 0.045) * near;
           col *= 0.96 + 0.08 * vn(q * 0.12);
+          { float shd = 1.0 - clamp(lam * sh * 1.6, 0.0, 1.0); col = mix(col, vec3(dot(col, vec3(0.3, 0.59, 0.11))) * vec3(0.95, 0.98, 1.1), 0.6 * shd); } // shade on pale sand is cool and grey-blue: it used to come out as red stains
           col += uSunCol * step(0.996, hash3(vec3(floor(q * 20.0), 3.0))) * uSunAmt * 0.1 * near * (0.4 + 0.6 * rip);
         } else if (mat == 3 && gw < 0.998) { // rock: large blotches, thin cracks along a noise contour, a lighter dusting on the tops
           float open = smoothstep(0.3, 0.6, sky);
@@ -15336,6 +15337,8 @@ const UI = (() => {
       };
       switch (name) {
         case 'mine': tone(180, 120, 0.06, 'square', 0.05); break;
+        case 'gem': tone(1320, 1760, 0.08, 'sine', 0.06); tone(1980, 2640, 0.11, 'sine', 0.04, 0.05); break;
+        case 'gemBig': tone(880, 1320, 0.12, 'triangle', 0.08); tone(1320, 1760, 0.14, 'sine', 0.07, 0.09); tone(1760, 2640, 0.22, 'sine', 0.06, 0.18); break;
         case 'break': tone(300, 80, 0.15, 'sawtooth', 0.08); break;
         case 'place': tone(220, 330, 0.08, 'triangle', 0.08); break;
         case 'hit': tone(240, 90, 0.18, 'sawtooth', 0.1); break;
@@ -16334,6 +16337,87 @@ const Relics = (() => {
     }).join('');
   }
   return { init, LIST, html, buy, has, forSeller, freedEver, gate, cond, mul, wear, quote, repair, forgeHtml };
+})();
+
+</script>
+<script>
+'use strict';
+// Gems: bright stones lying about every world, there for the taking, so that simply walking about pays. Most are small and worth a
+// shard or a few, lie in little strings that lead you on, and come back in the same places a while after you take them. A footpath has
+// more of them, a beach a few, the top of a knoll a better one with a ring of small ones round it. Here and there is a heartstone,
+// worth a great deal, and on a beach now and then a strongbox the sea has thrown up: those are found once and never come back.
+const Gems = (() => {
+  let G = null; const CELL = 14; let cells = new Map(), curWorld = null, live = []; const gone = new Map(); // id -> when a common gem comes back
+  const KINDS = {
+    glint: { v: 1, col: [0.5, 0.92, 1.0], s: 0.17, back: 6 * 60e3 },
+    ember: { v: 3, col: [1.0, 0.66, 0.18], s: 0.21, back: 9 * 60e3 },
+    rose: { v: 8, col: [1.0, 0.42, 0.66], s: 0.26, back: 15 * 60e3 },
+    heart: { v: 40, col: [0.7, 0.42, 1.0], s: 0.4, once: true },
+    box: { v: 0, col: [0.55, 0.38, 0.2], s: 0.36, once: true },
+  };
+  function init(g) { G = g; cells = new Map(); curWorld = null; live = []; gone.clear(); }
+  const taken = () => (G.stats.gemsTaken = G.stats.gemsTaken || {});
+  // what lies in one cell of the map: decided by the world's seed, so it is the same every time you come back
+  function make(w, cx, cz) {
+    const s = w.seed + 4001, out = [], H = (k) => U.hash3(cx, k, cz, s), wid = w.preset.id;
+    const px = cx * CELL + 2 + Math.floor(H(2) * (CELL - 4)), pz = cz * CELL + 2 + Math.floor(H(3) * (CELL - 4)); const info = w.colInfo(px, pz);
+    if (info.h <= SEA && w.preset.water) return out; if (w.preset.brine && info.h < w.preset.brineLevel) return out;
+    if (Village.markers(px, pz, 1).some(m => m.kind === 'village' && Math.hypot(m.x - px, m.z - pz) < 54)) return out; // not in a town: the land's own finds
+    const add = (kind, x, z, tag) => out.push({ id: wid + ':' + cx + ':' + cz + ':' + tag, kind, x: x + 0.5, z: z + 0.5, hx: x + 0.5, hz: z + 0.5, y: null, ph: U.hash3(x, 7, z, s) * 6.283 });
+    const r = H(1), onPath = w.trailWear ? w.trailWear(px, pz) > 0.3 : false;
+    if (U.mod(cx, 7) === 3 && U.mod(cz, 7) === 3 && H(9) < 0.6) add('heart', px, pz, 'h'); // about one to every hundred blocks square, and not in every square
+    else if (info.beach && H(8) < 0.05) add('box', px, pz, 'b');
+    else if ((info.crag || 0) >= 2.6) { add('rose', px, pz, 'r'); for (let k = 0; k < 4; k++) add('glint', px + Math.round(Math.cos(k * 1.571 + r * 6) * 2), pz + Math.round(Math.sin(k * 1.571 + r * 6) * 2), 'g' + k); }
+    else if (r < (onPath ? 0.5 : info.beach ? 0.22 : 0.13)) { // a string of small ones, bending a little, sometimes ending in a better one
+      const n = 3 + Math.floor(H(4) * 3), a = H(5) * 6.283;
+      for (let k = 0; k < n; k++) { const t = k * 1.5, bend = Math.sin(k * 0.7) * 0.8; add(k === n - 1 && H(6) < 0.3 ? 'ember' : 'glint', Math.round(px + Math.cos(a) * t - Math.sin(a) * bend), Math.round(pz + Math.sin(a) * t + Math.cos(a) * bend), 'g' + k); }
+    }
+    return out;
+  }
+  function take(g, K) {
+    if (K.once) taken()[g.id] = 1; else gone.set(g.id, performance.now() + K.back);
+    let v = K.v, msg = null;
+    if (g.kind === 'box') { v = 18 + Math.floor(U.hash3(Math.floor(g.hx), 5, Math.floor(g.hz), 77) * 30); msg = `A strongbox, washed up in the sand. ◆ ${v}.`; }
+    else if (g.kind === 'heart') msg = `A heartstone. ◆ ${v}.`;
+    g.x = g.hx; g.z = g.hz; g.y = null;
+    G.shards += v; G.stats.gems = (G.stats.gems || 0) + 1; UI.sfx(v >= 8 ? 'gemBig' : 'gem'); if (msg) UI.toast(msg, 'good');
+  }
+  function update(dt, p) {
+    const w = G.world; if (w !== curWorld) { curWorld = w; cells = new Map(); }
+    const cx0 = Math.floor(p.x / CELL), cz0 = Math.floor(p.z / CELL), now = performance.now(); live = [];
+    for (let a = -3; a <= 3; a++) for (let b = -3; b <= 3; b++) {
+      const k = (cx0 + a) + ',' + (cz0 + b); let arr = cells.get(k); if (!arr) { if (cells.size > 700) cells = new Map(); arr = make(w, cx0 + a, cz0 + b); cells.set(k, arr); }
+      for (const g of arr) { const K = KINDS[g.kind]; if (K.once ? taken()[g.id] : (gone.get(g.id) || 0) > now) continue;
+        if (g.y == null) { const bx = Math.floor(g.x), bz = Math.floor(g.z), h = w.colInfo(bx, bz).h, over = w.getBlock(bx, h + 1, bz); if (!isSolid(w.getBlock(bx, h, bz)) || isSolid(over) || over === B.WATER || over === B.BRINE || over === B.LAVA) continue; g.y = R.standY(w, g.x, g.z, h + 1, 0.2); } // it lies on the land as the land was made: not in a tree, a wall or a hole
+        const dx = p.x - g.x, dz = p.z - g.z, d2 = dx * dx + dz * dz, near = Math.abs(p.y - g.y) < 1.9;
+        if (near && d2 < 0.8) { take(g, K); continue; }
+        if (near && d2 < 6 && g.kind !== 'box') { const d = Math.sqrt(d2) || 1, sp = Math.min(d, dt * 7); g.x += dx / d * sp; g.z += dz / d * sp; } // close by, it comes to you
+        if (d2 < 44 * 44) live.push(g); }
+    }
+  }
+  // a cut stone: a flat table, a crown of facets down to the girdle, a point beneath. Unlit: it glows with its own colour, each facet a different strength of it
+  function gemMesh(mb, K) {
+    const s = K.s, c = K.col, N = 6, ring = (r, y) => { const o = []; for (let i = 0; i < N; i++) { const a = i / N * 6.283; o.push([Math.cos(a) * r, y, Math.sin(a) * r]); } return o; };
+    const tb = ring(s * 0.55, s * 0.95), gd = ring(s, s * 0.35), top = [0, s * 0.95, 0], bot = [0, -s * 0.95, 0]; const sh = (m, w) => [Math.min(1, c[0] * m + w), Math.min(1, c[1] * m + w), Math.min(1, c[2] * m + w)]; const q = (pts, col) => mb.quad(pts, [col, col, col, col], [1, 1, 1, 1], true);
+    for (let i = 0; i < N; i++) { const j = (i + 1) % N;
+      q([top, tb[j], tb[i], tb[i]], sh(0.9, 0.42));
+      q([tb[i], tb[j], gd[j], gd[i]], sh(i % 2 ? 1.0 : 0.78, i % 2 ? 0.12 : 0.02));
+      q([gd[i], gd[j], bot, bot], sh(i % 2 ? 0.5 : 0.66, 0)); }
+  }
+  function boxMesh(mb) {
+    const wood = [0.5, 0.33, 0.17], dark = [0.36, 0.23, 0.12], gold = [0.95, 0.76, 0.25];
+    mb.box(-0.32, 0, -0.22, 0.32, 0.26, 0.22, wood, 1, false); mb.box(-0.33, 0.26, -0.23, 0.33, 0.36, 0.23, dark, 1, false); // the box and its lid
+    for (const x of [-0.2, 0.2]) mb.box(x - 0.035, -0.005, -0.235, x + 0.035, 0.37, 0.235, gold, 1, false); // two bands
+    mb.box(-0.05, 0.17, 0.22, 0.05, 0.29, 0.25, gold, 1, true); // the clasp catches the light
+  }
+  function entities() {
+    const t = performance.now() / 1000, out = [];
+    for (const g of live) { if (g.y == null) continue; const K = KINDS[g.kind];
+      if (g.kind === 'box') out.push({ x: g.x, y: g.y - 0.1, z: g.z, yaw: g.ph, scale: 1, hover: 0, skyMul: 1, noOutline: true, mesh: R.entityMesh('gem:box', boxMesh) });
+      else out.push({ x: g.x, y: g.y + 0.36 + Math.sin(t * 2.2 + g.ph) * 0.07, z: g.z, yaw: t * 1.6 + g.ph, scale: 1, hover: 0, skyMul: 1, isFx: true, mesh: R.entityMesh('gem:' + g.kind, (mb) => gemMesh(mb, K)) }); }
+    return out;
+  }
+  return { init, update, entities, KINDS, _make: make };
 })();
 
 </script>
@@ -17828,7 +17912,7 @@ G.setupWorld = function (seed, presetId) {
   this.world.findSpawn();
   Wild.init(this.world, this.mobile);
   Weather.init(this.world.seed);
-  Village.init(this); Hazards.init(this); Campaign.init(this); Npcs.init(this); Camps.init(this); Mer.init(this); Lab.init(this); Avatar.init(this); Combat.init(this); Buddy.init(this); Felling.init(this); Relics.init(this); Keeps.init(this); Citadel.init(this); Farms.init(this); Sky.init(this);
+  Village.init(this); Hazards.init(this); Campaign.init(this); Npcs.init(this); Camps.init(this); Mer.init(this); Lab.init(this); Avatar.init(this); Combat.init(this); Buddy.init(this); Felling.init(this); Relics.init(this); Gems.init(this); Keeps.init(this); Citadel.init(this); Farms.init(this); Sky.init(this);
   Quests.init(this);
 };
 G.newWorld = function (seed, starterIdx, name) {
@@ -18523,7 +18607,7 @@ G.loop = function (t) {
       }
       if (w.regrow && w.regrow.length && (this.frame & 31) === 0) { const now = performance.now(); w.regrow = w.regrow.filter(r => { if (now < r.t) return true; if ((r.id === B.LOG || r.id === B.BIRCHLOG || r.id === B.PALMLOG || r.id === B.LEAVES) && !Felling.natural(r.x, r.y, r.z, r.id)) return false; /* a block you built and took away stays gone */ const b = w.getBlock(r.x, r.y, r.z); if (r.id != null) { if (b === B.AIR && !(Math.abs(r.x + 0.5 - p.x) < 0.8 && Math.abs(r.z + 0.5 - p.z) < 0.8 && r.y >= Math.floor(p.y) - 1 && r.y <= Math.floor(p.y) + 2)) { if (r.id === B.GLOWWORM && !isSolid(w.getBlock(r.x, r.y - 1, r.z))) return false; w.setBlock(r.x, r.y, r.z, r.id); } else if (b === B.AIR) { r.t = now + 15000; return true; } } else if (r.leaf) { if (b === B.LEAVES) w.setBlock(r.x, r.y, r.z, B.BERRYLEAF); } else if (b === B.AIR) w.setBlock(r.x, r.y, r.z, B.BERRY); return false; }); }
       const trig = (Dialogue.active() || Village.walking) ? null : Wild.update(dt, p, performance.now() / 1000, false);
-      Buddy.update(dt, p); Felling.update(dt); Keeps.update(dt, p); Citadel.update(dt, p); Farms.update(dt, p); Sky.update(dt, p); Combat.update(dt, p, input);
+      Buddy.update(dt, p); Gems.update(dt, p); Felling.update(dt); Keeps.update(dt, p); Citadel.update(dt, p); Farms.update(dt, p); Sky.update(dt, p); Combat.update(dt, p, input);
       Wild.ensureHeart(p, this.trainerLevel, this.mythicCaught); Wild.ensureLegend(p); Wild.ensureApex(p);
       if (trig && !trig.e.cool && !Dialogue.active() && !p.flying && !(this.fightGrace > performance.now()) && !((Keeps.inHold(p) || Citadel.inside(p) || Sky.inFort(p)) && !trig.e.keepBoss && !trig.e.skyBoss)) Wild.engage(trig.e, trig.ambush);
       for (const e of Wild.list) if (e.cool > 0) e.cool -= dt;
@@ -18612,7 +18696,7 @@ G.loop = function (t) {
   const showMe = inBattle || this.thirdPerson || this.talkK > 0 || !!p.mount || this.grassCamOn;
   if (showMe) { const me = Avatar.entity(p, Math.hypot(p.vx, p.vz) > 0.6); if (p.mount) { const mm = KIN.model(p.mount.sp, p.mount.stage); const st = seatOf(mm); const f = U.forwardVec(p.yaw, 0); const along = 0.5 + st.zc - 0.06; me.x = p.x + f[0] * along; me.z = p.z + f[2] * along; me.y = G.mountBase(p) + st.top - hipOf(me.model) * (me.scale || 1) + 0.1; me._an.cross = 1; /* sat cross-legged on top: fits a pony and a T-rex alike */ } ents.push(me); }
   if (p.mount) { const k = p.mount; const m = KIN.dress(KIN.model(k.sp, k.stage), k.wear); const fwd = U.forwardVec(p.yaw, 0); if (!k._an) k._an = { ph: 0, mv: 0, lx: p.x, lz: p.z, ly: p.y, lt: performance.now(), vy: 0, seed: 5, air: 0 }; k._an.swim = p.mountMode === 'water' ? 1 : 0; ents.push({ x: p.x + fwd[0] * 0.5, y: G.mountBase(p), z: p.z + fwd[2] * 0.5, yaw: p.yaw + Math.PI, model: m, mesh: R.entityMesh(KIN.meshKey(k.sp, k.stage) + KIN.wearKey(k.wear), (mb) => KIN.buildMesh(mb, m)), scale: 1, hover: 0, skyMul: 1, isMount: true, flying: p.mountMode === 'air' && !p.onGround, _an: k._an }); }
-  ents.push(...Battle.fxEntities()); ents.push(...Sky.puffEntities()); ents.push(...Wild.dropEntities()); ents.push(...Buddy.entities()); ents.push(...Felling.entities()); ents.push(...Combat.entities()); ents.push(...Hazards.entities()); ents.push(...Npcs.entities());
+  ents.push(...Battle.fxEntities()); ents.push(...Sky.puffEntities()); ents.push(...Wild.dropEntities()); ents.push(...Gems.entities()); ents.push(...Buddy.entities()); ents.push(...Felling.entities()); ents.push(...Combat.entities()); ents.push(...Hazards.entities()); ents.push(...Npcs.entities());
   for (const o of w.statues.values()) {
     if ((o.x - p.x) ** 2 + (o.z - p.z) ** 2 > 4000) continue;
     if (!o.model) { o.model = KIN.statueModel(o); o.mesh = R.entityMesh('statue:' + o.id, (mb) => KIN.buildMesh(mb, o.model)); }

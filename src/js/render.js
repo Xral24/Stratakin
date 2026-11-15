@@ -296,6 +296,7 @@ const R = (() => {
           float grain = vn(q * 40.0) * 0.5 + vn(q * 97.0 + 1.7) * 0.5;
           col *= 1.0 + ((rip - 0.5) * 0.08 + (grain - 0.5) * 0.045) * near;
           col *= 0.96 + 0.08 * vn(q * 0.12);
+          { float shd = 1.0 - clamp(lam * sh * 1.6, 0.0, 1.0); col = mix(col, vec3(dot(col, vec3(0.3, 0.59, 0.11))) * vec3(0.95, 0.98, 1.1), 0.6 * shd); } // shade on pale sand is cool and grey-blue: it used to come out as red stains
           col += uSunCol * step(0.996, hash3(vec3(floor(q * 20.0), 3.0))) * uSunAmt * 0.1 * near * (0.4 + 0.6 * rip);
         } else if (mat == 3 && gw < 0.998) { // rock: large blotches, thin cracks along a noise contour, a lighter dusting on the tops
           float open = smoothstep(0.3, 0.6, sky);
