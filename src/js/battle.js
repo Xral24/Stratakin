@@ -10,7 +10,7 @@ const Battle = (() => {
     G = game;
     el.root = q('battle'); el.wild = q('b-wild'); el.mine = q('b-mine'); el.log = q('b-log'); el.actions = q('b-actions'); el.snare = q('b-snare');
     el.snareGo = q('snare-go'); el.zone = el.snare.querySelector('.snare-zone'); el.marker = el.snare.querySelector('.snare-marker');
-    el.snare.addEventListener('click', onSnareGo);
+    el.net = q('snare-net'); netWire();
     // changed your mind (or pressed Snare by accident): the snare goes back in the bag and the fight carries on
     const cancel = q('snare-cancel'); const stop = (e) => { e.stopPropagation(); e.preventDefault(); cancelSnare(); };
     cancel.addEventListener('click', stop); cancel.addEventListener('touchstart', stop, { passive: false });
@@ -308,10 +308,10 @@ const Battle = (() => {
     if (gap > 1.2) period *= U.clamp(1 - (gap - 1.2) * 0.9, 0.25, 1); // a strong Kin fights the cage: the marker races
     if (hopeless) period = 0.08;
     snareState = { item, width, left, period: bossKin() ? period * 0.8 : period, hopeless, t0: performance.now(), done: false, hits: 0, need: Math.max(bossKin() ? 2 : 1, rar >= 4 ? 3 : rar === 3 ? 2 : 1) };
-    el.zone.style.left = (left * 100) + '%'; el.zone.style.width = (width * 100) + '%';
+    netStart();
     el.snare.classList.remove('hidden'); el.root.classList.add('snaring'); el.root.scrollTop = 0;
     const pct = chance === 0 ? '0%' : chance < 0.01 ? 'under 1%' : Math.round(chance * 100) + '%';
-    log(`You set a ${ITEMS[item].name} on the ground${stealth ? ', quietly' : ''}. Catch chance ${pct}.`);
+    log(`You shake out a ${ITEMS[item].name}${stealth ? ', quietly' : ''}. Swing it open and throw. Catch chance ${pct} with a good throw.`);
     if (hopeless) log(`${KIN.name(wild)} is more than twice your snare strength (${grip}, twice your trainer level). No snare made will hold it. Beat it, or come back stronger.`, 'bad');
     else if (gap > 1.2) log(`${KIN.name(wild)} is far above your snare strength (${grip}). It will fight the cage hard.`, 'bad');
     G.sfx('snare');
@@ -323,21 +323,42 @@ const Battle = (() => {
     el.snare.classList.add('hidden'); el.root.classList.remove('snaring');
     log('You pick the snare back up.'); busy = false; renderActions();
   }
+  // ---- the cast net. You swing it round your hand to open it (the longer you swing, the wider it flies open) and then flick it at the Kin, which will not stand still for you. It lands where the flick sends it, a moment later, so you throw at where the Kin is going. A net thrown shut is a small target
+  const NW = 640, NH = 560, HOME = [320, 470];
+  function netWire() { const c = el.net; if (!c) return; const at = (ev) => { const r = c.getBoundingClientRect(); return [(ev.clientX - r.left) / r.width * NW, (ev.clientY - r.top) / r.height * NH, performance.now()]; };
+    c.addEventListener('pointerdown', (ev) => { const n = snareState && snareState.net; if (!n || n.phase !== 'aim') return; ev.preventDefault(); try { c.setPointerCapture(ev.pointerId); } catch (e) { /* fine */ } n.down = true; n.trail = [at(ev)]; n.lastA = null; });
+    c.addEventListener('pointermove', (ev) => { const n = snareState && snareState.net; if (!n || !n.down || n.phase !== 'aim') return; const p = at(ev); n.trail.push(p); if (n.trail.length > 12) n.trail.shift(); const a = Math.atan2(p[1] - HOME[1], p[0] - HOME[0]); if (n.lastA != null) { let d = a - n.lastA; while (d > Math.PI) d -= Math.PI * 2; while (d < -Math.PI) d += Math.PI * 2; if (Math.abs(d) < 1.2) { n.turn += d; n.spin = Math.min(1, n.spin + Math.abs(d) / (Math.PI * 4)); } } n.lastA = a; n.hand = [p[0], p[1]]; });
+    const up = (ev) => { const n = snareState && snareState.net; if (!n || !n.down || n.phase !== 'aim') return; n.down = false; const T = n.trail, last = T[T.length - 1]; let first = T[0]; for (const q of T) if (last[2] - q[2] <= 110) { first = q; break; } const dt = Math.max(16, last[2] - first[2]) / 1000, vx = (last[0] - first[0]) / dt, vy = (last[1] - first[1]) / dt;
+      if (vy > -420 || T.length < 3) { n.hand = null; return; } // not a throw: it has to go away from you with some snap in it
+      const reach = 0.36, x1 = U.clamp(last[0] + vx * reach, 30, NW - 30), y1 = U.clamp(last[1] + vy * reach, 40, NH - 150); n.phase = 'fly'; n.fly = { x0: last[0], y0: last[1], x1, y1, u: 0, bend: Math.sign(n.turn || 1) * n.spin * 46 }; G.sfx('snare'); };
+    c.addEventListener('pointerup', up); c.addEventListener('pointercancel', up); }
+  function netStart() { const st = snareState, rar = wild.sp.rarity || 0; st.net = { phase: 'aim', spin: 0, turn: 0, down: false, trail: [], hand: null, t: Math.random() * 9, kx: 320, ky: 130, R: st.hopeless ? 7 : U.clamp(40 + st.width * 330, 34, 120), speed: 1 / Math.max(0.3, st.period * 2.1), jit: 0.2 + rar * 0.12, last: performance.now(), res: null, resT: 0 }; }
+  function netDraw(n) { const g = el.net.getContext('2d'); g.clearRect(0, 0, NW, NH); const gr = g.createLinearGradient(0, 0, 0, NH); gr.addColorStop(0, '#3f7a44'); gr.addColorStop(1, '#2a5230'); g.fillStyle = gr; g.fillRect(0, 0, NW, NH);
+    g.fillStyle = 'rgba(255,255,255,.05)'; for (let i = 0; i < 26; i++) g.fillRect((i * 97) % NW, (i * 61) % NH, 3, 9);
+    const col = (typeof ELEM_COLOR !== 'undefined' && ELEM_COLOR[wild.sp.primary]) || '#e8c060';
+    g.fillStyle = 'rgba(0,0,0,.25)'; g.beginPath(); g.ellipse(n.kx, n.ky + 34, 38, 12, 0, 0, 6.3); g.fill(); g.fillStyle = col; g.beginPath(); g.arc(n.kx, n.ky, 38, 0, 6.3); g.fill(); g.strokeStyle = '#1a1420'; g.lineWidth = 4; g.stroke();
+    const caught = n.res === 'ok', lookx = n.vx > 0 ? 5 : -5; for (const sd of [-1, 1]) { g.fillStyle = '#fff'; g.beginPath(); g.ellipse(n.kx + sd * 13 + lookx * 0.4, n.ky - 6, 9, caught ? 3 : 11, 0, 0, 6.3); g.fill(); if (!caught) { g.fillStyle = '#1a1420'; g.beginPath(); g.arc(n.kx + sd * 13 + lookx, n.ky - 5, 4.5, 0, 6.3); g.fill(); } }
+    g.fillStyle = '#fff'; g.font = '700 22px system-ui,sans-serif'; g.textAlign = 'center'; g.fillText(KIN.name(wild), n.kx, n.ky - 52);
+    const mesh = (x, y, r, rot, c2) => { g.save(); g.translate(x, y); g.rotate(rot); g.strokeStyle = c2 || 'rgba(245,235,200,.95)'; g.lineWidth = 2.5; g.beginPath(); g.arc(0, 0, r, 0, 6.3); g.stroke(); g.lineWidth = 1.3; for (let i = 0; i < 8; i++) { const a = i / 8 * 6.283; g.beginPath(); g.moveTo(0, 0); g.lineTo(Math.cos(a) * r, Math.sin(a) * r); g.stroke(); } for (const k of [0.36, 0.68]) { g.beginPath(); g.arc(0, 0, r * k, 0, 6.3); g.stroke(); } g.fillStyle = '#8a8f98'; for (let i = 0; i < 8; i++) { const a = i / 8 * 6.283; g.beginPath(); g.arc(Math.cos(a) * r, Math.sin(a) * r, 4.5, 0, 6.3); g.fill(); } g.restore(); };
+    const open = 0.42 + 0.58 * n.spin;
+    if (n.phase === 'aim') { g.strokeStyle = 'rgba(255,255,255,.18)'; g.lineWidth = 10; g.beginPath(); g.arc(HOME[0], HOME[1], 62, -Math.PI / 2, -Math.PI / 2 + 6.283); g.stroke(); g.strokeStyle = n.spin >= 0.98 ? '#7fe0c0' : '#ffd45a'; g.beginPath(); g.arc(HOME[0], HOME[1], 62, -Math.PI / 2, -Math.PI / 2 + 6.283 * n.spin); g.stroke();
+      const h = n.hand || HOME; if (n.hand) { g.strokeStyle = 'rgba(245,235,200,.7)'; g.lineWidth = 3; g.beginPath(); g.moveTo(HOME[0], HOME[1]); g.lineTo(h[0], h[1]); g.stroke(); } mesh(h[0], h[1], 16 + 22 * n.spin, n.turn);
+      g.fillStyle = 'rgba(255,255,255,.75)'; g.font = '600 20px system-ui,sans-serif'; g.fillText(n.spin < 0.15 ? 'swing it round here' : n.spin < 0.98 ? 'keep swinging, then flick' : 'wide open: flick!', HOME[0], NH - 14); }
+    else if (n.phase === 'fly') { const f = n.fly, u = f.u, e2 = 1 - (1 - u) * (1 - u), x = f.x0 + (f.x1 - f.x0) * e2 + Math.sin(u * Math.PI) * f.bend, y = f.y0 + (f.y1 - f.y0) * e2 - Math.sin(u * Math.PI) * 40; mesh(x, y, n.R * open * (0.25 + 0.75 * u), n.turn + u * 5 * Math.sign(n.turn || 1)); }
+    else { const f = n.fly; mesh(f.x1, f.y1, n.R * open, n.turn, n.res === 'ok' ? '#7fe0c0' : '#ff8a70'); g.fillStyle = n.res === 'ok' ? '#7fe0c0' : '#ff8a70'; g.font = '800 30px system-ui,sans-serif'; g.fillText(n.res === 'ok' ? 'Got it!' : 'Missed!', NW / 2, NH - 40); } }
   function snareFrame() {
-    if (!snareState || snareState.done) return;
-    const t = (performance.now() - snareState.t0) / 1000 / snareState.period;
-    const s = t % 1; const pos = s < 0.5 ? s * 2 : 2 - s * 2;
-    snareState.pos = pos;
-    el.marker.style.left = (pos * 100) + '%';
-    requestAnimationFrame(snareFrame);
+    if (!snareState) return; const n = snareState.net; if (!n) return; const now = performance.now(), dt = Math.min(0.05, (now - n.last) / 1000); n.last = now;
+    if (snareState.done && n.phase === 'aim') return; if (!snareState.done && n.phase === 'done') { const keepR = n.R; netStart(); snareState.net.R = keepR * 0.9; return requestAnimationFrame(snareFrame); } // it strains against the net: throw another over it, and it is quicker now
+    if (n.phase !== 'land' && n.phase !== 'done') { n.t += dt * n.speed; const ox = n.kx; n.kx = 320 + Math.sin(n.t * 6.283) * 215 + Math.sin(n.t * 6.283 * 3.3 + 1) * 215 * n.jit * 0.4; n.ky = 130 + Math.sin(n.t * 6.283 * 1.7) * 34; n.vx = n.kx - ox; }
+    if (n.phase === 'aim' && !n.down) n.spin = Math.max(0, n.spin - dt * 0.25); // it closes again if you stop swinging
+    if (n.phase === 'fly') { n.fly.u += dt / 0.42; if (n.fly.u >= 1) { n.fly.u = 1; n.phase = 'land'; const open = 0.42 + 0.58 * n.spin, d = Math.hypot(n.fly.x1 - n.kx, n.fly.y1 - n.ky); n.res = !snareState.hopeless && d < n.R * open + 12 ? 'ok' : 'miss'; n.resT = 0.6; } }
+    else if (n.phase === 'land') { n.resT -= dt; if (n.resT <= 0) { n.phase = 'done'; netDraw(n); onSnareGo(n.res === 'ok'); return; } }
+    netDraw(n); requestAnimationFrame(snareFrame);
   }
-  async function onSnareGo() {
+  async function onSnareGo(hit) {
     if (!snareState || snareState.done) return;
     snareState.done = true;
-    const p = snareState.pos, ok = !snareState.hopeless && p >= snareState.left && p <= snareState.left + snareState.width;
-    el.marker.classList.add(ok ? 'ok' : 'bad');
-    await sleep(500);
-    el.marker.classList.remove('ok', 'bad');
+    const ok = hit === true;
     el.snare.classList.add('hidden'); el.root.classList.remove('snaring');
     if (ok) {
       snareState.hits++;
