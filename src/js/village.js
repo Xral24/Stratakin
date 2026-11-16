@@ -134,15 +134,28 @@ const Village = (() => {
   }
   // ---- every town has its own game and its own champion, and you play them for shards. The stake goes down before the first move; the winner takes both ----
   const GAME_ORDER = ['draughts', 'ringboard'], CHAMPS = ['Marta Steadyhand', 'Tobin Rook', 'Old Hesper', 'Ines Quill', 'Garrick Stone', 'Wenna Vale', 'Dorrit Crane', 'Osric Thorn', 'Liesel Marsh', 'Cato Finch'];
-  function gameOf(v) { const h = U.strHash(v.id), near = v.starter ? -1 : (PLANNED || []).filter(t => t.type === 'land').sort((a, b) => a.dist - b.dist).findIndex(t => t.id === v.id);
+  function gameOf(v) { if (v.atlantis) return { kind: 'draughts', champ: 'Tidemaster Oan', skill: 0.95, stakes: [100, 400, 1500] }; const h = U.strHash(v.id), near = v.starter ? -1 : (PLANNED || []).filter(t => t.type === 'land').sort((a, b) => a.dist - b.dist).findIndex(t => t.id === v.id);
     return { kind: v.starter ? 'ringboard' : GAME_ORDER[Math.max(0, near) % GAME_ORDER.length], champ: CHAMPS[h % CHAMPS.length], skill: U.clamp(0.22 + (v.tier || 0) * 0.14, 0.22, 1), stakes: [10, 40, 150].map(x => x * (1 + Math.min(4, v.tier || 0))) }; }
   function gameStats(v) { const gs = G.stats.games || (G.stats.games = {}); return gs[v.id] || (gs[v.id] = { won: 0, lost: 0, day: -1, n: 0 }); }
   function gamesDef(v) { const g = gameOf(v), K = Games.KINDS[g.kind], st = gameStats(v), first = g.champ.split(' ')[0];
     const greet = st.won >= 3 ? `Champion of ${v.name}. That is you now, and I have not forgotten it. Sit down.` : st.won + st.lost === 0 ? `${K.blurb} I match whatever you put down. I do not lose often.` : `You have had ${st.won} off me. I have had ${st.lost} off you. Sit down.`;
     return { title: `${K.name} · ${v.name}`, keeper: g.champ, greet, stock: g.stakes.map((stake, i) => ({ service: 'game', game: g.kind, stake, skill: g.skill, champ: g.champ, name: `${i === 0 ? 'A friendly game' : i === 1 ? 'A proper game' : 'For the title'}: ${stake} shards a side`, sub: i === 2 ? `Beat ${first} three times and the town calls you champion` : 'Winner takes both stakes', price: stake, btn: 'Play' })) }; }
+  // the market stalls of Atlantis: small, one thing each, a little under what the halls ask
+  const ATL_STALL_DEF = {
+    stall_plums: { title: 'Sea Plums', keeper: 'Halia', greet: 'Off the kelp beds this morning. They do not keep, so eat them today.', stock: [{ item: 'berry', price: 3, n: 4 }, { item: 'smoothie', price: 14 }] },
+    stall_bait: { title: 'Hook and Line', keeper: 'Corran', greet: 'You fish from the top of the water. We think that is very funny. Bait?', stock: [{ item: 'bait_berry', price: 9 }, { item: 'bait_glow', price: 22 }, { item: 'bait_void', price: 11, n: 2 }] },
+    stall_shells: { title: 'Shell Stall', keeper: 'Maren', greet: 'Everything on this table was alive once and did not mind. Pearls are at the back.', stock: [{ item: 'coral', price: 7, n: 3 }, { item: 'pearl', price: 52 }, { item: 'glass', price: 5, n: 4 }] },
+    stall_lamps: { title: 'Lamp Stall', keeper: 'Tavish', greet: 'It is never dark here, so I sell to people who are leaving. That would be you.', stock: [{ item: 'torch', price: 7, n: 4 }, { item: 'bulb', price: 175 }] },
+    stall_rolls: { title: 'Kelp Rolls', keeper: 'Dorrie', greet: 'Hot. Well, warm. Nothing is hot down here.', stock: [{ item: 'bread', price: 9 }] },
+    stall_tonics: { title: 'Tide Tonics', keeper: 'Lune', greet: 'One at a time. Somebody always mixes them and then I have to explain it to the healer.', stock: [{ item: 'tonic_heal', price: 12 }, { item: 'tonic_swift', price: 40 }, { item: 'tonic_might', price: 40 }, { item: 'tonic_vigor', price: 40 }] },
+    stall_nets: { title: 'The Net Maker', keeper: 'Pike', greet: 'A snare is a small net with opinions. Mine hold.', stock: [{ item: 'snare', price: 11, n: 2 }, { item: 'snare2', price: 44 }] },
+    stall_curios: { title: 'Wreck Curios', keeper: 'Senna', greet: 'All of it came down in a ship. I do not ask whose.', stock: [{ item: 'iron', price: 19, n: 2 }, { item: 'copper', price: 13, n: 2 }, { item: 'chest', price: 28 }] },
+  };
   function shopDef(kind, v) {
+    if (v && v.atlantis && ATL_STALL_DEF[kind]) return ATL_STALL_DEF[kind];
     if (v && v.atlantis && kind === 'armoury') return atlForge(v);
     if (kind === 'games' && v && typeof Games !== 'undefined') return gamesDef(v);
+    if (v && v.atlantis && kind === 'daycare') return Object.assign({}, SHOPS.daycare, { title: 'The Hatchery', keeper: 'Brood-keeper Thal', greet: 'Foals in the tank, yours in the pens. Leave them with me while you see the city. They come back stronger.' });
     if (kind === 'kinmarket' && v) { const d = SHOPS.kinmarket; const parade = (G.dayCount || 0) % 7 === 6; return Object.assign({}, d, { greet: parade ? 'PARADE DAY! The rare ones are in the ring this morning. Bid quick.' : d.greet + ` The parade is in ${6 - ((G.dayCount || 0) % 7)} day${6 - ((G.dayCount || 0) % 7) === 1 ? '' : 's'}.`, stock: saleStock(v) }); } const st = v && SHOP_STYLE[v.style]; const d = (st && st[kind]) || SHOPS[kind]; if (d && typeof Combat !== 'undefined' && world && world.preset.id === 'earth' && ['trader', 'armoury', 'armourer', 'alchemist'].includes(kind)) return Object.assign({}, d, { stock: d.stock.concat(Combat.rack(v, kind)) }); return d; }
   const POST_POOL = [
     { item: 'iron', n: 4, price: 28 }, { item: 'copper', n: 4, price: 22 }, { item: 'void', n: 2, price: 50 }, { item: 'cloud', n: 4, price: 20 }, { item: 'ember', n: 4, price: 18 },
@@ -228,14 +241,14 @@ const Village = (() => {
   let PLAN = null, planning = false; const SPECIAL = new Map(), LOOK = new Map();
   // ---- Atlantis: one city under the sea in every Earth world. It is not one of the ordinary sites: the plan looks over all the deep water
   // within reach of where you start and puts it on the best stretch of it, deep and wide enough for the dome ----
-  const ATL_RH = 40, ATL_RV = 17; let ATL = null;
+  const ATL_RH = 58, ATL_RV = 19; let ATL = null; // twice the ground it had: a market, a canal round it, four great houses and their gardens, and a ring of homes under the low of the glass
   function findAtlantis() {
     const sx = world.spawn.x, sz = world.spawn.z; let best = null;
     const ring = (x, z, r, n) => { let hi = -1, sum = 0; for (let i = 0; i < n; i++) { const a = i / n * Math.PI * 2 + r; const c = world.colInfo(Math.round(x + Math.cos(a) * r), Math.round(z + Math.sin(a) * r)); if (c.lost || c.lostRim) return null; hi = Math.max(hi, c.h); sum += c.h; } return { hi, mean: sum / n }; };
     for (let dx = -2240; dx <= 2240; dx += 64) for (let dz = -2240; dz <= 2240; dz += 64) {
       const d = Math.hypot(dx, dz); if (d < 420 || d > 2250) continue;
       const x = Math.round(sx + dx), z = Math.round(sz + dz); const c = world.colInfo(x, z); if (c.lost || c.lostRim || c.h > SEA - 9) continue;
-      const a = ring(x, z, 24, 6); if (!a || a.hi > SEA - 6) continue; const b = ring(x, z, 46, 10); if (!b || b.hi > SEA - 4) continue; // open water over the whole of it
+      const a = ring(x, z, 32, 8); if (!a || a.hi > SEA - 6) continue; const b = ring(x, z, 64, 14); if (!b || b.hi > SEA - 4) continue; // open water over the whole of it
       const depth = SEA - (c.h + a.mean * 2 + b.mean * 2) / 5; // how much water stands over the place
       const score = Math.min(depth, 24) * 3 - Math.abs(d - 800) / 40 - (b.hi > SEA - 8 ? 6 : 0); // deep first, then not too far to swim to
       if (!best || score > best.score) best = { x, z, h: c.h, score, d, depth };
@@ -543,13 +556,25 @@ const Village = (() => {
   // From the middle out: the falls coming down through the eye of the dome, the ring pool they fall into, the market ring, eight halls, the homes
   // and coral beds, and four gates in the foot of the dome where the sea stands like a wall ----
   const ATL_HALLS = [['armoury', 'The Tideforge'], ['trader', 'Pearl Exchange'], ['bakery', 'Kelp Kitchen'], ['juice', 'The Drowned Tavern'], ['voodoo', 'Tide Healer'], ['fusing', 'The Fusing Hall'], ['elder', 'The Speaker\'s Hall'], ['station', 'The Current']];
-  const ATL_POOL = 10.4, ATL_FALLS = 2.6, ATL_HALL_AT = 24, ATL_POD_AT = 33.5;
+  // the city in rings. The falls and the ring pool; the eight halls of the market; a canal all the way round, fed by four rills that run out from the spires;
+  // beyond the canal the four great houses (school, archive, hatchery, the tide tables) with a garden or a court between each pair; and round the edge, under the low of the glass, the homes
+  const ATL_CIVIC = [['school', 'The Shell School'], ['archive', 'The Archive'], ['daycare', 'The Hatchery'], ['games', 'The Tide Tables']];
+  const ATL_COURTS = ['kelp', 'statue', 'kelp', 'clock', 'park', 'park', 'park', 'park'];
+  const ATL_POOL = 10.4, ATL_FALLS = 2.6, ATL_HALL_AT = 25, ATL_CANAL0 = 33, ATL_CANAL1 = 35.8, ATL_CIVIC_AT = 46, ATL_CIVIC_R = 7.5, ATL_COURT_AT = 43.5, ATL_HOME_AT = 51.5, ATL_HOME_R = 4.0, ATL_SPRING = 19.6, ATL_RILL_END = 29.6;
+  const ATL_STALLS = ['stall_plums', 'stall_bait', 'stall_shells', 'stall_lamps', 'stall_rolls', 'stall_tonics', 'stall_nets', 'stall_curios'];
   function atlLayout() {
-    const A = ATL; if (!A) return null; if (A._lay) return A._lay;
-    const halls = ATL_HALLS.map((h, i) => { const a = (22.5 + i * 45) * Math.PI / 180; return { kind: h[0], name: h[1], a, x: Math.round(Math.cos(a) * ATL_HALL_AT), z: Math.round(Math.sin(a) * ATL_HALL_AT) }; });
-    const pods = []; for (let i = 0; i < 8; i++) { const a = (45 + Math.floor(i / 2) * 90 + (i % 2 ? 17 : -17)) * Math.PI / 180; pods.push({ a, x: Math.round(Math.cos(a) * ATL_POD_AT), z: Math.round(Math.sin(a) * ATL_POD_AT) }); }
-    const spires = []; for (let i = 0; i < 4; i++) { const a = (45 + i * 90) * Math.PI / 180; spires.push({ a, x: Math.round(Math.cos(a) * 15.5), z: Math.round(Math.sin(a) * 15.5), h: 10 }); }
-    const L = { halls, pods, spires, gates: [[1, 0], [0, 1], [-1, 0], [0, -1]], pool: ATL_POOL, falls: ATL_FALLS };
+    const A = ATL; if (!A) return null; if (A._lay) return A._lay; const D = Math.PI / 180, at = (deg, r) => ({ a: deg * D, x: Math.round(Math.cos(deg * D) * r), z: Math.round(Math.sin(deg * D) * r) });
+    const halls = ATL_HALLS.map((h, i) => Object.assign({ kind: h[0], name: h[1] }, at(22.5 + i * 45, ATL_HALL_AT)));
+    const civic = ATL_CIVIC.map((c, i) => Object.assign({ kind: c[0], name: c[1], R: ATL_CIVIC_R }, at(45 + i * 90, ATL_CIVIC_AT))); // each at the end of a rill, a footbridge either side of where the rill runs into the canal
+    const courts = ATL_COURTS.map((k, i) => Object.assign({ kind: k }, at(i < 4 ? 22.5 + i * 90 : 67.5 + (i - 4) * 90, ATL_COURT_AT)));
+    const pods = []; for (let q = 0; q < 4; q++) for (const d of [9, 32, 58, 81]) pods.push(Object.assign({ R: ATL_HOME_R, i: pods.length }, at(q * 90 + d, ATL_HOME_AT)));
+    const stalls = ATL_STALLS.map((k, i) => Object.assign({ kind: k, i }, at((i % 2 ? 56.25 : 33.75) + (i >> 1) * 90, 14.2))); // the market: two stalls in each quarter, clear of the avenues, the spires and the hall doors
+    const trees = []; for (let i = 0; i < 4; i++) { const c = Math.cos(i * 90 * D), s = Math.sin(i * 90 * D); for (const r of [20.5, 30.6, 39.5, 43.75, 48, 53.5]) for (const sd of [-3.6, 3.6]) trees.push({ x: Math.round(c * r - s * sd), z: Math.round(s * r + c * sd), k: trees.length }); } // coral in pearl tubs down both sides of each avenue
+    const boats = []; for (let q = 0; q < 4; q++) for (const d of [20, 70]) boats.push({ a: (q * 90 + d) * D, k: boats.length });
+    const spires = []; for (let i = 0; i < 4; i++) spires.push(Object.assign({ h: 12 }, at(45 + i * 90, 15.5)));
+    const rills = [0, 1, 2, 3].map(i => ({ a: (45 + i * 90) * D, c: Math.cos((45 + i * 90) * D), s: Math.sin((45 + i * 90) * D) }));
+    const bridges = []; for (let i = 0; i < 4; i++) bridges.push({ a: i * 90 * D, w: 2.6, wide: true }); for (let i = 0; i < 4; i++) for (const o of [-6, 6]) bridges.push({ a: (45 + i * 90 + o) * D, w: 1.3 }); for (const b of bridges) { b.c = Math.cos(b.a); b.s = Math.sin(b.a); }
+    const L = { halls, civic, courts, pods, spires, rills, bridges, stalls, trees, boats, gates: [[1, 0], [0, 1], [-1, 0], [0, -1]], pool: ATL_POOL, falls: ATL_FALLS, canal: [ATL_CANAL0, ATL_CANAL1], spring: ATL_SPRING, rillEnd: ATL_RILL_END };
     A._lay = L; Object.assign(world.atlantis, L); return L;
   }
   function stampAtl(chunk) {
@@ -561,7 +586,12 @@ const Village = (() => {
       const dx = wd(ox + lx - A.x), dz = wd(oz + lz - A.z), r = Math.hypot(dx, dz), base = (lx * CH + lz) * WH;
       if (r > RH + 8.5) continue;
       let gate = null; for (const g of L.gates) { const along = dx * g[0] + dz * g[1], across = Math.abs(dx * g[1] - dz * g[0]); if (along > 0 && across <= 2.5) { gate = { along, across }; break; } }
-      const pool = r <= ATL_POOL, falls = r <= ATL_FALLS, floorY = pool ? vy - 4 : vy - 1;
+      const pool = r <= ATL_POOL, falls = r <= ATL_FALLS;
+      // water in the floor: the canal ring, two deep, crossed by slabs where the ways go over it; and the four rills, one deep, from the foot of each spire out to the canal
+      const canal = r >= ATL_CANAL0 - 0.1 && r <= ATL_CANAL1 + 0.1, bridge = canal && L.bridges.some(b => dx * b.c + dz * b.s > 0 && Math.abs(dz * b.c - dx * b.s) <= (b.wide ? b.w : b.w + 0.71)); // a footbridge is drawn as one straight slab, so every square it lies on is solid
+      // a rill is water only where a whole square of it lies inside the channel as it is drawn, so you never sink through floor you can see. u runs out along it, a is how far off its line
+      let rill = false, spring = false; if (!canal && r > 16 && r < ATL_CANAL0) for (const q of L.rills) { const u = dx * q.c + dz * q.s, a = Math.abs(dz * q.c - dx * q.s); if (u <= 0 || a > 2.2) continue; if (Math.hypot(u - ATL_SPRING, a) <= 1.2) spring = true; else if (a <= 1.0 && u >= ATL_SPRING + 1.0 && u <= ATL_RILL_END - 0.71) rill = true; break; }
+      const floorY = pool ? vy - 4 : canal ? vy - 3 : rill ? vy - 2 : vy - 1;
       if (r > RH + 2.2) { // outside the dome: only the way in to each gate is touched. Whatever seabed stands over it is taken away, so you can always swim down to the door
         if (gate) for (let y = vy; y <= SEA; y++) if (bl[base + y] !== B.WATER) bl[base + y] = B.WATER;
         continue; }
@@ -569,11 +599,14 @@ const Village = (() => {
       bl[base + floorY] = B.ATLAN;
       if (r > RH + 0.5) { for (let y = vy; y <= SEA; y++) bl[base + y] = B.WATER; continue; } // a step of the floor runs on outside the glass, with open water over it, so the seabed never leans in against the dome
       if (pool) for (let y = vy - 3; y < vy; y++) bl[base + y] = B.WATER; // the ring pool: three deep, its top level with the floor
+      if (canal) { bl[base + vy - 2] = B.WATER; bl[base + vy - 1] = bridge ? B.ATLAN : B.WATER; }
+      if (rill) bl[base + vy - 1] = B.WATER;
       for (let y = vy; y <= SEA; y++) { const dy = y - vy; // air under the glass, the glass, the sea over it
         bl[base + y] = !inside(dx, dy, dz) ? B.WATER : (inside(dx + 1, dy, dz) && inside(dx - 1, dy, dz) && inside(dx, dy, dz + 1) && inside(dx, dy, dz - 1) && inside(dx, dy + 1, dz)) ? B.AIR : B.AGLASS; }
       if (falls) { for (let y = vy; y <= SEA; y++) bl[base + y] = B.WATER; continue; } // the falls: the sea comes down through the eye of the dome in one column, and you can swim down it
       if (gate && gate.across <= 1.5 && gate.along > RH - 3) for (let dy = 0; dy <= 3; dy++) if (bl[base + vy + dy] === B.AGLASS) bl[base + vy + dy] = B.AIR; // a gate: the glass is left out and the sea stands in the gap
-      if (pool) continue;
+      if (pool || canal || rill) continue;
+      if (spring) { bl[base + vy] = B.ATLAN; continue; } // the basin the rill rises in
       for (const h of L.halls) { const hx = dx - h.x, hz = dz - h.z, hr = Math.hypot(hx, hz); if (hr > 5.45) continue;
         const dirX = -Math.cos(h.a), dirZ = -Math.sin(h.a), fwd = hx * dirX + hz * dirZ, side = Math.abs(hx * dirZ - hz * dirX); // toward the middle of the city is the front
         const door = fwd > 2 && side <= 1.55;
@@ -581,13 +614,30 @@ const Village = (() => {
         else if (hx === 0 && hz === 0) { bl[base + vy + 4] = B.ALIGHT; if (h.kind === 'fusing') bl[base + vy] = B.FUSION; }
         else if (h.kind !== 'fusing' && h.kind !== 'elder' && h.kind !== 'station' && fwd > 0.4 && fwd <= 1.5 && side <= 2.5) bl[base + vy] = B.ATLAN; // the counter
         bl[base + vy + 5] = B.ATLAN; }
-      for (const q of L.pods) { const hx = dx - q.x, hz = dz - q.z, hr = Math.hypot(hx, hz); if (hr > 2.95) continue;
-        const dirX = -Math.cos(q.a), dirZ = -Math.sin(q.a), fwd = hx * dirX + hz * dirZ, side = Math.abs(hx * dirZ - hz * dirX);
-        if (hr > 1.9) { for (let dy = 0; dy <= 2; dy++) bl[base + vy + dy] = (fwd > 1 && side <= 0.6 && dy <= 1) ? B.AIR : B.ATLAN; } else if (hx === 0 && hz === 0) bl[base + vy + 2] = B.ALIGHT;
-        if (bl[base + vy + 3] === B.AIR) bl[base + vy + 3] = B.ATLAN; }
+      for (const h of L.civic) { const hx = dx - h.x, hz = dz - h.z, hr = Math.hypot(hx, hz); if (hr > h.R) continue; // the great houses: half as wide again as a hall, a storey higher
+        const dirX = -Math.cos(h.a), dirZ = -Math.sin(h.a), fwd = hx * dirX + hz * dirZ, sd = hx * dirZ - hz * dirX, side = Math.abs(sd), door = fwd > 3 && side <= 1.55;
+        if (hx === 0 && hz === 0) bl[base + vy + 5] = B.ALIGHT;
+        if (hr > h.R - 1.15) { for (let dy = 0; dy <= 5; dy++) bl[base + vy + dy] = door && dy <= 3 ? B.AIR : B.ATLAN; }
+        else if ((h.kind === 'games' && fwd > -2.6 && fwd <= -1.5 && side <= 3.2) || (h.kind === 'daycare' && fwd > -3.95 && fwd <= -2.85 && side <= 2.9)) bl[base + vy] = B.ATLAN; // the counter, at the back
+        else if (h.kind === 'daycare' && hr <= 2.3) { bl[base + vy] = B.ATLAN; bl[base + vy + 1] = B.ATLAN; bl[base + vy + 2] = B.ATLAN; } // the tank
+        else if (h.kind === 'archive' && hr <= 1.3) bl[base + vy] = B.ATLAN; // the map table
+        else if (h.kind === 'archive' && hr > h.R - 2.2 && fwd < -3.6) { bl[base + vy] = B.ATLAN; bl[base + vy + 1] = B.ATLAN; } // the rack of rolls along the back wall
+        else if (h.kind === 'school' && hr > h.R - 2.3 && sd > 0 && Math.abs(fwd) <= 2.6) { bl[base + vy] = B.BOOKS; bl[base + vy + 1] = B.BOOKS; } // the shelf of books, along the wall on your left as you come in
+        else if (h.kind === 'archive' && ((Math.abs(hx) === 4 && hz === 0) || (hx === 0 && Math.abs(hz) === 4))) bl[base + vy] = B.ATLAN; // four plinths, a thing of the old city on each
+        bl[base + vy + 6] = B.ATLAN; }
+      for (const c of L.courts) { if (c.kind !== 'statue' && c.kind !== 'clock') continue; if (Math.hypot(dx - c.x, dz - c.z) <= 1.3) { bl[base + vy] = B.ATLAN; bl[base + vy + 1] = B.ATLAN; } } // what stands in the middle of a court stands on a block you cannot walk through
+      for (const q of L.pods) { const hx = dx - q.x, hz = dz - q.z, hr = Math.hypot(hx, hz); if (hr > q.R + 0.1) continue; // a home: one round room, four high, big enough to live in
+        const dirX = -Math.cos(q.a), dirZ = -Math.sin(q.a), fwd = hx * dirX + hz * dirZ, sd = hx * dirZ - hz * dirX, side = Math.abs(sd);
+        if (hr > q.R - 0.95) { for (let dy = 0; dy <= 3; dy++) bl[base + vy + dy] = (fwd > 1 && side <= 1.05 && dy <= 2) ? B.AIR : B.ATLAN; }
+        else if (hx === 0 && hz === 0) bl[base + vy + 3] = B.ALIGHT;
+        else if (fwd >= -2.3 && fwd <= -1.2 && sd >= -0.2 && sd <= 1.9) bl[base + vy] = B.ATLAN; // the bed, along the back wall
+        else if (Math.hypot(fwd - 0.7, sd + 1.5) < 0.71) bl[base + vy] = B.ATLAN; // the table
+        if (bl[base + vy + 4] === B.AIR) bl[base + vy + 4] = B.ATLAN; }
+      for (const t of L.stalls) if (dx === t.x && dz === t.z) bl[base + vy] = B.ATLAN; // the counter of a market stall
+      for (const t of L.trees) if (dx === t.x && dz === t.z && bl[base + vy] === B.AIR) bl[base + vy] = B.ATLAN; // the tub a coral stands in
       for (const sp of L.spires) if (dx === sp.x && dz === sp.z) { for (let dy = 0; dy < sp.h; dy++) bl[base + vy + dy] = B.ATLAN; bl[base + vy + sp.h] = B.ALIGHT; }
-      // coral beds out by the homes, and a pearl light in each: off the avenues, clear of every door
-      if (r > 29.5 && r < 37.5 && !gate && bl[base + vy] === B.AIR && !L.pods.some(q => Math.hypot(dx - q.x, dz - q.z) < 4.6)) { const a = Math.atan2(dz, dx), bed = Math.sin(a * 8) > 0.15 && Math.abs(r - 33.5) < 2.6 + Math.sin(a * 24) * 0.8; const hq = U.hash3(ox + lx, 31, oz + lz, 0xA71);
+      // coral beds out among the homes, and a pearl light in each: off the avenues, clear of every door
+      if (r > 47.5 && r < 56.5 && !gate && bl[base + vy] === B.AIR && !L.pods.some(q => Math.hypot(dx - q.x, dz - q.z) < q.R + 2.2) && !L.trees.some(q => Math.abs(dx - q.x) < 2 && Math.abs(dz - q.z) < 2) && !L.civic.some(q => Math.hypot(dx - q.x, dz - q.z) < q.R + 2) && !L.courts.some(q => Math.hypot(dx - q.x, dz - q.z) < 8.5)) { const a = Math.atan2(dz, dx), bed = Math.sin(a * 16) > 0.2 && Math.abs(r - 53.6) < 1.9 + Math.sin(a * 40) * 0.7; const hq = U.hash3(ox + lx, 31, oz + lz, 0xA71);
         if (bed && hq < 0.5) bl[base + vy] = hq < 0.035 ? B.PEARLCORAL : [B.CORAL_R, B.CORAL_B, B.CORAL_Y][Math.floor(hq * 60) % 3]; }
     }
   }
@@ -1428,10 +1478,10 @@ const Village = (() => {
     const build = role === 'elder' || role === 'voodoo' || role === 'hermit' ? 'man' : r.pick(['man', 'woman', 'stout', 'woman', 'slim', 'man']), hairVar = build === 'woman' ? r.pick([3, 3, 2]) : r.pick([0, 1, 2, 0]), hairCol = style === 'alien' ? null : role === 'elder' ? '#d8d8dc' : r.pick(['#3a2a1a', '#1a1410', '#6a4a22', '#b8862e', '#8a3a1a', '#d8c070', '#4a4a52', '#2a1a2a']); /* each villager: a build, a head of hair and its colour, all from the same roll every time */
     return { build, hairVar, hair: hairCol || undefined, shape: 'human', feat: { crest: false, ears: false, horns: false, spikes: false, tail: false, wings: false, bigEyes: style === 'alien' }, colors: { body, belly: skin, accent, dark: style === 'alien' ? '#05050f' : style === 'atlantis' ? '#1a3a4a' : '#3a2a20', eye: style === 'alien' ? '#ffffff' : '#222222' }, size: role === 'elder' ? 1.15 : role === 'voodoo' ? 1.1 : 1, gen: 0, names: ['villager'], neon: style === 'alien' };
   }
-  function makeNpc(i, role, x, z, name, shop, y, vid, style) {
+  function makeNpc(i, role, x, z, name, shop, y, vid, style, kid) {
     style = style || (vid === 'shore' ? 'land' : (world.preset.people || 'land'));
     const sp = villagerSpecies(i, role, vid, style);
-    const child = role === 'villager' && U.strHash((vid || 's') + ':' + i + ':kid') % 4 === 0; if (child) { sp.build = 'slim'; sp.hairVar = U.strHash((vid || 's') + ':' + i) % 3; } /* one villager in four is a child */
+    const child = role === 'villager' && (kid === true || (kid !== false && U.strHash((vid || 's') + ':' + i + ':kid') % 4 === 0)); if (child) { sp.build = 'slim'; sp.hairVar = U.strHash((vid || 's') + ':' + i) % 3; } /* one villager in four is a child */
     const m = KIN.model(sp, 2);
     if (style === 'alien') KIN.decorate(m, 'alien'); else if (style === 'halo') KIN.decorate(m, 'veil'); else if (style === 'atlantis') KIN.decorate(m, 'merfolk'); else if (style === 'sea') KIN.decorate(m, 'reef'); else if (style === 'frontier' && role !== 'hermit' && role !== 'traveller') KIN.decorate(m, 'hat');
     if ((role === 'elder' && (style === 'land' || !style)) || role === 'voodoo' || role === 'fisher' || role === 'traveller' || role === 'hermit') KIN.decorate(m, role);
@@ -1544,10 +1594,26 @@ const Village = (() => {
       else if (h.kind === 'station') v.npcs.push(put(makeNpc(15, 'keeper', 0, 0, 'Tidewarden ' + pname(5), 'station', vy, v.id, sty), bx, bz, { wander: false, ferry: true }));
       else v.npcs.push(put(makeNpc(10 + i, 'keeper', 0, 0, shopDef(h.kind, v).keeper, h.kind, vy, v.id, sty), bx, bz, { wander: false })); });
     v.npcs.push(put(makeNpc(22, 'keeper', 0, 0, 'Ringmaster Delphin', null, vy, v.id, sty), 0, 12.4, { wander: false, atl: 'ring' }));
-    for (let i = 0; i < 9; i++) { const a = (i + 0.5) / 9 * Math.PI * 2 + 0.35, r = 13.6 + (i % 3) * 1.3; v.npcs.push(put(makeNpc(i, 'villager', 0, 0, pname(i + 2), null, vy, v.id, sty), Math.round(Math.cos(a) * r), Math.round(Math.sin(a) * r))); }
+    // the great houses: who keeps each, and who is in it
+    L.civic.forEach((h, i) => { const c = Math.cos(h.a), s = Math.sin(h.a), back = (d, sd) => [h.x + c * d - s * (sd || 0), h.z + s * d + c * (sd || 0)]; // d: towards the back wall, sd: along it
+      if (h.kind === 'school') { v.npcs.push(put(makeNpc(40, 'keeper', 0, 0, 'Teacher Thessaly', null, vy, v.id, sty), ...back(4.4), { wander: false, atl: 'teacher' }));
+        [[1.2, -2.2], [1.2, 0], [1.2, 2.2], [-1.0, -1.3], [-1.0, 1.3]].forEach(([d, sd], k) => v.npcs.push(Object.assign(put(makeNpc(60 + k, 'villager', 0, 0, ['Nim', 'Oda', 'Pell', 'Suri', 'Tam'][k], null, vy, v.id, sty, true), ...back(d, sd), { wander: false, atl: 'pupil' }), { yaw: Math.atan2(c, s) }))); } // the class, in two rows, looking at the teacher
+      else if (h.kind === 'archive') v.npcs.push(put(makeNpc(41, 'keeper', 0, 0, 'Archivist Merope', null, vy, v.id, sty), ...back(-3.4, 1.8), { wander: false, atl: 'archive' })); // inside the door, to one side
+      else if (h.kind === 'daycare') v.npcs.push(put(makeNpc(42, 'keeper', 0, 0, shopDef('daycare', v).keeper, 'daycare', vy, v.id, sty), ...back(4.7), { wander: false }));
+      else if (h.kind === 'games') v.npcs.push(put(makeNpc(43, 'keeper', 0, 0, shopDef('games', v).keeper, 'games', vy, v.id, sty), ...back(3.6), { wander: false })); });
+    L.courts.forEach((q, i) => { const c = Math.cos(q.a), s = Math.sin(q.a);
+      if (q.kind === 'kelp') v.npcs.push(put(makeNpc(44 + i, 'villager', 0, 0, i ? 'Gardener Lir' : 'Gardener Soraya', null, vy, v.id, sty), q.x - Math.round(c * 5), q.z - Math.round(s * 5), { wander: false, atl: 'garden' }));
+      else if (q.kind === 'park') { /* nobody keeps a park: whoever lives nearest sits in it */ }
+      else if (q.kind === 'statue') { v.npcs.push(put(makeNpc(48, 'villager', 0, 0, 'Old Pelagia', null, vy, v.id, sty), q.x - Math.round(c * 4), q.z - Math.round(s * 4), { wander: false, atl: 'statue' }));
+        for (let k = 0; k < 3; k++) v.npcs.push(put(makeNpc(65 + k, 'villager', 0, 0, ['Kip', 'Wren', 'Juno'][k], null, vy, v.id, sty, true), q.x + Math.round(Math.cos(k * 2.1) * 3), q.z + Math.round(Math.sin(k * 2.1) * 3), { atl: 'child', speed: 2.6 })); } // children playing round the statue
+      else v.npcs.push(put(makeNpc(49, 'villager', 0, 0, 'Clockwinder Orrin', null, vy, v.id, sty), q.x - Math.round(c * 4), q.z - Math.round(s * 4), { wander: false, atl: 'clock' })); });
+    // somebody lives in every home, and is out in front of it or along the lane by day
+    L.pods.forEach((q, i) => { const d = i % 2 ? 0.9 : 6; v.npcs.push(put(makeNpc(70 + i, 'villager', 0, 0, pname(i + 9), null, vy, v.id, sty), q.x - Math.round(Math.cos(q.a) * d), q.z - Math.round(Math.sin(q.a) * d), i % 2 ? { atl: 'home', homeI: i, wander: false, indoors: true } : { atl: 'home', homeI: i })); }); // every other one is at home when you call
+    L.stalls.forEach((t, i) => v.npcs.push(put(makeNpc(90 + i, 'keeper', 0, 0, shopDef(t.kind, v).keeper, t.kind, vy, v.id, sty), t.x + Math.round(Math.cos(t.a) * 1.45), t.z + Math.round(Math.sin(t.a) * 1.45), { wander: false }))); // behind the counter, looking in at the pool
+    for (let i = 0; i < 8; i++) { const a = (i + 0.5) / 8 * Math.PI * 2 + 0.2, r = i % 2 ? 12.6 + (i % 3) * 0.5 : i % 4 === 2 ? 28.6 : 20.4; v.npcs.push(put(makeNpc(i, 'villager', 0, 0, pname(i + 2), null, vy, v.id, sty), Math.round(Math.cos(a) * r), Math.round(Math.sin(a) * r))); } // and the market has its crowd
     v.npcs.push(v.elder);
     for (const n of v.npcs) { n.y = vy; n.home = { x: n.x, z: n.z }; }
-    v.wanderR = 19; buildGuardEnts(v); // the whole market ring is theirs to walk: they stop at the kerb of the pool and at the walls
+    v.wanderR = 56; buildGuardEnts(v); // each keeps to the few steps round where they belong; the box only stops them at the glass
   }
   // the seahorse in the ring. Skerry is a great seahorse, Isla's; once she is yours, another takes her place
   function ringSpecies(spare) {
@@ -1577,6 +1643,21 @@ const Village = (() => {
     if (n.atl === 'ring') {
       if (!a.met) { a.met = true; return Dialogue.show(n.name, ['The ring is the oldest thing in the city. You get on, she goes round the falls, and she does her best to put you in the water.', a.tamed ? 'Brine has the ring now. Every five you last, I pay, and I pay more the longer you stay.' : 'That one is Skerry. Nobody has stayed on her to twenty since the girl she belonged to. Do it and she leaves with you.', 'Lean against her with the stick. It costs nothing to try and it does not hurt, you only get wet.'], () => atlRide(v)); }
       return Dialogue.show(n.name, [a.best ? `Your best is ${Math.floor(a.best)}. ${a.tamed ? 'Brine is feeling lively.' : a.best >= 12 ? 'Skerry noticed. Twenty and she is yours.' : 'Twenty, and Skerry is yours.'} Up you get.` : 'Up you get.'], () => atlRide(v)); }
+    if (n.atl === 'teacher') { const read = Books.count('atlantis'), all = Books.total('atlantis');
+      if (read >= all && !a.prize) { a.prize = true; G.shards += 60; UI.sfx('caught'); return Dialogue.show(n.name, ['All six. The little ones take a year over that shelf.', 'There is a prize for finishing it. Sixty shards out of the school jar. Do not tell the Speaker I counted a land-walker as a pupil.']); }
+      const LESS = [['Sit at the back. Today is the Falls.', 'The sea comes in at the eye of the roof and goes out again through the floor of the ring pool. If it ever stopped we would have a day of air left. So we do not let it stop.', 'Who can tell me what makes the air? Yes. The kelp. Thank a gardener on your way home.'],
+        ['Sit down, we have started. Today is the Old Ones.', 'There are three, and one of them is under us right now. It is asleep. It has been asleep since before there was an island.', 'When it turns over the ground shakes. That is all an earthquake is: something very old getting comfortable.'],
+        ['Quiet, please. Today is the Concord.', 'A Kin does not carry you because you are strong. It carries you because it has decided to. The Concord was a crystal that let each feel what the other meant.', 'We do not have it any more. We have manners, which is slower.']];
+      return Dialogue.show(n.name, LESS[(G.dayCount || 0) % LESS.length].concat([read ? `You have read ${read} of the ${all} on the shelf.` : 'The shelf is along the wall. The books are for children. You will manage.'])); }
+    if (n.atl === 'pupil') return Dialogue.show(n.name, [['Shh. She can hear whispering through glass.', 'Have you been up? Is it true the sky has no roof on it?', 'I am going to ride Skerry when I am big. Everybody says that.', 'I licked the glass once. It tastes of nothing.', 'A is for Air. I know all of it. Ask me one.'][(n.id || 0) % 5]]);
+    if (n.atl === 'child') return Dialogue.show(n.name, [['You cannot catch me. Nobody can. I am Skerry.', 'We are playing Falls. You have to be the sea.', 'Is that a land scarf? Can I have it?'][(n.id || 0) % 3]]);
+    if (n.atl === 'archive') return Dialogue.show(n.name, ['Four things came down with us from the old city. Look as long as you like. Do not touch.', 'A splinter of the Concord, from before it was bent. It still hums when a Kin you trust is standing near.', 'The old city itself, cast in gold by somebody who missed it. Every tower is where it was.', 'A child\'s saddle. There is no name on the card. Everybody knows whose it is.', a.told ? 'And the first Fusion Table, in small. He made it as a toy for her before he ever made a real one.' : 'And the first Fusion Table, in small. A man made it as a toy for his daughter. Ask the Speaker which man.', 'The table in the middle is the sea as we know it. Rose is reef. The green is the Lost World, and the dark cut beside it is where the big ones live. The glass bead is us.']);
+    if (n.atl === 'garden') { const day = G.dayCount || 0; if (a.kelpDay !== day) { a.kelpDay = day; G.player.add('berry', 3); UI.sfx('caught'); return Dialogue.show(n.name, ['Every breath you take down here came out of these beds. The kelp does the work and we do the weeding.', 'Sea plums are ripe. Take three. They are berries to you, I think.']); }
+      return Dialogue.show(n.name, ['You have had today\'s plums. Come back when the lamps have been round once.', 'If the beds ever go brown, run for the Falls and swim. That is the whole of the drill.']); }
+    if (n.atl === 'statue') return Dialogue.show(n.name, ['That is Isla, and that is Skerry under her. I was at school with one of them.', 'She used to ride round the falls standing up. The Ringmaster will tell you nobody can. He was not there.', a.tamed ? 'They say Skerry went with a land-walker. Good. She waited long enough.' : 'Skerry is still in the ring. She has thrown everybody since.']);
+    if (n.atl === 'clock') { const t = world.time || 0, night = t > 0.75 || t < 0.22; return Dialogue.show(n.name, ['There is no sun down here, so we keep the tide instead. The pearl goes round the hoop once for every tide up above.', night ? 'It is night on the land now. You would not know it from here, and the children use that against their mothers.' : 'It is day on the land now. The light in the Falls is the only way you would know.', 'I wind it every morning. If I stop, nothing happens for about a week. Then everybody is late for everything.']); }
+    if (n.atl === 'home') { if (n.indoors) { const IN = ['Come in, come in. Mind the rug, it is older than the canal.', 'You can sit. Not on the bed. On the stool.', 'Everybody asks about the cap. Yes, it is glass. No, it has never cracked.', 'I keep the chest locked. There is nothing in it. It is the principle.', 'This was my mother\'s house and her mother\'s. We have moved the table twice.', 'If you are after the school, it is the big house with the gold band. This is just my kitchen.', 'Tell the children outside you are not a fish. They have a bet on.', 'I was about to eat. There is enough for one and a half.']; return Dialogue.show(n.name, [IN[((n.homeI || 0) >> 1) % IN.length]]); } const LINES = ['The lamp over every door is a different colour. That is how the little ones find their way home.', 'You are the land-walker. My youngest wants to know if rain is real.', 'Mind the canal. It is not deep, but it is always colder than you expect.', 'The Tide Tables took forty shards off my husband last night. He says he was unlucky. He was outplayed.', 'I was born under this roof. I have seen the sky twice. It is very large and nobody is in charge of it.', 'The hatchery had six foals this spring. Go and look, they let you.', 'If you are going up, take the Current. Swimming the Falls is for show-offs and seahorses.', 'We do not lock doors down here. Where would a thief go?'];
+      return Dialogue.show(n.name, [LINES[(n.homeI || 0) % LINES.length]]); }
     if (n.atl === 'hall') return Dialogue.show(n.name, ['This is the fusing hall. Every Fusion Table on the land was made on this floor and given away, back when we still went up into the light.', 'The one who kept it was called the Kinmaster. It was only a job then.', a.told ? 'You know the rest. The table still works. He never came back for it.' : 'Ask the Speaker about him. It is hers to tell.']);
     if (n.atl === 'speaker') {
       const fled = !!G.stats.lightReturned;
@@ -2086,7 +2167,7 @@ const Village = (() => {
       if (n.moving) {
         const mdx = n.tx - n.x, mdz = n.tz - n.z, md = Math.hypot(mdx, mdz);
         if (md < 0.3) n.moving = false;
-        else { const step = Math.min(md, 1.3 * dt), ux = mdx / md, uz = mdz / md; let went = false; /* a post or a corner in the way: step round it instead of standing against it */
+        else { const step = Math.min(md, (n.speed || 1.3) * dt), ux = mdx / md, uz = mdz / md; let went = false; /* a post or a corner in the way: step round it instead of standing against it */
           for (const ang of (n.side ? [0, n.side * 0.9, n.side * 1.7, -n.side * 0.9] : [0, 0.9, -0.9, 1.7, -1.7])) { const c = Math.cos(ang), sn = Math.sin(ang), vx = ux * c - uz * sn, vz = ux * sn + uz * c; const gy = roomAt(n.x + vx * (step + 0.25), n.y, n.z + vz * (step + 0.25)); if (gy == null) continue;
             { let crowd = false; const qx = n.x + vx * (step + 0.2), qz = n.z + vz * (step + 0.2); for (const m of v.npcs) { if (m === n || m.hidden || Math.abs(m.y - n.y) > 1.5) continue; const d1 = Math.hypot(m.x - qx, m.z - qz); if (d1 < 0.85 && d1 < Math.hypot(m.x - n.x, m.z - n.z)) { crowd = true; break; } } if (crowd) continue; } /* someone is standing there: go round them too */
             n.x += vx * step; n.z += vz * step; n.y += (gy - n.y) * Math.min(1, dt * 8); n.yaw = Math.atan2(vx, vz); n.side = ang ? Math.sign(ang) : 0; went = true; break; }

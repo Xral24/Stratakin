@@ -15,7 +15,7 @@ const B = {
   TORCH: 18, FUSION: 19, GRAVEL: 20, CACTUS: 21, STARMETAL: 22, MOSS: 23, STATUE: 24, PLANKS: 25, BERRY: 26, GLASS: 27, CAMPFIRE: 28, IRONWALL: 29, VOIDWALL: 30, GLOWWORM: 31, BERRYLEAF: 32, DOOR: 33, DOOR_OPEN: 34, PORTAL: 35,
   CHEST: 36, SELENITE: 37, TYCHO: 38, STARSALT: 39, MOONGLOW: 40, AMBER: 41, SULFUR: 42, RINGSHARD: 43, BRINE: 44, CORAL_R: 45, CORAL_B: 46, CORAL_Y: 47, PEARLCORAL: 48, GOLD: 49, DIAMOND: 50, FERN: 51, SELGLASS: 52, INCUBATOR: 53, REGOLITH: 54, DUNE: 55, SALTCRUST: 56, LADDER: 57, TARGET: 58, BALLOON: 59, FORTSTONE: 60, THORN: 61, DEADGATE: 62, RUBBLE: 63, DARKTABLE: 64,
   NEEDLES: 65, FROND: 66, BIRCHLOG: 67, BOULDER: 68, MUSHROOM: 69, FLOWERS: 70, PEBBLES: 71, PALMLOG: 72,
-  TILES: 73, SLATE: 74, THATCH: 75, PLASTER: 76, BEAM: 77, LAMP: 78, COBBLE: 79, FLOWERBOX: 80, PALISADE: 81, MASONRY: 82, FOUNTAIN: 83, BASIN: 84, AWNING: 85, BANNER: 86, SLIT: 87, TIPI: 88, HIDE: 89, LODGE: 90, FENCE: 91, FIREPIT: 92, TOTEM: 93, RAIL: 94, CART: 95, ROPEBRIDGE: 96, WEAVE: 97, SAIL: 98, EMBERLIGHT: 99, BARREL: 100, CRATE: 101, BUNTING: 102, SIGNPOST: 103, PLANTER: 104, BRICK: 105, SAILS: 106, FALLS: 107, HALFTIMBER: 108, CHIMNEY: 109, HALFTIMBER_O: 110, HALFTIMBER_W: 111, GLOWLINE: 112, SALTROOF: 113, HALOWALL: 114, TRACK: 115, ATLAN: 116, AGLASS: 117, ALIGHT: 118, JLOG: 119, GATE: 120
+  TILES: 73, SLATE: 74, THATCH: 75, PLASTER: 76, BEAM: 77, LAMP: 78, COBBLE: 79, FLOWERBOX: 80, PALISADE: 81, MASONRY: 82, FOUNTAIN: 83, BASIN: 84, AWNING: 85, BANNER: 86, SLIT: 87, TIPI: 88, HIDE: 89, LODGE: 90, FENCE: 91, FIREPIT: 92, TOTEM: 93, RAIL: 94, CART: 95, ROPEBRIDGE: 96, WEAVE: 97, SAIL: 98, EMBERLIGHT: 99, BARREL: 100, CRATE: 101, BUNTING: 102, SIGNPOST: 103, PLANTER: 104, BRICK: 105, SAILS: 106, FALLS: 107, HALFTIMBER: 108, CHIMNEY: 109, HALFTIMBER_O: 110, HALFTIMBER_W: 111, GLOWLINE: 112, SALTROOF: 113, HALOWALL: 114, TRACK: 115, ATLAN: 116, AGLASS: 117, ALIGHT: 118, JLOG: 119, GATE: 120, BOOKS: 121
 };
 
 // name, top colour, side colour, solid, hardness (seconds to mine), drop item id, emissive, fluid
@@ -137,6 +137,7 @@ defBlock(B.ATLAN, 'Pearlstone', '#dfe9ee', '#c9d8e0', { hard: Infinity });
 defBlock(B.AGLASS, 'Dome Glass', '#bfeaf5', '#bfeaf5', { hard: Infinity, transparent: true });
 defBlock(B.ALIGHT, 'Pearl Light', '#bff4ff', '#bff4ff', { solid: false, hard: Infinity, emissive: true, partial: true, transparent: true });
 defBlock(B.GATE, 'Gateway', '#a07a44', '#75522c', { solid: false, hard: Infinity, drop: null, partial: true, transparent: true }); // the mark at the middle of a town gate: the mesher draws the whole head of the gateway from it, beam and roof or arch and battlements, after the wall it stands in
+defBlock(B.BOOKS, 'Bookshelf', '#e5edf2', '#c9d6de', { hard: Infinity, drop: null }); // a shelf of books you can take down and read: drawn by whatever building it stands in
 defBlock(B.JLOG, 'Jungle Trunk', '#8a6a44', '#5f4630', { hard: Infinity }); // the trees of the Lost World are too big for a hatchet. Never drawn as a block: the mesher draws each tree whole
 defBlock(B.BARREL, 'Barrel', '#9a6a3a', '#7a4f28', { hard: 0.5, drop: 'planks', partial: true, transparent: true });
 defBlock(B.CRATE, 'Crate', '#b89058', '#96703e', { hard: 0.5, drop: 'planks', partial: true, transparent: true });

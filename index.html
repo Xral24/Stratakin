@@ -506,6 +506,21 @@ select { font-family: var(--font); font-size: 14px; padding: 9px 11px; border-ra
 #gamebox .gb-man.king { outline: 3px solid #ffd45a; outline-offset: -7px; }
 #gamebox .gb-man.sel { box-shadow: 0 0 0 4px #ffe27a, inset 0 -4px 0 rgba(0,0,0,.28); } #gamebox .gb-man.can { box-shadow: 0 0 0 2px rgba(255,255,255,.75), inset 0 -4px 0 rgba(0,0,0,.28); }
 
+/* ---- a shelf of books, and one of them open ---- */
+#bookbox { position: fixed; inset: 0; z-index: 40; display: flex; align-items: center; justify-content: center; background: rgba(6, 10, 16, .74); touch-action: manipulation; }
+#bookbox .bk-card { width: min(94vw, 460px); max-height: 94vh; overflow: auto; background: var(--bg2); border: 1px solid var(--line); border-radius: 18px; padding: 16px; display: flex; flex-direction: column; gap: 10px; box-shadow: 0 18px 50px rgba(0,0,0,.5); }
+#bookbox .bk-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; } #bookbox .bk-head b { font-size: 18px; font-weight: 900; } #bookbox .bk-head span { font-size: 12.5px; color: var(--dim); white-space: nowrap; }
+#bookbox .bk-note { margin: 0; font-size: 13.5px; color: var(--dim); line-height: 1.4; }
+#bookbox .bk-shelf { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+#bookbox .bk-cover { position: relative; min-height: 112px; border: 0; border-radius: 6px 12px 12px 6px; padding: 12px 12px 12px 18px; text-align: left; background: linear-gradient(90deg, rgba(0,0,0,.28) 0 7px, transparent 7px), var(--c); color: #fff; display: flex; flex-direction: column; justify-content: space-between; box-shadow: inset 0 -3px 0 rgba(0,0,0,.2), 0 3px 8px rgba(0,0,0,.35); }
+#bookbox .bk-cover i { font-style: normal; font-weight: 900; font-size: 15.5px; line-height: 1.2; text-shadow: 0 1px 2px rgba(0,0,0,.35); } #bookbox .bk-cover small { font-size: 11.5px; opacity: .85; }
+#bookbox .bk-cover.done::after { content: 'read'; position: absolute; right: 8px; top: 8px; font-size: 10.5px; font-weight: 800; letter-spacing: .6px; text-transform: uppercase; background: rgba(255,255,255,.9); color: #1d2a33; border-radius: 999px; padding: 2px 7px; }
+#bookbox .bk-open { border-top: 6px solid var(--c); }
+#bookbox .bk-page { min-height: 190px; display: flex; align-items: center; background: #f6efe0; color: #2a2118; border-radius: 12px; padding: 20px 18px; box-shadow: inset 0 0 0 1px rgba(0,0,0,.08); }
+#bookbox .bk-page p { margin: 0; font-size: 19px; line-height: 1.5; font-weight: 700; }
+#bookbox .bk-foot { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+#bookbox .bk-back { background: none; border: 0; color: var(--dim); font-size: 13px; text-decoration: underline; padding: 4px; align-self: center; }
+
 </style>
 </head>
 <body>
@@ -813,7 +828,7 @@ const B = {
   TORCH: 18, FUSION: 19, GRAVEL: 20, CACTUS: 21, STARMETAL: 22, MOSS: 23, STATUE: 24, PLANKS: 25, BERRY: 26, GLASS: 27, CAMPFIRE: 28, IRONWALL: 29, VOIDWALL: 30, GLOWWORM: 31, BERRYLEAF: 32, DOOR: 33, DOOR_OPEN: 34, PORTAL: 35,
   CHEST: 36, SELENITE: 37, TYCHO: 38, STARSALT: 39, MOONGLOW: 40, AMBER: 41, SULFUR: 42, RINGSHARD: 43, BRINE: 44, CORAL_R: 45, CORAL_B: 46, CORAL_Y: 47, PEARLCORAL: 48, GOLD: 49, DIAMOND: 50, FERN: 51, SELGLASS: 52, INCUBATOR: 53, REGOLITH: 54, DUNE: 55, SALTCRUST: 56, LADDER: 57, TARGET: 58, BALLOON: 59, FORTSTONE: 60, THORN: 61, DEADGATE: 62, RUBBLE: 63, DARKTABLE: 64,
   NEEDLES: 65, FROND: 66, BIRCHLOG: 67, BOULDER: 68, MUSHROOM: 69, FLOWERS: 70, PEBBLES: 71, PALMLOG: 72,
-  TILES: 73, SLATE: 74, THATCH: 75, PLASTER: 76, BEAM: 77, LAMP: 78, COBBLE: 79, FLOWERBOX: 80, PALISADE: 81, MASONRY: 82, FOUNTAIN: 83, BASIN: 84, AWNING: 85, BANNER: 86, SLIT: 87, TIPI: 88, HIDE: 89, LODGE: 90, FENCE: 91, FIREPIT: 92, TOTEM: 93, RAIL: 94, CART: 95, ROPEBRIDGE: 96, WEAVE: 97, SAIL: 98, EMBERLIGHT: 99, BARREL: 100, CRATE: 101, BUNTING: 102, SIGNPOST: 103, PLANTER: 104, BRICK: 105, SAILS: 106, FALLS: 107, HALFTIMBER: 108, CHIMNEY: 109, HALFTIMBER_O: 110, HALFTIMBER_W: 111, GLOWLINE: 112, SALTROOF: 113, HALOWALL: 114, TRACK: 115, ATLAN: 116, AGLASS: 117, ALIGHT: 118, JLOG: 119, GATE: 120
+  TILES: 73, SLATE: 74, THATCH: 75, PLASTER: 76, BEAM: 77, LAMP: 78, COBBLE: 79, FLOWERBOX: 80, PALISADE: 81, MASONRY: 82, FOUNTAIN: 83, BASIN: 84, AWNING: 85, BANNER: 86, SLIT: 87, TIPI: 88, HIDE: 89, LODGE: 90, FENCE: 91, FIREPIT: 92, TOTEM: 93, RAIL: 94, CART: 95, ROPEBRIDGE: 96, WEAVE: 97, SAIL: 98, EMBERLIGHT: 99, BARREL: 100, CRATE: 101, BUNTING: 102, SIGNPOST: 103, PLANTER: 104, BRICK: 105, SAILS: 106, FALLS: 107, HALFTIMBER: 108, CHIMNEY: 109, HALFTIMBER_O: 110, HALFTIMBER_W: 111, GLOWLINE: 112, SALTROOF: 113, HALOWALL: 114, TRACK: 115, ATLAN: 116, AGLASS: 117, ALIGHT: 118, JLOG: 119, GATE: 120, BOOKS: 121
 };
 
 // name, top colour, side colour, solid, hardness (seconds to mine), drop item id, emissive, fluid
@@ -935,6 +950,7 @@ defBlock(B.ATLAN, 'Pearlstone', '#dfe9ee', '#c9d8e0', { hard: Infinity });
 defBlock(B.AGLASS, 'Dome Glass', '#bfeaf5', '#bfeaf5', { hard: Infinity, transparent: true });
 defBlock(B.ALIGHT, 'Pearl Light', '#bff4ff', '#bff4ff', { solid: false, hard: Infinity, emissive: true, partial: true, transparent: true });
 defBlock(B.GATE, 'Gateway', '#a07a44', '#75522c', { solid: false, hard: Infinity, drop: null, partial: true, transparent: true }); // the mark at the middle of a town gate: the mesher draws the whole head of the gateway from it, beam and roof or arch and battlements, after the wall it stands in
+defBlock(B.BOOKS, 'Bookshelf', '#e5edf2', '#c9d6de', { hard: Infinity, drop: null }); // a shelf of books you can take down and read: drawn by whatever building it stands in
 defBlock(B.JLOG, 'Jungle Trunk', '#8a6a44', '#5f4630', { hard: Infinity }); // the trees of the Lost World are too big for a hatchet. Never drawn as a block: the mesher draws each tree whole
 defBlock(B.BARREL, 'Barrel', '#9a6a3a', '#7a4f28', { hard: 0.5, drop: 'planks', partial: true, transparent: true });
 defBlock(B.CRATE, 'Crate', '#b89058', '#96703e', { hard: 0.5, drop: 'planks', partial: true, transparent: true });
@@ -2213,12 +2229,14 @@ const R = (() => {
     const E = isMobile ? 30 : 44; const sun = state.sun;
     const f = U.forwardVec(cam.yaw, 0); let cx = player.x + f[0] * E * 0.3, cy = player.y, cz = player.z + f[2] * E * 0.3;
     const up = Math.abs(sun[1]) > 0.95 ? [1, 0, 0] : [0, 1, 0];
-    let view = m4lookAt([cx + sun[0] * 120, cy + sun[1] * 120, cz + sun[2] * 120], [cx, cy, cz], up);
+    // under the dome of Atlantis the sun's view starts just over the glass: a sky island a hundred blocks up, over forty of sea, throws no shadow on the city
+    const AT = state.inAtl ? world.atlantis : null, D = AT ? Math.max(12, (AT.y + 26 - cy) / Math.max(0.3, sun[1])) : 120;
+    let view = m4lookAt([cx + sun[0] * D, cy + sun[1] * D, cz + sun[2] * D], [cx, cy, cz], up);
     // snap the centre to the shadow texel grid so the shadows do not swim when the camera turns
     const texel = 2 * E / shSize; const vx = view[0] * cx + view[4] * cy + view[8] * cz + view[12], vy = view[1] * cx + view[5] * cy + view[9] * cz + view[13];
     const dx = Math.round(vx / texel) * texel - vx, dy = Math.round(vy / texel) * texel - vy;
     cx += view[0] * dx + view[1] * dy; cy += view[4] * dx + view[5] * dy; cz += view[8] * dx + view[9] * dy;
-    view = m4lookAt([cx + sun[0] * 120, cy + sun[1] * 120, cz + sun[2] * 120], [cx, cy, cz], up);
+    view = m4lookAt([cx + sun[0] * D, cy + sun[1] * D, cz + sun[2] * D], [cx, cy, cz], up);
     lightPV = U.m4mul(m4ortho(-E, E, -E, E, 1, 260), view);
     gl.bindFramebuffer(gl.FRAMEBUFFER, shFB); gl.viewport(0, 0, shSize, shSize); gl.clear(gl.DEPTH_BUFFER_BIT);
     gl.enable(gl.CULL_FACE); gl.cullFace(gl.FRONT); gl.enable(gl.POLYGON_OFFSET_FILL); gl.polygonOffset(1.5, 2.0);
@@ -2626,6 +2644,7 @@ const R = (() => {
       return c.blocks[(((x + 16) & 15) * CH + ((z + 16) & 15)) * WH + y];
     };
     let atl = null; { const AT = world.atlantis; if (AT && AT.halls) { const W = WORLD_W, ax = ((AT.x - ox) % W + W * 1.5) % W - W / 2 + 0.5, az = ((AT.z - oz) % W + W * 1.5) % W - W / 2 + 0.5; if (Math.abs(ax - 8) < AT.RH + 22 && Math.abs(az - 8) < AT.RH + 22) atl = { x: ax, z: az, y: AT.y, RH: AT.RH, RV: AT.RV, A: AT }; } }
+    const atlRill = (x, z) => { const A = atl.A; if (!A.rills) return false; const dx = x + 0.5 - atl.x, dz = z + 0.5 - atl.z, r2 = dx * dx + dz * dz; if (r2 < 256 || r2 > 1090) return false; for (const q of A.rills) if (dx * q.c + dz * q.s > 0 && Math.abs(dz * q.c - dx * q.s) <= 1.05) return true; return false; };
     const atlIn = (x, y, z) => { const dx = x + 0.5 - atl.x, dz = z + 0.5 - atl.z, dy = y - atl.y, q = (dx * dx + dz * dz) / (atl.RH * atl.RH); if (dy < -4.5 || q > 1.03) return false; return dy <= 0 || q + dy * dy / (atl.RV * atl.RV) < 1.04; };
     const skyAt = (x, y, z) => {
       if (y >= WH) return 1;
@@ -2812,7 +2831,7 @@ const R = (() => {
         const pm = buf.curMat; buf.curMat = o.mat || 0;
         for (let i = 0; i < N; i++) { const t0 = a0 + (a1 - a0) * i / N, t1 = a0 + (a1 - a0) * (i + 1) / N, tm = (t0 + t1) / 2, c0 = Math.cos(t0), s0 = Math.sin(t0), c1 = Math.cos(t1), s1 = Math.sin(t1), cm = Math.cos(tm), sm = Math.sin(tm);
           for (let j = 0; j + 1 < n; j++) { const r0 = prof[j][0], y0 = prof[j][1], r1 = prof[j + 1][0], y1 = prof[j + 1][1], rm = (r0 + r1) / 2;
-            if (!here(cx + cm * rm, cz + sm * rm)) continue; if (o.skip && o.skip(tm, (y0 + y1) / 2, rm)) continue;
+            if (!o.whole && !here(cx + cm * rm, cz + sm * rm)) continue; if (o.skip && o.skip(tm, (y0 + y1) / 2, rm)) continue;
             const na = vn[j] || sn[j], nb = vn[j + 1] || sn[j], ca = o.cols ? o.cols(j) : col, cb = o.cols ? o.cols(j + 1) : col;
             buf.quad([[cx + c1 * r0, y0, cz + s1 * r0], [cx + c0 * r0, y0, cz + s0 * r0], [cx + c0 * r1, y1, cz + s0 * r1], [cx + c1 * r1, y1, cz + s1 * r1]], [ca, ca, cb, cb], [sk, sk, sk, sk], emis,
               [[c1 * na[0], na[1], s1 * na[0]], [c0 * na[0], na[1], s0 * na[0]], [c0 * nb[0], nb[1], s0 * nb[0]], [c1 * nb[0], nb[1], s1 * nb[0]]]); } }
@@ -2820,6 +2839,18 @@ const R = (() => {
       const torus = (cx, cz, R, y, rad, col, o = {}) => { const pr = []; for (let k = 0; k <= 6; k++) { const a = k / 6 * TAU - Math.PI / 2; pr.push([R + Math.cos(a) * rad, y + Math.sin(a) * rad]); } lathe(op, cx, cz, pr, col, Object.assign({ N: 40 }, o)); };
       const glowTube = (pts, rad, col) => { const m = pts[pts.length >> 1]; if (!here(m[0], m[2])) return; op.curMat = 26; op.tube(pts, pts.map(() => rad), col, { sky: 1, emis: true, segs: 5, cap0: 'round', cap1: 'round' }); op.curMat = 0; };
       const orb = (x, y, z, r, col) => { if (!here(x, z)) return; op.curMat = 26; op.ball(x, y, z, r, col, { sky: 1, emis: true, n: 2 }); op.curMat = 0; };
+      const turn = (x, z, prof, col, o) => { if (here(x, z)) lathe(op, x, z, prof, col, Object.assign({ whole: true }, o || {})); }; // something small turned on the lathe: drawn whole by the chunk that holds its middle
+      // sweep: a profile [[off, y], ...] carried along a straight line. off is to the left of the way you go; as with the lathe, the outside is on your right as you run along the profile
+      const sweep = (ax, az, bx, bz, prof, col, o = {}) => { const L = Math.hypot(bx - ax, bz - az) || 1, px = -(bz - az) / L, pz = (bx - ax) / L, N = Math.max(1, Math.round(L / (o.step || 2))), sk = o.sky == null ? SK : o.sky, pm = op.curMat; op.curMat = o.mat || 0;
+        for (let k = 0; k < N; k++) { const x0 = ax + (bx - ax) * k / N, z0 = az + (bz - az) * k / N, x1 = ax + (bx - ax) * (k + 1) / N, z1 = az + (bz - az) * (k + 1) / N; if (!here((x0 + x1) / 2, (z0 + z1) / 2)) continue;
+          for (let j = 0; j + 1 < prof.length; j++) { const o0 = prof[j][0], y0 = prof[j][1], o1 = prof[j + 1][0], y1 = prof[j + 1][1], l = Math.hypot(y1 - y0, o1 - o0) || 1, nr = (y1 - y0) / l, n = [px * nr, -(o1 - o0) / l, pz * nr], ca = o.cols ? o.cols(j) : col, cb = o.cols ? o.cols(j + 1) : col;
+            op.quad([[x0 + px * o0, y0, z0 + pz * o0], [x1 + px * o0, y0, z1 + pz * o0], [x1 + px * o1, y1, z1 + pz * o1], [x0 + px * o1, y1, z0 + pz * o1]], [ca, ca, cb, cb], [sk, sk, sk, sk], !!o.emis, [n, n, n, n]); } }
+        op.curMat = pm; };
+      const UP4 = [[0, 1, 0], [0, 1, 0], [0, 1, 0], [0, 1, 0]], SK4 = [SK, SK, SK, SK];
+      // the corners of a four-sided piece, put in the order that makes n its front. The sun's own pass draws only backs, so a piece wound the wrong way would throw a shadow on itself
+      const facing = (p, n) => { const ux = p[1][0] - p[0][0], uy = p[1][1] - p[0][1], uz = p[1][2] - p[0][2], vx = p[3][0] - p[0][0], vy = p[3][1] - p[0][1], vz = p[3][2] - p[0][2]; return (uy * vz - uz * vy) * n[0] + (uz * vx - ux * vz) * n[1] + (ux * vy - uy * vx) * n[2] >= 0 ? p : [p[1], p[0], p[3], p[2]]; };
+      const flat = (pts, col, mat) => { const pm = op.curMat; op.curMat = mat || 0; op.quad(facing(pts, UP4[0]), [col, col, col, col], SK4, false, UP4); op.curMat = pm; }; // a level piece of floor
+      const wall = (pts, col, n, mat) => { const pm = op.curMat; op.curMat = mat || 0; op.quad(facing(pts, n), [col, col, col, col], SK4, false, [n, n, n, n]); op.curMat = pm; }; // an upright piece, facing n
       const dCity = Math.hypot(8 - CX, 8 - CZ);
       // ---- the dome: glass, the sea beyond it as you see it from inside, and a lattice of light in the glass ----
       const phi1 = Math.asin(4 / RV), phiT = Math.acos(2.9 / RH), NR = 14, phis = [0, phi1]; for (let k = 1; k <= NR; k++) phis.push(phi1 + (phiT - phi1) * k / NR);
@@ -2846,13 +2877,23 @@ const R = (() => {
         torus(CX, CZ, 10.6, F + 0.47, 0.06, GLOW, { emis: true, mat: 26, sky: 1, N: 64 });
       }
       // ---- the floor: pearl tiles wherever you can walk, rings and lines of light let into it ----
+      // squares that a rill or a footbridge is drawn over get no tile of their own, so no square edge ever shows beside the water
+      const RILLS = A.rills || [], SPR = A.spring || 19.6, REND = A.rillEnd || 29.6, FOOT = (A.bridges || []).filter(b => !b.wide);
+      const noTile = (dx, dz) => { const r2 = dx * dx + dz * dz; if (r2 < 256 || r2 > 1296) return false;
+        if (r2 < 1076) { for (const q of RILLS) { const u = dx * q.c + dz * q.s; if (u >= SPR + 0.9 && u <= REND + 0.71 && Math.abs(dz * q.c - dx * q.s) <= 1.0) return true; } return false; }
+        for (const b of FOOT) if (dx * b.c + dz * b.s > 0 && Math.abs(dz * b.c - dx * b.s) <= b.w + 0.71) return true; return false; };
       op.curMat = 27;
-      for (let lx = 0; lx < CH; lx++) for (let lz = 0; lz < CH; lz++) { if (get(lx, F - 1, lz) !== B.ATLAN) continue; const dx = lx + 0.5 - CX, dz = lz + 0.5 - CZ; if (dx * dx + dz * dz > (RH + 1.2) * (RH + 1.2)) continue;
+      for (let lx = 0; lx < CH; lx++) for (let lz = 0; lz < CH; lz++) { if (get(lx, F - 1, lz) !== B.ATLAN) continue; const dx = lx + 0.5 - CX, dz = lz + 0.5 - CZ; if (dx * dx + dz * dz > (RH + 1.2) * (RH + 1.2) || noTile(dx, dz)) continue;
         op.quad([[lx, F, lz + 1], [lx + 1, F, lz + 1], [lx + 1, F, lz], [lx, F, lz]], [PEARL, PEARL, PEARL, PEARL], [SK, SK, SK, SK], false, [[0, 1, 0], [0, 1, 0], [0, 1, 0], [0, 1, 0]]); }
       op.curMat = 0;
-      for (const [r, w] of [[11.75, 0.12], [17.6, 0.1], [30.3, 0.1]]) lathe(op, CX, CZ, [[r + w, F + 0.025], [r - w, F + 0.025]], GLOW, { N: 96, emis: true, mat: 26, sky: 1, flat: true });
-      for (const g of A.gates) for (const sd of [-1.7, 1.7]) for (let k = 0; k < 9; k++) { const r0 = 12 + k * 3, r1 = Math.min(39.2, r0 + 3), px = -g[1] * sd, pz = g[0] * sd, mx = CX + g[0] * (r0 + r1) / 2 + px, mz = CZ + g[1] * (r0 + r1) / 2 + pz; if (!here(mx, mz)) continue;
-        const w = 0.07, e = (r, s) => [CX + g[0] * r + px - g[1] * s, F + 0.025, CZ + g[1] * r + pz + g[0] * s]; op.curMat = 26; op.quad([e(r0, -w), e(r1, -w), e(r1, w), e(r0, w)], [GLOW, GLOW, GLOW, GLOW], [1, 1, 1, 1], true, [[0, 1, 0], [0, 1, 0], [0, 1, 0], [0, 1, 0]]); op.curMat = 0; }
+      // the floor in bands of colour, each one between two rings of light: shell in the market, sea-green among the gardens, rose round the homes. A runner of blue down every avenue
+      lathe(op, CX, CZ, [[17.5, F + 0.012], [11.3, F + 0.012]], [0.99, 0.9, 0.8], { N: 96, mat: 27, flat: true });
+      lathe(op, CX, CZ, [[48.1, F + 0.012], [37.3, F + 0.012]], [0.8, 0.95, 0.88], { N: 144, mat: 27, flat: true });
+      lathe(op, CX, CZ, [[RH - 0.6, F + 0.012], [48.3, F + 0.012]], [0.98, 0.87, 0.89], { N: 144, mat: 27, flat: true });
+      for (const g of A.gates) for (let k = 0; k < 16; k++) { const r0 = 12 + k * 3, r1 = Math.min(RH - 0.8, r0 + 3); if (r0 >= RH - 1) break; const e = (r, s) => [CX + g[0] * r - g[1] * s, F + 0.02, CZ + g[1] * r + g[0] * s], m = e((r0 + r1) / 2, 0); if (!here(m[0], m[2])) continue; flat([e(r0, -1.6), e(r1, -1.6), e(r1, 1.6), e(r0, 1.6)], [0.66, 0.84, 0.97], 27); }
+      for (const [r, w] of [[11.75, 0.12], [17.6, 0.1], [31.7, 0.08], [37.2, 0.08], [48.2, 0.1]]) lathe(op, CX, CZ, [[r + w, F + 0.03], [r - w, F + 0.03]], GLOW, { N: 96, emis: true, mat: 26, sky: 1, flat: true });
+      for (const g of A.gates) for (const sd of [-1.7, 1.7]) for (let k = 0; k < 16; k++) { const r0 = 12 + k * 3, r1 = Math.min(RH - 0.8, r0 + 3); if (r0 >= RH - 1) break; const px = -g[1] * sd, pz = g[0] * sd, mx = CX + g[0] * (r0 + r1) / 2 + px, mz = CZ + g[1] * (r0 + r1) / 2 + pz; if (!here(mx, mz)) continue;
+        const w = 0.07, e = (r, s) => [CX + g[0] * r + px - g[1] * s, F + 0.03, CZ + g[1] * r + pz + g[0] * s]; op.curMat = 26; op.quad([e(r0, -w), e(r1, -w), e(r1, w), e(r0, w)], [GLOW, GLOW, GLOW, GLOW], [1, 1, 1, 1], true, [[0, 1, 0], [0, 1, 0], [0, 1, 0], [0, 1, 0]]); op.curMat = 0; }
       // ---- the gates: a pearl post each side and an arch of light where the sea stands in the gap ----
       for (const g of A.gates) { const gx = CX + g[0] * (RH - 0.7), gz = CZ + g[1] * (RH - 0.7); if (!near(gx, gz, 3)) continue; const px = -g[1], pz = g[0];
         for (const sd of [-1, 1]) { const x = gx + px * sd * 1.75, z = gz + pz * sd * 1.75; if (here(x, z)) { op.curMat = 25; op.tube([[x, F, z], [x, F + 4.2, z]], [0.3, 0.24], PEARL, { sky: SK, segs: 8, cap0: 'flat', cap1: 'round' }); op.curMat = 0; } orb(x, F + 4.55, z, 0.2, GLOW); }
@@ -2863,7 +2904,7 @@ const R = (() => {
         const inDoor = (t, y) => { if (y > F + 3.95) return false; const d = Math.atan2(Math.sin(t - da), Math.cos(t - da)); return Math.abs(d) < 0.33; };
         lathe(op, hx, hz, [[5.3, F], [5.4, F + 0.45], [5.12, F + 0.95], [5.05, F + 2.5], [5.05, F + 3.95], [5.12, F + 4.3], [5.42, F + 4.62], [5.42, F + 4.95]], PEARL, { N: 28, mat: 25, skip: inDoor, a0: da + Math.PI / 28 });
         lathe(op, hx, hz, [[4.42, F + 4.5], [4.42, F + 3.95], [4.42, F + 2.5], [4.42, F]], PEARL2, { N: 28, mat: 25, skip: inDoor, a0: da + Math.PI / 28, inv: false });
-        lathe(op, hx, hz, [[0.02, F + 4.98], [3.4, F + 4.9], [4.42, F + 4.5]], PEARL2, { N: 28, mat: 25 });
+        lathe(op, hx, hz, [[0.02, F + 4.98], [3.4, F + 4.9], [4.42, F + 4.5]], null, { N: 28, emis: true, cols: (j) => [[0.84, 0.94, 0.97], [0.64, 0.79, 0.86], [0.5, 0.66, 0.75]][j] }); // the ceiling, lit from the lamp in the middle of it
         lathe(op, hx, hz, [[5.42, F + 4.95], [5.2, F + 5.3], [4.5, F + 6.3], [3.3, F + 7.25], [1.9, F + 7.95], [0.8, F + 8.5], [0.34, F + 9.1]], SEAGLASS, { N: 28, mat: 25, cols: (j) => j < 2 ? [0.36, 0.78, 0.8] : j < 5 ? [0.27, 0.68, 0.74] : [0.22, 0.6, 0.7] });
         lathe(op, hx, hz, [[0.34, F + 9.1], [0.42, F + 9.45], [0.2, F + 9.9], [0.07, F + 10.9], [0.0, F + 11.2]], GOLD, { N: 10 });
         torus(hx, hz, 5.45, F + 4.78, 0.09, band, { emis: true, mat: 26, sky: 1, N: 28 }); torus(hx, hz, 3.3, F + 7.3, 0.06, band, { emis: true, mat: 26, sky: 1, N: 20 });
@@ -2876,19 +2917,230 @@ const R = (() => {
           const pts = []; for (let k = 0; k <= 12; k++) { const u = k / 12, a = da + (u - 0.5) * 0.66, yy = u < 0.12 ? F + u / 0.12 * 3.2 : u > 0.88 ? F + (1 - u) / 0.12 * 3.2 : F + 3.2 + Math.sin((u - 0.12) / 0.76 * Math.PI) * 0.75; pts.push([hx + Math.cos(a) * 5.14, yy, hz + Math.sin(a) * 5.14]); } glowTube(pts, 0.075, band);
           orb(hx + dx * 5.3, F + 4.45, hz + dz * 5.3, 0.3, band);
           if (h.kind !== 'fusing' && h.kind !== 'elder' && h.kind !== 'station') { const cx0 = hx + dx * 0.95, cz0 = hz + dz * 0.95; if (here(cx0, cz0)) { op.curMat = 25; op.tube([[cx0 - sx * 2.7, F + 0.48, cz0 - sz * 2.7], [cx0, F + 0.5, cz0], [cx0 + sx * 2.7, F + 0.48, cz0 + sz * 2.7]], [[0.5, 0.5], [0.52, 0.52], [0.5, 0.5]], PEARL, { sky: SK, segs: 8, cap0: 'round', cap1: 'round' }); op.curMat = 0; glowTube([[cx0 - sx * 2.5, F + 1.02, cz0 - sz * 2.5], [cx0, F + 1.05, cz0], [cx0 + sx * 2.5, F + 1.02, cz0 + sz * 2.5]], 0.05, band); } } } }
-      // ---- the homes: buds of pearl with a glass cap ----
-      for (const q of A.pods) { const hx = CX + q.x, hz = CZ + q.z; if (!near(hx, hz, 3.6)) continue; const da = Math.atan2(-Math.sin(q.a), -Math.cos(q.a));
-        const inDoor = (t, y) => { if (y > F + 2.1) return false; const d = Math.atan2(Math.sin(t - da), Math.cos(t - da)); return Math.abs(d) < 0.27; };
-        lathe(op, hx, hz, [[2.9, F], [3.02, F + 0.9], [2.9, F + 2.1], [2.45, F + 3.1]], PEARL, { N: 18, mat: 25, skip: inDoor, a0: da + Math.PI / 18 });
-        lathe(op, hx, hz, [[2.45, F + 3.1], [1.7, F + 3.85], [0.75, F + 4.3], [0.2, F + 4.8], [0.0, F + 5.5]], SEAGLASS, { N: 18, mat: 25 });
-        lathe(op, hx, hz, [[1.95, F + 2.9], [1.95, F]], PEARL2, { N: 18, mat: 25, skip: inDoor, a0: da + Math.PI / 18 });
-        torus(hx, hz, 2.5, F + 3.12, 0.06, GLOW, { emis: true, mat: 26, sky: 1, N: 18 }); orb(hx, F + 2.6, hz, 0.26, [0.85, 0.98, 1.0]);
-        for (const k of [-1.6, 1.6]) orb(hx + Math.cos(da + k) * 2.95, F + 1.6, hz + Math.sin(da + k) * 2.95, 0.3, GLOW); }
+      // ---- the canal: a ring of water all the way round the market, a pearl kerb each side of it, its bed alight; slabs carry the ways over it, each with a low rail of light ----
+      { const c0 = A.canal[0], c1 = A.canal[1], AQ = [0.3, 0.82, 0.92], AQ2 = [0.75, 0.93, 0.96];
+        if (dCity < c1 + 14) {
+          // a kerb runs from one bridge to the next and is closed off at each end, so the cut never shows
+          const BR = A.bridges.slice().sort((p, q) => p.a - q.a);
+          const kerb = (prof) => { const rm = (prof[0][0] + prof[prof.length - 1][0]) / 2; for (let i = 0; i < BR.length; i++) { const b0 = BR[i], b1 = BR[(i + 1) % BR.length], t0 = b0.a + (b0.w + 0.1) / rm, t1 = b1.a + (i + 1 === BR.length ? TAU : 0) - (b1.w + 0.1) / rm;
+              lathe(op, CX, CZ, prof, PEARL, { N: Math.max(2, Math.round((t1 - t0) / 0.044)), a0: t0, a1: t1, mat: 25 });
+              lathe(op, CX, CZ, [[prof[2][0] + 0.06, F + 0.385], [prof[2][0] - 0.06, F + 0.385]], GLOW, { N: Math.max(2, Math.round((t1 - t0) / 0.044)), a0: t0 + 0.01, a1: t1 - 0.01, emis: true, mat: 26, sky: 1, flat: true });
+              for (const [t, sg] of [[t0, -1], [t1, 1]]) { const c = Math.cos(t), s = Math.sin(t), pt = (p) => [CX + c * p[0], p[1], CZ + s * p[0]], m = pt(prof[2]); if (!here(m[0], m[2])) continue; const n = [-s * sg, 0, c * sg]; wall([pt(prof[0]), pt(prof[1]), pt(prof[3]), pt(prof[4])], PEARL2, n, 25); wall([pt(prof[1]), pt(prof[2]), pt(prof[3]), pt(prof[3])], PEARL2, n, 25); } } };
+          kerb([[c0 + 0.6, F - 0.2], [c0 + 0.34, F + 0.27], [c0 - 0.2, F + 0.37], [c0 - 0.74, F + 0.26], [c0 - 0.85, F - 0.02]]);
+          kerb([[c1 + 0.85, F - 0.02], [c1 + 0.74, F + 0.26], [c1 + 0.2, F + 0.37], [c1 - 0.34, F + 0.27], [c1 - 0.6, F - 0.2]]);
+          lathe(op, CX, CZ, [[c1 - 0.6, F - 0.2], [c1 - 0.5, F - 1.86], [c1 - 0.9, F - 1.98], [c0 + 0.9, F - 1.98], [c0 + 0.5, F - 1.86], [c0 + 0.6, F - 0.2]], AQ, { N: 144, sky: 1, cols: (j) => j === 0 || j === 5 ? AQ2 : AQ });
+          for (const b of A.bridges) { const P = (r, off, yy) => [CX + b.c * r - b.s * off, yy, CZ + b.s * r + b.c * off];
+            if (!b.wide) { const m = P((c0 + c1) / 2, 0, 0); if (here(m[0], m[2])) { const w = b.w + 0.1, r0 = c0 - 0.95, r1 = c1 + 0.95, Y = F + 0.012; // a footbridge: one straight slab of the floor, with an edge to it
+                flat([P(r0, w, Y), P(r1, w, Y), P(r1, -w, Y), P(r0, -w, Y)], PEARL, 27);
+                for (const sd of [-1, 1]) wall([P(r0, sd * w, Y), P(r1, sd * w, Y), P(r1, sd * w, F - 0.42), P(r0, sd * w, F - 0.42)], PEARL2, [-b.s * sd, 0, b.c * sd], 25); } }
+            for (const sd of [-1, 1]) { const off = (b.w + 0.3) * sd, pts = []; for (let k = 0; k <= 8; k++) { const u = k / 8; pts.push(P(c0 - 1.0 + (c1 - c0 + 2.0) * u, off, F + 0.5 + Math.sin(u * Math.PI) * (b.wide ? 0.75 : 0.55))); }
+              glowTube(pts, 0.07, GLOW); for (const r of [c0 - 1.0, c1 + 1.0]) { const q = P(r, off, F); if (!here(q[0], q[2])) continue; op.curMat = 25; op.tube([q, [q[0], F + (b.wide ? 1.5 : 0.62), q[2]]], [0.2, 0.14], PEARL, { sky: SK, segs: 7, cap0: 'flat', cap1: 'round' }); op.curMat = 0; if (b.wide) orb(q[0], F + 1.78, q[2], 0.24, GLOW); } } }
+          // boats moored along the canal: a pearl hull drawn up to a curl at each end, a lamp on the stern
+          const BOATC = [[0.93, 0.95, 0.97], [0.36, 0.74, 0.78], [0.98, 0.7, 0.72], [0.98, 0.84, 0.5]];
+          for (const b of (A.boats || [])) { const rm = (c0 + c1) / 2, ca = Math.cos(b.a), sa = Math.sin(b.a), x = CX + ca * rm, z = CZ + sa * rm; if (!here(x, z)) continue; const T = (u, yy, off) => [x - sa * u + ca * (off || 0), yy, z + ca * u + sa * (off || 0)], col = BOATC[b.k % 4], WY = F - 0.14;
+            op.tube([T(-1.55, WY + 0.34), T(-1.1, WY + 0.12), T(0, WY + 0.04), T(1.1, WY + 0.12), T(1.55, WY + 0.34)], [[0.07, 0.1], [0.36, 0.22], [0.46, 0.25], [0.36, 0.22], [0.07, 0.1]], col, { sky: SK, segs: 8, cap0: 'round', cap1: 'round' });
+            op.tube([T(-0.85, WY + 0.27), T(0, WY + 0.22), T(0.85, WY + 0.27)], [[0.2, 0.04], [0.3, 0.05], [0.2, 0.04]], [0.2, 0.4, 0.46], { sky: SK, segs: 6, cap0: 'round', cap1: 'round' }); // the well you sit in
+            for (const e of [-1, 1]) op.tube([T(e * 1.5, WY + 0.34), T(e * 1.74, WY + 0.72), T(e * 1.62, WY + 1.06), T(e * 1.42, WY + 1.0)], [0.06, 0.05, 0.04, 0.03], GOLD, { sky: SK, segs: 5, cap0: 'none', cap1: 'round' });
+            const l = T(-1.42, WY + 0.84); orb(l[0], l[1], l[2], 0.13, b.k % 2 ? [1.0, 0.85, 0.5] : GLOW);
+            const st = T(0.3, WY + 0.34); op.blob(st[0] - 0.2, WY + 0.26, st[2] - 0.2, st[0] + 0.2, WY + 0.4, st[2] + 0.2, 0.8, PEARL2, { sky: SK, n: 2 }); }
+        }
+        // the rills: a spring in a pearl basin beside each spire, and a straight channel from it out to the walk along the canal, a broad kerb each side. The water is drawn here as one sheet, not as the tops of blocks
+        for (const q of RILLS) { if (!near(CX + q.c * 25, CZ + q.s * 25, 9)) continue; const P = (u, off, yy) => [CX + q.c * u - q.s * off, yy, CZ + q.s * u + q.c * off], bx = CX + q.c * SPR, bz = CZ + q.s * SPR, V0 = SPR + 1.75, V1 = REND, KT = F + 0.26;
+          lathe(op, bx, bz, [[1.98, F], [1.9, F + 0.42], [1.74, F + 0.58], [1.56, F + 0.54], [1.5, F + 0.36]], PEARL, { N: 20, mat: 25 });
+          lathe(op, bx, bz, [[1.5, F + 0.44], [0.0, F + 0.44]], AQ, { N: 20, sky: 1, flat: true, cols: (j) => j ? [0.62, 0.95, 1.0] : AQ });
+          torus(bx, bz, 1.74, F + 0.61, 0.05, GLOW, { emis: true, mat: 26, sky: 1, N: 20 });
+          lathe(op, bx, bz, [[0.56, F + 0.44], [0.5, F + 0.66], [0.28, F + 0.8], [0.2, F + 0.76]], PEARL, { N: 10, mat: 25 }); lathe(op, bx, bz, [[0.2, F + 0.76], [0.17, F + 1.25], [0.08, F + 1.7], [0.0, F + 1.9]], [0.62, 0.84, 0.97], { N: 8, mat: 18, sky: 0.98 }); // the water wells up in the middle
+          const a0 = P(V0, 0, 0), a1 = P(V1, 0, 0);
+          sweep(a0[0], a0[2], a1[0], a1[2], [[1.62, F], [1.56, F + 0.18], [1.42, KT], [0.8, KT], [0.72, F + 0.2]], PEARL, { mat: 25 });
+          sweep(a0[0], a0[2], a1[0], a1[2], [[0.72, F + 0.2], [0.72, F - 0.98], [-0.72, F - 0.98], [-0.72, F + 0.2]], AQ, { sky: 1, cols: (j) => j === 0 || j === 3 ? AQ2 : AQ });
+          sweep(a0[0], a0[2], a1[0], a1[2], [[-0.72, F + 0.2], [-0.8, KT], [-1.42, KT], [-1.56, F + 0.18], [-1.62, F]], PEARL, { mat: 25 });
+          for (const sd of [-1, 1]) sweep(a0[0], a0[2], a1[0], a1[2], [[sd * 1.04 + 0.05, KT + 0.012], [sd * 1.04 - 0.05, KT + 0.012]], GLOW, { emis: true, mat: 26, sky: 1 });
+          { const N = Math.max(1, Math.round((V1 - V0) / 2)), wc = [0.12, 0, 0]; for (let k = 0; k < N; k++) { const u0 = V0 + (V1 - V0) * k / N, u1 = V0 + (V1 - V0) * (k + 1) / N, m = P((u0 + u1) / 2, 0, 0); if (!here(m[0], m[2])) continue; wa.quad([P(u0, 0.72, F - 0.14), P(u1, 0.72, F - 0.14), P(u1, -0.72, F - 0.14), P(u0, -0.72, F - 0.14)], [wc, wc, wc, wc], SK4, false, UP4); } }
+          { const m = P(V1 + 0.7, 0, 0); if (here(m[0], m[2])) { flat([P(V1, 1.66, F + 0.012), P(V1 + 1.5, 1.66, F + 0.012), P(V1 + 1.5, -1.66, F + 0.012), P(V1, -1.66, F + 0.012)], PEARL, 27); // the walk along the canal goes over it on a slab
+              const n = [-q.c, 0, -q.s], D0 = [0.08, 0.26, 0.34], D1 = [0.2, 0.5, 0.58]; op.quad([P(V1, 0.72, F - 0.98), P(V1, -0.72, F - 0.98), P(V1, -0.72, F + 0.012), P(V1, 0.72, F + 0.012)], [D0, D0, D1, D1], SK4, false, [n, n, n, n]); // the mouth it runs into, under the slab
+              op.curMat = 25; for (const sd of [-1, 1]) { const e = P(V1 - 0.05, sd * 1.17, F); op.blob(e[0] - 0.56, F - 0.1, e[2] - 0.56, e[0] + 0.56, F + 0.4, e[2] + 0.56, 0.9, PEARL, { sky: SK, n: 3 }); } op.curMat = 0; } } }
+      }
+      // ---- the four great houses beyond the canal: wider and lower than a hall, a broad sea-glass roof with a lantern on it, and each fitted out for what goes on inside ----
+      const CIVC = { school: [1.0, 0.82, 0.4], archive: [0.78, 0.62, 1.0], daycare: [1.0, 0.6, 0.72], games: [0.45, 0.95, 0.7] }, FLOORC = { school: [0.99, 0.93, 0.8], archive: [0.9, 0.88, 0.99], daycare: [0.99, 0.9, 0.93], games: [0.86, 0.97, 0.9] };
+      for (const h of (A.civic || [])) { const hx = CX + h.x, hz = CZ + h.z, R = h.R; if (!near(hx, hz, R + 1.5)) continue; const band = CIVC[h.kind] || GLOW, da = Math.atan2(-Math.sin(h.a), -Math.cos(h.a)), dW = 1.62 / (R - 0.4); // the door looks at the middle of the city
+        const inDoor = (t, y) => { if (y > F + 3.95) return false; const d = Math.atan2(Math.sin(t - da), Math.cos(t - da)); return Math.abs(d) < dW; }, N = 36, a0 = da + Math.PI / N;
+        lathe(op, hx, hz, [[R - 0.12, F], [R, F + 0.5], [R - 0.3, F + 1.0], [R - 0.38, F + 3.0], [R - 0.38, F + 5.0], [R - 0.28, F + 5.4], [R + 0.05, F + 5.72], [R + 0.05, F + 6.02]], PEARL, { N, mat: 25, skip: inDoor, a0 });
+        lathe(op, hx, hz, [[R - 1.03, F + 5.55], [R - 1.03, F + 3.95], [R - 1.03, F + 2.5], [R - 1.03, F]], PEARL2, { N, mat: 25, skip: inDoor, a0 });
+        lathe(op, hx, hz, [[0.02, F + 6.0], [R - 2.2, F + 5.9], [R - 1.03, F + 5.55]], null, { N, emis: true, cols: (j) => [[0.84, 0.94, 0.97], [0.64, 0.79, 0.86], [0.5, 0.66, 0.75]][j] });
+        lathe(op, hx, hz, [[R + 0.05, F + 6.02], [R - 0.25, F + 6.4], [R - 1.4, F + 7.3], [R - 3.2, F + 8.1], [R - 5.0, F + 8.6], [1.3, F + 8.9]], SEAGLASS, { N, mat: 25, cols: (j) => j < 2 ? [0.36, 0.78, 0.8] : j < 4 ? [0.27, 0.68, 0.74] : [0.22, 0.6, 0.7] });
+        lathe(op, hx, hz, [[1.3, F + 8.9], [1.3, F + 9.5], [1.5, F + 9.62], [1.1, F + 10.1], [0.4, F + 10.5], [0.0, F + 10.62]], PEARL, { N: 14, mat: 25 });
+        torus(hx, hz, 1.36, F + 9.22, 0.07, band, { emis: true, mat: 26, sky: 1, N: 14 }); torus(hx, hz, R + 0.08, F + 5.86, 0.1, band, { emis: true, mat: 26, sky: 1, N }); torus(hx, hz, R - 3.2, F + 8.14, 0.06, band, { emis: true, mat: 26, sky: 1, N: 24 });
+        for (let k = 0; k < 12; k++) { const t = da + (k + 0.5) / 12 * TAU, pts = []; for (const [r, y] of [[R - 0.1, F + 6.3], [R - 1.4, F + 7.36], [R - 3.2, F + 8.16], [R - 5.0, F + 8.66], [1.4, F + 8.95]]) pts.push([hx + Math.cos(t) * r, y, hz + Math.sin(t) * r]); if (here(pts[2][0], pts[2][2])) { op.curMat = 25; op.tube(pts, [0.1, 0.09, 0.08, 0.07, 0.06], PEARL, { sky: SK, segs: 5, cap0: 'round', cap1: 'round' }); op.curMat = 0; } }
+        for (const k of [-2.5, -1.9, -1.3, -0.7, 0.7, 1.3, 1.9, 2.5]) orb(hx + Math.cos(da + k) * (R - 0.36), F + 3.0, hz + Math.sin(da + k) * (R - 0.36), 0.4, band); // portholes
+        orb(hx, F + 5.6, hz, 0.4, [0.85, 0.98, 1.0]);
+        const dx = Math.cos(da), dz = Math.sin(da), sx = -dz, sz = dx, Q = (f, s, yy) => [hx + dx * f + sx * s, yy, hz + dz * f + sz * s]; // f: towards the door; s: to the right as you look out of it
+        for (const sd of [-1, 1]) { const ax = hx + Math.cos(da + sd * dW) * (R - 0.38), az = hz + Math.sin(da + sd * dW) * (R - 0.38), bx = hx + Math.cos(da + sd * dW) * (R - 1.03), bz = hz + Math.sin(da + sd * dW) * (R - 1.03); if (here((ax + bx) / 2, (az + bz) / 2)) { op.curMat = 25; op.quad([[ax, F, az], [bx, F, bz], [bx, F + 3.95, bz], [ax, F + 3.95, az]], [PEARL2, PEARL2, PEARL2, PEARL2], [SK, SK, SK, SK], false); op.curMat = 0; } }
+        lathe(op, hx, hz, [[R - 1.03, F + 3.95], [R - 0.38, F + 3.95]], PEARL2, { N: 3, a0: da - dW * 1.02, a1: da + dW * 1.02, mat: 25, flat: true });
+        { const pts = []; for (let k = 0; k <= 12; k++) { const u = k / 12, a = da + (u - 0.5) * 2 * dW, yy = u < 0.12 ? F + u / 0.12 * 3.2 : u > 0.88 ? F + (1 - u) / 0.12 * 3.2 : F + 3.2 + Math.sin((u - 0.12) / 0.76 * Math.PI) * 0.75; pts.push([hx + Math.cos(a) * (R - 0.29), yy, hz + Math.sin(a) * (R - 0.29)]); } glowTube(pts, 0.085, band); orb(hx + dx * (R - 0.1), F + 4.6, hz + dz * (R - 0.1), 0.36, band); }
+        lathe(op, hx, hz, [[R - 1.03, F + 0.04], [0.0, F + 0.04]], FLOORC[h.kind] || PEARL, { N, mat: 27, flat: true }); // a floor of its own, laid over the bands outside
+        if (lod) continue; // from far off a great house is its shell: what is inside is drawn when you are near enough to see in
+        const bench = (f0, s0, f1, s1) => { const m = Q((f0 + f1) / 2, (s0 + s1) / 2, F); if (!here(m[0], m[2])) return; op.curMat = 25; op.tube([Q(f0, s0, F + 0.4), Q(f1, s1, F + 0.4)], [[0.3, 0.12], [0.3, 0.12]], PEARL, { sky: SK, segs: 6, cap0: 'round', cap1: 'round' }); for (const [f, s] of [[f0, s0], [f1, s1]]) { const q = Q(f * 0.92 + (f0 + f1) * 0.04, s * 0.86, F); op.tube([q, [q[0], F + 0.36, q[2]]], [0.1, 0.1], PEARL2, { sky: SK, segs: 5, cap0: 'none', cap1: 'none' }); } op.curMat = 0; };
+        if (h.kind === 'school') { // two rows of benches facing the back wall, the slate with today's lesson still on it, the teacher's desk, a globe of the world above, and along the left wall the shelf of books and somewhere to sit and read them
+          bench(-0.2, -2.6, -0.2, -0.8); bench(-0.2, 0.9, -0.2, 3.1); bench(2.0, -2.4, 2.0, -0.7); bench(2.0, 0.7, 2.0, 2.6);
+          { const bf = -(R - 1.32), w = Q(bf, 0, F); if (here(w[0], w[2])) { wall([Q(bf, -1.7, F + 1.25), Q(bf, 1.7, F + 1.25), Q(bf, 1.7, F + 3.35), Q(bf, -1.7, F + 3.35)], [0.1, 0.19, 0.18], [dx, 0, dz]);
+              op.curMat = 25; for (const [s0, y0, s1, y1] of [[-1.78, 1.2, 1.78, 1.2], [-1.78, 3.4, 1.78, 3.4], [-1.78, 1.2, -1.78, 3.4], [1.78, 1.2, 1.78, 3.4]]) op.tube([Q(bf + 0.03, s0, F + y0), Q(bf + 0.03, s1, F + y1)], [0.07, 0.07], PEARL, { sky: SK, segs: 5, cap0: 'round', cap1: 'round' }); op.curMat = 0;
+              const CHK = [0.93, 0.96, 0.92], chalk = (pts) => op.tube(pts.map(([s, y]) => Q(bf + 0.05, s, F + y)), pts.map(() => 0.02), CHK, { sky: 1, emis: true, segs: 3, cap0: 'none', cap1: 'none' });
+              { const d = []; for (let k = 0; k <= 10; k++) { const a = k / 10 * Math.PI; d.push([-0.45 - Math.cos(a) * 0.85, 1.75 + Math.sin(a) * 0.72]); } chalk(d); } // the dome
+              chalk([[-1.45, 1.75], [0.55, 1.75]]); chalk([[-0.45, 1.75], [-0.45, 2.22]]); // the floor of the city, and a spire
+              { const d = []; for (let k = 0; k <= 12; k++) d.push([-1.45 + k * 0.167, 2.95 + Math.sin(k * 1.57) * 0.07]); chalk(d); } // the sea over it
+              chalk([[0.85, 1.6], [1.1, 2.3], [1.35, 1.6]]); chalk([[0.95, 1.9], [1.25, 1.9]]); // A is for Air
+              chalk([[1.3, 2.55], [1.3, 3.05]]); chalk([[1.3, 3.05], [0.95, 2.93], [1.3, 2.8], [0.9, 2.67], [1.3, 2.55]]); } }
+          { const c = Q(-3.3, 0, F); if (here(c[0], c[2])) { op.curMat = 25; op.tube([Q(-3.3, -0.75, F + 0.8), Q(-3.3, 0.75, F + 0.8)], [[0.42, 0.07], [0.42, 0.07]], PEARL, { sky: SK, segs: 8, cap0: 'round', cap1: 'round' }); op.curMat = 0;
+              const b = Q(-3.3, 0.5, F); op.blob(b[0] - 0.17, F + 0.87, b[2] - 0.13, b[0] + 0.17, F + 0.95, b[2] + 0.13, 0.3, [0.54, 0.24, 0.24], { sky: SK, n: 2 }); const pl = Q(-3.3, -0.45, F); op.ball(pl[0], F + 0.96, pl[2], 0.09, [0.56, 0.2, 0.5], { sky: SK, n: 2 }); }
+            for (const s of [-0.75, 0.75]) { const q = Q(-3.3, s, F); turn(q[0], q[2], [[0.2, F], [0.1, F + 0.2], [0.09, F + 0.74]], PEARL2, { N: 8, mat: 25 }); } }
+          { const g = Q(-4.6, 2.9, F); if (here(g[0], g[2])) { turn(g[0], g[2], [[0.34, F], [0.12, F + 0.16], [0.07, F + 0.95], [0.16, F + 1.0]], PEARL2, { N: 8, mat: 25 }); op.ball(g[0], F + 1.42, g[2], 0.42, [0.24, 0.52, 0.86], { sky: SK, n: 4, shade: (p) => (U.hash3(Math.round(p[0] * 4), Math.round(p[1] * 4), Math.round(p[2] * 4), 7) > 0.6 ? [0.38, 0.7, 0.36] : null) }); torus(g[0], g[2], 0.5, F + 1.42, 0.025, GOLD, { N: 12, whole: true }); } }
+          { const c = Q(1.2, -4.2, F); if (here(c[0], c[2])) { turn(c[0], c[2], [[1.15, F + 0.06], [0.0, F + 0.06]], [0.98, 0.76, 0.46], { N: 14, flat: true, cols: (j) => j ? [0.99, 0.9, 0.72] : [0.98, 0.76, 0.46] }); turn(c[0], c[2], [[1.26, F + 0.055], [1.15, F + 0.055]], [0.54, 0.24, 0.24], { N: 14, flat: true });
+              for (const [f, s, cc] of [[0.85, -4.55, [0.85, 0.54, 0.17]], [1.65, -3.85, [0.42, 0.35, 0.8]]]) { const p = Q(f, s, F); op.blob(p[0] - 0.32, F + 0.06, p[2] - 0.32, p[0] + 0.32, F + 0.26, p[2] + 0.32, 1, cc, { sky: SK, n: 3 }); } } }
+          // the shelf: three boards and a top, a panel at each end, the books standing along them
+          { const BK = [[0.18, 0.56, 0.69], [0.85, 0.54, 0.17], [0.42, 0.35, 0.8], [0.54, 0.24, 0.24], [0.23, 0.65, 0.43], [0.79, 0.64, 0.15]], r0 = R - 1.97, r1 = R - 1.03, t0 = da - Math.PI / 2 - 0.44, t1 = da - Math.PI / 2 + 0.44;
+            for (let lv = 0; lv < 4; lv++) { const yy = F + 0.22 + lv * 0.74; lathe(op, hx, hz, [[r1, yy + 0.07], [r0, yy + 0.07], [r0, yy], [r1, yy]], PEARL, { N: 6, a0: t0, a1: t1, mat: 25, flat: true }); if (lv === 3) break;
+              for (let k = 0; k < 14; k++) { const t = t0 + (k + 0.5) / 14 * (t1 - t0), bh = 0.42 + ((k * 7 + lv * 3) % 5) * 0.05, x = hx + Math.cos(t) * (r0 + 0.3), z = hz + Math.sin(t) * (r0 + 0.3); if (!here(x, z) || (k + lv * 2) % 7 === 5) continue; op.blob(x - 0.14, yy + 0.07, z - 0.14, x + 0.14, yy + 0.07 + bh, z + 0.14, 0.3, BK[(k * 5 + lv * 2) % 6], { sky: SK, n: 2 }); } }
+            for (const [t, sg] of [[t0, -1], [t1, 1]]) { const c = Math.cos(t), sn = Math.sin(t); if (here(hx + c * (r0 + 0.4), hz + sn * (r0 + 0.4))) wall([[hx + c * r0, F, hz + sn * r0], [hx + c * r1, F, hz + sn * r1], [hx + c * r1, F + 2.51, hz + sn * r1], [hx + c * r0, F + 2.51, hz + sn * r0]], PEARL2, [-sn * sg, 0, c * sg], 25); } }
+        } else if (h.kind === 'archive') { // four plinths, and on each something from the city that fell, under a bell of glass; the map table in the middle; the rolls in their rack along the back wall
+          [[4, 0], [0, -4], [0, 4], [-4, 0]].forEach(([ax, az], k) => { const x = hx + ax, z = hz + az; if (!near(x, z, 1.2)) return; lathe(op, x, z, [[0.62, F], [0.5, F + 0.2], [0.42, F + 0.95], [0.6, F + 1.08], [0.6, F + 1.2], [0.0, F + 1.2]], PEARL, { N: 12, mat: 25 }); lathe(gs, x, z, [[0.52, F + 1.2], [0.52, F + 1.9], [0.36, F + 2.2], [0.0, F + 2.32]], [0.72, 0.93, 0.98], { N: 12, sky: SK });
+            if (!here(x, z)) return; torus(x, z, 0.6, F + 1.14, 0.04, band, { emis: true, mat: 26, sky: 1, N: 12, whole: true });
+            if (k === 0) { op.curMat = 26; op.tube([[x, F + 1.34, z], [x, F + 1.62, z], [x, F + 2.0, z]], [0.02, 0.17, 0.02], [0.6, 1.0, 0.95], { sky: 1, emis: true, segs: 4, cap0: 'none', cap1: 'none' }); op.curMat = 0; } // a splinter of the Concord
+            else if (k === 1) { for (const [ox2, oz2, r2] of [[0, 0, 0.2], [0.2, 0.1, 0.13], [-0.18, 0.14, 0.12], [0.02, -0.2, 0.11]]) op.blob(x + ox2 - r2, F + 1.2, z + oz2 - r2, x + ox2 + r2, F + 1.2 + r2 * 2.6, z + oz2 + r2, 0.5, GOLD, { sky: SK, n: 2, tap: [1, 0.35] }); } // the old city in gold, no bigger than your hand
+            else if (k === 2) { op.blob(x - 0.26, F + 1.3, z - 0.16, x + 0.26, F + 1.52, z + 0.16, 0.9, [0.55, 0.3, 0.2], { sky: SK, n: 2 }); op.blob(x - 0.08, F + 1.46, z - 0.14, x + 0.06, F + 1.72, z + 0.14, 0.9, [0.62, 0.36, 0.24], { sky: SK, n: 2 }); } // a child's saddle
+            else { op.curMat = 25; op.tube([[x, F + 1.22, z], [x, F + 1.5, z]], [0.1, 0.24], PEARL2, { sky: SK, segs: 8, cap0: 'none', cap1: 'flat' }); op.curMat = 0; orb(x, F + 1.58, z, 0.07, [0.75, 0.97, 1.0]); } }); // the first table, in small
+          // the map table: the sea as the city knows it, in relief. The reef in rose, the Lost World green, the deep a dark cut, and one glass bead for the city itself
+          lathe(op, hx, hz, [[0.5, F], [0.36, F + 0.24], [0.3, F + 0.7], [1.5, F + 0.86], [1.56, F + 0.98], [1.42, F + 1.0]], PEARL, { N: 20, mat: 25 }); lathe(op, hx, hz, [[1.42, F + 0.98], [0.0, F + 0.98]], [0.2, 0.5, 0.7], { N: 20, flat: true, cols: (j) => j ? [0.3, 0.66, 0.8] : [0.16, 0.42, 0.62] });
+          if (here(hx, hz)) { const isle = (ox2, oz2, w, hgt, c) => op.blob(hx + ox2 - w, F + 0.97, hz + oz2 - w * 0.8, hx + ox2 + w, F + 0.97 + hgt, hz + oz2 + w * 0.8, 0.9, c, { sky: SK, n: 2 });
+            isle(-0.7, 0.5, 0.42, 0.14, [0.86, 0.8, 0.56]); isle(-0.9, 0.3, 0.2, 0.2, [0.4, 0.66, 0.36]); isle(0.6, 0.7, 0.3, 0.1, [0.86, 0.8, 0.56]); isle(0.75, -0.5, 0.34, 0.16, [0.3, 0.6, 0.3]); isle(0.2, -0.9, 0.24, 0.07, [0.96, 0.6, 0.66]); isle(-0.3, -0.6, 0.3, 0.07, [0.96, 0.6, 0.66]); isle(-0.2, 0.0, 0.5, 0.03, [0.1, 0.24, 0.42]);
+            orb(hx + 0.1, F + 1.06, hz + 0.25, 0.09, [0.8, 1.0, 1.0]); torus(hx, hz, 1.5, F + 1.02, 0.035, band, { emis: true, mat: 26, sky: 1, N: 20, whole: true }); }
+          { const r0 = R - 1.9, r1 = R - 1.03, t0 = da + Math.PI - 0.8, t1 = da + Math.PI + 0.8, RC = [[0.85, 0.54, 0.17], [0.42, 0.35, 0.8], [0.54, 0.24, 0.24], [0.23, 0.65, 0.43], [0.9, 0.9, 0.86]];
+            for (let lv = 0; lv < 5; lv++) { const yy = F + 0.2 + lv * 0.56; lathe(op, hx, hz, [[r1, yy + 0.06], [r0, yy + 0.06], [r0, yy], [r1, yy]], PEARL, { N: 10, a0: t0, a1: t1, mat: 25, flat: true }); if (lv === 4) break;
+              for (let k = 0; k < 22; k++) { const hh = U.hash3(k, lv, 5, 0xA7C); if (hh < 0.2) continue; const t = t0 + (k + 0.5) / 22 * (t1 - t0), c = Math.cos(t), sn = Math.sin(t), x = hx + c * (r0 + 0.1), z = hz + sn * (r0 + 0.1); if (!here(x, z)) continue; op.tube([[x, yy + 0.2 + (k % 2) * 0.13, z], [hx + c * (r0 + 0.7), yy + 0.2 + (k % 2) * 0.13, hz + sn * (r0 + 0.7)]], [0.085, 0.085], [0.93, 0.9, 0.8], { sky: SK, segs: 6, cap0: 'flat', cap1: 'none' }); op.ball(x - c * 0.02, yy + 0.2 + (k % 2) * 0.13, z - sn * 0.02, 0.04, RC[Math.floor(hh * 25) % 5], { sky: SK, n: 1 }); } }
+            for (const [t, sg] of [[t0, -1], [t1, 1]]) { const c = Math.cos(t), sn = Math.sin(t); if (here(hx + c * (r0 + 0.4), hz + sn * (r0 + 0.4))) wall([[hx + c * r0, F, hz + sn * r0], [hx + c * r1, F, hz + sn * r1], [hx + c * r1, F + 2.5, hz + sn * r1], [hx + c * r0, F + 2.5, hz + sn * r0]], PEARL2, [-sn * sg, 0, c * sg], 25); } }
+        } else if (h.kind === 'daycare') { // the tank in the middle of the floor, clear all the way through: this spring's foals turning in it, weed growing up from the bottom, a nest or two by the walls
+          lathe(op, hx, hz, [[2.5, F], [2.5, F + 0.5], [2.25, F + 0.62]], PEARL, { N: 20, mat: 25 }); lathe(op, hx, hz, [[2.25, F + 0.64], [0.0, F + 0.64]], [0.3, 0.8, 0.9], { N: 20, sky: 1, flat: true, cols: (j) => j ? [0.7, 0.97, 1.0] : [0.26, 0.7, 0.86] });
+          lathe(gs, hx, hz, [[2.25, F + 0.62], [2.25, F + 3.2], [1.9, F + 3.5]], [0.5, 0.82, 0.97], { N: 20, sky: SK }); lathe(gs, hx, hz, [[2.12, F + 3.1], [0.0, F + 3.1]], [0.5, 0.82, 0.97], { N: 20, sky: SK, flat: true }); torus(hx, hz, 2.28, F + 3.26, 0.07, band, { emis: true, mat: 26, sky: 1, N: 20 });
+          if (here(hx, hz)) { for (let k = 0; k < 6; k++) { const a = k * 1.05 + 0.4, r = [1.5, 0.8, 1.3, 0.5, 1.6, 1.0][k], x = hx + Math.cos(a) * r, z = hz + Math.sin(a) * r, y0 = F + 1.2 + (k % 3) * 0.62, c = k % 2 ? [1.0, 0.7, 0.4] : [1.0, 0.55, 0.7], ux = Math.cos(a + 1.5), uz = Math.sin(a + 1.5);
+              op.tube([[x + ux * 0.3, y0 + 0.62, z + uz * 0.3], [x + ux * 0.12, y0 + 0.66, z + uz * 0.12], [x, y0 + 0.5, z], [x + ux * 0.1, y0 + 0.2, z + uz * 0.1], [x, y0 - 0.05, z], [x - ux * 0.16, y0 - 0.16, z - uz * 0.16], [x - ux * 0.1, y0 - 0.02, z - uz * 0.1]], [0.04, 0.09, 0.1, 0.14, 0.1, 0.06, 0.03], c, { sky: 1, segs: 5, cap0: 'round', cap1: 'round' }); }
+            op.curMat = 31; for (let k = 0; k < 5; k++) { const a = k * 1.3, x = hx + Math.cos(a) * 1.7, z = hz + Math.sin(a) * 1.7, H = 1.3 + (k % 3) * 0.4, c = (u) => [x - Math.cos(a) * 0.25 * u * u, F + 0.64 + H * u, z - Math.sin(a) * 0.25 * u * u]; op.ribbon([c(0), c(0.3), c(0.65), c(1)], [0.05, 0.13, 0.12, 0.02], k % 2 ? [0.16, 0.56, 0.4] : [0.24, 0.66, 0.36], { sky: SK, droop: 0.12, tip: [0.6, 0.9, 0.5] }); } op.curMat = 0;
+            for (let k = 0; k < 9; k++) { const a = k * 2.4, r = 0.3 + (k % 4) * 0.4; op.ball(hx + Math.cos(a) * r, F + 0.9 + k * 0.24, hz + Math.sin(a) * r, 0.035 + (k % 3) * 0.012, [0.9, 1.0, 1.0], { sky: 1, emis: true, n: 1 }); } }
+          for (const [f, s2, n3] of [[1.7, -4.5, 3], [1.7, 4.5, 2], [-0.6, -5.1, 2], [-0.6, 5.1, 3]]) { const c = Q(f, s2, F); if (!here(c[0], c[2])) continue; turn(c[0], c[2], [[0.7, F], [0.82, F + 0.3], [0.68, F + 0.42], [0.56, F + 0.3], [0.0, F + 0.24]], PEARL, { N: 12, mat: 25 }); for (let k = 0; k < n3; k++) { const a = k * 2.1 + f, x = c[0] + Math.cos(a) * 0.24, z = c[2] + Math.sin(a) * 0.24; op.blob(x - 0.15, F + 0.24, z - 0.15, x + 0.15, F + 0.62, z + 0.15, 1, [0.96, 0.95, 0.9], { sky: SK, n: 3, tap: [1.1, 0.75], shade: (p) => (U.hash3(Math.round(p[0] * 9), Math.round(p[1] * 9), Math.round(p[2] * 9), k + 3) > 0.74 ? (k % 2 ? [1.0, 0.7, 0.4] : [1.0, 0.55, 0.7]) : null) }); } }
+          { const c0 = Q(-3.4, 0, F); if (here(c0[0], c0[2])) { op.curMat = 25; op.tube([Q(-3.4, -2.9, F + 0.48), Q(-3.4, 0, F + 0.5), Q(-3.4, 2.9, F + 0.48)], [[0.5, 0.5], [0.52, 0.52], [0.5, 0.5]], PEARL, { sky: SK, segs: 8, cap0: 'round', cap1: 'round' }); op.curMat = 0; glowTube([Q(-3.4, -2.7, F + 1.03), Q(-3.4, 2.7, F + 1.03)], 0.05, band); } } // the counter, behind the tank
+        } else if (h.kind === 'games') { // tables with a board let into each, a stool each side, and the champion's counter at the back
+          for (const [f, s] of [[1.6, -2.6], [1.6, 2.6], [3.6, 0]]) { const c = Q(f, s, F); if (!here(c[0], c[2])) continue; turn(c[0], c[2], [[0.3, F], [0.16, F + 0.2], [0.14, F + 0.7], [0.72, F + 0.82], [0.72, F + 0.9], [0.0, F + 0.9]], PEARL, { N: 12, mat: 25 });
+            for (let i = 0; i < 4; i++) for (let j = 0; j < 4; j++) { const u = (i - 1.5) * 0.24, w = (j - 1.5) * 0.24, cc = (i + j) % 2 ? [0.2, 0.42, 0.5] : [0.92, 0.95, 0.96]; op.quad([[c[0] + u - 0.12, F + 0.905, c[2] + w + 0.12], [c[0] + u + 0.12, F + 0.905, c[2] + w + 0.12], [c[0] + u + 0.12, F + 0.905, c[2] + w - 0.12], [c[0] + u - 0.12, F + 0.905, c[2] + w - 0.12]], [cc, cc, cc, cc], [SK, SK, SK, SK], false, [[0, 1, 0], [0, 1, 0], [0, 1, 0], [0, 1, 0]]); }
+            for (const sd of [-1, 1]) { const q = [c[0] + sx * sd * 1.15, F, c[2] + sz * sd * 1.15]; turn(q[0], q[2], [[0.2, F], [0.12, F + 0.34], [0.3, F + 0.44], [0.3, F + 0.5], [0.0, F + 0.5]], PEARL2, { N: 10, mat: 25 }); } }
+          { const c0 = Q(-2.05, 0, F); if (here(c0[0], c0[2])) { op.curMat = 25; op.tube([Q(-2.05, -3.4, F + 0.48), Q(-2.05, 0, F + 0.5), Q(-2.05, 3.4, F + 0.48)], [[0.5, 0.5], [0.52, 0.52], [0.5, 0.5]], PEARL, { sky: SK, segs: 8, cap0: 'round', cap1: 'round' }); op.curMat = 0; glowTube([Q(-2.05, -3.2, F + 1.03), Q(-2.05, 3.2, F + 1.03)], 0.05, band);
+              const cp = Q(-2.05, 2.2, F); turn(cp[0], cp[2], [[0.16, F + 1.02], [0.05, F + 1.1], [0.05, F + 1.26], [0.2, F + 1.44], [0.24, F + 1.62], [0.19, F + 1.6], [0.0, F + 1.34]], GOLD, { N: 10 }); } } // the cup, where everybody can see it
+          { const bf = -(R - 1.32), w = Q(bf, 0, F); if (here(w[0], w[2])) { wall([Q(bf, -1.5, F + 2.3), Q(bf, 1.5, F + 2.3), Q(bf, 1.5, F + 3.9), Q(bf, -1.5, F + 3.9)], [0.1, 0.16, 0.2], [dx, 0, dz]); // the roll of champions
+              op.curMat = 25; for (const [s0, y0, s1, y1] of [[-1.58, 2.25, 1.58, 2.25], [-1.58, 3.95, 1.58, 3.95], [-1.58, 2.25, -1.58, 3.95], [1.58, 2.25, 1.58, 3.95]]) op.tube([Q(bf + 0.03, s0, F + y0), Q(bf + 0.03, s1, F + y1)], [0.06, 0.06], GOLD, { sky: SK, segs: 5, cap0: 'round', cap1: 'round' }); op.curMat = 0;
+              const line = (s0, s1, y, c) => op.tube([Q(bf + 0.05, s0, F + y), Q(bf + 0.05, s1, F + y)], [0.022, 0.022], c, { sky: 1, emis: true, segs: 3, cap0: 'none', cap1: 'none' });
+              line(0.9, -0.9, 3.68, GOLD); for (let k = 0; k < 5; k++) { line(1.25, 0.35 - (k * 37 % 5) * 0.12, 3.38 - k * 0.22, [0.93, 0.96, 0.92]); for (let j = 0; j < 1 + (k * 3 % 4); j++) op.tube([Q(bf + 0.05, -0.6 - j * 0.14, F + 3.31 - k * 0.22), Q(bf + 0.05, -0.6 - j * 0.14, F + 3.45 - k * 0.22)], [0.02, 0.02], [0.93, 0.96, 0.92], { sky: 1, emis: true, segs: 3, cap0: 'none', cap1: 'none' }); } } } // a name, and a stroke for every time they held the title
+          { const t = da + 2.35, c = Math.cos(t), sn = Math.sin(t), rw = R - 1.08, x = hx + c * rw, z = hz + sn * rw; if (here(x, z)) [[0.72, [0.95, 0.95, 0.9]], [0.54, [0.2, 0.5, 0.58]], [0.36, [0.95, 0.95, 0.9]], [0.17, GOLD]].forEach(([r, cc], k) => op.tube([[x - c * 0.02 * k, F + 2.5, z - sn * 0.02 * k], [x - c * (0.05 + 0.02 * k), F + 2.5, z - sn * (0.05 + 0.02 * k)]], [r, r], cc, { sky: SK, segs: 14, cap0: 'none', cap1: 'flat' })); }
+        } }
+      // ---- the gardens and the courts between the great houses ----
+      for (const q of (A.courts || [])) { const hx = CX + q.x, hz = CZ + q.z; if (!near(hx, hz, 8)) continue; const da = Math.atan2(-Math.sin(q.a), -Math.cos(q.a));
+        torus(hx, hz, 6.6, F + 0.03, 0.07, GLOW, { emis: true, mat: 26, sky: 1, N: 40 });
+        if (q.kind === 'kelp') { // the kelp gardens that make the city's air: three beds in arcs, the kelp standing as high as the lamps, a light hung over each bed
+          for (let b = 0; b < 3; b++) { const rr = 2.0 + b * 1.75; const SOIL = [0.2, 0.26, 0.22], bp = [[rr + 0.55, F], [rr + 0.5, F + 0.26], [rr + 0.36, F + 0.26], [rr + 0.34, F + 0.15], [rr - 0.34, F + 0.15], [rr - 0.36, F + 0.26], [rr - 0.5, F + 0.26], [rr - 0.55, F]]; lathe(op, hx, hz, bp, PEARL, { N: 30, a0: da + 0.5, a1: da + TAU - 0.5, mat: 25, cols: (j) => j === 3 || j === 4 ? SOIL : PEARL });
+            for (const [t, sg] of [[da + 0.5, -1], [da + TAU - 0.5, 1]]) { const c = Math.cos(t), sn = Math.sin(t); if (here(hx + c * rr, hz + sn * rr)) wall([[hx + c * bp[0][0], F, hz + sn * bp[0][0]], [hx + c * bp[1][0], F + 0.26, hz + sn * bp[1][0]], [hx + c * bp[6][0], F + 0.26, hz + sn * bp[6][0]], [hx + c * bp[7][0], F, hz + sn * bp[7][0]]], PEARL2, [-sn * sg, 0, c * sg], 25); }
+            const NK = 7 + b * 5; op.curMat = 31; for (let k = 0; k < NK; k++) { const t = da + 0.62 + (k + 0.5) / NK * (TAU - 1.24), hh = U.hash3(Math.round(hx * 3) + k, b, Math.round(hz * 3), 77), x = hx + Math.cos(t) * rr, z = hz + Math.sin(t) * rr; if (!here(x, z)) continue; const H = 2.2 + hh * 1.9, lean = (hh - 0.5) * 0.9, c = (u) => [x + Math.cos(t + 1.3) * lean * u * u + Math.sin(u * 5 + k) * 0.1, F + 0.2 + H * u, z + Math.sin(t + 1.3) * lean * u * u + Math.cos(u * 4 + k) * 0.1];
+              op.ribbon([c(0), c(0.25), c(0.5), c(0.75), c(1)], [0.07, 0.17, 0.2, 0.16, 0.02], k % 2 ? [0.16, 0.56, 0.4] : [0.24, 0.66, 0.36], { sky: SK, droop: 0.12, rib: [0.5, 0.86, 0.5], tip: [0.6, 0.9, 0.5] }); } op.curMat = 0; }
+          for (let k = 0; k < 4; k++) { const t = da + 0.9 + k * (TAU - 1.8) / 3, x = hx + Math.cos(t) * 3.7, z = hz + Math.sin(t) * 3.7; if (!here(x, z)) continue; op.curMat = 25; op.tube([[x, F, z], [x, F + 3.6, z], [hx + Math.cos(t) * 3.0, F + 4.3, hz + Math.sin(t) * 3.0]], [0.09, 0.07, 0.05], PEARL, { sky: SK, segs: 5, cap0: 'none', cap1: 'round' }); op.curMat = 0; orb(hx + Math.cos(t) * 2.9, F + 4.1, hz + Math.sin(t) * 2.9, 0.3, [0.75, 1.0, 0.7]); }
+        } else if (q.kind === 'park') { // a pocket of quiet between the houses: three benches, and a lamp in the middle like a little tree with three lights on it
+          if (here(hx, hz)) { op.curMat = 25; op.tube([[hx, F, hz], [hx, F + 2.2, hz], [hx + 0.1, F + 3.2, hz]], [0.2, 0.13, 0.09], PEARL, { sky: SK, segs: 7, cap0: 'none', cap1: 'round' }); for (let k = 0; k < 3; k++) { const t = k * 2.094 + q.a; op.tube([[hx, F + 2.3 + k * 0.3, hz], [hx + Math.cos(t) * 0.7, F + 2.9 + k * 0.3, hz + Math.sin(t) * 0.7], [hx + Math.cos(t) * 1.1, F + 2.8 + k * 0.3, hz + Math.sin(t) * 1.1]], [0.07, 0.05, 0.04], PEARL, { sky: SK, segs: 5, cap0: 'none', cap1: 'round' }); } op.curMat = 0; for (let k = 0; k < 3; k++) { const t = k * 2.094 + q.a; orb(hx + Math.cos(t) * 1.1, F + 2.62 + k * 0.3, hz + Math.sin(t) * 1.1, 0.24, k === 1 ? GOLD : GLOW); } }
+          for (let k = 0; k < 3; k++) { const t = da + 1.2 + k * 1.95, x = hx + Math.cos(t) * 4.2, z = hz + Math.sin(t) * 4.2; if (!here(x, z)) continue; op.curMat = 25; op.tube([[x - Math.sin(t) * 1.1, F + 0.4, z + Math.cos(t) * 1.1], [x + Math.sin(t) * 1.1, F + 0.4, z - Math.cos(t) * 1.1]], [[0.3, 0.12], [0.3, 0.12]], PEARL, { sky: SK, segs: 6, cap0: 'round', cap1: 'round' }); op.curMat = 0; }
+        } else if (q.kind === 'statue') { // Isla on Skerry, in pearl and gold, the way the city remembers them: side on to the way you come, the seahorse reared up with her tail curled under her, the girl leaning into her neck
+          lathe(op, hx, hz, [[1.7, F], [1.6, F + 0.35], [1.2, F + 0.5], [1.08, F + 1.7], [1.3, F + 1.85], [1.3, F + 2.0], [0.0, F + 2.0]], PEARL, { N: 20, mat: 25 }); torus(hx, hz, 1.34, F + 1.92, 0.06, GOLD, { N: 20 });
+          if (here(hx, hz)) { const dx = Math.cos(da), dz = Math.sin(da), tx = -dz, tz = dx, K = 1.3, S = (a, yy, w) => [hx + (tx * a + dx * (w || 0)) * K, F + 2.0 + yy * K, hz + (tz * a + dz * (w || 0)) * K], rr = (l) => l.map(v2 => v2 * K), GIRL = [0.98, 0.86, 0.64]; op.curMat = 25;
+            op.tube([S(-0.2, 0.42), S(-0.42, 0.5), S(-0.6, 0.32), S(-0.5, 0.1), S(-0.25, 0.08), S(-0.08, 0.3), S(-0.02, 0.75), S(0.1, 1.25), S(0.04, 1.8), S(0.0, 2.3), S(0.12, 2.68), S(0.38, 2.82)], rr([0.045, 0.07, 0.09, 0.11, 0.14, 0.2, 0.3, 0.38, 0.31, 0.23, 0.21, 0.2]), PEARL, { sky: SK, segs: 9, cap0: 'round', cap1: 'round' });
+            op.tube([S(0.38, 2.82), S(0.66, 2.7), S(0.92, 2.46), S(1.08, 2.26)], rr([0.2, 0.15, 0.09, 0.07]), PEARL, { sky: SK, segs: 8, cap0: 'none', cap1: 'round' }); // the long head, dipped
+            for (const [a, yy] of [[0.18, 2.94], [0.34, 3.0], [0.5, 2.94]]) { const b = S(a, yy); op.cone(b[0], b[1], b[2], [tx * (a - 0.34), 1, tz * (a - 0.34)], 0.32 * K, 0.06 * K, GOLD, { sky: SK, segs: 5 }); } // her coronet
+            for (const w of [-1, 1]) { const e = S(0.52, 2.8, w * 0.17); op.ball(e[0], e[1], e[2], 0.05 * K, GOLD, { sky: SK, n: 2 }); }
+            for (let k = 0; k < 3; k++) { const y0 = 0.9 + k * 0.24; op.tube([S(-0.2 - k * 0.02, y0), S(-0.66, y0 + 0.14)], rr([0.05, 0.015]), GOLD, { sky: SK, segs: 4, cap0: 'none', cap1: 'none' }); } // the fin on her back
+            op.tube([S(-0.44, 1.72), S(-0.4, 2.02), S(-0.34, 2.3)], rr([0.16, 0.15, 0.12]), GIRL, { sky: SK, segs: 7, cap0: 'round', cap1: 'round' }); { const hd = S(-0.3, 2.56); op.ball(hd[0], hd[1], hd[2], 0.15 * K, GIRL, { sky: SK, n: 3 }); } // Isla
+            op.tube([S(-0.36, 2.66), S(-0.58, 2.56), S(-0.72, 2.34)], rr([0.1, 0.08, 0.03]), GOLD, { sky: SK, segs: 5, cap0: 'round', cap1: 'none' }); // her hair, blown back
+            for (const w of [-1, 1]) { op.tube([S(-0.34, 2.2, w * 0.15), S(-0.16, 2.3, w * 0.24), S(0.0, 2.36, w * 0.2)], rr([0.055, 0.05, 0.045]), GIRL, { sky: SK, segs: 5, cap0: 'round', cap1: 'round' }); op.tube([S(-0.42, 1.76, w * 0.16), S(-0.12, 1.56, w * 0.36), S(-0.16, 1.22, w * 0.38)], rr([0.08, 0.07, 0.05]), GIRL, { sky: SK, segs: 5, cap0: 'round', cap1: 'round' }); }
+            op.curMat = 0; }
+          for (let k = 0; k < 3; k++) { const t = da + 1.2 + k * 1.95, x = hx + Math.cos(t) * 4.6, z = hz + Math.sin(t) * 4.6; if (!here(x, z)) continue; op.curMat = 25; op.tube([[x - Math.sin(t) * 1.1, F + 0.4, z + Math.cos(t) * 1.1], [x + Math.sin(t) * 1.1, F + 0.4, z - Math.cos(t) * 1.1]], [[0.3, 0.12], [0.3, 0.12]], PEARL, { sky: SK, segs: 6, cap0: 'round', cap1: 'round' }); op.curMat = 0; }
+        } else { // the tide clock: a hoop of pearl standing on edge, a pearl of light that rides round it, twelve lamps in the floor
+          lathe(op, hx, hz, [[1.3, F], [1.2, F + 0.3], [0.5, F + 0.5], [0.5, F + 2.0], [0.0, F + 2.0]], PEARL, { N: 16, mat: 25 });
+          if (here(hx, hz)) { const sxx = -Math.sin(da), szz = Math.cos(da), pts = []; for (let k = 0; k <= 28; k++) { const a = k / 28 * TAU; pts.push([hx + sxx * Math.cos(a) * 2.6, F + 4.6 + Math.sin(a) * 2.6, hz + szz * Math.cos(a) * 2.6]); } op.curMat = 25; op.tube(pts, pts.map(() => 0.16), PEARL, { sky: SK, segs: 7, cap0: 'none', cap1: 'none' }); op.curMat = 0;
+            const pts2 = pts.map((p2, k) => [hx + (p2[0] - hx) * 0.9, F + 4.6 + (p2[1] - F - 4.6) * 0.9, hz + (p2[2] - hz) * 0.9]); glowTube(pts2, 0.04, GLOW); orb(hx + sxx * 1.84, F + 4.6 + 1.84, hz + szz * 1.84, 0.36, [1.0, 0.9, 0.6]); orb(hx, F + 4.6, hz, 0.16, GOLD);
+            for (let k = 0; k < 12; k++) { const a = k / 12 * TAU, i0 = k % 3 === 0 ? 2.0 : 2.2; op.tube([[hx + sxx * Math.cos(a) * i0, F + 4.6 + Math.sin(a) * i0, hz + szz * Math.cos(a) * i0], [hx + sxx * Math.cos(a) * 2.46, F + 4.6 + Math.sin(a) * 2.46, hz + szz * Math.cos(a) * 2.46]], [0.05, 0.05], GOLD, { sky: SK, segs: 4, cap0: 'flat', cap1: 'none' }); }
+            op.tube([[hx, F + 4.6, hz], [hx + sxx * 1.56, F + 4.6 + 1.56, hz + szz * 1.56]], [0.07, 0.03], GOLD, { sky: SK, segs: 5, cap0: 'round', cap1: 'round' }); op.curMat = 25; op.tube([[hx, F + 2.0, hz], [hx, F + 2.1, hz]], [0.5, 0.3], PEARL, { sky: SK, segs: 10, cap0: 'none', cap1: 'none' }); op.curMat = 0; }
+          for (let k = 0; k < 12; k++) { const t = k / 12 * TAU; orb(hx + Math.cos(t) * 4.8, F + 0.08, hz + Math.sin(t) * 4.8, k % 3 === 0 ? 0.2 : 0.12, k % 3 === 0 ? GOLD : GLOW); } }
+      }
+      // ---- the homes: a round house of pearl under a cap of sea-glass, a lamp of its own colour over the door, and one room inside it: a bed, a table and two stools, a rug, a shelf, a chest, something green by the door ----
+      const HOMEC = [[0.98, 0.62, 0.6], [0.55, 0.8, 0.98], [0.98, 0.84, 0.5], [0.6, 0.92, 0.72], [0.8, 0.66, 0.98], [0.98, 0.72, 0.86]];
+      for (const q of A.pods) { const hx = CX + q.x, hz = CZ + q.z, R = q.R || 4; if (!near(hx, hz, R + 1)) continue; const da = Math.atan2(-Math.sin(q.a), -Math.cos(q.a)), hue = HOMEC[(q.i || 0) % HOMEC.length], pale = [hue[0] * 0.5 + 0.5, hue[1] * 0.5 + 0.5, hue[2] * 0.5 + 0.5], dW = 1.12 / R, N = 22, a0 = da + Math.PI / N, RI = R - 0.85;
+        const inDoor = (t, y) => { if (y > F + 2.85) return false; const d = Math.atan2(Math.sin(t - da), Math.cos(t - da)); return Math.abs(d) < dW; };
+        lathe(op, hx, hz, [[R - 0.05, F], [R + 0.06, F + 0.5], [R - 0.12, F + 1.1], [R - 0.2, F + 2.6], [R - 0.3, F + 3.3], [R - 0.6, F + 3.75]], PEARL, { N, mat: 25, skip: inDoor, a0 });
+        lathe(op, hx, hz, [[RI, F + 3.6], [RI, F + 2.6], [RI, F]], [pale[0] * 0.5 + 0.44, pale[1] * 0.5 + 0.45, pale[2] * 0.5 + 0.46], { N, mat: 25, skip: inDoor, a0 });
+        lathe(op, hx, hz, [[R - 0.6, F + 3.75], [R - 1.3, F + 4.5], [R - 2.3, F + 5.1], [0.9, F + 5.5], [0.3, F + 5.9]], SEAGLASS, { N, mat: 25, cols: (j) => j < 1 ? [0.36, 0.78, 0.8] : j < 3 ? [0.27, 0.68, 0.74] : [0.22, 0.6, 0.7] });
+        lathe(op, hx, hz, [[0.3, F + 5.9], [0.34, F + 6.15], [0.14, F + 6.5], [0.0, F + 7.0]], GOLD, { N: 8 });
+        lathe(op, hx, hz, [[0.0, F + 5.3], [0.9, F + 5.2], [R - 2.3, F + 4.8], [R - 1.3, F + 4.25], [RI, F + 3.6]], null, { N, emis: true, cols: (j) => j < 2 ? [0.74, 0.94, 0.96] : j < 4 ? [0.46, 0.76, 0.82] : [0.36, 0.62, 0.7] }); // the cap from underneath: the light comes down through it
+        torus(hx, hz, R - 0.56, F + 3.8, 0.07, hue, { emis: true, mat: 26, sky: 1, N });
+        for (let k = 0; k < 6; k++) { const t = da + (k + 0.5) / 6 * TAU, pts = []; for (const [r, y] of [[R - 0.62, F + 3.8], [R - 1.3, F + 4.56], [R - 2.3, F + 5.16], [0.9, F + 5.56]]) pts.push([hx + Math.cos(t) * r, y, hz + Math.sin(t) * r]); if (here(pts[1][0], pts[1][2])) { op.curMat = 25; op.tube(pts, [0.08, 0.07, 0.06, 0.05], PEARL, { sky: SK, segs: 4, cap0: 'none', cap1: 'none' }); op.curMat = 0; } }
+        for (const k of [-2.35, -1.25, 1.25, 2.35]) { orb(hx + Math.cos(da + k) * (R - 0.14), F + 1.95, hz + Math.sin(da + k) * (R - 0.14), 0.32, pale); if (!lod) orb(hx + Math.cos(da + k) * (RI + 0.04), F + 1.95, hz + Math.sin(da + k) * (RI + 0.04), 0.27, [0.8, 0.96, 1.0]); } // round windows
+        const dx = Math.cos(da), dz = Math.sin(da), sx = -dz, sz = dx, Q = (f, s, yy) => [hx + dx * f + sx * s, yy, hz + dz * f + sz * s]; // f: towards the door; s: to the right as you look out of it
+        for (const sd of [-1, 1]) { const ax = hx + Math.cos(da + sd * dW) * (R - 0.2), az = hz + Math.sin(da + sd * dW) * (R - 0.2), bx = hx + Math.cos(da + sd * dW) * RI, bz = hz + Math.sin(da + sd * dW) * RI; if (here((ax + bx) / 2, (az + bz) / 2)) wall([[ax, F, az], [bx, F, bz], [bx, F + 2.6, bz], [ax, F + 2.6, az]], PEARL2, [-Math.sin(da + sd * dW) * -sd, 0, Math.cos(da + sd * dW) * -sd], 25); }
+        lathe(op, hx, hz, [[RI, F + 2.6], [R - 0.2, F + 2.6]], PEARL2, { N: 3, a0: da - dW * 1.02, a1: da + dW * 1.02, mat: 25, flat: true });
+        { const pts = []; for (let k = 0; k <= 12; k++) { const u = k / 12, a = da + (u - 0.5) * 2 * dW, yy = u < 0.14 ? F + u / 0.14 * 2.1 : u > 0.86 ? F + (1 - u) / 0.14 * 2.1 : F + 2.1 + Math.sin((u - 0.14) / 0.72 * Math.PI) * 0.5; pts.push([hx + Math.cos(a) * (R - 0.1), yy, hz + Math.sin(a) * (R - 0.1)]); } glowTube(pts, 0.06, hue); orb(hx + dx * (R + 0.02), F + 3.2, hz + dz * (R + 0.02), 0.26, hue); }
+        if (lod) continue;
+        // ---- inside ----
+        lathe(op, hx, hz, [[1.55, F + 0.02], [0.0, F + 0.02]], hue, { N: 16, flat: true, cols: (j) => j ? pale : hue }); lathe(op, hx, hz, [[1.7, F + 0.016], [1.55, F + 0.016]], GOLD, { N: 16, flat: true }); // the rug
+        { const b0 = Q(-1.75, -1.45, F), b1 = Q(-1.75, -0.25, F), m = Q(-1.75, -0.85, F); if (here(m[0], m[2])) { op.curMat = 25; op.tube([[b0[0], F + 0.22, b0[2]], [b1[0], F + 0.22, b1[2]]], [[0.6, 0.22], [0.6, 0.22]], PEARL, { sky: SK, segs: 8, cap0: 'round', cap1: 'round' }); // the bed: a pearl frame, a blanket, a pillow, a shell for a headboard
+            op.tube([Q(-2.3, -2.08, F + 0.3), Q(-2.1, -2.08, F + 0.86), Q(-1.75, -2.08, F + 1.02), Q(-1.4, -2.08, F + 0.86), Q(-1.2, -2.08, F + 0.3)], [0.1, 0.1, 0.1, 0.1, 0.1], PEARL2, { sky: SK, segs: 5, cap0: 'round', cap1: 'round' }); op.curMat = 0;
+            const c0 = Q(-1.75, -0.9, F), c1 = Q(-1.75, -0.2, F); op.tube([[c0[0], F + 0.44, c0[2]], [c1[0], F + 0.44, c1[2]]], [[0.56, 0.12], [0.56, 0.12]], hue, { sky: SK, segs: 8, cap0: 'round', cap1: 'round' });
+            const p0 = Q(-1.75, -1.64, F), p1 = Q(-1.75, -1.52, F); op.tube([[p0[0], F + 0.5, p0[2]], [p1[0], F + 0.5, p1[2]]], [[0.36, 0.1], [0.36, 0.1]], [0.97, 0.97, 0.95], { sky: SK, segs: 6, cap0: 'round', cap1: 'round' });
+            const k0 = Q(-2.1, 0.86, F), k1 = Q(-1.4, 0.86, F); op.tube([[k0[0], F + 0.27, k0[2]], [k1[0], F + 0.27, k1[2]]], [[0.27, 0.25], [0.27, 0.25]], [0.46, 0.3, 0.28], { sky: SK, segs: 6, cap0: 'flat', cap1: 'flat' }); const km = Q(-1.75, 0.86, F); op.tube([[km[0] - dx * 0.05, F + 0.27, km[2] - dz * 0.05], [km[0] + dx * 0.05, F + 0.27, km[2] + dz * 0.05]], [[0.29, 0.27], [0.29, 0.27]], GOLD, { sky: SK, segs: 6, cap0: 'none', cap1: 'none' }); } } // the chest at the foot of it, a gold band round its middle
+        { const t = Q(0.7, 1.5, F); if (here(t[0], t[2])) { turn(t[0], t[2], [[0.34, F], [0.14, F + 0.18], [0.12, F + 0.62], [0.64, F + 0.74], [0.64, F + 0.82], [0.0, F + 0.82]], PEARL, { N: 10, mat: 25 }); // the table, laid
+            turn(t[0], t[2], [[0.12, F + 0.82], [0.26, F + 0.86], [0.3, F + 0.96], [0.24, F + 0.94], [0.0, F + 0.86]], GOLD, { N: 8 }); for (let k = 0; k < 3; k++) op.ball(t[0] + Math.cos(k * 2.1) * 0.1, F + 0.96, t[2] + Math.sin(k * 2.1) * 0.1, 0.08, k === 1 ? [0.9, 0.6, 0.2] : [0.56, 0.2, 0.5], { sky: SK, n: 2 });
+            for (const [f, s] of [[-0.2, 1.75], [1.55, 1.2]]) { const st = Q(f, s, F); turn(st[0], st[2], [[0.2, F], [0.12, F + 0.34], [0.3, F + 0.44], [0.3, F + 0.5], [0.0, F + 0.5]], PEARL2, { N: 8, mat: 25 }); } } }
+        { const t0 = da + 1.75, t1 = da + 2.6, rr = RI - 0.44; // the shelf: a cupboard against the wall with two boards over it, and what a family keeps on them
+          lathe(op, hx, hz, [[RI, F + 0.9], [rr, F + 0.9], [rr, F]], PEARL, { N: 5, a0: t0, a1: t1, mat: 25, flat: true });
+          for (const [t, sg] of [[t0, -1], [t1, 1]]) { const c = Math.cos(t), sn = Math.sin(t); if (here(hx + c * (rr + 0.2), hz + sn * (rr + 0.2))) wall([[hx + c * rr, F, hz + sn * rr], [hx + c * RI, F, hz + sn * RI], [hx + c * RI, F + 0.9, hz + sn * RI], [hx + c * rr, F + 0.9, hz + sn * rr]], PEARL2, [-sn * sg, 0, c * sg], 25); }
+          for (const yy of [F + 1.5, F + 2.1]) lathe(op, hx, hz, [[RI, yy], [rr + 0.08, yy], [rr + 0.08, yy - 0.06], [RI, yy - 0.06]], PEARL2, { N: 5, a0: t0 + 0.04, a1: t1 - 0.04, mat: 25, flat: true });
+          const JAR = [[0.3, 0.7, 0.75], [0.98, 0.8, 0.4], [0.85, 0.4, 0.5], [0.5, 0.45, 0.85], [0.95, 0.95, 0.9]];
+          for (let lv = 0; lv < 3; lv++) for (let k = 0; k < 5; k++) { const hh = U.hash3(q.x * 7 + k, lv, q.z * 5, 0x51); if (hh < 0.22) continue; const t = t0 + (k + 0.5) / 5 * (t1 - t0), x = hx + Math.cos(t) * (rr + 0.24), z = hz + Math.sin(t) * (rr + 0.24); if (!here(x, z)) continue; const y0 = F + [0.9, 1.5, 2.1][lv], w = 0.08 + hh * 0.06, h2 = 0.14 + ((k * 3 + lv) % 4) * 0.07; op.blob(x - w, y0, z - w, x + w, y0 + h2, z + w, hh > 0.7 ? 1 : 0.5, JAR[(k + lv * 2 + (q.i || 0)) % 5], { sky: SK, n: 2 }); } }
+        { const p = Q(2.0, -1.95, F); if (here(p[0], p[2])) { turn(p[0], p[2], [[0.22, F], [0.3, F + 0.36], [0.24, F + 0.44], [0.0, F + 0.4]], pale, { N: 8, mat: 25 }); op.curMat = 31; for (let k = 0; k < 4; k++) { const a = k * 1.7 + (q.i || 0), c = (u) => [p[0] + Math.cos(a) * 0.22 * u * u, F + 0.4 + u * (0.9 + k * 0.16), p[2] + Math.sin(a) * 0.22 * u * u]; op.ribbon([c(0), c(0.35), c(0.7), c(1)], [0.04, 0.11, 0.1, 0.02], k % 2 ? [0.16, 0.56, 0.4] : [0.24, 0.66, 0.36], { sky: SK, droop: 0.12, tip: [0.6, 0.9, 0.5] }); } op.curMat = 0; } } // kelp in a pot by the door
+        { const tm = da + Math.PI + 0.45, t0 = tm - 0.27, t1 = tm + 0.27, rw = RI - 0.03; // a woven hanging on the wall over the bed, in the colours of the house
+          for (const [y0, y1, c] of [[2.72, 2.4, hue], [2.4, 2.22, GOLD], [2.22, 1.86, pale], [1.86, 1.68, GOLD], [1.68, 1.4, hue]]) lathe(op, hx, hz, [[rw, F + y0], [rw, F + y1]], c, { N: 3, a0: t0, a1: t1, flat: true });
+          const pts = []; for (let k = 0; k <= 4; k++) { const t = t0 - 0.03 + (t1 - t0 + 0.06) * k / 4; pts.push([hx + Math.cos(t) * (rw - 0.02), F + 2.76, hz + Math.sin(t) * (rw - 0.02)]); } if (here(pts[2][0], pts[2][2])) { op.curMat = 25; op.tube(pts, pts.map(() => 0.035), PEARL, { sky: SK, segs: 4, cap0: 'round', cap1: 'round' }); op.curMat = 0; } }
+        if (here(hx, hz)) { op.curMat = 25; op.tube([[hx, F + 5.2, hz], [hx, F + 4.3, hz]], [0.025, 0.025], PEARL2, { sky: SK, segs: 4, cap0: 'none', cap1: 'none' }); op.curMat = 0; op.ball(hx, F + 4.1, hz, 0.27, [1.0, 0.95, 0.78], { sky: 1, emis: true, n: 3 }); } }
       // ---- the spires: slim, tall, a light at the tip ----
       for (const s of A.spires) { const hx = CX + s.x + 0, hz = CZ + s.z + 0; if (!near(hx, hz, 2)) continue;
-        lathe(op, hx, hz, [[0.75, F], [0.62, F + 0.5], [0.42, F + 1.2], [0.34, F + 5], [0.28, F + 8.6], [0.5, F + 9.3], [0.44, F + 9.9], [0.2, F + 10.2]], PEARL, { N: 10, mat: 25 });
-        orb(hx, F + 10.75, hz, 0.55, [0.8, 0.97, 1.0]); lathe(op, hx, hz, [[0.16, F + 11.2], [0.05, F + 12.6], [0.0, F + 13.0]], GOLD, { N: 6 });
-        torus(hx, hz, 0.62, F + 3.2, 0.05, GLOW, { emis: true, mat: 26, sky: 1, N: 12 }); torus(hx, hz, 0.56, F + 6.4, 0.05, GLOW, { emis: true, mat: 26, sky: 1, N: 12 }); }
+        const k = (s.h || 10) / 10; lathe(op, hx, hz, [[0.75, F], [0.62, F + 0.5], [0.42, F + 1.2], [0.34, F + 5 * k], [0.28, F + 8.6 * k], [0.5, F + 9.3 * k], [0.44, F + 9.9 * k], [0.2, F + 10.2 * k]], PEARL, { N: 10, mat: 25 });
+        orb(hx, F + 10.75 * k, hz, 0.55, [0.8, 0.97, 1.0]); lathe(op, hx, hz, [[0.16, F + 11.2 * k], [0.05, F + 12.6 * k], [0.0, F + 13.0 * k]], GOLD, { N: 6 });
+        torus(hx, hz, 0.62, F + 3.2 * k, 0.05, GLOW, { emis: true, mat: 26, sky: 1, N: 12 }); torus(hx, hz, 0.56, F + 6.4 * k, 0.05, GLOW, { emis: true, mat: 26, sky: 1, N: 12 }); torus(hx, hz, 1.45, F + 0.12, 0.22, PEARL, { mat: 25, N: 16 }); } // a lip of pearl round the foot, where the rill comes up
+      // ---- the market stalls between the pool and the halls: a round counter under a shell of two colours, what is for sale laid out on it, a lamp hung from the stem ----
+      const STALL = { stall_plums: [[0.72, 0.3, 0.62], [0.98, 0.86, 0.9]], stall_bait: [[0.3, 0.75, 0.6], [0.95, 0.98, 0.8]], stall_shells: [[0.98, 0.66, 0.72], [0.99, 0.95, 0.9]], stall_lamps: [[0.98, 0.8, 0.36], [0.99, 0.95, 0.8]], stall_rolls: [[0.42, 0.7, 0.4], [0.94, 0.96, 0.84]], stall_tonics: [[0.5, 0.48, 0.9], [0.9, 0.9, 0.99]], stall_nets: [[0.3, 0.62, 0.86], [0.92, 0.96, 0.99]], stall_curios: [[0.86, 0.5, 0.3], [0.98, 0.92, 0.84]] };
+      for (const s of (A.stalls || [])) { const x = CX + s.x, z = CZ + s.z; if (!here(x, z)) continue; const [c1, c2] = STALL[s.kind] || STALL.stall_plums, ox = Math.cos(s.a), oz = Math.sin(s.a), T = (o, t, yy) => [x + ox * o - oz * t, yy, z + oz * o + ox * t], G0 = F + 0.9; // o: out from the middle of the city, where the keeper stands; t: along the counter
+        turn(x, z, [[0.6, F], [0.66, F + 0.7], [0.76, F + 0.82], [0.76, F + 0.9], [0.0, F + 0.9]], PEARL, { N: 12, mat: 25 });
+        op.curMat = 25; op.tube([T(0.2, 1.05, F), T(0.2, 1.12, F + 1.9), T(0.15, 0.8, F + 2.72), T(0.04, 0.1, F + 3.02)], [0.08, 0.07, 0.06, 0.05], PEARL, { sky: SK, segs: 5, cap0: 'none', cap1: 'round' }); op.curMat = 0;
+        for (const par of [0, 1]) lathe(op, x, z, [[1.85, F + 2.42], [1.55, F + 2.72], [0.85, F + 2.96], [0.0, F + 3.06]], par ? c2 : c1, { N: 12, whole: true, skip: (t) => (Math.floor(t / TAU * 12 + 0.001) & 1) !== par });
+        for (let k = 0; k < 12; k += 2) { const a = (k + 0.5) / 12 * TAU; op.ball(x + Math.cos(a) * 1.84, F + 2.36, z + Math.sin(a) * 1.84, 0.07, GOLD, { sky: SK, n: 1 }); }
+        { const l = T(-0.5, 1.25, F + 2.05); op.curMat = 25; op.tube([[l[0], F + 2.5, l[2]], [l[0], F + 2.2, l[2]]], [0.02, 0.02], PEARL2, { sky: SK, segs: 3, cap0: 'none', cap1: 'none' }); op.curMat = 0; orb(l[0], l[1], l[2], 0.17, c1); }
+        const put = (o, t, r, col, h, rd, y0) => { const p = T(o, t, 0), yb = G0 + (y0 || 0); op.blob(p[0] - r, yb, p[2] - r, p[0] + r, yb + (h || r * 2), p[2] + r, rd == null ? 1 : rd, col, { sky: SK, n: 2 }); };
+        if (lod) continue;
+        if (s.kind === 'stall_plums') { turn(x, z, [[0.2, G0], [0.44, G0 + 0.08], [0.5, G0 + 0.2], [0.42, G0 + 0.17], [0.0, G0 + 0.08]], GOLD, { N: 10 }); for (let k = 0; k < 7; k++) { const a = k * 0.9; put(k < 6 ? Math.cos(a) * 0.24 : 0, k < 6 ? Math.sin(a) * 0.24 : 0, 0.1, k % 3 === 1 ? [0.8, 0.3, 0.36] : [0.5, 0.2, 0.52], 0.2, 1, k < 6 ? 0.12 : 0.24); } }
+        else if (s.kind === 'stall_bait') { [[0.26, 0.28, [0.8, 0.25, 0.3]], [0.26, -0.28, [0.85, 1.0, 0.45]], [-0.26, 0.28, [0.62, 0.3, 0.9]], [-0.26, -0.28, [0.3, 0.8, 0.7]]].forEach(([o, t, c]) => { put(o, t, 0.13, [0.82, 0.92, 0.95], 0.26, 0.45); put(o, t, 0.1, c, 0.1, 1, 0.24); }); const h = T(0, 0, 0); op.curMat = 25; op.tube([[h[0], G0, h[2]], [h[0], G0 + 0.5, h[2]], [h[0] + ox * 0.12, G0 + 0.62, h[2] + oz * 0.12], [h[0] + ox * 0.14, G0 + 0.52, h[2] + oz * 0.14]], [0.02, 0.02, 0.02, 0.015], GOLD, { sky: SK, segs: 4, cap0: 'none', cap1: 'none' }); op.curMat = 0; }
+        else if (s.kind === 'stall_shells') { [[0.3, 0.2, [0.98, 0.78, 0.8]], [0.05, -0.36, [0.95, 0.92, 0.84]], [-0.3, 0.26, [0.72, 0.62, 0.9]], [-0.22, -0.2, [0.98, 0.86, 0.6]], [0.32, -0.2, [0.7, 0.9, 0.9]]].forEach(([o, t, c], k) => put(o, t, 0.13 + (k % 2) * 0.03, c, 0.1 + (k % 3) * 0.03, 1)); const p = T(0, 0.04, 0); op.curMat = 25; op.ball(p[0], G0 + 0.12, p[2], 0.11, [0.97, 0.97, 1.0], { sky: SK, n: 3 }); op.curMat = 0; }
+        else if (s.kind === 'stall_lamps') { [[0.28, 0.2, 0.42, [1.0, 0.86, 0.5]], [-0.2, 0.3, 0.6, [0.5, 0.95, 1.0]], [0.0, -0.3, 0.8, [1.0, 0.6, 0.75]], [-0.32, -0.16, 0.34, [0.7, 1.0, 0.7]]].forEach(([o, t, h, c]) => { const p = T(o, t, 0); op.curMat = 25; op.tube([[p[0], G0, p[2]], [p[0], G0 + h, p[2]]], [0.05, 0.025], PEARL2, { sky: SK, segs: 4, cap0: 'none', cap1: 'none' }); op.curMat = 0; orb(p[0], G0 + h + 0.1, p[2], 0.13, c); }); }
+        else if (s.kind === 'stall_rolls') { for (let k = 0; k < 6; k++) { const lv = k < 3 ? 0 : k < 5 ? 1 : 2, i = k < 3 ? k - 1 : k < 5 ? k - 3.5 : 0, a = T(-0.28, i * 0.2, G0 + 0.09 + lv * 0.15), b = T(0.28, i * 0.2, G0 + 0.09 + lv * 0.15); op.tube([a, b], [0.09, 0.09], k % 2 ? [0.5, 0.56, 0.3] : [0.72, 0.6, 0.34], { sky: SK, segs: 6, cap0: 'round', cap1: 'round' }); } }
+        else if (s.kind === 'stall_tonics') { [[0.28, 0.26, [0.9, 0.3, 0.36]], [0.3, -0.2, [0.36, 0.8, 0.95]], [-0.08, 0.34, [0.98, 0.8, 0.3]], [-0.3, -0.06, [0.5, 0.9, 0.5]], [0.0, -0.36, [0.7, 0.5, 0.95]], [-0.02, 0.0, [0.95, 0.5, 0.8]]].forEach(([o, t, c], k) => { put(o, t, 0.075, c, 0.2 + (k % 2) * 0.06, 0.5); put(o, t, 0.035, [0.9, 0.93, 0.95], 0.1, 0.4, 0.2 + (k % 2) * 0.06); }); }
+        else if (s.kind === 'stall_nets') { for (let lv = 0; lv < 3; lv++) torus(x - ox * 0.08, z - oz * 0.08, 0.34 - lv * 0.04, G0 + 0.06 + lv * 0.1, 0.055, lv % 2 ? [0.78, 0.7, 0.5] : [0.66, 0.58, 0.4], { N: 10, whole: true }); [[0.42, 0.3, [0.95, 0.4, 0.3]], [0.44, -0.24, [0.3, 0.7, 0.9]], [0.2, 0.5, [0.98, 0.84, 0.4]]].forEach(([o, t, c]) => put(o, t, 0.09, c, 0.18, 1)); }
+        else { put(0.08, 0.02, 0.26, [0.46, 0.3, 0.2], 0.3, 0.35); put(0.08, 0.02, 0.27, GOLD, 0.05, 0.3, 0.13); put(-0.34, 0.3, 0.11, [0.5, 0.52, 0.56], 0.14, 0.6); put(-0.36, -0.22, 0.1, [0.8, 0.5, 0.3], 0.13, 0.6); put(0.44, -0.34, 0.07, GOLD, 0.03, 0.8); put(0.46, 0.36, 0.08, [0.3, 0.42, 0.46], 0.2, 0.5); } }
+      // ---- coral standing in pearl tubs down both sides of every avenue: each one its own colour, the tips alight ----
+      const CORAL = [[0.98, 0.5, 0.52], [1.0, 0.64, 0.32], [0.72, 0.56, 0.96], [0.98, 0.74, 0.84], [0.4, 0.86, 0.8]];
+      for (const t of (A.trees || [])) { const x = CX + t.x, z = CZ + t.z; if (!here(x, z)) continue; const col = CORAL[t.k % 5], lite = [col[0] * 0.4 + 0.6, col[1] * 0.4 + 0.6, col[2] * 0.4 + 0.6], hh = (i) => U.hash3(t.x + 91, i, t.z + 17, 0xC0A);
+        turn(x, z, [[0.5, F], [0.64, F + 0.44], [0.54, F + 0.58], [0.46, F + 0.52], [0.0, F + 0.5]], PEARL, { N: 10, mat: 25 });
+        let n = 0; const grow = (p, d, len, r, depth) => { const i = n++, m = [p[0] + d[0] * len * 0.5 + (hh(i * 3) - 0.5) * 0.3 * len, p[1] + d[1] * len * 0.5, p[2] + d[2] * len * 0.5 + (hh(i * 3 + 1) - 0.5) * 0.3 * len], e = [p[0] + d[0] * len, p[1] + d[1] * len, p[2] + d[2] * len];
+          op.tube([p, m, e], [r, r * 0.86, r * 0.7], col, { sky: SK, segs: lod ? 4 : 5, cap0: 'none', cap1: depth ? 'none' : 'round', shade: depth ? null : (q, nx, ny, nz, k) => (k > 0.6 ? lite : null) });
+          if (!depth) { if (!lod) orb(e[0], e[1] + r * 0.5, e[2], r * 1.3, lite); return; }
+          const kids = depth === 2 ? 3 : 2, a0 = hh(i * 3 + 2) * TAU; for (let k = 0; k < kids; k++) { const a = a0 + k / kids * TAU + (hh(i * 7 + k) - 0.5) * 0.8, sp = 0.62 + hh(i * 5 + k) * 0.2, nd = [d[0] * 0.75 + Math.cos(a) * sp, d[1] * 0.75 + 0.5, d[2] * 0.75 + Math.sin(a) * sp], l = Math.hypot(nd[0], nd[1], nd[2]); grow(e, [nd[0] / l, nd[1] / l, nd[2] / l], len * (0.66 + hh(i * 11 + k) * 0.16), r * 0.7, depth - 1); } };
+        grow([x, F + 0.5, z], [0, 1, 0], 1.25 + hh(0) * 0.35, 0.17, lod ? 1 : 2); }
     };
     // ---- the Lost World: every tree is drawn whole, from the chunk's own list of the trees that stand in it or lean over it. Only the trunk is blocks.
     // Four storeys: plants with leaves like paddles, tree ferns with fronds as long as a house is wide, the canopy on buttressed trunks,
@@ -2993,7 +3245,7 @@ const R = (() => {
         const wx = ox + lx, wz = oz + lz;
         const vr = SOIL.has(id) ? 0.98 + U.hash3(wx, y, wz, 5) * 0.03 : 0.92 + U.hash3(wx, y, wz, 5) * 0.12; // per-block variation (the ground keeps almost none: its shader paints it smoothly)
         if (id === B.STATUE) continue; // drawn as an entity
-        if (id === B.ATLAN || id === B.AGLASS || id === B.ALIGHT || id === B.JLOG) continue; // Atlantis is never blocks, nor is a trunk in the Lost World: drawn whole, above
+        if (id === B.ATLAN || id === B.AGLASS || id === B.ALIGHT || id === B.JLOG || id === B.BOOKS) continue; // Atlantis is never blocks, nor is a trunk in the Lost World: drawn whole, above
         if ((id === B.SAIL || id === B.WEAVE || id === B.BEAM) && reefHere()) { let mine = null, skip = false; // part of a reef house or its sail: drawn whole, by the peak
           for (const t of reefTents()) { const ax = Math.abs(lx - t.x), az = Math.abs(lz - t.z);
             if (id === B.SAIL) { if (ax <= t.rr && az <= t.rr && y <= t.y && y >= t.y - t.rr) { skip = true; if (ax === 0 && az === 0 && y === t.y) mine = t; } }
@@ -3787,7 +4039,7 @@ const R = (() => {
           op.curMat = id === B.GRASS ? (f === 2 ? 1 : 4) : id === B.GLOWGRASS ? 16 : matSide;
           const nx = lx + n[0], ny = y + n[1], nz = lz + n[2];
           const nid = get(nx, ny, nz);
-          if (isWater) { if (nid !== B.AIR && nid !== B.TORCH && nid !== B.GLASS && nid !== B.SELGLASS && !(BLOCKS[nid].partial && !BLOCKS[nid].solid)) continue; if (atl && nid === B.AIR && y >= atl.y && Math.hypot(lx + 0.5 - atl.x, lz + 0.5 - atl.z) < (y >= SEA ? 6.2 : 3.4)) continue; /* the falls of Atlantis are drawn as one column of falling water, not as the sides of blocks; and where the sea goes in at the top there is a whirlpool, not a flat sheet */ }
+          if (isWater) { if (nid !== B.AIR && nid !== B.TORCH && nid !== B.GLASS && nid !== B.SELGLASS && !(BLOCKS[nid].partial && !BLOCKS[nid].solid)) continue; if (atl && nid === B.AIR && y >= atl.y && Math.hypot(lx + 0.5 - atl.x, lz + 0.5 - atl.z) < (y >= SEA ? 6.2 : 3.4)) continue; /* the falls of Atlantis are drawn as one column of falling water, not as the sides of blocks; and where the sea goes in at the top there is a whirlpool, not a flat sheet */ if (atl && f === 2 && y === atl.y - 1 && atlRill(lx, lz)) continue; }
           else if (isGlass) { if (nid === id || isOpaque(nid)) continue; }
           else if (id === B.LAVA) { if (nid !== B.AIR && nid !== B.TORCH && nid !== B.WATER) continue; }
           else if (isOpaque(nid)) { if (!(f === 2 && isTrunk(nid) && SOIL.has(id)) && !((f === 2 || f === 3) && loose(nx, ny, nz, nid))) continue; } // what stands on this face may be a round post or a wall with its corner turned: then the face shows past it, and leaving it out left a chink of sky at the foot of every such corner
@@ -3893,13 +4145,14 @@ const R = (() => {
   }
   function entityMesh(key, buildFn) {
     let m = entityMeshes.get(key);
-    if (!m) { const mb = new MeshBuilder(1024, true); buildFn(mb); m = upload(mb) || { count: 0 }; entityMeshes.set(key, m); }
+    if (!m) { const mb = new MeshBuilder(1024, true); buildFn(mb); let r2 = 0; for (let i = 0; i < mb.nv * 3; i += 3) { const d = mb.pos[i] * mb.pos[i] + mb.pos[i + 1] * mb.pos[i + 1] + mb.pos[i + 2] * mb.pos[i + 2]; if (d > r2) r2 = d; } m = upload(mb) || { count: 0 }; m.rad = Math.sqrt(r2); entityMeshes.set(key, m); } // rad: how far the mesh reaches from its own origin, for leaving it out when it is off the screen
     return m;
   }
   function dropEntityMesh(key) { const m = entityMeshes.get(key); if (m) { freeMesh(m); entityMeshes.delete(key); } }
   // ---------- drawing the entity list (shared by the frame and by portraits) ----------
+  let entPV = null;
   function setEntityUniforms(pv, cam, lightsL, lightsR) {
-    gl.useProgram(eprog);
+    entPV = pv; gl.useProgram(eprog);
     gl.uniformMatrix4fv(eloc.uPV, false, pv); gl.uniform1f(eloc.uTime, performance.now() / 1000);
     gl.uniform4fv(eloc.uMist, state.mist || MIST0); bindHM(eloc, state.mist && state.mist[1] > 0); gl.uniform3f(eloc.uCam, cam.x, cam.y, cam.z); gl.uniform1f(eloc.uDay, state.dayLight); gl.uniform3fv(eloc.uFog, state.fogColor); gl.uniform1f(eloc.uFogSky, state.fogSky ? (state.rangeKind || 1) : 0); gl.uniform1f(eloc.uCoreGlow, state.coreGlow ? 1 : 0);
     gl.uniform1f(eloc.uFogNear, state.fogNear); gl.uniform1f(eloc.uFogFar, state.fogFar); gl.uniform1f(eloc.uAmbient, state.ambient); gl.uniform3fv(eloc.uTint, state.tint);
@@ -3922,7 +4175,9 @@ const R = (() => {
       drawEntityMesh(e.mesh);
     };
     const list = [];
-    for (const e of entities) { if (!e.mesh || !e.mesh.count) continue; const d2 = (e.x - cam.x) ** 2 + (e.z - cam.z) ** 2; if (d2 > state.viewDist * state.viewDist) continue; e._d2 = d2; list.push(e); }
+    const P = entPV; for (const e of entities) { if (!e.mesh || !e.mesh.count) continue; const d2 = (e.x - cam.x) ** 2 + (e.z - cam.z) ** 2; if (d2 > state.viewDist * state.viewDist) continue;
+      if (P && !e.M && e.mesh.rad) { const rad = e.mesh.rad * (e.scale || 1) + 1.5, y = e.y + (e.hover || 0) + rad * 0.4, cw = P[3] * e.x + P[7] * y + P[11] * e.z + P[15]; if (cw < -rad) continue; const m = rad * 3 + Math.max(cw, 0); if (Math.abs(P[0] * e.x + P[4] * y + P[8] * e.z + P[12]) > m || Math.abs(P[1] * e.x + P[5] * y + P[9] * e.z + P[13]) > m) continue; } // behind you, or off the side of the screen: not posed, not drawn
+      e._d2 = d2; list.push(e); }
     const seeThru = []; for (const e of list) { if (e.alpha != null && e.alpha < 1) seeThru.push(e); else drawOne(e, false); }
     if (seeThru.length) { gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA); gl.depthMask(false); for (const e of seeThru) drawOne(e, false); gl.depthMask(true); gl.disable(gl.BLEND); }
     if (outlineW > 0) { gl.enable(gl.CULL_FACE); gl.cullFace(gl.FRONT); for (const e of list) { if (e.isFx || e.noOutline || e._d2 > 1600) continue; drawOne(e, true); } gl.disable(gl.CULL_FACE); }
@@ -4028,7 +4283,7 @@ const R = (() => {
       if (AT && AT.halls) { const W = WORLD_W, dx = ((player.x - AT.x) % W + W * 1.5) % W - W / 2, dz = ((player.z - AT.z) % W + W * 1.5) % W - W / 2, k = U.clamp(1 - (Math.hypot(dx, dz) - AT.RH - 30) / 70, 0, 1); state.fogFar = 18 + 66 * k; state.fogNear = 2 + 14 * k; } }
     else if (eyeBlock === B.BRINE) { state.underwater = true; state.fogSky = false; state.fogColor = [0.35, 0.42, 0.08]; state.skyColor = state.fogColor; state.fogNear = 1; state.fogFar = 9; state.tint = [0.9, 1.0, 0.5]; }
     else if (eyeBlock === B.LAVA) { state.fogSky = false; state.fogColor = [0.9, 0.3, 0.05]; state.skyColor = state.fogColor; state.fogNear = 0.5; state.fogFar = 4; state.tint = [1.2, 0.6, 0.3]; }
-    else if (inAtl) { const k = 0.3 + 0.7 * state.dayLight; state.fogSky = false; state.fogColor = [0.05 * k, 0.34 * k, 0.5 * k]; state.skyColor = state.fogColor; state.zenith = [0.16 * k, 0.6 * k, 0.74 * k]; state.clouds = 0; state.fogNear = 46; state.fogFar = 150; state.ambient = 0.18 + 0.3 * state.dayLight; }
+    else if (inAtl) { state.dayLight = Math.max(state.dayLight, 0.9); state.sun = [0.17, 0.97, 0.17]; state.sunAmt = 1; state.sunCol = [0.92, 0.98, 1.0]; state.tint = [1, 1, 1]; /* under the dome it is lit like day whatever the hour above, and the light comes straight down through the eye: no long shadows off the reef at dusk, no night */ const k = 0.3 + 0.7 * state.dayLight; state.fogSky = false; state.fogColor = [0.05 * k, 0.34 * k, 0.5 * k]; state.skyColor = state.fogColor; state.zenith = [0.16 * k, 0.6 * k, 0.74 * k]; state.clouds = 0; state.fogNear = 46; state.fogFar = 150; state.ambient = 0.18 + 0.3 * state.dayLight; }
     else if (player.y < CORE_TOP) { state.inCore = true; state.fogSky = false; state.fogColor = [0.2, 0.05, 0.015]; state.skyColor = state.fogColor; state.fogNear = 10; state.fogFar = 56; state.ambient = 0.3; state.tint = [1.08, 0.9, 0.82]; }
     else if (player.y < world.topAt(Math.floor(player.x), Math.floor(player.z)) - 2) { state.fogSky = false; state.fogColor = [0.0, 0.0, 0.0]; state.skyColor = state.fogColor; state.fogNear = 10; state.fogFar = 48; }
   }
@@ -4233,7 +4488,7 @@ const R = (() => {
     return out;
   }
 
-  return { grassZone, init, resize, buildChunk, freeChunk, entityMesh, dropEntityMesh, renderPortrait, render, project, surfaceAt, standY, under, isSoil, boxLines, targetLines, ringLines, state, setQuality, QUALITY, get gl() { return gl; } };
+  return { grassZone, init, resize, buildChunk, freeChunk, entityMesh, dropEntityMesh, renderPortrait, render, project, surfaceAt, standY, under, isSoil, boxLines, targetLines, ringLines, state, setQuality, QUALITY, get gl() { return gl; }, get scratch() { return scratchOpaque; } }; // scratch: the last chunk's solid mesh as it was built, for the tests to measure
 })();
 
 </script>
@@ -5040,6 +5295,7 @@ class Player {
     if (hit.id === B.CAMPFIRE) return { interact: 'camp' };
     if (hit.id === B.PORTAL) return { interact: 'portal', x: hit.x, y: hit.y, z: hit.z };
     if (hit.id === B.CHEST) return { interact: 'chest', x: hit.x, y: hit.y, z: hit.z };
+    if (hit.id === B.BOOKS) return { interact: 'books', x: hit.x, y: hit.y, z: hit.z };
     if (hit.id === B.INCUBATOR) return { interact: 'incubator', x: hit.x, y: hit.y, z: hit.z };
     if (hit.id === B.DOOR || hit.id === B.DOOR_OPEN) { this.world.setBlock(hit.x, hit.y, hit.z, hit.id === B.DOOR ? B.DOOR_OPEN : B.DOOR); return { interact: 'door', open: hit.id === B.DOOR }; }
     const item = this.selected();
@@ -10760,6 +11016,74 @@ const Games = (() => {
 
 </script>
 <script>
+// ---- books you can take off a shelf and read. A shelf belongs to a place: the Shell School in Atlantis keeps the books the children learn the city's
+// history from. You pick one, turn its pages, put it back. What you have read is remembered, and some people care that you have ----
+const Books = (() => {
+  const SETS = {
+    atlantis: { shelf: 'The school shelf', note: 'Six books with soft corners. Somebody has drawn a seahorse inside the cover of every one.', books: [
+      { id: 'under', title: 'The City That Went Under', by: 'for the first class', col: '#2f8fb0', pages: [
+        'Once our city stood on an island. The sea was all round it and the sky was over it.',
+        'The people of the island made friends with the Kin of the water. They rode seahorses the way land people ride ponies.',
+        'One night the ground shook. The island broke like a biscuit and the sea came in through every door.',
+        'The people held on to their seahorses, and the seahorses knew the way down.',
+        'At the bottom of the sea the grown-ups built a roof of glass, in a place nobody up above knew about.',
+        'The sea still comes in at the top. We call it the Falls. It is there so we remember which way is up.'] },
+      { id: 'skerry', title: 'Skerry Comes Home', by: 'a true story', col: '#d9892b', pages: [
+        'Skerry was the fastest seahorse in the old city. A girl called Isla rode her every day after school.',
+        'On the night the ground shook, Isla and Skerry were far out over the deep water.',
+        'In the morning Skerry came home. Isla did not.',
+        'Skerry waited by the gate every day for a year. Then she let the other children ride her, one at a time.',
+        'The fastest seahorse in the ring has been called Skerry ever since.',
+        'If you ride her, hold on. That is what Isla would have told you.'] },
+      { id: 'three', title: 'One, Two, Three Old Ones', by: 'a counting book', col: '#6a5acd', pages: [
+        'ONE sleeps under the land. Its name is the Mantlewyrm. When it turns over in its sleep, the ground shakes.',
+        'TWO swims round the Moon. Its name is the Selenaut. It pulls the tide up and lets it down again.',
+        'THREE walks the Ring in the sky. Its name is the Ringwarden. It keeps the pieces from falling on us.',
+        'One, two, three. Count them on your fingers.',
+        'Nobody made them. Nobody owns them. They were here before the first fish.',
+        'If you ever meet one, be polite and do not wake it.'] },
+      { id: 'keeper', title: 'The Keeper of the Table', by: 'for the top class', col: '#8a3d3d', pages: [
+        'Long ago the city had a Kinmaster. It was a job, like baker or teacher.',
+        'The Kinmaster kept the Fusing Hall. Every Fusion Table in the world was made by his hands, and that is still true.',
+        'He had a crystal called the Concord. With it a person and a Kin could understand each other.',
+        'Then a very sad thing happened to him. He changed the crystal so that it did not ask any more. It only told.',
+        'The city sent him away. He has never seen the roof you are sitting under.',
+        'That is why the Fusing Hall has a keeper now and not a master. And it is why we ask a Kin before we ride it.'] },
+      { id: 'abc', title: 'A Is for Air', by: 'letters for the little ones', col: '#3aa76d', pages: [
+        'A is for AIR. The kelp gardens make ours. Say thank you when you walk past.',
+        'C is for CURRENT. It is our train. You sit still and the sea does the walking.',
+        'F is for FALLS. Do not swim up them without telling a grown-up.',
+        'G is for GLASS. Do not lick it. Everybody tries once.',
+        'P is for PEARL. A pearl takes ten years. Be patient with it and with your sister.',
+        'S is for SPEAKER. She speaks for the city. She also knows when you have not done your reading.'] },
+      { id: 'trident', title: 'The Trident and the Three Pieces', by: 'an old story', col: '#c9a227', pages: [
+        'Poseidon\'s Trident is not in the Archive. Nobody has made it yet.',
+        'The story says it needs one piece from each world. A tooth out of the deep. Stone from the Moon. A shard of the Ring.',
+        'Brann at the Tideforge knows how to put them together. In all these years nobody has come in with all three.',
+        'The story also says what it is for. It can cut a Binding, the way a knife cuts a rope.',
+        'A Kin that has been told can be asked again. So can a person.',
+        'Maybe you will be the one who brings the three pieces. Until then, eat your kelp.'] },
+    ] },
+  };
+  let box = null;
+  const read = (set) => { const b = G.stats.books || (G.stats.books = {}); return b[set] || (b[set] = {}); };
+  const esc = (s) => String(s).replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+  function close() { if (box) { box.remove(); box = null; if (G.setPaused) G.setPaused(false); } }
+  function open(set) {
+    const S = SETS[set]; if (!S) return false; close(); box = document.createElement('div'); box.id = 'bookbox'; document.body.appendChild(box); if (G.setPaused) G.setPaused(true); shelf(set); return true; }
+  function shelf(set) { const S = SETS[set], rd = read(set), n = S.books.filter(b => rd[b.id]).length;
+    box.innerHTML = `<div class="bk-card"><div class="bk-head"><b>${esc(S.shelf)}</b><span>${n} of ${S.books.length} read</span></div><p class="bk-note">${esc(S.note)}</p><div class="bk-shelf">${S.books.map((b, i) => `<button class="bk-cover${rd[b.id] ? ' done' : ''}" data-i="${i}" style="--c:${b.col}"><i>${esc(b.title)}</i><small>${esc(b.by)}</small></button>`).join('')}</div><div class="bk-foot"><button class="btn ghost" data-x="1">Leave the shelf</button></div></div>`;
+    box.querySelectorAll('.bk-cover').forEach(c => c.addEventListener('click', () => page(set, +c.dataset.i, 0))); box.querySelector('[data-x]').addEventListener('click', close); }
+  function page(set, i, k) { const S = SETS[set], b = S.books[i], last = k === b.pages.length - 1;
+    if (last) { const rd = read(set), was = rd[b.id]; rd[b.id] = true; if (!was) { UI.sfx && UI.sfx('place'); if (S.books.every(q => rd[q.id]) && Books.onAll) Books.onAll(set); } }
+    box.innerHTML = `<div class="bk-card bk-open" style="--c:${b.col}"><div class="bk-head"><b>${esc(b.title)}</b><span>page ${k + 1} of ${b.pages.length}</span></div><div class="bk-page"><p>${esc(b.pages[k])}</p></div><div class="bk-foot"><button class="btn ghost" data-p="-1"${k === 0 ? ' disabled' : ''}>Back a page</button><button class="btn" data-p="1">${last ? 'Close the book' : 'Turn the page'}</button></div><button class="bk-back" data-s="1">Put it back on the shelf</button></div>`;
+    box.querySelector('[data-p="-1"]').addEventListener('click', () => page(set, i, Math.max(0, k - 1)));
+    box.querySelector('[data-p="1"]').addEventListener('click', () => last ? shelf(set) : page(set, i, k + 1)); box.querySelector('[data-s]').addEventListener('click', () => shelf(set)); }
+  return { SETS, open, close, count: (set) => { const rd = (G.stats.books || {})[set] || {}; return SETS[set] ? SETS[set].books.filter(b => rd[b.id]).length : 0; }, total: (set) => SETS[set] ? SETS[set].books.length : 0, onAll: null, get isOpen() { return !!box; } };
+})();
+
+</script>
+<script>
 'use strict';
 // Villages. Many of them, spread across the map a good walk apart, each held by a tyrant until you free it. A freed village is under
 // your protection: it pays Shards at every dawn, levels up on what it has earned, and can be walled (wood, stone, iron, voidsteel),
@@ -10896,15 +11220,28 @@ const Village = (() => {
   }
   // ---- every town has its own game and its own champion, and you play them for shards. The stake goes down before the first move; the winner takes both ----
   const GAME_ORDER = ['draughts', 'ringboard'], CHAMPS = ['Marta Steadyhand', 'Tobin Rook', 'Old Hesper', 'Ines Quill', 'Garrick Stone', 'Wenna Vale', 'Dorrit Crane', 'Osric Thorn', 'Liesel Marsh', 'Cato Finch'];
-  function gameOf(v) { const h = U.strHash(v.id), near = v.starter ? -1 : (PLANNED || []).filter(t => t.type === 'land').sort((a, b) => a.dist - b.dist).findIndex(t => t.id === v.id);
+  function gameOf(v) { if (v.atlantis) return { kind: 'draughts', champ: 'Tidemaster Oan', skill: 0.95, stakes: [100, 400, 1500] }; const h = U.strHash(v.id), near = v.starter ? -1 : (PLANNED || []).filter(t => t.type === 'land').sort((a, b) => a.dist - b.dist).findIndex(t => t.id === v.id);
     return { kind: v.starter ? 'ringboard' : GAME_ORDER[Math.max(0, near) % GAME_ORDER.length], champ: CHAMPS[h % CHAMPS.length], skill: U.clamp(0.22 + (v.tier || 0) * 0.14, 0.22, 1), stakes: [10, 40, 150].map(x => x * (1 + Math.min(4, v.tier || 0))) }; }
   function gameStats(v) { const gs = G.stats.games || (G.stats.games = {}); return gs[v.id] || (gs[v.id] = { won: 0, lost: 0, day: -1, n: 0 }); }
   function gamesDef(v) { const g = gameOf(v), K = Games.KINDS[g.kind], st = gameStats(v), first = g.champ.split(' ')[0];
     const greet = st.won >= 3 ? `Champion of ${v.name}. That is you now, and I have not forgotten it. Sit down.` : st.won + st.lost === 0 ? `${K.blurb} I match whatever you put down. I do not lose often.` : `You have had ${st.won} off me. I have had ${st.lost} off you. Sit down.`;
     return { title: `${K.name} · ${v.name}`, keeper: g.champ, greet, stock: g.stakes.map((stake, i) => ({ service: 'game', game: g.kind, stake, skill: g.skill, champ: g.champ, name: `${i === 0 ? 'A friendly game' : i === 1 ? 'A proper game' : 'For the title'}: ${stake} shards a side`, sub: i === 2 ? `Beat ${first} three times and the town calls you champion` : 'Winner takes both stakes', price: stake, btn: 'Play' })) }; }
+  // the market stalls of Atlantis: small, one thing each, a little under what the halls ask
+  const ATL_STALL_DEF = {
+    stall_plums: { title: 'Sea Plums', keeper: 'Halia', greet: 'Off the kelp beds this morning. They do not keep, so eat them today.', stock: [{ item: 'berry', price: 3, n: 4 }, { item: 'smoothie', price: 14 }] },
+    stall_bait: { title: 'Hook and Line', keeper: 'Corran', greet: 'You fish from the top of the water. We think that is very funny. Bait?', stock: [{ item: 'bait_berry', price: 9 }, { item: 'bait_glow', price: 22 }, { item: 'bait_void', price: 11, n: 2 }] },
+    stall_shells: { title: 'Shell Stall', keeper: 'Maren', greet: 'Everything on this table was alive once and did not mind. Pearls are at the back.', stock: [{ item: 'coral', price: 7, n: 3 }, { item: 'pearl', price: 52 }, { item: 'glass', price: 5, n: 4 }] },
+    stall_lamps: { title: 'Lamp Stall', keeper: 'Tavish', greet: 'It is never dark here, so I sell to people who are leaving. That would be you.', stock: [{ item: 'torch', price: 7, n: 4 }, { item: 'bulb', price: 175 }] },
+    stall_rolls: { title: 'Kelp Rolls', keeper: 'Dorrie', greet: 'Hot. Well, warm. Nothing is hot down here.', stock: [{ item: 'bread', price: 9 }] },
+    stall_tonics: { title: 'Tide Tonics', keeper: 'Lune', greet: 'One at a time. Somebody always mixes them and then I have to explain it to the healer.', stock: [{ item: 'tonic_heal', price: 12 }, { item: 'tonic_swift', price: 40 }, { item: 'tonic_might', price: 40 }, { item: 'tonic_vigor', price: 40 }] },
+    stall_nets: { title: 'The Net Maker', keeper: 'Pike', greet: 'A snare is a small net with opinions. Mine hold.', stock: [{ item: 'snare', price: 11, n: 2 }, { item: 'snare2', price: 44 }] },
+    stall_curios: { title: 'Wreck Curios', keeper: 'Senna', greet: 'All of it came down in a ship. I do not ask whose.', stock: [{ item: 'iron', price: 19, n: 2 }, { item: 'copper', price: 13, n: 2 }, { item: 'chest', price: 28 }] },
+  };
   function shopDef(kind, v) {
+    if (v && v.atlantis && ATL_STALL_DEF[kind]) return ATL_STALL_DEF[kind];
     if (v && v.atlantis && kind === 'armoury') return atlForge(v);
     if (kind === 'games' && v && typeof Games !== 'undefined') return gamesDef(v);
+    if (v && v.atlantis && kind === 'daycare') return Object.assign({}, SHOPS.daycare, { title: 'The Hatchery', keeper: 'Brood-keeper Thal', greet: 'Foals in the tank, yours in the pens. Leave them with me while you see the city. They come back stronger.' });
     if (kind === 'kinmarket' && v) { const d = SHOPS.kinmarket; const parade = (G.dayCount || 0) % 7 === 6; return Object.assign({}, d, { greet: parade ? 'PARADE DAY! The rare ones are in the ring this morning. Bid quick.' : d.greet + ` The parade is in ${6 - ((G.dayCount || 0) % 7)} day${6 - ((G.dayCount || 0) % 7) === 1 ? '' : 's'}.`, stock: saleStock(v) }); } const st = v && SHOP_STYLE[v.style]; const d = (st && st[kind]) || SHOPS[kind]; if (d && typeof Combat !== 'undefined' && world && world.preset.id === 'earth' && ['trader', 'armoury', 'armourer', 'alchemist'].includes(kind)) return Object.assign({}, d, { stock: d.stock.concat(Combat.rack(v, kind)) }); return d; }
   const POST_POOL = [
     { item: 'iron', n: 4, price: 28 }, { item: 'copper', n: 4, price: 22 }, { item: 'void', n: 2, price: 50 }, { item: 'cloud', n: 4, price: 20 }, { item: 'ember', n: 4, price: 18 },
@@ -10990,14 +11327,14 @@ const Village = (() => {
   let PLAN = null, planning = false; const SPECIAL = new Map(), LOOK = new Map();
   // ---- Atlantis: one city under the sea in every Earth world. It is not one of the ordinary sites: the plan looks over all the deep water
   // within reach of where you start and puts it on the best stretch of it, deep and wide enough for the dome ----
-  const ATL_RH = 40, ATL_RV = 17; let ATL = null;
+  const ATL_RH = 58, ATL_RV = 19; let ATL = null; // twice the ground it had: a market, a canal round it, four great houses and their gardens, and a ring of homes under the low of the glass
   function findAtlantis() {
     const sx = world.spawn.x, sz = world.spawn.z; let best = null;
     const ring = (x, z, r, n) => { let hi = -1, sum = 0; for (let i = 0; i < n; i++) { const a = i / n * Math.PI * 2 + r; const c = world.colInfo(Math.round(x + Math.cos(a) * r), Math.round(z + Math.sin(a) * r)); if (c.lost || c.lostRim) return null; hi = Math.max(hi, c.h); sum += c.h; } return { hi, mean: sum / n }; };
     for (let dx = -2240; dx <= 2240; dx += 64) for (let dz = -2240; dz <= 2240; dz += 64) {
       const d = Math.hypot(dx, dz); if (d < 420 || d > 2250) continue;
       const x = Math.round(sx + dx), z = Math.round(sz + dz); const c = world.colInfo(x, z); if (c.lost || c.lostRim || c.h > SEA - 9) continue;
-      const a = ring(x, z, 24, 6); if (!a || a.hi > SEA - 6) continue; const b = ring(x, z, 46, 10); if (!b || b.hi > SEA - 4) continue; // open water over the whole of it
+      const a = ring(x, z, 32, 8); if (!a || a.hi > SEA - 6) continue; const b = ring(x, z, 64, 14); if (!b || b.hi > SEA - 4) continue; // open water over the whole of it
       const depth = SEA - (c.h + a.mean * 2 + b.mean * 2) / 5; // how much water stands over the place
       const score = Math.min(depth, 24) * 3 - Math.abs(d - 800) / 40 - (b.hi > SEA - 8 ? 6 : 0); // deep first, then not too far to swim to
       if (!best || score > best.score) best = { x, z, h: c.h, score, d, depth };
@@ -11305,13 +11642,25 @@ const Village = (() => {
   // From the middle out: the falls coming down through the eye of the dome, the ring pool they fall into, the market ring, eight halls, the homes
   // and coral beds, and four gates in the foot of the dome where the sea stands like a wall ----
   const ATL_HALLS = [['armoury', 'The Tideforge'], ['trader', 'Pearl Exchange'], ['bakery', 'Kelp Kitchen'], ['juice', 'The Drowned Tavern'], ['voodoo', 'Tide Healer'], ['fusing', 'The Fusing Hall'], ['elder', 'The Speaker\'s Hall'], ['station', 'The Current']];
-  const ATL_POOL = 10.4, ATL_FALLS = 2.6, ATL_HALL_AT = 24, ATL_POD_AT = 33.5;
+  // the city in rings. The falls and the ring pool; the eight halls of the market; a canal all the way round, fed by four rills that run out from the spires;
+  // beyond the canal the four great houses (school, archive, hatchery, the tide tables) with a garden or a court between each pair; and round the edge, under the low of the glass, the homes
+  const ATL_CIVIC = [['school', 'The Shell School'], ['archive', 'The Archive'], ['daycare', 'The Hatchery'], ['games', 'The Tide Tables']];
+  const ATL_COURTS = ['kelp', 'statue', 'kelp', 'clock', 'park', 'park', 'park', 'park'];
+  const ATL_POOL = 10.4, ATL_FALLS = 2.6, ATL_HALL_AT = 25, ATL_CANAL0 = 33, ATL_CANAL1 = 35.8, ATL_CIVIC_AT = 46, ATL_CIVIC_R = 7.5, ATL_COURT_AT = 43.5, ATL_HOME_AT = 51.5, ATL_HOME_R = 4.0, ATL_SPRING = 19.6, ATL_RILL_END = 29.6;
+  const ATL_STALLS = ['stall_plums', 'stall_bait', 'stall_shells', 'stall_lamps', 'stall_rolls', 'stall_tonics', 'stall_nets', 'stall_curios'];
   function atlLayout() {
-    const A = ATL; if (!A) return null; if (A._lay) return A._lay;
-    const halls = ATL_HALLS.map((h, i) => { const a = (22.5 + i * 45) * Math.PI / 180; return { kind: h[0], name: h[1], a, x: Math.round(Math.cos(a) * ATL_HALL_AT), z: Math.round(Math.sin(a) * ATL_HALL_AT) }; });
-    const pods = []; for (let i = 0; i < 8; i++) { const a = (45 + Math.floor(i / 2) * 90 + (i % 2 ? 17 : -17)) * Math.PI / 180; pods.push({ a, x: Math.round(Math.cos(a) * ATL_POD_AT), z: Math.round(Math.sin(a) * ATL_POD_AT) }); }
-    const spires = []; for (let i = 0; i < 4; i++) { const a = (45 + i * 90) * Math.PI / 180; spires.push({ a, x: Math.round(Math.cos(a) * 15.5), z: Math.round(Math.sin(a) * 15.5), h: 10 }); }
-    const L = { halls, pods, spires, gates: [[1, 0], [0, 1], [-1, 0], [0, -1]], pool: ATL_POOL, falls: ATL_FALLS };
+    const A = ATL; if (!A) return null; if (A._lay) return A._lay; const D = Math.PI / 180, at = (deg, r) => ({ a: deg * D, x: Math.round(Math.cos(deg * D) * r), z: Math.round(Math.sin(deg * D) * r) });
+    const halls = ATL_HALLS.map((h, i) => Object.assign({ kind: h[0], name: h[1] }, at(22.5 + i * 45, ATL_HALL_AT)));
+    const civic = ATL_CIVIC.map((c, i) => Object.assign({ kind: c[0], name: c[1], R: ATL_CIVIC_R }, at(45 + i * 90, ATL_CIVIC_AT))); // each at the end of a rill, a footbridge either side of where the rill runs into the canal
+    const courts = ATL_COURTS.map((k, i) => Object.assign({ kind: k }, at(i < 4 ? 22.5 + i * 90 : 67.5 + (i - 4) * 90, ATL_COURT_AT)));
+    const pods = []; for (let q = 0; q < 4; q++) for (const d of [9, 32, 58, 81]) pods.push(Object.assign({ R: ATL_HOME_R, i: pods.length }, at(q * 90 + d, ATL_HOME_AT)));
+    const stalls = ATL_STALLS.map((k, i) => Object.assign({ kind: k, i }, at((i % 2 ? 56.25 : 33.75) + (i >> 1) * 90, 14.2))); // the market: two stalls in each quarter, clear of the avenues, the spires and the hall doors
+    const trees = []; for (let i = 0; i < 4; i++) { const c = Math.cos(i * 90 * D), s = Math.sin(i * 90 * D); for (const r of [20.5, 30.6, 39.5, 43.75, 48, 53.5]) for (const sd of [-3.6, 3.6]) trees.push({ x: Math.round(c * r - s * sd), z: Math.round(s * r + c * sd), k: trees.length }); } // coral in pearl tubs down both sides of each avenue
+    const boats = []; for (let q = 0; q < 4; q++) for (const d of [20, 70]) boats.push({ a: (q * 90 + d) * D, k: boats.length });
+    const spires = []; for (let i = 0; i < 4; i++) spires.push(Object.assign({ h: 12 }, at(45 + i * 90, 15.5)));
+    const rills = [0, 1, 2, 3].map(i => ({ a: (45 + i * 90) * D, c: Math.cos((45 + i * 90) * D), s: Math.sin((45 + i * 90) * D) }));
+    const bridges = []; for (let i = 0; i < 4; i++) bridges.push({ a: i * 90 * D, w: 2.6, wide: true }); for (let i = 0; i < 4; i++) for (const o of [-6, 6]) bridges.push({ a: (45 + i * 90 + o) * D, w: 1.3 }); for (const b of bridges) { b.c = Math.cos(b.a); b.s = Math.sin(b.a); }
+    const L = { halls, civic, courts, pods, spires, rills, bridges, stalls, trees, boats, gates: [[1, 0], [0, 1], [-1, 0], [0, -1]], pool: ATL_POOL, falls: ATL_FALLS, canal: [ATL_CANAL0, ATL_CANAL1], spring: ATL_SPRING, rillEnd: ATL_RILL_END };
     A._lay = L; Object.assign(world.atlantis, L); return L;
   }
   function stampAtl(chunk) {
@@ -11323,7 +11672,12 @@ const Village = (() => {
       const dx = wd(ox + lx - A.x), dz = wd(oz + lz - A.z), r = Math.hypot(dx, dz), base = (lx * CH + lz) * WH;
       if (r > RH + 8.5) continue;
       let gate = null; for (const g of L.gates) { const along = dx * g[0] + dz * g[1], across = Math.abs(dx * g[1] - dz * g[0]); if (along > 0 && across <= 2.5) { gate = { along, across }; break; } }
-      const pool = r <= ATL_POOL, falls = r <= ATL_FALLS, floorY = pool ? vy - 4 : vy - 1;
+      const pool = r <= ATL_POOL, falls = r <= ATL_FALLS;
+      // water in the floor: the canal ring, two deep, crossed by slabs where the ways go over it; and the four rills, one deep, from the foot of each spire out to the canal
+      const canal = r >= ATL_CANAL0 - 0.1 && r <= ATL_CANAL1 + 0.1, bridge = canal && L.bridges.some(b => dx * b.c + dz * b.s > 0 && Math.abs(dz * b.c - dx * b.s) <= (b.wide ? b.w : b.w + 0.71)); // a footbridge is drawn as one straight slab, so every square it lies on is solid
+      // a rill is water only where a whole square of it lies inside the channel as it is drawn, so you never sink through floor you can see. u runs out along it, a is how far off its line
+      let rill = false, spring = false; if (!canal && r > 16 && r < ATL_CANAL0) for (const q of L.rills) { const u = dx * q.c + dz * q.s, a = Math.abs(dz * q.c - dx * q.s); if (u <= 0 || a > 2.2) continue; if (Math.hypot(u - ATL_SPRING, a) <= 1.2) spring = true; else if (a <= 1.0 && u >= ATL_SPRING + 1.0 && u <= ATL_RILL_END - 0.71) rill = true; break; }
+      const floorY = pool ? vy - 4 : canal ? vy - 3 : rill ? vy - 2 : vy - 1;
       if (r > RH + 2.2) { // outside the dome: only the way in to each gate is touched. Whatever seabed stands over it is taken away, so you can always swim down to the door
         if (gate) for (let y = vy; y <= SEA; y++) if (bl[base + y] !== B.WATER) bl[base + y] = B.WATER;
         continue; }
@@ -11331,11 +11685,14 @@ const Village = (() => {
       bl[base + floorY] = B.ATLAN;
       if (r > RH + 0.5) { for (let y = vy; y <= SEA; y++) bl[base + y] = B.WATER; continue; } // a step of the floor runs on outside the glass, with open water over it, so the seabed never leans in against the dome
       if (pool) for (let y = vy - 3; y < vy; y++) bl[base + y] = B.WATER; // the ring pool: three deep, its top level with the floor
+      if (canal) { bl[base + vy - 2] = B.WATER; bl[base + vy - 1] = bridge ? B.ATLAN : B.WATER; }
+      if (rill) bl[base + vy - 1] = B.WATER;
       for (let y = vy; y <= SEA; y++) { const dy = y - vy; // air under the glass, the glass, the sea over it
         bl[base + y] = !inside(dx, dy, dz) ? B.WATER : (inside(dx + 1, dy, dz) && inside(dx - 1, dy, dz) && inside(dx, dy, dz + 1) && inside(dx, dy, dz - 1) && inside(dx, dy + 1, dz)) ? B.AIR : B.AGLASS; }
       if (falls) { for (let y = vy; y <= SEA; y++) bl[base + y] = B.WATER; continue; } // the falls: the sea comes down through the eye of the dome in one column, and you can swim down it
       if (gate && gate.across <= 1.5 && gate.along > RH - 3) for (let dy = 0; dy <= 3; dy++) if (bl[base + vy + dy] === B.AGLASS) bl[base + vy + dy] = B.AIR; // a gate: the glass is left out and the sea stands in the gap
-      if (pool) continue;
+      if (pool || canal || rill) continue;
+      if (spring) { bl[base + vy] = B.ATLAN; continue; } // the basin the rill rises in
       for (const h of L.halls) { const hx = dx - h.x, hz = dz - h.z, hr = Math.hypot(hx, hz); if (hr > 5.45) continue;
         const dirX = -Math.cos(h.a), dirZ = -Math.sin(h.a), fwd = hx * dirX + hz * dirZ, side = Math.abs(hx * dirZ - hz * dirX); // toward the middle of the city is the front
         const door = fwd > 2 && side <= 1.55;
@@ -11343,13 +11700,30 @@ const Village = (() => {
         else if (hx === 0 && hz === 0) { bl[base + vy + 4] = B.ALIGHT; if (h.kind === 'fusing') bl[base + vy] = B.FUSION; }
         else if (h.kind !== 'fusing' && h.kind !== 'elder' && h.kind !== 'station' && fwd > 0.4 && fwd <= 1.5 && side <= 2.5) bl[base + vy] = B.ATLAN; // the counter
         bl[base + vy + 5] = B.ATLAN; }
-      for (const q of L.pods) { const hx = dx - q.x, hz = dz - q.z, hr = Math.hypot(hx, hz); if (hr > 2.95) continue;
-        const dirX = -Math.cos(q.a), dirZ = -Math.sin(q.a), fwd = hx * dirX + hz * dirZ, side = Math.abs(hx * dirZ - hz * dirX);
-        if (hr > 1.9) { for (let dy = 0; dy <= 2; dy++) bl[base + vy + dy] = (fwd > 1 && side <= 0.6 && dy <= 1) ? B.AIR : B.ATLAN; } else if (hx === 0 && hz === 0) bl[base + vy + 2] = B.ALIGHT;
-        if (bl[base + vy + 3] === B.AIR) bl[base + vy + 3] = B.ATLAN; }
+      for (const h of L.civic) { const hx = dx - h.x, hz = dz - h.z, hr = Math.hypot(hx, hz); if (hr > h.R) continue; // the great houses: half as wide again as a hall, a storey higher
+        const dirX = -Math.cos(h.a), dirZ = -Math.sin(h.a), fwd = hx * dirX + hz * dirZ, sd = hx * dirZ - hz * dirX, side = Math.abs(sd), door = fwd > 3 && side <= 1.55;
+        if (hx === 0 && hz === 0) bl[base + vy + 5] = B.ALIGHT;
+        if (hr > h.R - 1.15) { for (let dy = 0; dy <= 5; dy++) bl[base + vy + dy] = door && dy <= 3 ? B.AIR : B.ATLAN; }
+        else if ((h.kind === 'games' && fwd > -2.6 && fwd <= -1.5 && side <= 3.2) || (h.kind === 'daycare' && fwd > -3.95 && fwd <= -2.85 && side <= 2.9)) bl[base + vy] = B.ATLAN; // the counter, at the back
+        else if (h.kind === 'daycare' && hr <= 2.3) { bl[base + vy] = B.ATLAN; bl[base + vy + 1] = B.ATLAN; bl[base + vy + 2] = B.ATLAN; } // the tank
+        else if (h.kind === 'archive' && hr <= 1.3) bl[base + vy] = B.ATLAN; // the map table
+        else if (h.kind === 'archive' && hr > h.R - 2.2 && fwd < -3.6) { bl[base + vy] = B.ATLAN; bl[base + vy + 1] = B.ATLAN; } // the rack of rolls along the back wall
+        else if (h.kind === 'school' && hr > h.R - 2.3 && sd > 0 && Math.abs(fwd) <= 2.6) { bl[base + vy] = B.BOOKS; bl[base + vy + 1] = B.BOOKS; } // the shelf of books, along the wall on your left as you come in
+        else if (h.kind === 'archive' && ((Math.abs(hx) === 4 && hz === 0) || (hx === 0 && Math.abs(hz) === 4))) bl[base + vy] = B.ATLAN; // four plinths, a thing of the old city on each
+        bl[base + vy + 6] = B.ATLAN; }
+      for (const c of L.courts) { if (c.kind !== 'statue' && c.kind !== 'clock') continue; if (Math.hypot(dx - c.x, dz - c.z) <= 1.3) { bl[base + vy] = B.ATLAN; bl[base + vy + 1] = B.ATLAN; } } // what stands in the middle of a court stands on a block you cannot walk through
+      for (const q of L.pods) { const hx = dx - q.x, hz = dz - q.z, hr = Math.hypot(hx, hz); if (hr > q.R + 0.1) continue; // a home: one round room, four high, big enough to live in
+        const dirX = -Math.cos(q.a), dirZ = -Math.sin(q.a), fwd = hx * dirX + hz * dirZ, sd = hx * dirZ - hz * dirX, side = Math.abs(sd);
+        if (hr > q.R - 0.95) { for (let dy = 0; dy <= 3; dy++) bl[base + vy + dy] = (fwd > 1 && side <= 1.05 && dy <= 2) ? B.AIR : B.ATLAN; }
+        else if (hx === 0 && hz === 0) bl[base + vy + 3] = B.ALIGHT;
+        else if (fwd >= -2.3 && fwd <= -1.2 && sd >= -0.2 && sd <= 1.9) bl[base + vy] = B.ATLAN; // the bed, along the back wall
+        else if (Math.hypot(fwd - 0.7, sd + 1.5) < 0.71) bl[base + vy] = B.ATLAN; // the table
+        if (bl[base + vy + 4] === B.AIR) bl[base + vy + 4] = B.ATLAN; }
+      for (const t of L.stalls) if (dx === t.x && dz === t.z) bl[base + vy] = B.ATLAN; // the counter of a market stall
+      for (const t of L.trees) if (dx === t.x && dz === t.z && bl[base + vy] === B.AIR) bl[base + vy] = B.ATLAN; // the tub a coral stands in
       for (const sp of L.spires) if (dx === sp.x && dz === sp.z) { for (let dy = 0; dy < sp.h; dy++) bl[base + vy + dy] = B.ATLAN; bl[base + vy + sp.h] = B.ALIGHT; }
-      // coral beds out by the homes, and a pearl light in each: off the avenues, clear of every door
-      if (r > 29.5 && r < 37.5 && !gate && bl[base + vy] === B.AIR && !L.pods.some(q => Math.hypot(dx - q.x, dz - q.z) < 4.6)) { const a = Math.atan2(dz, dx), bed = Math.sin(a * 8) > 0.15 && Math.abs(r - 33.5) < 2.6 + Math.sin(a * 24) * 0.8; const hq = U.hash3(ox + lx, 31, oz + lz, 0xA71);
+      // coral beds out among the homes, and a pearl light in each: off the avenues, clear of every door
+      if (r > 47.5 && r < 56.5 && !gate && bl[base + vy] === B.AIR && !L.pods.some(q => Math.hypot(dx - q.x, dz - q.z) < q.R + 2.2) && !L.trees.some(q => Math.abs(dx - q.x) < 2 && Math.abs(dz - q.z) < 2) && !L.civic.some(q => Math.hypot(dx - q.x, dz - q.z) < q.R + 2) && !L.courts.some(q => Math.hypot(dx - q.x, dz - q.z) < 8.5)) { const a = Math.atan2(dz, dx), bed = Math.sin(a * 16) > 0.2 && Math.abs(r - 53.6) < 1.9 + Math.sin(a * 40) * 0.7; const hq = U.hash3(ox + lx, 31, oz + lz, 0xA71);
         if (bed && hq < 0.5) bl[base + vy] = hq < 0.035 ? B.PEARLCORAL : [B.CORAL_R, B.CORAL_B, B.CORAL_Y][Math.floor(hq * 60) % 3]; }
     }
   }
@@ -12190,10 +12564,10 @@ const Village = (() => {
     const build = role === 'elder' || role === 'voodoo' || role === 'hermit' ? 'man' : r.pick(['man', 'woman', 'stout', 'woman', 'slim', 'man']), hairVar = build === 'woman' ? r.pick([3, 3, 2]) : r.pick([0, 1, 2, 0]), hairCol = style === 'alien' ? null : role === 'elder' ? '#d8d8dc' : r.pick(['#3a2a1a', '#1a1410', '#6a4a22', '#b8862e', '#8a3a1a', '#d8c070', '#4a4a52', '#2a1a2a']); /* each villager: a build, a head of hair and its colour, all from the same roll every time */
     return { build, hairVar, hair: hairCol || undefined, shape: 'human', feat: { crest: false, ears: false, horns: false, spikes: false, tail: false, wings: false, bigEyes: style === 'alien' }, colors: { body, belly: skin, accent, dark: style === 'alien' ? '#05050f' : style === 'atlantis' ? '#1a3a4a' : '#3a2a20', eye: style === 'alien' ? '#ffffff' : '#222222' }, size: role === 'elder' ? 1.15 : role === 'voodoo' ? 1.1 : 1, gen: 0, names: ['villager'], neon: style === 'alien' };
   }
-  function makeNpc(i, role, x, z, name, shop, y, vid, style) {
+  function makeNpc(i, role, x, z, name, shop, y, vid, style, kid) {
     style = style || (vid === 'shore' ? 'land' : (world.preset.people || 'land'));
     const sp = villagerSpecies(i, role, vid, style);
-    const child = role === 'villager' && U.strHash((vid || 's') + ':' + i + ':kid') % 4 === 0; if (child) { sp.build = 'slim'; sp.hairVar = U.strHash((vid || 's') + ':' + i) % 3; } /* one villager in four is a child */
+    const child = role === 'villager' && (kid === true || (kid !== false && U.strHash((vid || 's') + ':' + i + ':kid') % 4 === 0)); if (child) { sp.build = 'slim'; sp.hairVar = U.strHash((vid || 's') + ':' + i) % 3; } /* one villager in four is a child */
     const m = KIN.model(sp, 2);
     if (style === 'alien') KIN.decorate(m, 'alien'); else if (style === 'halo') KIN.decorate(m, 'veil'); else if (style === 'atlantis') KIN.decorate(m, 'merfolk'); else if (style === 'sea') KIN.decorate(m, 'reef'); else if (style === 'frontier' && role !== 'hermit' && role !== 'traveller') KIN.decorate(m, 'hat');
     if ((role === 'elder' && (style === 'land' || !style)) || role === 'voodoo' || role === 'fisher' || role === 'traveller' || role === 'hermit') KIN.decorate(m, role);
@@ -12306,10 +12680,26 @@ const Village = (() => {
       else if (h.kind === 'station') v.npcs.push(put(makeNpc(15, 'keeper', 0, 0, 'Tidewarden ' + pname(5), 'station', vy, v.id, sty), bx, bz, { wander: false, ferry: true }));
       else v.npcs.push(put(makeNpc(10 + i, 'keeper', 0, 0, shopDef(h.kind, v).keeper, h.kind, vy, v.id, sty), bx, bz, { wander: false })); });
     v.npcs.push(put(makeNpc(22, 'keeper', 0, 0, 'Ringmaster Delphin', null, vy, v.id, sty), 0, 12.4, { wander: false, atl: 'ring' }));
-    for (let i = 0; i < 9; i++) { const a = (i + 0.5) / 9 * Math.PI * 2 + 0.35, r = 13.6 + (i % 3) * 1.3; v.npcs.push(put(makeNpc(i, 'villager', 0, 0, pname(i + 2), null, vy, v.id, sty), Math.round(Math.cos(a) * r), Math.round(Math.sin(a) * r))); }
+    // the great houses: who keeps each, and who is in it
+    L.civic.forEach((h, i) => { const c = Math.cos(h.a), s = Math.sin(h.a), back = (d, sd) => [h.x + c * d - s * (sd || 0), h.z + s * d + c * (sd || 0)]; // d: towards the back wall, sd: along it
+      if (h.kind === 'school') { v.npcs.push(put(makeNpc(40, 'keeper', 0, 0, 'Teacher Thessaly', null, vy, v.id, sty), ...back(4.4), { wander: false, atl: 'teacher' }));
+        [[1.2, -2.2], [1.2, 0], [1.2, 2.2], [-1.0, -1.3], [-1.0, 1.3]].forEach(([d, sd], k) => v.npcs.push(Object.assign(put(makeNpc(60 + k, 'villager', 0, 0, ['Nim', 'Oda', 'Pell', 'Suri', 'Tam'][k], null, vy, v.id, sty, true), ...back(d, sd), { wander: false, atl: 'pupil' }), { yaw: Math.atan2(c, s) }))); } // the class, in two rows, looking at the teacher
+      else if (h.kind === 'archive') v.npcs.push(put(makeNpc(41, 'keeper', 0, 0, 'Archivist Merope', null, vy, v.id, sty), ...back(-3.4, 1.8), { wander: false, atl: 'archive' })); // inside the door, to one side
+      else if (h.kind === 'daycare') v.npcs.push(put(makeNpc(42, 'keeper', 0, 0, shopDef('daycare', v).keeper, 'daycare', vy, v.id, sty), ...back(4.7), { wander: false }));
+      else if (h.kind === 'games') v.npcs.push(put(makeNpc(43, 'keeper', 0, 0, shopDef('games', v).keeper, 'games', vy, v.id, sty), ...back(3.6), { wander: false })); });
+    L.courts.forEach((q, i) => { const c = Math.cos(q.a), s = Math.sin(q.a);
+      if (q.kind === 'kelp') v.npcs.push(put(makeNpc(44 + i, 'villager', 0, 0, i ? 'Gardener Lir' : 'Gardener Soraya', null, vy, v.id, sty), q.x - Math.round(c * 5), q.z - Math.round(s * 5), { wander: false, atl: 'garden' }));
+      else if (q.kind === 'park') { /* nobody keeps a park: whoever lives nearest sits in it */ }
+      else if (q.kind === 'statue') { v.npcs.push(put(makeNpc(48, 'villager', 0, 0, 'Old Pelagia', null, vy, v.id, sty), q.x - Math.round(c * 4), q.z - Math.round(s * 4), { wander: false, atl: 'statue' }));
+        for (let k = 0; k < 3; k++) v.npcs.push(put(makeNpc(65 + k, 'villager', 0, 0, ['Kip', 'Wren', 'Juno'][k], null, vy, v.id, sty, true), q.x + Math.round(Math.cos(k * 2.1) * 3), q.z + Math.round(Math.sin(k * 2.1) * 3), { atl: 'child', speed: 2.6 })); } // children playing round the statue
+      else v.npcs.push(put(makeNpc(49, 'villager', 0, 0, 'Clockwinder Orrin', null, vy, v.id, sty), q.x - Math.round(c * 4), q.z - Math.round(s * 4), { wander: false, atl: 'clock' })); });
+    // somebody lives in every home, and is out in front of it or along the lane by day
+    L.pods.forEach((q, i) => { const d = i % 2 ? 0.9 : 6; v.npcs.push(put(makeNpc(70 + i, 'villager', 0, 0, pname(i + 9), null, vy, v.id, sty), q.x - Math.round(Math.cos(q.a) * d), q.z - Math.round(Math.sin(q.a) * d), i % 2 ? { atl: 'home', homeI: i, wander: false, indoors: true } : { atl: 'home', homeI: i })); }); // every other one is at home when you call
+    L.stalls.forEach((t, i) => v.npcs.push(put(makeNpc(90 + i, 'keeper', 0, 0, shopDef(t.kind, v).keeper, t.kind, vy, v.id, sty), t.x + Math.round(Math.cos(t.a) * 1.45), t.z + Math.round(Math.sin(t.a) * 1.45), { wander: false }))); // behind the counter, looking in at the pool
+    for (let i = 0; i < 8; i++) { const a = (i + 0.5) / 8 * Math.PI * 2 + 0.2, r = i % 2 ? 12.6 + (i % 3) * 0.5 : i % 4 === 2 ? 28.6 : 20.4; v.npcs.push(put(makeNpc(i, 'villager', 0, 0, pname(i + 2), null, vy, v.id, sty), Math.round(Math.cos(a) * r), Math.round(Math.sin(a) * r))); } // and the market has its crowd
     v.npcs.push(v.elder);
     for (const n of v.npcs) { n.y = vy; n.home = { x: n.x, z: n.z }; }
-    v.wanderR = 19; buildGuardEnts(v); // the whole market ring is theirs to walk: they stop at the kerb of the pool and at the walls
+    v.wanderR = 56; buildGuardEnts(v); // each keeps to the few steps round where they belong; the box only stops them at the glass
   }
   // the seahorse in the ring. Skerry is a great seahorse, Isla's; once she is yours, another takes her place
   function ringSpecies(spare) {
@@ -12339,6 +12729,21 @@ const Village = (() => {
     if (n.atl === 'ring') {
       if (!a.met) { a.met = true; return Dialogue.show(n.name, ['The ring is the oldest thing in the city. You get on, she goes round the falls, and she does her best to put you in the water.', a.tamed ? 'Brine has the ring now. Every five you last, I pay, and I pay more the longer you stay.' : 'That one is Skerry. Nobody has stayed on her to twenty since the girl she belonged to. Do it and she leaves with you.', 'Lean against her with the stick. It costs nothing to try and it does not hurt, you only get wet.'], () => atlRide(v)); }
       return Dialogue.show(n.name, [a.best ? `Your best is ${Math.floor(a.best)}. ${a.tamed ? 'Brine is feeling lively.' : a.best >= 12 ? 'Skerry noticed. Twenty and she is yours.' : 'Twenty, and Skerry is yours.'} Up you get.` : 'Up you get.'], () => atlRide(v)); }
+    if (n.atl === 'teacher') { const read = Books.count('atlantis'), all = Books.total('atlantis');
+      if (read >= all && !a.prize) { a.prize = true; G.shards += 60; UI.sfx('caught'); return Dialogue.show(n.name, ['All six. The little ones take a year over that shelf.', 'There is a prize for finishing it. Sixty shards out of the school jar. Do not tell the Speaker I counted a land-walker as a pupil.']); }
+      const LESS = [['Sit at the back. Today is the Falls.', 'The sea comes in at the eye of the roof and goes out again through the floor of the ring pool. If it ever stopped we would have a day of air left. So we do not let it stop.', 'Who can tell me what makes the air? Yes. The kelp. Thank a gardener on your way home.'],
+        ['Sit down, we have started. Today is the Old Ones.', 'There are three, and one of them is under us right now. It is asleep. It has been asleep since before there was an island.', 'When it turns over the ground shakes. That is all an earthquake is: something very old getting comfortable.'],
+        ['Quiet, please. Today is the Concord.', 'A Kin does not carry you because you are strong. It carries you because it has decided to. The Concord was a crystal that let each feel what the other meant.', 'We do not have it any more. We have manners, which is slower.']];
+      return Dialogue.show(n.name, LESS[(G.dayCount || 0) % LESS.length].concat([read ? `You have read ${read} of the ${all} on the shelf.` : 'The shelf is along the wall. The books are for children. You will manage.'])); }
+    if (n.atl === 'pupil') return Dialogue.show(n.name, [['Shh. She can hear whispering through glass.', 'Have you been up? Is it true the sky has no roof on it?', 'I am going to ride Skerry when I am big. Everybody says that.', 'I licked the glass once. It tastes of nothing.', 'A is for Air. I know all of it. Ask me one.'][(n.id || 0) % 5]]);
+    if (n.atl === 'child') return Dialogue.show(n.name, [['You cannot catch me. Nobody can. I am Skerry.', 'We are playing Falls. You have to be the sea.', 'Is that a land scarf? Can I have it?'][(n.id || 0) % 3]]);
+    if (n.atl === 'archive') return Dialogue.show(n.name, ['Four things came down with us from the old city. Look as long as you like. Do not touch.', 'A splinter of the Concord, from before it was bent. It still hums when a Kin you trust is standing near.', 'The old city itself, cast in gold by somebody who missed it. Every tower is where it was.', 'A child\'s saddle. There is no name on the card. Everybody knows whose it is.', a.told ? 'And the first Fusion Table, in small. He made it as a toy for her before he ever made a real one.' : 'And the first Fusion Table, in small. A man made it as a toy for his daughter. Ask the Speaker which man.', 'The table in the middle is the sea as we know it. Rose is reef. The green is the Lost World, and the dark cut beside it is where the big ones live. The glass bead is us.']);
+    if (n.atl === 'garden') { const day = G.dayCount || 0; if (a.kelpDay !== day) { a.kelpDay = day; G.player.add('berry', 3); UI.sfx('caught'); return Dialogue.show(n.name, ['Every breath you take down here came out of these beds. The kelp does the work and we do the weeding.', 'Sea plums are ripe. Take three. They are berries to you, I think.']); }
+      return Dialogue.show(n.name, ['You have had today\'s plums. Come back when the lamps have been round once.', 'If the beds ever go brown, run for the Falls and swim. That is the whole of the drill.']); }
+    if (n.atl === 'statue') return Dialogue.show(n.name, ['That is Isla, and that is Skerry under her. I was at school with one of them.', 'She used to ride round the falls standing up. The Ringmaster will tell you nobody can. He was not there.', a.tamed ? 'They say Skerry went with a land-walker. Good. She waited long enough.' : 'Skerry is still in the ring. She has thrown everybody since.']);
+    if (n.atl === 'clock') { const t = world.time || 0, night = t > 0.75 || t < 0.22; return Dialogue.show(n.name, ['There is no sun down here, so we keep the tide instead. The pearl goes round the hoop once for every tide up above.', night ? 'It is night on the land now. You would not know it from here, and the children use that against their mothers.' : 'It is day on the land now. The light in the Falls is the only way you would know.', 'I wind it every morning. If I stop, nothing happens for about a week. Then everybody is late for everything.']); }
+    if (n.atl === 'home') { if (n.indoors) { const IN = ['Come in, come in. Mind the rug, it is older than the canal.', 'You can sit. Not on the bed. On the stool.', 'Everybody asks about the cap. Yes, it is glass. No, it has never cracked.', 'I keep the chest locked. There is nothing in it. It is the principle.', 'This was my mother\'s house and her mother\'s. We have moved the table twice.', 'If you are after the school, it is the big house with the gold band. This is just my kitchen.', 'Tell the children outside you are not a fish. They have a bet on.', 'I was about to eat. There is enough for one and a half.']; return Dialogue.show(n.name, [IN[((n.homeI || 0) >> 1) % IN.length]]); } const LINES = ['The lamp over every door is a different colour. That is how the little ones find their way home.', 'You are the land-walker. My youngest wants to know if rain is real.', 'Mind the canal. It is not deep, but it is always colder than you expect.', 'The Tide Tables took forty shards off my husband last night. He says he was unlucky. He was outplayed.', 'I was born under this roof. I have seen the sky twice. It is very large and nobody is in charge of it.', 'The hatchery had six foals this spring. Go and look, they let you.', 'If you are going up, take the Current. Swimming the Falls is for show-offs and seahorses.', 'We do not lock doors down here. Where would a thief go?'];
+      return Dialogue.show(n.name, [LINES[(n.homeI || 0) % LINES.length]]); }
     if (n.atl === 'hall') return Dialogue.show(n.name, ['This is the fusing hall. Every Fusion Table on the land was made on this floor and given away, back when we still went up into the light.', 'The one who kept it was called the Kinmaster. It was only a job then.', a.told ? 'You know the rest. The table still works. He never came back for it.' : 'Ask the Speaker about him. It is hers to tell.']);
     if (n.atl === 'speaker') {
       const fled = !!G.stats.lightReturned;
@@ -12848,7 +13253,7 @@ const Village = (() => {
       if (n.moving) {
         const mdx = n.tx - n.x, mdz = n.tz - n.z, md = Math.hypot(mdx, mdz);
         if (md < 0.3) n.moving = false;
-        else { const step = Math.min(md, 1.3 * dt), ux = mdx / md, uz = mdz / md; let went = false; /* a post or a corner in the way: step round it instead of standing against it */
+        else { const step = Math.min(md, (n.speed || 1.3) * dt), ux = mdx / md, uz = mdz / md; let went = false; /* a post or a corner in the way: step round it instead of standing against it */
           for (const ang of (n.side ? [0, n.side * 0.9, n.side * 1.7, -n.side * 0.9] : [0, 0.9, -0.9, 1.7, -1.7])) { const c = Math.cos(ang), sn = Math.sin(ang), vx = ux * c - uz * sn, vz = ux * sn + uz * c; const gy = roomAt(n.x + vx * (step + 0.25), n.y, n.z + vz * (step + 0.25)); if (gy == null) continue;
             { let crowd = false; const qx = n.x + vx * (step + 0.2), qz = n.z + vz * (step + 0.2); for (const m of v.npcs) { if (m === n || m.hidden || Math.abs(m.y - n.y) > 1.5) continue; const d1 = Math.hypot(m.x - qx, m.z - qz); if (d1 < 0.85 && d1 < Math.hypot(m.x - n.x, m.z - n.z)) { crowd = true; break; } } if (crowd) continue; } /* someone is standing there: go round them too */
             n.x += vx * step; n.z += vz * step; n.y += (gy - n.y) * Math.min(1, dt * 8); n.yaw = Math.atan2(vx, vz); n.side = ang ? Math.sign(ang) : 0; went = true; break; }
@@ -19729,7 +20134,7 @@ G.loop = function (t) {
     if (p.mount && !Taming.active && p.mountMode === 'air' && (this.frame & 15) === 0 && this.noKinFlight()) { p.mount = null; UI.toast('No room down here for wings that size. You climb off.'); }
   }
   if ((this.frame & 7) === 0 && !inBattle) { const npc = Village.pick(p); const rn = npc ? null : Npcs.pick(p); const we = (npc || rn) ? null : Wild.pick(p); const hit = (!npc && !we && !rn) ? p.raycast(5.5) : null; const campHit = hit && hit.id === B.CAMPFIRE;
-    UI.lookLabel(rn ? Npcs.label(rn) + ' · tap' : npc ? `${npc.name}${npc.shop ? ' · ' + (npc.shopTitle || Village.SHOPS[npc.shop].title) : npc.role === 'voodoo' ? ' · healer' : npc.role === 'elder' ? ' · village ledger' : npc.role === 'traveller' ? ' · has something to trade' : npc.role === 'hermit' ? ' · hermit, has a job for you' : ''} · tap to talk` : we ? `${KIN.name(we.kin)} · Lv ${we.kin.level}${(we.kin.sp.rarity || 0) > 0 ? ' · ' + KIN.RARITY[we.kin.sp.rarity].name : ''}${we.raider ? ' · RAIDER' : we.isBoss ? ' · tyrant' : we.lieutenant ? " · the tyrant's guard" : ''}` : campHit ? 'Camp fire · tap to rest' : (hit && hit.id === B.STARMETAL) ? (this.worldId === 'moon' ? 'Return pad · tap to fly home' : 'Starmetal') : (hit && hit.id === B.FUSION) ? 'Fusion Table · tap' : (hit && hit.id === B.PORTAL) ? 'Portal · tap to travel' : (hit && hit.id === B.CHEST) ? 'Chest · tap to open' : (hit && hit.id === B.INCUBATOR) ? 'Incubator · tap' : (hit && (hit.id === B.DOOR || hit.id === B.DOOR_OPEN)) ? 'Door · tap' : (hit && hit.id === B.SNOW) ? 'Snow · hold to take (Frost Cloak needs 8)' : (hit && (hit.id === B.IRON || hit.id === B.COPPER || hit.id === B.EMBER || hit.id === B.VOID)) ? BLOCKS[hit.id].name + ' · hold to mine' : ''); }
+    UI.lookLabel(rn ? Npcs.label(rn) + ' · tap' : npc ? `${npc.name}${npc.shop ? ' · ' + (npc.shopTitle || Village.SHOPS[npc.shop].title) : npc.role === 'voodoo' ? ' · healer' : npc.role === 'elder' ? ' · village ledger' : npc.role === 'traveller' ? ' · has something to trade' : npc.role === 'hermit' ? ' · hermit, has a job for you' : ''} · tap to talk` : we ? `${KIN.name(we.kin)} · Lv ${we.kin.level}${(we.kin.sp.rarity || 0) > 0 ? ' · ' + KIN.RARITY[we.kin.sp.rarity].name : ''}${we.raider ? ' · RAIDER' : we.isBoss ? ' · tyrant' : we.lieutenant ? " · the tyrant's guard" : ''}` : campHit ? 'Camp fire · tap to rest' : (hit && hit.id === B.BOOKS) ? 'Bookshelf · tap to read' : (hit && hit.id === B.STARMETAL) ? (this.worldId === 'moon' ? 'Return pad · tap to fly home' : 'Starmetal') : (hit && hit.id === B.FUSION) ? 'Fusion Table · tap' : (hit && hit.id === B.PORTAL) ? 'Portal · tap to travel' : (hit && hit.id === B.CHEST) ? 'Chest · tap to open' : (hit && hit.id === B.INCUBATOR) ? 'Incubator · tap' : (hit && (hit.id === B.DOOR || hit.id === B.DOOR_OPEN)) ? 'Door · tap' : (hit && hit.id === B.SNOW) ? 'Snow · hold to take (Frost Cloak needs 8)' : (hit && (hit.id === B.IRON || hit.id === B.COPPER || hit.id === B.EMBER || hit.id === B.VOID)) ? BLOCKS[hit.id].name + ' · hold to mine' : ''); }
 };
 // third person and the saddle orbit the camera round you; the air, the glider, a fight and a chat do not
 G.orbitMode = function (p) { return (this.thirdPerson || !!p.mount) && !Battle.active && !p.gliding && !p.flying && !p.wingsOn && !(this.talkK > 0); };
@@ -19744,14 +20149,14 @@ G.onTap = function () {
   if (npc) { Village.talk(npc); return; }
   const rn = Npcs.pick(p);
   if (rn) { Npcs.talk(rn); return; }
-  { const be = Buddy.entity; const h0 = p.raycast(5.5); const useBlock = h0 && [B.CAMPFIRE, B.FUSION, B.DARKTABLE, B.CHEST, B.BED, B.DOOR, B.DOOR_OPEN, B.PORTAL, B.INCUBATOR].includes(h0.id);
+  { const be = Buddy.entity; const h0 = p.raycast(5.5); const useBlock = h0 && [B.CAMPFIRE, B.FUSION, B.DARKTABLE, B.CHEST, B.BED, B.DOOR, B.DOOR_OPEN, B.PORTAL, B.INCUBATOR, B.BOOKS].includes(h0.id);
     const buddyFirst = !(useBlock && be && Math.hypot(be.x - p.x, be.z - p.z) > h0.dist - 0.3); // a fire or table right in front of you wins over your Kin standing beside it
     if (buddyFirst && Buddy.pick(p) && !Wild.pick(p)) { Buddy.tap(); return; } }
   { const sel0 = p.selected(); const ai = sel0 && ITEMS[sel0]; if (ai && ai.arrow && Combat.anyBow()) { this.shoot(sel0); return; } }
   const e = (p.selected() && (p.itemInfo(p.selected()) || {}).bow) ? null : Wild.pick(p);
   const hit = p.raycast(5.5);
   // with a weapon in hand, a tap on something you use (the camp fire, a table, a door, a chest, a bed) still uses it; anything else is a swing
-  const usable = hit && !e && (hit.id === B.CAMPFIRE || hit.id === B.FUSION || hit.id === B.DARKTABLE || hit.id === B.STARMETAL || hit.id === B.PORTAL || hit.id === B.DOOR || hit.id === B.DOOR_OPEN || hit.id === B.CHEST || hit.id === B.INCUBATOR || hit.id === B.BED || hit.id === B.THORN || hit.id === B.DEADGATE || hit.id === B.RUBBLE);
+  const usable = hit && !e && (hit.id === B.CAMPFIRE || hit.id === B.FUSION || hit.id === B.DARKTABLE || hit.id === B.STARMETAL || hit.id === B.PORTAL || hit.id === B.DOOR || hit.id === B.DOOR_OPEN || hit.id === B.CHEST || hit.id === B.BOOKS || hit.id === B.INCUBATOR || hit.id === B.BED || hit.id === B.THORN || hit.id === B.DEADGATE || hit.id === B.RUBBLE);
   if (Combat.weapon() && !usable && !(e && e.rogue) && !(e && e.dazed > 0)) { Combat.swing(); return; }
   if (e && e.dazed > 0) { if (p.has('snare') || p.has('snare2')) { this.stealthSnare(); } else UI.toast('It is dazed. A snare would take it now: 2 wood, 2 stone.'); return; }
   if (e && e.rogue) { const c = Campaign.C(); if (c.ranch !== 2) { UI.toast('Thunderhoof flattens his ears at you. Talk to Dusty Hale first.'); return; } const k = KIN.create(e.kin.sp, e.kin.level); Taming.start(k, { hard: true, ent: e, onDone: (kk) => { kk.tamed = true; this.addKin(kk); Campaign.onRogueTamed(kk); UI.toast('Thunderhoof is yours, and you can ride now. Every Kin still has to be broken in once: press Ride and hold on.', 'good'); } }); return; }
@@ -19762,7 +20167,7 @@ G.onTap = function () {
   const selInfo = p.selected() ? p.itemInfo(p.selected()) : null;
   if (selInfo && selInfo.bow) { this.shoot(); return; }
   if (hit && (hit.id === B.THORN || hit.id === B.DEADGATE || hit.id === B.RUBBLE) && Campaign.tryGate(hit)) return;
-  const interactable = hit && (hit.id === B.CAMPFIRE || hit.id === B.FUSION || hit.id === B.DARKTABLE || hit.id === B.STARMETAL || hit.id === B.PORTAL || hit.id === B.DOOR || hit.id === B.DOOR_OPEN || hit.id === B.CHEST || hit.id === B.INCUBATOR);
+  const interactable = hit && (hit.id === B.CAMPFIRE || hit.id === B.FUSION || hit.id === B.DARKTABLE || hit.id === B.STARMETAL || hit.id === B.PORTAL || hit.id === B.DOOR || hit.id === B.DOOR_OPEN || hit.id === B.CHEST || hit.id === B.INCUBATOR || hit.id === B.BOOKS);
   if (!interactable && selInfo && selInfo.rod) { Fishing.cast(); return; }
   if (!interactable && selInfo && selInfo.use) { this.useItem(p.selected()); return; }
   if (!interactable && selInfo && selInfo.snare) { if (this.stealthTarget()) { this.stealthSnare(); } else UI.toast('Snares work in a fight, or sneak up close behind an unaware Kin and press Set snare.'); return; }
@@ -19771,6 +20176,7 @@ G.onTap = function () {
   if (ev.interact === 'fusion') { if (ev.dark && !Keeps.tableOpen(ev.x, ev.z)) { UI.toast('The warlord\'s table. It will not answer you until this place is yours.', 'bad'); return; } if (!ev.dark && Village.tableChallenge()) return; if (ev.dark && !this.stats.darkTold) { this.stats.darkTold = true; this.explain('The Dark Fusion Table', 'The Kinmaster\'s own table. It is the only one that takes dark materials: Void Crystal, Void Essence and Void Stones. Every fusion that needs a Void Stone, the Void Snare, and anything else made with Void has to be made here.'); } UI.openPanel('fusion', { table: { x: ev.x, y: ev.y, z: ev.z }, dark: !!ev.dark }); if (!ev.dark) UI.openPanel('table', { table: { x: ev.x, y: ev.y, z: ev.z } }); return; } // tapping a table asks what you came for: crafting or Kin
   if (ev.interact === 'portal') { const r = Village.portalHere(ev.x, ev.z); if (r.err) { UI.toast(r.err, 'bad'); return; } UI.openPanel('portal', r.v); return; }
   if (ev.interact === 'chest') { UI.openPanel('chest', { x: ev.x, y: ev.y, z: ev.z }); return; }
+  if (ev.interact === 'books') { Books.open('atlantis'); return; }
   if (ev.interact === 'incubator') { if (!Lab.canUse()) { UI.toast('The incubator is dead until its maker is free.', 'bad'); return; } UI.openPanel('incubator'); return; }
   if (ev.interact === 'door') { UI.sfx(ev.open ? 'place' : 'break'); this.meshPass(99); return; }
   if (ev.kit) { const err = Village.placeKit(ev.kit, ev.item, ev.hit, p); if (err) UI.toast(err, 'bad'); else { p.take(ev.item, 1); UI.sfx('fuse'); UI.renderHotbar(); this.meshPass(99); } return; }
