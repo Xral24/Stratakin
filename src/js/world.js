@@ -15,7 +15,7 @@ const B = {
   TORCH: 18, FUSION: 19, GRAVEL: 20, CACTUS: 21, STARMETAL: 22, MOSS: 23, STATUE: 24, PLANKS: 25, BERRY: 26, GLASS: 27, CAMPFIRE: 28, IRONWALL: 29, VOIDWALL: 30, GLOWWORM: 31, BERRYLEAF: 32, DOOR: 33, DOOR_OPEN: 34, PORTAL: 35,
   CHEST: 36, SELENITE: 37, TYCHO: 38, STARSALT: 39, MOONGLOW: 40, AMBER: 41, SULFUR: 42, RINGSHARD: 43, BRINE: 44, CORAL_R: 45, CORAL_B: 46, CORAL_Y: 47, PEARLCORAL: 48, GOLD: 49, DIAMOND: 50, FERN: 51, SELGLASS: 52, INCUBATOR: 53, REGOLITH: 54, DUNE: 55, SALTCRUST: 56, LADDER: 57, TARGET: 58, BALLOON: 59, FORTSTONE: 60, THORN: 61, DEADGATE: 62, RUBBLE: 63, DARKTABLE: 64,
   NEEDLES: 65, FROND: 66, BIRCHLOG: 67, BOULDER: 68, MUSHROOM: 69, FLOWERS: 70, PEBBLES: 71, PALMLOG: 72,
-  TILES: 73, SLATE: 74, THATCH: 75, PLASTER: 76, BEAM: 77, LAMP: 78, COBBLE: 79, FLOWERBOX: 80, PALISADE: 81, MASONRY: 82, FOUNTAIN: 83, BASIN: 84, AWNING: 85, BANNER: 86, SLIT: 87, TIPI: 88, HIDE: 89, LODGE: 90, FENCE: 91, FIREPIT: 92, TOTEM: 93, RAIL: 94, CART: 95, ROPEBRIDGE: 96, WEAVE: 97, SAIL: 98, EMBERLIGHT: 99, BARREL: 100, CRATE: 101, BUNTING: 102, SIGNPOST: 103, PLANTER: 104, BRICK: 105, SAILS: 106, FALLS: 107, HALFTIMBER: 108, CHIMNEY: 109, HALFTIMBER_O: 110, HALFTIMBER_W: 111, GLOWLINE: 112, SALTROOF: 113, HALOWALL: 114, TRACK: 115, ATLAN: 116, AGLASS: 117, ALIGHT: 118, JLOG: 119, GATE: 120, BOOKS: 121
+  TILES: 73, SLATE: 74, THATCH: 75, PLASTER: 76, BEAM: 77, LAMP: 78, COBBLE: 79, FLOWERBOX: 80, PALISADE: 81, MASONRY: 82, FOUNTAIN: 83, BASIN: 84, AWNING: 85, BANNER: 86, SLIT: 87, TIPI: 88, HIDE: 89, LODGE: 90, FENCE: 91, FIREPIT: 92, TOTEM: 93, RAIL: 94, CART: 95, ROPEBRIDGE: 96, WEAVE: 97, SAIL: 98, EMBERLIGHT: 99, BARREL: 100, CRATE: 101, BUNTING: 102, SIGNPOST: 103, PLANTER: 104, BRICK: 105, SAILS: 106, FALLS: 107, HALFTIMBER: 108, CHIMNEY: 109, HALFTIMBER_O: 110, HALFTIMBER_W: 111, GLOWLINE: 112, SALTROOF: 113, HALOWALL: 114, TRACK: 115, ATLAN: 116, AGLASS: 117, ALIGHT: 118, JLOG: 119, GATE: 120, BOOKS: 121, MEGA: 122
 };
 
 // name, top colour, side colour, solid, hardness (seconds to mine), drop item id, emissive, fluid
@@ -137,6 +137,7 @@ defBlock(B.ATLAN, 'Pearlstone', '#dfe9ee', '#c9d8e0', { hard: Infinity });
 defBlock(B.AGLASS, 'Dome Glass', '#bfeaf5', '#bfeaf5', { hard: Infinity, transparent: true });
 defBlock(B.ALIGHT, 'Pearl Light', '#bff4ff', '#bff4ff', { solid: false, hard: Infinity, emissive: true, partial: true, transparent: true });
 defBlock(B.GATE, 'Gateway', '#a07a44', '#75522c', { solid: false, hard: Infinity, drop: null, partial: true, transparent: true }); // the mark at the middle of a town gate: the mesher draws the whole head of the gateway from it, beam and roof or arch and battlements, after the wall it stands in
+defBlock(B.MEGA, 'Standing Stone', '#8f8a80', '#7f7a70', { hard: Infinity, drop: null, transparent: true }); // a great stone set up by somebody long ago: solid, never drawn as a block, the mesher draws the whole gateway
 defBlock(B.BOOKS, 'Bookshelf', '#e5edf2', '#c9d6de', { hard: Infinity, drop: null }); // a shelf of books you can take down and read: drawn by whatever building it stands in
 defBlock(B.JLOG, 'Jungle Trunk', '#8a6a44', '#5f4630', { hard: Infinity }); // the trees of the Lost World are too big for a hatchet. Never drawn as a block: the mesher draws each tree whole
 defBlock(B.BARREL, 'Barrel', '#9a6a3a', '#7a4f28', { hard: 0.5, drop: 'planks', partial: true, transparent: true });
@@ -224,10 +225,18 @@ class World {
     // the Lost World sits on the far side of the wrap from the origin (where the camp is found), its tunnel on a seeded bearing
     if (this.preset.lostWorld) {
       const a = r() * Math.PI * 2;
-      this.lost = { x: Math.round(WORLD_W / 2 + (r() - 0.5) * 400), z: Math.round(WORLD_W / 2 + (r() - 0.5) * 400), inner: 118, rim: 150, angle: a };
+      this.lost = { x: Math.round(WORLD_W / 2 + (r() - 0.5) * 400), z: Math.round(WORLD_W / 2 + (r() - 0.5) * 400), inner: 118, rim: 150, angle: a, batter: 2.2, flank: 26 }; // batter: how far the foot of the wall stands in from its top; flank: how wide the shoulder is that it comes down in outside
     }
   }
   // the Lost World tunnel: a straight cut through the rim, from the outside slope to the plateau floor
+  // where the lamps of the Lost World's tunnel stand: [x, y, z, side] in world coordinates, y the height of the flame
+  lostLamps() { const T = this.lostTunnel(), out = []; if (!T) return out; let m = 0;
+    for (let k = T.pa + 3; k <= T.pb - 2; k += 7, m++) { const sd = m % 2 ? 1 : -1; out.push([T.ax + T.ix * k - T.iz * sd * 3.0, T.ya + (T.yb - T.ya) * (k / T.len) + 4.2, T.az + T.iz * k + T.ix * sd * 3.0, sd, k]); }
+    return out; }
+  // is this point in the way through to the Lost World (the bore under the hill, between its two gateways)?
+  inLostTunnel(x, y, z) { const L = this.lost; if (!L) return false; const W = WORLD_W, dx = ((x - L.x) % W + W * 1.5) % W - W / 2, dz = ((z - L.z) % W + W * 1.5) % W - W / 2, d = Math.hypot(dx, dz); if (d < L.inner - 8 || d > L.rim + 12) return false;
+    const T = this.lostTunnel(); if (!T) return false; const px = ((x - T.ax) % W + W * 1.5) % W - W / 2, pz = ((z - T.az) % W + W * 1.5) % W - W / 2, k = px * T.ix + pz * T.iz, lat = Math.abs(-px * T.iz + pz * T.ix); if (k < T.pa - 2.5 || k > T.pb + 2.5 || lat > 3.6) return false;
+    const fy = T.ya + (T.yb - T.ya) * (k / T.len); return y > fy - 1.5 && y < fy + 8; }
   lostTunnel() {
     if (!this.lost || this.lost.tunnel) return this.lost ? this.lost.tunnel : null;
     const L = this.lost;
@@ -244,7 +253,10 @@ class World {
     const { ux, uz, ax, az } = best; const ya = Math.max(best.ya, SEA + 1); // a plateau ringed by sea: the mouth stands just above the water, a step up from a swim
     const bx = Math.round(L.x + ux * (L.inner - 4)), bz = Math.round(L.z + uz * (L.inner - 4)); // inside mouth
     const yb = this.colInfo(bx, bz).h;
-    L.tunnel = { ax, az, bx, bz, ya, yb, ux, uz };
+    // where the way goes under the hill at each end: a gateway of standing stones is set up just outside each
+    const len = Math.hypot(bx - ax, bz - az), ix = (bx - ax) / len, iz = (bz - az) / len, under = (k) => this.colInfo(Math.round(ax + ix * k), Math.round(az + iz * k)).h >= Math.round(U.lerp(ya, yb, k / len)) + 6;
+    let pa = 3, pb = Math.round(len) - 3; for (let k = 2; k <= len; k++) if (under(k)) { pa = k; break; } for (let k = Math.round(len); k >= 0; k--) if (under(k)) { pb = k; break; }
+    L.tunnel = { ax, az, bx, bz, ya, yb, ux, uz, len, ix, iz, pa, pb };
     return L.tunnel;
   }
   key(cx, cz) { return cx + ',' + cz; }
@@ -305,15 +317,18 @@ class World {
       // the Lost World: a jungle plateau ringed by cliffs on the far side of the world, reached only through a tunnel
       const L = this.lost; const ddx = U.mod(x - L.x + P / 2, P) - P / 2, ddz = U.mod(z - L.z + P / 2, P) - P / 2; const d = Math.hypot(ddx, ddz);
       if (d < L.rim) {
-        if (d < L.inner) { h = 56 + Math.round((hills - 0.5) * 10 + (cont - 0.5) * 4);
+        const topH = 80 - Math.round((hills - 0.5) * 4), floorH = 56 + Math.round((hills - 0.5) * 10 + (cont - 0.5) * 4);
+        if (d < L.inner - L.batter) { h = floorH;
           // rivers wind across the plateau: slow, brown-green, a couple of blocks deep, the banks sloping down to them. Not through the tyrant's clearing, not into the tunnel mouth, not up against the cliffs
           const rw = Math.abs(U.vnoise2(x, z, 104, P, this.seed + 811) - 0.5), rt = U.clamp((0.05 - rw) / 0.036, 0, 1); let rk = this._tunBusy ? 0 : rt * rt * (3 - 2 * rt) * U.clamp((d - 34) / 12, 0, 1) * U.clamp((L.inner - 8 - d) / 10, 0, 1);
           if (rk > 0) { if (!L.tunnel) { this._tunBusy = true; try { this.lostTunnel(); } finally { this._tunBusy = false; } } /* the tunnel is worked out on plain ground, before any river is, so the land is the same whichever is asked for first */ if (L.tunnel) rk *= U.clamp((Math.hypot(x - L.tunnel.bx, z - L.tunnel.bz) - 10) / 8, 0, 1); }
           if (rk > 0) h = Math.round(U.lerp(h, LOST_WATER - 2, rk));
-          return { h, biome: BIOME.LOSTWORLD, temp: 0.7, moist: 0.9, sky: 0, lost: true, lostRiver: rk }; }
-        const t = d < L.rim - 7 ? 1 : (L.rim - d) / 7; // sheer inside, a slope outside
-        h = Math.round(U.lerp(h, 80 - Math.round((hills - 0.5) * 4), Math.min(1, t)));
-        return { h, biome: BIOME.MOUNTAIN, temp, moist, sky: 0, lostRim: true };
+          return { h, biome: BIOME.LOSTWORLD, temp: 0.7, moist: 0.9, sky: 0, lost: true, lostRiver: rk, edge: L.inner - L.batter - d, lair: d < 7 + U.vnoise2(x, z, 5, P, this.seed + 813) * 4 }; }
+        // the wall. Inside it stands all but sheer: its foot leans in a little, a staircase of rock far too tall to climb, and the mesher covers it with the cliff as it is drawn
+        if (d < L.inner) return { h: Math.round(U.lerp(floorH + 1, topH, (d - (L.inner - L.batter)) / L.batter)), biome: BIOME.MOUNTAIN, temp, moist, sky: 0, lostRim: true, rimT: 1 };
+        const t = d < L.rim - L.flank ? 1 : Math.sin((L.rim - d) / L.flank * Math.PI / 2); // outside it comes down in one long rounded shoulder, like the side of a dome: never so steep that the land's own skin cannot follow it
+        h = Math.round(U.lerp(h, topH, Math.min(1, t)));
+        return { h, biome: BIOME.MOUNTAIN, temp, moist, sky: 0, lostRim: true, rimT: Math.min(1, t) };
       }
     }
     if (h < SEA - 2) biome = BIOME.OCEAN;
@@ -351,6 +366,9 @@ class World {
     if (!this.preset.trees) return null;
     if (info.h <= SEA || info.h > 72) return null;
     if (info.lost && this.lost && Math.hypot(x - this.lost.x, z - this.lost.z) < 26) return null; // the tyrant's clearing
+    if (info.lost && info.edge != null && info.edge < 4) return null; // and nothing grows hard up against the wall
+    if (info.lostRim) return null; // nor on the dome itself
+    if (info.lost && this.lost) { const T = this.lostTunnel(); if (T && Math.hypot(x - T.bx - T.ix * 4, z - T.bz - T.iz * 4) < 10) return null; } // and the way in comes out into open ground
     const r = U.hash3(x, 99, z, this.seed + 303); const kind = U.hash3(x, 98, z, this.seed);
     let p = 0, type = 'oak';
     if (info.beach) { if (info.h < SEA + 2 || info.h > SEA + 6) return null; p = 0.014; type = 'palm'; }
@@ -368,7 +386,7 @@ class World {
     const hr = U.hash3(x, 97, z, this.seed);
     const fir = type === 'pine' && kind > 0.66 && (info.biome === BIOME.SNOW || info.biome === BIOME.MOUNTAIN), grand = type === 'oak' && U.hash3(x, 94, z, this.seed + 19) < 0.1; // here and there an old giant among the oaks
     if (type === 'jungle') { // four storeys: big-leaved plants and tree ferns underneath, the canopy over them, and here and there a giant standing clear of everything
-      const size = kind < 0.22 ? 'fern' : kind < 0.4 ? 'banana' : hr > 0.86 ? 'giant' : hr > 0.5 ? 'big' : 'tree';
+      const size = kind < 0.22 ? 'fern' : kind < 0.4 ? 'banana' : hr > 0.86 && !(info.edge < 10) ? 'giant' : hr > 0.5 ? 'big' : 'tree'; // a giant keeps its crown clear of the wall
       if (size === 'giant') for (let a = -6; a <= 6; a++) for (let b = -6; b <= 6; b++) { if (!a && !b) continue; const h2 = U.hash3(x + a, 97, z + b, this.seed); if (h2 > hr && U.hash3(x + a, 98, z + b, this.seed) >= 0.4 && U.hash3(x + a, 99, z + b, this.seed + 303) < 0.05) return null; } /* two giants never stand shoulder to shoulder */
       const height = Math.min(WH - 12 - info.h, size === 'fern' ? 3 + Math.floor(hr * 5) : size === 'banana' ? 3 + Math.floor(hr * 3) : size === 'giant' ? 24 + Math.floor((hr - 0.86) / 0.14 * 6) : size === 'big' ? 16 + Math.floor((hr - 0.5) / 0.36 * 6) : 11 + Math.floor(hr * 10));
       return { type, size, height, berries: false, big: size === 'giant', lean: Math.floor(U.hash3(x, 95, z, this.seed) * 4) }; }
@@ -450,7 +468,7 @@ class World {
       const info = infos[(lx + 2) * 20 + (lz + 2)];
       const h = info.h, biome = info.biome;
       chunk.biome[lx * CH + lz] = biome;
-      let tint = this.grassTint(biome, info.temp, info.moist);
+      let tint = info.lostRim ? this.grassTint(BIOME.LOSTWORLD, info.temp, info.moist) : this.grassTint(biome, info.temp, info.moist);
       const wear = this.trailWear && h > SEA ? this.trailWear(x, z) : 0; chunk.wear[lx * CH + lz] = Math.round(wear * 255);
       if (wear > 0) { const k = wear * 0.8; tint = [U.lerp(tint[0], tint[0] * 0.7 + 0.2, k), U.lerp(tint[1], tint[1] * 0.68 + 0.1, k), U.lerp(tint[2], tint[2] * 0.6 + 0.03, k)]; } /* a footpath: the grass along it is trodden, drier and browner */
       const ti = (lx * CH + lz) * 3; chunk.tint[ti] = tint[0]; chunk.tint[ti + 1] = tint[1]; chunk.tint[ti + 2] = tint[2];
@@ -495,7 +513,8 @@ class World {
           else if (depth < 4) b = biome === BIOME.DUNES ? B.DUNE : biome === BIOME.MESA ? B.STONE : B.DIRT;
         }
         else if (info.crag >= 1 && (depth > 0 ? depth < 4 || info.crag > 2 : info.cragRim)) b = (depth === 0 && U.hash3(x, 36, z, s + 967) < 0.35) ? B.MOSS : B.STONE; /* a knoll is rock under its turf, and shows it in places */
-        else if (info.lost) { if (depth === 0) b = h <= LOST_WATER ? (U.hash3(x, 37, z, s + 969) < 0.3 ? B.GRAVEL : B.DIRT) : B.GRASS; else if (depth < 3) b = B.DIRT; } /* a river bed is mud and stones */
+        else if (info.lost) { if (depth === 0) b = h <= LOST_WATER ? (U.hash3(x, 37, z, s + 969) < 0.3 ? B.GRAVEL : B.DIRT) : info.lair ? B.DIRT : B.GRASS; else if (depth < 3) b = B.DIRT; } /* a river bed is mud and stones */
+        else if (info.lostRim) { if (depth === 0) { const g = info.rimT + (U.vnoise2(x, z, 9, P, s + 627) - 0.5) * 0.34; b = g > 0.93 ? B.GRASS : (g > 0.5 && U.vnoise2(x, z, 5, P, s + 629) > 0.56) ? B.MOSS : B.STONE; } else if (depth < 6) b = B.STONE; } /* the dome the Lost World stands in: bare rock up its flanks, moss in the damp of it, and the jungle's own turf over the crown */
         else if (depth === 0) {
           const snowy = info.temp + (U.vnoise2(x, z, 7, P, s + 623) - 0.5) * 0.03 < 0.36; /* the snow line is not the line on the map: it breaks up into drifts and bare patches where the cold country meets the green */
           if (biome === BIOME.SNOW || biome === BIOME.PLAINS || biome === BIOME.FOREST) b = snowy ? B.SNOW : (wear > 0.7 && U.hash3(x, 41, z, s + 979) < 0.45 ? B.DIRT : B.GRASS); /* mud shows through where a path is walked most */
@@ -607,19 +626,25 @@ class World {
           // distance from the column to the tunnel's centre line, and how far along it we are
           const ix = (T.bx - T.ax) / len, iz = (T.bz - T.az) / len; // inward, from the outer mouth to the plateau
           const px = x + 0.5 - T.ax, pz = z + 0.5 - T.az; const t = U.clamp((px * ix + pz * iz) / len, 0, 1); const cx = T.ax + ix * len * t, cz = T.az + iz * len * t;
-          const dd = Math.hypot(x + 0.5 - cx, z + 0.5 - cz); if (dd > 2.9 || t <= 0 || t >= 1.02) continue;
+          const dd = Math.hypot(x + 0.5 - cx, z + 0.5 - cz); if (dd > 7.5 || t >= 1.02) continue;
           const fy = Math.round(U.lerp(T.ya, T.yb, t)); const base = (lx * CH + lz) * WH;
           const along = Math.round(len * t);
-          if (dd > 2.2) { // the gate at the outer mouth: two stone pillars and a lintel with torches
-            if (along >= 2 && along <= 3) { for (let y = fy + 1; y <= fy + 6; y++) blocks[base + y] = B.STONE; if (along === 2) blocks[base + fy + 7] = B.TORCH; }
-            continue;
-          }
+          // the landing: where the way in starts lower than the ground it starts from (out in the sea, as often as not) a spit of sand and shingle is banked up under it, rounded at its end and sloping away on both sides, so the land's own skin carries it down into the water
+          if (along < T.pa) { const nat = infos[(lx + 2) * 20 + (lz + 2)].h, sy = fy - Math.round(Math.max(0, dd - 2.2) * 1.4);
+            if (sy > nat) for (let y = nat + 1; y <= sy; y++) blocks[base + y] = y < sy ? B.STONE : U.hash3(x, 39, z, s + 973) < 0.3 ? B.GRAVEL : B.SAND; }
+          if (dd > 4.4 || t <= 0) continue;
+          const gate = along === T.pa - 2 || along === T.pa - 1 || along === T.pb + 1 || along === T.pb + 2; // a gateway just outside each end: two standing stones and a third laid across. Solid, and drawn whole by the mesher
+          const bore = along >= T.pa && along <= T.pb, nat = infos[(lx + 2) * 20 + (lz + 2)].h;
+          // under the hill the rock round the way through is still there to walk into, but it is not drawn as blocks: the mesher lines the whole bore with one skin of rock. The top block of the hill is left alone, so the land over it is whole
+          if (dd > 2.2) { if (gate && dd <= 3.7) for (let y = fy + 1; y <= fy + 7; y++) blocks[base + y] = B.MEGA; else if (bore) for (let y = fy + 1; y <= fy + 7 && y < nat; y++) if (blocks[base + y] !== B.WATER) blocks[base + y] = B.MEGA; continue; }
           // 5 high so you can jump the steps (and ride a big mount through), 4 wide
           for (let y = fy + 1; y <= fy + 5; y++) if (y > 0 && y < WH) blocks[base + y] = B.AIR;
-          if (along >= 2 && along <= 3) blocks[base + fy + 6] = B.STONE;
+          if (gate) { blocks[base + fy + 7] = B.MEGA; blocks[base + fy + 8] = B.MEGA; }
+          else if (bore) for (let y = fy + 6; y <= fy + 7 && y < nat; y++) if (blocks[base + y] !== B.WATER) blocks[base + y] = B.MEGA;
           if (blocks[base + fy] === B.AIR || blocks[base + fy] === B.WATER || blocks[base + fy] === B.LEAVES) blocks[base + fy] = B.STONE;
-          if (dd > 1.6 && along % 6 === 3) blocks[base + fy + 3] = B.TORCH; // lamps along the walls, off the walkway
         }
+        // its lamps: a light every few paces, on one wall and then the other. The light is a block nobody sees; the mesher draws a bowl of fire where it stands
+        for (const [wx, wy, wz] of this.lostLamps()) { const lx = Math.floor(wx) - ox, lz = Math.floor(wz) - oz; if (lx >= 0 && lx < CH && lz >= 0 && lz < CH) blocks[(lx * CH + lz) * WH + Math.floor(wy)] = B.ALIGHT; }
       }
     }
     // trees (may come from neighbouring columns: the border is as wide as the biggest canopy), then the small things on the ground

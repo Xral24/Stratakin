@@ -230,7 +230,7 @@ const R = (() => {
       alpha = top ? mix(0.5, 0.94, max(smoothstep(0.0, 0.7, depth), fres)) : 0.7;
       if (top) alpha *= smoothstep(0.0, 0.05, depth); // the water thins to nothing at its edge: wet sand, not a cut line
     } else {
-      int mat0 = int(vMat + 0.5);
+      int mat0 = int(vMat + 0.5); if (mat0 == 32) mat0 = 3; /* 32: rock under the ground that the mesher drew whole. Painted as rock, never as blocks */
       if (mat0 == 28 && dot(normalize(vN), V) < 0.0) discard; // the sea beyond the dome of Atlantis is only there from inside
       float nearB = 1.0 - smoothstep(24.0, 48.0, dist);
       if (nearB > 0.01 && emis < 0.5 && (mat0 == 3 || mat0 == 4 || mat0 == 2 || mat0 == 5 || mat0 == 6)) { // relief: the normal leans with the bumps of the material
@@ -238,7 +238,7 @@ const R = (() => {
         vec3 T = abs(n.x) > 0.5 ? vec3(0.0, 0.0, 1.0) : vec3(1.0, 0.0, 0.0), Bt = abs(n.y) > 0.5 ? vec3(0.0, 0.0, 1.0) : vec3(0.0, 1.0, 0.0);
         float sc = mat0 == 3 ? 2.2 : mat0 == 4 ? 6.0 : mat0 == 2 ? 2.6 : mat0 == 5 ? 1.6 : 1.0; float amt = mat0 == 3 ? 0.22 : mat0 == 4 ? 0.09 : mat0 == 2 ? 0.045 : mat0 == 5 ? 0.06 : 0.03;
         float ee = 0.07; float h0 = vn(uvb * sc), hx = vn((uvb + vec2(ee, 0.0)) * sc), hy = vn((uvb + vec2(0.0, ee)) * sc);
-        if (mat0 == 3) { float d0 = vn(uvb * 7.0 + 3.0), dx = vn((uvb + vec2(ee, 0.0)) * 7.0 + 3.0), dy = vn((uvb + vec2(0.0, ee)) * 7.0 + 3.0); h0 += d0 * 0.3; hx += dx * 0.3; hy += dy * 0.3; }
+        if (mat0 == 3) { float fd = 0.3 * (1.0 - smoothstep(8.0, 20.0, dist)); if (fd > 0.003) { float d0 = vn(uvb * 7.0 + 3.0), dx = vn((uvb + vec2(ee, 0.0)) * 7.0 + 3.0), dy = vn((uvb + vec2(0.0, ee)) * 7.0 + 3.0); h0 += d0 * fd; hx += dx * fd; hy += dy * fd; } } /* the fine pitting of rock is for close to: across a hillside it turned into a weave of light and dark dashes wherever the sun lay low along the slope */
         vec2 gr = vec2(hx - h0, hy - h0) / ee * amt * nearB;
         n = normalize(n - T * gr.x - Bt * gr.y);
       }
@@ -285,7 +285,7 @@ const R = (() => {
         vec2 uv = abs(n.x) > 0.5 ? vWorld.zy : (abs(n.y) > 0.5 ? vWorld.xz : vWorld.xy);
         vec3 bp = floor(vWorld - n * 0.5);
         float hb = hash3(bp); float speck = hash3(vec3(floor(uv * 8.0), bp.y)); float blot = hash3(vec3(floor(uv * 3.0), bp.x + bp.z));
-        int matp = int(vMat + 0.5); float soil = (matp == 1 || matp == 2 || matp == 4 || matp == 5 || (matp >= 22 && matp <= 24)) ? 1.0 : 0.0; float blocky = (matp == 7 || matp == 0 || matp >= 9 || soil > 0.5) ? 0.0 : 1.0; if (matp == 3) { float open = smoothstep(0.3, 0.6, sky); blocky *= 1.0 - open; soil = open; } /* rock under the open sky is land like the rest: no block's worth of paint on it */ // leaves, props, the ground and the town's materials are not blocks: no per-block paint on them
+        int matp = int(vMat + 0.5); bool hewn = matp == 32; if (hewn) matp = 3; float soil = (matp == 1 || matp == 2 || matp == 4 || matp == 5 || (matp >= 22 && matp <= 24)) ? 1.0 : 0.0; float blocky = (matp == 7 || matp == 0 || matp >= 9 || soil > 0.5) ? 0.0 : 1.0; if (matp == 3) { float open = smoothstep(0.3, 0.6, sky); blocky *= 1.0 - open; soil = open; } if (hewn) { blocky = 0.0; soil = 1.0; } /* rock under the open sky is land like the rest: no block's worth of paint on it */ // leaves, props, the ground and the town's materials are not blocks: no per-block paint on them
         col *= 1.0 + blocky * (-0.06 + 0.07 * hb + (speck - 0.5) * 0.05 * uQuality + (blot - 0.5) * 0.045); /* quieter: a hint of the block, not grit */
         col *= 1.0 + soil * ((vn(uv * 0.7 + 3.0) - 0.5) * 0.1 + (vn(uv * 2.3 + 8.0) - 0.5) * 0.05); // the ground: a soft drift of light and dark instead
         // broad painted drift: warm and cool patches across the land
@@ -296,7 +296,7 @@ const R = (() => {
         vec2 f = fract(uv); float e = min(min(f.x, 1.0 - f.x), min(f.y, 1.0 - f.y));
         float pd = length(vWorld.xz - uPlayer.xz) + abs(vWorld.y - uPlayer.y) * 0.5; float lw = 0.018; float g = 1.0 - smoothstep(lw, lw * 2.2, e); g *= 1.0 - smoothstep(2.5, 4.5, pd); g *= blocky * (1.0 - smoothstep(0.35, 0.7, sky)); // the lines between blocks show only on rock underground, where the world is cubes; never on the land, on leaves or on anything built
         col *= 1.0 - 0.28 * g;
-        float near = 1.0 - smoothstep(30.0, 70.0, dist); int mat = int(vMat + 0.5);
+        float near = 1.0 - smoothstep(30.0, 70.0, dist); int mat = int(vMat + 0.5); if (mat == 32) mat = 3;
         float gw = 0.0; vec3 cg = col; // how much of the ground here is turf (the mesher sends it in the length of the normal): the land's materials run into one another, they never change along the edge of a block
         bool turf = mat == 1 || (mat >= 22 && mat <= 24); // 22, 23, 24: turf beside sand, earth, snow
         if ((mat >= 1 && mat <= 5) || turf) { float lt = clamp((1.0 - length(vN)) * 2.0, 0.0, 1.0); gw = turf ? 1.0 - lt : lt;
@@ -327,7 +327,7 @@ const R = (() => {
             float bed = sin(vWorld.y * 9.0 + vn(q * 0.45) * 5.0 + vn(q * 1.9) * 1.2) * 0.5 + 0.5; c2 *= 0.95 + 0.085 * bed;
             c2 *= 0.94 + 0.12 * vn(q * 0.55 + 4.0);
             float lich = smoothstep(0.6, 0.74, vn(q * 1.6 + 11.0)) * smoothstep(0.75, 0.95, n.y); c2 = mix(c2, c2 * vec3(1.1, 1.13, 1.02) + vec3(0.03, 0.035, 0.02), lich * 0.55);
-            float pit = smoothstep(0.72, 0.8, vn(q * 11.0 + 3.0)); c2 *= 1.0 - 0.14 * pit * near;
+            float pit = smoothstep(0.72, 0.8, vn(q * 11.0 + 3.0)); c2 *= 1.0 - 0.14 * pit * (1.0 - smoothstep(12.0, 30.0, dist)) * smoothstep(0.6, 0.85, n.y);
             float sw = smoothstep(0.6, 0.86, dot(vCol.rgb, vec3(0.3, 0.59, 0.11))); // how snowy the ground is here, from its own blended colour: rock running into snow is painted more and more like snow, so no line shows where the blocks change
             col = mix(col, c2, open * (1.0 - sw)); col += vec3(0.13, 0.16, 0.24) * skyL * uDay * (1.0 - lam * sh) * sw * open;
           }
@@ -431,6 +431,7 @@ const R = (() => {
     float f = clamp((dist - uFogNear) / (uFogFar - uFogNear), 0.0, 1.0); f = f * f * (3.0 - 2.0 * f);
     float toward = pow(max(dot(-V, uSun), 0.0), 6.0) * uSunAmt;
     vec3 haze = mix(skyFog(-V), uSunCol, toward * 0.45); // far things fade into the sky behind them, whatever its colour up there
+    if (uFogSky > 0.5) haze *= 1.0 - 0.93 * (1.0 - smoothstep(0.02, 0.3, sky)) * (1.0 - emis); // but not what no daylight reaches: the mouth of a cave stays dark from far off. It used to pale into a window on the sky
     col = mix(col * uTint, haze, f);
     gl_FragColor = vec4(tonemap(col), alpha);
   }`;
@@ -1010,10 +1011,17 @@ const R = (() => {
     const CHt = (x, z) => cornerH[x * 17 + z];
     // the colour of the land at each corner, blended from the four columns that share it, so grass, sand, snow and rock run into one another with no hard-edged squares; and the bare rock it turns to where it stands up steeply
     { const stoneP = world.preset.paletteRgb && world.preset.paletteRgb[B.STONE]; const rk0 = stoneP ? stoneP[1] : BLOCKS[B.STONE].side; const ROCK = stoneP ? rk0 : [rk0[0] * 1.1, rk0[1] * 1.02, rk0[2] * 0.9];
-      const colAt = (x, z) => { const t = ST(x, z); if (t < 0) return null; const id = get(x, t, z); if (id === B.GRASS) { const c = chunkAt(x, z); if (c && c.tint) { const i = (((x + 16) & 15) * CH + ((z + 16) & 15)) * 3; return [c.tint[i], c.tint[i + 1], c.tint[i + 2], 0, 1]; } } const pal = world.preset.paletteRgb && world.preset.paletteRgb[id]; const c = pal ? pal[0] : BLOCKS[id].top; return [c[0], c[1], c[2], (id === B.SAND || id === B.DUNE || id === B.SALTCRUST) ? 1 : 0, 0]; };
+      // the dome the Lost World stands in is the same rock outside as in: beds a few blocks thick in four colours, lying a little off the level, dark streaks down it where the wet runs
+      const LW = world.lost, lwx = LW ? ((ox + 8 - LW.x) % WORLD_W + WORLD_W * 1.5) % WORLD_W - WORLD_W / 2 : 0, lwz = LW ? ((oz + 8 - LW.z) % WORLD_W + WORLD_W * 1.5) % WORLD_W - WORLD_W / 2 : 0, onDome = !!LW && Math.abs(Math.hypot(lwx, lwz) - (LW.inner + LW.rim) / 2) < (LW.rim - LW.inner) / 2 + 13;
+      const DBED = [[0.72, 0.55, 0.46], [0.83, 0.71, 0.56], [0.67, 0.53, 0.5], [0.87, 0.79, 0.65]];
+      const domeCol = (x, z, y) => { const dx = x - 8 + lwx, dz = z - 8 + lwz, d = Math.hypot(dx, dz); if (d < LW.inner - 3 || d > LW.rim + 1) return null;
+        const wv = (y + 6 * U.vnoise2(ox + x, oz + z, 15, WORLD_W, world.seed + 4421)) / 5.4, i = Math.floor(wv), f = wv - i, a = DBED[((i % 4) + 4) % 4], b = DBED[(((i + 1) % 4) + 4) % 4], t = f > 0.72 ? (f - 0.72) / 0.28 : 0;
+        const stain = 0.8 + 0.2 * Math.min(1, U.vnoise2((Math.atan2(dz, dx) + 4) * 140, 3.3, 3, WORLD_W, world.seed + 4425) * 1.7), tone = (0.9 + 0.2 * U.hash3(i, 7, 3, 5521)) * stain;
+        return [(a[0] + (b[0] - a[0]) * t) * tone, (a[1] + (b[1] - a[1]) * t) * tone, (a[2] + (b[2] - a[2]) * t) * tone]; };
+      const colAt = (x, z) => { const t = ST(x, z); if (t < 0) return null; const id = get(x, t, z); if (onDome && id === B.STONE) { const c = domeCol(x + 0.5, z + 0.5, t); if (c) return [c[0], c[1], c[2], 0, 0]; } if (id === B.GRASS) { const c = chunkAt(x, z); if (c && c.tint) { const i = (((x + 16) & 15) * CH + ((z + 16) & 15)) * 3; return [c.tint[i], c.tint[i + 1], c.tint[i + 2], 0, 1]; } } const pal = world.preset.paletteRgb && world.preset.paletteRgb[id]; const c = pal ? pal[0] : BLOCKS[id].top; return [c[0], c[1], c[2], (id === B.SAND || id === B.DUNE || id === B.SALTCRUST) ? 1 : 0, 0]; };
       for (let cx = 0; cx <= 16; cx++) for (let cz = 0; cz <= 16; cz++) { let r = 0, g = 0, b = 0, n = 0, sandy = 0, turf = 0; for (const [a, bb] of [[-1, -1], [0, -1], [-1, 0], [0, 0]]) { const c = colAt(cx + a, cz + bb); if (c) { r += c[0]; g += c[1]; b += c[2]; sandy += c[3]; turf += c[4] || 0; n++; } } cornerTurf[cx * 17 + cz] = n ? turf / n : 0;
         const k = (cx * 17 + cz) * 6; if (!n) { cornerCol[k] = -1; continue; } r /= n; g /= n; b /= n; cornerCol[k] = r; cornerCol[k + 1] = g; cornerCol[k + 2] = b;
-        if (sandy > 0) { cornerCol[k + 3] = r * 0.78; cornerCol[k + 4] = g * 0.72; cornerCol[k + 5] = b * 0.64; } else { cornerCol[k + 3] = ROCK[0]; cornerCol[k + 4] = ROCK[1]; cornerCol[k + 5] = ROCK[2]; } } }
+        if (sandy > 0) { cornerCol[k + 3] = r * 0.78; cornerCol[k + 4] = g * 0.72; cornerCol[k + 5] = b * 0.64; } else { let RK = ROCK; if (onDome) { const hC = cornerH[cx * 17 + cz], c = hC >= 0 ? domeCol(cx, cz, hC) : null; if (c) RK = [c[0] * 0.94, c[1] * 0.94, c[2] * 0.94]; } cornerCol[k + 3] = RK[0]; cornerCol[k + 4] = RK[1]; cornerCol[k + 5] = RK[2]; } } }
     // the waterline: land beside water dips a little under it at the edge, and the water is drawn over that land too, so the shore is the curve where the two surfaces cross and not the outline of the blocks
     for (let lx = 0; lx < CH; lx++) for (let lz = 0; lz < CH; lz++) { const i0 = (lx + 1) * 18 + (lz + 1); if (surfWet[i0] >= 0 || surfTop[i0] < 0) continue; let wl = -1, wx0 = 0, wz0 = 0;
       for (let a = -1; a <= 1; a++) for (let b = -1; b <= 1; b++) { const w = surfWet[(lx + a + 1) * 18 + (lz + b + 1)]; if (w > wl) { wl = w; wx0 = lx + a; wz0 = lz + b; } } if (wl < 0) continue;
@@ -1462,6 +1470,123 @@ const R = (() => {
           const kids = depth === 2 ? 3 : 2, a0 = hh(i * 3 + 2) * TAU; for (let k = 0; k < kids; k++) { const a = a0 + k / kids * TAU + (hh(i * 7 + k) - 0.5) * 0.8, sp = 0.62 + hh(i * 5 + k) * 0.2, nd = [d[0] * 0.75 + Math.cos(a) * sp, d[1] * 0.75 + 0.5, d[2] * 0.75 + Math.sin(a) * sp], l = Math.hypot(nd[0], nd[1], nd[2]); grow(e, [nd[0] / l, nd[1] / l, nd[2] / l], len * (0.66 + hh(i * 11 + k) * 0.16), r * 0.7, depth - 1); } };
         grow([x, F + 0.5, z], [0, 1, 0], 1.25 + hh(0) * 0.35, 0.17, lod ? 1 : 2); }
     };
+    // ---- the Lost World beyond its trees: the wall round it, the two gateways of its tunnel, and the tyrant's ground in the middle.
+    // The wall is rock in four beds, each standing a little proud of the one above it, with a ledge between: turf on the ledges, creepers
+    // hanging from them, a few falls coming down off the top. It is drawn a short step in front of the blocks, which lean in the same way ----
+    const drawLost = () => {
+      const L = world.lost, Ri = L.inner, LB = L.batter || 2.2, W = WORLD_W, CXl = ((L.x - ox) % W + W * 1.5) % W - W / 2 + 0.5, CZl = ((L.z - oz) % W + W * 1.5) % W - W / 2 + 0.5, dC = Math.hypot(8 - CXl, 8 - CZl), T = world.lostTunnel();
+      const inC = (x, z) => x >= 0 && x < 16 && z >= 0 && z < 16, far = !!lod;
+      const quadTo = (p, c, n, sk) => { const ux = p[1][0] - p[0][0], uy = p[1][1] - p[0][1], uz = p[1][2] - p[0][2], vx = p[3][0] - p[0][0], vy = p[3][1] - p[0][1], vz = p[3][2] - p[0][2]; const flip = (uy * vz - uz * vy) * n[0] + (uz * vx - ux * vz) * n[1] + (ux * vy - uy * vx) * n[2] < 0; // wound so that n is its front
+        if (flip) op.quad([p[1], p[0], p[3], p[2]], [c[1], c[0], c[3], c[2]], [sk, sk, sk, sk], false, [n, n, n, n]); else op.quad(p, c, [sk, sk, sk, sk], false, [n, n, n, n]); };
+      const thT = Math.atan2(T.bz - T.az, T.bx - T.ax) + Math.PI, wrapA = (a) => Math.atan2(Math.sin(a), Math.cos(a)); // the bearing the tunnel lies on, seen from the middle
+      if (Math.abs(dC - Ri) < 17) {
+        const BED = [[0.72, 0.55, 0.46], [0.83, 0.71, 0.56], [0.67, 0.53, 0.5], [0.87, 0.79, 0.65]], MOSS = [0.3, 0.52, 0.22], NR = Math.round(6.283185307 * Ri), dth = 6.283185307 / NR, th0 = Math.atan2(8 - CZl, 8 - CXl), span = 15.5 / Ri, j0 = Math.floor((th0 - span) / dth), j1 = Math.ceil((th0 + span) / dth);
+        // one upright line of the wall for every step round it: where its foot and its top stand, and the points up it. rows: [radius, height, colour, kind] with kind 0 face, 1 the nose of a bed, 2 the back of the ledge over it, 3 the turf on top
+        const cols = new Map(), col = (j0n) => { const j = ((j0n % NR) + NR) % NR; let o = cols.get(j); if (o) return o; const th = j * dth, c = Math.cos(th), sn = Math.sin(th), wx = L.x + c * (Ri - LB - 1.6), wz = L.z + sn * (Ri - LB - 1.6);
+          const yb = world.colInfo(Math.round(wx), Math.round(wz)).h + 0.3, yt = Math.max(world.colInfo(Math.round(L.x + c * (Ri + 0.8)), Math.round(L.z + sn * (Ri + 0.8))).h, world.colInfo(Math.round(L.x + c * (Ri + 2.6)), Math.round(L.z + sn * (Ri + 2.6))).h) + 1.03, H = yt - yb;
+          const low = U.vnoise2(wx, wz, 11, W, world.seed + 4411), stain = 0.74 + 0.26 * Math.min(1, U.vnoise2(wx * 3.1, wz * 3.1, 5, W, world.seed + 4413) * 1.6), rows = [];
+          for (let b = 0; b < 4; b++) for (let k = 0; k <= 6; k++) { const f = Math.min(1, k / 5), u = (b + f) / 4, hv = U.hash3(j, b * 8 + k, 3, 5501), y = b === 0 && k === 0 ? yb - 0.9 : yb + H * u;
+            const e = k === 6 ? 0.98 + low * 0.5 + (hv - 0.5) * 0.16 : 0.98 + 0.5 * f + low * 0.5 + (hv - 0.5) * 0.3 + (k === 5 ? 0.1 : 0), tone = (0.86 + 0.26 * U.hash3(Math.floor(j / 3), b, 9, 5503)) * (k === 5 ? 1.08 : 1) * stain, bc = BED[b];
+            rows.push([b > 0 && k === 0 ? rows[rows.length - 1][0] : Ri - LB * (1 - u) - e, y, k === 6 ? MOSS : [bc[0] * tone, bc[1] * tone, bc[2] * tone], k === 6 ? 2 : k === 5 ? 1 : 0]); } // a bed starts where the ledge under it ended
+          rows.push([Ri + 1.7, yt + 0.05, MOSS, 3]); rows.push([Ri + 1.75, yt - 1.4, MOSS, 3]); /* the turf on top, and a short drop behind it where the land beyond stands lower */ o = { th, c, sn, yb, yt, rows, low }; cols.set(j, o); return o; };
+        const P = (o, r) => [CXl + o.c * r[0], r[1], CZl + o.sn * r[0]], doorY = T.yb + 8.6;
+        for (let j = j0; j < j1; j++) { const a = col(j), b = col(j + 1), mid = (a.rows[13][0] + b.rows[13][0]) / 2, mc = Math.cos(a.th + dth / 2), ms = Math.sin(a.th + dth / 2); if (!inC(CXl + mc * mid, CZl + ms * mid)) continue;
+          const arc = wrapA(a.th + dth / 2 - thT) * Ri, door = Math.abs(arc) < 3.1;
+          op.curMat = 3;
+          for (let k = 0; k + 1 < a.rows.length; k++) { const r0 = a.rows[k], r1 = a.rows[k + 1], s0 = b.rows[k], s1 = b.rows[k + 1]; if (r0[3] === 2 && r1[3] === 0) continue; if (door && Math.max(r1[1], s1[1]) < doorY) continue; // the way in is left open
+            const p = [P(a, r0), P(b, s0), P(b, s1), P(a, r1)], ledge = r1[3] >= 2 && k < a.rows.length - 2; let n;
+            if (ledge) n = [0, 0.55, 0]; else { const ux = p[1][0] - p[0][0], uy = p[1][1] - p[0][1], uz = p[1][2] - p[0][2], vx = p[3][0] - p[0][0], vy = p[3][1] - p[0][1], vz = p[3][2] - p[0][2]; n = [uy * vz - uz * vy, uz * vx - ux * vz, ux * vy - uy * vx]; const l = Math.hypot(n[0], n[1], n[2]) || 1; n = [n[0] / l, n[1] / l, n[2] / l]; if (n[0] * mc + n[2] * ms > 0) n = [-n[0], -n[1], -n[2]]; } // a face looks in at the plateau; a ledge looks up, and its short normal tells the paint it is turf
+            quadTo(p, [r0[2], s0[2], s1[2], r1[2]], n, 0.96); }
+          if (far) continue;
+          // creepers hanging from the lip and from the nose of each bed
+          for (const k of [5, 12, 19, 26]) { const r = a.rows[k], lip = k === 26, jn = ((j % NR) + NR) % NR, hv = U.hash3(jn, k, 11, 5507); if (hv > (lip ? 0.2 : 0.3) || (door && r[1] < doorY + 6)) continue;
+            const len = Math.min(r[1] - a.yb - 0.4, lip ? 4 + hv * 60 : 1.6 + hv * 14), rr = r[0] - 0.12, pts = []; if (len < 1) continue; for (let i = 0; i <= 4; i++) { const t = i / 4, rw = rr - 0.25 * t - Math.sin(t * 3 + hv * 20) * 0.1; pts.push([CXl + a.c * rw, r[1] - len * t, CZl + a.sn * rw]); }
+            op.curMat = 31; op.ribbon(pts, [0.1, 0.26, 0.3, 0.22, 0.03], (hv * 37) % 1 > 0.5 ? [0.16, 0.5, 0.22] : [0.24, 0.6, 0.24], { sky: 0.96, droop: 0.1, tip: [0.5, 0.78, 0.36] }); } }
+        // the falls: five thin ones round the ring, coming off the top and down into a pool among the rocks at the foot
+        for (let i = 0; i < 5; i++) { const thW = (i + 0.2 + U.hash3(i, 5, 7, world.seed % 9973) * 0.6) / 5 * 6.2832; if (Math.abs(wrapA(thW - thT)) < 0.16 || Math.abs(wrapA(thW - th0)) * Ri > 22) continue;
+          const o = col(Math.round(thW / dth)), rF = (u) => Ri - LB * (1 - u) - 2.5, H = o.yt - o.yb, mxz = [CXl + o.c * (Ri - 4), CZl + o.sn * (Ri - 4)]; if (!inC(mxz[0], mxz[1])) continue; const WAT = [0.62, 0.84, 0.97];
+          op.curMat = 18; const N = 8; for (let k = 0; k < N; k++) { const u0 = 1.04 - k / N * 1.06, u1 = 1.04 - (k + 1) / N * 1.06, wd0 = 0.75 + 0.35 * (k / N), wd1 = 0.75 + 0.35 * ((k + 1) / N), q = (u, w) => { const r = rF(Math.min(1, u)) + (u > 1 ? (u - 1) * 30 : 0), c2 = Math.cos(o.th + w / Ri), s2 = Math.sin(o.th + w / Ri); return [CXl + c2 * r, o.yb + H * u, CZl + s2 * r]; };
+            quadTo([q(u0, -wd0), q(u0, wd0), q(u1, wd1), q(u1, -wd1)], [WAT, WAT, WAT, WAT], [-o.c, 0.2, -o.sn], 0.98); }
+          op.curMat = 0; const fx = CXl + o.c * (rF(0) - 0.6), fz = CZl + o.sn * (rF(0) - 0.6), fy = o.yb + 0.88; // o.yb is 0.7 under the turf
+          for (let k = 0; k < 6; k++) { const a = k * 1.05 + i; op.ball(fx + Math.cos(a) * (0.5 + (k % 3) * 0.5), fy + 0.15 + (k % 2) * 0.25, fz + Math.sin(a) * (0.5 + (k % 3) * 0.5), 0.42 + (k % 3) * 0.14, [0.93, 0.97, 1.0], { sky: 0.98, n: 2 }); } // the white of it where it lands
+          { const wc = [0.18, 0, 1], NP = 10, cv = wa.nv; wa.vert(fx, fy, fz, 0, 1, 0, wc[0], wc[1], wc[2], 0.96, false); for (let k = 0; k < NP; k++) { const a = k / NP * 6.2832, rr = 2.5 + 0.5 * Math.sin(a * 3 + i); wa.vert(fx + Math.cos(a) * rr, fy, fz + Math.sin(a) * rr, 0, 1, 0, wc[0], wc[1], wc[2], 0.96, false); } for (let k = 0; k < NP; k++) wa.tri(cv, cv + 1 + (k + 1) % NP, cv + 1 + k); }
+          op.curMat = 3; for (let k = 0; k < 9; k++) { const a = k / 9 * 6.2832 + 0.3 * i, rr = 2.7 + (k % 3) * 0.35, sz = 0.45 + ((k * 7) % 4) * 0.16, tone = 0.8 + (k % 4) * 0.08; if (Math.cos(a - o.th) > 0.55) continue; op.blob(fx + Math.cos(a) * rr - sz, fy - 0.5, fz + Math.sin(a) * rr - sz, fx + Math.cos(a) * rr + sz, fy + sz * 0.9, fz + Math.sin(a) * rr + sz, 0.8, [0.6 * tone, 0.56 * tone, 0.5 * tone], { sky: 0.96, n: 2 }); } op.curMat = 0; }
+        // the jungle comes right to the edge and over it: thick low growth all along the top of the wall, and every so often a tree standing up out of it. From inside and from the sea alike there is a line of green against the sky
+        for (let j = j0; j < j1; j++) { const jn = ((j % NR) + NR) % NR, hv = U.hash3(jn, 7, 13, 5541); if (hv > 0.3) continue; const o = col(j), rr = Ri + 2.3 + ((hv * 31) % 1) * 3.4, x = CXl + o.c * rr, z = CZl + o.sn * rr; if (!inC(x, z)) continue;
+          const gy = world.colInfo(Math.floor(L.x + 0.5 + o.c * rr), Math.floor(L.z + 0.5 + o.sn * rr)).h + 1, gv = 0.86 + ((hv * 57) % 1) * 0.3, LEAF = [0.15 * gv, 0.41 * gv, 0.14 * gv], LEAFU = [LEAF[0] * 0.62, LEAF[1] * 0.7, LEAF[2] * 0.8], tall = (hv * 13) % 1 < 0.3, r = tall ? 2.9 + ((hv * 91) % 1) * 1.5 : 1.6 + ((hv * 91) % 1) * 1.3, lf = { sky: 1, n: far ? 2 : 3, under: LEAFU, split: -0.05, soft: 0.7 };
+          if (tall) { const hT = 4.2 + ((hv * 71) % 1) * 3.6, lean = ((hv * 23) % 1 - 0.5) * 1.2; op.curMat = 30; op.tube([[x, gy - 0.6, z], [x + lean * 0.6, gy + hT * 0.5, z - lean * 0.4], [x + lean, gy + hT, z - lean * 0.7]], [0.52, 0.38, 0.26], [0.36, 0.29, 0.21], { sky: 1, segs: far ? 4 : 6, cap0: 'none', cap1: 'none' });
+            op.curMat = 29; op.blob(x + lean - r, gy + hT - r * 0.18, z - lean * 0.7 - r, x + lean + r, gy + hT + r * 0.62, z - lean * 0.7 + r, 1, LEAF, lf); }
+          else { op.curMat = 29; op.blob(x - r, gy - r * 0.35, z - r, x + r, gy + r * 0.8, z + r, 1, LEAF, lf); const a2 = hv * 97, r2 = r * 0.62; op.blob(x + Math.cos(a2) * r * 0.9 - r2, gy - r2 * 0.3, z + Math.sin(a2) * r * 0.9 - r2, x + Math.cos(a2) * r * 0.9 + r2, gy + r2 * 0.95, z + Math.sin(a2) * r * 0.9 + r2, 1, [LEAF[0] * 1.2, LEAF[1] * 1.16, LEAF[2]], lf); }
+          op.curMat = 0; }
+        op.curMat = 0;
+      }
+      // ---- the gateways: two standing stones leaning in on each other and a third laid across them, the skull of something horned set on top, creepers down the sides, a fire in a stone bowl each side ----
+      const portal = (k, front) => { const px = ((T.ax + T.ix * k - ox) % W + W * 1.5) % W - W / 2, pz = ((T.az + T.iz * k - oz) % W + W * 1.5) % W - W / 2; if (!inC(px, pz)) return; const fy = Math.round(T.ya + (T.yb - T.ya) * (k / T.len)) + 1, ix = T.ix, iz = T.iz, sx = -iz, sz = ix, fx = ix * front, fz = iz * front; // (fx, fz): the way it looks, out at whoever is coming
+        const ROCK = [0.6, 0.57, 0.52], BONE = [0.92, 0.88, 0.78], rk = (sd) => (p, nx, ny, nz) => { const q = 0.8 + 0.34 * U.hash3(Math.floor(p[1] * 1.1), Math.floor(Math.atan2(nx, nz) * 1.6 + 9), sd + 5, 77), m = ny > 0.6 ? 1 : 0; return m ? [0.36, 0.5, 0.26] : [ROCK[0] * q, ROCK[1] * q, ROCK[2] * q]; };
+        op.curMat = 3;
+        for (const sd of [-1, 1]) { const bx = px + sx * sd * 3.05, bz = pz + sz * sd * 3.05, ln = -sd * 0.5; op.tube([[bx, fy - 0.8, bz], [bx + sx * ln * 0.25, fy + 2.3, bz + sz * ln * 0.25], [bx + sx * ln * 0.65, fy + 5.0, bz + sz * ln * 0.65], [bx + sx * ln, fy + 7.3, bz + sz * ln]], [1.22, 1.1, 0.95, 0.74], ROCK, { sky: 0.96, segs: 7, cap0: 'none', cap1: 'round', shade: rk(sd) }); }
+        for (const sd of [-1, 1]) { const bx = px + sx * sd * 4.8 - fx * 0.15, bz = pz + sz * sd * 4.8 - fz * 0.15, ln = -sd; // a shorter stone stood against the outside of each, and rock packed in at their feet on the tunnel's side, so nothing of the cut ground shows round them
+          op.tube([[bx, fy - 1.3, bz], [bx + sx * ln * 0.12, fy + 2.0, bz + sz * ln * 0.12], [bx + sx * ln * 0.42, fy + 4.9, bz + sz * ln * 0.42]], [1.42, 1.22, 0.8], ROCK, { sky: 0.96, segs: 7, cap0: 'none', cap1: 'round', shade: rk(sd + 20) });
+          const qx = px + sx * sd * 2.62 - fx * 1.0, qz = pz + sz * sd * 2.62 - fz * 1.0; op.blob(qx - 0.95, fy - 1.4, qz - 0.95, qx + 0.95, fy + 0.95, qz + 0.95, 0.85, [ROCK[0] * 0.86, ROCK[1] * 0.86, ROCK[2] * 0.86], { sky: 0.7, n: 3 }); }
+        op.tube([[px - sx * 4.7, fy + 7.75, pz - sz * 4.7], [px - sx * 2, fy + 8.0, pz - sz * 2], [px + sx * 2, fy + 8.05, pz + sz * 2], [px + sx * 4.7, fy + 7.8, pz + sz * 4.7]], [[0.9, 0.72], [1.02, 0.84], [1.0, 0.82], [0.88, 0.7]], ROCK, { sky: 0.96, segs: 8, cap0: 'round', cap1: 'round', shade: rk(3) });
+        op.curMat = 0;
+        { const hx = px + fx * 0.75, hz = pz + fz * 0.75, hy = fy + 8.75; // the skull: a broad frill behind, two long horns forward and up, a short one on the nose, dark where the eyes were
+          op.blob(hx - 0.62, hy, hz - 0.62, hx + 0.62, hy + 0.95, hz + 0.62, 0.85, BONE, { sky: 0.96, n: 3 });
+          op.tube([[hx - fx * 0.5 - sx * 1.25, hy + 0.5, hz - fz * 0.5 - sz * 1.25], [hx - fx * 0.75, hy + 1.55, hz - fz * 0.75], [hx - fx * 0.5 + sx * 1.25, hy + 0.5, hz - fz * 0.5 + sz * 1.25]], [[0.2, 0.55], [0.24, 0.8], [0.2, 0.55]], [0.84, 0.79, 0.68], { sky: 0.96, segs: 6, cap0: 'round', cap1: 'round' });
+          op.tube([[hx + fx * 0.45, hy + 0.3, hz + fz * 0.45], [hx + fx * 1.15, hy + 0.12, hz + fz * 1.15], [hx + fx * 1.5, hy - 0.2, hz + fz * 1.5]], [0.42, 0.3, 0.16], BONE, { sky: 0.96, segs: 6, cap0: 'none', cap1: 'round' });
+          for (const sd of [-1, 1]) { op.cone(hx + sx * sd * 0.4 + fx * 0.2, hy + 0.75, hz + sz * sd * 0.4 + fz * 0.2, [fx * 0.75 + sx * sd * 0.35, 0.62, fz * 0.75 + sz * sd * 0.35], 1.9, 0.17, BONE, { sky: 0.96, segs: 6 }); op.ball(hx + sx * sd * 0.36 + fx * 0.5, hy + 0.5, hz + sz * sd * 0.36 + fz * 0.5, 0.17, [0.12, 0.1, 0.09], { sky: 0.9, n: 2 }); }
+          op.cone(hx + fx * 1.2, hy + 0.2, hz + fz * 1.2, [fx * 0.5, 0.9, fz * 0.5], 0.6, 0.11, BONE, { sky: 0.96, segs: 5 }); }
+        if (!far) { op.curMat = 31; for (let i = 0; i < 9; i++) { const hv = U.hash3(i, k, 3, 5511), s0 = (i - 4) * 1.02 + (hv - 0.5) * 0.5, len = 1.0 + hv * 3.4 + (Math.abs(s0) > 3 ? 2.2 : 0), y0 = fy + 7.35 + (Math.abs(s0) > 3.6 ? -0.4 : 0), pts = []; if (Math.abs(s0) < 2.3 && len > 2.3) continue; for (let q = 0; q <= 3; q++) { const t = q / 3; pts.push([px + sx * s0 + fx * (0.78 + 0.1 * t), y0 - len * t, pz + sz * s0 + fz * (0.78 + 0.1 * t)]); } op.ribbon(pts, [0.09, 0.22, 0.2, 0.03], i % 2 ? [0.16, 0.5, 0.22] : [0.24, 0.6, 0.24], { sky: 0.96, droop: 0.1, tip: [0.5, 0.78, 0.36] }); } op.curMat = 0; }
+        for (const sd of [-1, 1]) { const bx = px + sx * sd * 3.3 + fx * 2.3, bz = pz + sz * sd * 3.3 + fz * 2.3; let gy = fy; for (let d = 4; d >= -5; d--) if (isOpaque(get(Math.floor(bx), fy - 1 + d, Math.floor(bz)))) { gy = fy + d; break; } // a bowl of fire on a stub of rock, each side of the way
+          op.curMat = 3; op.tube([[bx, gy - 0.4, bz], [bx, gy + 1.0, bz]], [0.5, 0.36], ROCK, { sky: 0.96, segs: 6, cap0: 'none', cap1: 'flat', shade: rk(sd + 9) }); op.blob(bx - 0.62, gy + 0.9, bz - 0.62, bx + 0.62, gy + 1.4, bz + 0.62, 0.8, [0.42, 0.4, 0.38], { sky: 0.96, n: 2, tap: [0.6, 1.1] }); op.curMat = 0;
+          for (const [o, r, c, h2] of [[0, 0.34, [1.0, 0.5, 0.12], 1.0], [0.12, 0.22, [1.0, 0.78, 0.25], 0.75], [-0.1, 0.13, [1.0, 0.95, 0.6], 0.5]]) op.cone(bx + o * 0.4, gy + 1.3, bz - o * 0.3, [o * 0.3, 1, 0.1 * o], h2, r, c, { sky: 1, emis: true, segs: 5 }); }
+      };
+      // ---- the way through, under the hill: one skin of rock from gateway to gateway. It stands a little outside the blocks it was cut from, which are still there to walk into and are never drawn. Each end of it is buried in the stones of a gateway, so no edge of it shows. Bowls of fire on brackets down the walls ----
+      const bore = () => { const ix = T.ix, iz = T.iz, sx = -iz, sz = ix, hl = T.len / 2, mxl = ((T.ax + ix * hl - ox) % W + W * 1.5) % W - W / 2, mzl = ((T.az + iz * hl - oz) % W + W * 1.5) % W - W / 2; if (Math.hypot(mxl - 8, mzl - 8) > hl + 16) return;
+        const ax0 = mxl - ix * hl, az0 = mzl - iz * hl, S = (k) => T.ya + (T.yb - T.ya) * (k / T.len), ss = (a, b, x) => { const t = Math.max(0, Math.min(1, (x - a) / (b - a))); return t * t * (3 - 2 * t); }, ks = [T.pa - 1.5]; for (let k = T.pa - 0.5; k <= T.pb + 0.5; k++) ks.push(k); ks.push(T.pb + 1.5);
+        const NS = 12, BEDS = [[0.6, 0.47, 0.4], [0.7, 0.6, 0.48], [0.56, 0.45, 0.43], [0.72, 0.65, 0.54]];
+        const rings = ks.map((k, r) => { const end = r === 0 || r === ks.length - 1, f = S(k) + 1, w = ss(T.pa + 0.5, T.pa + 4.5, k) * (1 - ss(T.pb - 4.5, T.pb - 0.5, k)), crown = end ? Math.round(S(k)) + 8.45 : f + 4.4 + 1.4 * w, Wd = end ? 3.3 : 3.12, foot = f - 0.9;
+          const day = Math.max(Math.exp(-(k - T.pa + 1.5) / 3.4), Math.exp(-(T.pb + 1.5 - k) / 3.4)), sky = 0.12 + 0.84 * day, pts = [], cols = [];
+          for (let i = 0; i <= NS; i++) { const a = i / NS * Math.PI, ca = Math.cos(a), sa = Math.sin(a), rough = end ? 0 : (U.hash3(r, i, 5, 5531) - 0.5) * 0.44, lat = -Math.sign(ca) * Math.pow(Math.abs(ca), end ? 0.35 : 0.5) * (Wd + rough * Math.abs(ca)), y = foot + (crown - foot) * Math.pow(sa, 0.72) + rough * sa * 0.5, x = ax0 + ix * k + sx * lat, z = az0 + iz * k + sz * lat;
+            const bi = Math.floor((y + 2.2 * U.vnoise2(x + ox, z + oz, 7, W, world.seed + 4431)) / 2.3), bc = BEDS[((bi % 4) + 4) % 4], tone = (0.84 + 0.3 * U.hash3(r, i, 7, 5535)) * (0.74 + 0.26 * Math.min(1, (y - f) / 1.6 + 0.5)); // darker and damper near the floor
+            pts.push([x, y, z]); cols.push([bc[0] * tone, bc[1] * tone, bc[2] * tone]); }
+          return { k, pts, cols, sky, f, crown, foot, w, Wd }; });
+        op.curMat = 32;
+        for (let r = 0; r + 1 < rings.length; r++) { const A = rings[r], Bn = rings[r + 1], km = (A.k + Bn.k) / 2, axc = [ax0 + ix * km, (A.f + Bn.f) / 2 + 2.2, az0 + iz * km];
+          for (let i = 0; i < NS; i++) { const p = [A.pts[i], Bn.pts[i], Bn.pts[i + 1], A.pts[i + 1]], mx = (p[0][0] + p[1][0] + p[2][0] + p[3][0]) / 4, my = (p[0][1] + p[1][1] + p[2][1] + p[3][1]) / 4, mz = (p[0][2] + p[1][2] + p[2][2] + p[3][2]) / 4; if (!inC(mx, mz)) continue;
+            const ux = p[1][0] - p[0][0], uy = p[1][1] - p[0][1], uz = p[1][2] - p[0][2], vx = p[3][0] - p[0][0], vy = p[3][1] - p[0][1], vz = p[3][2] - p[0][2]; let n = [uy * vz - uz * vy, uz * vx - ux * vz, ux * vy - uy * vx]; const l = Math.hypot(n[0], n[1], n[2]) || 1; n = [n[0] / l, n[1] / l, n[2] / l];
+            if (n[0] * (axc[0] - mx) + n[1] * (axc[1] - my) + n[2] * (axc[2] - mz) < 0) n = [-n[0], -n[1], -n[2]]; // every face of it looks in at the way through
+            const c = [A.cols[i], Bn.cols[i], Bn.cols[i + 1], A.cols[i + 1]], sk = [A.sky, Bn.sky, Bn.sky, A.sky], flip = (uy * vz - uz * vy) * n[0] + (uz * vx - ux * vz) * n[1] + (ux * vy - uy * vx) * n[2] < 0;
+            if (flip) op.quad([p[1], p[0], p[3], p[2]], [c[1], c[0], c[3], c[2]], [sk[1], sk[0], sk[3], sk[2]], false, [n, n, n, n]); else op.quad(p, c, sk, false, [n, n, n, n]); } }
+        if (far) { op.curMat = 0; return; }
+        // what hangs from the roof, and what has come down off the walls and lies along the foot of them
+        for (let r = 3; r + 3 < rings.length; r++) { const A = rings[r], hv = U.hash3(r, 3, 9, 5533), bxk = ax0 + ix * A.k, bzk = az0 + iz * A.k;
+          if (A.w > 0.6 && hv < 0.6) { const lat = (((hv * 41) % 1) - 0.5) * 3.4, cc = Math.min(0.999, Math.pow(Math.abs(lat) / A.Wd, 2)), yT = A.foot + (A.crown - A.foot) * Math.pow(Math.sqrt(1 - cc * cc), 0.72), len = 0.45 + ((hv * 17) % 1) * 1.0, x = bxk + sx * lat, z = bzk + sz * lat; if (inC(x, z)) op.cone(x, yT + 0.25, z, [0, -1, 0], len + 0.25, 0.13 + len * 0.13, [0.52, 0.45, 0.4], { sky: A.sky, segs: 5 }); }
+          for (const sd of [-1, 1]) { const h2 = U.hash3(r, sd + 5, 11, 5537); if (h2 > 0.5) continue; const lat = sd * (2.92 + h2 * 0.3), x = bxk + sx * lat + ix * (h2 - 0.25), z = bzk + sz * lat + iz * (h2 - 0.25), sz2 = 0.3 + h2 * 0.5, fb = Math.round(S(A.k)) + 1; if (!inC(x, z)) continue;
+            const tn = 0.8 + h2 * 0.5; op.blob(x - sz2, fb - 0.25, z - sz2, x + sz2, fb + sz2 * 1.25, z + sz2, 0.8, [0.5 * tn, 0.44 * tn, 0.39 * tn], { sky: A.sky, n: 2 }); } }
+        // the lamps: a stub of rock out of the wall, a stone bowl on it, fire in the bowl
+        for (const [wx, wy, wz, sd] of world.lostLamps()) { const lx2 = ((wx - ox) % W + W * 1.5) % W - W / 2, lz2 = ((wz - oz) % W + W * 1.5) % W - W / 2; if (!inC(lx2, lz2)) continue; const bx = lx2 - sx * sd * 0.5, bz = lz2 - sz * sd * 0.5, by = wy - 0.5;
+          op.curMat = 32; op.tube([[lx2 + sx * sd * 0.35, by - 0.75, lz2 + sz * sd * 0.35], [lx2 - sx * sd * 0.1, by - 0.5, lz2 - sz * sd * 0.1], [bx, by - 0.3, bz]], [0.34, 0.3, 0.24], [0.46, 0.41, 0.37], { sky: 0.3, segs: 5, cap0: 'none', cap1: 'flat' });
+          op.blob(bx - 0.42, by - 0.32, bz - 0.42, bx + 0.42, by + 0.06, bz + 0.42, 0.8, [0.3, 0.28, 0.26], { sky: 0.4, n: 2, tap: [0.6, 1.1] }); op.curMat = 0;
+          for (const [o, r, c, h2] of [[0, 0.24, [1.0, 0.5, 0.12], 0.7], [0.12, 0.16, [1.0, 0.78, 0.25], 0.52], [-0.1, 0.09, [1.0, 0.95, 0.6], 0.36]]) op.cone(bx + o * 0.3, by, bz - o * 0.25, [o * 0.3, 1, 0.1 * o], h2, r, c, { sky: 1, emis: true, segs: 5 }); }
+        op.curMat = 0; };
+      if (T.pa != null) { portal(T.pa - 1.5, -1); portal(T.pb + 1.5, 1); bore(); }
+      // ---- the tyrant's ground: bare trodden earth, the ribs and skull of something very large that lost, a ring of old bones, and to one side a nest of piled branches with three eggs in it ----
+      if (dC < 34) { const BONE = [0.92, 0.88, 0.78], BONE2 = [0.8, 0.75, 0.64], gAt = (x, z) => world.colInfo(ox + Math.floor(x), oz + Math.floor(z)).h + 1;
+        const ang = U.hash3(3, 1, 4, world.seed % 9973) * 6.2832, ax = Math.cos(ang), az = Math.sin(ang), kx = CXl + ax * 12.5, kz = CZl + az * 12.5; // the carcass lies off to one side, pointing round the clearing
+        { const tx = -az, tz = ax, g0 = gAt(kx, kz);
+          const sp = []; for (let i = 0; i <= 8; i++) { const t = i / 8 * 2 - 1; sp.push([kx + tx * t * 5.2, g0 + 1.75 - t * t * 0.9, kz + tz * t * 5.2]); } if (inC(kx, kz)) op.tube(sp, sp.map((_, i) => 0.2 - Math.abs(i - 4) * 0.02), BONE, { sky: 0.96, segs: 6, cap0: 'round', cap1: 'round' });
+          for (let i = 0; i < 7; i++) { const t = (i - 3) / 3.4, cx2 = kx + tx * t * 3.6, cz2 = kz + tz * t * 3.6, top = g0 + 1.75 - t * t * 0.7, wR = 2.0 - Math.abs(t) * 0.7; if (!inC(cx2, cz2)) continue; for (const sd of [-1, 1]) { const pts = []; for (let q = 0; q <= 5; q++) { const a = q / 5 * 2.2; pts.push([cx2 + ax * sd * Math.sin(a) * wR, top - (1 - Math.cos(a)) * (top - g0) * 0.62, cz2 + az * sd * Math.sin(a) * wR]); } op.tube(pts, [0.13, 0.12, 0.11, 0.1, 0.08, 0.04], i % 2 ? BONE : BONE2, { sky: 0.96, segs: 5, cap0: 'none', cap1: 'round' }); } }
+          { const hx = kx + tx * 6.3, hz = kz + tz * 6.3; if (inC(hx, hz)) { const hy = gAt(hx, hz); op.blob(hx - 0.95, hy - 0.1, hz - 0.95, hx + 0.95, hy + 1.3, hz + 0.95, 0.8, BONE, { sky: 0.96, n: 3 }); op.tube([[hx + tx * 0.7, hy + 0.55, hz + tz * 0.7], [hx + tx * 1.9, hy + 0.4, hz + tz * 1.9], [hx + tx * 2.6, hy + 0.12, hz + tz * 2.6]], [0.6, 0.45, 0.24], BONE, { sky: 0.96, segs: 7, cap0: 'none', cap1: 'round' });
+              for (const sd of [-1, 1]) { op.ball(hx + tx * 0.75 + ax * sd * 0.55, hy + 0.78, hz + tz * 0.75 + az * sd * 0.55, 0.24, [0.12, 0.1, 0.09], { sky: 0.9, n: 2 }); op.cone(hx + ax * sd * 0.6, hy + 1.1, hz + az * sd * 0.6, [ax * sd * 0.5 - tx * 0.4, 0.8, az * sd * 0.5 - tz * 0.4], 1.5, 0.2, BONE2, { sky: 0.96, segs: 6 }); }
+              for (let q = 0; q < 6; q++) op.cone(hx + tx * (1.2 + q * 0.26) + ax * (q % 2 ? 0.3 : -0.3), hy + 0.12, hz + tz * (1.2 + q * 0.26) + az * (q % 2 ? 0.3 : -0.3), [0, -1, 0], 0.3, 0.07, [0.97, 0.95, 0.88], { sky: 0.96, segs: 4 }); } } }
+        for (let i = 0; i < 14; i++) { const a = i * 2.39996 + 1.1, r = 5 + ((i * 7) % 11) * 1.25, x = CXl + Math.cos(a) * r, z = CZl + Math.sin(a) * r; if (!inC(x, z)) continue; const g = gAt(x, z), b = a * 3.1 + i, l = 0.55 + (i % 4) * 0.22; // old bones lying about
+          op.tube([[x - Math.cos(b) * l, g + 0.1, z - Math.sin(b) * l], [x + Math.cos(b) * l, g + 0.1, z + Math.sin(b) * l]], [0.085, 0.085], i % 3 ? BONE2 : BONE, { sky: 0.96, segs: 5, cap0: 'round', cap1: 'round' }); for (const e of [-1, 1]) op.ball(x + Math.cos(b) * l * e, g + 0.12, z + Math.sin(b) * l * e, 0.13, i % 3 ? BONE2 : BONE, { sky: 0.96, n: 1 }); }
+        { const nx0 = CXl - ax * 13 + az * 4, nz0 = CZl - az * 13 - ax * 4; if (inC(nx0, nz0)) { const g = gAt(nx0, nz0), WOOD = [0.42, 0.3, 0.2]; // the nest
+            for (let lv = 0; lv < 3; lv++) for (let i = 0; i < 9; i++) { const a = i / 9 * 6.2832 + lv * 0.37, rr = 2.5 - lv * 0.22, a2 = a + 0.9 + ((i * 5 + lv) % 3) * 0.2; op.tube([[nx0 + Math.cos(a) * rr, g + 0.16 + lv * 0.3, nz0 + Math.sin(a) * rr], [nx0 + Math.cos((a + a2) / 2) * (rr + 0.25), g + 0.3 + lv * 0.3, nz0 + Math.sin((a + a2) / 2) * (rr + 0.25)], [nx0 + Math.cos(a2) * rr, g + 0.2 + lv * 0.3, nz0 + Math.sin(a2) * rr]], [0.12, 0.15, 0.11], [WOOD[0] * (0.8 + (i % 3) * 0.14), WOOD[1] * (0.8 + (i % 3) * 0.14), WOOD[2] * (0.8 + (i % 3) * 0.14)], { sky: 0.96, segs: 5, cap0: 'round', cap1: 'round' }); }
+            for (let i = 0; i < 3; i++) { const a = i * 2.094 + 0.4, x = nx0 + Math.cos(a) * 0.72, z = nz0 + Math.sin(a) * 0.72; op.blob(x - 0.48, g + 0.1, z - 0.48, x + 0.48, g + 1.3, z + 0.48, 1, [0.9, 0.86, 0.72], { sky: 0.96, n: 4, tap: [1.12, 0.72], shade: (p) => (U.hash3(Math.round(p[0] * 4.5), Math.round(p[1] * 4.5), Math.round(p[2] * 4.5), 31 + i) > 0.7 ? [0.56, 0.4, 0.3] : null) }); } } }
+      }
+    };
     // ---- the Lost World: every tree is drawn whole, from the chunk's own list of the trees that stand in it or lean over it. Only the trunk is blocks.
     // Four storeys: plants with leaves like paddles, tree ferns with fronds as long as a house is wide, the canopy on buttressed trunks,
     // and giants that stand clear of all of it, hung with lianas. Each chunk draws the pieces whose middle lies in it ----
@@ -1543,6 +1668,7 @@ const R = (() => {
     };
     if (atl) drawAtlantis();
     if (chunk.jtrees) for (const t of chunk.jtrees) drawJungle(t);
+    if (world.lost && Math.hypot(((ox + 8 - world.lost.x) % WORLD_W + WORLD_W * 1.5) % WORLD_W - WORLD_W / 2, ((oz + 8 - world.lost.z) % WORLD_W + WORLD_W * 1.5) % WORLD_W - WORLD_W / 2) < world.lost.rim + 34) drawLost();
     if (lostC) for (let lx = 0; lx < CH; lx++) for (let lz = 0; lz < CH; lz++) { // on the still reaches of the rivers float round leaves as wide as a table, their rims turned up like trays, lying in drifts; here and there a flower on the water
       const wx = ox + lx, wz = oz + lz; if (U.hash3(wx, 61, wz, 977) > 0.012 + 0.13 * Math.pow(U.vnoise2(wx, wz, 9, WORLD_W, world.seed + 613), 2.4) || get(lx, LOST_WATER, lz) !== B.WATER || get(lx, LOST_WATER + 1, lz) !== B.AIR) continue;
       let open = true; for (let a = -1; a <= 1 && open; a++) for (let b = -1; b <= 1; b++) if (get(lx + a, LOST_WATER, lz + b) !== B.WATER) { open = false; break; } if (!open) continue;
@@ -1565,7 +1691,7 @@ const R = (() => {
         const wx = ox + lx, wz = oz + lz;
         const vr = SOIL.has(id) ? 0.98 + U.hash3(wx, y, wz, 5) * 0.03 : 0.92 + U.hash3(wx, y, wz, 5) * 0.12; // per-block variation (the ground keeps almost none: its shader paints it smoothly)
         if (id === B.STATUE) continue; // drawn as an entity
-        if (id === B.ATLAN || id === B.AGLASS || id === B.ALIGHT || id === B.JLOG || id === B.BOOKS) continue; // Atlantis is never blocks, nor is a trunk in the Lost World: drawn whole, above
+        if (id === B.ATLAN || id === B.AGLASS || id === B.ALIGHT || id === B.JLOG || id === B.BOOKS || id === B.MEGA) continue; // Atlantis is never blocks, nor is a trunk in the Lost World: drawn whole, above
         if ((id === B.SAIL || id === B.WEAVE || id === B.BEAM) && reefHere()) { let mine = null, skip = false; // part of a reef house or its sail: drawn whole, by the peak
           for (const t of reefTents()) { const ax = Math.abs(lx - t.x), az = Math.abs(lz - t.z);
             if (id === B.SAIL) { if (ax <= t.rr && az <= t.rr && y <= t.y && y >= t.y - t.rr) { skip = true; if (ax === 0 && az === 0 && y === t.y) mine = t; } }
@@ -2598,14 +2724,15 @@ const R = (() => {
     state.inAtl = inAtl;
     state.mist = MIST0; if (world.lost && !inAtl && eyeBlock !== B.WATER && player.y > 40) { const L = world.lost, W = WORLD_W, dx = ((player.x - L.x) % W + W * 1.5) % W - W / 2, dz = ((player.z - L.z) % W + W * 1.5) % W - W / 2, k = U.clamp((L.inner - Math.hypot(dx, dz)) / 14, 0, 1); if (k > 0) { state.mist = [LOST_WATER + 3.6, 0.72 * k * (1.3 - 0.45 * state.dayLight), 3.4, 0.3 + 0.7 * state.dayLight];
         const wet = U.mixColor(state.fogColor, [0.74, 0.88, 0.78].map(v => v * (0.25 + 0.75 * state.dayLight)), 0.42 * k); state.fogColor = wet; state.skyColor = wet; state.fogNear = U.lerp(state.fogNear, state.fogFar * 0.5, 0.8 * k * U.clamp((76 - player.y) / 8, 0, 1)); } } // wet green air: the trees pale into it one row behind another
-    if (eyeBlock === B.WATER || eyeBlock === B.BRINE || eyeBlock === B.LAVA || player.y < CORE_TOP || (!inAtl && player.y < world.topAt(Math.floor(player.x), Math.floor(player.z)) - 2)) state.skyPass = false;
+    const inTun = !!world.lost && world.inLostTunnel(player.x, player.y, player.z); // the way into the Lost World is not a cave: the day shows at both ends of it, and the sky is drawn
+    if (eyeBlock === B.WATER || eyeBlock === B.BRINE || eyeBlock === B.LAVA || player.y < CORE_TOP || (!inAtl && !inTun && player.y < world.topAt(Math.floor(player.x), Math.floor(player.z)) - 2)) state.skyPass = false;
     if (eyeBlock === B.WATER) { state.underwater = true; state.fogSky = false; state.fogColor = [0.05, 0.2, 0.45]; state.skyColor = state.fogColor; state.fogNear = 2; state.fogFar = 18; state.tint = [0.6, 0.8, 1.0];
       if (AT && AT.halls) { const W = WORLD_W, dx = ((player.x - AT.x) % W + W * 1.5) % W - W / 2, dz = ((player.z - AT.z) % W + W * 1.5) % W - W / 2, k = U.clamp(1 - (Math.hypot(dx, dz) - AT.RH - 30) / 70, 0, 1); state.fogFar = 18 + 66 * k; state.fogNear = 2 + 14 * k; } }
     else if (eyeBlock === B.BRINE) { state.underwater = true; state.fogSky = false; state.fogColor = [0.35, 0.42, 0.08]; state.skyColor = state.fogColor; state.fogNear = 1; state.fogFar = 9; state.tint = [0.9, 1.0, 0.5]; }
     else if (eyeBlock === B.LAVA) { state.fogSky = false; state.fogColor = [0.9, 0.3, 0.05]; state.skyColor = state.fogColor; state.fogNear = 0.5; state.fogFar = 4; state.tint = [1.2, 0.6, 0.3]; }
     else if (inAtl) { state.dayLight = Math.max(state.dayLight, 0.9); state.sun = [0.17, 0.97, 0.17]; state.sunAmt = 1; state.sunCol = [0.92, 0.98, 1.0]; state.tint = [1, 1, 1]; /* under the dome it is lit like day whatever the hour above, and the light comes straight down through the eye: no long shadows off the reef at dusk, no night */ const k = 0.3 + 0.7 * state.dayLight; state.fogSky = false; state.fogColor = [0.05 * k, 0.34 * k, 0.5 * k]; state.skyColor = state.fogColor; state.zenith = [0.16 * k, 0.6 * k, 0.74 * k]; state.clouds = 0; state.fogNear = 46; state.fogFar = 150; state.ambient = 0.18 + 0.3 * state.dayLight; }
     else if (player.y < CORE_TOP) { state.inCore = true; state.fogSky = false; state.fogColor = [0.2, 0.05, 0.015]; state.skyColor = state.fogColor; state.fogNear = 10; state.fogFar = 56; state.ambient = 0.3; state.tint = [1.08, 0.9, 0.82]; }
-    else if (player.y < world.topAt(Math.floor(player.x), Math.floor(player.z)) - 2) { state.fogSky = false; state.fogColor = [0.0, 0.0, 0.0]; state.skyColor = state.fogColor; state.fogNear = 10; state.fogFar = 48; }
+    else if (!inTun && player.y < world.topAt(Math.floor(player.x), Math.floor(player.z)) - 2) { state.fogSky = false; state.fogColor = [0.0, 0.0, 0.0]; state.skyColor = state.fogColor; state.fogNear = 10; state.fogFar = 48; }
   }
 
   function render(world, player, entities, cam, extras) {
