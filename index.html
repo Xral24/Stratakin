@@ -617,7 +617,7 @@ select { font-family: var(--font); font-size: 14px; padding: 9px 11px; border-ra
     </div>
   </div>
   <div id="b-snare" class="hidden">
-    <div class="snare-tip">Swing the net round and round to open it, then flick it at the Kin.</div>
+    <div class="snare-tip">Swing the net round to open it, flick it at the Kin, then swirl the other way fast to draw it shut.</div>
     <canvas id="snare-net" width="640" height="560"></canvas>
     <div class="snare-track"><div class="snare-zone"></div><div class="snare-marker"></div></div>
     <button id="snare-go">Set the snare!</button>
@@ -14723,9 +14723,9 @@ const Battle = (() => {
   // ---- the cast net. You swing it round your hand to open it (the longer you swing, the wider it flies open) and then flick it at the Kin, which will not stand still for you. It lands where the flick sends it, a moment later, so you throw at where the Kin is going. A net thrown shut is a small target
   const NW = 640, NH = 560, HOME = [320, 470];
   function netWire() { const c = el.net; if (!c) return; const at = (ev) => { const r = c.getBoundingClientRect(); return [(ev.clientX - r.left) / r.width * NW, (ev.clientY - r.top) / r.height * NH, performance.now()]; };
-    c.addEventListener('pointerdown', (ev) => { const n = snareState && snareState.net; if (!n || n.phase !== 'aim') return; ev.preventDefault(); try { c.setPointerCapture(ev.pointerId); } catch (e) { /* fine */ } n.down = true; n.trail = [at(ev)]; n.lastA = null; });
-    c.addEventListener('pointermove', (ev) => { const n = snareState && snareState.net; if (!n || !n.down || n.phase !== 'aim') return; const p = at(ev); n.trail.push(p); if (n.trail.length > 12) n.trail.shift(); const a = Math.atan2(p[1] - HOME[1], p[0] - HOME[0]); if (n.lastA != null) { let d = a - n.lastA; while (d > Math.PI) d -= Math.PI * 2; while (d < -Math.PI) d += Math.PI * 2; if (Math.abs(d) < 1.2) { n.turn += d; n.spin = Math.min(1, n.spin + Math.abs(d) / (Math.PI * 4)); } } n.lastA = a; n.hand = [p[0], p[1]]; });
-    const up = (ev) => { const n = snareState && snareState.net; if (!n || !n.down || n.phase !== 'aim') return; n.down = false; const T = n.trail, last = T[T.length - 1]; let first = T[0]; for (const q of T) if (last[2] - q[2] <= 110) { first = q; break; } const dt = Math.max(16, last[2] - first[2]) / 1000, vx = (last[0] - first[0]) / dt, vy = (last[1] - first[1]) / dt;
+    c.addEventListener('pointerdown', (ev) => { const n = snareState && snareState.net; if (n && n.phase === 'close') { ev.preventDefault(); try { c.setPointerCapture(ev.pointerId); } catch (e) { /* fine */ } n.cdown = true; n.lastC = null; return; } if (!n || n.phase !== 'aim') return; ev.preventDefault(); try { c.setPointerCapture(ev.pointerId); } catch (e) { /* fine */ } n.down = true; n.trail = [at(ev)]; n.lastA = null; });
+    c.addEventListener('pointermove', (ev) => { const n = snareState && snareState.net; if (n && n.phase === 'close') { const p = at(ev), a = Math.atan2(p[1] - n.fly.y1, p[0] - n.fly.x1); if (n.lastC != null) { let d = a - n.lastC; while (d > Math.PI) d -= Math.PI * 2; while (d < -Math.PI) d += Math.PI * 2; if (Math.abs(d) < 1.4 && d * n.cdir > 0) n.tight = Math.min(1, n.tight + Math.abs(d) / (Math.PI * 3)); } n.lastC = a; return; } /* drawing it shut: only turns the other way from the swing count, a turn and a half of them */ if (!n || !n.down || n.phase !== 'aim') return; const p = at(ev); n.trail.push(p); if (n.trail.length > 12) n.trail.shift(); const a = Math.atan2(p[1] - HOME[1], p[0] - HOME[0]); if (n.lastA != null) { let d = a - n.lastA; while (d > Math.PI) d -= Math.PI * 2; while (d < -Math.PI) d += Math.PI * 2; if (Math.abs(d) < 1.2) { n.turn += d; n.spin = Math.min(1, n.spin + Math.abs(d) / (Math.PI * 4)); } } n.lastA = a; n.hand = [p[0], p[1]]; });
+    const up = (ev) => { const n = snareState && snareState.net; if (n && n.phase === 'close') { n.lastC = null; return; } if (!n || !n.down || n.phase !== 'aim') return; n.down = false; const T = n.trail, last = T[T.length - 1]; let first = T[0]; for (const q of T) if (last[2] - q[2] <= 110) { first = q; break; } const dt = Math.max(16, last[2] - first[2]) / 1000, vx = (last[0] - first[0]) / dt, vy = (last[1] - first[1]) / dt;
       if (vy > -420 || T.length < 3) { n.hand = null; return; } // not a throw: it has to go away from you with some snap in it
       const reach = 0.36, x1 = U.clamp(last[0] + vx * reach, 30, NW - 30), y1 = U.clamp(last[1] + vy * reach, 40, NH - 150); n.phase = 'fly'; n.fly = { x0: last[0], y0: last[1], x1, y1, u: 0, bend: Math.sign(n.turn || 1) * n.spin * 46 }; G.sfx('snare'); };
     c.addEventListener('pointerup', up); c.addEventListener('pointercancel', up); }
@@ -14742,13 +14742,18 @@ const Battle = (() => {
       const h = n.hand || HOME; if (n.hand) { g.strokeStyle = 'rgba(245,235,200,.7)'; g.lineWidth = 3; g.beginPath(); g.moveTo(HOME[0], HOME[1]); g.lineTo(h[0], h[1]); g.stroke(); } mesh(h[0], h[1], 16 + 22 * n.spin, n.turn);
       g.fillStyle = 'rgba(255,255,255,.75)'; g.font = '600 20px system-ui,sans-serif'; g.fillText(n.spin < 0.15 ? 'swing it round here' : n.spin < 0.98 ? 'keep swinging, then flick' : 'wide open: flick!', HOME[0], NH - 14); }
     else if (n.phase === 'fly') { const f = n.fly, u = f.u, e2 = 1 - (1 - u) * (1 - u), x = f.x0 + (f.x1 - f.x0) * e2 + Math.sin(u * Math.PI) * f.bend, y = f.y0 + (f.y1 - f.y0) * e2 - Math.sin(u * Math.PI) * 40; mesh(x, y, n.R * open * (0.25 + 0.75 * u), n.turn + u * 5 * Math.sign(n.turn || 1)); }
-    else { const f = n.fly; mesh(f.x1, f.y1, n.R * open, n.turn, n.res === 'ok' ? '#7fe0c0' : '#ff8a70'); g.fillStyle = n.res === 'ok' ? '#7fe0c0' : '#ff8a70'; g.font = '800 30px system-ui,sans-serif'; g.fillText(n.res === 'ok' ? 'Got it!' : 'Missed!', NW / 2, NH - 40); } }
+    else if (n.phase === 'close') { const f = n.fly, r = n.R * open * (1 - 0.55 * n.tight) + 14; mesh(f.x1, f.y1, r, n.turn + n.tight * 4 * n.cdir, n.tight > 0.6 ? '#7fe0c0' : 'rgba(245,235,200,.95)');
+      g.strokeStyle = 'rgba(255,255,255,.2)'; g.lineWidth = 12; g.beginPath(); g.arc(f.x1, f.y1, r + 22, 0, 6.3); g.stroke(); g.strokeStyle = '#ff8a70'; g.beginPath(); g.arc(f.x1, f.y1, r + 22, -Math.PI / 2, -Math.PI / 2 + 6.283 * n.esc); g.stroke(); // how long before it is out
+      const cx = NW / 2, cy = NH - 110, ccw = n.cdir < 0; g.strokeStyle = '#ffd45a'; g.lineWidth = 9; g.beginPath(); g.arc(cx, cy, 44, ccw ? 0.6 : Math.PI - 0.6, ccw ? Math.PI + 0.9 : -0.9, ccw); g.stroke(); const ea = ccw ? Math.PI + 0.9 : -0.9, ex = cx + Math.cos(ea) * 44, ey = cy + Math.sin(ea) * 44, ta = ea + (ccw ? -1 : 1) * Math.PI / 2; g.fillStyle = '#ffd45a'; g.beginPath(); g.moveTo(ex + Math.cos(ta) * 20, ey + Math.sin(ta) * 20); g.lineTo(ex + Math.cos(ta + 2.5) * 16, ey + Math.sin(ta + 2.5) * 16); g.lineTo(ex + Math.cos(ta - 2.5) * 16, ey + Math.sin(ta - 2.5) * 16); g.fill();
+      g.fillStyle = '#fff'; g.font = '800 24px system-ui,sans-serif'; g.fillText('Now the other way, fast!', NW / 2, NH - 24); }
+    else { const f = n.fly, okc = n.res === 'ok'; mesh(f.x1, f.y1, n.R * open * (okc ? 0.45 : 1) + (okc ? 14 : 0), n.turn, okc ? '#7fe0c0' : '#ff8a70'); g.fillStyle = okc ? '#7fe0c0' : '#ff8a70'; g.font = '800 30px system-ui,sans-serif'; g.fillText(okc ? 'Got it!' : n.res === 'loose' ? 'Too slow: it got out from under!' : 'Missed!', NW / 2, NH - 40); } }
   function snareFrame() {
     if (!snareState) return; const n = snareState.net; if (!n) return; const now = performance.now(), dt = Math.min(0.05, (now - n.last) / 1000); n.last = now;
     if (snareState.done && n.phase === 'aim') return; if (!snareState.done && n.phase === 'done') { const keepR = n.R; netStart(); snareState.net.R = keepR * 0.9; return requestAnimationFrame(snareFrame); } // it strains against the net: throw another over it, and it is quicker now
-    if (n.phase !== 'land' && n.phase !== 'done') { n.t += dt * n.speed; const ox = n.kx; n.kx = 320 + Math.sin(n.t * 6.283) * 215 + Math.sin(n.t * 6.283 * 3.3 + 1) * 215 * n.jit * 0.4; n.ky = 130 + Math.sin(n.t * 6.283 * 1.7) * 34; n.vx = n.kx - ox; }
+    if (n.phase === 'close') { n.kx += Math.sin(now / 28) * 2.2 * (1 - n.tight); } else if (n.phase !== 'land' && n.phase !== 'done') { n.t += dt * n.speed; const ox = n.kx; n.kx = 320 + Math.sin(n.t * 6.283) * 215 + Math.sin(n.t * 6.283 * 3.3 + 1) * 215 * n.jit * 0.4; n.ky = 130 + Math.sin(n.t * 6.283 * 1.7) * 34; n.vx = n.kx - ox; }
     if (n.phase === 'aim' && !n.down) n.spin = Math.max(0, n.spin - dt * 0.25); // it closes again if you stop swinging
-    if (n.phase === 'fly') { n.fly.u += dt / 0.42; if (n.fly.u >= 1) { n.fly.u = 1; n.phase = 'land'; const open = 0.42 + 0.58 * n.spin, d = Math.hypot(n.fly.x1 - n.kx, n.fly.y1 - n.ky); n.res = !snareState.hopeless && d < n.R * open + 12 ? 'ok' : 'miss'; n.resT = 0.6; } }
+    if (n.phase === 'fly') { n.fly.u += dt / 0.42; if (n.fly.u >= 1) { n.fly.u = 1; n.phase = 'land'; const open = 0.42 + 0.58 * n.spin, d = Math.hypot(n.fly.x1 - n.kx, n.fly.y1 - n.ky); const on = !snareState.hopeless && d < n.R * open + 12; if (on) { n.phase = 'close'; n.tight = 0; n.esc = 0; n.cdir = -Math.sign(n.turn || 1); n.lastC = null; n.window = U.clamp(1.55 - (wild.sp.rarity || 0) * 0.16 - (1 - n.spin) * 0.35, 0.75, 1.6) * (snareState.hits ? 0.9 : 1); } else { n.res = 'miss'; n.resT = 0.6; } } }
+    else if (n.phase === 'close') { n.esc += dt / n.window; if (n.tight >= 1) { n.phase = 'land'; n.res = 'ok'; n.resT = 0.55; } else if (n.esc >= 1) { n.phase = 'land'; n.res = 'loose'; n.resT = 0.7; } } // over it, and open: it has this long to get out from under, and you have this long to draw the cord. A net that was thrown wide open sits heavier and gives you longer
     else if (n.phase === 'land') { n.resT -= dt; if (n.resT <= 0) { n.phase = 'done'; netDraw(n); onSnareGo(n.res === 'ok'); return; } }
     netDraw(n); requestAnimationFrame(snareFrame);
   }
@@ -14760,12 +14765,12 @@ const Battle = (() => {
     if (ok) {
       snareState.hits++;
       if (snareState.hits < snareState.need) {
-        log(`The cage holds… ${KIN.name(wild)} strains against it! (${snareState.hits}/${snareState.need})`, 'good'); G.sfx('snare');
+        log(`The net holds… ${KIN.name(wild)} tears at it! Another over the top. (${snareState.hits}/${snareState.need})`, 'good'); G.sfx('snare');
         snareState.left = 0.05 + Math.random() * (0.9 - snareState.width); snareState.period *= 0.85; snareState.t0 = performance.now(); snareState.done = false;
         el.zone.style.left = (snareState.left * 100) + '%';
         el.snare.classList.remove('hidden'); el.root.classList.add('snaring'); requestAnimationFrame(snareFrame); return;
       }
-      log(`The cage snaps shut. ${KIN.name(wild)} is yours!`, 'good'); G.sfx('caught');
+      log(`The net draws tight. ${KIN.name(wild)} is yours!`, 'good'); G.sfx('caught');
       await sleep(900); return end('caught');
     }
     if (bossKin()) { log(`${KIN.name(wild)} tears the cage apart, and the effort finishes it. It falls. One chance, and it is gone.`, 'bad'); G.sfx('miss'); snareState = null; wild.hp = 0; refresh(); await sleep(1100); return end('won'); } // one try at a boss's Kin
@@ -14929,7 +14934,7 @@ const Battle = (() => {
   function dodges(att, def) { att.buffs = att.buffs || buffs(); def.buffs = def.buffs || buffs(); return Math.random() > (move0(att).acc || 0.95) || Math.random() < dodgeChance(att, def); }
   function move0(k) { return KIN.moves(k)[0]; }
   function fxTest(elem, kind, tech, hit) { if (!mineE || !wildE) return -1; return kind === 'util' ? (playUtil(mineE, { name: elem }), 0) : playMove(mineE, wildE, { elem, kind, tech: tech === true, fx: typeof tech === 'string' ? tech : undefined }, hit !== false); } // test hook
-  return { fxTest, init, start, tick, camera, fxEntities, spawnFx, calcDamage, dodges, abort, get active() { return active; }, get mineEntity() { return mineE; }, get wildEntity() { return wildE; } };
+  return { get net() { return snareState && snareState.net; }, fxTest, init, start, tick, camera, fxEntities, spawnFx, calcDamage, dodges, abort, get active() { return active; }, get mineEntity() { return mineE; }, get wildEntity() { return wildE; } };
 })();
 
 </script>
