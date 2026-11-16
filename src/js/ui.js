@@ -322,7 +322,7 @@ const UI = (() => {
     const it = explainQ.shift(); let b = document.getElementById('explain'); if (!it) { explainBusy = false; if (b) b.classList.add('hidden'); return; }
     explainBusy = true; if (!b) { b = document.createElement('div'); b.id = 'explain'; document.getElementById('hud').appendChild(b); b.addEventListener('click', () => { clearTimeout(b._t); nextExplain(); }); }
     b.innerHTML = `<b>${it[0]}</b><div>${it[1]}</div><span class="x">tap to close</span>`; b.classList.remove('hidden');
-    clearTimeout(b._t); b._t = setTimeout(nextExplain, 7000);
+    clearTimeout(b._t); b._t = setTimeout(nextExplain, (window.Battle && Battle.active) ? 1300 : 7000); // in a fight it is only a glance: a second and it is out of the way
   }
   function statBars(k) {
     const st = KIN.stats(k);

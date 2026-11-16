@@ -14,7 +14,6 @@ const Battle = (() => {
     // changed your mind (or pressed Net by accident): the net goes back in the bag and the fight carries on
     const cancel = q('snare-cancel'); const stop = (e) => { e.stopPropagation(); e.preventDefault(); cancelSnare(); };
     cancel.addEventListener('click', stop); cancel.addEventListener('touchstart', stop, { passive: false });
-    el.snare.addEventListener('touchstart', (e) => { e.preventDefault(); onSnareGo(); }, { passive: false });
   }
   function buffs() { return { guard: false, focus: false, coil: false, dash: false, ail: null }; }
   function start(e, isAmbush, opts = {}) {
@@ -340,7 +339,7 @@ const Battle = (() => {
     c.addEventListener('pointerup', up); c.addEventListener('pointercancel', up); }
   // where the Kin is on the screen, and how big
   function netKin(n) { const e = wildE, hh = (e.model.height || 1) * (e.scale || 1), a = R.project(e.x, e.y + (e.hover || 0) + hh * 0.5, e.z), b = R.project(e.x, e.y + (e.hover || 0) + hh, e.z), f = R.project(e.x, e.y, e.z); if (a && a.on && b) { n.kx = a.x; n.ky = a.y; n.kpx = U.clamp(Math.abs(a.y - b.y) * 2, 36, NH * 0.4); n.kfy = f ? f.y : a.y + n.kpx * 0.5; } }
-  function netStart() { const st = snareState, rar = wild.sp.rarity || 0; netFit(); const p = G.player, dx = wildE.x - p.x, dz = wildE.z - p.z, dl = Math.hypot(dx, dz) || 1;
+  function netStart() { const st = snareState, rar = wild.sp.rarity || 0; netFit(); { const ex = document.getElementById('explain'); if (ex) ex.classList.add('hidden'); } const p = G.player, dx = wildE.x - p.x, dz = wildE.z - p.z, dl = Math.hypot(dx, dz) || 1;
     st.net = { phase: 'aim', spin: 0, turn: 0, down: false, trail: [], hand: null, t: Math.random() * 9, kx: NW / 2, ky: NH * 0.35, kpx: 80, kfy: NH * 0.4, diff: st.hopeless ? 0.08 : U.clamp(0.62 + st.width * 1.5, 0.6, 1.2), speed: 1 / Math.max(0.3, st.period * 2.1), jit: 0.2 + rar * 0.12, last: performance.now(), res: null, resT: 0, base: (st.net && st.net.base) || { x: wildE.x, z: wildE.z }, lat: [-dz / dl, dx / dl], reach: (3.6 + (wildE.model.height || 1) * (wildE.scale || 1) * 1.9) * 0.27 }; netKin(st.net); }
   function netHome() { const n = snareState && snareState.net; if (n && n.base && wildE) { wildE.x = n.base.x; wildE.z = n.base.z; } }
   // the net itself: a wheel of mesh seen at a slant. r its radius on the screen, k how flat it lies (1 face on, 0.3 lying on the ground), wave how much the rim is still rippling
