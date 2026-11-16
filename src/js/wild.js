@@ -240,6 +240,7 @@ const Wild = (() => {
       if (y == null) continue;
       if (Math.hypot(x - px, z - pz) < 10) continue;
       if (api.noSpawn && Math.hypot(x - api.noSpawn.x, z - api.noSpawn.z) < api.noSpawn.r) continue;
+      if (typeof First !== 'undefined' && First.quiet(x, z)) continue; /* nothing wild wanders into the camp while you are still finding your first Kin */
       if (typeof Keeps !== 'undefined' && Keeps.near(x, z, 24).length) continue; // nothing wild walks into a hold
       const r = roll(x + 0.5, y, z + 0.5, trainerLevel);
       const e = makeEntity(r.sp, r.level, x + 0.5, y, z + 0.5, { aquatic, elite: r.elite });

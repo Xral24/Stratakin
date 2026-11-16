@@ -9,7 +9,7 @@ const Village = (() => {
   const villages = new Map();   // id -> village record (sites are decided per map cell, deterministically)
   let active = null;            // the village the player is near
   let walkState = null;         // an elder or headman walking up to talk
-  let fisher = null;            // the shoreline quest giver
+  let fisher = null; const loose = []; /* folk who belong to no settlement, like the net-maker at your camp */            // the shoreline quest giver
   let CELL = WORLD_W / 64, NC = 64, PREFIX = '', STYLE = 'land'; // cells per body: one candidate village and one hermit each (set in init from the preset)
   const seaLevel = () => world.preset.water ? SEA : world.preset.brine ? world.preset.brineLevel : -99;
   const FOUND = { wood: 40, wall: 36, radius: 14, apart: 70 };
@@ -222,7 +222,7 @@ const Village = (() => {
   const FULL = { bakery: true, juice: true, trader: true, voodoo: true };
 
   function init(game) {
-    G = game; world = game.world; villages.clear(); hermits.clear(); active = null; activeHermit = null; walkState = null; fisher = null;
+    G = game; world = game.world; villages.clear(); hermits.clear(); active = null; activeHermit = null; walkState = null; fisher = null; loose.length = 0;
     const vd = world.preset.villages || { nc: 64, prefix: '', style: 'land' }; NC = vd.nc; CELL = WORLD_W / NC; PREFIX = vd.prefix || ''; STYLE = vd.style || 'land';
     PLAN = null; PLANNED = null; TRAILS = null; ATL = null; world.atlantis = null; SPECIAL.clear(); LOOK.clear(); towns.clear(); LIFE.clear(); world.overlay = (c) => overlay(c); world.trailWear = (x, z) => trailWear(x, z); world.trackAt = (x, z) => trackAt(x, z);
   }
@@ -2488,7 +2488,7 @@ const Village = (() => {
   function pick(player) {
     const eye = player.eye(); const f = U.forwardVec(player.yaw, player.pitch);
     let best = null, bt = 4.5;
-    const list = (active ? active.npcs : []).concat(fisher ? [fisher] : [], activeHermit && activeHermit.npcs ? activeHermit.npcs : []);
+    const list = (active ? active.npcs : []).concat(fisher ? [fisher] : [], activeHermit && activeHermit.npcs ? activeHermit.npcs : [], loose);
     for (const n of list) {
       if (n.hidden) continue;
       const h = n.model.height * n.model.scale; const cx = n.x, cy = n.y + h / 2, cz = n.z;
@@ -2530,6 +2530,7 @@ const Village = (() => {
   ];
   function talk(n) {
     G.talkNpc = n; // the camera turns to whoever is speaking
+    if (n.onTalk) { n.onTalk(n); return; }
     if (n.atl) { atlTalk(n); return; }
     if (n.shop && active && active.R && fixShop(n)) return;
     if (n.shop === 'station') { UI.openPanel('train', {}); return; }
@@ -2722,6 +2723,7 @@ const Village = (() => {
       for (const g of active.guardEnts) if (g.hitT > 0) g.hitT -= 0.016;
     }
     for (const r of runners) out.push(r.e); /* the creature itself, so its legs and face keep going */
+    if (world.preset.id === 'earth') for (const n of loose) out.push({ x: n.x, y: n.y, z: n.z, yaw: n.yaw, model: n.model, mesh: n.mesh, scale: 1, hover: 0, skyMul: 1, src: n });
     if (fisher && world.preset.fisher) out.push({ x: fisher.x, y: fisher.y, z: fisher.z, yaw: fisher.yaw, model: fisher.model, mesh: fisher.mesh, scale: 1, hover: 0, skyMul: 1, src: fisher });
     if (activeHermit && activeHermit.npcs) for (const n of activeHermit.npcs) out.push({ x: n.x, y: n.y, z: n.z, yaw: n.yaw, model: n.model, mesh: n.mesh, scale: 1, hover: 0, skyMul: 1, src: n });
     return out;
@@ -2809,7 +2811,7 @@ const Village = (() => {
   }
   // which quarter of a city a spot is in (null in the square, on the castle hill, or outside a city)
   function quarterAt(v, x, z) { if (!v || !v.R || v.size !== 'city' || (MATS[v.style] || MATS.land) !== MATS.land) return null; const dx = x - v.x, dz = z - v.z, m = Math.max(Math.abs(dx), Math.abs(dz)); if (m > v.R - 4 || m <= 7 || (Math.abs(dx) <= 14 && dz <= -v.R + 28)) return null; return QUARTERS[quarterOf(dx, dz)].name; }
-  return { designerWall, wallRadiusOf: (v) => wallRadius(state(v.id)), atlantis: () => { if (world && world.preset.id === 'earth') plan(); return ATL; }, railAt, quarterAt, plotsOf, plotPrice, ownsPlotAt, buyPlot, enterShow, thiefCaught, layout, townList, init, stamp, restoreStart, update, pick, talk, entities, buy, boardTrain, trainArrive, trainFilm, trainOf, sell, sellValue, raiseDome, shopDef, freed, onBossGone, lieutenantDown, tableChallenge, placeKit, portalList, portalHere, markers, wakeDialogue, questTarget, dawn, pendingIncome, foundingInfo, foundVillage, summaryHtml, ledger, station, recall, upgradeWall, repairWall, expand, build, postShop, levelOf, SHOPS, WALLS,
+  return { makeNpc, addLoose: (n) => { if (!loose.includes(n)) loose.push(n); }, designerWall, wallRadiusOf: (v) => wallRadius(state(v.id)), atlantis: () => { if (world && world.preset.id === 'earth') plan(); return ATL; }, railAt, quarterAt, plotsOf, plotPrice, ownsPlotAt, buyPlot, enterShow, thiefCaught, layout, townList, init, stamp, restoreStart, update, pick, talk, entities, buy, boardTrain, trainArrive, trainFilm, trainOf, sell, sellValue, raiseDome, shopDef, freed, onBossGone, lieutenantDown, tableChallenge, placeKit, portalList, portalHere, markers, wakeDialogue, questTarget, dawn, pendingIncome, foundingInfo, foundVillage, summaryHtml, ledger, station, recall, upgradeWall, repairWall, expand, build, postShop, levelOf, SHOPS, WALLS,
     get def() { return active ? { x: active.x, y: active.y, z: active.z } : null; }, set def(v) { restoreStart(v); }, get active() { return active; }, get boss() { return active ? active.boss : null; }, get elder() { return active ? active.elder : null; }, get walking() { return !!walkState; }, get fisher() { return fisher; } };
 })();
 

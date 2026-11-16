@@ -6247,6 +6247,8 @@ const KIN = (() => {
     sp.natId = 'x_warden'; sp.natCol = true; sp.size = 1.0; nativize(sp);
     return sp;
   }
+  /* the three by the brook are somebody before you meet them: the coal pup is cross, the tadpole shy, the rose drowsy. Everything else gets the temper its seed gives it */
+  const FIXT = {}; function temperOf(sp) { if (!FIXT.done) { FIXT.done = 1; FIXT[U.combine(SPECIES_SEED.earth, 1)] = 2; FIXT[U.combine(SPECIES_SEED.earth, 2)] = 1; FIXT[U.combine(SPECIES_SEED.earth, 3)] = 4; } const f = FIXT[sp.seed]; return f != null ? f : (sp.seed >>> 0) % 5; }
   function starters(worldSeed) {
     return [
       species(U.combine(SPECIES_SEED.earth, 1), ['Flame'], 0, { primary: 'Flame', shape: 'quadruped', total: 350, hpBonus: 0.25 }),
@@ -10217,7 +10219,7 @@ const KIN = (() => {
     if (!bones[0]) bones[0] = { kind: 'body', piv: [0, 0, 0], runPitch: sp.shape === 'raptor' ? 0.08 : 0 };
     const height = Math.max(...parts.map(b => b.y + b.h));
     const radius = Math.max(...parts.map(b => Math.max(Math.abs(b.x), Math.abs(b.x + b.w), Math.abs(b.z), Math.abs(b.z + b.d))));
-    const M = { boxes: parts, scale: s, hover, height, radius, bones, temper: ((sp.seed >>> 0) % 5 + (sp.boss ? 0 : 0)), legLen: legLen * SY, kind, flyer, sway, shape, native: natDone, fitBody };
+    const M = { boxes: parts, scale: s, hover, height, radius, bones, temper: temperOf(sp), legLen: legLen * SY, kind, flyer, sway, shape, native: natDone, fitBody };
     return sp.neon && form.plan && !natDone ? alienize(M, sp) : M;
   }
   // A Kin turned into an object: material comes from the items, glow from anything burning. The Kin's level makes it bigger and brighter.
@@ -10531,7 +10533,7 @@ const KIN = (() => {
   function serialize(k) { return { id: k.id, sp: k.sp, level: k.level, xp: k.xp, iv: k.iv, stage: k.stage, hp: k.hp, nick: k.nick, equip: k.equip || null, tech: k.tech || null, wear: k.wear || null, trust: k.trust || 0, bond: k.bond || 0, tamed: k.tamed || false }; }
   function deserialize(d) { return Object.assign({ status: null }, d); }
 
-  return { NATIVE, NAT_STEM, nativeLine, nativeColors, nativeId, nativize, childify, formName, LINES, lineOf, maxStage, lookOf, formOf, partHelpers, dress, wearKey, E, EI, CHART, STAT_KEYS, STAT_NAMES, growth, xpToNext, dominant, species, speciesForContext, dex, bySeed, HABITATS, capOf, recipes, findRecipe, fuseRecipe, mythicSpecies, legendSpecies, apexSpecies, wardenSpecies, MAX_LEVEL, TECH, techFor, techByName, starters, create, stats, name, moves, effectiveness, gainXp, fuse, fusionLevel, TRAITS, RARITY, roster, buildUniverse, decorate, makeStatue, statueModel, shardsFor, model, buildMesh, meshKey, portrait, serialize, deserialize, UTIL_DESC, eggModel, eggPortrait };
+  return { NATIVE, NAT_STEM, nativeLine, nativeColors, nativeId, nativize, childify, formName, LINES, lineOf, maxStage, lookOf, formOf, partHelpers, dress, wearKey, E, EI, CHART, STAT_KEYS, STAT_NAMES, growth, xpToNext, dominant, species, speciesForContext, dex, bySeed, HABITATS, capOf, recipes, findRecipe, fuseRecipe, mythicSpecies, legendSpecies, apexSpecies, wardenSpecies, MAX_LEVEL, TECH, techFor, techByName, temperOf, starters, create, stats, name, moves, effectiveness, gainXp, fuse, fusionLevel, TRAITS, RARITY, roster, buildUniverse, decorate, makeStatue, statueModel, shardsFor, model, buildMesh, meshKey, portrait, serialize, deserialize, UTIL_DESC, eggModel, eggPortrait };
 })();
 
 </script>
@@ -10851,6 +10853,7 @@ const Wild = (() => {
       if (y == null) continue;
       if (Math.hypot(x - px, z - pz) < 10) continue;
       if (api.noSpawn && Math.hypot(x - api.noSpawn.x, z - api.noSpawn.z) < api.noSpawn.r) continue;
+      if (typeof First !== 'undefined' && First.quiet(x, z)) continue; /* nothing wild wanders into the camp while you are still finding your first Kin */
       if (typeof Keeps !== 'undefined' && Keeps.near(x, z, 24).length) continue; // nothing wild walks into a hold
       const r = roll(x + 0.5, y, z + 0.5, trainerLevel);
       const e = makeEntity(r.sp, r.level, x + 0.5, y, z + 0.5, { aquatic, elite: r.elite });
@@ -11590,7 +11593,7 @@ const Village = (() => {
   const villages = new Map();   // id -> village record (sites are decided per map cell, deterministically)
   let active = null;            // the village the player is near
   let walkState = null;         // an elder or headman walking up to talk
-  let fisher = null;            // the shoreline quest giver
+  let fisher = null; const loose = []; /* folk who belong to no settlement, like the net-maker at your camp */            // the shoreline quest giver
   let CELL = WORLD_W / 64, NC = 64, PREFIX = '', STYLE = 'land'; // cells per body: one candidate village and one hermit each (set in init from the preset)
   const seaLevel = () => world.preset.water ? SEA : world.preset.brine ? world.preset.brineLevel : -99;
   const FOUND = { wood: 40, wall: 36, radius: 14, apart: 70 };
@@ -11803,7 +11806,7 @@ const Village = (() => {
   const FULL = { bakery: true, juice: true, trader: true, voodoo: true };
 
   function init(game) {
-    G = game; world = game.world; villages.clear(); hermits.clear(); active = null; activeHermit = null; walkState = null; fisher = null;
+    G = game; world = game.world; villages.clear(); hermits.clear(); active = null; activeHermit = null; walkState = null; fisher = null; loose.length = 0;
     const vd = world.preset.villages || { nc: 64, prefix: '', style: 'land' }; NC = vd.nc; CELL = WORLD_W / NC; PREFIX = vd.prefix || ''; STYLE = vd.style || 'land';
     PLAN = null; PLANNED = null; TRAILS = null; ATL = null; world.atlantis = null; SPECIAL.clear(); LOOK.clear(); towns.clear(); LIFE.clear(); world.overlay = (c) => overlay(c); world.trailWear = (x, z) => trailWear(x, z); world.trackAt = (x, z) => trackAt(x, z);
   }
@@ -14069,7 +14072,7 @@ const Village = (() => {
   function pick(player) {
     const eye = player.eye(); const f = U.forwardVec(player.yaw, player.pitch);
     let best = null, bt = 4.5;
-    const list = (active ? active.npcs : []).concat(fisher ? [fisher] : [], activeHermit && activeHermit.npcs ? activeHermit.npcs : []);
+    const list = (active ? active.npcs : []).concat(fisher ? [fisher] : [], activeHermit && activeHermit.npcs ? activeHermit.npcs : [], loose);
     for (const n of list) {
       if (n.hidden) continue;
       const h = n.model.height * n.model.scale; const cx = n.x, cy = n.y + h / 2, cz = n.z;
@@ -14111,6 +14114,7 @@ const Village = (() => {
   ];
   function talk(n) {
     G.talkNpc = n; // the camera turns to whoever is speaking
+    if (n.onTalk) { n.onTalk(n); return; }
     if (n.atl) { atlTalk(n); return; }
     if (n.shop && active && active.R && fixShop(n)) return;
     if (n.shop === 'station') { UI.openPanel('train', {}); return; }
@@ -14303,6 +14307,7 @@ const Village = (() => {
       for (const g of active.guardEnts) if (g.hitT > 0) g.hitT -= 0.016;
     }
     for (const r of runners) out.push(r.e); /* the creature itself, so its legs and face keep going */
+    if (world.preset.id === 'earth') for (const n of loose) out.push({ x: n.x, y: n.y, z: n.z, yaw: n.yaw, model: n.model, mesh: n.mesh, scale: 1, hover: 0, skyMul: 1, src: n });
     if (fisher && world.preset.fisher) out.push({ x: fisher.x, y: fisher.y, z: fisher.z, yaw: fisher.yaw, model: fisher.model, mesh: fisher.mesh, scale: 1, hover: 0, skyMul: 1, src: fisher });
     if (activeHermit && activeHermit.npcs) for (const n of activeHermit.npcs) out.push({ x: n.x, y: n.y, z: n.z, yaw: n.yaw, model: n.model, mesh: n.mesh, scale: 1, hover: 0, skyMul: 1, src: n });
     return out;
@@ -14390,7 +14395,7 @@ const Village = (() => {
   }
   // which quarter of a city a spot is in (null in the square, on the castle hill, or outside a city)
   function quarterAt(v, x, z) { if (!v || !v.R || v.size !== 'city' || (MATS[v.style] || MATS.land) !== MATS.land) return null; const dx = x - v.x, dz = z - v.z, m = Math.max(Math.abs(dx), Math.abs(dz)); if (m > v.R - 4 || m <= 7 || (Math.abs(dx) <= 14 && dz <= -v.R + 28)) return null; return QUARTERS[quarterOf(dx, dz)].name; }
-  return { designerWall, wallRadiusOf: (v) => wallRadius(state(v.id)), atlantis: () => { if (world && world.preset.id === 'earth') plan(); return ATL; }, railAt, quarterAt, plotsOf, plotPrice, ownsPlotAt, buyPlot, enterShow, thiefCaught, layout, townList, init, stamp, restoreStart, update, pick, talk, entities, buy, boardTrain, trainArrive, trainFilm, trainOf, sell, sellValue, raiseDome, shopDef, freed, onBossGone, lieutenantDown, tableChallenge, placeKit, portalList, portalHere, markers, wakeDialogue, questTarget, dawn, pendingIncome, foundingInfo, foundVillage, summaryHtml, ledger, station, recall, upgradeWall, repairWall, expand, build, postShop, levelOf, SHOPS, WALLS,
+  return { makeNpc, addLoose: (n) => { if (!loose.includes(n)) loose.push(n); }, designerWall, wallRadiusOf: (v) => wallRadius(state(v.id)), atlantis: () => { if (world && world.preset.id === 'earth') plan(); return ATL; }, railAt, quarterAt, plotsOf, plotPrice, ownsPlotAt, buyPlot, enterShow, thiefCaught, layout, townList, init, stamp, restoreStart, update, pick, talk, entities, buy, boardTrain, trainArrive, trainFilm, trainOf, sell, sellValue, raiseDome, shopDef, freed, onBossGone, lieutenantDown, tableChallenge, placeKit, portalList, portalHere, markers, wakeDialogue, questTarget, dawn, pendingIncome, foundingInfo, foundVillage, summaryHtml, ledger, station, recall, upgradeWall, repairWall, expand, build, postShop, levelOf, SHOPS, WALLS,
     get def() { return active ? { x: active.x, y: active.y, z: active.z } : null; }, set def(v) { restoreStart(v); }, get active() { return active; }, get boss() { return active ? active.boss : null; }, get elder() { return active ? active.elder : null; }, get walking() { return !!walkState; }, get fisher() { return fisher; } };
 })();
 
@@ -15079,6 +15084,7 @@ const RECIPES = [
 ];
 
 const QUESTS = [
+  { id: 'first', title: 'Three by the Brook', desc: 'Maren the net-maker pulled you out of the water. Three young Kin she freed are hiding near the camp. Meet them, see how each behaves, and share your bread with the one you want at your side.', hint: 'Find the three young Kin near your camp and share your bread with one', check: G => (!G.stats.first || G.stats.first.stage >= 2) ? 1 : 0, reward: { xp: 10 } },
   { id: 'village', title: 'Free the Village', desc: 'Grakor the Tyrant holds the village by your camp and keeps its people shut in their homes. A fresh starter can take it; a second Kin makes it safe. Tap the blue camp fire to revive and heal everyone if it goes wrong.', hint: 'Free the village: beat Grakor in the square', check: G => G.stats.villageFreed ? 1 : 0, reward: { items: { snare: 1, shovel: 1, hatchet: 1 }, xp: 40 } },
   { id: 'timber', title: 'Timber', desc: 'The village gave you a hatchet and a shovel. Your hands only pick plants and berries; the hatchet cuts wood. Hold your finger (or left mouse) on a tree trunk until it gives: the whole tree comes down and every log in it is yours. Collect 6 wood.', hint: 'Fell a tree: hold your finger on the trunk', check: G => G.stats.got.wood / 6, reward: { items: { snare: 1 }, xp: 10 } },
   { id: 'foreman', title: 'The Mining Camp', desc: 'A Cast Net needs stone, and stone needs a pick: no shovel will bite it. There is a mining camp out past the village: a headframe over a shaft, and a crew. Find Foreman Garrick (⛏ on the map) and ask for a pick.', hint: 'Talk to Foreman Garrick at the Mining Camp', check: G => (G.stats.camp || {}).pick ? 1 : 0, reward: { xp: 25 } },
@@ -17717,7 +17723,7 @@ const UI = (() => {
   function drawPortraits(root) { root.querySelectorAll('canvas.eggpic').forEach(cv => { const sp = KIN.bySeed(+cv.dataset.seed); if (sp) KIN.eggPortrait(cv, sp, 64); }); root.querySelectorAll('canvas.portrait').forEach(cv => { const k = G.kin.find(x => x.id == cv.dataset.kid) || (fusionState && fusionState.preview && fusionState.preview.kin && fusionState.preview.kin.id == cv.dataset.kid ? fusionState.preview.kin : null); if (k) KIN.portrait(cv, k.sp, k.stage, +cv.dataset.size); }); }
   function kinCard(k, extra = '') {
     const st = KIN.stats(k); const frac = k.hp / st.hp;
-    return `<div class="kcard" data-kid="${k.id}">${portraitHtml(k)}<div class="kinfo"><div class="krow"><b>${KIN.name(k)}</b>${(k.sp.rarity || 0) > 0 ? `<span class="rar r${k.sp.rarity}">${KIN.RARITY[k.sp.rarity].name}</span>` : ''}${k === G.activeKin() ? '<span class="tag">active</span>' : ''}${k.sp.mythic ? '<span class="tag myth">mythic</span>' : ''}${k.hp <= 0 ? '<span class="tag down">fainted</span>' : ''}<span class="lv">Lv ${k.level}<span style="opacity:.55">/${KIN.capOf(k.sp)}</span></span>${(k.tamed || k.sp.tame) ? `<span class="tag" title="trust">♞ ${Math.round((k.trust || 0) * 100)}%</span>` : ""}</div><div class="hpbar"><div class="hpfill" style="width:${frac * 100}%;background:${frac > 0.5 ? '#5ad66a' : frac > 0.22 ? '#f0c040' : '#f05040'}"></div></div><div class="krow small">${KIN.dominant(k.sp.elem, 2).map(e => `<span class="badge" style="background:${ELEM_COLOR[e]}">${e}</span>`).join('')}<span>${Math.round(k.hp)}/${st.hp}</span>${(k.sp.gen || 0) > 0 ? `<span class="gen">fusion g${k.sp.gen}</span>` : ''}<span class="temper">${['steady', 'shy', 'cross', 'bright', 'drowsy'][((k.sp.seed >>> 0) % 5)]}${(k.bond || 0) >= 0.5 ? ', close to you' : (k.bond || 0) >= 0.15 ? ', warming to you' : ''}</span></div>${extra}</div></div>`;
+    return `<div class="kcard" data-kid="${k.id}">${portraitHtml(k)}<div class="kinfo"><div class="krow"><b>${KIN.name(k)}</b>${(k.sp.rarity || 0) > 0 ? `<span class="rar r${k.sp.rarity}">${KIN.RARITY[k.sp.rarity].name}</span>` : ''}${k === G.activeKin() ? '<span class="tag">active</span>' : ''}${k.sp.mythic ? '<span class="tag myth">mythic</span>' : ''}${k.hp <= 0 ? '<span class="tag down">fainted</span>' : ''}<span class="lv">Lv ${k.level}<span style="opacity:.55">/${KIN.capOf(k.sp)}</span></span>${(k.tamed || k.sp.tame) ? `<span class="tag" title="trust">♞ ${Math.round((k.trust || 0) * 100)}%</span>` : ""}</div><div class="hpbar"><div class="hpfill" style="width:${frac * 100}%;background:${frac > 0.5 ? '#5ad66a' : frac > 0.22 ? '#f0c040' : '#f05040'}"></div></div><div class="krow small">${KIN.dominant(k.sp.elem, 2).map(e => `<span class="badge" style="background:${ELEM_COLOR[e]}">${e}</span>`).join('')}<span>${Math.round(k.hp)}/${st.hp}</span>${(k.sp.gen || 0) > 0 ? `<span class="gen">fusion g${k.sp.gen}</span>` : ''}<span class="temper">${['steady', 'shy', 'cross', 'bright', 'drowsy'][KIN.temperOf(k.sp)]}${(k.bond || 0) >= 0.5 ? ', close to you' : (k.bond || 0) >= 0.15 ? ', warming to you' : ''}</span></div>${extra}</div></div>`;
   }
   // Deploy: which Kin fights beside you. Tap one and it is at your side and on the foe
   function renderDeploy(foe) {
@@ -18328,8 +18334,9 @@ const UI = (() => {
       let seed = seedOf();
       const draw = () => {
         const sts = KIN.starters(seed);
-        el.starters.innerHTML = sts.map((sp, i) => `<button class="starter" data-i="${i}"><canvas width="96" height="96"></canvas><b>${sp.names[0]}</b><span class="badge" style="background:${ELEM_COLOR[KIN.dominant(sp.elem, 1)[0]]}">${KIN.dominant(sp.elem, 1)[0]}</span><small>${sp.shape}</small></button>`).join('');
-        el.starters.querySelectorAll('.starter').forEach((b, i) => { KIN.portrait(b.querySelector('canvas'), sts[i], 1, 96); b.addEventListener('click', () => { const sb = q('s-build'); window.__pickBuild = sb ? sb.value : 'man'; onNew(seed, i, q('s-name').value); }); });
+        el.starters.innerHTML = `<button class="starter story" data-story="1" style="flex-basis:100%;padding:14px 10px"><b>Begin</b><small>You wake by a brook with no Kin. You will meet these three and choose one yourself.</small></button><div class="small" style="flex-basis:100%;opacity:.7;margin:6px 0 2px">Or skip the opening and take one now:</div>` + sts.map((sp, i) => `<button class="starter" data-i="${i}"><canvas width="96" height="96"></canvas><b>${sp.names[0]}</b><span class="badge" style="background:${ELEM_COLOR[KIN.dominant(sp.elem, 1)[0]]}">${KIN.dominant(sp.elem, 1)[0]}</span><small>${sp.shape}</small></button>`).join('');
+        el.starters.querySelector('[data-story]').addEventListener('click', () => { const sb = q('s-build'); window.__pickBuild = sb ? sb.value : 'man'; onNew(seed, -1, q('s-name').value); });
+        el.starters.querySelectorAll('.starter:not(.story)').forEach((b, i) => { KIN.portrait(b.querySelector('canvas'), sts[i], 1, 96); b.addEventListener('click', () => { const sb = q('s-build'); window.__pickBuild = sb ? sb.value : 'man'; onNew(seed, i, q('s-name').value); }); });
       };
       draw();
       q('s-seed').addEventListener('input', () => { seed = seedOf(); draw(); });
@@ -19954,6 +19961,100 @@ const Buddy = (() => {
 
 </script>
 <script>
+// The opening. You come round at a camp fire by a brook with no memory and no Kin. Maren, the net-maker who got out of the village
+// the night Grakor took it, fished you out of the water. Three young Kin she let out of the pens are hiding close by. You meet them,
+// each behaves as its temper makes it, and the one you share your bread with is yours. The other two go back for the village and are penned.
+const First = (() => {
+  let G = null, maren = null, three = [], gone = [], told = 0, auto = 0, armed = null, brookDone = false;
+  const TEMP = ['steady', 'shy', 'cross', 'bright', 'drowsy'];
+  const S = () => G && G.stats && G.stats.first;
+  function init(game) { G = game; maren = null; three = []; gone = []; told = 0; auto = 1.6; armed = null; }
+  function begin() { G.stats.first = { stage: 0 }; }
+  const gy = (x, z, y) => G.world.groundY(Math.floor(x), Math.floor(z), Math.floor(y) + 6) + 1;
+  const dry = (x, z, y) => { const g = gy(x, z, y); const b = G.world.getBlock(Math.floor(x), g, Math.floor(z)); return b === B.AIR ? g : null; };
+
+  // a brook past the camp, on the side away from the village: a shallow winding cut with gravel under it. Of the lines tried, the flattest wins
+  function brook() { const w = G.world, c = G.camp, v = G.village; if (!c || !v) return null; const ax = Math.atan2(c.x - v.x, c.z - v.z); let best = null;
+    for (const da of [0, 0.6, -0.6, 1.2, -1.2]) { const a = ax + da, ox = c.x + Math.sin(a) * 8, oz = c.z + Math.cos(a) * 8, px = Math.cos(a), pz = -Math.sin(a); let lo = 999, hi = -999, wet = 0; const cols = [];
+      for (let t = -13; t <= 13; t++) { const m = Math.sin(t * 0.42) * 1.6, x = Math.floor(ox + px * t + Math.sin(a) * m), z = Math.floor(oz + pz * t + Math.cos(a) * m), g = w.groundY(x, z, c.y + 8); lo = Math.min(lo, g); hi = Math.max(hi, g); if (w.getBlock(x, g + 1, z) === B.WATER) wet++; cols.push([x, z, g]); }
+      const sc = (hi - lo) + wet * 2 + Math.abs(da) + Math.abs(lo + 1 - c.y) * 0.5; if (!best || sc < best.sc) best = { sc, cols, lo, a, ox, oz }; }
+    if (!best || best.sc > 9) return null; const L = best.lo - 1; /* the water stands one below the lowest bank */
+    for (const [x, z] of best.cols) for (let dx = -2; dx <= 2; dx++) for (let dz = -2; dz <= 2; dz++) { const r = Math.max(Math.abs(dx), Math.abs(dz)), X = x + dx, Z = z + dz; if (Math.abs(X - c.x) < 2 && Math.abs(Z - c.z) < 2) continue; const g = w.groundY(X, Z, c.y + 8); if (isLeaf(w.getBlock(X, g, Z)) || w.getBlock(X, g, Z) === B.LOG) continue;
+        if (r <= 1) { for (let y = L + 1; y <= g + 2; y++) if (w.getBlock(X, y, Z) !== B.AIR) w.setBlock(X, y, Z, B.AIR); w.setBlock(X, L, Z, B.WATER); w.setBlock(X, L - 1, Z, B.GRAVEL); }
+        else if (g > L + 1) { for (let y = L + 2; y <= g + 2; y++) if (w.getBlock(X, y, Z) !== B.AIR && w.getBlock(X, y, Z) !== B.WATER) w.setBlock(X, y, Z, B.AIR); if (w.getBlock(X, L + 1, Z) !== B.WATER) w.setBlock(X, L + 1, Z, B.GRASS); } }
+    return { x: best.ox, z: best.oz, a: best.a }; }
+
+  function ent(sp, x, z) { const kin = KIN.create(sp, 5), m = KIN.model(sp, kin.stage), y = gy(x, z, G.camp.y);
+    return { kin, x, y, z, hx: x, hz: z, yaw: Math.random() * 6.28, model: m, scale: 1, hover: m.hover || 0, bob: Math.random() * 6, skyMul: 1, mesh: R.entityMesh(KIN.meshKey(sp, kin.stage), (mb) => KIN.buildMesh(mb, m)), temper: (m.temper || 0) % 5, t: 0, still: 0, fled: 0, tx: x, tz: z, sleep: (m.temper || 0) % 5 === 4 }; }
+  function spots() { const c = G.camp, v = G.village, back = Math.atan2(c.x - v.x, c.z - v.z), out = []; const bk = G.stats.first.brook;
+    for (const [da, r] of [[0, 9], [1.3, 10], [-1.3, 10], [0.8, 12], [-0.8, 12], [0.4, 13], [-0.4, 13], [1.6, 9], [-1.6, 9]]) { if (out.length >= 3) break; let x = c.x + Math.sin(back + da) * r, z = c.z + Math.cos(back + da) * r; if (!out.length && bk) { x = bk.x - Math.sin(bk.a) * 3.2; z = bk.z - Math.cos(bk.a) * 3.2; }
+      if (dry(x, z, c.y) != null && Math.abs(gy(x, z, c.y) - c.y) < 5) out.push([x + 0.5, z + 0.5]); }
+    while (out.length < 3) out.push([c.x + 4 + out.length * 2, c.z - 5]); return out; }
+  function build() { const s = S(), c = G.camp; if (!maren) { let mx = c.x - 1.5, mz = c.z + 2.5; maren = Village.makeNpc(98, 'traveller', mx, mz, 'Maren', null, gy(mx, mz, c.y), 'shore'); maren.wander = false; maren.tag = 'net-maker'; maren.onTalk = talk; Village.addLoose(maren); }
+    if (s.stage <= 1 && !three.length) { const sts = KIN.starters(G.baseSeed), sp = spots(); const at = [1, 0, 2]; three = sts.map((q, i) => ent(q, sp[at[i]][0], sp[at[i]][1])); /* the tadpole gets the bank */ } }
+
+  function say(lines, done) { G.talkNpc = maren; Dialogue.show('Maren', lines, done); }
+  function wake() { const tn = G.village && G.village.name ? G.village.name : 'the village';
+    say(['Easy. Easy now. You are breathing, and that is the main thing.',
+      'I am Maren. I pulled you out of the brook at first light. No pack, no boots, and you had hold of a log like it owed you money.',
+      'Do you know your name? ... No. I thought not. It comes back, mostly. Do not chase it.',
+      `That smoke over there is ${tn}. My village. A brute called Grakor walked in three nights ago with his beasts and shut everyone indoors.`,
+      'The creatures of this country are called Kin. Every one has an element and a temper of its own, and one that takes to you will walk with you and fight beside you.',
+      'I make the nets there. Hushweave. It does not hold a Kin by force, nothing would hold the big ones. It quiets them, like a cloth over a horse\'s eyes, and a quiet Kin makes up its own mind whether to stay.',
+      'The night he came I cut the pens open. Three young ones followed me out. They are still about, I have seen them near the water.',
+      'You cannot walk in on Grakor alone, and they will not come to me: I smell of the pens. Here, bread. Go and meet them. Watch how each one carries on, that is its temper talking. Whichever takes the bread from you is yours, and you are its.'],
+      () => { G.player.add('bread', 1); S().stage = 1; UI.toast('Three young Kin are hiding near the camp. Find them.', 'good'); }); }
+  function sendOff() { const k = G.kin[0], nm = k ? KIN.name(k) : 'That one';
+    say([`Well. ${nm}. I would have bet on one of the others.`,
+      'The other two have run for the village, looking for their own. Grakor\'s lot will have them penned by dark.',
+      'So that is three reasons to go. Take this: a net of mine. Out in the wild you tire a Kin first. Then swing the net open, throw it, and draw it shut the other way as it lands. On a big one, go for the head.',
+      'He sits in the square. Rest at the blue fire when you need to. I will keep it in.'],
+      () => { G.player.add('snare', 1); S().stage = 3; UI.toast('Maren gave you a Cast Net.', 'good'); }); }
+  function talk() { const s = S(); if (!s) return; if (s.stage === 0) return wake(); if (s.stage === 2) return sendOff();
+    if (s.stage === 1) return say(['They are close. One by the water, the others not far off it. A shy one you creep up on. A cross one you let come to you: stand near and keep still. The rest only want the bread.']);
+    say(G.stats.villageFreed ? ['They have let me back into the weaving shed. I like the fire better. Your two friends are in the square, fat as butter.'] : ['Still here. The fire is in. Sit by it if you are hurt.']); }
+
+  function emote(e, ch, col) { if (!R.project) return; const q = R.project(e.x, e.y + (e.model.height || 1) + 0.5, e.z); if (!q || !q.on) return; const el = document.createElement('div'); el.textContent = ch; el.style.cssText = `position:fixed;z-index:7;left:${q.x}px;top:${q.y}px;transform:translate(-50%,-100%);font:900 26px/1 system-ui,sans-serif;color:${col || '#fff'};text-shadow:0 0 3px #1a1420,0 2px 0 #1a1420,2px 0 0 #1a1420,-2px 0 0 #1a1420;pointer-events:none;transition:transform 1.3s ease-out,opacity 1.3s ease-in;`; document.body.appendChild(el); requestAnimationFrame(() => { el.style.transform = 'translate(-50%,-260%)'; el.style.opacity = '0'; }); setTimeout(() => el.remove(), 1400); }
+  const turn = (e, ty, k) => { let d = ty - e.yaw; while (d > Math.PI) d -= 6.283; while (d < -Math.PI) d += 6.283; e.yaw += d * Math.min(1, k); };
+  function go(e, dt, sp) { const dx = e.tx - e.x, dz = e.tz - e.z, d = Math.hypot(dx, dz); if (d < 0.25) return false; const st = Math.min(d, sp * dt), nx = e.x + dx / d * st, nz = e.z + dz / d * st; if (dry(nx, nz, e.y) == null) { e.tx = e.x; e.tz = e.z; return false; } e.x = nx; e.z = nz; turn(e, Math.atan2(dx, dz), dt * 10); return true; }
+  function ready(e, p, d) { if (d > 3.2) return false; if (e.temper === 1) return e.fled <= 0; if (e.temper === 2) return e.still > 2.2; return true; }
+  function each(e, dt, p) { const dx = p.x - e.x, dz = p.z - e.z, d = Math.hypot(dx, dz), pv = Math.hypot(p.vx, p.vz), fy = Math.atan2(dx, dz); e.t += dt; e.bob += dt; if (e.fled > 0) e.fled -= dt; if (e.say > 0) e.say -= dt;
+    const moving = go(e, dt, e.run || 2.2); if (!moving) e.run = 0;
+    if (e.temper === 1) { /* shy: bolts from anyone walking up on it upright */ if (d < 6.5 && !p.sneak && pv > 0.5 && e.fled <= 0.6) { const a = Math.atan2(e.x - p.x, e.z - p.z) + (Math.random() - 0.5) * 1.6; let tx = e.x + Math.sin(a) * 5.5, tz = e.z + Math.cos(a) * 5.5; if (Math.hypot(tx - e.hx, tz - e.hz) > 9) { tx = e.hx + (Math.random() - 0.5) * 6; tz = e.hz + (Math.random() - 0.5) * 6; } e.tx = tx; e.tz = tz; e.run = 7; if (e.fled <= 0) emote(e, '!', '#ffe08a'); e.fled = 1.6; } else if (!moving && d < 12) turn(e, fy, dt * 3); }
+    else if (e.temper === 2) { /* cross: backs off if you march at it, comes over if you stand and wait */ if (d < 4.5 && pv > 2.6 && !moving) { e.tx = e.x - dx / d * 3; e.tz = e.z - dz / d * 3; e.run = 5; e.still = 0; if (!(e.say > 0)) { emote(e, '💢', '#ff8a70'); e.say = 2; } } else if (d < 6 && pv < 0.4) { e.still += dt; if (d > 2.2 && e.still > 1) { e.tx = p.x - dx / d * 0.2 + (e.x - p.x) / d * 2; e.tz = p.z + (e.z - p.z) / d * 2; e.run = 1.3; } } else if (pv > 1.2) e.still = Math.max(0, e.still - dt * 2); if (!moving && d < 12) turn(e, fy, dt * 4); }
+    else if (e.temper === 3) { /* bright: cannot wait, comes bounding over */ if (d < 10 && d > 2.4) { e.tx = p.x - dx / d * 2; e.tz = p.z - dz / d * 2; e.run = 5; } else if (d <= 2.4) { turn(e, fy, dt * 6); e.hop = (e.hop || 0) + dt; } if (d < 10 && !(e.say > 0)) { emote(e, '♪', '#9fe8a0'); e.say = 5; } }
+    else if (e.temper === 4) { /* drowsy: asleep until you are on top of it */ if (e.sleep && d < 2.6) { e.sleep = false; emote(e, 'z', '#bcd0ff'); } if (!e.sleep) turn(e, fy, dt * 1.5); else if (!(e.say > 0) && d < 12) { emote(e, 'z', '#bcd0ff'); e.say = 3.5; } }
+    else { if (d < 12) turn(e, fy, dt * 3); }
+    const g = gy(e.x, e.z, e.y); e.y += (g - e.y) * Math.min(1, dt * 10); e.hover = (e.model.hover || 0) + (e.temper === 3 && d <= 2.6 ? Math.abs(Math.sin(e.t * 7)) * 0.22 : 0);
+    if (!e._an) return; e._an.look = 0; }
+  function update(dt, p) { const s = S(); if (!s || G.worldId !== 'earth' || !G.camp) return; const c = G.camp, dc = Math.hypot(p.x - c.x, p.z - c.z);
+    if (dc < 70 && (!maren || (s.stage <= 1 && !three.length))) build();
+    if (maren && dc < 30) { const dx = p.x - maren.x, dz = p.z - maren.z; if (Math.hypot(dx, dz) < 9) maren.yaw = Math.atan2(dx, dz); }
+    if ((s.stage === 0 || s.stage === 2) && !Dialogue.active() && !G.paused && !Battle.active) { const tut = document.getElementById('tutorial'); if (!tut || tut.classList.contains('hidden')) { auto -= dt; if (auto <= 0) { auto = 1.4; if (s.stage === 0) wake(); else if (dc < 40) sendOff(); } } }
+    if (s.stage === 1) for (const e of three) each(e, dt, p);
+    for (let i = gone.length - 1; i >= 0; i--) { const e = gone[i]; e.t += dt; go(e, dt, 7.5); const g = gy(e.x, e.z, e.y); e.y += (g - e.y) * Math.min(1, dt * 10); if (e.t > 2.4) e.scale = Math.max(0, 1 - (e.t - 2.4) / 0.5); if (e.t > 2.9) gone.splice(i, 1); }
+    if (s.stage === 3 && G.stats.villageFreed && s.held && G.village) friends(dt, p);
+    if (armed && (armed.t -= dt) <= 0) armed = null; }
+  // the two you did not take: once the village is free they live in the square
+  let pals = null;
+  function friends(dt, p) { const v = G.village; if (Math.hypot(p.x - v.x, p.z - v.z) > 60) { pals = null; return; } if (!pals) { const sts = KIN.starters(G.baseSeed); pals = S().held.map((i, n) => { const e = ent(sts[i], v.x + 3 - n * 6, v.z + 3); e.y = gy(e.x, e.z, v.y || p.y); e.pal = true; return e; }); }
+    for (const e of pals) { e.t += dt; e.bob += dt; if (!go(e, dt, 1.4) && (e.wait = (e.wait || 2) - dt) <= 0) { e.wait = 2 + Math.random() * 4; e.tx = e.hx + (Math.random() - 0.5) * 7; e.tz = e.hz + (Math.random() - 0.5) * 7; } const g = gy(e.x, e.z, e.y); if (Math.abs(g - e.y) < 1.6) e.y += (g - e.y) * Math.min(1, dt * 10); else { e.tx = e.hx; e.tz = e.hz; } } }
+  function near(p, list) { const f = U.forwardVec(p.yaw, 0); let best = null, bd = 3.6; for (const e of list) { const dx = e.x - p.x, dz = e.z - p.z, d = Math.hypot(dx, dz); if (d < bd && (d < 1.2 || (dx * f[0] + dz * f[2]) / d > 0.3)) { bd = d; best = e; } } return best; }
+  const HINT = ['', 'It bolts if you walk up on it. Creep: hold sneak and come slowly.', 'It will not be marched at. Stand near it, keep still, and let it come to you.', '', ''];
+  function tap(p) { const s = S(); if (!s) return false; if (s.stage === 3 && pals) { const e = near(p, pals); if (e) { UI.toast(`${KIN.name(e.kin)} knows you from the brook, and comes to have its head scratched.`); emote(e, '♥', '#ff9ab8'); return true; } return false; }
+    if (s.stage !== 1) return false; const e = near(p, three); if (!e) return false; const nm = KIN.name(e.kin), d = Math.hypot(e.x - p.x, e.z - p.z);
+    if (!ready(e, p, d)) { UI.toast(HINT[e.temper] || `${nm} is not sure of you yet. Get closer.`); return true; }
+    if (!armed || armed.e !== e) { armed = { e, t: 7 }; emote(e, '?', '#fff'); UI.toast(`${nm}, a ${TEMP[e.temper]} one, sniffs at the bread. Tap again to share it. This is the one you take with you.`, 'good'); return true; }
+    armed = null; const idx = three.indexOf(e); if (p.has('bread', 1)) p.take('bread', 1); e.kin.bond = 0.2; G.kin.push(e.kin); G.activeIdx = 0; if (G.seenDex) G.seenDex(e.kin.sp, 'caught'); emote(e, '♥', '#ff9ab8'); UI.sfx('caught');
+    const v = G.village; s.held = [0, 1, 2].filter(i => i !== idx); s.pick = idx; for (const o of three) if (o !== e) { o.t = 0; o.tx = o.x + (v.x - o.x) * 0.5; o.tz = o.z + (v.z - o.z) * 0.5; const l = Math.hypot(o.tx - o.x, o.tz - o.z) || 1; o.tx = o.x + (o.tx - o.x) / l * 24; o.tz = o.z + (o.tz - o.z) / l * 24; o.sleep = false; gone.push(o); }
+    three = []; s.stage = 2; auto = 2.2; UI.toast(`${nm} takes the bread, then your sleeve. ${nm} is with you.`, 'good'); return true; }
+  function entities() { const out = []; for (const e of three) out.push(e); for (const e of gone) out.push(e); if (pals && S() && S().stage === 3) for (const e of pals) out.push(e); return out; }
+  const quiet = (x, z) => { const s = S(); return !!(s && s.stage < 2 && G.camp && Math.hypot(x - G.camp.x, z - G.camp.z) < 30); };
+  return { init, begin, brook, update, tap, entities, quiet, get three() { return three; }, get maren() { return maren; } };
+})();
+
+</script>
+<script>
 'use strict';
 // Chopping a tree. Cut any trunk block and the whole tree above the cut comes down in one piece: it creaks over away from you,
 // hits the ground with a thump and a burst of leaves, and every log in it is wood in your bag. Cut low and you take the lot;
@@ -20130,7 +20231,7 @@ G.setupWorld = function (seed, presetId) {
   this.world.findSpawn();
   Wild.init(this.world, this.mobile);
   Weather.init(this.world.seed);
-  Village.init(this); Hazards.init(this); Campaign.init(this); Npcs.init(this); Camps.init(this); Mer.init(this); Lab.init(this); Avatar.init(this); Combat.init(this); Buddy.init(this); Felling.init(this); Relics.init(this); Gems.init(this); Keeps.init(this); Citadel.init(this); Farms.init(this); Sky.init(this);
+  Village.init(this); Hazards.init(this); Campaign.init(this); Npcs.init(this); Camps.init(this); Mer.init(this); Lab.init(this); Avatar.init(this); Combat.init(this); Buddy.init(this); First.init(this); Felling.init(this); Relics.init(this); Gems.init(this); Keeps.init(this); Citadel.init(this); Farms.init(this); Sky.init(this);
   Quests.init(this);
 };
 G.newWorld = function (seed, starterIdx, name) {
@@ -20151,12 +20252,13 @@ G.newWorld = function (seed, starterIdx, name) {
     w.placeSpawnRuin(); this.stats.ruinPlaced = true;
     p.yaw = Math.atan2(-(this.village.x - s.x), -(this.village.z - s.z));
     this.stats.recipes = { earth: [0, 1], moon: [0], halo: [0] };
-    const starter = KIN.create(KIN.starters(seed)[starterIdx], 5);
-    this.kin.push(starter);
+    const story = !(starterIdx >= 0); /* the opening: no Kin yet, you choose one by the brook. A card picked on the menu skips it */
+    const starter = story ? null : KIN.create(KIN.starters(seed)[starterIdx], 5);
+    if (starter) this.kin.push(starter); else { First.begin(); this.stats.first.brook = First.brook(); }
     if (typeof window !== 'undefined' && window.__pickBuild && window.__pickBuild !== 'man') { this.stats.look = Object.assign(this.stats.look || {}, { build: window.__pickBuild }); } /* the body you chose on the way in */
-    p.add('torch', 2); p.add('snare', 1); p.add('bread', 1);
+    p.add('torch', 2); if (!story) { p.add('snare', 1); p.add('bread', 1); }
     this.start();
-    UI.toast(`Welcome to Stratakin. ${KIN.name(starter)} is with you.`, 'good');
+    if (starter) UI.toast(`Welcome to Stratakin. ${KIN.name(starter)} is with you.`, 'good');
     UI.showTutorial();
   }, 30);
 };
@@ -20836,7 +20938,7 @@ G.loop = function (t) {
       }
       if (w.regrow && w.regrow.length && (this.frame & 31) === 0) { const now = performance.now(); w.regrow = w.regrow.filter(r => { if (now < r.t) return true; if ((r.id === B.LOG || r.id === B.BIRCHLOG || r.id === B.PALMLOG || r.id === B.LEAVES) && !Felling.natural(r.x, r.y, r.z, r.id)) return false; /* a block you built and took away stays gone */ const b = w.getBlock(r.x, r.y, r.z); if (r.id != null) { if (b === B.AIR && !(Math.abs(r.x + 0.5 - p.x) < 0.8 && Math.abs(r.z + 0.5 - p.z) < 0.8 && r.y >= Math.floor(p.y) - 1 && r.y <= Math.floor(p.y) + 2)) { if (r.id === B.GLOWWORM && !isSolid(w.getBlock(r.x, r.y - 1, r.z))) return false; w.setBlock(r.x, r.y, r.z, r.id); } else if (b === B.AIR) { r.t = now + 15000; return true; } } else if (r.leaf) { if (b === B.LEAVES) w.setBlock(r.x, r.y, r.z, B.BERRYLEAF); } else if (b === B.AIR) w.setBlock(r.x, r.y, r.z, B.BERRY); return false; }); }
       const trig = (Dialogue.active() || Village.walking) ? null : Wild.update(dt, p, performance.now() / 1000, false);
-      Buddy.update(dt, p); Gems.update(dt, p); Felling.update(dt); Keeps.update(dt, p); Citadel.update(dt, p); Farms.update(dt, p); Sky.update(dt, p); Combat.update(dt, p, input);
+      Buddy.update(dt, p); First.update(dt, p); Gems.update(dt, p); Felling.update(dt); Keeps.update(dt, p); Citadel.update(dt, p); Farms.update(dt, p); Sky.update(dt, p); Combat.update(dt, p, input);
       Wild.ensureHeart(p, this.trainerLevel, this.mythicCaught); Wild.ensureLegend(p); Wild.ensureApex(p);
       if (trig && !trig.e.cool && !Dialogue.active() && !Taming.active && !p.flying && !(this.fightGrace > performance.now()) && !((Keeps.inHold(p) || Citadel.inside(p) || Sky.inFort(p)) && !trig.e.keepBoss && !trig.e.skyBoss)) Wild.engage(trig.e, trig.ambush);
       for (const e of Wild.list) if (e.cool > 0) e.cool -= dt;
@@ -20927,7 +21029,7 @@ G.loop = function (t) {
   const showMe = !this.hideMe && !Battle.net && (inBattle || this.thirdPerson || this.talkK > 0 || !!p.mount || this.grassCamOn); // hideMe: he has gone inside something (a railway carriage)
   if (showMe) { const me = Avatar.entity(p, Math.hypot(p.vx, p.vz) > 0.6); if (p.mount) { const mm = KIN.model(p.mount.sp, p.mount.stage); const st = seatOf(mm); const f = U.forwardVec(p.yaw, 0); const along = 0.5 + st.zc - 0.06; me.x = p.x + f[0] * along; me.z = p.z + f[2] * along; me.y = G.mountBase(p) + st.top - hipOf(me.model) * (me.scale || 1) + 0.1; me._an.cross = 1; /* sat cross-legged on top: fits a pony and a T-rex alike */ me.seatY = hipOf(me.model) * (me.scale || 1); } me.M = null; ents.push(me); this.meEnt = me; } else this.meEnt = null;
   if (p.mount) { const k = p.mount; const m = KIN.dress(KIN.model(k.sp, k.stage), k.wear); const fwd = U.forwardVec(p.yaw, 0); if (!k._an) k._an = { ph: 0, mv: 0, lx: p.x, lz: p.z, ly: p.y, lt: performance.now(), vy: 0, seed: 5, air: 0 }; k._an.swim = p.mountMode === 'water' ? 1 : 0; const mt = { x: p.x + fwd[0] * 0.5, y: G.mountBase(p), z: p.z + fwd[2] * 0.5, yaw: p.yaw + Math.PI, model: m, mesh: R.entityMesh(KIN.meshKey(k.sp, k.stage) + KIN.wearKey(k.wear), (mb) => KIN.buildMesh(mb, m)), scale: 1, hover: 0, skyMul: 1, isMount: true, flying: p.mountMode === 'air' && !p.onGround, _an: k._an }; ents.push(mt); if (Taming.active) Taming.pose(mt, this.meEnt, cam.yaw); /* it bucks, and you with it */ }
-  ents.push(...Battle.fxEntities()); ents.push(...Sky.puffEntities()); ents.push(...Wild.dropEntities()); ents.push(...Gems.entities()); ents.push(...Buddy.entities()); ents.push(...Felling.entities()); ents.push(...Combat.entities()); ents.push(...Hazards.entities()); ents.push(...Npcs.entities());
+  ents.push(...Battle.fxEntities()); ents.push(...Sky.puffEntities()); ents.push(...Wild.dropEntities()); ents.push(...Gems.entities()); ents.push(...Buddy.entities()); ents.push(...First.entities()); ents.push(...Felling.entities()); ents.push(...Combat.entities()); ents.push(...Hazards.entities()); ents.push(...Npcs.entities());
   for (const o of w.statues.values()) {
     if ((o.x - p.x) ** 2 + (o.z - p.z) ** 2 > 4000) continue;
     if (!o.model) { o.model = KIN.statueModel(o); o.mesh = R.entityMesh('statue:' + o.id, (mb) => KIN.buildMesh(mb, o.model)); }
@@ -20957,7 +21059,7 @@ G.loop = function (t) {
     if (p.mount && !Taming.active && p.mountMode === 'air' && (this.frame & 15) === 0 && this.noKinFlight()) { p.mount = null; UI.toast('No room down here for wings that size. You climb off.'); }
   }
   if ((this.frame & 7) === 0 && !inBattle) { const npc = Village.pick(p); const rn = npc ? null : Npcs.pick(p); const we = (npc || rn) ? null : Wild.pick(p); const hit = (!npc && !we && !rn) ? p.raycast(5.5) : null; const campHit = hit && hit.id === B.CAMPFIRE;
-    UI.lookLabel(rn ? Npcs.label(rn) + ' · tap' : npc ? `${npc.name}${npc.shop ? ' · ' + (npc.shopTitle || Village.SHOPS[npc.shop].title) : npc.role === 'voodoo' ? ' · healer' : npc.role === 'elder' ? ' · village ledger' : npc.role === 'traveller' ? ' · has something to trade' : npc.role === 'hermit' ? ' · hermit, has a job for you' : ''} · tap to talk` : we ? `${KIN.name(we.kin)} · Lv ${we.kin.level}${(we.kin.sp.rarity || 0) > 0 ? ' · ' + KIN.RARITY[we.kin.sp.rarity].name : ''}${we.raider ? ' · RAIDER' : we.isBoss ? ' · tyrant' : we.lieutenant ? " · the tyrant's guard" : ''}` : campHit ? 'Camp fire · tap to rest' : (hit && hit.id === B.BOOKS) ? 'Bookshelf · tap to read' : (hit && hit.id === B.STARMETAL) ? (this.worldId === 'moon' ? 'Return pad · tap to fly home' : 'Starmetal') : (hit && hit.id === B.FUSION) ? 'Fusion Table · tap' : (hit && hit.id === B.PORTAL) ? 'Portal · tap to travel' : (hit && hit.id === B.CHEST) ? 'Chest · tap to open' : (hit && hit.id === B.INCUBATOR) ? 'Incubator · tap' : (hit && (hit.id === B.DOOR || hit.id === B.DOOR_OPEN)) ? 'Door · tap' : (hit && hit.id === B.SNOW) ? 'Snow · hold to take (Frost Cloak needs 8)' : (hit && (hit.id === B.IRON || hit.id === B.COPPER || hit.id === B.EMBER || hit.id === B.VOID)) ? BLOCKS[hit.id].name + ' · hold to mine' : ''); }
+    UI.lookLabel(rn ? Npcs.label(rn) + ' · tap' : npc ? `${npc.name}${npc.shop ? ' · ' + (npc.shopTitle || Village.SHOPS[npc.shop].title) : npc.role === 'voodoo' ? ' · healer' : npc.role === 'elder' ? ' · village ledger' : npc.tag ? ' · ' + npc.tag : npc.role === 'traveller' ? ' · has something to trade' : npc.role === 'hermit' ? ' · hermit, has a job for you' : ''} · tap to talk` : we ? `${KIN.name(we.kin)} · Lv ${we.kin.level}${(we.kin.sp.rarity || 0) > 0 ? ' · ' + KIN.RARITY[we.kin.sp.rarity].name : ''}${we.raider ? ' · RAIDER' : we.isBoss ? ' · tyrant' : we.lieutenant ? " · the tyrant's guard" : ''}` : campHit ? 'Camp fire · tap to rest' : (hit && hit.id === B.BOOKS) ? 'Bookshelf · tap to read' : (hit && hit.id === B.STARMETAL) ? (this.worldId === 'moon' ? 'Return pad · tap to fly home' : 'Starmetal') : (hit && hit.id === B.FUSION) ? 'Fusion Table · tap' : (hit && hit.id === B.PORTAL) ? 'Portal · tap to travel' : (hit && hit.id === B.CHEST) ? 'Chest · tap to open' : (hit && hit.id === B.INCUBATOR) ? 'Incubator · tap' : (hit && (hit.id === B.DOOR || hit.id === B.DOOR_OPEN)) ? 'Door · tap' : (hit && hit.id === B.SNOW) ? 'Snow · hold to take (Frost Cloak needs 8)' : (hit && (hit.id === B.IRON || hit.id === B.COPPER || hit.id === B.EMBER || hit.id === B.VOID)) ? BLOCKS[hit.id].name + ' · hold to mine' : ''); }
 };
 // third person and the saddle orbit the camera round you; the air, the glider, a fight and a chat do not
 G.orbitMode = function (p) { return (this.thirdPerson || !!p.mount) && !Battle.active && !p.gliding && !p.flying && !p.wingsOn && !(this.talkK > 0); };
@@ -20970,6 +21072,7 @@ G.onTap = function () {
   if (Taming.active) { Taming.tap(); return; }
   const npc = Village.pick(p);
   if (npc) { Village.talk(npc); return; }
+  if (First.tap(p)) return;
   const rn = Npcs.pick(p);
   if (rn) { Npcs.talk(rn); return; }
   { const be = Buddy.entity; const h0 = p.raycast(5.5); const useBlock = h0 && [B.CAMPFIRE, B.FUSION, B.DARKTABLE, B.CHEST, B.BED, B.DOOR, B.DOOR_OPEN, B.PORTAL, B.INCUBATOR, B.BOOKS].includes(h0.id);

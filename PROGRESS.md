@@ -331,6 +331,8 @@ Scope (Alexander, 8 Nov evening): EVERYTHING visible goes to the same standard: 
 
 - 16 Nov, tyrant exit goes round things (his ask: not through a house, follow the road, round you and the Kin). **Looks ahead 5 times a second, takes the clear way, never climbs a roof.** Tempers now matter (his idea): drowsy dawdles but hits heavy, shy loses its nerve some turns, cross hits hard, bright keeps at heel; bond fades the downsides.
 
+- 16 Nov, the opening (his ask: choose your Kin in the story, someone beside you at a camp by a river who walks you through it). **You wake with no Kin by a brook; Maren the net-maker pulled you out and you remember nothing. Three young Kin she freed hide nearby: Coalby cross, Tadplop shy, Rosequill drowsy. Share bread with one; the other two run for the village and live in the square once it is free.** Menu keeps a skip. Nets are hushweave (quiet a Kin, not trap it); big Kin are netted by the head (his idea).
+
 ## Still to do
 UI polish as feedback comes in. Card battle screen still used for scripted encounters (raids at the walls, thief, citadel duel, holds) and the snare mini-game; converting those to live is the next big step if wanted. (Old list: train/ships, combat animation, eggs, avatar hair/paint, buddy WEAR cosmetics, Silas and Finch, UI polish (item icons), quality toggles in settings (state.shadows, state.grassQuality, state.dprCap).
 

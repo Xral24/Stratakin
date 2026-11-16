@@ -14,7 +14,7 @@ async function open(opts = {}) {
   const ev = (fn, arg) => page.evaluate(fn, arg);
   const newGame = async (seed, starter = 0, name = '') => {
     await page.click('#s-new'); await page.fill('#s-seed', seed); if (name) await page.fill('#s-name', name); await page.waitForTimeout(150);
-    await page.click(`.starter[data-i="${starter}"]`); await page.waitForTimeout(2500);
+    await page.click(starter < 0 ? ".starter[data-story]" : `.starter[data-i="${starter}"]`); await page.waitForTimeout(2500);
     await ev(() => { const b = document.getElementById('tut-ok'); if (b) b.click(); G.stats.securePrompt = true; });
   };
   // teleport to a village, free it (no fight) and stand at an offset; returns a summary

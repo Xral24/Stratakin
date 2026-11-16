@@ -300,6 +300,8 @@ const KIN = (() => {
     sp.natId = 'x_warden'; sp.natCol = true; sp.size = 1.0; nativize(sp);
     return sp;
   }
+  /* the three by the brook are somebody before you meet them: the coal pup is cross, the tadpole shy, the rose drowsy. Everything else gets the temper its seed gives it */
+  const FIXT = {}; function temperOf(sp) { if (!FIXT.done) { FIXT.done = 1; FIXT[U.combine(SPECIES_SEED.earth, 1)] = 2; FIXT[U.combine(SPECIES_SEED.earth, 2)] = 1; FIXT[U.combine(SPECIES_SEED.earth, 3)] = 4; } const f = FIXT[sp.seed]; return f != null ? f : (sp.seed >>> 0) % 5; }
   function starters(worldSeed) {
     return [
       species(U.combine(SPECIES_SEED.earth, 1), ['Flame'], 0, { primary: 'Flame', shape: 'quadruped', total: 350, hpBonus: 0.25 }),
@@ -4270,7 +4272,7 @@ const KIN = (() => {
     if (!bones[0]) bones[0] = { kind: 'body', piv: [0, 0, 0], runPitch: sp.shape === 'raptor' ? 0.08 : 0 };
     const height = Math.max(...parts.map(b => b.y + b.h));
     const radius = Math.max(...parts.map(b => Math.max(Math.abs(b.x), Math.abs(b.x + b.w), Math.abs(b.z), Math.abs(b.z + b.d))));
-    const M = { boxes: parts, scale: s, hover, height, radius, bones, temper: ((sp.seed >>> 0) % 5 + (sp.boss ? 0 : 0)), legLen: legLen * SY, kind, flyer, sway, shape, native: natDone, fitBody };
+    const M = { boxes: parts, scale: s, hover, height, radius, bones, temper: temperOf(sp), legLen: legLen * SY, kind, flyer, sway, shape, native: natDone, fitBody };
     return sp.neon && form.plan && !natDone ? alienize(M, sp) : M;
   }
   // A Kin turned into an object: material comes from the items, glow from anything burning. The Kin's level makes it bigger and brighter.
@@ -4584,5 +4586,5 @@ const KIN = (() => {
   function serialize(k) { return { id: k.id, sp: k.sp, level: k.level, xp: k.xp, iv: k.iv, stage: k.stage, hp: k.hp, nick: k.nick, equip: k.equip || null, tech: k.tech || null, wear: k.wear || null, trust: k.trust || 0, bond: k.bond || 0, tamed: k.tamed || false }; }
   function deserialize(d) { return Object.assign({ status: null }, d); }
 
-  return { NATIVE, NAT_STEM, nativeLine, nativeColors, nativeId, nativize, childify, formName, LINES, lineOf, maxStage, lookOf, formOf, partHelpers, dress, wearKey, E, EI, CHART, STAT_KEYS, STAT_NAMES, growth, xpToNext, dominant, species, speciesForContext, dex, bySeed, HABITATS, capOf, recipes, findRecipe, fuseRecipe, mythicSpecies, legendSpecies, apexSpecies, wardenSpecies, MAX_LEVEL, TECH, techFor, techByName, starters, create, stats, name, moves, effectiveness, gainXp, fuse, fusionLevel, TRAITS, RARITY, roster, buildUniverse, decorate, makeStatue, statueModel, shardsFor, model, buildMesh, meshKey, portrait, serialize, deserialize, UTIL_DESC, eggModel, eggPortrait };
+  return { NATIVE, NAT_STEM, nativeLine, nativeColors, nativeId, nativize, childify, formName, LINES, lineOf, maxStage, lookOf, formOf, partHelpers, dress, wearKey, E, EI, CHART, STAT_KEYS, STAT_NAMES, growth, xpToNext, dominant, species, speciesForContext, dex, bySeed, HABITATS, capOf, recipes, findRecipe, fuseRecipe, mythicSpecies, legendSpecies, apexSpecies, wardenSpecies, MAX_LEVEL, TECH, techFor, techByName, temperOf, starters, create, stats, name, moves, effectiveness, gainXp, fuse, fusionLevel, TRAITS, RARITY, roster, buildUniverse, decorate, makeStatue, statueModel, shardsFor, model, buildMesh, meshKey, portrait, serialize, deserialize, UTIL_DESC, eggModel, eggPortrait };
 })();
