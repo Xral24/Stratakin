@@ -1787,7 +1787,9 @@ const Village = (() => {
   const CAST = { earth: [{ name: 'Grakor', mood: 0, pal: 0 }, { name: 'Morrug', mood: 1, pal: 1 }, { name: 'Obrin', mood: 2, pal: 2 }] };
   function castOf(v, h) { const tn = styleOf(v) && STYLE_NAMES[v.style] && STYLE_NAMES[v.style].tyrant; if (v.style === 'atlantis') return { name: tn[0], mood: 1, pal: 0, full: true };
     if (tn && (v.style === 'alien' || v.style === 'halo')) { const i = h % 2; return { name: tn[i], mood: i, pal: i, full: true }; } if (tn) return null; // the other peoples keep their own
-    if (v.type !== 'land') return null; return v.starter ? CAST.earth[0] : CAST.earth[h % 3]; }
+    if (v.type !== 'land') return null; if (v.starter) return CAST.earth[0]; for (let k = 0; k < 3; k++) { const c = CAST.earth[(h + k) % 3]; if (metCount(c.name) <= LAST_AT || state(v.id).tyrant === c.name) return c; } return null; } // one who has made his last stand holds nowhere else; when all three have, the villages left are held by lesser names
+  const LAST_AT = 3; // beaten this many times, the next meeting is his last
+  const LAST = { sly: ['This is the last ring I have. One key on it. You are not getting it.', 'There. The last key. I never did find out what it opens.'], grim: ['No more walls after this one. So this one holds.', 'Hm. Good. I was tired of standing.'], glee: ['The last feast! I saved you a seat. It is the one in front of my fist.', 'Best party I ever lost. Keep the medals. I made them myself anyway.'] };
   const metCount = (name) => (G.stats.tyrantMet && G.stats.tyrantMet[name]) || 0;
   const AGAIN = {
     sly: [['You. I had new keys cut after the last time. Better keys.', 'Three villages now. I am running out of rings, and out of patience.', 'I have started locking the doors from the inside as well. In case of you.'], 'Keep this one. There is always another village, and I always have a key.'],
@@ -1796,14 +1798,23 @@ const Village = (() => {
     alien: [['You followed me. Across all that silence. Why would you do that?', 'Again the loud one. I am beginning to hear you in my sleep.'], 'There is always somewhere quieter. I will find it. You will find me.'],
     halo: [['You. I ran half the ring to be rid of you.', 'Round and round. We keep meeting because the ring has no end. I checked.'], 'Hff. Further round, then. I will see you when the ring brings you.'],
     atlantis: [['Back again? Nothing ever leaves this bowl.'], 'Open the gate, then. I have outgrown the place anyway.'] };
-  function tyrantVoice(v, mood, h) { const cast = castOf(v, h), met = cast ? metCount(cast.name) : 0; if (cast && met > 0) { const key = v.style === 'alien' ? 'alien' : v.style === 'halo' ? 'halo' : v.style === 'atlantis' ? 'atlantis' : ['sly', 'grim', 'glee'][mood % 3], A = AGAIN[key], V = VOICE[key], f = (t) => t.replace(/\{t\}/g, v.name || 'this place'); return { hail: A[0][Math.min(met - 1, A[0].length - 1)], taunts: V.taunts.map(f), fight: f(V.fight), beaten: A[1], cast }; }
+  function tyrantVoice(v, mood, h) { const cast = castOf(v, h), met = cast ? metCount(cast.name) : 0; if (cast && !cast.full && met >= LAST_AT) { const key = ['sly', 'grim', 'glee'][mood % 3], V = VOICE[key], f = (t) => t.replace(/\{t\}/g, v.name || 'this place'); return { hail: LAST[key][0], taunts: V.taunts.map(f), fight: 'No running this time.', beaten: LAST[key][1], cast, last: true }; }
+    if (cast && met > 0) { const key = v.style === 'alien' ? 'alien' : v.style === 'halo' ? 'halo' : v.style === 'atlantis' ? 'atlantis' : ['sly', 'grim', 'glee'][mood % 3], A = AGAIN[key], V = VOICE[key], f = (t) => t.replace(/\{t\}/g, v.name || 'this place'); return { hail: A[0][Math.min(met - 1, A[0].length - 1)], taunts: V.taunts.map(f), fight: f(V.fight), beaten: A[1], cast }; }
     const out = tyrantVoice0(v, mood, h); out.cast = cast; if (cast && !v.starter) out.beaten = AGAIN[v.style === 'alien' ? 'alien' : v.style === 'halo' ? 'halo' : v.style === 'atlantis' ? 'atlantis' : ['sly', 'grim', 'glee'][mood % 3]][1]; if (v.starter) out.beaten = 'Take them, take them! This is one village. There are others, and I have keys for those too.'; return out; }
   function tyrantVoice0(v, mood, h) { const key = v.style === 'alien' ? 'alien' : v.style === 'halo' ? 'halo' : v.style === 'atlantis' ? 'atlantis' : ['sly', 'grim', 'glee'][mood % 3], V = VOICE[key], f = (t) => t.replace(/\{t\}/g, v.name || 'this place');
     if (v.starter) return { hail: 'Ah. The one from the camp. Every key in this village is on this ring, and not one of them is for you.', taunts: V.taunts.map(f), fight: f(V.fight), beaten: 'Take them, take them! And tell the Kinmaster nothing. He will hear of it anyway. He always does.' };
     return { hail: f(V.hail[(h >>> 5) % V.hail.length]), taunts: V.taunts.map(f), fight: f(V.fight), beaten: f(V.beaten) }; }
   // he speaks when he first sees you, and again now and then while you hang about
-  function tyrantTalk(v, player, dt) { const b = v.boss; if (!b || !b.persona || b.sleep || state(v.id).freed || Battle.active) return; const d = Math.hypot(b.x - player.x, b.z - player.z); if (d > 17) { b.talkT = Math.min(b.talkT || 0, 2); return; }
-    b.talkT = (b.talkT == null ? 0.6 : b.talkT) - dt; if (b.talkT > 0) return; if (!b.hailed) b.persona = tyrantVoice(v, b.kin.sp.tyrMood || 0, b.vh); /* he may have met you somewhere else since he was put here */ const line = !b.hailed ? b.persona.hail : b.persona.taunts[(b.tauntI = ((b.tauntI || 0) + 1)) % b.persona.taunts.length]; b.hailed = true; b.talkT = 11 + Math.random() * 7;
+  // how each of them holds his face at rest, what it does the moment he sees you, and while he talks. bl/br: brows up or down, tl/tr: their tilt (1 a scowl, -1 worry), lid: eyes shut, jaw: mouth open
+  const FACE = { sly: { bl: -0.5, br: 1.0, tl: 0.5, tr: -0.25, lid: 0.42, jaw: 0 }, grim: { bl: -0.9, br: -0.9, tl: 0.9, tr: 0.9, lid: 0.3, jaw: 0 }, glee: { bl: 0.7, br: 0.7, tl: -0.3, tr: -0.3, lid: 0.62, jaw: 0.55 } };
+  const SPOT = { bl: 1.3, br: 1.3, tl: -0.2, tr: -0.2, lid: 0, jaw: 0.7 };
+  function tyrantFace(b, dt) { const base = FACE[['sly', 'grim', 'glee'][(b.kin.sp.tyrMood || 0) % 3]], now = performance.now(), f = b.face || (b.face = Object.assign({}, base)); let T = base;
+    if (b.spotT > 0) { b.spotT -= dt; T = SPOT; } const talking = b.speakUntil && now < b.speakUntil, k = Math.min(1, dt * (T === SPOT ? 16 : 7));
+    for (const key of ['bl', 'br', 'tl', 'tr', 'lid']) f[key] += (T[key] - f[key]) * k; if (talking) { f.br += Math.sin(now / 310) * 0.02; f.bl += Math.sin(now / 420 + 1) * 0.02; }
+    const jaw = talking ? Math.max(T.jaw * 0.4, 0.18 + 0.5 * Math.abs(Math.sin(now / 95)) * (0.6 + 0.4 * Math.sin(now / 530))) : T.jaw + (T === base && base.jaw ? Math.sin(now / 160) * 0.18 : 0); // the merry one is always laughing a little
+    f.jaw = (f.jaw || 0) + (jaw - (f.jaw || 0)) * Math.min(1, dt * 18); b.jawOpen = f.jaw; }
+  function tyrantTalk(v, player, dt) { const b = v.boss; if (!b || !b.persona) return; tyrantFace(b, dt); if (b.sleep || state(v.id).freed || Battle.active) return; const d = Math.hypot(b.x - player.x, b.z - player.z); if (d > 17) { b.talkT = Math.min(b.talkT || 0, 2); return; }
+    b.talkT = (b.talkT == null ? 0.6 : b.talkT) - dt; if (b.talkT > 0) return; if (!b.hailed) b.persona = tyrantVoice(v, b.kin.sp.tyrMood || 0, b.vh); /* he may have met you somewhere else since he was put here */ const line = !b.hailed ? b.persona.hail : b.persona.taunts[(b.tauntI = ((b.tauntI || 0) + 1)) % b.persona.taunts.length]; if (!b.hailed) b.spotT = 0.55; b.hailed = true; b.talkT = 11 + Math.random() * 7; b.speakUntil = performance.now() + 550 + Math.min(4200, line.length * 55);
     say(b.x, b.y + (b.model ? b.model.height : 2) + 0.5, b.z, line, line.length > 60 ? 7.5 : 4.5, b); const el = bubbles[bubbles.length - 1].el; el.style.font = '700 14px/1.3 system-ui,sans-serif'; el.style.padding = '8px 13px'; el.style.maxWidth = '74vw'; el.style.background = '#2a1f33'; el.style.color = '#f6eaff'; el.style.border = '2px solid #b070ff'; el.style.opacity = '1'; }
   function ensureBoss(v, trainerLevel) {
     if (state(v.id).freed || v.boss) return;
@@ -1819,7 +1830,8 @@ const Village = (() => {
       sp.colors = { body: c[0], belly: c[1], dark: c[2], accent: c[3], eye: '#c58bff' }; sp.natId = PL[0]; KIN.nativize(sp); } // and so are the Moon's, the Halo's and the one under the sea
     sp.tyrMood = cast ? cast.mood : (h >>> 3) % 3; // the sly one, the grim one or the merry one. Grakor is sly
     sp.names = [nm, nm, nm]; sp.feat.horns = true; sp.feat.spikes = true; sp.feat.crest = true; sp.size = 1.5 + v.tier * 0.08; sp.boss = true; sp.colors = Object.assign({}, sp.colors, { eye: '#c58bff' }); // the eyes of the Bound are the colour of the crystal
-    const kin = KIN.create(sp, bossLevelFor(v));
+    const lastStand = cast && !cast.full && metCount(cast.name) >= LAST_AT; if (cast) state(v.id).tyrant = cast.name; if (lastStand) { sp.size *= 1.12; sp.names = sp.names.map(() => cast.name + ', at the last'); }
+    const kin = KIN.create(sp, bossLevelFor(v) + (lastStand ? 4 : 0));
     const m = KIN.dress(KIN.model(sp, 2), { item: 'tyrant' }); // crowned in iron, the shard of the Binding on its chest
     const bx = v.type === 'deep' ? v.x - 0.5 : v.x + 0.5, bz = v.z + 2.5;
     // at sea the tyrant lurks under the deck and comes up when you reach the platform, however you got there

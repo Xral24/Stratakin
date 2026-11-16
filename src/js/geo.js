@@ -248,12 +248,15 @@
             const guard = blk * (1 - (used ? 0.6 : 0)); /* behind the shield: the left forearm comes up and across so the shield covers the chest and chin, the weapon hand drops back, ready */
             const rx = (-sw * amp * (used ? 0.3 : 1) + ax + idle * Math.sin(t * 1.3 + seed + phs) * 0.03) * (1 - sit) - 0.55 * sit - (shieldArm ? guard * 0.8 : -guard * 0.35 * (1 - (used ? 1 : 0)));
             set(i, b.piv, rx, (shieldArm ? -guard * 0.3 : 0) - side * ay, side * (0.08 + air * 1.1 + az + guard * (shieldArm ? -0.32 : 0.45)), 0, bob, 0); break; }
-          case 'head': { const look = a.look || 0; set(i, b.piv, Math.sin(ph * 2) * 0.05 * mv + idle * Math.sin(t * 0.9 + seed) * 0.03 + (a.nod || 0), idle * Math.sin(t * 0.55 + seed * 2) * 0.16 + look, 0, 0, bob, 0); break; }
+          case 'head': { const look = a.look || 0, k = b.still ? 0 : 1; set(i, b.piv, (Math.sin(ph * 2) * 0.05 * mv + idle * Math.sin(t * 0.9 + seed) * 0.03) * k + (a.nod || 0), idle * Math.sin(t * 0.55 + seed * 2) * 0.16 * k + look, 0, 0, bob, 0); break; } /* still: a head whose face has parts of its own keeps steady, so they stay on it */
           case 'tail': { const sw = Math.sin(ph + 1.1) * 0.25 * mv + Math.sin(t * 1.6 + seed) * (0.09 + 0.1 * idle); set(i, b.piv, Math.sin(t * 1.1 + seed) * 0.04, sw * (b.amp || 1), 0, 0, bob, 0); break; }
           case 'tailfin': { const sw = Math.sin(t * (5 + 3 * mv) + seed) * (0.3 + 0.2 * mv); set(i, b.piv, 0, sw, 0, 0, bob, 0); break; }
           case 'wing': { const side = b.side || 1; const flap = air > 0.05 ? Math.sin(t * 9.5 + seed) * 0.55 * air + 0.12 * air : 0; const fold = (1 - air) * (b.fold || 0); set(i, b.piv, 0, 0, side * (flap + fold) + side * (1 - air) * Math.sin(t * 2.3 + seed) * 0.03, 0, bob, 0); break; }
           case 'spin': { set(i, b.piv, 0, t * (b.speed || 1.5), 0, 0, bob, 0); break; }
           case 'jaw': { set(i, b.piv, (a.jaw || e.jawOpen || 0) * 0.45, 0, 0, 0, bob, 0); break; }
+          // a face that moves. e.face says where everything is: bl, br how far each brow is lifted (-1 pulled down, 1 up), tl, tr how each is tilted (1: the inner end down, a scowl; -1: the inner end up, worry), lid how far the eyes are shut. Everybody with lids blinks
+          case 'brow': { const f = e.face || {}, L = (b.side || 1) < 0; set(i, b.piv, 0, 0, (b.side || 1) * ((L ? f.tl : f.tr) || 0) * 0.55, 0, bob + ((L ? f.bl : f.br) || 0) * (b.amp || 0.03) * sc, 0); break; }
+          case 'lid': { const f = e.face || {}, bl = ((t * 0.21 + seed * 0.37) % 1) < 0.028 ? 1 : 0; set(i, b.piv, 0, 0, 0, 0, bob - Math.max(f.lid || 0, bl) * (b.amp || 0.05) * sc, 0); break; }
           case 'ear': { set(i, b.piv, 0, 0, (b.side || 1) * (Math.sin(t * 2.7 + seed + phs) * 0.06 + mv * 0.15), 0, bob, 0); break; }
           case 'body': default: {
             if (m.kind === 'blob') { const sq = 1 + Math.sin(ph) * 0.09 * mv + Math.sin(t * 2.2 + seed) * 0.025; set(i, b.piv || [0, 0, 0], 0, 0, 0, 0, Math.abs(Math.sin(ph)) * 0.12 * mv * sc, 0, 1 / Math.sqrt(sq), sq, 1 / Math.sqrt(sq)); }
