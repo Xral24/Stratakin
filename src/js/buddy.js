@@ -88,8 +88,8 @@ const Buddy = (() => {
   // ---- its heart. The Kin at your shoulder is somebody: it has a temper it was born with and a bond with you that grows from walking together, winning together, being looked after and being made a fuss of.
   // What it feels shows in its face and in a small mark over its head, and how it shows it depends on the temper
   const TEMPERS = ['steady', 'shy', 'cross', 'bright', 'drowsy'];
-  const MOOD = { joy: { b: 0.85, t: -0.2, lid: 0.72 }, worry: { b: 0.55, t: -0.85, lid: 0.15 }, alert: { b: 0.95, t: -0.1, lid: 0 }, sleepy: { b: -0.15, t: -0.1, lid: 0.82 }, wonder: { b: 0.7, t: -0.3, lid: 0, one: 0.6 } };
-  let mood = null, moodT = 0, stillT = 0, wasFight = false, petT = 0, greetT = 0, worryT = 0;
+  const MOOD = { sneak: { b: -0.45, t: 0.35, lid: 0.38, one: 0.25 }, joy: { b: 0.85, t: -0.2, lid: 0.72 }, worry: { b: 0.55, t: -0.85, lid: 0.15 }, alert: { b: 0.95, t: -0.1, lid: 0 }, sleepy: { b: -0.15, t: -0.1, lid: 0.82 }, wonder: { b: 0.7, t: -0.3, lid: 0, one: 0.6 } };
+  let sneakK = 0, mood = null, moodT = 0, stillT = 0, wasFight = false, petT = 0, greetT = 0, worryT = 0;
   const temper = (k) => TEMPERS[(e && e.model && e.model.temper || 0) % 5];
   function bond(k, d) { k.bond = Math.min(1, Math.max(0, (k.bond || 0) + d)); }
   function emote(ch, col) { if (!e || typeof R === 'undefined' || !R.project) return; const q = R.project(e.x, e.y + (e.model.height || 1) * e.scale + 0.45, e.z); if (!q || !q.on) return; const el = document.createElement('div'); el.textContent = ch;
@@ -102,7 +102,9 @@ const Buddy = (() => {
     if (!fighting) { const hpP = p.hp != null && p.maxHp ? p.hp / p.maxHp : 1; if (hpP < 0.35 && worryT <= 0) { worryT = 14; feel('worry', 5, '!', '#ff8a70'); } // you are hurt and it has noticed
       stillT = pv < 0.2 ? stillT + dt : 0; if (stillT > 9 && !mood) { if (night || tp === 'drowsy') feel('sleepy', 6, stillT > 16 ? 'z' : null, '#bcd0ff'); else if (stillT > 14 && Math.random() < dt * 0.12) { feel('wonder', 3, '?', '#fff'); stillT = 9; } }
       if (!mood && Wild.list && Wild.list.some(w => w.alert > 0.4 && !w.isBoss && Math.hypot(w.x - e.x, w.z - e.z) < 9)) feel('alert', 1.2, greetT <= 0 ? '!' : null, '#fff'), greetT = 8; }
-    const M = mood ? MOOD[mood] : null; if (!M) { e.face = null; e._face = null; return; } const q = Math.min(1, dt * 9); f.bl += (M.b - f.bl) * q; f.br += (M.b + (M.one || 0) - f.br) * q; f.tl += (M.t - f.tl) * q; f.tr += (M.t - f.tr) * q; f.lid += (M.lid - f.lid) * q; e.face = f; }
+    // when you go down on your haunches so does it: low to the ground, leaning forward, head down, eyes narrowed and fixed on whatever you are after
+    sneakK += ((p.sneak && !fighting ? 1 : 0) - sneakK) * Math.min(1, dt * 7); if (e._an) { e._an.crouch = sneakK * 0.4; e._an.lean = sneakK * 0.28; e._an.nod = sneakK * 0.22; }
+    const M = mood ? MOOD[mood] : sneakK > 0.5 ? MOOD.sneak : null; if (!M) { e.face = null; e._face = null; return; } const q = Math.min(1, dt * 9); f.bl += (M.b - f.bl) * q; f.br += (M.b + (M.one || 0) - f.br) * q; f.tl += (M.t - f.tl) * q; f.tr += (M.t - f.tr) * q; f.lid += (M.lid - f.lid) * q; e.face = f; }
   const PET = { steady: ['stands a little closer', 'leans its whole weight on your leg', 'will not leave your side now'], shy: ['flinches, then lets you', 'hides behind your leg and peeks out', 'climbs half into your coat and stays there'], cross: ['puts up with it', 'pretends not to like it', 'pushes its head under your hand and glares at anyone looking'],
     bright: ['bounces at your feet', 'spins on the spot', 'cannot keep still for joy'], drowsy: ['yawns at you', 'yawns and leans on you', 'falls asleep against your boot, trusting you to stand still'] };
   const BONDS = ['It hardly knows you yet', 'It is getting used to you', 'It trusts you', 'It would follow you anywhere'];
@@ -127,7 +129,7 @@ const Buddy = (() => {
     gyT -= dt; if (gyT <= 0 || !e.flying) { gyT = 0.15; gy = e.flying ? p.y + 1.3 + Math.sin(e.bob * 1.4) * 0.25 : ground(e.x, e.z, Math.max(p.y, e.y)); }
     if (!e.flying && gy > e.y) e.y = gy; // a step up is taken at once: on bare rock there is no grass to hide a foot sunk in the ground
     else e.y += (gy - e.y) * Math.min(1, dt * (e.flying ? 3 : 10));
-    if (hopT > 0) { hopT -= dt; e.hover = (e.model.hover || 0) + Math.abs(Math.sin(hopT * 9)) * 0.5; } else e.hover = (e.model.hover || 0) + (e.flying ? Math.sin(e.bob * 2) * 0.08 : 0);
+    if (hopT > 0) { hopT -= dt; e.hover = (e.model.hover || 0) + Math.abs(Math.sin(hopT * 9)) * 0.5; } else e.hover = (e.model.hover || 0) * (1 - sneakK * 0.6) + (e.flying ? Math.sin(e.bob * 2) * 0.08 * (1 - sneakK) : 0) - sneakK * 0.16 * (e.model.height || 1) * e.scale * (e.flying ? 0 : 1);
     // finds: walking together turns things up
     const step = Math.hypot(p.x - lastX, p.z - lastZ); lastX = p.x; lastZ = p.z;
     if (step < 3 && p.onGround) walked += step;

@@ -458,6 +458,9 @@ const Wild = (() => {
         else if (moving && sneaking) rate = 0.18;
         else rate = -0.6;
         e.alert = U.clamp(e.alert + rate * dt * (dist < senseR * 0.5 && !sneaking ? 1.5 : 1), 0, 1);
+        // it shows you what it is thinking by what it does, since there is nothing drawn on the ground to tell you. Something has caught its attention: its head comes up with a jerk, it stops where it is, and the head turns to find you while the body stays put. Lose its interest and it goes back to what it was doing
+        if (!e.sleep && !e.chase && e.alert > 0.12 && e.alert < 1) { if (!e.sus) { e.sus = true; e.susT = 0.4; } e.tx = e.x; e.tz = e.z; e.wait = Math.max(e.wait || 0, 0.6); let rel = Math.atan2(dx, dz) - e.yaw; while (rel > Math.PI) rel -= Math.PI * 2; while (rel < -Math.PI) rel += Math.PI * 2; e.lookT = U.clamp(rel, -1.15, 1.15); }
+        else { e.sus = false; e.lookT = 0; }
         // only the real threats force a fight: tyrants, their guards, legends, the lab's splice and the truly rare; everything else follows you and gives up
         const strong = (e.kin.sp.rarity || 0) >= 3 || e.lieutenant || e.isBoss || e.isLegend || e.isApex || e.isLabBoss || e.lairQuest || e.nightQuest || e.kinmaster || e.keepBoss || e.finalBoss || e.skyBoss;
         // once it has seen you, stay in its ring for three seconds and it attacks; walk out in time and it lets you go
@@ -466,7 +469,8 @@ const Wild = (() => {
         // bump into it and it attacks, seen or not (sneak up and set the snare instead)
         const touch = 1.0 + Math.min(2, (e.model.radius || 0.6) * 0.6);
         if (dist < touch && !trigger) trigger = { e, ambush: e.alert < 0.6 };
-      } else { e.alert = Math.max(0, e.alert - dt * 0.8); e.ringT = 0; }
+      } else { e.alert = Math.max(0, e.alert - dt * 0.8); e.ringT = 0; e.sus = false; e.lookT = 0; }
+      if (e._an) { e._an.look = (e._an.look || 0) + ((e.lookT || 0) - (e._an.look || 0)) * Math.min(1, dt * 7); e.susT = Math.max(0, (e.susT || 0) - dt); e._an.nod = -0.38 * Math.sin(Math.min(1, (e.susT || 0) / 0.4) * Math.PI); }
     }
     updateDrops(dt, player);
     highTimer -= dt;
