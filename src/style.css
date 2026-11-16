@@ -526,4 +526,9 @@ select { font-family: var(--font); font-size: 14px; padding: 9px 11px; border-ra
 #gamebox .gb-canvas.gb-wide { width: min(88vw, 420px); aspect-ratio: 320 / 250; }
 
 #b-snare .snare-track, #b-snare #snare-go { display: none; }
-#snare-net { width: min(92vw, 430px); aspect-ratio: 640 / 560; border-radius: 12px; touch-action: none; background: #2f5d36; }
+#snare-net { position: fixed; left: 0; top: 0; width: 100vw; height: 100vh; touch-action: none; background: transparent; z-index: 40; }
+#battle.snaring { background: transparent; border: 0; box-shadow: none; max-height: none; overflow: visible; pointer-events: none; }
+#battle.snaring > *:not(#b-snare) { display: none; }
+#battle.snaring #b-snare { background: transparent; pointer-events: auto; padding: 0; }
+#battle.snaring .snare-tip { position: fixed; left: 50%; top: 150px; transform: translateX(-50%); width: min(86vw, 380px); text-align: center; z-index: 41; background: rgba(20,16,26,.6); border-radius: 12px; padding: 7px 10px; font-size: 13px; pointer-events: none; }
+#battle.snaring #snare-cancel { position: fixed; left: 50%; bottom: calc(10px + env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 41; font-size: 13px; padding: 8px 14px; opacity: .92; }
