@@ -823,7 +823,7 @@ G.loop = function (t) {
   if (!R.state.underwater && !R.state.inCore && p.y >= w.topAt(Math.floor(p.x), Math.floor(p.z)) - 1) { const rl = Weather.rainLines(w, cam, performance.now() / 1000); if (rl) lines.push(rl); }
   document.getElementById('flash').style.opacity = Weather.state.flash > 0.6 ? 0.7 : 0;
   const ents = Wild.list.filter(e => !e.ridden); // the one you are sat on is drawn under you, as your mount
-  if (Battle.mineEntity) ents.push(Battle.mineEntity);
+  if (Battle.mineEntity && !Battle.net) ents.push(Battle.mineEntity);
   ents.push(...Village.entities());
   if (p.flying) { // the Starship: a pale swept hull with a glass canopy, twin engine pods glowing blue, a tail fin, and a wash of sparks behind it when it moves
     ents.push({ x: p.x, y: p.y - 0.85, z: p.z, yaw: p.yaw + Math.PI, model: { height: 1.2, radius: 2.3 }, mesh: R.entityMesh('ship2', (mb) => {
@@ -847,7 +847,7 @@ G.loop = function (t) {
     }), scale: 1, hover: Math.sin(performance.now() / 300) * 0.05, skyMul: 1, isMount: true });
     const sp = Math.hypot(p.vx, p.vz, p.vy || 0); if (sp > 1.5 && Math.random() < Math.min(0.9, sp * 0.08)) { const b = U.forwardVec(p.yaw, 0); Hazards.sparks(p.x - b[0] * 1.7, p.y - 0.4, p.z - b[2] * 1.7, 2, [0.5, 0.9, 1.0], 1.2); }
   }
-  const showMe = !this.hideMe && (inBattle || this.thirdPerson || this.talkK > 0 || !!p.mount || this.grassCamOn); // hideMe: he has gone inside something (a railway carriage)
+  const showMe = !this.hideMe && !Battle.net && (inBattle || this.thirdPerson || this.talkK > 0 || !!p.mount || this.grassCamOn); // hideMe: he has gone inside something (a railway carriage)
   if (showMe) { const me = Avatar.entity(p, Math.hypot(p.vx, p.vz) > 0.6); if (p.mount) { const mm = KIN.model(p.mount.sp, p.mount.stage); const st = seatOf(mm); const f = U.forwardVec(p.yaw, 0); const along = 0.5 + st.zc - 0.06; me.x = p.x + f[0] * along; me.z = p.z + f[2] * along; me.y = G.mountBase(p) + st.top - hipOf(me.model) * (me.scale || 1) + 0.1; me._an.cross = 1; /* sat cross-legged on top: fits a pony and a T-rex alike */ me.seatY = hipOf(me.model) * (me.scale || 1); } me.M = null; ents.push(me); this.meEnt = me; } else this.meEnt = null;
   if (p.mount) { const k = p.mount; const m = KIN.dress(KIN.model(k.sp, k.stage), k.wear); const fwd = U.forwardVec(p.yaw, 0); if (!k._an) k._an = { ph: 0, mv: 0, lx: p.x, lz: p.z, ly: p.y, lt: performance.now(), vy: 0, seed: 5, air: 0 }; k._an.swim = p.mountMode === 'water' ? 1 : 0; const mt = { x: p.x + fwd[0] * 0.5, y: G.mountBase(p), z: p.z + fwd[2] * 0.5, yaw: p.yaw + Math.PI, model: m, mesh: R.entityMesh(KIN.meshKey(k.sp, k.stage) + KIN.wearKey(k.wear), (mb) => KIN.buildMesh(mb, m)), scale: 1, hover: 0, skyMul: 1, isMount: true, flying: p.mountMode === 'air' && !p.onGround, _an: k._an }; ents.push(mt); if (Taming.active) Taming.pose(mt, this.meEnt, cam.yaw); /* it bucks, and you with it */ }
   ents.push(...Battle.fxEntities()); ents.push(...Sky.puffEntities()); ents.push(...Wild.dropEntities()); ents.push(...Gems.entities()); ents.push(...Buddy.entities()); ents.push(...Felling.entities()); ents.push(...Combat.entities()); ents.push(...Hazards.entities()); ents.push(...Npcs.entities());
