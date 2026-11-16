@@ -665,6 +665,7 @@ const KIN = (() => {
        a big glint and a small one (both on the light's side, never mirrored), a dark upper lid. o.brow slants the lid for a fierce look;
        o.glow makes a dark eye with a lit iris; side = the eye faces out sideways (fish). */
     const LOOK = (ex, ey, ez, er, o = {}, side) => {
+      const faceOn = !o.noFace && !bones[10] && !bones[11] && !bones[12]; // the first pair of eyes on a creature gets the moving lids and brows
       let col = o.col || C.eye; { const q = U.hexToRgb(col); if (q[0] + q[1] + q[2] < (q[0] > 1 ? 150 : 0.6)) col = hexMix(C.accent, '#3a2416', 0.4); } /* a plain black eye takes its colour from the Kin's accent */ const glow = !!o.glow; er *= er < 0.06 ? 1.3 : 1.12;
       const pt = (sd, u, v, w) => (w += 0.22, 0) || side ? [sd * (ex + w * er), ey + v * er, ez + u * er] : [sd * ex + u * er, ey + v * er, ez + w * er];
       const el = (sd, u, v, w, hu, hv, hw, c, oo) => { const p = pt(sd, u, v, w); const hx = (side ? hw : hu) * er, hy = hv * er, hz = (side ? hu : hw) * er; blob(p[0] - hx, p[1] - hy, p[2] - hz, p[0] + hx, p[1] + hy, p[2] + hz, 1, c, oo); };
@@ -682,7 +683,11 @@ const KIN = (() => {
         for (let i = 0; i <= 6; i++) { const k = i / 6, a = Math.PI * (0.94 - 0.88 * k); const base = 0.04 + 1.17 * Math.sin(a); const cut = a0 + (a1 - a0) * (inn < 0 ? 1 - k : k); /* k runs -u to +u */
           arc.push(pt(sd, 0.99 * Math.cos(a), o.brow ? Math.min(base, side ? 0.95 : cut) : base, 0.5 + 0.18 * Math.sin(a))); rr.push((i === 0 || i === 6 ? 0.05 : 0.12) * er * (o.brow ? 1.15 : 1)); }
         tube(arc, rr, '#17111f', { segs: 6, cap0: 'round', cap1: 'round' });
-        if (o.brow) { const b0 = pt(sd, inn * 1.0, 1.0, 0.52), b1 = pt(sd, -inn * 1.1 + (side ? 1.0 : 0), 1.5, 0.42); if (side) { b0[2] = ez + er * 1.05; b0[1] = ey + er * 1.05; b1[2] = ez - er * 1.05; b1[1] = ey + er * 1.4; }
+        if (faceOn) { const home = bone, lidc = hexMix(C.body, C.dark, 0.22), bi = sd < 0 ? 11 : 12;
+          if (!bones[10]) bones[10] = { kind: 'lid', piv: P3(pt(1, 0, 1.2, 0.5)), squash: true, on: home }; bone = 10; el(sd, 0, 0.02, 0.5, 1.06, 1.2, 0.72, lidc, { n: 3 });
+          const bp = pt(sd, 0, 1.55, 0.5); bones[bi] = { kind: 'brow', piv: P3(bp), side: sd, amp: er * 0.42 * s, on: home }; bone = bi;
+          const b0 = pt(sd, inn * 0.95, 1.42, 0.62), b1 = pt(sd, -inn * 1.05, 1.5, 0.4); tube([b0, [(b0[0] + b1[0]) / 2, (b0[1] + b1[1]) / 2 + er * 0.1, (b0[2] + b1[2]) / 2 + (side ? 0 : er * 0.1)], b1], o.brow ? [er * 0.16, er * 0.22, er * 0.14] : [er * 0.09, er * 0.14, er * 0.08], o.brow || hexMix(C.body, C.dark, 0.6), { segs: 6, cap0: 'round', cap1: 'round' }); bone = home; }
+        else if (o.brow) { const b0 = pt(sd, inn * 1.0, 1.0, 0.52), b1 = pt(sd, -inn * 1.1 + (side ? 1.0 : 0), 1.5, 0.42); if (side) { b0[2] = ez + er * 1.05; b0[1] = ey + er * 1.05; b1[2] = ez - er * 1.05; b1[1] = ey + er * 1.4; }
           tube([b0, [(b0[0] + b1[0]) / 2, (b0[1] + b1[1]) / 2 + er * 0.08, (b0[2] + b1[2]) / 2 + (side ? 0 : er * 0.12)], b1], [er * 0.16, er * 0.22, er * 0.14], o.brow, { segs: 8, cap0: 'round', cap1: 'round' }); }
       }
     };
@@ -4265,7 +4270,7 @@ const KIN = (() => {
     if (!bones[0]) bones[0] = { kind: 'body', piv: [0, 0, 0], runPitch: sp.shape === 'raptor' ? 0.08 : 0 };
     const height = Math.max(...parts.map(b => b.y + b.h));
     const radius = Math.max(...parts.map(b => Math.max(Math.abs(b.x), Math.abs(b.x + b.w), Math.abs(b.z), Math.abs(b.z + b.d))));
-    const M = { boxes: parts, scale: s, hover, height, radius, bones, legLen: legLen * SY, kind, flyer, sway, shape, native: natDone, fitBody };
+    const M = { boxes: parts, scale: s, hover, height, radius, bones, temper: ((sp.seed >>> 0) % 5 + (sp.boss ? 0 : 0)), legLen: legLen * SY, kind, flyer, sway, shape, native: natDone, fitBody };
     return sp.neon && form.plan && !natDone ? alienize(M, sp) : M;
   }
   // A Kin turned into an object: material comes from the items, glow from anything burning. The Kin's level makes it bigger and brighter.

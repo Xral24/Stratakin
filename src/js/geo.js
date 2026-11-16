@@ -181,7 +181,7 @@
   // Bones: 0 body, 1 head, 2 left arm / front-left leg, 3 right arm / front-right leg, 4 back-left leg, 5 back-right leg,
   // 6 tail, 7 left wing, 8 right wing, 9 jaw. A model lists them as m.bones[i] = { piv: [x,y,z], kind, phase }.
   const Anim = (() => {
-    const mats = new Float32Array(160), sway = new Float32Array(4); const legAt = []; const CROUCH = 0.85; // how far the thighs come forward in a full crouch
+    const mats = new Float32Array(224), sway = new Float32Array(4); const legAt = []; const CROUCH = 0.85; // how far the thighs come forward in a full crouch
     // bone i: rotate (rx about x, ry about y, rz about z) around piv, then move by (tx,ty,tz); optional scale sy
     const ATK = {
       slash: { main: [[0, 0, 0, 0], [0.3, -2.75, -0.35, 0.55], [0.55, -0.85, 0.95, 0.05], [0.72, -0.45, 1.05, 0.05], [1, 0, 0, 0]], off: [[0, 0, 0, 0], [0.3, -0.5, 0, 0.5], [0.6, 0.35, 0, 0.55], [1, 0, 0, 0]] }, /* down from the shoulder and across */
@@ -190,6 +190,14 @@
       thrust: { main: [[0, 0, 0, 0], [0.32, 0.75, 0, 0.25], [0.55, -1.55, 0.15, 0], [0.72, -1.5, 0.15, 0], [1, 0, 0, 0]], off: [[0, 0, 0, 0], [0.32, -1.1, 0.3, 0], [0.55, -0.4, 0, 0.3], [1, 0, 0, 0]] }, /* drawn back past the hip, then straight out */
       jab: { main: [[0, 0, 0, 0], [0.25, 0.4, 0, 0.2], [0.5, -1.5, 0.2, 0], [1, 0, 0, 0]], off: [[0, 0, 0, 0], [0.5, -0.5, 0, 0.3], [1, 0, 0, 0]] },
     };
+    const TMPM = new Float32Array(16);
+    function under(i, par) { const a = par * 16, b = i * 16; for (let c = 0; c < 4; c++) for (let r = 0; r < 4; r++) TMPM[c * 4 + r] = mats[a + r] * mats[b + c * 4] + mats[a + 4 + r] * mats[b + c * 4 + 1] + mats[a + 8 + r] * mats[b + c * 4 + 2] + mats[a + 12 + r] * mats[b + c * 4 + 3]; for (let k = 0; k < 16; k++) mats[b + k] = TMPM[k]; }
+    // what a creature's face is doing when nobody has told it: every kind has a temper of its own, and on top of that it shows what is happening to it. Curious when it has noticed you, hard when it is after you, shut when asleep, worried when hurt
+    const TEMPER = [{ b: 0, t: 0, lid: 0.08 }, { b: 0.35, t: -0.45, lid: 0.0 }, { b: -0.55, t: 0.6, lid: 0.3 }, { b: 0.45, t: -0.1, lid: 0.16 }, { b: -0.1, t: -0.1, lid: 0.5 }]; // steady, shy, cross, bright, drowsy
+    function autoFace(e, m, a, t, seed) { const T = TEMPER[(m.temper || 0) % 5]; let b = T.b, tl = T.t, lid = T.lid, one = 0; const k = e.kin, hurt = k && k.maxHp && k.hp > 0 && k.hp / k.maxHp < 0.3;
+      if (e.sleep) { lid = 1; b = -0.2; tl = 0; } else if (e.chase || (e.alert || 0) > 0.97) { b = -0.75; tl = 0.85; lid = 0.22; } else if ((e.alert || 0) > 0.12) { b = 0.9; tl = -0.15; lid = 0; one = 0.5; } else if (hurt) { b = 0.5; tl = -0.8; lid = 0.3; }
+      else { const g = (t * 0.13 + seed * 0.71) % 1; if (g < 0.09) { one = 0.9; lid = Math.max(0, lid - 0.2); } } // now and then one brow goes up at nothing in particular
+      const f = a.f || (a.f = { bl: b, br: b, tl, tr: tl, lid }), q = 0.14; f.bl += (b - f.bl) * q; f.br += (b + one - f.br) * q; f.tl += (tl - f.tl) * q; f.tr += (tl - one * 0.4 - f.tr) * q; f.lid += (lid - f.lid) * q; return f; }
     function set(i, piv, rx, ry, rz, tx, ty, tz, sx, sy, sz) {
       const cx = Math.cos(rx), sxx = Math.sin(rx), cy = Math.cos(ry), syy = Math.sin(ry), cz = Math.cos(rz), szz = Math.sin(rz);
       // R = Ry * Rx * Rz (column-major)
@@ -221,7 +229,7 @@
       const swim = e.swim || a.swim || 0;
       const bob = (m.kind === 'blob' ? 0 : Math.abs(Math.sin(ph)) * 0.035 * mv * (m.height || 1)) + (air ? Math.sin(t * 3.1 + seed) * 0.05 : 0);
       const idle = 1 - mv;
-      for (let i = 0; i < 10; i++) {
+      for (let i = 0; i < 14; i++) {
         const b = bones[i]; if (!b) { set(i, null, 0, 0, 0, 0, bob, 0); continue; }
         const k = b.kind, phs = b.phase || 0;
         switch (k) {
@@ -255,8 +263,8 @@
           case 'spin': { set(i, b.piv, 0, t * (b.speed || 1.5), 0, 0, bob, 0); break; }
           case 'jaw': { set(i, b.piv, (a.jaw || e.jawOpen || 0) * 0.45, 0, 0, 0, bob, 0); break; }
           // a face that moves. e.face says where everything is: bl, br how far each brow is lifted (-1 pulled down, 1 up), tl, tr how each is tilted (1: the inner end down, a scowl; -1: the inner end up, worry), lid how far the eyes are shut. Everybody with lids blinks
-          case 'brow': { const f = e.face || {}, L = (b.side || 1) < 0; set(i, b.piv, 0, 0, (b.side || 1) * ((L ? f.tl : f.tr) || 0) * 0.55, 0, bob + ((L ? f.bl : f.br) || 0) * (b.amp || 0.03) * sc, 0); break; }
-          case 'lid': { const f = e.face || {}, bl = ((t * 0.21 + seed * 0.37) % 1) < 0.028 ? 1 : 0; set(i, b.piv, 0, 0, 0, 0, bob - Math.max(f.lid || 0, bl) * (b.amp || 0.05) * sc, 0); break; }
+          case 'brow': { const f = e.face || autoFace(e, m, a, t, seed), L = (b.side || 1) < 0, on = b.on != null; set(i, b.piv, 0, 0, (b.side || 1) * ((L ? f.tl : f.tr) || 0) * 0.55, 0, (on ? 0 : bob) + ((L ? f.bl : f.br) || 0) * (b.amp || 0.03) * sc, 0); if (on) under(i, b.on); break; }
+          case 'lid': { const f = e.face || autoFace(e, m, a, t, seed), bl = ((t * 0.21 + seed * 0.37) % 1) < 0.028 ? 1 : 0, c = Math.max(f.lid || 0, bl); if (b.squash) { set(i, b.piv, 0, 0, 0, 0, 0, 0, 1, 0.04 + 0.96 * c, 1); if (b.on != null) under(i, b.on); } else set(i, b.piv, 0, 0, 0, 0, bob - c * (b.amp || 0.05) * sc, 0); break; } /* squash: a lid that is drawn shut and pressed flat against the top of the eye when it is open */
           case 'ear': { set(i, b.piv, 0, 0, (b.side || 1) * (Math.sin(t * 2.7 + seed + phs) * 0.06 + mv * 0.15), 0, bob, 0); break; }
           case 'body': default: {
             if (m.kind === 'blob') { const sq = 1 + Math.sin(ph) * 0.09 * mv + Math.sin(t * 2.2 + seed) * 0.025; set(i, b.piv || [0, 0, 0], 0, 0, 0, 0, Math.abs(Math.sin(ph)) * 0.12 * mv * sc, 0, 1 / Math.sqrt(sq), sq, 1 / Math.sqrt(sq)); }
@@ -274,7 +282,7 @@
       }
       if (a.flip && m.kind === 'human') { /* a leaping strike: the whole figure turns head over heels about its middle */
         const hy = 0.95, c = Math.cos(a.flip), sn = Math.sin(a.flip);
-        for (let i = 0; i < 10; i++) { const o = i * 16; for (const k of [o, o + 4, o + 8]) { const y = mats[k + 1], z = mats[k + 2]; mats[k + 1] = c * y - sn * z; mats[k + 2] = sn * y + c * z; } const y = mats[o + 13] - hy, z = mats[o + 14]; mats[o + 13] = c * y - sn * z + hy; mats[o + 14] = sn * y + c * z; } }
+        for (let i = 0; i < 14; i++) { const o = i * 16; for (const k of [o, o + 4, o + 8]) { const y = mats[k + 1], z = mats[k + 2]; mats[k + 1] = c * y - sn * z; mats[k + 2] = sn * y + c * z; } const y = mats[o + 13] - hy, z = mats[o + 14]; mats[o + 13] = c * y - sn * z + hy; mats[o + 14] = sn * y + c * z; } }
       if (m.sway) { const S = m.sway; sway[0] = S.amp * (0.45 + 0.55 * Math.max(mv, swim, air)); sway[1] = S.freq; sway[2] = t * S.speed + seed; sway[3] = S.from; } // all in the model's own units: the shader sways aPos before uModel
       else { sway[0] = 0; sway[1] = 0; sway[2] = 0; sway[3] = 0; }
       return { mats, sway };

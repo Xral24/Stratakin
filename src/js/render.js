@@ -438,7 +438,7 @@ const R = (() => {
   // ---- entities: smooth normals, ten bones, a soft cel ramp with rim light; a second pass draws a thin dark outline (inverted hull) ----
   const EVS = `
   attribute vec3 aPos; attribute vec4 aCol; attribute vec3 aNorm; attribute float aBone;
-  uniform mat4 uPV; uniform mat4 uModel; uniform mat4 uBones[10]; uniform float uOutline; uniform vec4 uSway; uniform float uTime;
+  uniform mat4 uPV; uniform mat4 uModel; uniform mat4 uBones[14]; uniform float uOutline; uniform vec4 uSway; uniform float uTime;
   varying vec4 vCol; varying vec3 vWorld; varying vec3 vNorm; varying vec3 vLocal;
   void main(){
     int b = int(aBone + 0.5);
@@ -515,7 +515,7 @@ const R = (() => {
     return mix(1.0, s, edge * uShadowOn);
   }` : `float shadowAt(vec3 wp, vec3 n){ return 1.0; }`;
   const SH_VS_C = `attribute vec3 aPos; attribute float aMat; uniform mat4 uLightPV; uniform mat4 uModel; void main(){ gl_Position = uLightPV * uModel * vec4(aPos, 1.0); if (aMat > 20.5 && aMat < 21.5) gl_Position = vec4(2.0, 2.0, 2.0, 1.0); }`; // smoke casts no shadow
-  const SH_VS_E = `attribute vec3 aPos; attribute float aBone; uniform mat4 uLightPV; uniform mat4 uModel; uniform mat4 uBones[10]; void main(){ int b = int(aBone + 0.5); gl_Position = uLightPV * uModel * uBones[b] * vec4(aPos, 1.0); }`;
+  const SH_VS_E = `attribute vec3 aPos; attribute float aBone; uniform mat4 uLightPV; uniform mat4 uModel; uniform mat4 uBones[14]; void main(){ int b = int(aBone + 0.5); gl_Position = uLightPV * uModel * uBones[b] * vec4(aPos, 1.0); }`;
   const SH_FS = `precision mediump float; void main(){ }`;
   let shProgC = null, shProgE = null, shFB = null, shTex = null, shSize = 0; const shlocC = {}, shlocE = {}; let lightPV = U.m4identity(); let shadowReady = false;
   function isGL2() { return typeof WebGL2RenderingContext !== 'undefined' && gl instanceof WebGL2RenderingContext; }
@@ -580,7 +580,7 @@ const R = (() => {
     gl.uniform1f(L.uShadowOn, state.shadowOn || 0); if (!shadowReady) return;
     gl.activeTexture(gl.TEXTURE0 + unit); gl.bindTexture(gl.TEXTURE_2D, shTex); gl.uniform1i(L.uShadow, unit); gl.uniformMatrix4fv(L.uLightPV, false, lightPV); gl.uniform2f(L.uShadowTexel, 1 / shSize, 1 / shSize);
   }
-  let eprog = null; const eloc = {}; const IDENT_BONES = new Float32Array(160); for (let i = 0; i < 10; i++) { IDENT_BONES[i * 16] = IDENT_BONES[i * 16 + 5] = IDENT_BONES[i * 16 + 10] = IDENT_BONES[i * 16 + 15] = 1; }
+  let eprog = null; const eloc = {}; const IDENT_BONES = new Float32Array(224); for (let i = 0; i < 14; i++) { IDENT_BONES[i * 16] = IDENT_BONES[i * 16 + 5] = IDENT_BONES[i * 16 + 10] = IDENT_BONES[i * 16 + 15] = 1; }
   function initEntityProg() {
     eprog = compile(EVS, EFS);
     for (const n of ['aPos', 'aCol', 'aNorm', 'aBone']) eloc[n] = gl.getAttribLocation(eprog, n);

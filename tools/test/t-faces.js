@@ -1,0 +1,11 @@
+const { open } = require('./harness');
+(async () => { const h = await open(); const { page, ev } = h; await h.newGame('look-3'); await h.calm();
+  await ev(() => { G.repelUntil = performance.now() + 9e7; G.stats.buddyOff = true; G.explain = () => {}; G.player.frozen = true; G.thirdPerson = false; G.world.time = 0.4; for (const id of ['hud', 'controls', 'hotbar']) { const e = document.getElementById(id); if (e) e.style.display = 'none'; } });
+  const states = [{}, { alert: 0.5 }, { chase: true, alert: 1 }, { sleep: true }];
+  for (let i = 0; i < 4; i++) { const r = await ev((a) => { const [i, st] = a; const p = G.player, w = G.world, t = Village.townList()[0]; p.x = t.x + 0.5; p.z = t.z + 7; w.ensureAround(Math.floor(p.x / CH), Math.floor(p.z / CH), 4, 99999); for (let k = 0; k < 3; k++) Village.update(0.05, p, false); const v = Village.active; if (v && !window.__fr) { window.__fr = 1; Village.freed(v.id); } G.talkK = 0; for (let k = Wild.list.length - 1; k >= 0; k--) Wild.list.splice(k, 1); for (const n of (v ? v.npcs : [])) n.hidden = true;
+      const out = []; const shapes = ['quadruped', 'biped', 'bird']; for (let j = 0; j < 3; j++) { const sp = KIN.species(5100 + j * 77 + (window.__sd || 0), [['Stone', 'Flame', 'Gale'][j]], 1, { primary: ['Stone', 'Flame', 'Gale'][j], shape: shapes[j] }); const m = KIN.model(sp, 1), bx = t.x + 0.5 + (j - 1) * 1.5, bz = t.z + 2.5;
+        Wild.list.push(Object.assign({ kin: KIN.create(sp, 5), x: bx, y: t.y, z: bz, yaw: 0.15, tx: bx, tz: bz, wait: 9999, speed: 0, senseR: 0, alert: 0, model: m, scale: 1, hover: 0, bob: 0, mesh: R.entityMesh(KIN.meshKey(sp, 1), (mb) => KIN.buildMesh(mb, m)), skyMul: 1, skyT: 0, __hold: st }, st)); out.push([KIN.name(Wild.list[Wild.list.length - 1].kin), m.temper, !!m.bones[10], m.height.toFixed(2)]); }
+      p.x = t.x + 0.5; p.z = t.z + 4.3; p.y = t.y - 0.85; p.yaw = 0; p.pitch = 0.0; G.meshPass(9999); return out; }, [i, states[i]]);
+    for (let k = 0; k < 10; k++) { await ev(() => { for (const e of Wild.list) if (e.__hold) Object.assign(e, { alert: 0, chase: false, sleep: false }, e.__hold, { speed: 0 }); }); await page.waitForTimeout(450); }
+    await page.screenshot({ path: `/home/claude/face-${i}.png`, timeout: 150000 }); console.log(JSON.stringify(r)); }
+  console.log('ERRORS:', h.errors.slice(0, 3).join(' | ') || 'none'); await h.close(); })();
