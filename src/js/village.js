@@ -1867,7 +1867,19 @@ const Village = (() => {
     Battle.start(b, false);
   }
   function bossLevelFor(v) { return Math.max(3, (G.trainerLevel || 1) - 1 + (v.size === 'city' ? 6 : v.size === 'town' ? 2 : 0) + v.tier * 2, (v.zoneBase || 0) + v.tier * 3); }
-  function onBossGone(id) { const v = villages.get(id); if (v) v.boss = null; }
+  /* a beaten tyrant is not dead and not caught: he legs it. He turns, bolts away from you, and is gone in dust past the wall. The Moon one lifts off, the sea one dives */
+  const runners = [];
+  function onBossGone(id) { const v = villages.get(id); if (!v) return; const b = v.boss; v.boss = null; if (!b || !b.model) return;
+    const p = G.player; let dx = b.x - p.x, dz = b.z - p.z; const d = Math.hypot(dx, dz) || 1; dx /= d; dz /= d;
+    const shape = b.kin && b.kin.sp ? b.kin.sp.shape : ''; b.sleep = false; b.sus = 0;
+    runners.push({ e: b, dx, dz, t: 0, up: shape === 'floater' ? 1 : shape === 'serpent' ? -1 : 0, s0: b.scale || 1, wob: Math.random() * 6 }); }
+  function runTick(dt) { for (let i = runners.length - 1; i >= 0; i--) { const r = runners[i], e = r.e; r.t += dt;
+      const go = r.t < 0.45 ? 0 : Math.min(1, (r.t - 0.45) * 2.2), sp = (r.up ? 4.5 : 7.5) * go, sw = Math.sin(r.t * 5 + r.wob) * 0.35 * go; /* a beat of standing there first, then off, weaving a bit */
+      const vx = r.dx + -r.dz * sw, vz = r.dz + r.dx * sw; e.x += vx * sp * dt; e.z += vz * sp * dt; if (go > 0) e.yaw = Math.atan2(vx, vz);
+      if (r.up) e.y += r.up * (r.up > 0 ? 3.2 : 1.6) * go * dt; else { const gy = world.groundY(Math.floor(e.x), Math.floor(e.z), Math.floor(e.y) + 3) + 1; e.y += (gy - e.y) * Math.min(1, dt * 10); }
+      const out = Math.max(0, (r.t - 2.3) / 0.6); e.scale = r.s0 * (1 - out * out);
+      if (!r.up && go > 0 && (G.frame & 3) === 0 && typeof Hazards !== 'undefined') Hazards.puff(e.x, e.y + 0.2, e.z, 1, [0.72, 0.66, 0.52]);
+      if (out >= 1) { if (typeof Hazards !== 'undefined') Hazards.puff(e.x, e.y + 1, e.z, 12, r.up > 0 ? [0.8, 0.9, 1.0] : [0.72, 0.66, 0.52]); runners.splice(i, 1); } } }
   function freed(id) {
     const v = villages.get(id); if (!v) return;
     const st = state(id); if (st.freed) return;
@@ -2324,6 +2336,7 @@ const Village = (() => {
     L.night = night; return L;
   }
   function update(dt, player, inBattle) {
+    if (runners.length) runTick(dt);
     if (!world.preset.villages) { active = null; activeHermit = null; return; }
     ensureFisher(); updateHermits(player, dt);
     let near = null, nd = Infinity;
@@ -2701,6 +2714,7 @@ const Village = (() => {
       for (const g of active.guardEnts) if (g.kin.hp > 0) out.push({ x: g.x, y: g.y, z: g.z, yaw: g.yaw, model: g.model, mesh: g.mesh, scale: 1, hover: (g.model.hover || 0) + (g.leap || 0) + (g.hitT > 0 ? Math.sin(g.hitT * 60) * 0.08 : 0), skyMul: 1, isMount: true, src: g });
       for (const g of active.guardEnts) if (g.hitT > 0) g.hitT -= 0.016;
     }
+    for (const r of runners) out.push(r.e); /* the creature itself, so its legs and face keep going */
     if (fisher && world.preset.fisher) out.push({ x: fisher.x, y: fisher.y, z: fisher.z, yaw: fisher.yaw, model: fisher.model, mesh: fisher.mesh, scale: 1, hover: 0, skyMul: 1, src: fisher });
     if (activeHermit && activeHermit.npcs) for (const n of activeHermit.npcs) out.push({ x: n.x, y: n.y, z: n.z, yaw: n.yaw, model: n.model, mesh: n.mesh, scale: 1, hover: 0, skyMul: 1, src: n });
     return out;

@@ -532,3 +532,5 @@ select { font-family: var(--font); font-size: 14px; padding: 9px 11px; border-ra
 #battle.snaring #b-snare { background: transparent; pointer-events: auto; padding: 0; }
 #battle.snaring .snare-tip { display: none; position: fixed; left: 50%; top: 150px; transform: translateX(-50%); width: min(86vw, 380px); text-align: center; z-index: 41; background: rgba(20,16,26,.6); border-radius: 12px; padding: 7px 10px; font-size: 13px; pointer-events: none; }
 #battle.snaring #snare-cancel { position: fixed; left: 50%; bottom: calc(10px + env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 41; font-size: 13px; padding: 8px 14px; opacity: .92; }
+
+.kcard .temper{margin-left:auto;font-style:italic;opacity:.7}
