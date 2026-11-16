@@ -10515,7 +10515,7 @@ const KIN = (() => {
     if (!R.renderPortrait(cv, mesh, m, size)) { const ctx = cv.getContext('2d'); cv.width = cv.height = size; ctx.fillStyle = sp.colors.body; ctx.beginPath(); ctx.arc(size / 2, size / 2, size * 0.3, 0, Math.PI * 2); ctx.fill(); }
   }
 
-  function serialize(k) { return { id: k.id, sp: k.sp, level: k.level, xp: k.xp, iv: k.iv, stage: k.stage, hp: k.hp, nick: k.nick, equip: k.equip || null, tech: k.tech || null, wear: k.wear || null, trust: k.trust || 0, tamed: k.tamed || false }; }
+  function serialize(k) { return { id: k.id, sp: k.sp, level: k.level, xp: k.xp, iv: k.iv, stage: k.stage, hp: k.hp, nick: k.nick, equip: k.equip || null, tech: k.tech || null, wear: k.wear || null, trust: k.trust || 0, bond: k.bond || 0, tamed: k.tamed || false }; }
   function deserialize(d) { return Object.assign({ status: null }, d); }
 
   return { NATIVE, NAT_STEM, nativeLine, nativeColors, nativeId, nativize, childify, formName, LINES, lineOf, maxStage, lookOf, formOf, partHelpers, dress, wearKey, E, EI, CHART, STAT_KEYS, STAT_NAMES, growth, xpToNext, dominant, species, speciesForContext, dex, bySeed, HABITATS, capOf, recipes, findRecipe, fuseRecipe, mythicSpecies, legendSpecies, apexSpecies, wardenSpecies, MAX_LEVEL, TECH, techFor, techByName, starters, create, stats, name, moves, effectiveness, gainXp, fuse, fusionLevel, TRAITS, RARITY, roster, buildUniverse, decorate, makeStatue, statueModel, shardsFor, model, buildMesh, meshKey, portrait, serialize, deserialize, UTIL_DESC, eggModel, eggPortrait };
@@ -19759,6 +19759,27 @@ const Buddy = (() => {
   function spot(p) { const sy = Math.sin(p.yaw), cy = Math.cos(p.yaw); const back = -0.3, side = 1.6 + (e.model.radius || 0.6) * e.scale; return { x: p.x + sy * back + cy * side, z: p.z + cy * back - sy * side }; }
   function ground(x, z, fromY) { const w = G.world; const y = w.groundY(Math.floor(x), Math.floor(z), Math.floor(fromY) + 3); if (y == null) return fromY; return R.standY(w, x, z, y + 1, e ? Math.min(0.5, (e.model.radius || 0.5) * e.scale * 0.6) : 0.3); } // on the drawn slope, not the block grid, so it never sinks into a rise
   function place(p, snap) { const s = spot(p); e.x = s.x; e.z = s.z; e.y = e.flying ? p.y + 1.2 : ground(s.x, s.z, p.y); gy = e.y; }
+  // ---- its heart. The Kin at your shoulder is somebody: it has a temper it was born with and a bond with you that grows from walking together, winning together, being looked after and being made a fuss of.
+  // What it feels shows in its face and in a small mark over its head, and how it shows it depends on the temper
+  const TEMPERS = ['steady', 'shy', 'cross', 'bright', 'drowsy'];
+  const MOOD = { joy: { b: 0.85, t: -0.2, lid: 0.72 }, worry: { b: 0.55, t: -0.85, lid: 0.15 }, alert: { b: 0.95, t: -0.1, lid: 0 }, sleepy: { b: -0.15, t: -0.1, lid: 0.82 }, wonder: { b: 0.7, t: -0.3, lid: 0, one: 0.6 } };
+  let mood = null, moodT = 0, stillT = 0, wasFight = false, petT = 0, greetT = 0, worryT = 0;
+  const temper = (k) => TEMPERS[(e && e.model && e.model.temper || 0) % 5];
+  function bond(k, d) { k.bond = Math.min(1, Math.max(0, (k.bond || 0) + d)); }
+  function emote(ch, col) { if (!e || typeof R === 'undefined' || !R.project) return; const q = R.project(e.x, e.y + (e.model.height || 1) * e.scale + 0.45, e.z); if (!q || !q.on) return; const el = document.createElement('div'); el.textContent = ch;
+    el.style.cssText = `position:fixed;z-index:7;left:${q.x}px;top:${q.y}px;transform:translate(-50%,-100%);font:900 26px/1 system-ui,sans-serif;color:${col || '#fff'};text-shadow:0 0 3px #1a1420,0 2px 0 #1a1420,2px 0 0 #1a1420,-2px 0 0 #1a1420,0 -2px 0 #1a1420;pointer-events:none;transition:transform 1.3s ease-out,opacity 1.3s ease-in;opacity:1;`; document.body.appendChild(el);
+    requestAnimationFrame(() => { el.style.transform = 'translate(-50%,-260%)'; el.style.opacity = '0'; }); setTimeout(() => el.remove(), 1400); }
+  function feel(name, secs, ch, col) { mood = name; moodT = secs; if (ch) emote(ch, col); }
+  function heart(dt, p, k, fighting) { const f = e._face || (e._face = { bl: 0, br: 0, tl: 0, tr: 0, lid: 0.1 }), tp = temper(k), night = G.world && Math.cos(G.world.time * Math.PI * 2) > 0.17, pv = Math.hypot(p.vx, p.vz);
+    petT -= dt; greetT -= dt; worryT -= dt; moodT -= dt; if (moodT <= 0) mood = null;
+    if (wasFight && !fighting && k.hp > 0) { bond(k, 0.012); hopT = 0.9; feel('joy', 3.5, tp === 'cross' ? '!' : '♪', '#ffe27a'); } wasFight = fighting; // it won, and it knows it
+    if (!fighting) { const hpP = p.hp != null && p.maxHp ? p.hp / p.maxHp : 1; if (hpP < 0.35 && worryT <= 0) { worryT = 14; feel('worry', 5, '!', '#ff8a70'); } // you are hurt and it has noticed
+      stillT = pv < 0.2 ? stillT + dt : 0; if (stillT > 9 && !mood) { if (night || tp === 'drowsy') feel('sleepy', 6, stillT > 16 ? 'z' : null, '#bcd0ff'); else if (stillT > 14 && Math.random() < dt * 0.12) { feel('wonder', 3, '?', '#fff'); stillT = 9; } }
+      if (!mood && Wild.list && Wild.list.some(w => w.alert > 0.4 && !w.isBoss && Math.hypot(w.x - e.x, w.z - e.z) < 9)) feel('alert', 1.2, greetT <= 0 ? '!' : null, '#fff'), greetT = 8; }
+    const M = mood ? MOOD[mood] : null; if (!M) { e.face = null; e._face = null; return; } const q = Math.min(1, dt * 9); f.bl += (M.b - f.bl) * q; f.br += (M.b + (M.one || 0) - f.br) * q; f.tl += (M.t - f.tl) * q; f.tr += (M.t - f.tr) * q; f.lid += (M.lid - f.lid) * q; e.face = f; }
+  const PET = { steady: ['stands a little closer', 'leans its whole weight on your leg', 'will not leave your side now'], shy: ['flinches, then lets you', 'hides behind your leg and peeks out', 'climbs half into your coat and stays there'], cross: ['puts up with it', 'pretends not to like it', 'pushes its head under your hand and glares at anyone looking'],
+    bright: ['bounces at your feet', 'spins on the spot', 'cannot keep still for joy'], drowsy: ['yawns at you', 'yawns and leans on you', 'falls asleep against your boot, trusting you to stand still'] };
+  const BONDS = ['It hardly knows you yet', 'It is getting used to you', 'It trusts you', 'It would follow you anywhere'];
   function update(dt, p) {
     const k = lead();
     if (!k) { e = null; return; }
@@ -19766,7 +19787,8 @@ const Buddy = (() => {
     if (hidden(p)) { e.away = true; return; }
     if (e.away) { e.away = false; place(p, true); }
     e.bob += dt;
-    if (fight(dt, p, k)) { e.y += ((e.flying ? p.y + 1.0 : ground(e.x, e.z, Math.max(p.y, e.y))) - e.y) * Math.min(1, dt * 10); return; }
+    const inFight = fight(dt, p, k); heart(dt, p, k, inFight);
+    if (inFight) { e.y += ((e.flying ? p.y + 1.0 : ground(e.x, e.z, Math.max(p.y, e.y))) - e.y) * Math.min(1, dt * 10); return; }
     const s = spot(p); const dx = s.x - e.x, dz = s.z - e.z, d = Math.hypot(dx, dz);
     const gliding = p.gliding;
     if (d > 18 || Math.abs(p.y - e.y) > 8 || (gliding && !e.flying)) { if (gliding && !e.flying) { e.away = true; return; } place(p, true); return; }
@@ -19783,7 +19805,7 @@ const Buddy = (() => {
     // finds: walking together turns things up
     const step = Math.hypot(p.x - lastX, p.z - lastZ); lastX = p.x; lastZ = p.z;
     if (step < 3 && p.onGround) walked += step;
-    if (walked > nextFind) { walked = 0; nextFind = 170 + Math.random() * 140; find(k); }
+    if (walked > nextFind) { walked = 0; nextFind = 170 + Math.random() * 140; find(k); bond(k, 0.01); if (!mood) feel('joy', 2.5, '♪', '#ffe27a'); }
   }
   function find(k) {
     const el = KIN.dominant(k.sp.elem, 1)[0]; const pool = FINDS[el] || FINDS.Stone;
@@ -19806,8 +19828,10 @@ const Buddy = (() => {
   function tap() {
     if (!e) return; const k = e.kin; hopT = 0.7; UI.sfx('click');
     const trust = k.trust || 0; const hp = Math.round(k.hp / KIN.stats(k).hp * 100);
-    const mood = hp < 35 ? 'is hurt and leans on you' : trust > 0.6 ? 'nuzzles your hand' : k.level >= KIN.capOf(k.sp) ? 'looks as strong as it will ever be' : 'bounces at your feet';
-    UI.toast(`${KIN.name(k)}, Lv ${k.level} · ${hp}% health. It ${mood}.`);
+    const tp = temper(k), bd = k.bond || 0, lv = bd < 0.15 ? 0 : bd < 0.5 ? 1 : 2; if (petT <= 0) { petT = 25; bond(k, 0.008); } // making a fuss of it counts, though not if you do nothing else
+    if (hp < 35) { feel('worry', 4, null); UI.toast(`${KIN.name(k)}, Lv ${k.level} · ${hp}% health. It is hurt and leans on you.`); return; }
+    feel('joy', 3.5, lv === 2 ? '♥' : lv === 1 ? '♪' : null, lv === 2 ? '#ff7a9a' : '#ffe27a');
+    UI.toast(`${KIN.name(k)}, Lv ${k.level} · ${hp}% health. A ${tp} one: it ${PET[tp][lv]}. ${BONDS[bd < 0.15 ? 0 : bd < 0.5 ? 1 : bd < 0.9 ? 2 : 3]}.`);
   }
   return { init, update, entities, pick, tap, current, hurt, rally, get entity() { return e; } };
 })();
