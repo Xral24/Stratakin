@@ -1,0 +1,11 @@
+// town life and the game keeper in a plain village on another world. WORLD=moon|halo
+const { open } = require('./harness');
+(async () => { const h = await open(); const { page, ev } = h; await h.newGame('look-3'); await h.calm();
+  const wid = process.env.WORLD || 'moon';
+  await ev((wid) => { R.render = () => {}; G.repelUntil = performance.now() + 9e7; G.stats.buddyOff = true; G.explain = () => {}; G.travel(wid); }, wid); await page.waitForTimeout(2500);
+  const s = await ev(() => { R.render = () => {}; const p = G.player, w = G.world; w.time = 0.4; let ms = []; try { ms = (Village.markers(p.x, p.z, 4) || []).filter(q => q.kind === "village"); } catch (e) { return { err: e.message }; } const m = ms.filter(q => q.x != null && q.z != null).sort((q, r) => Math.hypot(q.x - p.x, q.z - p.z) - Math.hypot(r.x - p.x, r.z - p.z))[0]; if (!m) return { none: true, n: ms.length, keys: ms[0] && Object.keys(ms[0]) }; p.x = m.x + 0.5; p.z = m.z + 2.5; w.ensureAround(Math.floor(p.x / CH), Math.floor(p.z / CH), 4, 99999); p.y = w.groundY(Math.floor(p.x), Math.floor(p.z), 100) + 1.05; for (let k = 0; k < 6; k++) Village.update(0.05, p, false); let a = Village.active; if (!a) return { none: true, world: G.worldId, m };
+    Village.freed(a.id); p.x = a.x + 0.5; p.z = a.z + 1.5; w.ensureAround(Math.floor(p.x / CH), Math.floor(p.z / CH), 4, 99999); window.__st = a.npcs.map(n => [n.x, n.z]);
+    return { world: G.worldId, id: a.id, name: a.name, npcs: a.npcs.length, roles: a.npcs.map(n => n.role + (n.shop ? ':' + n.shop : '')).join(' '), game: (() => { try { const d = Village.shopDef('games', a); return d.title + ' / ' + d.keeper; } catch (e) { return 'ERR ' + e.message; } })() }; });
+  console.log(JSON.stringify(s)); if (s.none) { await h.close(); return; }
+  const r = await ev(() => { const p = G.player, a = Village.active; let far = 0; for (let i = 0; i < 2400; i++) { Village.update(0.05, p, false); } const moved = a.npcs.filter(n => n.role === 'villager').map((n, i) => { const k = a.npcs.indexOf(n); return +Math.hypot(n.x - window.__st[k][0], n.z - window.__st[k][1]).toFixed(1); }); return { moved, acts: a.npcs.filter(n => n.role === 'villager').map(n => n.act && n.act.kind + ':' + (n.act.spot ? n.act.spot.kind : '')).join(' ') }; });
+  console.log(JSON.stringify(r), 'ERRORS:', h.errors.slice(0, 3).join(' | ') || 'none'); await h.close(); })();

@@ -1,0 +1,8 @@
+const { open } = require('./harness');
+(async () => { const h = await open(); const { page, ev } = h; await h.newGame('look-3'); await h.calm();
+  await ev(() => { G.repelUntil = performance.now() + 9e7; G.stats.buddyOff = true; G.explain = () => {}; G.player.frozen = true; G.thirdPerson = false; G.world.time = 0.4; for (const id of ['hud', 'controls', 'hotbar']) { const e = document.getElementById(id); if (e) e.style.display = 'none'; } });
+  const views = [[0, 4.2, 0], [3.2, 3.0, 0.1], [-2.6, -3.4, 0.05]];
+  for (let i = 0; i < views.length; i++) { const r = await ev((v) => { const p = G.player, w = G.world, t = Village.townList()[0]; p.x = t.x + 2.5; p.z = t.z + 2.5; w.ensureAround(Math.floor(p.x / CH), Math.floor(p.z / CH), 4, 99999); for (let k = 0; k < 4; k++) Village.update(0.05, p, false); const b = Village.active && Village.active.boss; if (!b) return { none: true }; b.patrol = null; b.speed = 0; b.senseR = 0; b.x = t.x + 0.5; b.z = t.z + 2.5; b.yaw = 0; b.tx = b.x; b.tz = b.z;
+      p.x = b.x + v[0]; p.z = b.z + v[1]; p.y = t.y + 0.05; p.yaw = Math.atan2(-(b.x - p.x), -(b.z - p.z)); p.pitch = v[2] - 0.02; b.yaw = Math.atan2(p.x - b.x, p.z - b.z) + (v[0] ? 0.5 : 0); G.meshPass(9999); return { name: KIN.name(b.kin), y: b.y }; }, views[i]);
+    await page.waitForTimeout(6000); await ev(() => { const t = document.getElementById('toasts'); if (t) t.innerHTML = ''; if (Battle.active) Battle.abort(); }); await page.screenshot({ path: `/home/claude/tyr-${i}.png`, timeout: 150000 }); console.log(JSON.stringify(r)); }
+  console.log('ERRORS:', h.errors.slice(0, 3).join(' | ') || 'none'); await h.close(); })();

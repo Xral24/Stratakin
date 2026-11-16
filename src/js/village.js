@@ -135,7 +135,8 @@ const Village = (() => {
   // ---- every town has its own game and its own champion, and you play them for shards. The stake goes down before the first move; the winner takes both ----
   const GAME_ORDER = ['draughts', 'chess', 'tide', 'ringboard'], CHAMPS = ['Marta Steadyhand', 'Tobin Rook', 'Old Hesper', 'Ines Quill', 'Garrick Stone', 'Wenna Vale', 'Dorrit Crane', 'Osric Thorn', 'Liesel Marsh', 'Cato Finch'];
   function gameOf(v) { if (v.atlantis) return { kind: 'tide', champ: 'Tidemaster Oan', skill: 0.95, stakes: [100, 400, 1500] }; const h = U.strHash(v.id), near = v.starter ? -1 : (PLANNED || []).filter(t => t.type === 'land').sort((a, b) => a.dist - b.dist).findIndex(t => t.id === v.id);
-    return { kind: v.starter ? 'ringboard' : GAME_ORDER[Math.max(0, near) % GAME_ORDER.length], champ: CHAMPS[h % CHAMPS.length], skill: U.clamp(0.22 + (v.tier || 0) * 0.14, 0.22, 1), stakes: [10, 40, 150].map(x => x * (1 + Math.min(4, v.tier || 0))) }; }
+    const wid = world.preset.id, own = wid === 'moon' ? ['moonshot', 'chess', 'moonshot', 'tide'] : wid === 'halo' ? ['hoops', 'draughts', 'hoops', 'tide'] : null;
+    return { kind: own ? own[h % own.length] : v.starter ? 'ringboard' : GAME_ORDER[Math.max(0, near) % GAME_ORDER.length], champ: own ? peopleOf(v)[h % peopleOf(v).length] : CHAMPS[h % CHAMPS.length], skill: U.clamp(0.22 + (v.tier || 0) * 0.14, 0.22, 1), stakes: [10, 40, 150].map(x => x * (1 + Math.min(4, v.tier || 0))) }; }
   function gameStats(v) { const gs = G.stats.games || (G.stats.games = {}); return gs[v.id] || (gs[v.id] = { won: 0, lost: 0, day: -1, n: 0 }); }
   function gamesDef(v) { const g = gameOf(v), K = Games.KINDS[g.kind], st = gameStats(v), first = g.champ.split(' ')[0];
     const greet = st.won >= 3 ? `Champion of ${v.name}. That is you now, and I have not forgotten it. Sit down.` : st.won + st.lost === 0 ? `${K.blurb} I match whatever you put down. I do not lose often.` : `You have had ${st.won} off me. I have had ${st.lost} off you. Sit down.`;
@@ -1725,6 +1726,7 @@ const Village = (() => {
     }
     v.npcs.push(v.elder);
     for (const n of v.npcs) { const gy = standY(n.x, vy, n.z); n.y = gy != null ? gy : vy; n.home = { x: n.x, z: n.z }; }
+    if (v.type === 'land' || world.preset.id !== 'earth') { v.npcs.push(keeper(15, 'games', 3, -3)); [[-6, 6], [7, -6], [-7, -3], [3, 8]].forEach((h, i) => v.npcs.push(villager(40 + i, h[0], h[1]))); } // somebody to play against, and enough people about that the place is not empty
     v.wanderR = v.type === 'land' ? (st.expanded ? 12 : 7) : v.type === 'sea' ? 3 : v.style === 'atlantis' ? 9 : 5;
     makeTraveller(v); buildGuardEnts(v);
   }
@@ -1773,6 +1775,8 @@ const Village = (() => {
     const sp = KIN.species(h, [prim], 1 + v.tier, { primary: prim, shape, total: 285 + v.tier * 40, neon: world.preset.id !== 'earth' });
     const tn = styleOf(v) ? STYLE_NAMES[v.style].tyrant : null;
     const nm = v.starter ? 'Grakor the Tyrant' : tn ? tn[h % tn.length] : TYRANT[h % TYRANT.length] + ' the Tyrant';
+    if (shape === 'biped') { const PAL = prim === 'Tide' ? [['#4d6470', '#aebfba', '#1f2c33'], ['#56707a', '#c4cfc0', '#222f36']] : prim === 'Void' ? [['#4a4358', '#a79fb0', '#1c1824'], ['#3f4a55', '#9aa6ab', '#191f25']] : [['#8a7a66', '#d8c8a4', '#3a322a'], ['#96785a', '#e0c698', '#40301f'], ['#7f7468', '#cdbfa6', '#352f2a'], ['#8f6f5e', '#dcc0a0', '#3d2c26']], c = PAL[h % PAL.length];
+      sp.colors = { body: c[0], belly: c[1], dark: c[2], accent: '#b070ff', eye: '#c58bff' }; sp.natId = 'x_tyrant'; KIN.nativize(sp); } // a tyrant who walks on two legs is a shape of his own, not one of the wild Kin grown large
     sp.names = [nm, nm, nm]; sp.feat.horns = true; sp.feat.spikes = true; sp.feat.crest = true; sp.size = 1.5 + v.tier * 0.08; sp.boss = true; sp.colors = Object.assign({}, sp.colors, { eye: '#c58bff' }); // the eyes of the Bound are the colour of the crystal
     const kin = KIN.create(sp, bossLevelFor(v));
     const m = KIN.dress(KIN.model(sp, 2), { item: 'tyrant' }); // crowned in iron, the shard of the Binding on its chest
@@ -2139,13 +2143,14 @@ const Village = (() => {
   // picks a place that suits the hour, finds the way to it along the streets, walks there, stays a while, and picks another. Two who end up at the same
   // place talk. Children play instead. At dusk people drift to the square and the taverns, at night they go home, and the streets are empty till morning.
   const LIFE = new Map(); // town id -> { spots, grid of where you can walk, the clock }
-  const lifeTown = (v) => !!(v && ((v.R && v.type === 'land' && !v.founded) || v.atlantis));
+  const lifeBuilt = (v) => !!(v.R && v.type === 'land' && !v.founded); // a planned town, with streets and a layout
+  const lifeTown = (v) => !!(v && (lifeBuilt(v) || v.atlantis || (v.npcs && v.npcs.length > 2 && v.type !== 'sea'))); // everywhere people live, they have somewhere to go: towns, cities, Atlantis, and the plain villages of every world
   function lifeOf(v) {
     let L = LIFE.get(v.id); if (L) return L;
-    const half = (v.atlantis ? v.RH : v.R) + 6, W = half * 2 + 1;
+    const built = lifeBuilt(v), half = (v.atlantis ? v.RH : built ? v.R : 16) + 6, W = half * 2 + 1;
     L = { W, ox: v.x - half, oz: v.z - half, grid: new Int8Array(W * W).fill(-1), g: new Float32Array(W * W), from: new Int32Array(W * W), mark: new Int32Array(W * W), run: 0, clock: 0, fresh: 0, talk: 0, hail: 0, queue: 0, spots: null };
-    const streets = v.atlantis ? null : layout(v).streets, R = v.R;
-    L.cost = v.atlantis ? () => 1 : (x, z) => { const dx = x - v.x, dz = z - v.z, m = Math.max(Math.abs(dx), Math.abs(dz)); if (m <= 6 || (m >= R - 4 && m <= R - 2)) return 1; for (const s0 of streets) if (Math.abs(dx - s0) <= 1 || Math.abs(dz - s0) <= 1) return 1; return 3; }; // people keep to the streets unless the short way is much shorter
+    const streets = built ? layout(v).streets : null, R = v.R;
+    L.cost = !built ? () => 1 : (x, z) => { const dx = x - v.x, dz = z - v.z, m = Math.max(Math.abs(dx), Math.abs(dz)); if (m <= 6 || (m >= R - 4 && m <= R - 2)) return 1; for (const s0 of streets) if (Math.abs(dx - s0) <= 1 || Math.abs(dz - s0) <= 1) return 1; return 3; }; // people keep to the streets unless the short way is much shorter
     L.spots = lifeSpots(v); LIFE.set(v.id, L); return L;
   }
   function lifeSpots(v) {
@@ -2156,6 +2161,10 @@ const Village = (() => {
       A.civic.forEach(h => add('shop', ...P(h, h.R + 1.8), { face: C(h) })); A.courts.forEach(c => { add('well', ...P(c, 3.4), { face: C(c) }); add('well', v.x + c.x + Math.sin(c.a) * 3.6, v.z + c.z - Math.cos(c.a) * 3.6, { face: C(c) }); });
       A.bridges.forEach(b => { if (!b.wide) add('gate', v.x + Math.cos(b.a) * 34.4, v.z + Math.sin(b.a) * 34.4, { face: [v.x + Math.cos(b.a + 0.2) * 34.4, v.z + Math.sin(b.a + 0.2) * 34.4] }); }); // stopped on a footbridge, looking along the canal
       A.pods.forEach((q, i) => add('home', ...P(q, 5.6), { face: C(q), i }));
+    } else if (!lifeBuilt(v)) { // a plain village: round the middle of it, in front of whoever keeps a shop, at their own doors, and out at the edge looking away
+      for (let k = 0; k < 8; k++) { const a = k / 8 * 6.283 + 0.3; add('square', v.x + Math.cos(a) * 3.4, v.z + Math.sin(a) * 3.4, { face: [v.x + 0.5, v.z + 0.5] }); }
+      let hi = 0; for (const n of v.npcs) { const dx = n.x - v.x, dz = n.z - v.z, d = Math.hypot(dx, dz) || 1; if (n.role === 'keeper' || n.role === 'voodoo') { for (const o of [-0.9, 0.9]) add('shop', n.x - dx / d * 2.2 - dz / d * o, n.z - dz / d * 2.2 + dx / d * o, { face: [n.x, n.z], eve: n.shop === 'juice' || n.shop === 'games' }); } else if (n.role === 'villager') add('home', n.x + dx / d * 2.5, n.z + dz / d * 2.5, { face: [n.x + dx / d * 6, n.z + dz / d * 6], i: hi++ }); }
+      for (let k = 0; k < 6; k++) { const a = k / 6 * 6.283 + 0.9, rr = 11 + (k % 2) * 3; add('gate', v.x + Math.cos(a) * rr, v.z + Math.sin(a) * rr, { face: [v.x + Math.cos(a) * 30, v.z + Math.sin(a) * 30] }); }
     } else { const L = layout(v), R = v.R, city = v.size === 'city';
       for (let k = 0; k < 10; k++) { const a = k / 10 * 6.283 + 0.3; add('square', v.x + Math.cos(a) * (city ? 5 : 4.2), v.z + Math.sin(a) * (city ? 5 : 4.2), { face: [v.x + 0.5, v.z + 0.5] }); }
       if (city) for (let k = 0; k < 4; k++) add('well', v.x + [4, -4, 0, 0][k], v.z + [0, 0, 4, -4][k], { face: [v.x + 0.5, v.z + 0.5] }); // the fountain

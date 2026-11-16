@@ -209,6 +209,67 @@ const Games = (() => {
     ui.say.textContent = 'Lay a card on each prize. Higher card takes it. Every card can be played once.'; render();
     st.debug = { state: st, lay, theirCard };
   }
-  const KINDS = { ringboard: { name: 'Ringboard', fn: ringboard, blurb: 'Five throws each at the ringboard. Highest count takes both stakes.' }, draughts: { name: 'Draughts', fn: draughts, blurb: 'One game of draughts. Whoever is left without a move pays.' }, chess: { name: 'Chess', fn: chess, blurb: 'One game of chess. Mate takes both stakes.' }, tide: { name: 'High Tide', fn: tide, blurb: 'Nine prizes, nine cards each. Higher card takes the prize, most points takes both stakes.' } };
+  // ================= moonshot: the Moon's game =================
+  // A stone lobbed across the dust at a marked crater. There is next to no pull up there, so it hangs a long time. Your arm swings up and down a gauge; let go when it reads right. Five stones each, ten for a stone in the crater
+  function moonshot(o) {
+    const first = o.champ.split(' ')[0], ui = shell('Moonshot', `${o.champ} · ${o.stake} shards a side`), W = 320, H = 250, sk = U.clamp(o.skill == null ? 0.4 : o.skill, 0, 1), sd = 0.085 - 0.06 * sk, sp = 0.75 + 0.55 * sk;
+    const cv = $(`<canvas width="${W * 2}" height="${H * 2}" class="gb-canvas gb-wide"></canvas>`); ui.stage.appendChild(cv); const g = cv.getContext('2d'); g.scale(2, 2);
+    const st = { t: 0, turn: 0, ys: 0, ts: 0, mine: true, fly: null, wait: 0, over: false, target: 0.5 + Math.random() * 0.4, marks: [], raf: 0, last: performance.now(), clock: 8 }; cur = st;
+    const btn = $('<button class="btn big gb-throw">Let go</button>'), quit = $('<button class="btn ghost">Give up</button>'); ui.foot.appendChild(btn); ui.foot.appendChild(quit);
+    const head = () => { ui.score.innerHTML = `<span class="gb-you">You <b>${st.ys}</b></span><span class="gb-mid">stone ${Math.min(5, Math.floor(st.turn / 2) + 1)} of 5</span><span class="gb-them">${first} <b>${st.ts}</b></span>`; };
+    const power = (t) => { const a = t * sp * 2.2; return 0.5 + 0.5 * Math.sin(a) * (0.82 + 0.18 * Math.sin(a * 0.37)); };
+    const scoreOf = (d) => Math.max(0, 10 - Math.floor(Math.abs(d - st.target) * 55));
+    function land(d, mine) { const s = scoreOf(d); if (mine) st.ys += s; else st.ts += s; st.marks.push({ d, mine }); st.turn++; head();
+      ui.say.textContent = mine ? (s === 10 ? 'Straight in the crater. Ten.' : s >= 7 ? `${s}. Close.` : s > 0 ? `${s}. ${d < st.target ? 'Short' : 'Long'}.` : (d < st.target ? 'Well short.' : 'Clean over it.')) : (s === 10 ? `${first} drops it in. Ten.` : `${first} scores ${s}.`);
+      if (st.turn >= 10) { st.over = true; btn.remove(); quit.remove(); return finish(ui, o, st.ys > st.ts ? 'win' : st.ys < st.ts ? 'lose' : 'draw', st.ys > st.ts ? `${st.ys} to ${st.ts}. The stake is yours.` : st.ys < st.ts ? `${st.ts} to ${st.ys}. ${first} takes your stake.` : `${st.ys} all. Nobody pays.`); }
+      st.mine = !mine; st.wait = mine ? 0.9 : 0.5; st.clock = 8; btn.disabled = !st.mine; if (st.mine) { st.target = 0.42 + Math.random() * 0.5; st.marks = []; } } // a new crater is marked for each pair of stones
+    const yours = () => { if (st.over || !st.mine || st.fly || st.wait > 0) return; st.fly = { d: 0.12 + power(st.t) * 0.86 + gauss() * 0.008, k: 0, mine: true }; btn.disabled = true; };
+    btn.addEventListener('click', yours); cv.addEventListener('pointerdown', yours); quit.addEventListener('click', () => { st.over = true; close(); if (o.onEnd) o.onEnd('lose'); });
+    const X = (d) => 26 + d * (W - 52), GY = 196;
+    function draw() { g.fillStyle = '#080a18'; g.fillRect(0, 0, W, H); for (let i = 0; i < 46; i++) { g.fillStyle = `rgba(255,255,255,${0.3 + ((i * 37) % 10) / 14})`; g.fillRect((i * 73) % W, (i * 41) % 150, 1.3, 1.3); }
+      g.fillStyle = '#3d7fd0'; g.beginPath(); g.arc(262, 44, 20, 0, 6.3); g.fill(); g.fillStyle = '#58b06a'; g.beginPath(); g.ellipse(256, 40, 8, 5, 0.5, 0, 6.3); g.fill(); g.beginPath(); g.ellipse(268, 52, 6, 4, -0.4, 0, 6.3); g.fill(); // home, hanging over the rim
+      g.fillStyle = '#8f93a0'; g.fillRect(0, GY, W, H - GY); g.fillStyle = '#7b7f8c'; for (let i = 0; i < 9; i++) { g.beginPath(); g.ellipse(18 + i * 37, GY + 14 + (i % 3) * 12, 9 + (i % 4) * 3, 3, 0, 0, 6.3); g.fill(); }
+      const tx = X(st.target); g.fillStyle = '#4b4e5a'; g.beginPath(); g.ellipse(tx, GY + 3, 15, 5, 0, 0, 6.3); g.fill(); g.strokeStyle = '#ffd45a'; g.lineWidth = 2; g.beginPath(); g.ellipse(tx, GY + 3, 15, 5, 0, 0, 6.3); g.stroke(); g.fillStyle = '#ffd45a'; g.fillRect(tx - 1, GY - 24, 2, 24); g.beginPath(); g.moveTo(tx + 1, GY - 24); g.lineTo(tx + 13, GY - 19); g.lineTo(tx + 1, GY - 14); g.fill();
+      for (const m of st.marks) { g.fillStyle = m.mine ? '#6fb6ff' : '#ff8a70'; g.beginPath(); g.arc(X(m.d), GY + 2, 4, 0, 6.3); g.fill(); }
+      g.fillStyle = '#d9dce6'; g.beginPath(); g.arc(20, GY - 22, 6, 0, 6.3); g.fill(); g.fillRect(16, GY - 16, 8, 16); // whoever is throwing, in a suit
+      if (st.fly) { const k = st.fly.k, x = X(st.fly.d * k), y = GY - 4 - Math.sin(k * Math.PI) * (70 + st.fly.d * 90); g.fillStyle = st.fly.mine ? '#6fb6ff' : '#ff8a70'; g.beginPath(); g.arc(x, y, 5, 0, 6.3); g.fill(); }
+      // the gauge
+      g.fillStyle = 'rgba(255,255,255,.12)'; g.fillRect(26, 222, W - 52, 12); const need = (st.target - 0.12) / 0.86; g.fillStyle = 'rgba(255,212,90,.55)'; g.fillRect(26 + need * (W - 52) - 5, 222, 10, 12);
+      if (st.mine && !st.fly && !st.over && st.wait <= 0) { g.fillStyle = '#fff'; g.fillRect(26 + power(st.t) * (W - 52) - 2, 218, 4, 20); } }
+    function advance(dt) { st.t += dt; if (st.over) return;
+      if (st.wait > 0) { st.wait -= dt; if (st.wait <= 0 && !st.mine) st.fly = { d: U.clamp(st.target + gauss() * sd * (Math.random() < 0.08 ? 2.6 : 1), 0.05, 1), k: 0, mine: false }; }
+      else if (st.mine && !st.fly) { st.clock -= dt; if (st.clock <= 0) yours(); }
+      if (st.fly) { st.fly.k += dt * 0.62; if (st.fly.k >= 1) { const f = st.fly; st.fly = null; land(f.d, f.mine); } } } // slow: it hangs up there
+    function tick(now) { if (cur !== st) return; const dt = Math.min(0.1, (now - st.last) / 1000); st.last = now; advance(dt); draw(); st.raf = requestAnimationFrame(tick); }
+    st.stop = () => cancelAnimationFrame(st.raf); head(); ui.say.textContent = 'The mark on the gauge is the crater. Let go when your arm is on it.'; st.raf = requestAnimationFrame(tick);
+    st.debug = { state: st, step: (dt) => { advance(dt); draw(); }, throwAt: (d) => { if (st.mine && !st.fly && st.wait <= 0 && !st.over) { st.fly = { d, k: 0, mine: true }; return true; } return false; } };
+  }
+  // ================= threading the rings: Halo's game =================
+  // Three hoops turn one inside another, each with a gap in it. A dart goes through a hoop only when its gap is at the top. One tap for each hoop, outside in. Four darts each, a point a hoop
+  function hoops(o) {
+    const first = o.champ.split(' ')[0], ui = shell('Three Rings', `${o.champ} · ${o.stake} shards a side`), W = 320, sk = U.clamp(o.skill == null ? 0.4 : o.skill, 0, 1), pr = 0.5 + 0.38 * sk, cx = W / 2, cy = W / 2;
+    const cv = $(`<canvas width="${W * 2}" height="${W * 2}" class="gb-canvas"></canvas>`); ui.stage.appendChild(cv); const g = cv.getContext('2d'); g.scale(2, 2);
+    const st = { t: 0, turn: 0, ys: 0, ts: 0, mine: true, ring: 0, got: [], wait: 0, over: false, raf: 0, last: performance.now(), clock: 9, ph: [Math.random() * 6, Math.random() * 6, Math.random() * 6] }; cur = st;
+    const RR = [128, 92, 56], SPD = [1.25 + sk * 0.7, -(1.7 + sk * 0.9), 2.2 + sk * 1.1], GAP = [0.5, 0.46, 0.42];
+    const btn = $('<button class="btn big gb-throw">Throw</button>'), quit = $('<button class="btn ghost">Give up</button>'); ui.foot.appendChild(btn); ui.foot.appendChild(quit);
+    const head = () => { ui.score.innerHTML = `<span class="gb-you">You <b>${st.ys}</b></span><span class="gb-mid">dart ${Math.min(4, Math.floor(st.turn / 2) + 1)} of 4</span><span class="gb-them">${first} <b>${st.ts}</b></span>`; };
+    const ang = (i) => st.ph[i] + st.t * SPD[i], off = (i) => { const a = ((ang(i) + Math.PI / 2) % 6.2832 + 6.2832 + Math.PI) % 6.2832 - Math.PI; return Math.abs(a); }; // how far the gap is from the top
+    function endDart(mine) { const n = st.got.filter(Boolean).length; if (mine) st.ys += n; else st.ts += n; st.turn++; head(); ui.say.textContent = mine ? (n === 3 ? 'Clean through all three.' : n ? `Through ${n}.` : 'Stopped at the first hoop.') : (n === 3 ? `${first} threads all three.` : `${first} gets through ${n}.`);
+      if (st.turn >= 8) { st.over = true; btn.remove(); quit.remove(); return finish(ui, o, st.ys > st.ts ? 'win' : st.ys < st.ts ? 'lose' : 'draw', st.ys > st.ts ? `${st.ys} to ${st.ts}. The stake is yours.` : st.ys < st.ts ? `${st.ts} to ${st.ys}. ${first} takes your stake.` : `${st.ys} all. Nobody pays.`); }
+      st.mine = !mine; st.ring = 0; st.wait = 1.0; st.clock = 9; btn.disabled = !st.mine; }
+    function hit(ok, mine) { st.got[st.ring] = ok; st.ring++; if (!ok || st.ring >= 3) { for (let i = st.ring; i < 3; i++) st.got[i] = false; endDart(mine); } }
+    const yours = () => { if (st.over || !st.mine || st.wait > 0) return; if (st.ring === 0) st.got = []; hit(off(st.ring) < GAP[st.ring] / 2, true); };
+    btn.addEventListener('click', yours); cv.addEventListener('pointerdown', yours); quit.addEventListener('click', () => { st.over = true; close(); if (o.onEnd) o.onEnd('lose'); });
+    function draw() { g.fillStyle = '#2a1a10'; g.fillRect(0, 0, W, W); const gr = g.createRadialGradient(cx, cy, 10, cx, cy, 170); gr.addColorStop(0, '#6b4a22'); gr.addColorStop(1, '#2a1a10'); g.fillStyle = gr; g.fillRect(0, 0, W, W);
+      for (let i = 0; i < 3; i++) { const a = ang(i), live = st.mine && st.ring === i && st.wait <= 0 && !st.over; g.lineWidth = live ? 13 : 10; g.strokeStyle = i < st.ring && st.got[i] ? '#6fd37a' : i < st.ring && st.got[i] === false ? '#c2452f' : live ? '#ffd45a' : '#b98a3a'; g.beginPath(); g.arc(cx, cy, RR[i], a + GAP[i] / 2, a + 6.2832 - GAP[i] / 2); g.stroke(); }
+      g.fillStyle = '#f4ead0'; g.beginPath(); g.arc(cx, cy, 14, 0, 6.3); g.fill(); g.fillStyle = '#c8452e'; g.beginPath(); g.arc(cx, cy, 6, 0, 6.3); g.fill();
+      g.fillStyle = '#fff'; g.beginPath(); g.moveTo(cx, cy - RR[0] - 10); g.lineTo(cx - 7, cy - RR[0] - 24); g.lineTo(cx + 7, cy - RR[0] - 24); g.fill(); g.strokeStyle = 'rgba(255,255,255,.2)'; g.lineWidth = 1.5; g.setLineDash([4, 5]); g.beginPath(); g.moveTo(cx, cy - RR[0] - 10); g.lineTo(cx, cy - 16); g.stroke(); g.setLineDash([]); }
+    function advance(dt) { st.t += dt; if (st.over) return; if (st.wait > 0) { st.wait -= dt; if (st.wait <= 0 && !st.mine) { st.got = []; st.theirT = 0.5; } return; }
+      if (st.mine) { st.clock -= dt; if (st.clock <= 0) { st.clock = 9; yours(); } } else { st.theirT -= dt; if (st.theirT <= 0) { st.theirT = 0.55; hit(Math.random() < pr - st.ring * 0.06, false); } } }
+    function tick(now) { if (cur !== st) return; const dt = Math.min(0.1, (now - st.last) / 1000); st.last = now; advance(dt); draw(); st.raf = requestAnimationFrame(tick); }
+    st.stop = () => cancelAnimationFrame(st.raf); head(); ui.say.textContent = 'Tap when the gap in the lit hoop is under the pointer. Outside hoop first.'; st.raf = requestAnimationFrame(tick);
+    st.debug = { state: st, step: (dt) => { advance(dt); draw(); }, off, GAP, tap: yours };
+  }
+  const KINDS = { ringboard: { name: 'Ringboard', fn: ringboard, blurb: 'Five throws each at the ringboard. Highest count takes both stakes.' }, draughts: { name: 'Draughts', fn: draughts, blurb: 'One game of draughts. Whoever is left without a move pays.' }, chess: { name: 'Chess', fn: chess, blurb: 'One game of chess. Mate takes both stakes.' }, moonshot: { name: 'Moonshot', fn: moonshot, blurb: 'Five stones each, lobbed at a marked crater. Nearest takes both stakes.' }, hoops: { name: 'Three Rings', fn: hoops, blurb: 'Four darts each through three turning hoops. Most hoops takes both stakes.' }, tide: { name: 'High Tide', fn: tide, blurb: 'Nine prizes, nine cards each. Higher card takes the prize, most points takes both stakes.' } };
   return { KINDS, play(kind, o) { const K = KINDS[kind]; if (!K) return false; K.fn(o || {}); return true; }, close, get current() { return cur; }, D, C };
 })();
