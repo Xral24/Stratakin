@@ -875,6 +875,7 @@ G.loop = function (t) {
     const st = this.stealthTarget();
     const lead = this.activeKin();
     const eng = Wild.engagedNear(p);
+    if (!this.stats.netTold && (p.has('snare') || p.has('snare2')) && ((eng && eng.dazed > 0) || (st && !eng))) { this.stats.netTold = true; this.explain('Now: the net', (eng && eng.dazed > 0 ? 'It is down and dazed for about ten seconds. ' : 'It has not seen you. ') + 'Tap it, or tap the Net button. Then hold your finger on the ring and draw circles to swing the net open, flick up at the Kin to throw, and as it lands swirl the other way to draw it shut.'); }
     UI.setButtons({ deploy: !!eng && !(eng.dazed > 0) && !p.flying, snare: !!st && (p.has('snare') || p.has('snare2')) && !(eng && !(eng.dazed > 0)), ride: !p.flying && (!!p.mount || !!(this._rideable = this.rideable())), rideLabel: p.mount ? 'Off' : (this._rideable ? this._rideable.label : 'Ride'), riding: !!p.mount, ship: p.has('ship') && (p.flying || this.world.layerAt(Math.floor(p.y), Math.floor(p.x), Math.floor(p.z)) !== 'Mines'), flying: p.flying, canLand: p.flying && (p.autoLand || this.landHeight() <= G.LAND_REACH) });
     if (p.mount && !Taming.active && !p.mount.borrowed && (p.mount.hp <= 0 || !this.kin.includes(p.mount))) { p.mount = null; UI.toast('Your mount is down.', 'bad'); } /* while you are breaking one in, it is not yours yet (Thunderhoof, the seahorse in the ring) */
     if (p.mount && !Taming.active && p.mountMode === 'water' && !p.inWater && p.onGround) { p.mount = null; UI.toast('It cannot follow you onto land.'); }

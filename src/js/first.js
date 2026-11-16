@@ -44,11 +44,14 @@ const First = (() => {
   function sendOff() { const k = G.kin[0], nm = k ? KIN.name(k) : 'That one';
     say([`Well. ${nm}. I would have bet on one of the others.`,
       'The other two have run for the village, looking for their own. Grakor\'s lot will have them penned by dark.',
-      'So that is three reasons to go. Take this: a net of mine. Out in the wild you tire a Kin first. Then swing the net open, throw it, and draw it shut the other way as it lands. On a big one, go for the head.',
+      'So that is three reasons to go. Take this: a net of mine. One Kin against Grakor is thin, so catch yourself a second on the way.',
+      `Walk out past the fire until a wild one comes at you, and let ${nm} deal with it. When it goes down it lies dazed for a few breaths. That is your moment: tap it.`,
+      'Then it is all in the wrist. Draw circles to swing the net open. Flick it up at the Kin. And as it lands, swirl the other way to draw it shut. On a big one, go for the head.',
       'He sits in the square. Rest at the blue fire when you need to. I will keep it in.'],
       () => { G.player.add('snare', 1); S().stage = 3; UI.toast('Maren gave you a Cast Net.', 'good'); }); }
   function talk() { const s = S(); if (!s) return; if (s.stage === 0) return wake(); if (s.stage === 2) return sendOff();
     if (s.stage === 1) return say(['They are close. One by the water, the others not far off it. A shy one you creep up on. A cross one you let come to you: stand near and keep still. The rest only want the bread.']);
+    if (!G.stats.villageFreed && !(G.stats.caught > 0)) return say(['The net? Let a wild Kin come at you and let yours beat it. It lies dazed a few breaths: tap it then.', 'Draw circles to swing the net open, flick it up at the Kin, and swirl the other way as it lands to shut it. Or creep up behind one that has not seen you, and the Net button shows.', G.player.has('snare') || G.player.has('snare2') ? 'If you miss, the net comes back to you. Take your time.' : 'Lost yours? Here, another.'], () => { if (!G.player.has('snare') && !G.player.has('snare2')) G.player.add('snare', 1); });
     say(G.stats.villageFreed ? ['They have let me back into the weaving shed. I like the fire better. Your two friends are in the square, fat as butter.'] : ['Still here. The fire is in. Sit by it if you are hurt.']); }
 
   function emote(e, ch, col) { if (!R.project) return; const q = R.project(e.x, e.y + (e.model.height || 1) + 0.5, e.z); if (!q || !q.on) return; const el = document.createElement('div'); el.textContent = ch; el.style.cssText = `position:fixed;z-index:7;left:${q.x}px;top:${q.y}px;transform:translate(-50%,-100%);font:900 26px/1 system-ui,sans-serif;color:${col || '#fff'};text-shadow:0 0 3px #1a1420,0 2px 0 #1a1420,2px 0 0 #1a1420,-2px 0 0 #1a1420;pointer-events:none;transition:transform 1.3s ease-out,opacity 1.3s ease-in;`; document.body.appendChild(el); requestAnimationFrame(() => { el.style.transform = 'translate(-50%,-260%)'; el.style.opacity = '0'; }); setTimeout(() => el.remove(), 1400); }
