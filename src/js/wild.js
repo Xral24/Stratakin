@@ -203,12 +203,12 @@ const Wild = (() => {
   function makeEntity(sp, level, x, y, z, opts = {}) {
     const kin = KIN.create(sp, level);
     const st = KIN.stats(kin);
-    const m = KIN.model(sp, kin.stage);
+    const m = opts.wear ? KIN.dress(KIN.model(sp, kin.stage), opts.wear) : KIN.model(sp, kin.stage); // a Kin under the Binding wears its collar: the look is the entity's, not the Kin's own, so it is gone the day it is freed
     const e = {
       kin, x, y, z, yaw: Math.random() * Math.PI * 2, tx: x, tz: z, wait: 1 + Math.random() * 3,
       speed: Math.min(3.2, 0.9 + st.spd / 90), senseR: opts.senseR || (3.4 + Math.min(2.6, st.agi / 55) + Math.min(2, m.radius * 0.5)), alert: 0, // the ring grows a little with agility and size, never past about eight blocks
       aquatic: !!opts.aquatic, flying: sp.shape === 'bird' || sp.shape === 'floater', model: m, scale: 1, hover: m.hover, bob: Math.random() * 6,
-      mesh: R.entityMesh(KIN.meshKey(sp, kin.stage), (mb) => KIN.buildMesh(mb, m)),
+      mesh: R.entityMesh(KIN.meshKey(sp, kin.stage) + KIN.wearKey(opts.wear), (mb) => KIN.buildMesh(mb, m)),
       skyMul: 1, elite: !!opts.elite, patrol: opts.patrol || null, sleep: !!opts.sleep, isMythic: !!opts.isMythic, isWarden: !!opts.isWarden, isLegend: !!opts.isLegend, isApex: opts.isApex || null, skyT: 0
     };
     return e;

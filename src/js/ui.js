@@ -479,7 +479,7 @@ const UI = (() => {
       <div class="settings"><button class="btn ghost tog on" id="m-camera">Camera <span>${G.thirdPerson ? 'third person' : 'first person'}</span></button><button class="btn ghost tog on" id="m-skins">Skin <span>${Avatar.skin().name}</span></button></div>
       <h4>Designer shortcuts</h4>
       <p class="small">For looking at new work without making the journey. They move you, nothing else: no quest is skipped and nothing is given.</p>
-      <div class="settings"><button class="btn ghost" id="m-go-atl">Go to Atlantis</button><button class="btn ghost" id="m-go-home">Back to the first village</button></div>
+      <div class="settings"><button class="btn ghost" id="m-go-atl">Go to Atlantis</button><button class="btn ghost" id="m-go-lost">Go to the Lost World</button><button class="btn ghost" id="m-go-home">Back to the first village</button></div>
       <h4>How to play</h4>
       <p class="small">${Controls.isTouch ? 'Left stick walks; drag anywhere on the right of the screen to turn the camera. <b>Hold</b> to mine, or to block when you hold a weapon; <b>tap</b> to place a block, swing, talk, or use a Fusion Table. ▲ jumps, ▼ crouches, hold ▲ in the air with a Glider to glide. In third person the camera orbits you: swing it round to see your face, or your Kin\'s.' : 'WASD to move, mouse to look, <b>hold left click</b> to mine or block, <b>right click</b> to place or use. Space jumps, Shift sneaks, 1-9 or the wheel pick an item. E opens Craft, Q opens Kin, J opens Quests, V switches the camera, F deploys a Kin or sets a snare. Esc releases the mouse.'}</p>
       <p class="small">Chests (Craft › Blocks) keep what you store in them through anything. Amulets come from the people by the fires on the road; nobody sells them. Third person shows your skin: unlock more by playing.</p>
@@ -492,7 +492,7 @@ const UI = (() => {
     </div>`;
     q('m-save').addEventListener('click', () => { toast(G.save() ? `Saved${G.gameName ? ' · ' + G.gameName : ''}.` : 'Saving is not available here.'); });
     q('m-games').addEventListener('click', () => G.toGames(false));
-    q('m-go-atl').addEventListener('click', () => G.designerJump('atlantis')); q('m-go-home').addEventListener('click', () => G.designerJump('home'));
+    q('m-go-atl').addEventListener('click', () => G.designerJump('atlantis')); q('m-go-lost').addEventListener('click', () => G.designerJump('lost')); q('m-go-home').addEventListener('click', () => G.designerJump('home'));
     q('m-sound').addEventListener('click', () => { soundOn = !soundOn; if (!soundOn) Music.stop(); renderMenu(); });
     q('m-music').addEventListener('click', () => { Music.setEnabled(!Music.enabled); renderMenu(); });
     q('m-map').addEventListener('click', () => { setMinimap(!MM.on); renderMenu(); });

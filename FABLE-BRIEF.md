@@ -123,3 +123,24 @@ Already in the game: beaten in the Black Citadel, the Kinmaster says Earth was a
 - **What he wants.** An Old One sleeps under each world: the Mantlewyrm (Earth), the Selenaut (Moon), the Ringwarden (Halo). He means to chain all three and fuse them into one beast that answers only to him, so nothing wakes again unless he says so. Tyrants, holds and the Halo arena feed that.
 - **The player.** Proof he is wrong: your Kin carry you by choice. The seahorse in the Atlantis ring is Isla's and has thrown everyone since. Stay on her and the Speaker of the city, his sister Nerissa, tells the whole story.
 - **The trident.** The one thing that cuts a Binding. It takes a piece of each world to forge: a tooth from the Abyssaurus (the Lost World sea), selenite from the Moon, a ring shard from Halo.
+
+## Direction from Alexander, 15 November (night)
+
+He played the published build on his phone and sent nine screenshots. In his order:
+
+- **Slivers of sky in the ground.** Along the station platform and the track bed you could see pale blue wedges. They were real gaps: smoothed land lying against a built block at its own level (platform paving, the bed of the railway), where the land's edge is carried up or down by what lies past the corner and neither side drew the face between them. Closed in the mesher by a pass that fills the slot (see "where smoothed land lies against something built" in render.js). `t-holes2.js` walks the platform and the line; `count-sky.py` counts the flat sky colour in the shots.
+- **Village gates.** "Two logs, not even homogenous, floating bizarrely." Every opening in a town wall is now a proper gateway: a tall pier each side (the wall's own block, five high), four blocks clear under the head so the train goes through, and a `GATE` mark at the middle that the mesher draws the head from: on a palisade a great log with a thatched roof riding on it, a shield hung under, a lantern at each end; on stone, iron and voidsteel an arch with a battlement and pennants. The railway's opening is a gateway like the others and shares a pier with the road gate where they stand side by side.
+- **Towns.** Only the first village should be small. The second one he reached needs to be bigger with more in it, and every town after that has to be a step up. Read how RuneScape and World of Warcraft do towns before building.
+- **Atlantis.** The look is right ("you've hit the nail on the head"), the content is bland: six huts. Make it about twice the size and fill it: a school you can walk into with a shelf of children's books on the history of Atlantis that you tap to read, living quarters, more to do.
+- **The tyrants** and the Kin that fight for them: redo to the new standard of graphics.
+- **Betting games in every town.** A village champion at a throwing game (five throws each, shards staked), a card game in another, chess, draughts, and so on. Hard, and you really lose the shards when you lose.
+
+### What the reading on RuneScape and World of Warcraft says, and what to take from it
+
+- RuneScape gives each place a job nobody else has. One village is where the flax field and the spinning wheel are, the next is the fishing shore with the range beside it, another is the market whose stalls you can steal from while two guards watch, another has the tannery and the furnace by the bank. People go to a town because of what only it does.
+- It also gives each region a list of small local deeds, graded easy to elite, and a standing local perk for finishing a grade (free flax every day from the flax keeper, a faster wheel). That is the "ledger of local deeds with a keepsake" already planned: keep it.
+- It had a games room under a castle: draughts and three other board games against other players, a ranking that starts at 1000, rooms upstairs you may only enter at 1500, a bar between matches. And an arena outside a desert town where players staked coins on duels, which became the busiest gambling spot in the game. So: board games with a rank, and stakes that hurt.
+- World of Warcraft's fair has a row of booths, each one small game (rings thrown onto a turtle that moves, a shooting gallery where the lit target scores and a quick shot scores double, moles to whack, a cannon to land in a ring), each costing a token and paying tickets you spend on prizes at the stalls.
+- What players say makes a WoW town feel lived in: people who walk about, talk to each other, sit at tables, sleep, children playing in the street, guards on patrol, folk who react to you. Not one busy square with dead streets round it.
+
+So for Stratakin: every town gets one thing only it does, one game with a champion and real stakes, one list of local deeds with a perk, and its people spread over the whole town with things to be doing.

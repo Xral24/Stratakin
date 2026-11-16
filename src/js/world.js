@@ -4,6 +4,7 @@ const CH = 16;            // chunk width
 const WH = 104;           // world height
 const WORLD_W = 16384;    // wrap period in blocks (walk ~1h to come back around)
 const SEA = 46;
+const LOST_WATER = 53;   // the rivers of the Lost World stand at this height, up on the plateau
 const CORE_TOP = 14;      // y < 14 is the Core
 const SKY_BASE = 86;      // sky islands float around here
 const SKY_SPLIT = 78;     // sky light above this height is computed separately so islands do not shade the ground
@@ -14,7 +15,7 @@ const B = {
   TORCH: 18, FUSION: 19, GRAVEL: 20, CACTUS: 21, STARMETAL: 22, MOSS: 23, STATUE: 24, PLANKS: 25, BERRY: 26, GLASS: 27, CAMPFIRE: 28, IRONWALL: 29, VOIDWALL: 30, GLOWWORM: 31, BERRYLEAF: 32, DOOR: 33, DOOR_OPEN: 34, PORTAL: 35,
   CHEST: 36, SELENITE: 37, TYCHO: 38, STARSALT: 39, MOONGLOW: 40, AMBER: 41, SULFUR: 42, RINGSHARD: 43, BRINE: 44, CORAL_R: 45, CORAL_B: 46, CORAL_Y: 47, PEARLCORAL: 48, GOLD: 49, DIAMOND: 50, FERN: 51, SELGLASS: 52, INCUBATOR: 53, REGOLITH: 54, DUNE: 55, SALTCRUST: 56, LADDER: 57, TARGET: 58, BALLOON: 59, FORTSTONE: 60, THORN: 61, DEADGATE: 62, RUBBLE: 63, DARKTABLE: 64,
   NEEDLES: 65, FROND: 66, BIRCHLOG: 67, BOULDER: 68, MUSHROOM: 69, FLOWERS: 70, PEBBLES: 71, PALMLOG: 72,
-  TILES: 73, SLATE: 74, THATCH: 75, PLASTER: 76, BEAM: 77, LAMP: 78, COBBLE: 79, FLOWERBOX: 80, PALISADE: 81, MASONRY: 82, FOUNTAIN: 83, BASIN: 84, AWNING: 85, BANNER: 86, SLIT: 87, TIPI: 88, HIDE: 89, LODGE: 90, FENCE: 91, FIREPIT: 92, TOTEM: 93, RAIL: 94, CART: 95, ROPEBRIDGE: 96, WEAVE: 97, SAIL: 98, EMBERLIGHT: 99, BARREL: 100, CRATE: 101, BUNTING: 102, SIGNPOST: 103, PLANTER: 104, BRICK: 105, SAILS: 106, FALLS: 107, HALFTIMBER: 108, CHIMNEY: 109, HALFTIMBER_O: 110, HALFTIMBER_W: 111, GLOWLINE: 112, SALTROOF: 113, HALOWALL: 114, TRACK: 115, ATLAN: 116, AGLASS: 117, ALIGHT: 118
+  TILES: 73, SLATE: 74, THATCH: 75, PLASTER: 76, BEAM: 77, LAMP: 78, COBBLE: 79, FLOWERBOX: 80, PALISADE: 81, MASONRY: 82, FOUNTAIN: 83, BASIN: 84, AWNING: 85, BANNER: 86, SLIT: 87, TIPI: 88, HIDE: 89, LODGE: 90, FENCE: 91, FIREPIT: 92, TOTEM: 93, RAIL: 94, CART: 95, ROPEBRIDGE: 96, WEAVE: 97, SAIL: 98, EMBERLIGHT: 99, BARREL: 100, CRATE: 101, BUNTING: 102, SIGNPOST: 103, PLANTER: 104, BRICK: 105, SAILS: 106, FALLS: 107, HALFTIMBER: 108, CHIMNEY: 109, HALFTIMBER_O: 110, HALFTIMBER_W: 111, GLOWLINE: 112, SALTROOF: 113, HALOWALL: 114, TRACK: 115, ATLAN: 116, AGLASS: 117, ALIGHT: 118, JLOG: 119, GATE: 120
 };
 
 // name, top colour, side colour, solid, hardness (seconds to mine), drop item id, emissive, fluid
@@ -135,6 +136,8 @@ defBlock(B.TRACK, 'Railway', '#6a6a70', '#5a4a30', { solid: false, hard: 0.6, dr
 defBlock(B.ATLAN, 'Pearlstone', '#dfe9ee', '#c9d8e0', { hard: Infinity });
 defBlock(B.AGLASS, 'Dome Glass', '#bfeaf5', '#bfeaf5', { hard: Infinity, transparent: true });
 defBlock(B.ALIGHT, 'Pearl Light', '#bff4ff', '#bff4ff', { solid: false, hard: Infinity, emissive: true, partial: true, transparent: true });
+defBlock(B.GATE, 'Gateway', '#a07a44', '#75522c', { solid: false, hard: Infinity, drop: null, partial: true, transparent: true }); // the mark at the middle of a town gate: the mesher draws the whole head of the gateway from it, beam and roof or arch and battlements, after the wall it stands in
+defBlock(B.JLOG, 'Jungle Trunk', '#8a6a44', '#5f4630', { hard: Infinity }); // the trees of the Lost World are too big for a hatchet. Never drawn as a block: the mesher draws each tree whole
 defBlock(B.BARREL, 'Barrel', '#9a6a3a', '#7a4f28', { hard: 0.5, drop: 'planks', partial: true, transparent: true });
 defBlock(B.CRATE, 'Crate', '#b89058', '#96703e', { hard: 0.5, drop: 'planks', partial: true, transparent: true });
 defBlock(B.BUNTING, 'Bunting', '#e8c040', '#d04a4a', { solid: false, hard: 0.1, drop: null, partial: true, transparent: true });
@@ -153,10 +156,10 @@ defBlock(B.PEBBLES, 'Pebbles', '#8e9197', '#86898f', { solid: false, hard: 0.2, 
 // blocks that light their surroundings, and how far
 const LIGHT_R = { [B.TORCH]: 10, [B.CAMPFIRE]: 14, [B.FIREPIT]: 13, [B.MOONGLOW]: 12, [B.RINGSHARD]: 10, [B.PEARLCORAL]: 8, [B.INCUBATOR]: 9, [B.LAMP]: 12, [B.ALIGHT]: 14 };
 // blocks the sky light passes through when working out how deep a column is
-const SKY_CLEAR = { [B.TRACK]: 1, [B.GLOWLINE]: 1, [B.CHIMNEY]: 1, [B.FALLS]: 1, [B.BUNTING]: 1, [B.SIGNPOST]: 1, [B.SAILS]: 1, [B.LAMP]: 1, [B.FLOWERBOX]: 1, [B.RAIL]: 1, [B.BANNER]: 1, [B.BASIN]: 1, [B.FOUNTAIN]: 1, [B.TIPI]: 1, [B.LODGE]: 1, [B.HIDE]: 1, [B.FENCE]: 1, [B.FIREPIT]: 1, [B.TOTEM]: 1, [B.FROND]: 1, [B.MUSHROOM]: 1, [B.FLOWERS]: 1, [B.PEBBLES]: 1, [B.LADDER]: 1, [B.TORCH]: 1, [B.GLASS]: 1, [B.SELGLASS]: 1, [B.CAMPFIRE]: 1, [B.MOONGLOW]: 1, [B.GLOWWORM]: 1, [B.FERN]: 1, [B.PORTAL]: 1, [B.BERRY]: 1, [B.RINGSHARD]: 1, [B.AGLASS]: 1, [B.ALIGHT]: 1 };
+const SKY_CLEAR = { [B.TRACK]: 1, [B.GLOWLINE]: 1, [B.CHIMNEY]: 1, [B.FALLS]: 1, [B.BUNTING]: 1, [B.SIGNPOST]: 1, [B.SAILS]: 1, [B.LAMP]: 1, [B.FLOWERBOX]: 1, [B.RAIL]: 1, [B.BANNER]: 1, [B.BASIN]: 1, [B.FOUNTAIN]: 1, [B.TIPI]: 1, [B.LODGE]: 1, [B.HIDE]: 1, [B.FENCE]: 1, [B.FIREPIT]: 1, [B.TOTEM]: 1, [B.FROND]: 1, [B.MUSHROOM]: 1, [B.FLOWERS]: 1, [B.PEBBLES]: 1, [B.LADDER]: 1, [B.TORCH]: 1, [B.GLASS]: 1, [B.SELGLASS]: 1, [B.CAMPFIRE]: 1, [B.MOONGLOW]: 1, [B.GLOWWORM]: 1, [B.FERN]: 1, [B.PORTAL]: 1, [B.BERRY]: 1, [B.RINGSHARD]: 1, [B.AGLASS]: 1, [B.ALIGHT]: 1, [B.GATE]: 1 };
 const isSolid = (id) => BLOCKS[id].solid;
 const isLeaf = (id) => id === B.LEAVES || id === B.BERRYLEAF || id === B.NEEDLES;
-const isTrunk = (id) => id === B.LOG || id === B.BIRCHLOG || id === B.PALMLOG;
+const isTrunk = (id) => id === B.LOG || id === B.BIRCHLOG || id === B.PALMLOG || id === B.JLOG;
 const isTreeBlock = (id) => isLeaf(id) || isTrunk(id) || id === B.FROND || id === B.CACTUS; // what a felled crown may take away
 const isOpaque = (id) => BLOCKS[id].solid && !BLOCKS[id].partial && !BLOCKS[id].transparent;
 
@@ -301,7 +304,12 @@ class World {
       // the Lost World: a jungle plateau ringed by cliffs on the far side of the world, reached only through a tunnel
       const L = this.lost; const ddx = U.mod(x - L.x + P / 2, P) - P / 2, ddz = U.mod(z - L.z + P / 2, P) - P / 2; const d = Math.hypot(ddx, ddz);
       if (d < L.rim) {
-        if (d < L.inner) { h = 56 + Math.round((hills - 0.5) * 10 + (cont - 0.5) * 4); return { h, biome: BIOME.LOSTWORLD, temp: 0.7, moist: 0.9, sky: 0, lost: true }; }
+        if (d < L.inner) { h = 56 + Math.round((hills - 0.5) * 10 + (cont - 0.5) * 4);
+          // rivers wind across the plateau: slow, brown-green, a couple of blocks deep, the banks sloping down to them. Not through the tyrant's clearing, not into the tunnel mouth, not up against the cliffs
+          const rw = Math.abs(U.vnoise2(x, z, 104, P, this.seed + 811) - 0.5), rt = U.clamp((0.05 - rw) / 0.036, 0, 1); let rk = this._tunBusy ? 0 : rt * rt * (3 - 2 * rt) * U.clamp((d - 34) / 12, 0, 1) * U.clamp((L.inner - 8 - d) / 10, 0, 1);
+          if (rk > 0) { if (!L.tunnel) { this._tunBusy = true; try { this.lostTunnel(); } finally { this._tunBusy = false; } } /* the tunnel is worked out on plain ground, before any river is, so the land is the same whichever is asked for first */ if (L.tunnel) rk *= U.clamp((Math.hypot(x - L.tunnel.bx, z - L.tunnel.bz) - 10) / 8, 0, 1); }
+          if (rk > 0) h = Math.round(U.lerp(h, LOST_WATER - 2, rk));
+          return { h, biome: BIOME.LOSTWORLD, temp: 0.7, moist: 0.9, sky: 0, lost: true, lostRiver: rk }; }
         const t = d < L.rim - 7 ? 1 : (L.rim - d) / 7; // sheer inside, a slope outside
         h = Math.round(U.lerp(h, 80 - Math.round((hills - 0.5) * 4), Math.min(1, t)));
         return { h, biome: BIOME.MOUNTAIN, temp, moist, sky: 0, lostRim: true };
@@ -352,12 +360,17 @@ class World {
       case BIOME.SWAMP: p = 0.004 + 0.014 * U.vnoise2(x, z, 48, WORLD_W, this.seed + 373); type = 'swamp'; break;
       case BIOME.MOUNTAIN: p = 0.006; type = 'pine'; break;
       case BIOME.DESERT: p = 0.01; type = 'cactus'; break;
-      case BIOME.LOSTWORLD: p = 0.007 + 0.02 * U.vnoise2(x, z, 40, WORLD_W, this.seed + 375); type = 'jungle'; break;
+      case BIOME.LOSTWORLD: if (info.h <= LOST_WATER + 1) return null; p = 0.024 + 0.036 * U.vnoise2(x, z, 40, WORLD_W, this.seed + 375) + (info.lostRiver > 0.02 ? 0.04 : 0); type = 'jungle'; break; // thick, and thicker in places, and a wall of it along every river bank; nothing stands in the water
       default: return null;
     }
     if (r >= p) return null;
     const hr = U.hash3(x, 97, z, this.seed);
     const fir = type === 'pine' && kind > 0.66 && (info.biome === BIOME.SNOW || info.biome === BIOME.MOUNTAIN), grand = type === 'oak' && U.hash3(x, 94, z, this.seed + 19) < 0.1; // here and there an old giant among the oaks
+    if (type === 'jungle') { // four storeys: big-leaved plants and tree ferns underneath, the canopy over them, and here and there a giant standing clear of everything
+      const size = kind < 0.22 ? 'fern' : kind < 0.4 ? 'banana' : hr > 0.86 ? 'giant' : hr > 0.5 ? 'big' : 'tree';
+      if (size === 'giant') for (let a = -6; a <= 6; a++) for (let b = -6; b <= 6; b++) { if (!a && !b) continue; const h2 = U.hash3(x + a, 97, z + b, this.seed); if (h2 > hr && U.hash3(x + a, 98, z + b, this.seed) >= 0.4 && U.hash3(x + a, 99, z + b, this.seed + 303) < 0.05) return null; } /* two giants never stand shoulder to shoulder */
+      const height = Math.min(WH - 12 - info.h, size === 'fern' ? 3 + Math.floor(hr * 5) : size === 'banana' ? 3 + Math.floor(hr * 3) : size === 'giant' ? 24 + Math.floor((hr - 0.86) / 0.14 * 6) : size === 'big' ? 16 + Math.floor((hr - 0.5) / 0.36 * 6) : 11 + Math.floor(hr * 10));
+      return { type, size, height, berries: false, big: size === 'giant', lean: Math.floor(U.hash3(x, 95, z, this.seed) * 4) }; }
     const height = fir ? 11 + Math.floor(hr * 4) : grand ? 7 + Math.floor(hr * 3) : type === 'pine' ? 7 + Math.floor(hr * 5) : type === 'cactus' ? 1 + Math.floor(hr * 3) : type === 'jungle' ? 8 + Math.floor(hr * 5) : type === 'palm' ? 5 + Math.floor(hr * 3) : type === 'birch' ? 5 + Math.floor(hr * 3) : 4 + Math.floor(hr * 3);
     const berries = (type === 'oak' || type === 'swamp' || type === 'jungle') && U.hash3(x, 96, z, this.seed + 17) < 0.45; // nearly half the broadleaf trees carry berries
     return { type, height, berries, grand, big: type === 'jungle' && hr > 0.6, lean: Math.floor(U.hash3(x, 95, z, this.seed) * 4) };
@@ -406,13 +419,10 @@ class World {
       for (let k = 0; k < 6; k++) { const a = k / 6 * 6.283 + hs(k, 1, k); const sx = x + Math.round(Math.cos(a) * 3.5), sz = z + Math.round(Math.sin(a) * 3.5); const len = 2 + Math.floor(hs(k, 9, k) * 3); for (let y = 0; y < len; y++) put(sx, h + th - y, sz, B.LEAVES, true); }
       return;
     }
-    if (type === 'jungle') { // giants: a thick trunk, buttress roots, a broad crown, hanging vines
-      const big = tree.big; const tw = big ? 2 : 1;
-      for (let ax = 0; ax < tw; ax++) for (let az = 0; az < tw; az++) for (let y = 1; y <= th; y++) put(x + ax, h + y, z + az, B.LOG, false);
-      for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { put(x + dx * tw, h + 1, z + dz * tw, B.LOG, true); if (big) put(x + dx * tw, h + 2, z + dz * tw, B.LOG, true); }
-      canopy(x, h + th + 1, z, big ? 5 : 3, 2, B.LEAVES, tree.berries);
-      if (big) { canopy(x + 3, h + th - 2, z - 2, 2, 1, B.LEAVES, false); for (let y = th - 4; y <= th - 2; y++) put(x + 3, h + y, z - 2, B.LOG, true); }
-      for (let k = 0; k < (big ? 6 : 3); k++) { const a = k / 6 * 6.283 + hs(k, 5, k); const r = (big ? 4 : 2.5); const sx = x + Math.round(Math.cos(a) * r), sz = z + Math.round(Math.sin(a) * r); const len = 3 + Math.floor(hs(k, 8, k) * 4); for (let y = 0; y < len; y++) put(sx, h + th - 1 - y, sz, B.LEAVES, true); }
+    if (type === 'jungle') { // the Lost World: only the trunk is blocks (and too big to fell). The mesher draws each tree whole from the chunk's list: buttresses, limbs, crown, hanging lianas
+      if (tree.size === 'banana') return; // a plant of great soft leaves: nothing of it is blocks, you walk through it
+      const tw = tree.size === 'giant' ? 2 : 1;
+      for (let ax = 0; ax < tw; ax++) for (let az = 0; az < tw; az++) for (let y = 1; y <= th; y++) put(x + ax, h + y, z + az, B.JLOG, false);
       return;
     }
     if (tree.grand) { // an old giant: a bole four logs thick, great limbs, a wide crown in three masses
@@ -484,7 +494,7 @@ class World {
           else if (depth < 4) b = biome === BIOME.DUNES ? B.DUNE : biome === BIOME.MESA ? B.STONE : B.DIRT;
         }
         else if (info.crag >= 1 && (depth > 0 ? depth < 4 || info.crag > 2 : info.cragRim)) b = (depth === 0 && U.hash3(x, 36, z, s + 967) < 0.35) ? B.MOSS : B.STONE; /* a knoll is rock under its turf, and shows it in places */
-        else if (info.lost) { if (depth === 0) b = B.GRASS; else if (depth < 3) b = B.DIRT; }
+        else if (info.lost) { if (depth === 0) b = h <= LOST_WATER ? (U.hash3(x, 37, z, s + 969) < 0.3 ? B.GRAVEL : B.DIRT) : B.GRASS; else if (depth < 3) b = B.DIRT; } /* a river bed is mud and stones */
         else if (depth === 0) {
           const snowy = info.temp + (U.vnoise2(x, z, 7, P, s + 623) - 0.5) * 0.03 < 0.36; /* the snow line is not the line on the map: it breaks up into drifts and bare patches where the cold country meets the green */
           if (biome === BIOME.SNOW || biome === BIOME.PLAINS || biome === BIOME.FOREST) b = snowy ? B.SNOW : (wear > 0.7 && U.hash3(x, 41, z, s + 979) < 0.45 ? B.DIRT : B.GRASS); /* mud shows through where a path is walked most */
@@ -546,6 +556,7 @@ class World {
         gal(x + 1, z, 28); gal(z - 47, x, 21);
       }
       if (this.preset.water && h < SEA) for (let y = h + 1; y <= SEA; y++) blocks[base + y] = B.WATER;
+      if (info.lost && h < LOST_WATER) for (let y = h + 1; y <= LOST_WATER; y++) blocks[base + y] = B.WATER;
       if (this.trackAt && this.trackAt(x, z)) { if (h >= SEA) { blocks[base + h] = B.GRAVEL; blocks[base + h + 1] = B.TRACK; for (let y = h + 2; y <= h + 4 && y < WH; y++) blocks[base + y] = B.AIR; } else if (SEA + 2 < WH) { blocks[base + SEA + 1] = B.PLANKS; blocks[base + SEA + 2] = B.TRACK; } } /* the railway: ballast under it on land, a plank deck where it crosses water */
       if (this.preset.brine && h < this.preset.brineLevel) for (let y = h + 1; y <= this.preset.brineLevel; y++) blocks[base + y] = B.BRINE;
       if (this.preset.ringfall && h >= this.preset.brineLevel && h < WH - 2 && biome !== BIOME.MESA && U.hash3(x, 13, z, s + 931) < 0.0012) blocks[base + h + 1] = B.RINGSHARD;
@@ -584,7 +595,7 @@ class World {
       for (let lx = 0; lx < CH; lx++) for (let lz = 0; lz < CH; lz++) {
         const info = infos[(lx + 2) * 20 + (lz + 2)]; if (!info.lost) continue;
         const x = ox + lx, z = oz + lz; const h = info.h; const base = (lx * CH + lz) * WH;
-        if (U.hash3(x, 25, z, s + 941) < 0.14 && blocks[base + h] === B.GRASS && blocks[base + h + 1] === B.AIR && !this.treeAt(x, z, info)) blocks[base + h + 1] = B.FERN;
+        if (U.hash3(x, 25, z, s + 941) < 0.22 && blocks[base + h] === B.GRASS && blocks[base + h + 1] === B.AIR && !this.treeAt(x, z, info)) blocks[base + h + 1] = B.FERN; // thick underfoot: the mesher draws these as the big-leaved plants of the place
       }
       const T = this.lostTunnel();
       const near = Math.abs(ox + 8 - T.ax) < 200 && Math.abs(oz + 8 - T.az) < 200;
@@ -618,11 +629,13 @@ class World {
       if (onlyAir && blocks[i] !== B.AIR) return;
       blocks[i] = id;
     };
-    for (let dx = -5; dx < 21; dx++) for (let dz = -5; dz < 21; dz++) {
+    // in the Lost World a crown reaches further than anywhere else, so trees are looked for further out; and the chunk keeps a list of them for the mesher
+    const jb = this.lost && Math.hypot(U.mod(ox + 8 - this.lost.x + P / 2, P) - P / 2, U.mod(oz + 8 - this.lost.z + P / 2, P) - P / 2) < this.lost.rim + 30 ? 13 : 5; chunk.jtrees = null;
+    for (let dx = -jb; dx < 16 + jb; dx++) for (let dz = -jb; dz < 16 + jb; dz++) {
       const x = ox + dx, z = oz + dz;
       const info = (dx >= -2 && dx < 18 && dz >= -2 && dz < 18) ? infos[(dx + 2) * 20 + (dz + 2)] : this.colInfo(x, z);
       const tree = this.treeAt(x, z, info);
-      if (tree) this.plantTree(put, x, info.h, z, tree, s);
+      if (tree) { this.plantTree(put, x, info.h, z, tree, s); if (tree.type === 'jungle') (chunk.jtrees || (chunk.jtrees = [])).push({ x: dx, z: dz, h: info.h, t: tree }); }
     }
     for (let lx = 0; lx < CH; lx++) for (let lz = 0; lz < CH; lz++) {
       const info = infos[(lx + 2) * 20 + (lz + 2)]; const x = ox + lx, z = oz + lz; const h = info.h; const base = (lx * CH + lz) * WH;

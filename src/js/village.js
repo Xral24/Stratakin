@@ -26,7 +26,7 @@ const Village = (() => {
     halo: [{ name: 'Sandstone', block: B.HALOWALL, bonus: 3, level: 1 }, { name: 'Basalt', block: B.BASALT, bonus: 8, level: 2, cost: { shards: 60, items: { stone: 40 } } }, WALLS[2], WALLS[3]],
   };
   const wallSet = (v) => WALL_SETS[v.style] || WALLS;
-  const WALL_BLOCKS = new Set([B.PLANKS, B.STONE, B.MASONRY, B.PALISADE, B.IRONWALL, B.VOIDWALL, B.TORCH, B.LOG, B.REGOLITH, B.BASALT, B.MOONGLOW, B.RINGSHARD]);
+  const WALL_BLOCKS = new Set([B.PLANKS, B.STONE, B.MASONRY, B.PALISADE, B.IRONWALL, B.VOIDWALL, B.TORCH, B.LOG, B.REGOLITH, B.BASALT, B.MOONGLOW, B.RINGSHARD, B.GATE]);
   const LEVELS = [0, 90, 300, 700, 1500]; // lifetime Shards earned for level 1..5
   const EXPAND = { level: 2, cost: { shards: 200, items: { planks: 40 } } };
   const SHOP_BUILD = {
@@ -44,6 +44,7 @@ const Village = (() => {
     stables: { name: 'Riding School', marker: B.LOG, level: 2, cost: { shards: 300, items: { planks: 30 } } },
     aerie: { name: 'Flying School', marker: B.CLOUD, level: 2, cost: { shards: 300, items: { planks: 30 } } },
     station: { name: 'Station', marker: B.IRON, level: 1, cost: { shards: 200, items: { planks: 30, iron: 8 } } },
+    games: { name: 'Games Hall', marker: B.GOLD, level: 1, cost: { shards: 250, items: { planks: 24 } } },
     kinmarket: { name: 'Kin Sale Yard', marker: B.LOG, level: 2, cost: { shards: 400, items: { planks: 30 } } },
     kinshow: { name: 'Kin Show', marker: B.GOLD, level: 2, cost: { shards: 400, items: { planks: 30 } } },
     barber: { name: 'Barber', marker: B.GOLD, level: 2, cost: { shards: 300, items: { planks: 20 } } },
@@ -69,6 +70,7 @@ const Village = (() => {
     juice: { title: 'Juice Bar', keeper: 'Mira', greet: 'A smoothie mends a tired party. Tonics too, if you have the Shards.', stock: [{ item: 'smoothie', price: 15 }, { item: 'tonic_heal', price: 12 }, { item: 'tonic_vigor', price: 40 }] },
     voodoo: { title: 'Voodoo Hut', keeper: 'Mama Oyé', greet: 'Fainted Kin do not wake on their own. I wake them, for Shards.', stock: [{ service: 'rest', name: 'Revive and heal the whole party', price: 20 }, { item: 'tonic_revive', price: 25 }, { item: 'tonic_heal', price: 12 }] },
     trader: { title: 'Trader', keeper: 'Oskar', greet: 'Snares, planks, the odd crystal. Shards only. I buy too: ores, crystals, anything you dug up.', sell: true, stock: [{ item: 'snare', price: 12, n: 2 }, { item: 'snare2', price: 45 }, { item: 'planks', price: 6, n: 8 }, { item: 'void', price: 30 }, { item: 'glass', price: 5, n: 4 }, { item: 'snow', price: 9, n: 8 }, { item: 'frond', price: 4, n: 6 }, { item: 'iron', price: 20, n: 2 }, { item: 'copper', price: 14, n: 2 }, { item: 'ember', price: 12, n: 2 }] },
+    games: { title: 'Games Hall', keeper: 'The champion', greet: '', stock: [] },
     post: { title: 'Trading Post', keeper: 'Nadia', greet: 'Whatever the travellers bring in, I sell. New stock every two days.', stock: [] },
     armoury: { title: 'Armoury', keeper: 'Bram', greet: 'Blades and axes. Nothing here is for show.', stock: [] },
     armourer: { title: 'Armourer', keeper: 'Hilde', greet: 'Helms, plate, shields. Stand still, I need your size.', stock: [] },
@@ -130,8 +132,17 @@ const Village = (() => {
       const lv = Math.max(2, Math.min(KIN.capOf(sp), Math.round((G.trainerLevel || 1) * (0.6 + r() * 0.5)))); out.push({ service: 'kin', seed: sp.seed, level: lv, name: `${sp.names[0]}, Lv ${lv} · ${KIN.RARITY[rar].name} · from the ${sp.home.layer === 'Surface' ? sp.home.biome : sp.home.layer}`, price: Math.round(PR[rar] * (1 + lv / 40)) }); }
     return out;
   }
+  // ---- every town has its own game and its own champion, and you play them for shards. The stake goes down before the first move; the winner takes both ----
+  const GAME_ORDER = ['draughts', 'ringboard'], CHAMPS = ['Marta Steadyhand', 'Tobin Rook', 'Old Hesper', 'Ines Quill', 'Garrick Stone', 'Wenna Vale', 'Dorrit Crane', 'Osric Thorn', 'Liesel Marsh', 'Cato Finch'];
+  function gameOf(v) { const h = U.strHash(v.id), near = v.starter ? -1 : (PLANNED || []).filter(t => t.type === 'land').sort((a, b) => a.dist - b.dist).findIndex(t => t.id === v.id);
+    return { kind: v.starter ? 'ringboard' : GAME_ORDER[Math.max(0, near) % GAME_ORDER.length], champ: CHAMPS[h % CHAMPS.length], skill: U.clamp(0.22 + (v.tier || 0) * 0.14, 0.22, 1), stakes: [10, 40, 150].map(x => x * (1 + Math.min(4, v.tier || 0))) }; }
+  function gameStats(v) { const gs = G.stats.games || (G.stats.games = {}); return gs[v.id] || (gs[v.id] = { won: 0, lost: 0, day: -1, n: 0 }); }
+  function gamesDef(v) { const g = gameOf(v), K = Games.KINDS[g.kind], st = gameStats(v), first = g.champ.split(' ')[0];
+    const greet = st.won >= 3 ? `Champion of ${v.name}. That is you now, and I have not forgotten it. Sit down.` : st.won + st.lost === 0 ? `${K.blurb} I match whatever you put down. I do not lose often.` : `You have had ${st.won} off me. I have had ${st.lost} off you. Sit down.`;
+    return { title: `${K.name} · ${v.name}`, keeper: g.champ, greet, stock: g.stakes.map((stake, i) => ({ service: 'game', game: g.kind, stake, skill: g.skill, champ: g.champ, name: `${i === 0 ? 'A friendly game' : i === 1 ? 'A proper game' : 'For the title'}: ${stake} shards a side`, sub: i === 2 ? `Beat ${first} three times and the town calls you champion` : 'Winner takes both stakes', price: stake, btn: 'Play' })) }; }
   function shopDef(kind, v) {
     if (v && v.atlantis && kind === 'armoury') return atlForge(v);
+    if (kind === 'games' && v && typeof Games !== 'undefined') return gamesDef(v);
     if (kind === 'kinmarket' && v) { const d = SHOPS.kinmarket; const parade = (G.dayCount || 0) % 7 === 6; return Object.assign({}, d, { greet: parade ? 'PARADE DAY! The rare ones are in the ring this morning. Bid quick.' : d.greet + ` The parade is in ${6 - ((G.dayCount || 0) % 7)} day${6 - ((G.dayCount || 0) % 7) === 1 ? '' : 's'}.`, stock: saleStock(v) }); } const st = v && SHOP_STYLE[v.style]; const d = (st && st[kind]) || SHOPS[kind]; if (d && typeof Combat !== 'undefined' && world && world.preset.id === 'earth' && ['trader', 'armoury', 'armourer', 'alchemist'].includes(kind)) return Object.assign({}, d, { stock: d.stock.concat(Combat.rack(v, kind)) }); return d; }
   const POST_POOL = [
     { item: 'iron', n: 4, price: 28 }, { item: 'copper', n: 4, price: 22 }, { item: 'void', n: 2, price: 50 }, { item: 'cloud', n: 4, price: 20 }, { item: 'ember', n: 4, price: 18 },
@@ -309,13 +320,13 @@ const Village = (() => {
   // ================= towns as part of the world =================
   // A town's streets, houses, shops and levelled ground are drawn into each chunk as it is generated, like terrain, so nothing
   // the size of a city ever goes into the save. Only what you change yourself is saved.
-  const TOWN_R = { start: 34, hamlet: 24, town: 46, city: 66 };
+  const TOWN_R = { start: 34, hamlet: 40, town: 50, city: 66 }; // only the place you start in is small: the next one along is already a proper village, bigger than home
   const NCH = WORLD_W / CH;
   const TOWN_SHOPS = {
-    start: ['elder', 'bakery', 'juice', 'trader', 'voodoo', 'inn', 'restaurant', 'station'],
-    hamlet: ['elder', 'bakery', 'trader', 'voodoo', 'station'],
-    town: ['elder', 'bakery', 'juice', 'trader', 'voodoo', 'inn', 'restaurant', 'armoury', 'alchemist', 'post', 'daycare', 'station'],
-    city: ['elder', 'bakery', 'juice', 'trader', 'voodoo', 'inn', 'restaurant', 'armoury', 'armourer', 'alchemist', 'post', 'sanctuary', 'tailor', 'enchanter', 'cartographer', 'daycare', 'kinmarket', 'kinshow', 'restaurant', 'inn', 'station', 'stables', 'aerie'],
+    start: ['elder', 'bakery', 'juice', 'trader', 'voodoo', 'games', 'inn', 'restaurant', 'station'],
+    hamlet: ['elder', 'bakery', 'juice', 'trader', 'voodoo', 'games', 'inn', 'restaurant', 'armoury', 'alchemist', 'station'],
+    town: ['elder', 'bakery', 'juice', 'trader', 'voodoo', 'games', 'inn', 'restaurant', 'armoury', 'alchemist', 'post', 'daycare', 'station'],
+    city: ['elder', 'bakery', 'juice', 'trader', 'voodoo', 'inn', 'restaurant', 'armoury', 'armourer', 'alchemist', 'post', 'sanctuary', 'tailor', 'enchanter', 'cartographer', 'daycare', 'kinmarket', 'kinshow', 'games', 'restaurant', 'inn', 'station', 'stables', 'aerie'],
   };
   const towns = new Map(); // id -> layout
   function townList() { const out = []; const st = villages.get('start'); if (st && st.R) out.push(st); if (PLAN) for (const id of PLAN.keys()) { const v = villages.get(id); if (v && v.R) out.push(v); } return out; }
@@ -982,7 +993,7 @@ const Village = (() => {
   function furnishElder(hx, hz, dx, dz, vy) { world.setBlock(hx - dx * 2 + (dz ? 1 : 0), vy, hz - dz * 2 + (dx ? 1 : 0), B.PLANKS); world.setBlock(hx - dx * 2 + (dz ? 1 : 0), vy + 1, hz - dz * 2 + (dx ? 1 : 0), B.SNOW); side(hx, hz, dx, dz, vy, -1, B.LOG, B.CLOUD); }
   function furnishVoodoo(hx, hz, dx, dz, vy) { counter(hx, hz, dx, dz, vy); side(hx, hz, dx, dz, vy, 1, B.BASALT, B.VOID); side(hx, hz, dx, dz, vy, -1, B.BASALT, B.EMBER); }
   function furnishPost(hx, hz, dx, dz, vy) { counter(hx, hz, dx, dz, vy); side(hx, hz, dx, dz, vy, 1, B.IRON, B.GLASS); side(hx, hz, dx, dz, vy, -1, B.PLANKS, B.CLOUD); }
-  const FURNISH = { bakery: furnishBakery, juice: furnishJuice, trader: furnishTrader, voodoo: furnishVoodoo, post: furnishPost, armoury: furnishTrader, armourer: furnishTrader, alchemist: furnishJuice, inn: furnishBakery, restaurant: furnishBakery, sanctuary: furnishVoodoo, stables: furnishJuice, aerie: furnishPost, station: furnishPost, elder: furnishElder, tailor: furnishJuice, barber: furnishJuice, kinmarket: furnishBakery, kinshow: furnishElder, mirror: furnishPost, designer: furnishJuice, kinwear: furnishBakery, enchanter: furnishVoodoo, cartographer: furnishPost, daycare: furnishBakery };
+  const FURNISH = { bakery: furnishBakery, juice: furnishJuice, trader: furnishTrader, voodoo: furnishVoodoo, post: furnishPost, armoury: furnishTrader, armourer: furnishTrader, alchemist: furnishJuice, inn: furnishBakery, restaurant: furnishBakery, sanctuary: furnishVoodoo, stables: furnishJuice, aerie: furnishPost, station: furnishPost, games: furnishBakery, elder: furnishElder, tailor: furnishJuice, barber: furnishJuice, kinmarket: furnishBakery, kinshow: furnishElder, mirror: furnishPost, designer: furnishJuice, kinwear: furnishBakery, enchanter: furnishVoodoo, cartographer: furnishPost, daycare: furnishBakery };
 
   // ---- portals: every village has an arch; held villages' arches are dead, yours link up ----
   function portalBlock(v) { return v.type === 'land' ? { x: v.x + 5, y: v.y, z: v.z - 5 } : v.type === 'sea' ? { x: v.x - 3, y: v.y, z: v.z - 2 } : { x: v.x + 4, y: v.y, z: v.z - 4 }; }
@@ -1046,7 +1057,14 @@ const Village = (() => {
   function ringCols(v, st) {
     const wr = wallRadius(st); const out = []; const rl = v.R ? layout(v).rail : null;
     const railGate = (dx, dz) => { if (!rl) return false; return rl.ax ? (dx === rl.sgn * wr && Math.abs(v.z + dz - rl.line) <= 1) : (dz === rl.sgn * wr && Math.abs(v.x + dx - rl.line) <= 1); }; // the track goes out through its own opening
-    for (let dx = -wr; dx <= wr; dx++) for (let dz = -wr; dz <= wr; dz++) if (Math.max(Math.abs(dx), Math.abs(dz)) === wr) out.push([v.x + dx, v.z + dz, isGateCol(dx, dz, wr) || railGate(dx, dz)]);
+    // every opening is a proper gateway: a tall pier each side of it, the mark of its head at the middle, a light on the wall beyond each pier.
+    // Where the railway leaves beside the road they share a pier, and where the two openings touch they are one wide gate
+    const role = new Map();
+    for (let s = 0; s < 4; s++) { const P = (a) => s === 0 ? [wr, a] : s === 1 ? [-wr, a] : s === 2 ? [a, wr] : [a, -wr], g = (a) => { const [dx, dz] = P(a); return Math.abs(a) < wr && (isGateCol(dx, dz, wr) || railGate(dx, dz)); };
+      for (let a = -wr + 1; a < wr; a++) { if (!g(a) || g(a - 1)) continue; let b = a; while (g(b + 1)) b++;
+        for (let q = a; q <= b; q++) role.set(P(q).join(), 'gate'); role.set(P(Math.floor((a + b) / 2)).join(), 'mark');
+        for (const [q, r] of [[a - 1, 'post'], [b + 1, 'post'], [a - 2, 'light'], [b + 2, 'light']]) { if (Math.abs(q) > wr || g(q)) continue; const k = P(q).join(); if (r === 'post' || !role.has(k)) role.set(k, r); } } }
+    for (let dx = -wr; dx <= wr; dx++) for (let dz = -wr; dz <= wr; dz++) if (Math.max(Math.abs(dx), Math.abs(dz)) === wr) { const r = role.get(dx + ',' + dz); out.push([v.x + dx, v.z + dz, r === 'gate' || r === 'mark', r]); }
     return out;
   }
   // the line beyond the wall: dead level at the station's height for a good way, as a railway is. Low ground gets an embankment, a
@@ -1075,21 +1093,20 @@ const Village = (() => {
     const set = (x, y, z, id) => world.setBlock(x, y, z, id);
     const masonry = !(blk === B.PALISADE || blk === B.LOG || blk === B.REGOLITH); // stone and metal walls stand three high with battlements; a palisade is two posts tall
     const H = masonry ? 3 : 2;
-    for (const [x, z, gate] of ringCols(v, st)) {
+    for (const [x, z, gate, role] of ringCols(v, st)) {
       const gy = world.groundY(x, z, vy + 6);
       for (let y = Math.min(gy, vy) + 1; y <= vy + 7; y++) { const b = world.getBlock(x, y, z); if (b !== B.AIR && b !== B.WATER) set(x, y, z, B.AIR); }
       const dx = x - v.x, dz = z - v.z; const along = Math.abs(dx) === wr ? dz : dx; const corner = Math.abs(dx) === wr && Math.abs(dz) === wr;
-      if (gate) { // the gateway: floor under it, an arch over it with a merlon on top (masonry) or a lintel beam (palisade)
+      if (gate) { // the gateway: a floor under it, nothing in it for four blocks up (a train's chimney goes under), and the mark its head is drawn from
         if (!isSolid(world.getBlock(x, vy - 1, z))) set(x, vy - 1, z, M.floor);
-        const railCol = (() => { const rl = v.R ? layout(v).rail : null; if (!rl) return false; return rl.ax ? Math.abs(z - rl.line) <= 1 && dx === rl.sgn * wr : Math.abs(x - rl.line) <= 1 && dz === rl.sgn * wr; })();
-        if (masonry) { set(x, vy + 3, z, blk); if (along === 0) set(x, vy + 4, z, blk); } else set(x, vy + (railCol ? 3 : 2), z, B.LOG); // the train's chimney clears a lintel a block higher
+        if (role === 'mark') set(x, vy + 4, z, B.GATE);
         continue;
       }
-      const lightCol = (Math.abs(dx) === wr && Math.abs(dz) === 2) || (Math.abs(dz) === wr && Math.abs(dx) === 2);
-      const base = Math.min(gy + 1, vy), top = Math.max(vy + H - 1, gy + H);
-      const post = !masonry && (lightCol || corner); // in a palisade the gate flanks and corners are single stout posts that carry the lamps
+      const lightCol = role === 'light', pier = role === 'post';
+      const base = Math.min(gy + 1, vy), top = pier ? vy + 4 : Math.max(vy + H - 1, gy + H);
+      const post = !masonry && (lightCol || corner || pier); // in a palisade the piers of the gates, the corners and the posts that carry the lamps are single stout logs
       for (let y = base; y <= top; y++) set(x, y, z, post ? B.LOG : blk);
-      if (masonry) { if (corner) { for (let y = top + 1; y <= top + 3; y++) set(x, y, z, blk); } else if (along % 2 === 0) set(x, top + 1, z, blk); } // battlements, and a taller pier at each corner
+      if (masonry && !pier) { if (corner) { for (let y = top + 1; y <= top + 3; y++) set(x, y, z, blk); } else if (along % 2 === 0) set(x, top + 1, z, blk); } // battlements, and a taller pier at each corner
       if (lightCol) set(x, top + (masonry && along % 2 === 0 ? 2 : 1), z, M.light);
     }
     for (const [x, z] of st.holeCols) for (let y = vy; y <= vy + 4; y++) if (world.getBlock(x, y, z) !== B.AIR) set(x, y, z, B.AIR);
@@ -1344,7 +1361,7 @@ const Village = (() => {
       let y; const aquatic = v.type !== 'land';
       if (aquatic) y = v.type === 'sea' ? SEA - 1 : v.y + 3; else { const gy = world.groundY(c.x, c.z, v.y + 8); y = gy + 1; }
       const px = c.az ? 1 : 0, pz = c.ax ? 1 : 0; // across the road
-      const e = Wild.makeEntity(sp, Math.max(2, bossLevelFor(v) - 2 + i), c.x + 0.5, y, c.z + 0.5, { elite: true, senseR: 5.2 + 0.4 * i, aquatic, patrol: { ax: c.x + 0.5 - px * 2.5, az: c.z + 0.5 - pz * 2.5, bx: c.x + 0.5 + px * 2.5, bz: c.z + 0.5 + pz * 2.5, period: 6 + i, phase: 0 } });
+      const e = Wild.makeEntity(sp, Math.max(2, bossLevelFor(v) - 2 + i), c.x + 0.5, y, c.z + 0.5, { elite: true, wear: { item: 'bound' }, senseR: 5.2 + 0.4 * i, aquatic, patrol: { ax: c.x + 0.5 - px * 2.5, az: c.z + 0.5 - pz * 2.5, bx: c.x + 0.5 + px * 2.5, bz: c.z + 0.5 + pz * 2.5, period: 6 + i, phase: 0 } });
       e.lieutenant = { id: v.id, i }; e.speed = 1.4; e.flying = false; e.siegeAble = true;
       Wild.list.push(e); v.lieus[i] = e;
     }
@@ -1658,13 +1675,13 @@ const Village = (() => {
     const sp = KIN.species(h, [prim], 1 + v.tier, { primary: prim, shape, total: 285 + v.tier * 40, neon: world.preset.id !== 'earth' });
     const tn = styleOf(v) ? STYLE_NAMES[v.style].tyrant : null;
     const nm = v.starter ? 'Grakor the Tyrant' : tn ? tn[h % tn.length] : TYRANT[h % TYRANT.length] + ' the Tyrant';
-    sp.names = [nm, nm, nm]; sp.feat.horns = true; sp.feat.spikes = true; sp.feat.crest = true; sp.size = 1.25 + v.tier * 0.08; sp.boss = true;
+    sp.names = [nm, nm, nm]; sp.feat.horns = true; sp.feat.spikes = true; sp.feat.crest = true; sp.size = 1.5 + v.tier * 0.08; sp.boss = true; sp.colors = Object.assign({}, sp.colors, { eye: '#c58bff' }); // the eyes of the Bound are the colour of the crystal
     const kin = KIN.create(sp, bossLevelFor(v));
-    const m = KIN.model(sp, 2);
+    const m = KIN.dress(KIN.model(sp, 2), { item: 'tyrant' }); // crowned in iron, the shard of the Binding on its chest
     const bx = v.type === 'deep' ? v.x - 0.5 : v.x + 0.5, bz = v.z + 2.5;
     // at sea the tyrant lurks under the deck and comes up when you reach the platform, however you got there
     const lurk = v.type === 'sea'; const by = lurk ? SEA - 3 : v.y;
-    v.boss = { kin, x: bx, y: by, z: bz, yaw: Math.PI, tx: bx, tz: bz, wait: 99, speed: 0, senseR: lurk ? 0 : 5.5, alert: 0, model: m, scale: 1, hover: 0, bob: 0, mesh: R.entityMesh(KIN.meshKey(sp, 2) + ':boss:' + v.id, (mb) => KIN.buildMesh(mb, m)), skyMul: 1, isBoss: true, villageId: v.id, sleep: lurk, aquatic: lurk, lurk, patrol: { ax: bx - 3, az: bz, bx: bx + 3, bz: bz, period: lurk ? 12 : 8, phase: 0 }, skyT: 0, elite: true };
+    v.boss = { kin, x: bx, y: by, z: bz, yaw: Math.PI, tx: bx, tz: bz, wait: 99, speed: 0, senseR: lurk ? 0 : 5.5, alert: 0, model: m, scale: 1, hover: 0, bob: 0, mesh: R.entityMesh(KIN.meshKey(sp, 2) + ':tyrant:' + v.id, (mb) => KIN.buildMesh(mb, m)), skyMul: 1, isBoss: true, villageId: v.id, sleep: lurk, aquatic: lurk, lurk, patrol: { ax: bx - 3, az: bz, bx: bx + 3, bz: bz, period: lurk ? 12 : 8, phase: 0 }, skyT: 0, elite: true };
     Wild.list.push(v.boss);
   }
   // touching the table in a village the tyrant still holds brings him down on you
@@ -1873,7 +1890,7 @@ const Village = (() => {
       st.report = { night, text: `Raiders came and the ${st.guards.length ? 'guards and the ' : ''}wall held.` }; return false;
     }
     const holes = 2 + Math.floor(U.hash3(night, 9, U.strHash(v.id), world.seed) * 3);
-    if (v.type === 'land' && !v.founded) { const cols = ringCols(v, st).filter(c => !c[2]); for (let i = 0; i < holes && st.holeCols.length < 12; i++) { const c = cols[Math.floor(U.hash3(night, 20 + i, U.strHash(v.id), world.seed) * cols.length)]; if (!st.holeCols.some(h => h[0] === c[0] && h[1] === c[1])) st.holeCols.push([c[0], c[1]]); } if (villages.get(v.id) === v && state(v.id).stamped && (active === v || dist2d(v.x, v.z, G.player.x, G.player.z) < 120)) stampWall(v, st); }
+    if (v.type === 'land' && !v.founded) { const cols = ringCols(v, st).filter(c => !c[2] && c[3] !== 'post'); for (let i = 0; i < holes && st.holeCols.length < 12; i++) { const c = cols[Math.floor(U.hash3(night, 20 + i, U.strHash(v.id), world.seed) * cols.length)]; if (!st.holeCols.some(h => h[0] === c[0] && h[1] === c[1])) st.holeCols.push([c[0], c[1]]); } if (villages.get(v.id) === v && state(v.id).stamped && (active === v || dist2d(v.x, v.z, G.player.x, G.player.z) < 120)) stampWall(v, st); }
     const alive = st.guards.filter(k => k.hp > 0).sort((a, b) => guardPower(a) - guardPower(b));
     if (alive.length) { alive[0].hp = 0; for (const k of alive.slice(1)) k.hp = Math.max(1, k.hp - KIN.stats(k).hp * 0.3); }
     st.report = { night, text: `Raiders broke through${holes ? ' and tore ' + holes + ' holes in the wall' : ''}. The village barricaded itself: no pay.${alive.length ? ' ' + KIN.name(alive[0]) + ' fell.' : ''}` };
@@ -1925,6 +1942,7 @@ const Village = (() => {
     pay(next.cost); clearWall(v, st); st.wall++; st.holeCols = []; stampWall(v, st); // the ring comes down and goes up again in the new material, battlements and all
     return null;
   }
+  function designerWall(v, n) { const st = state(v.id); if (v.type !== 'land' || v.founded || !wallSet(v)[n]) return false; clearWall(v, st); st.wall = n; st.holeCols = []; stampWall(v, st); return true; } // for looking at a wall in each of its materials without paying for it: the tests use it
   function repairWall(v) {
     const st = state(v.id); const n = st.holeCols.length; if (!n) return 'The wall is whole.';
     const cost = { shards: 5 * n }; if (!canPay(cost)) return `Repairs cost ◆ ${cost.shards}.`;
@@ -2409,6 +2427,14 @@ const Village = (() => {
     }
     const price = entry.price; if (G.shards < price) { UI.toast('Not enough Shards.', 'bad'); return false; }
     if (entry.service === 'locked') { UI.toast(entry.sub || 'Not yet.'); return false; }
+    if (entry.service === 'game') { const v = active, st = gameStats(v), day = G.dayCount || 0, first = entry.champ.split(' ')[0]; if (st.day !== day) { st.day = day; st.n = 0; }
+      if (st.n >= 5) { UI.toast(`${first} has played enough for one day. Come back tomorrow.`); return false; } if (G.shards < entry.stake) { UI.toast('You have not got the stake.', 'bad'); return false; }
+      G.shards -= entry.stake; st.n++; UI.closePanel(); // the stake is on the table before the first move: walk away and it stays there
+      Games.play(entry.game, { champ: entry.champ, stake: entry.stake, skill: entry.skill, onEnd: (res) => {
+        if (res === 'win') { G.shards += entry.stake * 2; st.won++; UI.sfx('caught'); UI.toast(`${entry.stake} shards off ${first}.`, 'good'); if (st.won === 3) UI.toast(`They chalk your name over the board: champion of ${v.name}.`, 'good'); }
+        else if (res === 'draw') { G.shards += entry.stake; UI.toast('A draw. You take your stake back.'); } else { st.lost++; UI.toast(`${first} takes your ${entry.stake} shards.`, 'bad'); }
+        if (G.save) G.save(); } });
+      return true; }
     if (entry.service === 'meal') { if (G.shards < price) { UI.toast('Not enough Shards.', 'bad'); return false; } G.shards -= price; G.addBuff(entry.buff, entry.amt, entry.mins); UI.sfx('caught'); UI.toast(entry.name.split(':')[0] + '. ' + entry.name.split(':')[1].trim() + '.', 'good'); return true; }
     if (entry.service === 'teach') { const k = G.kin[G.activeIdx]; if (!k) return false; if (k.tech) { UI.toast(`${KIN.name(k)} already knows ${k.tech}.`); return false; } const pr = 60 + k.level * 12; if (G.shards < pr) { UI.toast(`Teaching ${KIN.name(k)} costs ${pr} shards.`, 'bad'); return false; } G.shards -= pr; k.tech = KIN.techFor(k); UI.sfx('quest'); UI.toast(`${KIN.name(k)} learned ${k.tech}.`, 'good'); return true; }
     if (entry.service === 'kin') { if (G.shards < price) { UI.toast('Not enough Shards.', 'bad'); return false; } const sp = KIN.bySeed(entry.seed); if (!sp) return false; const st0 = G.stats.boughtKin || (G.stats.boughtKin = {}); const key = (G.dayCount || 0) + ':' + entry.seed; if (st0[key]) { UI.toast('Sold already. Come back tomorrow.'); return false; } G.shards -= price; st0[key] = true; const k = KIN.create(sp, entry.level); const where = G.addKin(k); G.seenDex(k.sp, 'caught'); UI.sfx('caught'); UI.toast(`${KIN.name(k)} is yours${where === 'party' ? '' : ' (sent to storage: your party is full)'}.`, 'good'); return true; }
@@ -2473,7 +2499,7 @@ const Village = (() => {
   }
   // which quarter of a city a spot is in (null in the square, on the castle hill, or outside a city)
   function quarterAt(v, x, z) { if (!v || !v.R || v.size !== 'city' || (MATS[v.style] || MATS.land) !== MATS.land) return null; const dx = x - v.x, dz = z - v.z, m = Math.max(Math.abs(dx), Math.abs(dz)); if (m > v.R - 4 || m <= 7 || (Math.abs(dx) <= 14 && dz <= -v.R + 28)) return null; return QUARTERS[quarterOf(dx, dz)].name; }
-  return { atlantis: () => { if (world && world.preset.id === 'earth') plan(); return ATL; }, railAt, quarterAt, plotsOf, plotPrice, ownsPlotAt, buyPlot, enterShow, thiefCaught, layout, townList, init, stamp, restoreStart, update, pick, talk, entities, buy, boardTrain, trainArrive, trainFilm, trainOf, sell, sellValue, raiseDome, shopDef, freed, onBossGone, lieutenantDown, tableChallenge, placeKit, portalList, portalHere, markers, wakeDialogue, questTarget, dawn, pendingIncome, foundingInfo, foundVillage, summaryHtml, ledger, station, recall, upgradeWall, repairWall, expand, build, postShop, levelOf, SHOPS, WALLS,
+  return { designerWall, wallRadiusOf: (v) => wallRadius(state(v.id)), atlantis: () => { if (world && world.preset.id === 'earth') plan(); return ATL; }, railAt, quarterAt, plotsOf, plotPrice, ownsPlotAt, buyPlot, enterShow, thiefCaught, layout, townList, init, stamp, restoreStart, update, pick, talk, entities, buy, boardTrain, trainArrive, trainFilm, trainOf, sell, sellValue, raiseDome, shopDef, freed, onBossGone, lieutenantDown, tableChallenge, placeKit, portalList, portalHere, markers, wakeDialogue, questTarget, dawn, pendingIncome, foundingInfo, foundVillage, summaryHtml, ledger, station, recall, upgradeWall, repairWall, expand, build, postShop, levelOf, SHOPS, WALLS,
     get def() { return active ? { x: active.x, y: active.y, z: active.z } : null; }, set def(v) { restoreStart(v); }, get active() { return active; }, get boss() { return active ? active.boss : null; }, get elder() { return active ? active.elder : null; }, get walking() { return !!walkState; }, get fisher() { return fisher; } };
 })();
 

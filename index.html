@@ -481,6 +481,31 @@ body.desktop #joy, body.desktop #btn-jump, body.desktop #btn-sneak { display: no
 select { font-family: var(--font); font-size: 14px; padding: 9px 11px; border-radius: 10px; border: 1px solid rgba(255,255,255,.22); background: rgba(0,0,0,.3); color: var(--ui); }
 #start select { background: rgba(255,255,255,.7); border-color: rgba(60,40,10,.18); color: #2b2216; }
 
+/* ---- the games of the towns: a card over the world, the board in the middle of it ---- */
+#gamebox { position: fixed; inset: 0; z-index: 40; display: flex; align-items: center; justify-content: center; background: rgba(6, 10, 16, .72); touch-action: none; }
+#gamebox .gb-card { width: min(94vw, 460px); max-height: 96vh; background: var(--bg2); border: 1px solid var(--line); border-radius: 18px; padding: 14px 14px 16px; display: flex; flex-direction: column; align-items: center; gap: 8px; box-shadow: 0 18px 50px rgba(0,0,0,.5); }
+#gamebox .gb-head { width: 100%; display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+#gamebox .gb-title { font-size: 19px; font-weight: 900; letter-spacing: .4px; }
+#gamebox .gb-sub { font-size: 12.5px; color: var(--dim); text-align: right; }
+#gamebox .gb-score { width: 100%; display: flex; align-items: center; justify-content: space-between; font-size: 14px; padding: 6px 10px; border-radius: 10px; background: rgba(255,255,255,.06); }
+#gamebox .gb-score b { font-size: 20px; margin-left: 4px; }
+#gamebox .gb-you b { color: #6fb6ff; } #gamebox .gb-them b { color: #ff8a70; } #gamebox .gb-mid { font-size: 12px; color: var(--dim); }
+#gamebox .gb-stage { width: 100%; display: flex; justify-content: center; }
+#gamebox .gb-canvas { width: min(84vw, 52vh, 400px); height: auto; aspect-ratio: 1; display: block; touch-action: none; }
+#gamebox .gb-say { min-height: 20px; font-size: 14px; text-align: center; color: var(--ui); }
+#gamebox .gb-foot { display: flex; gap: 10px; align-items: center; justify-content: center; flex-wrap: wrap; }
+#gamebox .gb-throw { min-width: 150px; }
+#gamebox.gb-win .gb-card { border-color: rgba(111, 211, 122, .6); } #gamebox.gb-lose .gb-card { border-color: rgba(255, 107, 90, .6); }
+#gamebox .gb-board { width: min(88vw, 54vh, 420px); aspect-ratio: 1; display: grid; grid-template-columns: repeat(8, 1fr); grid-template-rows: repeat(8, 1fr); border: 5px solid #5a3d22; border-radius: 8px; overflow: hidden; }
+#gamebox .gb-sq { position: relative; display: flex; align-items: center; justify-content: center; }
+#gamebox .gb-sq.lt { background: #e6d2a4; } #gamebox .gb-sq.dk { background: #8a6238; }
+#gamebox .gb-sq.was { box-shadow: inset 0 0 0 3px rgba(255, 226, 120, .55); }
+#gamebox .gb-sq.go::after { content: ''; position: absolute; width: 34%; height: 34%; border-radius: 50%; background: rgba(111, 211, 200, .9); box-shadow: 0 0 0 3px rgba(10, 40, 40, .35); }
+#gamebox .gb-man { width: 76%; height: 76%; border-radius: 50%; display: block; box-shadow: inset 0 -4px 0 rgba(0,0,0,.28), inset 0 3px 0 rgba(255,255,255,.28), 0 2px 3px rgba(0,0,0,.4); }
+#gamebox .gb-man.you { background: radial-gradient(circle at 50% 38%, #7cc0ff, #2f76c4); } #gamebox .gb-man.them { background: radial-gradient(circle at 50% 38%, #ff9a80, #c23c26); }
+#gamebox .gb-man.king { outline: 3px solid #ffd45a; outline-offset: -7px; }
+#gamebox .gb-man.sel { box-shadow: 0 0 0 4px #ffe27a, inset 0 -4px 0 rgba(0,0,0,.28); } #gamebox .gb-man.can { box-shadow: 0 0 0 2px rgba(255,255,255,.75), inset 0 -4px 0 rgba(0,0,0,.28); }
+
 </style>
 </head>
 <body>
@@ -777,6 +802,7 @@ const CH = 16;            // chunk width
 const WH = 104;           // world height
 const WORLD_W = 16384;    // wrap period in blocks (walk ~1h to come back around)
 const SEA = 46;
+const LOST_WATER = 53;   // the rivers of the Lost World stand at this height, up on the plateau
 const CORE_TOP = 14;      // y < 14 is the Core
 const SKY_BASE = 86;      // sky islands float around here
 const SKY_SPLIT = 78;     // sky light above this height is computed separately so islands do not shade the ground
@@ -787,7 +813,7 @@ const B = {
   TORCH: 18, FUSION: 19, GRAVEL: 20, CACTUS: 21, STARMETAL: 22, MOSS: 23, STATUE: 24, PLANKS: 25, BERRY: 26, GLASS: 27, CAMPFIRE: 28, IRONWALL: 29, VOIDWALL: 30, GLOWWORM: 31, BERRYLEAF: 32, DOOR: 33, DOOR_OPEN: 34, PORTAL: 35,
   CHEST: 36, SELENITE: 37, TYCHO: 38, STARSALT: 39, MOONGLOW: 40, AMBER: 41, SULFUR: 42, RINGSHARD: 43, BRINE: 44, CORAL_R: 45, CORAL_B: 46, CORAL_Y: 47, PEARLCORAL: 48, GOLD: 49, DIAMOND: 50, FERN: 51, SELGLASS: 52, INCUBATOR: 53, REGOLITH: 54, DUNE: 55, SALTCRUST: 56, LADDER: 57, TARGET: 58, BALLOON: 59, FORTSTONE: 60, THORN: 61, DEADGATE: 62, RUBBLE: 63, DARKTABLE: 64,
   NEEDLES: 65, FROND: 66, BIRCHLOG: 67, BOULDER: 68, MUSHROOM: 69, FLOWERS: 70, PEBBLES: 71, PALMLOG: 72,
-  TILES: 73, SLATE: 74, THATCH: 75, PLASTER: 76, BEAM: 77, LAMP: 78, COBBLE: 79, FLOWERBOX: 80, PALISADE: 81, MASONRY: 82, FOUNTAIN: 83, BASIN: 84, AWNING: 85, BANNER: 86, SLIT: 87, TIPI: 88, HIDE: 89, LODGE: 90, FENCE: 91, FIREPIT: 92, TOTEM: 93, RAIL: 94, CART: 95, ROPEBRIDGE: 96, WEAVE: 97, SAIL: 98, EMBERLIGHT: 99, BARREL: 100, CRATE: 101, BUNTING: 102, SIGNPOST: 103, PLANTER: 104, BRICK: 105, SAILS: 106, FALLS: 107, HALFTIMBER: 108, CHIMNEY: 109, HALFTIMBER_O: 110, HALFTIMBER_W: 111, GLOWLINE: 112, SALTROOF: 113, HALOWALL: 114, TRACK: 115, ATLAN: 116, AGLASS: 117, ALIGHT: 118
+  TILES: 73, SLATE: 74, THATCH: 75, PLASTER: 76, BEAM: 77, LAMP: 78, COBBLE: 79, FLOWERBOX: 80, PALISADE: 81, MASONRY: 82, FOUNTAIN: 83, BASIN: 84, AWNING: 85, BANNER: 86, SLIT: 87, TIPI: 88, HIDE: 89, LODGE: 90, FENCE: 91, FIREPIT: 92, TOTEM: 93, RAIL: 94, CART: 95, ROPEBRIDGE: 96, WEAVE: 97, SAIL: 98, EMBERLIGHT: 99, BARREL: 100, CRATE: 101, BUNTING: 102, SIGNPOST: 103, PLANTER: 104, BRICK: 105, SAILS: 106, FALLS: 107, HALFTIMBER: 108, CHIMNEY: 109, HALFTIMBER_O: 110, HALFTIMBER_W: 111, GLOWLINE: 112, SALTROOF: 113, HALOWALL: 114, TRACK: 115, ATLAN: 116, AGLASS: 117, ALIGHT: 118, JLOG: 119, GATE: 120
 };
 
 // name, top colour, side colour, solid, hardness (seconds to mine), drop item id, emissive, fluid
@@ -908,6 +934,8 @@ defBlock(B.TRACK, 'Railway', '#6a6a70', '#5a4a30', { solid: false, hard: 0.6, dr
 defBlock(B.ATLAN, 'Pearlstone', '#dfe9ee', '#c9d8e0', { hard: Infinity });
 defBlock(B.AGLASS, 'Dome Glass', '#bfeaf5', '#bfeaf5', { hard: Infinity, transparent: true });
 defBlock(B.ALIGHT, 'Pearl Light', '#bff4ff', '#bff4ff', { solid: false, hard: Infinity, emissive: true, partial: true, transparent: true });
+defBlock(B.GATE, 'Gateway', '#a07a44', '#75522c', { solid: false, hard: Infinity, drop: null, partial: true, transparent: true }); // the mark at the middle of a town gate: the mesher draws the whole head of the gateway from it, beam and roof or arch and battlements, after the wall it stands in
+defBlock(B.JLOG, 'Jungle Trunk', '#8a6a44', '#5f4630', { hard: Infinity }); // the trees of the Lost World are too big for a hatchet. Never drawn as a block: the mesher draws each tree whole
 defBlock(B.BARREL, 'Barrel', '#9a6a3a', '#7a4f28', { hard: 0.5, drop: 'planks', partial: true, transparent: true });
 defBlock(B.CRATE, 'Crate', '#b89058', '#96703e', { hard: 0.5, drop: 'planks', partial: true, transparent: true });
 defBlock(B.BUNTING, 'Bunting', '#e8c040', '#d04a4a', { solid: false, hard: 0.1, drop: null, partial: true, transparent: true });
@@ -926,10 +954,10 @@ defBlock(B.PEBBLES, 'Pebbles', '#8e9197', '#86898f', { solid: false, hard: 0.2, 
 // blocks that light their surroundings, and how far
 const LIGHT_R = { [B.TORCH]: 10, [B.CAMPFIRE]: 14, [B.FIREPIT]: 13, [B.MOONGLOW]: 12, [B.RINGSHARD]: 10, [B.PEARLCORAL]: 8, [B.INCUBATOR]: 9, [B.LAMP]: 12, [B.ALIGHT]: 14 };
 // blocks the sky light passes through when working out how deep a column is
-const SKY_CLEAR = { [B.TRACK]: 1, [B.GLOWLINE]: 1, [B.CHIMNEY]: 1, [B.FALLS]: 1, [B.BUNTING]: 1, [B.SIGNPOST]: 1, [B.SAILS]: 1, [B.LAMP]: 1, [B.FLOWERBOX]: 1, [B.RAIL]: 1, [B.BANNER]: 1, [B.BASIN]: 1, [B.FOUNTAIN]: 1, [B.TIPI]: 1, [B.LODGE]: 1, [B.HIDE]: 1, [B.FENCE]: 1, [B.FIREPIT]: 1, [B.TOTEM]: 1, [B.FROND]: 1, [B.MUSHROOM]: 1, [B.FLOWERS]: 1, [B.PEBBLES]: 1, [B.LADDER]: 1, [B.TORCH]: 1, [B.GLASS]: 1, [B.SELGLASS]: 1, [B.CAMPFIRE]: 1, [B.MOONGLOW]: 1, [B.GLOWWORM]: 1, [B.FERN]: 1, [B.PORTAL]: 1, [B.BERRY]: 1, [B.RINGSHARD]: 1, [B.AGLASS]: 1, [B.ALIGHT]: 1 };
+const SKY_CLEAR = { [B.TRACK]: 1, [B.GLOWLINE]: 1, [B.CHIMNEY]: 1, [B.FALLS]: 1, [B.BUNTING]: 1, [B.SIGNPOST]: 1, [B.SAILS]: 1, [B.LAMP]: 1, [B.FLOWERBOX]: 1, [B.RAIL]: 1, [B.BANNER]: 1, [B.BASIN]: 1, [B.FOUNTAIN]: 1, [B.TIPI]: 1, [B.LODGE]: 1, [B.HIDE]: 1, [B.FENCE]: 1, [B.FIREPIT]: 1, [B.TOTEM]: 1, [B.FROND]: 1, [B.MUSHROOM]: 1, [B.FLOWERS]: 1, [B.PEBBLES]: 1, [B.LADDER]: 1, [B.TORCH]: 1, [B.GLASS]: 1, [B.SELGLASS]: 1, [B.CAMPFIRE]: 1, [B.MOONGLOW]: 1, [B.GLOWWORM]: 1, [B.FERN]: 1, [B.PORTAL]: 1, [B.BERRY]: 1, [B.RINGSHARD]: 1, [B.AGLASS]: 1, [B.ALIGHT]: 1, [B.GATE]: 1 };
 const isSolid = (id) => BLOCKS[id].solid;
 const isLeaf = (id) => id === B.LEAVES || id === B.BERRYLEAF || id === B.NEEDLES;
-const isTrunk = (id) => id === B.LOG || id === B.BIRCHLOG || id === B.PALMLOG;
+const isTrunk = (id) => id === B.LOG || id === B.BIRCHLOG || id === B.PALMLOG || id === B.JLOG;
 const isTreeBlock = (id) => isLeaf(id) || isTrunk(id) || id === B.FROND || id === B.CACTUS; // what a felled crown may take away
 const isOpaque = (id) => BLOCKS[id].solid && !BLOCKS[id].partial && !BLOCKS[id].transparent;
 
@@ -1074,7 +1102,12 @@ class World {
       // the Lost World: a jungle plateau ringed by cliffs on the far side of the world, reached only through a tunnel
       const L = this.lost; const ddx = U.mod(x - L.x + P / 2, P) - P / 2, ddz = U.mod(z - L.z + P / 2, P) - P / 2; const d = Math.hypot(ddx, ddz);
       if (d < L.rim) {
-        if (d < L.inner) { h = 56 + Math.round((hills - 0.5) * 10 + (cont - 0.5) * 4); return { h, biome: BIOME.LOSTWORLD, temp: 0.7, moist: 0.9, sky: 0, lost: true }; }
+        if (d < L.inner) { h = 56 + Math.round((hills - 0.5) * 10 + (cont - 0.5) * 4);
+          // rivers wind across the plateau: slow, brown-green, a couple of blocks deep, the banks sloping down to them. Not through the tyrant's clearing, not into the tunnel mouth, not up against the cliffs
+          const rw = Math.abs(U.vnoise2(x, z, 104, P, this.seed + 811) - 0.5), rt = U.clamp((0.05 - rw) / 0.036, 0, 1); let rk = this._tunBusy ? 0 : rt * rt * (3 - 2 * rt) * U.clamp((d - 34) / 12, 0, 1) * U.clamp((L.inner - 8 - d) / 10, 0, 1);
+          if (rk > 0) { if (!L.tunnel) { this._tunBusy = true; try { this.lostTunnel(); } finally { this._tunBusy = false; } } /* the tunnel is worked out on plain ground, before any river is, so the land is the same whichever is asked for first */ if (L.tunnel) rk *= U.clamp((Math.hypot(x - L.tunnel.bx, z - L.tunnel.bz) - 10) / 8, 0, 1); }
+          if (rk > 0) h = Math.round(U.lerp(h, LOST_WATER - 2, rk));
+          return { h, biome: BIOME.LOSTWORLD, temp: 0.7, moist: 0.9, sky: 0, lost: true, lostRiver: rk }; }
         const t = d < L.rim - 7 ? 1 : (L.rim - d) / 7; // sheer inside, a slope outside
         h = Math.round(U.lerp(h, 80 - Math.round((hills - 0.5) * 4), Math.min(1, t)));
         return { h, biome: BIOME.MOUNTAIN, temp, moist, sky: 0, lostRim: true };
@@ -1125,12 +1158,17 @@ class World {
       case BIOME.SWAMP: p = 0.004 + 0.014 * U.vnoise2(x, z, 48, WORLD_W, this.seed + 373); type = 'swamp'; break;
       case BIOME.MOUNTAIN: p = 0.006; type = 'pine'; break;
       case BIOME.DESERT: p = 0.01; type = 'cactus'; break;
-      case BIOME.LOSTWORLD: p = 0.007 + 0.02 * U.vnoise2(x, z, 40, WORLD_W, this.seed + 375); type = 'jungle'; break;
+      case BIOME.LOSTWORLD: if (info.h <= LOST_WATER + 1) return null; p = 0.024 + 0.036 * U.vnoise2(x, z, 40, WORLD_W, this.seed + 375) + (info.lostRiver > 0.02 ? 0.04 : 0); type = 'jungle'; break; // thick, and thicker in places, and a wall of it along every river bank; nothing stands in the water
       default: return null;
     }
     if (r >= p) return null;
     const hr = U.hash3(x, 97, z, this.seed);
     const fir = type === 'pine' && kind > 0.66 && (info.biome === BIOME.SNOW || info.biome === BIOME.MOUNTAIN), grand = type === 'oak' && U.hash3(x, 94, z, this.seed + 19) < 0.1; // here and there an old giant among the oaks
+    if (type === 'jungle') { // four storeys: big-leaved plants and tree ferns underneath, the canopy over them, and here and there a giant standing clear of everything
+      const size = kind < 0.22 ? 'fern' : kind < 0.4 ? 'banana' : hr > 0.86 ? 'giant' : hr > 0.5 ? 'big' : 'tree';
+      if (size === 'giant') for (let a = -6; a <= 6; a++) for (let b = -6; b <= 6; b++) { if (!a && !b) continue; const h2 = U.hash3(x + a, 97, z + b, this.seed); if (h2 > hr && U.hash3(x + a, 98, z + b, this.seed) >= 0.4 && U.hash3(x + a, 99, z + b, this.seed + 303) < 0.05) return null; } /* two giants never stand shoulder to shoulder */
+      const height = Math.min(WH - 12 - info.h, size === 'fern' ? 3 + Math.floor(hr * 5) : size === 'banana' ? 3 + Math.floor(hr * 3) : size === 'giant' ? 24 + Math.floor((hr - 0.86) / 0.14 * 6) : size === 'big' ? 16 + Math.floor((hr - 0.5) / 0.36 * 6) : 11 + Math.floor(hr * 10));
+      return { type, size, height, berries: false, big: size === 'giant', lean: Math.floor(U.hash3(x, 95, z, this.seed) * 4) }; }
     const height = fir ? 11 + Math.floor(hr * 4) : grand ? 7 + Math.floor(hr * 3) : type === 'pine' ? 7 + Math.floor(hr * 5) : type === 'cactus' ? 1 + Math.floor(hr * 3) : type === 'jungle' ? 8 + Math.floor(hr * 5) : type === 'palm' ? 5 + Math.floor(hr * 3) : type === 'birch' ? 5 + Math.floor(hr * 3) : 4 + Math.floor(hr * 3);
     const berries = (type === 'oak' || type === 'swamp' || type === 'jungle') && U.hash3(x, 96, z, this.seed + 17) < 0.45; // nearly half the broadleaf trees carry berries
     return { type, height, berries, grand, big: type === 'jungle' && hr > 0.6, lean: Math.floor(U.hash3(x, 95, z, this.seed) * 4) };
@@ -1179,13 +1217,10 @@ class World {
       for (let k = 0; k < 6; k++) { const a = k / 6 * 6.283 + hs(k, 1, k); const sx = x + Math.round(Math.cos(a) * 3.5), sz = z + Math.round(Math.sin(a) * 3.5); const len = 2 + Math.floor(hs(k, 9, k) * 3); for (let y = 0; y < len; y++) put(sx, h + th - y, sz, B.LEAVES, true); }
       return;
     }
-    if (type === 'jungle') { // giants: a thick trunk, buttress roots, a broad crown, hanging vines
-      const big = tree.big; const tw = big ? 2 : 1;
-      for (let ax = 0; ax < tw; ax++) for (let az = 0; az < tw; az++) for (let y = 1; y <= th; y++) put(x + ax, h + y, z + az, B.LOG, false);
-      for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { put(x + dx * tw, h + 1, z + dz * tw, B.LOG, true); if (big) put(x + dx * tw, h + 2, z + dz * tw, B.LOG, true); }
-      canopy(x, h + th + 1, z, big ? 5 : 3, 2, B.LEAVES, tree.berries);
-      if (big) { canopy(x + 3, h + th - 2, z - 2, 2, 1, B.LEAVES, false); for (let y = th - 4; y <= th - 2; y++) put(x + 3, h + y, z - 2, B.LOG, true); }
-      for (let k = 0; k < (big ? 6 : 3); k++) { const a = k / 6 * 6.283 + hs(k, 5, k); const r = (big ? 4 : 2.5); const sx = x + Math.round(Math.cos(a) * r), sz = z + Math.round(Math.sin(a) * r); const len = 3 + Math.floor(hs(k, 8, k) * 4); for (let y = 0; y < len; y++) put(sx, h + th - 1 - y, sz, B.LEAVES, true); }
+    if (type === 'jungle') { // the Lost World: only the trunk is blocks (and too big to fell). The mesher draws each tree whole from the chunk's list: buttresses, limbs, crown, hanging lianas
+      if (tree.size === 'banana') return; // a plant of great soft leaves: nothing of it is blocks, you walk through it
+      const tw = tree.size === 'giant' ? 2 : 1;
+      for (let ax = 0; ax < tw; ax++) for (let az = 0; az < tw; az++) for (let y = 1; y <= th; y++) put(x + ax, h + y, z + az, B.JLOG, false);
       return;
     }
     if (tree.grand) { // an old giant: a bole four logs thick, great limbs, a wide crown in three masses
@@ -1257,7 +1292,7 @@ class World {
           else if (depth < 4) b = biome === BIOME.DUNES ? B.DUNE : biome === BIOME.MESA ? B.STONE : B.DIRT;
         }
         else if (info.crag >= 1 && (depth > 0 ? depth < 4 || info.crag > 2 : info.cragRim)) b = (depth === 0 && U.hash3(x, 36, z, s + 967) < 0.35) ? B.MOSS : B.STONE; /* a knoll is rock under its turf, and shows it in places */
-        else if (info.lost) { if (depth === 0) b = B.GRASS; else if (depth < 3) b = B.DIRT; }
+        else if (info.lost) { if (depth === 0) b = h <= LOST_WATER ? (U.hash3(x, 37, z, s + 969) < 0.3 ? B.GRAVEL : B.DIRT) : B.GRASS; else if (depth < 3) b = B.DIRT; } /* a river bed is mud and stones */
         else if (depth === 0) {
           const snowy = info.temp + (U.vnoise2(x, z, 7, P, s + 623) - 0.5) * 0.03 < 0.36; /* the snow line is not the line on the map: it breaks up into drifts and bare patches where the cold country meets the green */
           if (biome === BIOME.SNOW || biome === BIOME.PLAINS || biome === BIOME.FOREST) b = snowy ? B.SNOW : (wear > 0.7 && U.hash3(x, 41, z, s + 979) < 0.45 ? B.DIRT : B.GRASS); /* mud shows through where a path is walked most */
@@ -1319,6 +1354,7 @@ class World {
         gal(x + 1, z, 28); gal(z - 47, x, 21);
       }
       if (this.preset.water && h < SEA) for (let y = h + 1; y <= SEA; y++) blocks[base + y] = B.WATER;
+      if (info.lost && h < LOST_WATER) for (let y = h + 1; y <= LOST_WATER; y++) blocks[base + y] = B.WATER;
       if (this.trackAt && this.trackAt(x, z)) { if (h >= SEA) { blocks[base + h] = B.GRAVEL; blocks[base + h + 1] = B.TRACK; for (let y = h + 2; y <= h + 4 && y < WH; y++) blocks[base + y] = B.AIR; } else if (SEA + 2 < WH) { blocks[base + SEA + 1] = B.PLANKS; blocks[base + SEA + 2] = B.TRACK; } } /* the railway: ballast under it on land, a plank deck where it crosses water */
       if (this.preset.brine && h < this.preset.brineLevel) for (let y = h + 1; y <= this.preset.brineLevel; y++) blocks[base + y] = B.BRINE;
       if (this.preset.ringfall && h >= this.preset.brineLevel && h < WH - 2 && biome !== BIOME.MESA && U.hash3(x, 13, z, s + 931) < 0.0012) blocks[base + h + 1] = B.RINGSHARD;
@@ -1357,7 +1393,7 @@ class World {
       for (let lx = 0; lx < CH; lx++) for (let lz = 0; lz < CH; lz++) {
         const info = infos[(lx + 2) * 20 + (lz + 2)]; if (!info.lost) continue;
         const x = ox + lx, z = oz + lz; const h = info.h; const base = (lx * CH + lz) * WH;
-        if (U.hash3(x, 25, z, s + 941) < 0.14 && blocks[base + h] === B.GRASS && blocks[base + h + 1] === B.AIR && !this.treeAt(x, z, info)) blocks[base + h + 1] = B.FERN;
+        if (U.hash3(x, 25, z, s + 941) < 0.22 && blocks[base + h] === B.GRASS && blocks[base + h + 1] === B.AIR && !this.treeAt(x, z, info)) blocks[base + h + 1] = B.FERN; // thick underfoot: the mesher draws these as the big-leaved plants of the place
       }
       const T = this.lostTunnel();
       const near = Math.abs(ox + 8 - T.ax) < 200 && Math.abs(oz + 8 - T.az) < 200;
@@ -1391,11 +1427,13 @@ class World {
       if (onlyAir && blocks[i] !== B.AIR) return;
       blocks[i] = id;
     };
-    for (let dx = -5; dx < 21; dx++) for (let dz = -5; dz < 21; dz++) {
+    // in the Lost World a crown reaches further than anywhere else, so trees are looked for further out; and the chunk keeps a list of them for the mesher
+    const jb = this.lost && Math.hypot(U.mod(ox + 8 - this.lost.x + P / 2, P) - P / 2, U.mod(oz + 8 - this.lost.z + P / 2, P) - P / 2) < this.lost.rim + 30 ? 13 : 5; chunk.jtrees = null;
+    for (let dx = -jb; dx < 16 + jb; dx++) for (let dz = -jb; dz < 16 + jb; dz++) {
       const x = ox + dx, z = oz + dz;
       const info = (dx >= -2 && dx < 18 && dz >= -2 && dz < 18) ? infos[(dx + 2) * 20 + (dz + 2)] : this.colInfo(x, z);
       const tree = this.treeAt(x, z, info);
-      if (tree) this.plantTree(put, x, info.h, z, tree, s);
+      if (tree) { this.plantTree(put, x, info.h, z, tree, s); if (tree.type === 'jungle') (chunk.jtrees || (chunk.jtrees = [])).push({ x: dx, z: dz, h: info.h, t: tree }); }
     }
     for (let lx = 0; lx < CH; lx++) for (let lz = 0; lz < CH; lz++) {
       const info = infos[(lx + 2) * 20 + (lz + 2)]; const x = ox + lx, z = oz + lz; const h = info.h; const base = (lx * CH + lz) * WH;
@@ -1780,6 +1818,15 @@ const R = (() => {
     float m2 = smoothstep(h2, h2 - 0.005, el); c = mix(c, mix(hor, lil * 0.86, 0.66), m2);
     return mix(c, hor, smoothstep(0.05, -0.01, el) * 0.75); }
   `;
+  const MIST0 = [0, 0, 1, 1];
+  // mist on the floor of the Lost World: a layer that follows the land (how high the land stands comes from the little map of the ground near you, the one the grass is planted by),
+  // and a deeper one lying level over the rivers and in the hollows. Thin close to you, so you see where you put your feet
+  const MIST_GLSL = `uniform mediump sampler2D uHM; uniform vec3 uHMO;
+  float mistAt(vec3 w, float dist){
+    float mh = clamp((uMist.x - w.y) / uMist.z, 0.0, 1.0); mh *= mh * 0.8;
+    vec2 hu = (w.xz - uHMO.xy) / 128.0; float ed = min(min(hu.x, hu.y), min(1.0 - hu.x, 1.0 - hu.y)); float gh = texture2D(uHM, hu).a * 255.0;
+    if (uHMO.z > 0.5 && ed > 0.0 && gh > 1.0) { float mg = clamp(1.0 - (w.y - gh) / 2.1, 0.0, 1.0); mh = max(mh, mg * mg * smoothstep(0.0, 0.06, ed)); }
+    return mh * smoothstep(3.0, 30.0, dist) * uMist.y; }`;
   const state = { viewDist: 64, dayLight: 1, fogColor: [0.6, 0.8, 1], skyColor: [0.6, 0.8, 1], ambient: 0.07, underwater: false, inCore: false, lights: [] };
 
   // ---- the look: sunlight with warm light and cool shade, painted block texture with a faint grid, haze, living water ----
@@ -1792,7 +1839,7 @@ const R = (() => {
     vec4 w = uModel * vec4(aPos, 1.0);
     if (uWave > 1.5) { float k = fract(w.y + 0.0005); k = k * k * 3.0; float gust = sin(uTime * 0.7 + w.x * 0.05 + w.z * 0.03) * 0.5 + 0.5; w.x += (sin(uTime * 2.3 + w.x * 0.9 + w.z * 0.4) * 0.05 + gust * 0.07) * k; w.z += cos(uTime * 1.9 + w.z * 0.8 + w.x * 0.3) * 0.04 * k; }
     else if (uWave > 0.5) { w.y += sin(uTime * 1.3 + w.x * 0.55 + w.z * 0.35) * 0.045 + sin(uTime * 2.1 - w.x * 0.9 + w.z * 1.2) * 0.025 - 0.12; }
-    else if (aMat > 6.5 && aMat < 7.5) { float gust = sin(uTime * 0.6 + w.x * 0.05 + w.z * 0.03) * 0.5 + 0.5; w.x += sin(uTime * 0.9 + w.x * 0.35 + w.z * 0.27 + w.y * 0.5) * (0.035 + 0.05 * gust); w.z += cos(uTime * 0.75 + w.z * 0.33 + w.x * 0.21) * 0.045; w.y += sin(uTime * 1.1 + w.x * 0.4 + w.z * 0.2) * 0.025; } // leaves stir in the wind
+    else if ((aMat > 6.5 && aMat < 7.5) || (aMat > 28.5 && aMat < 29.5) || (aMat > 30.5 && aMat < 31.5)) { float gust = sin(uTime * 0.6 + w.x * 0.05 + w.z * 0.03) * 0.5 + 0.5; w.x += sin(uTime * 0.9 + w.x * 0.35 + w.z * 0.27 + w.y * 0.5) * (0.035 + 0.05 * gust); w.z += cos(uTime * 0.75 + w.z * 0.33 + w.x * 0.21) * 0.045; w.y += sin(uTime * 1.1 + w.x * 0.4 + w.z * 0.2) * 0.025; } // leaves stir in the wind
     vWorld = w.xyz; vCol = aCol;
     gl_Position = uPV * w;
   }`;
@@ -1806,9 +1853,10 @@ const R = (() => {
   ${TONE}
   /*SHADOW*/
   varying vec4 vCol; varying vec3 vWorld; varying float vMat; varying vec3 vN;
-  uniform vec3 uCam; uniform float uDay; uniform vec3 uFog; uniform float uFogNear; uniform float uFogFar; uniform float uAmbient; uniform float uFogSky; uniform float uCoreGlow;
+  uniform vec3 uCam; uniform float uDay; uniform vec3 uFog; uniform float uFogNear; uniform float uFogFar; uniform float uAmbient; uniform float uFogSky; uniform float uCoreGlow; uniform vec4 uMist;
   uniform vec3 uLights[8]; uniform float uLightR[8]; uniform float uAlpha; uniform vec3 uTint; uniform float uSkyMul;
   uniform vec3 uSun; uniform vec3 uSunCol; uniform vec3 uZenith; uniform float uGrid; uniform float uWave; uniform float uTime; uniform float uSunAmt; uniform float uQuality; uniform vec3 uPlayer; uniform float uBladeShade;
+  ${MIST_GLSL}
   float h21(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
   float vn(vec2 p){ vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f); return mix(mix(h21(i), h21(i + vec2(1.0, 0.0)), f.x), mix(h21(i + vec2(0.0, 1.0)), h21(i + vec2(1.0, 1.0)), f.x), f.y); }
   float hash3(vec3 p){ p = fract(p * vec3(0.1031, 0.1030, 0.0973)); p += dot(p, p.yxz + 33.33); return fract((p.x + p.y) * p.z); }
@@ -1834,7 +1882,7 @@ const R = (() => {
         wn.x = sin(q.x * 1.7 + t * 1.3) * 0.06 + sin(q.x * 3.9 - q.y * 2.3 + t * 2.2) * 0.035 + sin((q.x + q.y) * 7.1 + t * 3.1) * 0.015;
         wn.z = sin(q.y * 1.9 - t * 1.1) * 0.06 + sin(q.y * 4.3 + q.x * 1.7 - t * 2.6) * 0.035 + sin((q.y - q.x) * 6.7 - t * 2.8) * 0.015;
         wn = normalize(wn); } else wn = n;
-      vec3 shallow = brine ? vec3(0.55, 0.62, 0.12) : vec3(0.16, 0.74, 0.74), deep = brine ? vec3(0.22, 0.26, 0.04) : vec3(0.03, 0.2, 0.42);
+      vec3 shallow = brine ? vec3(0.55, 0.62, 0.12) : vec3(0.16, 0.74, 0.74), deep = brine ? vec3(0.22, 0.26, 0.04) : vec3(0.03, 0.2, 0.42); shallow = mix(shallow, vec3(0.3, 0.66, 0.42), vCol.b); deep = mix(deep, vec3(0.05, 0.25, 0.2), vCol.b); // a jungle river is jade, not sea-blue
       vec3 base = mix(shallow, deep, smoothstep(0.0, 0.85, depth)) * (0.35 + 0.65 * uDay);
       vec3 R = reflect(-V, wn); vec3 skyR = mix(uFog, uZenith, clamp(R.y * 1.6, 0.0, 1.0));
       float fres = 0.04 + 0.96 * pow(1.0 - max(dot(V, wn), 0.0), 4.0);
@@ -1959,6 +2007,20 @@ const R = (() => {
         } else if (mat == 7) { // leaves: dapple, leaf-sized light and dark, and an outline broken into leaves instead of the smooth edge of a ball
           col *= 0.9 + 0.2 * vn(vWorld.xz * 2.2 + vWorld.y * 0.7); col *= 0.87 + 0.26 * vn(vec2(vWorld.x * 9.0 + vWorld.y * 5.3, vWorld.z * 9.0 - vWorld.y * 6.1));
           float rim = abs(dot(n, V)); if (rim < 0.45 && dist < 80.0) { float lf = vn(vec2(vWorld.x * 6.0 + vWorld.y * 3.1, vWorld.z * 6.0 - vWorld.y * 4.3)) * 0.6 + vn(vec2(vWorld.z * 11.0 + vWorld.y * 7.0, vWorld.x * 11.0 - vWorld.y * 5.0)) * 0.4; if (lf > 0.3 + rim * 1.4 + smoothstep(45.0, 80.0, dist) * 0.7) discard; }
+        } else if (mat == 29) { // the crowns of the Lost World: leaves as long as your arm, each its own green with the dark between them, so the outline is whole leaves and not a hedge; and from underneath the sun comes through them
+          vec2 q = vWorld.xz * 1.45 + vWorld.y * vec2(0.55, -0.43); vec2 ci = floor(q), cf = fract(q); float f1 = 9.0, f2 = 9.0, idc = 0.0;
+          for (int i = -1; i <= 1; i++) for (int j = -1; j <= 1; j++) { vec2 g = vec2(float(i), float(j)); vec2 o = vec2(hash3(vec3(ci + g, 21.0)), hash3(vec3(ci + g, 22.0))) * 0.8 + 0.1; float d = length(g + o - cf); if (d < f1) { f2 = f1; f1 = d; idc = hash3(vec3(ci + g, 23.0)); } else if (d < f2) f2 = d; }
+          float gap = smoothstep(0.0, 0.2, f2 - f1);
+          col *= (1.0 - 0.2 * (1.0 - gap) * (1.0 - smoothstep(14.0, 44.0, dist))) * (0.84 + 0.32 * idc); // the dark between the leaves is only seen close to col *= mix(vec3(1.06, 1.0, 0.8), vec3(0.92, 1.0, 1.1), hash3(vec3(ci, 24.0)) * 0.6 + idc * 0.4); // some leaves yellower, some bluer
+          float thru = max(-n.y, 0.0) * uSunAmt * uDay; col += vc * vec3(1.0, 1.08, 0.36) * thru * (0.4 + 0.6 * gap) * (0.25 + 0.75 * idc) * 0.8 * skyL;
+          float rim = abs(dot(n, V)); if (rim < 0.5 && dist < 130.0 && (1.0 - gap) * 0.55 + idc * 0.6 > 0.3 + rim * 1.25 + smoothstep(80.0, 130.0, dist) * 0.7) discard;
+        } else if (mat == 30) { // the bark of the great trees: furrows running up the trunk, moss and lichen lying on it in patches
+          vec2 bu = abs(n.x) > abs(n.z) ? vec2(vWorld.z, vWorld.y) : vec2(vWorld.x, vWorld.y);
+          float fur = vn(vec2(bu.x * 6.5, bu.y * 0.5)) * 0.65 + vn(vec2(bu.x * 15.0 + 3.0, bu.y * 1.2)) * 0.35; col *= 0.76 + 0.4 * smoothstep(0.25, 0.75, fur);
+          float ms = vn(vWorld.xz * 0.8 + vWorld.y * 0.31) * 0.6 + vn(vec2(bu.x * 2.6, bu.y * 1.9) + 7.0) * 0.4; col = mix(col, col * vec3(0.55, 1.12, 0.5) + vec3(0.0, 0.03, 0.0), smoothstep(0.52, 0.78, ms) * 0.6);
+        } else if (mat == 31) { // one leaf as big as a door: a soft mottle on it, and the sun coming through it green from behind
+          col *= 0.9 + 0.2 * vn(vec2(vWorld.x * 3.1 + vWorld.y * 1.3, vWorld.z * 3.1 - vWorld.y * 1.1));
+          float back = max(dot(-n, uSun), 0.0) * uSunAmt * uDay; if (back > 0.01) col += vc * vec3(0.95, 1.0, 0.4) * back * 0.6 * skyL * shadowAt(vWorld, -n);
         } else if (mat == 9 || mat == 13) { // tiles and slates: rows up the slope, each row offset half a tile, every tile its own shade, a dark seam between
           float along = abs(n.x) > abs(n.z) ? vWorld.z : vWorld.x; float rows = mat == 9 ? 3.0 : 4.5, tw = mat == 9 ? 2.0 : 2.6;
           float row = floor(vWorld.y * rows + 0.5); float ry = fract(vWorld.y * rows + 0.5);
@@ -2028,6 +2090,7 @@ const R = (() => {
         if (gw > 0.002) col = mix(col, cg, gw);
       }
     }
+    if (uMist.y > 0.001) { float mn = 0.6 + 0.4 * vn(vWorld.xz * 0.05 + vec2(uTime * 0.025, uTime * 0.014)); col = mix(col, vec3(0.8, 0.89, 0.85) * uMist.w, mistAt(vWorld, dist) * mn); } // mist lying on the ground of the Lost World, drifting
     // haze: blue with distance, warm toward the sun
     float f = clamp((dist - uFogNear) / (uFogFar - uFogNear), 0.0, 1.0); f = f * f * (3.0 - 2.0 * f);
     float toward = pow(max(dot(-V, uSun), 0.0), 6.0) * uSunAmt;
@@ -2060,9 +2123,10 @@ const R = (() => {
   ${TONE}
   /*SHADOW*/
   varying vec4 vCol; varying vec3 vWorld; varying vec3 vNorm; varying vec3 vLocal;
-  uniform vec3 uCam; uniform float uDay; uniform vec3 uFog; uniform float uFogNear; uniform float uFogFar; uniform float uAmbient; uniform float uFogSky; uniform float uCoreGlow;
+  uniform vec3 uCam; uniform float uDay; uniform vec3 uFog; uniform float uFogNear; uniform float uFogFar; uniform float uAmbient; uniform float uFogSky; uniform float uCoreGlow; uniform vec4 uMist;
   uniform vec3 uLights[8]; uniform float uLightR[8]; uniform float uAlpha; uniform vec3 uTint; uniform float uSkyMul;
   uniform vec3 uSun; uniform vec3 uSunCol; uniform vec3 uZenith; uniform float uSunAmt; uniform float uOutline; uniform float uFlash;
+  ${MIST_GLSL}
   float hash3(vec3 p){ p = fract(p * vec3(0.1031, 0.1030, 0.0973)); p += dot(p, p.yxz + 33.33); return fract((p.x + p.y) * p.z); }
   
 #define RK uFogSky
@@ -2094,6 +2158,7 @@ const R = (() => {
     vec3 H = normalize(uSun + V); float spec = smoothstep(0.55, 0.75, pow(max(dot(n, H), 0.0), 48.0)) * uSunAmt * uDay * 0.1 * skyL * (1.0 - emis) * sh; col += (vc * 0.5 + uSunCol * 0.5) * spec;
     col = mix(col, vec3(1.0, 0.95, 0.9), uFlash);
     float toward = pow(max(dot(-V, uSun), 0.0), 6.0) * uSunAmt;
+    if (uMist.y > 0.001) col = mix(col, vec3(0.8, 0.89, 0.85) * uMist.w, mistAt(vWorld, dist) * 0.8);
     vec3 haze = mix(skyFog(-V), uSunCol, toward * 0.45); // far things fade into the sky behind them, whatever its colour up there
     col = mix(col * uTint, haze, f);
     gl_FragColor = vec4(tonemap(col), uAlpha);
@@ -2180,7 +2245,7 @@ const R = (() => {
   function initEntityProg() {
     eprog = compile(EVS, EFS);
     for (const n of ['aPos', 'aCol', 'aNorm', 'aBone']) eloc[n] = gl.getAttribLocation(eprog, n);
-    for (const n of ['uPV', 'uModel', 'uBones', 'uOutline', 'uSway', 'uTime', 'uCam', 'uDay', 'uFog', 'uFogNear', 'uFogFar', 'uAmbient', 'uLights', 'uLightR', 'uAlpha', 'uTint', 'uSkyMul', 'uSun', 'uSunCol', 'uZenith', 'uSunAmt', 'uFlash', 'uShadow', 'uLightPV', 'uShadowOn', 'uShadowTexel', 'uFogSky', 'uCoreGlow']) eloc[n] = gl.getUniformLocation(eprog, n);
+    for (const n of ['uPV', 'uModel', 'uBones', 'uOutline', 'uSway', 'uTime', 'uCam', 'uDay', 'uFog', 'uFogNear', 'uFogFar', 'uAmbient', 'uLights', 'uLightR', 'uAlpha', 'uTint', 'uSkyMul', 'uSun', 'uSunCol', 'uZenith', 'uSunAmt', 'uFlash', 'uShadow', 'uLightPV', 'uShadowOn', 'uShadowTexel', 'uFogSky', 'uCoreGlow', 'uMist', 'uHM', 'uHMO']) eloc[n] = gl.getUniformLocation(eprog, n);
   }
   // ---- the meadow: one blade shape drawn tens of thousands of times around you (WebGL2 instancing) ----
   const GVS = `#version 300 es
@@ -2239,7 +2304,7 @@ const R = (() => {
   precision highp float;
   ${TONE}
   /*SHADOW*/
-  in vec3 vC; in vec3 vW; in float vH; out vec4 o;
+  in vec3 vC; in vec3 vW; in float vH; out vec4 o; uniform vec4 uMist;
   uniform vec3 uCam; uniform vec3 uFog; uniform float uFogNear; uniform float uFogFar; uniform vec3 uSun; uniform vec3 uSunCol; uniform float uSunAmt; uniform float uDay; uniform vec3 uTint; uniform vec3 uZenith; uniform float uFogSky;
   
 #define RK uFogSky
@@ -2251,22 +2316,28 @@ const R = (() => {
     float back = pow(max(dot(-V, uSun), 0.0), 3.0) * uSunAmt * vH * sh; // sun through the blades
     float sheen = pow(max(dot(-V, uSun), 0.0), 14.0) * uSunAmt * vH * vH * sh; // the field shines toward the sun
     vec3 col = vC * light + vC * uSunCol * back * 0.5 + uSunCol * sheen * 0.35;
+    if (uMist.y > 0.001) { float mg = 1.0 - vH * 0.22; col = mix(col, vec3(0.8, 0.89, 0.85) * uMist.w, mg * mg * smoothstep(3.0, 30.0, dist) * 0.8 * uMist.y); } // a blade stands on the ground: it is in the mist to its tip
     float f = clamp((dist - uFogNear) / (uFogFar - uFogNear), 0.0, 1.0); f = f * f * (3.0 - 2.0 * f);
     o = vec4(tonemap(mix(col * uTint, skyFog(-V), f)), 1.0);
   }`;
   let grassProg = null, gloc = {}, grassBuf = null, hmTex = null, hmData = null, hmCenter = null, hmT = 0;
+  // the little map of the ground near you. The grass is planted by it, and the mist of the Lost World lies on it, so it is made whether or not there is grass.
+  // It lives on texture unit 2 for the land and the creatures (the grass reads it on unit 0); smoothed between columns for the mist, read texel by texel by the grass
+  function ensureHM() { if (hmTex) return; hmTex = gl.createTexture(); gl.activeTexture(gl.TEXTURE2); gl.bindTexture(gl.TEXTURE_2D, hmTex); hmData = new Uint8Array(128 * 128 * 4);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 128, 128, 0, gl.RGBA, gl.UNSIGNED_BYTE, hmData); gl.activeTexture(gl.TEXTURE0); }
+  function freshHM(world, player) { ensureHM(); const cx = Math.floor(player.x), cz = Math.floor(player.z), now = performance.now(); if (!hmCenter || Math.abs(cx - hmCenter.x) > 6 || Math.abs(cz - hmCenter.z) > 6 || now - hmT > 1500) { refreshHeightmap(world, cx, cz); hmT = now; } }
+  function bindHM(L, on) { if (!L.uHM) return; ensureHM(); gl.activeTexture(gl.TEXTURE2); gl.bindTexture(gl.TEXTURE_2D, hmTex); gl.activeTexture(gl.TEXTURE0); gl.uniform1i(L.uHM, 2); if (on && hmCenter) gl.uniform3f(L.uHMO, hmCenter.ox, hmCenter.oz, 1); else gl.uniform3f(L.uHMO, 0, 0, 0); }
   function initGrass() {
     if (!(typeof WebGL2RenderingContext !== 'undefined' && gl instanceof WebGL2RenderingContext)) return;
     try {
       const mk = (t, src) => { const s = gl.createShader(t); gl.shaderSource(s, src); gl.compileShader(s); if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s)); return s; };
       const p = gl.createProgram(); gl.attachShader(p, mk(gl.VERTEX_SHADER, GVS)); gl.attachShader(p, mk(gl.FRAGMENT_SHADER, GFS.replace('/*SHADOW*/', SHADOW_GLSL(true)))); gl.linkProgram(p); if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(p));
       grassProg = p; gloc.aBlade = gl.getAttribLocation(p, 'aBlade');
-      for (const n of ['uPV', 'uCam', 'uOrigin', 'uSpacing', 'uSide', 'uRIn', 'uROut', 'uScale', 'uWidth', 'uHM', 'uHMO', 'uTime', 'uFog', 'uFogNear', 'uFogFar', 'uSun', 'uSunCol', 'uSunAmt', 'uDay', 'uTint', 'uShadow', 'uLightPV', 'uShadowOn', 'uShadowTexel', 'uZenith', 'uFogSky']) gloc[n] = gl.getUniformLocation(p, n);
+      for (const n of ['uPV', 'uCam', 'uOrigin', 'uSpacing', 'uSide', 'uRIn', 'uROut', 'uScale', 'uWidth', 'uHM', 'uHMO', 'uTime', 'uFog', 'uFogNear', 'uFogFar', 'uSun', 'uSunCol', 'uSunAmt', 'uDay', 'uTint', 'uShadow', 'uLightPV', 'uShadowOn', 'uShadowTexel', 'uZenith', 'uFogSky', 'uMist']) gloc[n] = gl.getUniformLocation(p, n);
       // a blade: two quads tapering to a point (5 vertices, a strip)
       grassBuf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, grassBuf); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-0.5, 0, 0.5, 0, -0.42, 0.5, 0.42, 0.5, 0, 1]), gl.STATIC_DRAW);
-      hmTex = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, hmTex); hmData = new Uint8Array(128 * 128 * 4);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 128, 128, 0, gl.RGBA, gl.UNSIGNED_BYTE, hmData);
+      ensureHM();
     } catch (e) { console.warn('grass off:', e.message); grassProg = null; }
   }
   // villages keep a short even carpet: refreshed with the heightmap
@@ -2293,7 +2364,7 @@ const R = (() => {
       if (!ch) { d[k] = d[k + 1] = d[k + 2] = 0; d[k + 3] = 0; continue; }
       const lx = x - Math.floor(x / CH) * CH, lz = z - Math.floor(z / CH) * CH;
       // down through the canopy, bushes and flowers to the ground itself
-      let y = ch.tops[lx * CH + lz]; let id = ch.blocks[(lx * CH + lz) * WH + y]; while (y > 0 && (id === B.AIR || isLeaf(id) || id === B.BERRY || (BLOCKS[id].partial && !BLOCKS[id].solid))) { y--; id = ch.blocks[(lx * CH + lz) * WH + y]; }
+      let y = ch.tops[lx * CH + lz]; let id = ch.blocks[(lx * CH + lz) * WH + y]; while (y > 0 && (id === B.AIR || isLeaf(id) || id === B.BERRY || id === B.JLOG || (BLOCKS[id].partial && !BLOCKS[id].solid))) { y--; id = ch.blocks[(lx * CH + lz) * WH + y]; }
       const above = ch.blocks[(lx * CH + lz) * WH + y + 1];
       const grass = id === B.GRASS && (above === B.AIR || (BLOCKS[above].partial && !BLOCKS[above].solid)); // blades grow through flowers and pebbles, not through a bush or a boulder
       const ti = (lx * CH + lz) * 3;
@@ -2301,16 +2372,15 @@ const R = (() => {
       // Blades read their height from the four texels around them, and only from soil ones: a wall or a trunk is not ground they should climb
       d[k] = grass ? Math.max(1, Math.min(255, ch.tint[ti] * 255)) : 0; d[k + 1] = grass ? Math.max(1, Math.min(255, ch.tint[ti + 1] * 255)) : 0; d[k + 2] = grass ? Math.max(1, Math.min(253, Math.round(grassZone(world, x, z, world.colInfo(x, z).biome) * (1 - 0.97 * (ch.wear ? ch.wear[ti / 3] / 255 : 0)) * 253))) : SOIL.has(id) ? 255 : 0; d[k + 3] = Math.min(255, y + 1);
     }
-    gl.bindTexture(gl.TEXTURE_2D, hmTex); gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, 128, 128, gl.RGBA, gl.UNSIGNED_BYTE, d);
+    gl.activeTexture(gl.TEXTURE2); gl.bindTexture(gl.TEXTURE_2D, hmTex); gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, 128, 128, gl.RGBA, gl.UNSIGNED_BYTE, d); gl.activeTexture(gl.TEXTURE0);
     hmCenter = { x: cx, z: cz, ox, oz };
   }
   function drawGrass(world, player, pv, cam) {
     if (!grassProg || !state.skyPass) return;
-    const cx = Math.floor(player.x), cz = Math.floor(player.z); const now = performance.now();
-    if (!hmCenter || Math.abs(cx - hmCenter.x) > 6 || Math.abs(cz - hmCenter.z) > 6 || now - hmT > 1500) { refreshHeightmap(world, cx, cz); hmT = now; }
+    const now = performance.now(); freshHM(world, player);
     gl.useProgram(grassProg);
     gl.uniformMatrix4fv(gloc.uPV, false, pv); gl.uniform3f(gloc.uCam, cam.x, cam.y, cam.z); gl.uniform1f(gloc.uTime, now / 1000);
-    gl.uniform3fv(gloc.uFog, state.fogColor); gl.uniform3fv(gloc.uZenith, state.zenith || state.fogColor); gl.uniform1f(gloc.uFogSky, state.fogSky ? (state.rangeKind || 1) : 0); gl.uniform1f(gloc.uFogNear, state.fogNear); gl.uniform1f(gloc.uFogFar, state.fogFar); gl.uniform3fv(gloc.uSun, state.sun); gl.uniform3fv(gloc.uSunCol, state.sunCol); gl.uniform1f(gloc.uSunAmt, state.sunAmt); gl.uniform1f(gloc.uDay, state.dayLight); gl.uniform3fv(gloc.uTint, state.tint);
+    gl.uniform4fv(gloc.uMist, state.mist || MIST0); gl.uniform3fv(gloc.uFog, state.fogColor); gl.uniform3fv(gloc.uZenith, state.zenith || state.fogColor); gl.uniform1f(gloc.uFogSky, state.fogSky ? (state.rangeKind || 1) : 0); gl.uniform1f(gloc.uFogNear, state.fogNear); gl.uniform1f(gloc.uFogFar, state.fogFar); gl.uniform3fv(gloc.uSun, state.sun); gl.uniform3fv(gloc.uSunCol, state.sunCol); gl.uniform1f(gloc.uSunAmt, state.sunAmt); gl.uniform1f(gloc.uDay, state.dayLight); gl.uniform3fv(gloc.uTint, state.tint);
     gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, hmTex); gl.uniform1i(gloc.uHM, 0); gl.uniform2f(gloc.uHMO, hmCenter.ox, hmCenter.oz); bindShadow(gloc, 1);
     gl.bindBuffer(gl.ARRAY_BUFFER, grassBuf); gl.enableVertexAttribArray(gloc.aBlade); gl.vertexAttribPointer(gloc.aBlade, 2, gl.FLOAT, false, 0, 0);
     const q = state.grassQuality || 1; // 1 full, 0.7 lighter
@@ -2424,7 +2494,7 @@ const R = (() => {
     const p = gl.createProgram();
     const gl2 = typeof WebGL2RenderingContext !== 'undefined' && gl instanceof WebGL2RenderingContext;
     fs = fs.replace('/*SHADOW*/', SHADOW_GLSL(gl2));
-    if (gl2) { vs = '#version 300 es\n#define attribute in\n#define varying out\n' + vs; fs = '#version 300 es\n#define varying in\nout highp vec4 fragOut;\n#define gl_FragColor fragOut\n' + fs; }
+    if (gl2) { vs = '#version 300 es\n#define attribute in\n#define varying out\n' + vs; fs = '#version 300 es\n#define varying in\n#define texture2D texture\nout highp vec4 fragOut;\n#define gl_FragColor fragOut\n' + fs; }
     else { if (fs.indexOf('dFdx') >= 0) { gl.getExtension('OES_standard_derivatives'); fs = '#extension GL_OES_standard_derivatives : enable\n' + fs; } }
     const mk = (t, src) => { const s = gl.createShader(t); gl.shaderSource(s, src); gl.compileShader(s); if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s)); return s; };
     gl.attachShader(p, mk(gl.VERTEX_SHADER, vs)); gl.attachShader(p, mk(gl.FRAGMENT_SHADER, fs)); gl.linkProgram(p);
@@ -2439,7 +2509,7 @@ const R = (() => {
     if (!gl) { gl = cv.getContext('webgl', opts) || cv.getContext('experimental-webgl', opts); if (!gl) throw new Error('WebGL is not available'); if (!gl.getExtension('OES_element_index_uint')) throw new Error('32-bit indices unsupported'); }
     prog = compile(VS, FS);
     for (const n of ['aPos', 'aCol', 'aMat', 'aNorm']) loc[n] = gl.getAttribLocation(prog, n);
-    for (const n of ['uPV', 'uModel', 'uTime', 'uWave', 'uCam', 'uDay', 'uFog', 'uFogNear', 'uFogFar', 'uAmbient', 'uLights', 'uLightR', 'uAlpha', 'uTint', 'uSkyMul', 'uSun', 'uSunCol', 'uZenith', 'uGrid', 'uSunAmt', 'uQuality', 'uPlayer', 'uBladeShade', 'uShadow', 'uLightPV', 'uShadowOn', 'uShadowTexel', 'uFogSky', 'uCoreGlow']) loc[n] = gl.getUniformLocation(prog, n);
+    for (const n of ['uPV', 'uModel', 'uTime', 'uWave', 'uCam', 'uDay', 'uFog', 'uFogNear', 'uFogFar', 'uAmbient', 'uLights', 'uLightR', 'uAlpha', 'uTint', 'uSkyMul', 'uSun', 'uSunCol', 'uZenith', 'uGrid', 'uSunAmt', 'uQuality', 'uPlayer', 'uBladeShade', 'uShadow', 'uLightPV', 'uShadowOn', 'uShadowTexel', 'uFogSky', 'uCoreGlow', 'uMist', 'uHM', 'uHMO']) loc[n] = gl.getUniformLocation(prog, n);
     skyProg = compile(SVS, SFS); sloc.aPos = gl.getAttribLocation(skyProg, 'aPos'); for (const n of ['uKind', 'uFwd', 'uRight', 'uUp', 'uTan', 'uAspect', 'uHorizon', 'uZenith', 'uSun', 'uSunCol', 'uSunAmt', 'uTime', 'uClouds', 'uNight']) sloc[n] = gl.getUniformLocation(skyProg, n);
     initGrass(); initEntityProg(); initShadows();
     skyBuf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, skyBuf); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
@@ -2562,9 +2632,18 @@ const R = (() => {
       if (atl && atlIn(x, y, z)) return 0.92; // under the dome of Atlantis it is light, however much sea lies over it
       const c = chunkAt(x, z); if (!c) return 1;
       const top = c.topFor((x + 16) & 15, y, (z + 16) & 15);
-      if (y >= top) return 1;
-      return Math.max(0, 1 - (top - y) * 0.11);
+      if (y >= top) return jc(x, y, z, 1);
+      return jc(x, y, z, Math.max(0, 1 - (top - y) * 0.11));
     };
+    // the Lost World: how each great tree of this chunk stands (the same numbers in every chunk that draws a part of it), and the shade the crowns throw on the forest floor
+    const jGeom = (t) => { const T = t.t, size = T.size, giant = size === 'giant', big = size === 'big', off = giant ? 1 : 0.5, hs = (k) => U.hash3(ox + t.x, k, oz + t.z, 733), lean = size === 'fern' ? 1.2 : size === 'banana' ? 0.5 : giant ? 1.7 : big ? 1.3 : 1.0;
+      return { T, size, giant, big, H: T.height, X: t.x + off, Z: t.z + off, gy: t.h + 1, hs, lx0: (hs(4) - 0.5) * lean, lz0: (hs(5) - 0.5) * lean, cr: giant ? 5.6 : big ? 4.3 : 3.2, reach: giant ? 7.4 : big ? 5.2 : 3.4, canopy: size !== 'fern' && size !== 'banana' }; };
+    let jcov = null, jcovH = null;
+    if (chunk.jtrees) { jcov = new Float32Array(324); jcovH = new Float32Array(324).fill(999);
+      for (const t of chunk.jtrees) { const g = jGeom(t); if (!g.canopy) continue; const R = g.reach + g.cr * 0.8, px = g.X + g.lx0, pz = g.Z + g.lz0, yb = g.gy + g.H * 0.74;
+        for (let x = Math.max(-1, Math.floor(px - R)); x <= Math.min(16, Math.ceil(px + R)); x++) for (let z = Math.max(-1, Math.floor(pz - R)); z <= Math.min(16, Math.ceil(pz + R)); z++) { const d = Math.hypot(x + 0.5 - px, z + 0.5 - pz); if (d >= R) continue; const i = (x + 1) * 18 + z + 1, v = Math.min(1, (R - d) / (R * 0.45)); if (v > jcov[i]) jcov[i] = v; if (yb < jcovH[i]) jcovH[i] = yb; } } }
+    const jc = (x, y, z, s) => { if (!jcov || x < -1 || x > 16 || z < -1 || z > 16) return s; const i = (x + 1) * 18 + z + 1; return y < jcovH[i] ? s * (1 - 0.3 * jcov[i]) : s; };
+    const lostC = !!(world.lost && Math.hypot(((ox + 8 - world.lost.x) % WORLD_W + WORLD_W * 1.5) % WORLD_W - WORLD_W / 2, ((oz + 8 - world.lost.z) % WORLD_W + WORLD_W * 1.5) % WORLD_W - WORLD_W / 2) < world.lost.inner + 14); // this chunk lies on the plateau
     const op = scratchOpaque, wa = scratchWater, gs = scratchGlass, gr = scratchGrass; op.nv = op.ni = 0; wa.nv = wa.ni = 0; gs.nv = gs.ni = 0; gr.nv = gr.ni = 0;
     const blades = grassProg ? 0 : (isMobile ? 10 : 16);
     // smooth land: every column's exposed soil top, then a height for each corner shared by four columns.
@@ -2600,8 +2679,21 @@ const R = (() => {
     for (let lx = 0; lx < CH; lx++) for (let lz = 0; lz < CH; lz++) { const i0 = (lx + 1) * 18 + (lz + 1); if (surfWet[i0] >= 0 || surfTop[i0] < 0) continue; let wl = -1, wx0 = 0, wz0 = 0;
       for (let a = -1; a <= 1; a++) for (let b = -1; b <= 1; b++) { const w = surfWet[(lx + a + 1) * 18 + (lz + b + 1)]; if (w > wl) { wl = w; wx0 = lx + a; wz0 = lz + b; } } if (wl < 0) continue;
       const hs = [CHt(lx, lz + 1), CHt(lx + 1, lz + 1), CHt(lx + 1, lz), CHt(lx, lz)]; { const lowest = Math.min(hs[0], hs[1], hs[2], hs[3]); if (hs.some((v) => v < 0) || lowest >= wl - 0.1 || lowest < wl - 1.6) continue; } // only a bank that dips just under the surface: where the land falls away below the water there is nothing for the water to lie on, and a sheet of it would hang in the air
-      const br = get(wx0, wl - 1, wz0) === B.BRINE ? 1 : 0; const dC = (cx, cz) => { let sum = 0; for (const [a, b] of [[-1, -1], [0, -1], [-1, 0], [0, 0]]) { const j = (cx + a + 1) * 18 + (cz + b + 1); if (surfWet[j] >= 0) sum += Math.min(10, Math.max(1, surfWet[j] - 1 - surfTop[j])); } return [Math.min(1, sum / 36), br, 0]; };
+      const br = get(wx0, wl - 1, wz0) === B.BRINE ? 1 : 0; const dC = (cx, cz) => { let sum = 0; for (const [a, b] of [[-1, -1], [0, -1], [-1, 0], [0, 0]]) { const j = (cx + a + 1) * 18 + (cz + b + 1); if (surfWet[j] >= 0) sum += Math.min(10, Math.max(1, surfWet[j] - 1 - surfTop[j])); } return [Math.min(1, sum / 36), br, lostC && wl >= LOST_WATER - 2 ? 1 : 0]; };
       const sk = skyAt(lx, wl, lz); wa.quad([[lx, wl, lz + 1], [lx + 1, wl, lz + 1], [lx + 1, wl, lz], [lx, wl, lz]], [dC(lx, lz + 1), dC(lx + 1, lz + 1), dC(lx + 1, lz), dC(lx, lz)], [sk, sk, sk, sk], false); }
+    // a block that does not fill its square: a log standing free (it is drawn round), or walling whose outside corner is turned. What is under it and over it must still be drawn
+    const loose = (x, y, z, b) => { if (!ROUNDY.has(b) && !isTrunk(b) && b !== B.BASALT) return false; let p = false, first = false; for (let k = 0; k < 4; k++) { const q = get(x + (k === 0 ? 0 : k === 1 ? 1 : k === 2 ? 0 : -1), y, z + (k === 0 ? 1 : k === 2 ? -1 : 0)), s = !isOpaque(q) && q !== B.GLASS && q !== B.SELGLASS && q !== B.DOOR; if (k === 0) first = s; if (s && p) return true; p = s; } return p && first; };
+    // where smoothed land lies against something built at its own level (a platform's paving, the bed of a railway, the plinth of a house) the two tops do not always meet:
+    // the land's edge is carried up or down by whatever lies past the corner, the built block's top is square at its own height, and neither draws the side between them
+    // because each thinks the other covers it. That left a slot you could see the sky through. So the slot is closed here: below the built top with the built block's own side, above it with a bank of earth
+    for (let lx = 0; lx < CH; lx++) for (let lz = 0; lz < CH; lz++) { const y = ST(lx, lz); if (y < 0 || isOpaque(get(lx, y + 1, lz))) continue; const Y1 = y + 1;
+      for (const [dx, dz, e0, e1] of [[1, 0, [lx + 1, lz], [lx + 1, lz + 1]], [-1, 0, [lx, lz + 1], [lx, lz]], [0, 1, [lx + 1, lz + 1], [lx, lz + 1]], [0, -1, [lx, lz], [lx + 1, lz]]]) { const nx = lx + dx, nz = lz + dz, nb = get(nx, y, nz); if (!isOpaque(nb) || ST(nx, nz) === y) continue;
+        const c0 = CHt(e0[0], e0[1]), c1 = CHt(e1[0], e1[1]), h0 = c0 >= 0 ? c0 : Y1, h1 = c1 >= 0 ? c1 : Y1, lo = h0 < Y1 - 0.004 || h1 < Y1 - 0.004, hi = (h0 > Y1 + 0.004 || h1 > Y1 + 0.004) && !isOpaque(get(nx, y + 1, nz)); if (!lo && !hi) continue;
+        const sk = skyAt(lx, y + 1, lz), sks = [sk, sk, sk, sk], pal = world.preset.paletteRgb && world.preset.paletteRgb[nb], sc = pal ? pal[1] : BLOCKS[nb].side, cb = [sc[0] * 0.82, sc[1] * 0.82, sc[2] * 0.82], dc = BLOCKS[B.DIRT].side, cd = [dc[0] * 0.86, dc[1] * 0.86, dc[2] * 0.86];
+        const xk = (h0 - Y1) * (h1 - Y1) < 0 ? (Y1 - h0) / (h1 - h0) : -1, X = xk >= 0 ? [e0[0] + (e1[0] - e0[0]) * xk, Y1, e0[1] + (e1[1] - e0[1]) * xk] : null, A = [e0[0], h0, e0[1]], Bq = [e1[0], h1, e1[1]], A1 = [e0[0], Y1, e0[1]], B1 = [e1[0], Y1, e1[1]], nIn = [-dx, 0, -dz], nOut = [dx, 0, dz];
+        if (lo) { op.curMat = MAT_OF[nb] || 0; const q = X ? (h0 < Y1 ? [A, X, X, A1] : [X, Bq, B1, X]) : [A, Bq, B1, A1]; op.quad(q, [cb, cb, cb, cb], sks, false, [nIn, nIn, nIn, nIn]); }
+        if (hi) { op.curMat = 4; const q = X ? (h0 > Y1 ? [A1, X, X, A] : [X, B1, Bq, X]) : [A1, B1, Bq, A]; op.quad(q, [cd, cd, cd, cd], sks, false, [nOut, nOut, nOut, nOut]); }
+        op.curMat = 0; } }
     // and the daylight reaching each corner, blended the same way, so shade under trees falls off softly and the column a trunk stands on is not a black square
     for (let cx = 0; cx <= 16; cx++) for (let cz = 0; cz <= 16; cz++) { let sum = 0, n = 0; for (const [a, bb] of [[-1, -1], [0, -1], [-1, 0], [0, 0]]) { const x = cx + a, z = cz + bb; const t = ST(x, z); if (t < 0 || isTrunk(get(x, t + 1, z))) continue; sum += skyAt(x, t + 1, z); n++; } cornerSky[cx * 17 + cz] = n ? sum / n : 0.6; }
     // where a prop standing at (lx, y, lz) meets the ground: the smoothed surface under it, or the block top when the ground there is not smoothed
@@ -2798,7 +2890,97 @@ const R = (() => {
         orb(hx, F + 10.75, hz, 0.55, [0.8, 0.97, 1.0]); lathe(op, hx, hz, [[0.16, F + 11.2], [0.05, F + 12.6], [0.0, F + 13.0]], GOLD, { N: 6 });
         torus(hx, hz, 0.62, F + 3.2, 0.05, GLOW, { emis: true, mat: 26, sky: 1, N: 12 }); torus(hx, hz, 0.56, F + 6.4, 0.05, GLOW, { emis: true, mat: 26, sky: 1, N: 12 }); }
     };
+    // ---- the Lost World: every tree is drawn whole, from the chunk's own list of the trees that stand in it or lean over it. Only the trunk is blocks.
+    // Four storeys: plants with leaves like paddles, tree ferns with fronds as long as a house is wide, the canopy on buttressed trunks,
+    // and giants that stand clear of all of it, hung with lianas. Each chunk draws the pieces whose middle lies in it ----
+    const drawJungle = (t) => {
+      const g = jGeom(t), { T, size, giant, big, H, X, Z, gy, hs, lx0, lz0, cr, reach } = g, far = lod || window.__lowGeo, TAU = 6.2832;
+      const inC = (x, z) => x >= 0 && x < 16 && z >= 0 && z < 16, mix3 = (a, b, k) => [a[0] + (b[0] - a[0]) * k, a[1] + (b[1] - a[1]) * k, a[2] + (b[2] - a[2]) * k];
+      const USK = 0.8; // the daylight that reaches what grows under the crowns
+      const floorAt = (x, z) => { const bx = Math.floor(x), bz = Math.floor(z); for (let d = 3; d >= -4; d--) if (SOIL.has(get(bx, gy - 1 + d, bz))) return gy + d; return gy; }; // where the ground really stands, a few steps from the trunk
+      const gv = 0.86 + hs(2) * 0.3, hue = (hs(3) - 0.5) * 0.2, LEAF = [0.15 * gv * (1 + hue), 0.41 * gv, 0.14 * gv * (1 - hue)], LEAFU = [LEAF[0] * 0.62, LEAF[1] * 0.7, LEAF[2] * 0.8], BIGL = [0.3 * gv, 0.6 * gv, 0.2 * gv], RIB = [0.5 * gv, 0.74 * gv, 0.3 * gv];
+      if (size === 'banana') { // a plant of soft leaves like paddles, each as long as you are tall, and now and then a hanging flower as red as a parrot
+        { const ab = get(t.x, gy, t.z); if ((ab !== B.AIR && !(BLOCKS[ab].partial && !BLOCKS[ab].solid)) || !SOIL.has(get(t.x, t.h, t.z))) return; } // built over, or dug away
+        const sk = USK, st = [X + lx0 * 0.5, gy + H * 0.5, Z + lz0 * 0.5];
+        if (inC(X, Z)) op.tube([[X, gy - 0.25, Z], [X + lx0 * 0.25, gy + H * 0.26, Z + lz0 * 0.25], st], [0.27, 0.21, 0.13], [0.33, 0.47, 0.19], { sky: sk, segs: far ? 4 : 6, cap0: 'none', cap1: 'none' });
+        const NB = far ? 4 : 6 + (hs(9) > 0.5 ? 1 : 0), a0 = hs(6) * TAU; op.curMat = 31;
+        for (let k = 0; k < NB; k++) { const a = a0 + k / NB * TAU + (hs(10 + k) - 0.5) * 0.5, ux = Math.cos(a), uz = Math.sin(a), L = 2.3 + hs(20 + k) * 1.5 + H * 0.12, up = 0.75 + hs(30 + k) * 0.5, y0 = gy + H * (0.3 + 0.24 * hs(40 + k)), wd = 0.9 + hs(50 + k) * 0.35;
+          const c = (tt) => [X + lx0 * 0.3 + ux * L * (0.3 * tt + 0.6 * tt * tt), y0 + L * up * (1.15 * tt - 0.98 * tt * tt), Z + lz0 * 0.3 + uz * L * (0.3 * tt + 0.6 * tt * tt)]; if (!inC(c(0.6)[0], c(0.6)[2])) continue;
+          const tts = far ? [0, 0.3, 0.68, 1] : [0, 0.16, 0.36, 0.58, 0.8, 1], wws = far ? [0.05, 0.5, 0.5, 0.05] : [0.05, 0.3, 0.54, 0.58, 0.44, 0.05];
+          op.ribbon(tts.map(c), wws.map(w => w * wd), k % 2 ? [0.3 * gv, 0.64 * gv, 0.2 * gv] : [0.36 * gv, 0.68 * gv, 0.24 * gv], { sky: sk, droop: 0.22, tip: [0.42 * gv, 0.66 * gv, 0.2 * gv], rib: [0.62 * gv, 0.8 * gv, 0.36 * gv] }); }
+        op.curMat = 0;
+        if (!far && hs(60) < 0.45 && inC(X, Z)) { const a = hs(61) * TAU, ux = Math.cos(a), uz = Math.sin(a), red = hs(62) < 0.6 ? [0.9, 0.16, 0.1] : [0.96, 0.42, 0.62], tipc = [1.0, 0.78, 0.2]; let p = [st[0] + ux * 0.5, st[1] + 0.45, st[2] + uz * 0.5];
+          op.tube([st, p, [p[0] + ux * 0.25, p[1] - 0.5, p[2] + uz * 0.25]], [0.05, 0.045, 0.04], [0.4, 0.5, 0.2], { sky: sk, segs: 4, cap0: 'none', cap1: 'none' });
+          for (let i = 0; i < 4; i++) { const q = [p[0] + ux * 0.25, p[1] - 0.5 - i * 0.24, p[2] + uz * 0.25], sd = i % 2 ? 1 : -1, r = 0.2 - i * 0.025; op.blob(q[0] - uz * sd * 0.17 - r, q[1] - 0.11, q[2] + ux * sd * 0.17 - r, q[0] - uz * sd * 0.17 + r, q[1] + 0.11, q[2] + ux * sd * 0.17 + r, 0.9, red, { sky: sk, n: 2, under: tipc, split: 0.2, soft: 0.6 }); } }
+        return; }
+      if (get(t.x, t.h + 1, t.z) !== B.JLOG) return; // built over
+      const BARK2 = [0.25, 0.2, 0.14];
+      if (size === 'fern') { // a tree fern: a dark fibrous stem, and a crown of fronds that rise and then hang
+        const top = [X + lx0, gy + H + 0.2, Z + lz0], sk = USK;
+        if (inC(X, Z)) { op.curMat = 30; op.tube([[X, gy - 0.3, Z], [X + lx0 * 0.4, gy + H * 0.5, Z + lz0 * 0.4], top], [0.33, 0.25, 0.2], BARK2, { sky: sk, segs: far ? 5 : 7, cap0: 'none', cap1: 'round' }); op.curMat = 0; }
+        const NF = far ? 6 : 10, a0 = hs(6) * TAU; op.curMat = 31;
+        for (let k = 0; k < NF; k++) { const a = a0 + k / NF * TAU + (hs(10 + k) - 0.5) * 0.3, ux = Math.cos(a), uz = Math.sin(a), L = 3.0 + hs(20 + k) * 1.7, lift = 0.9 + hs(30 + k) * 0.8; if (!inC(top[0] + ux * L * 0.5, top[2] + uz * L * 0.5)) continue;
+          const n = far ? 3 : 6, spine = [], ws = []; for (let i = 0; i <= n; i++) { const tt = i / n; spine.push([top[0] + ux * L * tt, top[1] + Math.sin(tt * 2.3) * lift - tt * tt * 1.7, top[2] + uz * L * tt]); ws.push((0.06 + 0.5 * Math.pow(Math.sin(Math.min(1, tt * 1.05) * Math.PI), 0.7)) * (far ? 1 : i % 2 ? 1.12 : 0.86)); }
+          op.ribbon(spine, ws, k % 2 ? [LEAF[0] * 1.5, LEAF[1] * 1.45, LEAF[2] * 1.4] : BIGL, { sky: sk, droop: 0.3, tip: [LEAF[0] * 1.3, LEAF[1] * 1.25, LEAF[2] * 1.2], rib: RIB }); }
+        op.curMat = 0; return; }
+      // ---- a tree of the canopy ----
+      const grey = hs(1), BARK = giant || grey > 0.7 ? [0.47 + grey * 0.06, 0.42 + grey * 0.05, 0.34] : [0.36 + grey * 0.08, 0.28 + grey * 0.05, 0.19], MOSS = [0.2, 0.34, 0.13], r0 = giant ? 1.12 : big ? 0.64 : 0.43, crownY = gy + H, topP = [X + lx0, crownY, Z + lz0];
+      const trunkAt = (u) => [X + lx0 * u * u, gy - 0.3 + (H + 0.3) * u, Z + lz0 * u * u], mossH = 2.2 + hs(13) * 3.5 + (giant ? 2 : 0);
+      const barkShade = (p) => { const k = U.clamp(1 - (p[1] - gy) / mossH, 0, 1); return k > 0 ? mix3(BARK, MOSS, k * (0.45 + 0.4 * U.hash3(Math.floor(p[0] * 2), Math.floor(p[1]), Math.floor(p[2] * 2), 91))) : null; };
+      if (inC(X, Z)) { op.curMat = 30; const us = far ? [0, 0.12, 0.5, 1] : [0, 0.06, 0.2, 0.42, 0.66, 0.86, 1], fl = far ? [1.3, 1.04, 0.9, 0.64] : giant ? [1.32, 1.1, 1.0, 0.94, 0.86, 0.76, 0.64] : [1.5, 1.14, 1.02, 0.94, 0.84, 0.72, 0.6];
+        op.tube(us.map(trunkAt), fl.map(f => r0 * f), BARK, { sky: 0.86, segs: far ? 6 : giant ? 12 : big ? 10 : 8, cap0: 'none', cap1: 'none', shade: barkShade });
+        if (giant || (big && !far)) { const NB = giant ? 6 : 4, hb = giant ? 4.4 : 2.4, rb = giant ? 3.6 : 1.9, b0 = hs(7) * TAU; // buttresses: thin fins of root standing out from the foot of the trunk, as high as a door on the giants
+          for (let k = 0; k < NB; k++) { const a = b0 + k / NB * TAU + (hs(40 + k) - 0.5) * 0.4, ux = Math.cos(a), uz = Math.sin(a), rr = rb * (0.75 + hs(46 + k) * 0.5), hk = hb * (0.8 + hs(52 + k) * 0.4), ge = floorAt(X + ux * (r0 + rr), Z + uz * (r0 + rr)) - gy; /* the root runs out to the ground where the ground is, up a bank or down one */
+            { const pts = [], rad = [], NP = far ? 3 : 5; for (let i = 0; i <= NP; i++) { const f = i / NP, d = r0 * 0.5 + (rr + r0 * 0.5) * f, topY = gy + hk * Math.pow(1 - f, 2.3) + 0.12 + ge * f, botY = gy - 0.35 + ge * f; pts.push([X + ux * d, (topY + botY) / 2, Z + uz * d]); rad.push([0.2 - 0.1 * f, (topY - botY) / 2]); }
+              op.tube(pts, rad, BARK, { sky: 0.86, segs: far ? 4 : 6, cap0: 'none', cap1: 'round', shade: barkShade }); } } }
+        op.curMat = 0; }
+      // limbs, and the crown they carry: one wide flat mass of leaf at the end of each, one over the top. From below it is a roof
+      const NL = giant ? 7 : big ? 5 : 4, l0 = hs(8) * TAU, tm = cr * 1.08, masses = [[topP[0], crownY + cr * 0.36, topP[2], tm]], limbs = [];
+      for (let k = 0; k < NL; k++) { const a = l0 + k / NL * TAU + (hs(50 + k) - 0.5) * 0.5, ux = Math.cos(a), uz = Math.sin(a), u = 0.74 + 0.2 * hs(56 + k), s = trunkAt(u), rl = reach * (0.75 + hs(62 + k) * 0.4), e = [s[0] + ux * rl, s[1] + rl * 0.4 + 0.8, s[2] + uz * rl];
+        const m = [s[0] + ux * rl * 0.5, s[1] + rl * 0.1, s[2] + uz * rl * 0.5]; limbs.push({ s, m, e, ux, uz });
+        if (inC(m[0], m[2])) { op.curMat = 30; op.tube([s, m, e], [r0 * 0.44, r0 * 0.32, r0 * 0.15], BARK, { sky: 0.9, segs: far ? 4 : 6, cap0: 'none', cap1: 'none' }); op.curMat = 0; }
+        masses.push([e[0], e[1] + cr * 0.12, e[2], cr * (0.84 + hs(68 + k) * 0.3)]); }
+      const bloom = (giant || big) && hs(14) < 0.09 ? (hs(15) < 0.4 ? [0.95, 0.52, 0.72] : hs(15) < 0.75 ? [0.98, 0.8, 0.26] : [0.72, 0.5, 0.92]) : null; // now and then a tree is in flower over the whole of its crown
+      op.curMat = 29;
+      masses.forEach((M, i) => { const [mx, my, mz, r] = M, ry = r * 0.43; if (inC(mx, mz)) { const lt = 0.9 + ((i * 37) % 7) / 7 * 0.26, c = [LEAF[0] * lt * 1.1, LEAF[1] * lt * 1.1, LEAF[2] * lt];
+          op.blob(mx - r, my - ry, mz - r, mx + r, my + ry, mz + r, 1, c, { sky: 1, n: far ? (giant || big ? 3 : 2) : r > 4.4 ? 4 : 3, under: LEAFU, split: -0.05, soft: 0.7 }); }
+        const NT = far ? (bloom ? 1 : 0) : 2; for (let k = 0; k < NT; k++) { const a = hs(80 + i * 4 + k) * TAU, tr = r * (0.3 + hs(120 + i * 4 + k) * 0.14), tx = mx + Math.cos(a) * r * 0.7, tz = mz + Math.sin(a) * r * 0.7, ty = my + ry * (0.45 + 0.3 * hs(160 + i * 4 + k)); if (!inC(tx, tz)) continue;
+          op.blob(tx - tr, ty - tr * 0.6, tz - tr, tx + tr, ty + tr * 0.6, tz + tr, 1, bloom || [LEAF[0] * 1.3, LEAF[1] * 1.24, LEAF[2] * 1.05], { sky: 1, n: 2, under: bloom ? [bloom[0] * 0.7, bloom[1] * 0.6, bloom[2] * 0.7] : LEAFU, split: -0.1, soft: 0.8 }); } });
+      op.curMat = 0;
+      if (far) return;
+      // great single leaves hang from the edge of every mass
+      op.curMat = 31;
+      masses.forEach((M, i) => { const [mx, my, mz, r] = M; for (let k = 0; k < 4; k++) { const a = hs(200 + i * 4 + k) * TAU, ux = Math.cos(a), uz = Math.sin(a), bx = mx + ux * r * 0.9, bz = mz + uz * r * 0.9, by = my - r * 0.2; if (!inC(bx, bz)) continue;
+          const Ln = 1.7 + hs(240 + i * 4 + k) * 1.2, wd = Ln * 0.27, c = (tt) => [bx + ux * Ln * tt * 0.7, by - tt * tt * Ln * 0.85 + tt * 0.2, bz + uz * Ln * tt * 0.7];
+          op.ribbon([c(0), c(0.3), c(0.66), c(1)], [0.05, wd, wd * 0.85, 0.04], k % 2 ? BIGL : [BIGL[0] * 0.8, BIGL[1] * 0.86, BIGL[2] * 0.8], { sky: 1, droop: 0.25, tip: [BIGL[0] * 1.1, BIGL[1], BIGL[2] * 0.7], rib: RIB }); } });
+      op.curMat = 0;
+      // lianas: some hang straight from the limbs, some are slung in a long loop from one limb to the next
+      const VINE = [0.2, 0.31, 0.13];
+      if (giant || big) { const NV = giant ? 7 : 3; for (let k = 0; k < NV; k++) { const Lb = limbs[k % NL], f = 0.35 + hs(300 + k) * 0.6, vx = Lb.s[0] + (Lb.e[0] - Lb.s[0]) * f, vz = Lb.s[2] + (Lb.e[2] - Lb.s[2]) * f, top = Lb.s[1] + (Lb.e[1] - Lb.s[1]) * f; if (!inC(vx, vz)) continue;
+          const len = Math.min(top - gy - 0.8, 5 + hs(320 + k) * (giant ? 15 : 8)), sw = (hs(330 + k) - 0.5) * 1.6;
+          op.tube([[vx, top, vz], [vx + sw * 0.5, top - len * 0.4, vz - sw * 0.3], [vx + sw, top - len * 0.8, vz + sw * 0.4], [vx + sw * 0.8, top - len, vz + sw * 0.2]], [0.06, 0.055, 0.05, 0.035], VINE, { sky: 0.9, segs: 4, cap0: 'none', cap1: 'round' }); }
+        for (let k = 0; k < (giant ? 3 : 1); k++) { const A = limbs[(k * 2) % NL], Bq = limbs[(k * 2 + 1) % NL], p0 = [A.s[0] + (A.e[0] - A.s[0]) * 0.8, A.s[1] + (A.e[1] - A.s[1]) * 0.8, A.s[2] + (A.e[2] - A.s[2]) * 0.8], p1 = [Bq.s[0] + (Bq.e[0] - Bq.s[0]) * 0.75, Bq.s[1] + (Bq.e[1] - Bq.s[1]) * 0.75, Bq.s[2] + (Bq.e[2] - Bq.s[2]) * 0.75]; if (!inC((p0[0] + p1[0]) / 2, (p0[2] + p1[2]) / 2)) continue;
+          const sag = 2.5 + hs(340 + k) * (giant ? 5 : 2.5), pts = []; for (let i = 0; i <= 6; i++) { const tt = i / 6; pts.push([p0[0] + (p1[0] - p0[0]) * tt, p0[1] + (p1[1] - p0[1]) * tt - sag * 4 * tt * (1 - tt), p0[2] + (p1[2] - p0[2]) * tt]); }
+          op.tube(pts, pts.map(() => 0.06), VINE, { sky: 0.9, segs: 4, cap0: 'none', cap1: 'none' }); } }
+      // and in the forks of the limbs sit plants that never touch the ground: a rosette of stiff leaves, with a red heart
+      if (giant || big) for (let k = 0; k < (giant ? 3 : 2); k++) { const Lb = limbs[(k * 3 + 1) % NL], f = 0.12 + hs(350 + k) * 0.3, ex = Lb.s[0] + (Lb.m[0] - Lb.s[0]) * f * 2, ey = Lb.s[1] + (Lb.m[1] - Lb.s[1]) * f * 2 + r0 * 0.4, ez = Lb.s[2] + (Lb.m[2] - Lb.s[2]) * f * 2; if (!inC(ex, ez)) continue;
+        const rs = 0.75 + hs(360 + k) * 0.5, a0 = hs(370 + k) * TAU, hot = hs(380 + k) < 0.6; op.curMat = 31;
+        for (let q = 0; q < 7; q++) { const a = a0 + q / 7 * TAU, ux = Math.cos(a), uz = Math.sin(a), c = (tt) => [ex + ux * rs * tt, ey + rs * (0.75 * tt - 0.62 * tt * tt), ez + uz * rs * tt];
+          op.ribbon([c(0.05), c(0.5), c(1)], [0.11, 0.14, 0.02], hot && q % 2 ? [0.62, 0.3, 0.2] : [0.34 * gv, 0.62 * gv, 0.26 * gv], { sky: 0.95, droop: 0.2, tip: hot ? [0.9, 0.25, 0.15] : [0.5, 0.7, 0.3] }); }
+        op.curMat = 0; if (hot) op.blob(ex - 0.13, ey + 0.05, ez - 0.13, ex + 0.13, ey + 0.5, ez + 0.13, 1, [0.95, 0.2, 0.14], { sky: 0.95, n: 2, under: [1.0, 0.7, 0.2], split: 0.2, soft: 0.6 }); }
+    };
     if (atl) drawAtlantis();
+    if (chunk.jtrees) for (const t of chunk.jtrees) drawJungle(t);
+    if (lostC) for (let lx = 0; lx < CH; lx++) for (let lz = 0; lz < CH; lz++) { // on the still reaches of the rivers float round leaves as wide as a table, their rims turned up like trays, lying in drifts; here and there a flower on the water
+      const wx = ox + lx, wz = oz + lz; if (U.hash3(wx, 61, wz, 977) > 0.012 + 0.13 * Math.pow(U.vnoise2(wx, wz, 9, WORLD_W, world.seed + 613), 2.4) || get(lx, LOST_WATER, lz) !== B.WATER || get(lx, LOST_WATER + 1, lz) !== B.AIR) continue;
+      let open = true; for (let a = -1; a <= 1 && open; a++) for (let b = -1; b <= 1; b++) if (get(lx + a, LOST_WATER, lz + b) !== B.WATER) { open = false; break; } if (!open) continue;
+      const R = 0.48 + U.hash3(wx, 62, wz, 977) * 0.5, px = lx + 0.5 + (U.hash3(wx, 63, wz, 977) - 0.5) * 0.5, pz = lz + 0.5 + (U.hash3(wx, 64, wz, 977) - 0.5) * 0.5, py = LOST_WATER + 0.965, a0 = U.hash3(wx, 65, wz, 977) * 6.283, N = lod ? 7 : 12, sk = skyAt(lx, LOST_WATER + 1, lz), gv = 0.88 + U.hash3(wx, 66, wz, 977) * 0.24;
+      const c0 = op.nv; op.vert(px, py, pz, 0, 1, 0, 0.34 * gv, 0.64 * gv, 0.26 * gv, sk, false);
+      for (let i = 0; i <= N; i++) { const a = a0 + 0.2 + i / N * 5.883, ca = Math.cos(a), sa = Math.sin(a); op.vert(px + ca * R, py, pz + sa * R, 0, 1, 0, 0.24 * gv, 0.52 * gv, 0.22 * gv, sk, false); op.vert(px + ca * R, py, pz + sa * R, ca * 0.8, 0.6, sa * 0.8, 0.3 * gv, 0.5 * gv, 0.22 * gv, sk, false); op.vert(px + ca * R * 1.05, py + 0.1, pz + sa * R * 1.05, ca * 0.8, 0.6, sa * 0.8, 0.56, 0.36, 0.3, sk, false); }
+      for (let i = 0; i < N; i++) { const q = c0 + 1 + i * 3; op.tri(c0, q, q + 3); op.tri(q + 1, q + 2, q + 5); op.tri(q + 1, q + 5, q + 4); }
+      if (!lod && U.hash3(wx, 67, wz, 977) < 0.2) { const fx = px + Math.cos(a0 + 3.3) * R * 0.5, fz = pz + Math.sin(a0 + 3.3) * R * 0.5, pink = U.hash3(wx, 68, wz, 977) < 0.5; // a flower: a cup of petals, a gold heart
+        for (let q = 0; q < 7; q++) { const a = q / 7 * 6.283, ux = Math.cos(a), uz = Math.sin(a), c = (tt) => [fx + ux * 0.3 * tt, py + 0.03 + 0.26 * (1.3 * tt - 0.8 * tt * tt), fz + uz * 0.3 * tt]; op.ribbon([c(0.05), c(0.55), c(1)], [0.06, 0.1, 0.01], pink ? [0.98, 0.72, 0.84] : [0.98, 0.97, 0.94], { sky: sk, droop: 0.3, tip: pink ? [0.95, 0.45, 0.68] : [1, 0.9, 0.95] }); }
+        op.blob(fx - 0.08, py + 0.04, fz - 0.08, fx + 0.08, py + 0.2, fz + 0.08, 1, [1.0, 0.8, 0.2], { sky: sk, n: 2 }); } }
     const blocks = chunk.blocks;
     const col0 = [0, 0, 0];
     for (let lx = 0; lx < CH; lx++) for (let lz = 0; lz < CH; lz++) {
@@ -2811,7 +2993,7 @@ const R = (() => {
         const wx = ox + lx, wz = oz + lz;
         const vr = SOIL.has(id) ? 0.98 + U.hash3(wx, y, wz, 5) * 0.03 : 0.92 + U.hash3(wx, y, wz, 5) * 0.12; // per-block variation (the ground keeps almost none: its shader paints it smoothly)
         if (id === B.STATUE) continue; // drawn as an entity
-        if (id === B.ATLAN || id === B.AGLASS || id === B.ALIGHT) continue; // Atlantis is never blocks: drawn whole, above
+        if (id === B.ATLAN || id === B.AGLASS || id === B.ALIGHT || id === B.JLOG) continue; // Atlantis is never blocks, nor is a trunk in the Lost World: drawn whole, above
         if ((id === B.SAIL || id === B.WEAVE || id === B.BEAM) && reefHere()) { let mine = null, skip = false; // part of a reef house or its sail: drawn whole, by the peak
           for (const t of reefTents()) { const ax = Math.abs(lx - t.x), az = Math.abs(lz - t.z);
             if (id === B.SAIL) { if (ax <= t.rr && az <= t.rr && y <= t.y && y >= t.y - t.rr) { skip = true; if (ax === 0 && az === 0 && y === t.y) mine = t; } }
@@ -3175,6 +3357,48 @@ const R = (() => {
           for (let i = 0; i < rings; i++) for (let j = 0; j < segs; j++) { const a = base + i * (segs + 1) + j, b = a + 1, c = a + segs + 1, d = c + 1; gs.tri(a, c, b); gs.tri(b, c, d); }
           continue;
         }
+        if (id === B.GATE) { // a town gate. The wall's own stuff stands as a tall pier each side of the opening; this mark sits at the middle of the head, and the whole head is drawn from it:
+          // on a palisade one great log across the posts with a little thatched roof riding on it, a shield hung under, a lantern at each end; on a stone or iron wall an arch from pier to pier with a battlement over it
+          let gx = null, d0 = 0, d1 = 0; const PIER = (b) => b === B.LOG || b === B.MASONRY || b === B.STONE || b === B.IRONWALL || b === B.VOIDWALL || b === B.REGOLITH || b === B.BASALT || b === B.PLANKS;
+          for (const A of ['x', 'z']) { let a = 0, b = 0; for (let d = 1; d <= 7 && !a; d++) if (PIER(A === 'x' ? get(lx - d, y, lz) : get(lx, y, lz - d))) a = d; for (let d = 1; d <= 7 && !b; d++) if (PIER(A === 'x' ? get(lx + d, y, lz) : get(lx, y, lz + d))) b = d; if (a && b && Math.abs(a - b) <= 1 && (!gx || a + b < d0 + d1)) { gx = A; d0 = a; d1 = b; } }
+          if (!gx) continue;
+          const pid = gx === 'x' ? get(lx - d0, y, lz) : get(lx, y, lz - d0), timber = pid === B.LOG || pid === B.PLANKS, al = gx === 'x' ? [1, 0] : [0, 1], ac = gx === 'x' ? [0, 1] : [1, 0], mx = lx + 0.5, mz = lz + 0.5, sk = skyAt(lx, y + 2, lz);
+          const P = (a, c, yy) => [mx + al[0] * a + ac[0] * c, yy, mz + al[1] * a + ac[1] * c]; // along the gate, across it (the way you walk through), up
+          const BX = (a0, a1, c0, c1, y0, y1, rnd, col, o) => { const p = P(a0, c0, y0), q = P(a1, c1, y1); op.blob(Math.min(p[0], q[0]), y0, Math.min(p[2], q[2]), Math.max(p[0], q[0]), y1, Math.max(p[2], q[2]), rnd, col, o); };
+          const A0 = -d0, A1 = d1, AM = (A0 + A1) / 2, Y = y + 1, iron = [0.17, 0.18, 0.21], hv = U.hash3(wx, 7, wz, 411), HER = [[0.78, 0.2, 0.2], [0.2, 0.42, 0.75], [0.92, 0.72, 0.2], [0.24, 0.6, 0.36], [0.6, 0.3, 0.7]][Math.min(4, Math.floor(hv * 5))];
+          if (timber) { const WOOD = [0.5, 0.36, 0.2], DARK = [0.36, 0.25, 0.14], TH = BLOCKS[B.THATCH].top, ROPE = [0.74, 0.64, 0.44];
+            op.curMat = 6;
+            op.tube([P(A0 - 1.05, 0, Y + 0.3), P(AM, 0, Y + 0.36), P(A1 + 1.05, 0, Y + 0.3)], [0.34, 0.36, 0.34], WOOD, { sky: sk, segs: 9, cap0: 'flat', cap1: 'flat' }); // the head: one great log laid across the posts, its ends standing out past them
+            op.tube([P(A0 + 0.3, 0, Y - 0.95), P(A1 - 0.3, 0, Y - 0.95)], [0.17, 0.17], DARK, { sky: sk, segs: 7, cap0: 'none', cap1: 'none' }); // the tie under it
+            for (const [a, sg] of [[A0, 1], [A1, -1]]) op.tube([P(a + sg * 0.3, 0, Y - 2.25), P(a + sg * 1.2, 0, Y - 0.98)], [0.12, 0.12], DARK, { sky: sk, segs: 6, cap0: 'none', cap1: 'none' }); // a brace in each corner
+            op.tube([P(AM, 0, Y - 0.95), P(AM, 0, Y + 0.1)], [0.11, 0.11], DARK, { sky: sk, segs: 6, cap0: 'none', cap1: 'none' });
+            op.curMat = 0; for (const a of [A0, A1]) op.tube([P(a - 0.16, 0, Y + 0.31), P(a + 0.16, 0, Y + 0.31)], [0.385, 0.385], ROPE, { sky: sk, segs: 9, cap0: 'flat', cap1: 'flat' }); // lashed down with rope where it sits
+            const e0 = A0 - 1.55, e1 = A1 + 1.55, ry = Y + 1.5, ey = Y + 0.66, hw = 1.25; // the roof: a little pitched roof of thatch riding on the head, wide enough to keep the rain off whoever stands in the gate
+            op.curMat = 6; for (const a of [A0 - 0.7, AM, A1 + 0.7]) { op.tube([P(a, 0, Y + 0.6), P(a, 0, ry - 0.06)], [0.075, 0.075], DARK, { sky: sk, segs: 5, cap0: 'none', cap1: 'none' }); for (const sg of [-1, 1]) op.tube([P(a, 0, ry - 0.1), P(a, sg * (hw - 0.1), ey - 0.06)], [0.06, 0.06], DARK, { sky: sk, segs: 5, cap0: 'none', cap1: 'none' }); }
+            op.curMat = 12; for (const sg of [-1, 1]) op.plate([P(e0, 0, ry), P(e1, 0, ry), P(e1 + 0.12, sg * hw, ey), P(e0 - 0.12, sg * hw, ey)], 0.17, [TH[0] * 0.98, TH[1] * 0.96, TH[2] * 0.9], { sky: sk, edge: [TH[0] * 0.7, TH[1] * 0.66, TH[2] * 0.55] });
+            op.tube([P(e0 - 0.06, 0, ry + 0.06), P(e1 + 0.06, 0, ry + 0.06)], [0.18, 0.18], [TH[0] * 0.82, TH[1] * 0.78, TH[2] * 0.66], { sky: sk, segs: 7, cap0: 'round', cap1: 'round' });
+            op.curMat = 0;
+            const sy = Y - 1.72; BX(AM - 0.43, AM + 0.43, -0.075, 0.075, sy - 0.5, sy + 0.46, 0.8, HER, { sky: sk, n: 3, tap: [0.5, 1.0] }); // the shield of the place, hung under the tie on two chains
+            for (const sg of [-1, 1]) { const b = P(AM, sg * 0.09, sy + 0.02); op.ball(b[0], b[1], b[2], 0.13, [0.95, 0.9, 0.76], { sky: sk, n: 2 }); op.tube([P(AM + sg * 0.3, 0, Y - 1.1), P(AM + sg * 0.3, 0, sy + 0.38)], [0.016, 0.016], iron, { sky: sk, segs: 4, cap0: 'none', cap1: 'none' }); }
+            for (const a of [A0 - 0.9, A1 + 0.9]) { const t = P(a, 0, Y); op.tube([t, [t[0], Y - 0.44, t[2]]], [0.018, 0.018], iron, { sky: sk, segs: 4, cap0: 'none', cap1: 'none' }); // a lantern hangs from each end of the head
+              op.blob(t[0] - 0.17, Y - 0.5, t[2] - 0.17, t[0] + 0.17, Y - 0.42, t[2] + 0.17, 0.6, iron, { sky: sk, n: 2 }); op.blob(t[0] - 0.13, Y - 0.8, t[2] - 0.13, t[0] + 0.13, Y - 0.48, t[2] + 0.13, 0.75, [1.0, 0.84, 0.46], { emis: true, sky: 1, n: 2 }); op.blob(t[0] - 0.1, Y - 0.86, t[2] - 0.1, t[0] + 0.1, Y - 0.79, t[2] + 0.1, 0.6, iron, { sky: sk, n: 2 }); }
+          } else { const pal = world.preset.paletteRgb && world.preset.paletteRgb[pid], STN = pal ? pal[0] : BLOCKS[pid].top, SD = pal ? pal[1] : BLOCKS[pid].side, MT = MAT_OF[pid] || 14;
+            const s0 = A0 + 0.5, s1 = A1 - 0.5, span = s1 - s0, yS = Y - 2.05, rise = 1.3, yT = Y + 0.34, hd = 0.5, N = lod ? 6 : 12, arc = (i) => yS + rise * Math.pow(Math.sin(Math.PI * i / N), 0.75);
+            op.curMat = MT; // the head of the gate: a wall carried on an arch from pier to pier
+            for (let i = 0; i < N; i++) { const a = s0 + span * i / N, b = s0 + span * (i + 1) / N, ya = arc(i), yb = arc(i + 1), sh = 0.9 + 0.1 * Math.sin(i * 1.7);
+              for (const sg of [-1, 1]) op.quad([P(a, sg * hd, ya), P(b, sg * hd, yb), P(b, sg * hd, yT), P(a, sg * hd, yT)], [SD, SD, SD, SD].map(c => [c[0] * sh, c[1] * sh, c[2] * sh]), [sk, sk, sk, sk], false);
+              const u = [SD[0] * 0.72, SD[1] * 0.72, SD[2] * 0.76]; op.quad([P(a, -hd, ya), P(b, -hd, yb), P(b, hd, yb), P(a, hd, ya)], [u, u, u, u], [sk * 0.8, sk * 0.8, sk * 0.8, sk * 0.8], false); }
+            op.quad([P(s0, -hd, yT), P(s1, -hd, yT), P(s1, hd, yT), P(s0, hd, yT)], [STN, STN, STN, STN], [sk, sk, sk, sk], false);
+            for (let i = 0; i <= N; i += lod ? 2 : 1) { const a = s0 + span * i / N, ya = arc(i); if (i % 2 === 0) BX(a - span / N * 0.48, a + span / N * 0.48, -hd - 0.05, hd + 0.05, ya - 0.06, ya + 0.34, 0.3, [STN[0] * 1.06, STN[1] * 1.06, STN[2] * 1.04], { sky: sk, n: 2 }); } // the ring of the arch: every other stone stands proud
+            for (const a of [A0, A1]) BX(a - 0.62, a + 0.62, -0.62, 0.62, Y - 0.08, Y + 0.44, 0.25, STN, { sky: sk, n: 2 }); // a cap stone on each pier
+            for (let a = s0 + 0.35; a < s1 - 0.1; a += 1.0) BX(a, a + 0.55, -hd, hd, yT - 0.05, yT + 0.52, 0.3, STN, { sky: sk, n: 2 }); // the battlement
+            op.curMat = 0;
+            for (const [a, sg] of [[A0, -1], [A1, 1]]) { const f = P(a, 0, Y + 0.4), top = Y + 2.5; op.tube([f, [f[0], top, f[2]]], [0.05, 0.035], iron, { sky: sk, segs: 5, cap0: 'none', cap1: 'round' }); // a pennant on each pier
+              op.plate([[f[0], top - 0.08, f[2]], [f[0] + al[0] * sg * 1.0 + ac[0] * 0.12, top - 0.34, f[2] + al[1] * sg * 1.0 + ac[1] * 0.12], [f[0], top - 0.62, f[2]]], 0.03, HER, { sky: sk }); }
+            if (pid === B.IRONWALL || pid === B.VOIDWALL) for (let a = s0 + 0.3; a < s1 - 0.1; a += 0.45) { const i = (a - s0) / span * N, ya = yS + rise * Math.pow(Math.sin(Math.PI * i / N), 0.75), q = P(a, 0, ya); op.tube([[q[0], ya + 0.15, q[2]], [q[0], ya - 0.3, q[2]], [q[0], ya - 0.52, q[2]]], [0.05, 0.05, 0.006], iron, { sky: sk, segs: 5, cap0: 'none', cap1: 'none' }); } // an iron gate drawn up into the head, its teeth showing
+          }
+          op.curMat = 0; continue;
+        }
         if (id === B.PALISADE) { // a palisade: two stout posts per block, pointed where the wall ends above
           const sk = skyAt(lx, y + 1, lz); const isP = (b) => b === B.PALISADE;
           const ax = (isP(get(lx + 1, y, lz)) || isP(get(lx - 1, y, lz))) ? 'x' : (isP(get(lx, y, lz + 1)) || isP(get(lx, y, lz - 1))) ? 'z' : 'x';
@@ -3451,11 +3675,31 @@ const R = (() => {
           continue;
         }
         if (id === B.FERN) { // six fronds arching out from a crown, each a notched leaf
-          const sk = skyAt(lx, y + 1, lz); const g = [0.25, 0.55, 0.21], g2 = [0.36, 0.7, 0.28]; const gy = gnd(lx, y, lz);
+          const fc = chunkAt(lx, lz), jung = !!(fc && fc.biome && fc.biome[(((lx + 16) & 15) * CH) + ((lz + 16) & 15)] === BIOME.LOSTWORLD); // in the Lost World the same plant stands waist high, with leaves as broad as a door
+          if (jung) { // three plants share the floor of the Lost World: a fern that stands to your waist, a plant with leaves like shields held out on stalks, and a rosette with a spike of flowers as bright as paint
+            const v = U.hash3(wx, y, wz, 79), sk = skyAt(lx, y + 1, lz), gy = gnd(lx, y, lz), px = lx + 0.5, pz = lz + 0.5, a0 = U.hash3(wx, y, wz, 74) * 6.283, lo = lod || window.__lowGeo, gv = 0.84 + U.hash3(wx, y, wz, 72) * 0.32;
+            if (v < 0.5) { const FS0 = 2.3 + U.hash3(wx, y, wz, 71) * 1.1, NFR = lo ? 2 : 5, n = lo ? 2 : 4; op.curMat = 31;
+              for (let k = 0; k < NFR; k++) { const a = a0 + k / NFR * 6.283, ux = Math.cos(a), uz = Math.sin(a), L = (0.5 + U.hash3(wx, y, wz, 75 + k) * 0.25) * FS0, spine = [], ws = [];
+                for (let i = 0; i <= n; i++) { const t = i / n; spine.push([px + ux * t * L, gy + 0.08 + Math.sin(t * 2.4) * 0.42 * L, pz + uz * t * L]); ws.push(0.02 + 0.17 * FS0 * Math.sin(Math.min(1, t * 1.04) * 3.14) * (lo ? 1 : i % 2 ? 1.25 : 0.78)); }
+                op.ribbon(spine, ws, k % 2 ? [0.15 * gv, 0.44 * gv, 0.17 * gv] : [0.27 * gv, 0.6 * gv, 0.21 * gv], { sky: sk, droop: 0.3, rib: [0.4 * gv, 0.66 * gv, 0.28 * gv] }); } }
+            else if (v < 0.83) { const NE = lo ? 2 : 3 + (U.hash3(wx, y, wz, 81) > 0.6 ? 1 : 0), stalk = [0.36 * gv, 0.5 * gv, 0.22 * gv];
+              for (let k = 0; k < NE; k++) { const a = a0 + k / NE * 6.283 + (U.hash3(wx, y, wz, 82 + k) - 0.5) * 0.7, ux = Math.cos(a), uz = Math.sin(a), hgt = 0.8 + U.hash3(wx, y, wz, 86 + k) * 0.95, out = 0.3 + U.hash3(wx, y, wz, 90 + k) * 0.45, sz = 0.6 + U.hash3(wx, y, wz, 94 + k) * 0.5, tilt = 0.5 + U.hash3(wx, y, wz, 98 + k) * 0.5;
+                const top = [px + ux * out, gy + hgt, pz + uz * out], dx = ux * Math.cos(tilt), dy = -Math.sin(tilt), dz = uz * Math.cos(tilt);
+                if (!lo) { op.curMat = 0; op.tube([[px + ux * 0.05, gy - 0.05, pz + uz * 0.05], [px + ux * out * 0.45, gy + hgt * 0.62, pz + uz * out * 0.45], top], [0.04, 0.032, 0.026], stalk, { sky: sk, segs: 3, cap0: 'none', cap1: 'none' }); }
+                op.curMat = 31; const c = (al) => [top[0] + dx * al * sz, top[1] + dy * al * sz + 0.1 * sz * Math.sin(Math.min(1, Math.max(0, al)) * 3.14), top[2] + dz * al * sz];
+                op.ribbon(lo ? [c(-0.16), c(0.3), c(1.05)] : [c(-0.18), c(0.05), c(0.34), c(0.7), c(1.08)], (lo ? [0.3, 0.46, 0.02] : [0.26, 0.44, 0.47, 0.32, 0.02]).map(w => w * sz), k % 2 ? [0.2 * gv, 0.5 * gv, 0.2 * gv] : [0.26 * gv, 0.58 * gv, 0.22 * gv], { sky: sk, droop: 0.16, rib: [0.46 * gv, 0.7 * gv, 0.32 * gv], tip: [0.3 * gv, 0.56 * gv, 0.2 * gv] }); } }
+            else { const NS = lo ? 3 : 6, hk = U.hash3(wx, y, wz, 83), hot = hk < 0.36 ? [0.92, 0.18, 0.12] : hk < 0.6 ? [0.98, 0.56, 0.12] : hk < 0.8 ? [0.93, 0.3, 0.62] : [0.98, 0.86, 0.22], sh = 0.85 + U.hash3(wx, y, wz, 84) * 0.5; op.curMat = 31;
+              for (let k = 0; k < NS; k++) { const a = a0 + k / NS * 6.283, ux = Math.cos(a), uz = Math.sin(a), L = 0.7 + U.hash3(wx, y, wz, 100 + k) * 0.45, c = (tt) => [px + ux * L * tt, gy + L * (0.95 * tt - 0.8 * tt * tt), pz + uz * L * tt];
+                op.ribbon([c(0.04), c(0.5), c(1)], [0.1, 0.13, 0.02], [0.24 * gv, 0.52 * gv, 0.24 * gv], { sky: sk, droop: 0.2, tip: [0.34 * gv, 0.6 * gv, 0.22 * gv] }); }
+              op.curMat = 0; if (!lo) op.tube([[px, gy, pz], [px + 0.03, gy + sh, pz - 0.02]], [0.035, 0.028], [0.36 * gv, 0.5 * gv, 0.22 * gv], { sky: sk, segs: 3, cap0: 'none', cap1: 'none' });
+              for (let i = 0, NBl = lo ? 1 : 3; i < NBl; i++) { const fy = gy + sh * (lo ? 0.9 : 0.62 + i * 0.2), r = lo ? 0.2 : 0.17 - i * 0.03, ax = i % 2 ? 0.07 : -0.07; op.blob(px + ax - r, fy - r * 0.8, pz - ax - r, px + ax + r, fy + r * 0.8, pz - ax + r, 1, hot, { sky: sk, n: 2, under: [hot[0] * 0.7, hot[1] * 0.6, hot[2] * 0.6], split: 0.0, soft: 0.6 }); } }
+            op.curMat = 0; continue; }
+          const FS0 = jung ? 2.3 + U.hash3(wx, y, wz, 71) * 1.1 : 1, FW = jung ? FS0 * 1.9 : 1, NFR = jung && (lod || window.__lowGeo) ? 2 : jung ? 4 : 6;
+          const sk = skyAt(lx, y + 1, lz); const g = jung ? [0.15, 0.44, 0.17] : [0.25, 0.55, 0.21], g2 = jung ? [0.27, 0.6, 0.21] : [0.36, 0.7, 0.28]; const gy = gnd(lx, y, lz);
           const a0 = U.hash3(wx, y, wz, 74) * 6.283; const cx = lx + 0.5, cz = lz + 0.5;
-          for (let k = 0; k < 6; k++) { const a = a0 + k / 6 * 6.283; const ux = Math.cos(a), uz = Math.sin(a); const L = 0.5 + U.hash3(wx, y, wz, 75 + k) * 0.25; const pts = [];
-            const n = 5; for (let i = 0; i <= n; i++) { const t = i / n; const w = 0.09 * Math.sin(t * 3.14) * (i % 2 ? 1.3 : 0.7); const h = 0.08 + Math.sin(t * 2.4) * 0.42 * L; pts.push([cx + ux * t * L - uz * w, gy + h, cz + uz * t * L + ux * w]); }
-            for (let i = n - 1; i >= 1; i--) { const t = i / n; const w = 0.09 * Math.sin(t * 3.14) * (i % 2 ? 1.3 : 0.7); const h = 0.08 + Math.sin(t * 2.4) * 0.42 * L; pts.push([cx + ux * t * L + uz * w, gy + h, cz + uz * t * L - ux * w]); }
+          for (let k = 0; k < NFR; k++) { const a = a0 + k / NFR * 6.283; const ux = Math.cos(a), uz = Math.sin(a); const L = (0.5 + U.hash3(wx, y, wz, 75 + k) * 0.25) * FS0; const pts = [];
+            const n = jung ? 3 : 5; for (let i = 0; i <= n; i++) { const t = i / n; const w = 0.09 * FW * Math.sin(t * 3.14) * (i % 2 ? 1.3 : 0.7); const h = 0.08 + Math.sin(t * 2.4) * 0.42 * L; pts.push([cx + ux * t * L - uz * w, gy + h, cz + uz * t * L + ux * w]); }
+            for (let i = n - 1; i >= 1; i--) { const t = i / n; const w = 0.09 * FW * Math.sin(t * 3.14) * (i % 2 ? 1.3 : 0.7); const h = 0.08 + Math.sin(t * 2.4) * 0.42 * L; pts.push([cx + ux * t * L + uz * w, gy + h, cz + uz * t * L - ux * w]); }
             op.plate(pts, 0.012, k % 2 ? g : g2, { sky: sk, edge: g }); }
           continue;
         }
@@ -3546,7 +3790,7 @@ const R = (() => {
           if (isWater) { if (nid !== B.AIR && nid !== B.TORCH && nid !== B.GLASS && nid !== B.SELGLASS && !(BLOCKS[nid].partial && !BLOCKS[nid].solid)) continue; if (atl && nid === B.AIR && y >= atl.y && Math.hypot(lx + 0.5 - atl.x, lz + 0.5 - atl.z) < (y >= SEA ? 6.2 : 3.4)) continue; /* the falls of Atlantis are drawn as one column of falling water, not as the sides of blocks; and where the sea goes in at the top there is a whirlpool, not a flat sheet */ }
           else if (isGlass) { if (nid === id || isOpaque(nid)) continue; }
           else if (id === B.LAVA) { if (nid !== B.AIR && nid !== B.TORCH && nid !== B.WATER) continue; }
-          else if (isOpaque(nid)) { if (!(f === 2 && isTrunk(nid) && SOIL.has(id))) continue; }
+          else if (isOpaque(nid)) { if (!(f === 2 && isTrunk(nid) && SOIL.has(id)) && !((f === 2 || f === 3) && loose(nx, ny, nz, nid))) continue; } // what stands on this face may be a round post or a wall with its corner turned: then the face shows past it, and leaving it out left a chink of sky at the foot of every such corner
           else if (isLeaf(id) && isLeaf(nid)) continue;
           // colour
           let c;
@@ -3599,9 +3843,9 @@ const R = (() => {
           }
           const pat = PATTERNS[id]; const pf = pat ? ((f === 2 || f === 3) ? (pat.top || pat.all) : (pat.side || pat.all)) : null;
           if (isWater) { // the depth under each corner, blended over the four columns that share it, so shallows shade into the deep without steps
-            const dAt = (x, z) => { if (get(x, y, z) !== id) return 0; let d = 0; while (d < 10 && get(x, y - d - 1, z) === id) d++; return d + 1; }; const br = id === B.BRINE ? 1 : 0;
-            if (f === 2) for (let i = 0; i < 4; i++) { const v = F.v[i]; const cx = lx + v[0], cz = lz + v[2]; let sum = 0; for (const [a, b] of [[-1, -1], [0, -1], [-1, 0], [0, 0]]) sum += dAt(cx + a, cz + b); cols[i] = [Math.min(1, sum / 36), br, 0]; }
-            else { const dc = [Math.min(1, dAt(lx, lz) / 9), br, 0]; for (let i = 0; i < 4; i++) cols[i] = dc; }
+            const dAt = (x, z) => { if (get(x, y, z) !== id) return 0; let d = 0; while (d < 10 && get(x, y - d - 1, z) === id) d++; return d + 1; }; const br = id === B.BRINE ? 1 : 0, jr = lostC && y >= LOST_WATER - 3 ? 1 : 0;
+            if (f === 2) for (let i = 0; i < 4; i++) { const v = F.v[i]; const cx = lx + v[0], cz = lz + v[2]; let sum = 0; for (const [a, b] of [[-1, -1], [0, -1], [-1, 0], [0, 0]]) sum += dAt(cx + a, cz + b); cols[i] = [Math.min(1, sum / 36), br, jr]; }
+            else { const dc = [Math.min(1, dAt(lx, lz) / 9), br, jr]; for (let i = 0; i < 4; i++) cols[i] = dc; }
           }
           const nrms = sloped ? F.v.map(v => cornerN(lx + v[0], lz + v[2])) : null;
           if (sloped) { let rk = 0; for (let i = 0; i < 4; i++) { const cxx = lx + F.v[i][0], czz = lz + F.v[i][2]; const k = (cxx * 17 + czz) * 6; if (cornerCol[k] < 0) continue; skys[i] = cornerSky[cxx * 17 + czz]; let kr = U.clamp((0.76 - nrms[i][1]) / 0.18, 0, 1); kr = kr * kr * (3 - 2 * kr); rk += kr; { const tf = cornerTurf[cxx * 17 + czz] * (1 - kr), lt = (op.curMat === 1 || op.curMat >= 22) ? 1 - tf : (op.curMat >= 2 && op.curMat <= 5 ? tf : 0), q = 1 - 0.5 * lt; const nn = nrms[i]; nrms[i] = [nn[0] * q, nn[1] * q, nn[2] * q]; } const sh = shade * aos[i]; cols[i] = [(cornerCol[k] * (1 - kr) + cornerCol[k + 3] * kr) * sh, (cornerCol[k + 1] * (1 - kr) + cornerCol[k + 4] * kr) * sh, (cornerCol[k + 2] * (1 - kr) + cornerCol[k + 5] * kr) * sh]; } }
@@ -3657,7 +3901,7 @@ const R = (() => {
   function setEntityUniforms(pv, cam, lightsL, lightsR) {
     gl.useProgram(eprog);
     gl.uniformMatrix4fv(eloc.uPV, false, pv); gl.uniform1f(eloc.uTime, performance.now() / 1000);
-    gl.uniform3f(eloc.uCam, cam.x, cam.y, cam.z); gl.uniform1f(eloc.uDay, state.dayLight); gl.uniform3fv(eloc.uFog, state.fogColor); gl.uniform1f(eloc.uFogSky, state.fogSky ? (state.rangeKind || 1) : 0); gl.uniform1f(eloc.uCoreGlow, state.coreGlow ? 1 : 0);
+    gl.uniform4fv(eloc.uMist, state.mist || MIST0); bindHM(eloc, state.mist && state.mist[1] > 0); gl.uniform3f(eloc.uCam, cam.x, cam.y, cam.z); gl.uniform1f(eloc.uDay, state.dayLight); gl.uniform3fv(eloc.uFog, state.fogColor); gl.uniform1f(eloc.uFogSky, state.fogSky ? (state.rangeKind || 1) : 0); gl.uniform1f(eloc.uCoreGlow, state.coreGlow ? 1 : 0);
     gl.uniform1f(eloc.uFogNear, state.fogNear); gl.uniform1f(eloc.uFogFar, state.fogFar); gl.uniform1f(eloc.uAmbient, state.ambient); gl.uniform3fv(eloc.uTint, state.tint);
     gl.uniform3fv(eloc.uSun, state.sun || [0, 1, 0]); gl.uniform3fv(eloc.uSunCol, state.sunCol || [1, 1, 1]); gl.uniform3fv(eloc.uZenith, state.zenith || state.fogColor); gl.uniform1f(eloc.uSunAmt, state.skyPass ? state.sunAmt : 0);
     gl.uniform3fv(eloc.uLights, lightsL); gl.uniform1fv(eloc.uLightR, lightsR); gl.uniform1f(eloc.uAlpha, 1); gl.uniform1f(eloc.uSkyMul, 1); gl.uniform1f(eloc.uOutline, 0); gl.uniform4f(eloc.uSway, 0, 0, 0, 0); gl.uniform1f(eloc.uFlash, 0);
@@ -3710,7 +3954,7 @@ const R = (() => {
       const lim = Math.tan(0.32) * 0.96; if (need > lim && !opts.zoom) dist *= need / lim; }
     const cx = tx - fwd[0] * dist, cy = ty - fwd[1] * dist, cz = tz - fwd[2] * dist;
     const pv = U.m4mul(U.m4perspective(0.64, 1, 0.1, 60), U.m4view(cx, cy, cz, yaw, pitch));
-    const saved = { fog: state.fogColor, fn: state.fogNear, ff: state.fogFar, sun: state.sun, sc: state.sunCol, sa: state.sunAmt, day: state.dayLight, z: state.zenith, tint: state.tint, amb: state.ambient, sp: state.skyPass, sh: state.shadowOn }; state.shadowOn = 0; const cg0 = state.coreGlow; state.coreGlow = false; /* a portrait is drawn near y 0, where the world's core would light it red from below */
+    const saved = { fog: state.fogColor, fn: state.fogNear, ff: state.fogFar, sun: state.sun, sc: state.sunCol, sa: state.sunAmt, day: state.dayLight, z: state.zenith, tint: state.tint, amb: state.ambient, sp: state.skyPass, sh: state.shadowOn, mist: state.mist }; state.mist = MIST0; state.shadowOn = 0; const cg0 = state.coreGlow; state.coreGlow = false; /* a portrait is drawn near y 0, where the world's core would light it red from below */
     state.fogColor = [0.5, 0.6, 0.7]; state.fogNear = 50; state.fogFar = 60; state.sun = [-0.45, 0.72, 0.53]; state.sunCol = [1.0, 0.95, 0.86]; state.sunAmt = 1; state.dayLight = 1; state.zenith = [0.5, 0.65, 0.95]; state.tint = [1, 1, 1]; state.ambient = 0.06; state.skyPass = true;
     const L = new Float32Array(24), LR = new Float32Array(8); for (let i = 0; i < 8; i++) { L[i * 3 + 1] = -999; LR[i] = 0.001; }
     setEntityUniforms(pv, { x: cx, y: cy, z: cz }, L, LR);
@@ -3718,7 +3962,7 @@ const R = (() => {
     gl.enable(gl.DEPTH_TEST); gl.disable(gl.BLEND);
     const ol = state.outlines; state.outlines = opts.outline === false ? false : true; const vd = state.viewDist; state.viewDist = 100;
     drawEntities([ent], { x: cx, y: cy, z: cz }, performance.now()); state.outlines = ol; state.viewDist = vd;
-    Object.assign(state, { fogColor: saved.fog, fogNear: saved.fn, fogFar: saved.ff, sun: saved.sun, sunCol: saved.sc, sunAmt: saved.sa, dayLight: saved.day, zenith: saved.z, tint: saved.tint, ambient: saved.amb, skyPass: saved.sp, shadowOn: saved.sh }); state.coreGlow = cg0;
+    Object.assign(state, { fogColor: saved.fog, fogNear: saved.fn, fogFar: saved.ff, sun: saved.sun, sunCol: saved.sc, sunAmt: saved.sa, dayLight: saved.day, zenith: saved.z, tint: saved.tint, ambient: saved.amb, skyPass: saved.sp, shadowOn: saved.sh, mist: saved.mist }); state.coreGlow = cg0;
     const px = new Uint8Array(S * S * 4); gl.readPixels(0, 0, S, S, gl.RGBA, gl.UNSIGNED_BYTE, px);
     gl.bindFramebuffer(gl.FRAMEBUFFER, null); gl.viewport(0, 0, canvas.width, canvas.height);
     // flip rows (GL is bottom-up) and un-premultiply nothing: alpha is 0 or 1
@@ -3777,6 +4021,8 @@ const R = (() => {
     // under the dome of Atlantis it is day, whatever lies over it: the sun comes down through the sea, and what you see beyond the glass is water, not sky
     const AT = world.atlantis; let inAtl = false; if (AT && AT.halls && eyeBlock !== B.WATER) { const W = WORLD_W, dx = ((player.x - AT.x - 0.5) % W + W * 1.5) % W - W / 2, dz = ((player.z - AT.z - 0.5) % W + W * 1.5) % W - W / 2, dy = Math.max(0, player.y + 1.5 - AT.y); inAtl = player.y > AT.y - 4 && (dx * dx + dz * dz) / (AT.RH * AT.RH) + dy * dy / (AT.RV * AT.RV) < 1; }
     state.inAtl = inAtl;
+    state.mist = MIST0; if (world.lost && !inAtl && eyeBlock !== B.WATER && player.y > 40) { const L = world.lost, W = WORLD_W, dx = ((player.x - L.x) % W + W * 1.5) % W - W / 2, dz = ((player.z - L.z) % W + W * 1.5) % W - W / 2, k = U.clamp((L.inner - Math.hypot(dx, dz)) / 14, 0, 1); if (k > 0) { state.mist = [LOST_WATER + 3.6, 0.72 * k * (1.3 - 0.45 * state.dayLight), 3.4, 0.3 + 0.7 * state.dayLight];
+        const wet = U.mixColor(state.fogColor, [0.74, 0.88, 0.78].map(v => v * (0.25 + 0.75 * state.dayLight)), 0.42 * k); state.fogColor = wet; state.skyColor = wet; state.fogNear = U.lerp(state.fogNear, state.fogFar * 0.5, 0.8 * k * U.clamp((76 - player.y) / 8, 0, 1)); } } // wet green air: the trees pale into it one row behind another
     if (eyeBlock === B.WATER || eyeBlock === B.BRINE || eyeBlock === B.LAVA || player.y < CORE_TOP || (!inAtl && player.y < world.topAt(Math.floor(player.x), Math.floor(player.z)) - 2)) state.skyPass = false;
     if (eyeBlock === B.WATER) { state.underwater = true; state.fogSky = false; state.fogColor = [0.05, 0.2, 0.45]; state.skyColor = state.fogColor; state.fogNear = 2; state.fogFar = 18; state.tint = [0.6, 0.8, 1.0];
       if (AT && AT.halls) { const W = WORLD_W, dx = ((player.x - AT.x) % W + W * 1.5) % W - W / 2, dz = ((player.z - AT.z) % W + W * 1.5) % W - W / 2, k = U.clamp(1 - (Math.hypot(dx, dz) - AT.RH - 30) / 70, 0, 1); state.fogFar = 18 + 66 * k; state.fogNear = 2 + 14 * k; } }
@@ -3807,12 +4053,13 @@ const R = (() => {
     const view = U.m4view(cam.x, cam.y, cam.z, cam.yaw, cam.pitch);
     const pv = U.m4mul(proj, view); lastPV = pv;
     const planes = U.frustumPlanes(pv);
+    if (state.mist && state.mist[1] > 0) freshHM(world, player);
     gl.useProgram(prog);
     gl.uniformMatrix4fv(loc.uPV, false, pv);
     gl.uniform1f(loc.uTime, performance.now() / 1000);
     gl.uniform3f(loc.uCam, cam.x, cam.y, cam.z);
     gl.uniform1f(loc.uDay, state.dayLight);
-    gl.uniform3fv(loc.uFog, state.fogColor); gl.uniform1f(loc.uFogSky, state.fogSky ? (state.rangeKind || 1) : 0); gl.uniform1f(loc.uCoreGlow, world.preset.id === 'earth' ? 1 : 0);
+    gl.uniform4fv(loc.uMist, state.mist || MIST0); bindHM(loc, state.mist && state.mist[1] > 0); gl.uniform3fv(loc.uFog, state.fogColor); gl.uniform1f(loc.uFogSky, state.fogSky ? (state.rangeKind || 1) : 0); gl.uniform1f(loc.uCoreGlow, world.preset.id === 'earth' ? 1 : 0);
     gl.uniform1f(loc.uFogNear, state.fogNear); gl.uniform1f(loc.uFogFar, state.fogFar);
     gl.uniform1f(loc.uAmbient, state.ambient);
     gl.uniform3fv(loc.uTint, state.tint);
@@ -3833,7 +4080,7 @@ const R = (() => {
       const mx = c.cx * CH + half, mz = c.cz * CH + half;
       const dx = mx - cam.x, dz = mz - cam.z;
       if (dx * dx + dz * dz > (state.viewDist + 16) * (state.viewDist + 16)) continue;
-      if (c.yb) { const cy = (c.yb[0] + c.yb[1]) / 2, ry = (c.yb[1] - c.yb[0]) / 2; if (!U.sphereInFrustum(planes, mx, cy, mz, Math.hypot(half, ry, half))) continue; } // a sphere round the land that is really there, not the whole column
+      if (c.yb) { const cy = (c.yb[0] + c.yb[1]) / 2, ry = (c.yb[1] - c.yb[0]) / 2, hp = c.jtrees ? half + 7 : half; if (!U.sphereInFrustum(planes, mx, cy, mz, Math.hypot(hp, ry, hp))) continue; } /* a crown of the Lost World hangs out over the next chunk */ // a sphere round the land that is really there, not the whole column
       else if (!U.sphereInFrustum(planes, mx, WH / 2, mz, rad)) continue;
       visible.push(c);
     }
@@ -9588,7 +9835,7 @@ const KIN = (() => {
   function dress(m, wear) {
     if (!wear || !wear.item || wear.item === 'none') return m;
     const L = landmarks(m); const { body, head, hr, neck, nr, long } = L; const col = wear.col || '#c94c4c'; const dark = U.rgbToHex(U.hexToRgb(col).map(c => c * 0.6)); // parts carry hex colours
-    const gold = '#ffd14d', green = '#4d853d', red = '#c73833', blue = '#4d75cc';
+    const gold = '#ffd14d', green = '#4d853d', red = '#c73833', blue = '#4d75cc', IRON = '#2b2733', IRON2 = '#4a4458', VIO = '#b874ff', CAPE = '#5c1a34';
     const H = partHelpers({ scale: 1, boxes: m.boxes, height: m.height }); const { blob, ball, tube, plate, ring, cone, disc, ribbon } = H;
     const discZ = (x, y, z, r, th, c, o) => blob(x - r, y - r, z - th / 2, x + r, y + r, z + th / 2, 1, c, Object.assign({ n: 4 }, o || {})); // a disc standing up, facing forward (a badge on the chest)
     const onHead = () => { H.bone = head.bone; }, onBody = () => { H.bone = 0; };
@@ -9597,13 +9844,17 @@ const KIN = (() => {
     if (!long && head.fake && (wear.item === 'sash' || wear.item === 'medal')) { /* a body with no head of its own (a coal, an orb): worn as a belt round the middle */
       onBody(); const y = body.y0 + body.h * (wear.item === 'sash' ? 0.3 : 0.36), rx = body.w * 0.54, rz = body.d * 0.54; { const th = wear.item === 'sash' ? 0.05 : 0.02; if (body.round != null && body.round < 0.6) { const hx = body.w / 2 + th * 1.3, hz = body.d / 2 + th * 1.3, c = Math.min(hx, hz) * 0.25; const pts = [[hx - c, hz], [-hx + c, hz], [-hx, hz - c], [-hx, -hz + c], [-hx + c, -hz], [hx - c, -hz], [hx, -hz + c], [hx, hz - c], [hx - c, hz]].map(q => [body.cx + q[0], y, body.cz + q[1]]); tube(pts, pts.map(() => th), red, { cap0: 'none', cap1: 'none', segs: 6 }); } /* a square body gets a square belt */ else ring(body.cx, y, body.cz, rx, rz, th, red); } discZ(body.cx, y - (wear.item === 'sash' ? 0 : 0.05), body.z1 + 0.03, wear.item === 'sash' ? 0.05 : 0.06, 0.025, gold);
       m.height = Math.max(m.height, ...m.boxes.map(b => b.y + b.h)); return m; }
-    if ((long && ['scarf', 'coat', 'collar', 'sash', 'medal'].includes(wear.item)) || (lying && !head.fake && ['sash', 'medal'].includes(wear.item))) { /* on a long body these become bands round it, a third of the way back from the nose */
+    if ((long && ['scarf', 'coat', 'collar', 'sash', 'medal', 'tyrant', 'bound'].includes(wear.item)) || (lying && !head.fake && ['sash', 'medal', 'tyrant', 'bound'].includes(wear.item)) || (head.fake && (wear.item === 'tyrant' || wear.item === 'bound'))) { /* on a long body these become bands round it, a third of the way back from the nose */
       onBody(); const zc = lying ? body.cz + body.d * (wear.item === 'medal' ? 0.3 : 0.05) : head.fake ? body.cz - body.d * 0.05 : Math.min(neck.z - nr * 0.9, body.z1 - body.d * 0.25); let rx = (head.fake ? body.w : Math.min(body.w, hr * 2.2)) * 0.52, ry = (head.fake ? body.h : Math.min(body.h, hr * 2.2)) * 0.52, cy = head.fake ? body.cy : neck.y - ry * 0.3, cx = body.cx;
       { let best = 0; for (const b of m.boxes) { if ((b.bone || 0) !== 0) continue; /* the body's own section where the band goes: the fattest piece of it that passes that point */
           if (b.k === 'tube' && b.path) { let bi = 0, bd = 1e9; b.path.forEach((q, i) => { const dd = Math.abs(q[2] - zc); if (dd < bd) { bd = dd; bi = i; } }); const r0 = b.radii[bi], r = Array.isArray(r0) ? Math.max(r0[0], r0[1]) : r0; if (bd < 0.25 && r > best) { best = r; cx = b.path[bi][0]; cy = b.path[bi][1]; rx = Array.isArray(r0) ? r0[0] : r0; ry = Array.isArray(r0) ? r0[1] : r0; } }
           else if (b.k === 'blob' && b.w && zc > b.z && zc < b.z + b.d) { const q = (zc - b.z - b.d / 2) / (b.d / 2), f = Math.sqrt(Math.max(0.05, 1 - q * q)), r = Math.max(b.w, b.h) / 2 * f; if (r > best) { best = r; cx = b.x + b.w / 2; cy = b.y + b.h / 2; rx = b.w / 2 * f; ry = b.h / 2 * f; } } } }
       const band = (z, th, c) => ring(cx, cy, z, rx + th * 0.4, ry + th * 0.4, th, c, null, 'z');
-      if (wear.item === 'scarf') { band(zc, nr * 0.2 + 0.02, col); ribbon([[cx + rx * 0.4, cy + ry, zc], [cx + rx * 0.7, cy + ry * 0.9, zc - 0.18], [cx + rx * 0.8, cy + ry * 0.5, zc - 0.34]], [0.07, 0.075, 0.06], col, { droop: 0.3 }); }
+      if (wear.item === 'bound' || wear.item === 'tyrant') { const big = wear.item === 'tyrant', th = big ? 0.06 : 0.045; band(zc, th, IRON); if (big) band(zc - 0.13, 0.035, IRON); /* the Binding worn by a body with no shoulders to hang it on: an iron band round it, spiked, the shard of crystal standing up out of the top */
+        for (let i = 0; i < (big ? 8 : 5); i++) { const a = i / (big ? 8 : 5) * Math.PI * 2 + 0.6, c = Math.cos(a), sn = Math.sin(a); if (sn > 0.85) continue; cone([cx + c * (rx + th * 0.4), cy + sn * (ry + th * 0.4), zc], [c, sn, 0], big ? 0.13 : 0.08, 0.03, IRON2); }
+        cone([cx, cy + ry + th * 0.3, zc], [0, 1, 0.1], big ? 0.26 : 0.15, big ? 0.07 : 0.045, VIO, { emis: true }); if (big) for (const sx of [-1, 1]) cone([cx + sx * 0.06, cy + ry + th * 0.3, zc - 0.03], [sx * 0.5, 1, 0], 0.14, 0.04, VIO, { emis: true });
+        if (big && !head.fake) { onHead(); ring(head.cx, top + 0.005, head.cz, hr * 0.8, hr * 0.8, 0.045, IRON); for (let i = 0; i < 7; i++) { const a = i / 7 * Math.PI * 2 + 0.2; cone([head.cx + Math.cos(a) * hr * 0.8, top + 0.03, head.cz + Math.sin(a) * hr * 0.8], [Math.cos(a) * 0.25, 1, Math.sin(a) * 0.25], hr * (i % 2 ? 0.8 : 0.5), 0.045, IRON2); } ball(head.cx, top + 0.05, head.cz + hr * 0.8, 0.05, VIO, { emis: true }); } }
+      else if (wear.item === 'scarf') { band(zc, nr * 0.2 + 0.02, col); ribbon([[cx + rx * 0.4, cy + ry, zc], [cx + rx * 0.7, cy + ry * 0.9, zc - 0.18], [cx + rx * 0.8, cy + ry * 0.5, zc - 0.34]], [0.07, 0.075, 0.06], col, { droop: 0.3 }); }
       else if (wear.item === 'coat') { for (let i = 0; i < 4; i++) band(zc - i * 0.075, 0.045, i % 3 === 0 ? dark : col); ball(cx, cy + ry + 0.03, zc + 0.05, 0.03, gold); }
       else if (wear.item === 'collar') { band(zc, 0.03, col); ball(cx, cy - ry - 0.03, zc, 0.04, gold); }
       else if (wear.item === 'sash') { band(zc, 0.05, red); ball(cx + rx + 0.04, cy, zc, 0.04, gold); }
@@ -9617,6 +9868,16 @@ const KIN = (() => {
       case 'hat': { onHead(); disc(head.cx, top + 0.02, head.cz, hr * 1.15, 0.04, dark); blob(head.cx - hr * 0.68, top + 0.03, head.cz - hr * 0.68, head.cx + hr * 0.68, top + 0.03 + hr * 0.95, head.cz + hr * 0.68, 0.55, col, { tap: [1, 0.86] }); ring(head.cx, top + 0.03 + hr * 0.22, head.cz, hr * 0.69, hr * 0.69, 0.022, gold); break; }
       case 'bow': { onHead(); const y = top + hr * 0.12, x = head.cx + hr * 0.35, z = head.cz; for (const sx of [-1, 1]) blob(x + (sx < 0 ? -hr * 0.42 : 0.02), y - hr * 0.16, z - hr * 0.22, x + (sx < 0 ? -0.02 : hr * 0.42), y + hr * 0.16, z + hr * 0.22, 0.7, col, { n: 2 }); ball(x, y, z, hr * 0.12, dark); break; }
       case 'crown': { onHead(); ring(head.cx, top + 0.01, head.cz, hr * 0.72, hr * 0.72, 0.035, gold); for (let i = 0; i < 6; i++) { const a = i / 6 * Math.PI * 2; cone([head.cx + Math.cos(a) * hr * 0.72, top + 0.03, head.cz + Math.sin(a) * hr * 0.72], [0, 1, 0], hr * 0.4, 0.035, gold); } ball(head.cx, top + 0.02 + hr * 0.1, head.cz + hr * 0.72, 0.035, col, { emis: true }); break; }
+      case 'bound': { onBody(); ring(neck.x, neck.y, neck.z, nr * 1.1, nr * 1.1, nr * 0.2 + 0.015, IRON); // a Kin under the Binding: an iron collar it did not choose, a splinter of the crystal alight at its throat, a spike each side
+        cone([neck.x, neck.y - nr * 0.1, neck.z + nr * 1.1], [0, -0.5, 1], 0.13, 0.045, VIO, { emis: true }); for (const sx of [-1, 1]) cone([neck.x + sx * nr * 1.1, neck.y, neck.z], [sx, 0.35, 0], 0.09, 0.03, IRON2); break; }
+      case 'tyrant': { // the one the Kinmaster left in charge: an iron crown with points like broken teeth, the shard of the Binding set in iron on its chest and strapped there, iron on its shoulders, a torn cloak down its back
+        onHead(); ring(head.cx, top + 0.005, head.cz, hr * 0.8, hr * 0.8, 0.045, IRON); for (let i = 0; i < 7; i++) { const a = i / 7 * Math.PI * 2 + 0.2; cone([head.cx + Math.cos(a) * hr * 0.8, top + 0.03, head.cz + Math.sin(a) * hr * 0.8], [Math.cos(a) * 0.25, 1, Math.sin(a) * 0.25], hr * (i % 2 ? 0.8 : 0.5), 0.045, IRON2); } ball(head.cx, top + 0.05, head.cz + hr * 0.8, 0.05, VIO, { emis: true });
+        onBody(); const cyy = body.cy + body.h * 0.14, pr = Math.min(0.2, body.w * 0.3);
+        ring(body.cx, cyy + 0.02, body.cz, body.w * 0.55, body.d * 0.55, 0.035, IRON); ring(body.cx, cyy - body.h * 0.2, body.cz, body.w * 0.55, body.d * 0.55, 0.03, IRON);
+        discZ(body.cx, cyy, front + 0.02, pr, 0.04, IRON); cone([body.cx, cyy - pr * 0.7, front + 0.05], [0, 1, 0.12], pr * 1.9, pr * 0.42, VIO, { emis: true }); cone([body.cx - pr * 0.35, cyy - pr * 0.5, front + 0.045], [-0.35, 1, 0.1], pr * 1.1, pr * 0.26, VIO, { emis: true }); cone([body.cx + pr * 0.38, cyy - pr * 0.5, front + 0.045], [0.4, 1, 0.1], pr * 0.9, pr * 0.22, VIO, { emis: true });
+        for (const sx of [-1, 1]) { const x = sx < 0 ? body.x0 + 0.02 : body.x1 - 0.02; blob(x - 0.13, body.y1 - 0.17, body.cz - 0.14, x + 0.13, body.y1 + 0.03, body.cz + 0.14, 0.8, IRON2, { n: 3 }); cone([x + sx * 0.05, body.y1 - 0.02, body.cz], [sx * 0.8, 1, 0], 0.2, 0.05, IRON); cone([x + sx * 0.1, body.y1 - 0.08, body.cz + 0.06], [sx, 0.4, 0.3], 0.13, 0.035, IRON); }
+        for (const [sx, len, c] of [[-0.22, 1.0, CAPE], [0.2, 0.86, '#461226'], [0, 0.7, CAPE]]) { const x = body.cx + sx * body.w; ribbon([[x, body.y1 - 0.04, body.z0 - 0.01], [x * 1.05, body.cy, body.z0 - 0.09], [x * 1.1, body.y1 - (body.y1 - body.y0 + 0.12) * len, body.z0 - 0.17]], [body.w * 0.26, body.w * 0.3, body.w * 0.2], c, { droop: 0.2 }); }
+        break; }
       case 'collar': { onBody(); ring(neck.x, neck.y, neck.z, nr * 1.05, nr * 1.05, nr * 0.12, col); discZ(neck.x, neck.y - nr * 0.2, neck.z + nr * 1.02, 0.045, 0.02, gold); break; }
       case 'rosette': { onBody(); const y = body.cy + body.h * 0.15; discZ(body.cx, y, front + 0.02, 0.09, 0.03, blue); discZ(body.cx, y, front + 0.045, 0.045, 0.02, gold); // a show rosette on the chest, two tails below
         for (const sx of [-1, 1]) ribbon([[body.cx + sx * 0.03, y - 0.06, front + 0.03], [body.cx + sx * 0.05, y - 0.22, front + 0.03]], [0.035, 0.03], blue, {}); break; }
@@ -9963,12 +10224,12 @@ const Wild = (() => {
   function makeEntity(sp, level, x, y, z, opts = {}) {
     const kin = KIN.create(sp, level);
     const st = KIN.stats(kin);
-    const m = KIN.model(sp, kin.stage);
+    const m = opts.wear ? KIN.dress(KIN.model(sp, kin.stage), opts.wear) : KIN.model(sp, kin.stage); // a Kin under the Binding wears its collar: the look is the entity's, not the Kin's own, so it is gone the day it is freed
     const e = {
       kin, x, y, z, yaw: Math.random() * Math.PI * 2, tx: x, tz: z, wait: 1 + Math.random() * 3,
       speed: Math.min(3.2, 0.9 + st.spd / 90), senseR: opts.senseR || (3.4 + Math.min(2.6, st.agi / 55) + Math.min(2, m.radius * 0.5)), alert: 0, // the ring grows a little with agility and size, never past about eight blocks
       aquatic: !!opts.aquatic, flying: sp.shape === 'bird' || sp.shape === 'floater', model: m, scale: 1, hover: m.hover, bob: Math.random() * 6,
-      mesh: R.entityMesh(KIN.meshKey(sp, kin.stage), (mb) => KIN.buildMesh(mb, m)),
+      mesh: R.entityMesh(KIN.meshKey(sp, kin.stage) + KIN.wearKey(opts.wear), (mb) => KIN.buildMesh(mb, m)),
       skyMul: 1, elite: !!opts.elite, patrol: opts.patrol || null, sleep: !!opts.sleep, isMythic: !!opts.isMythic, isWarden: !!opts.isWarden, isLegend: !!opts.isLegend, isApex: opts.isApex || null, skyT: 0
     };
     return e;
@@ -10377,6 +10638,128 @@ const Wild = (() => {
 
 </script>
 <script>
+// ---- the games of the towns. Every town keeps a champion at its own game and you play them for shards: you put a stake down,
+// the champion matches it, the winner takes both. You can lose, and they are good. Two games so far: the ringboard (five throws each
+// at a slice of trunk with its rings painted) and draughts. Each one opens over the world, which waits ----
+const Games = (() => {
+  let box = null, cur = null;
+  const $ = (h) => { const d = document.createElement('div'); d.innerHTML = h; return d.firstElementChild; };
+  function shell(title, sub) {
+    close(true); box = $(`<div id="gamebox"><div class="gb-card"><div class="gb-head"><b class="gb-title"></b><span class="gb-sub"></span></div><div class="gb-score"></div><div class="gb-stage"></div><div class="gb-say"></div><div class="gb-foot"></div></div></div>`);
+    box.querySelector('.gb-title').textContent = title; box.querySelector('.gb-sub').textContent = sub || ''; document.body.appendChild(box);
+    if (typeof G !== 'undefined' && G.setPaused) G.setPaused(true);
+    return { stage: box.querySelector('.gb-stage'), score: box.querySelector('.gb-score'), say: box.querySelector('.gb-say'), foot: box.querySelector('.gb-foot') };
+  }
+  function close(quiet) { if (cur && cur.stop) cur.stop(); cur = null; if (box) { box.remove(); box = null; if (!quiet && typeof G !== 'undefined' && G.setPaused) G.setPaused(false); } }
+  function finish(ui, o, res, line) { // res: 'win' | 'lose' | 'draw'
+    if (cur) cur.over = true; ui.say.textContent = line; ui.foot.innerHTML = ''; const b = $(`<button class="btn big">${res === 'win' ? 'Take the winnings' : res === 'draw' ? 'Take your stake back' : 'Pay up'}</button>`);
+    b.addEventListener('click', () => { close(); if (o.onEnd) o.onEnd(res); }); ui.foot.appendChild(b); box.classList.add('gb-' + res);
+  }
+  const gauss = () => { let u = 0, v = 0; while (!u) u = Math.random(); while (!v) v = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(6.2832 * v); };
+
+  // ================= the ringboard =================
+  // skill 0..1: how tight the champion throws, and how fast your own hand sways (a better hall plays on a livelier board)
+  function ringboard(o) {
+    const ui = shell('Ringboard', `${o.champ} · ${o.stake} shards a side`), W = 320, S = 150, cx = W / 2, cy = W / 2;
+    const cv = $(`<canvas width="${W * 2}" height="${W * 2}" class="gb-canvas"></canvas>`); ui.stage.appendChild(cv); const g = cv.getContext('2d'); g.scale(2, 2);
+    const st = { t: 0, turn: 0, you: [], them: [], mine: true, fly: null, wait: 0, over: false, ph: Math.random() * 9, raf: 0, last: performance.now(), clock: 7 }; cur = st;
+    const sk = U.clamp(o.skill == null ? 0.4 : o.skill, 0, 1), sd = 0.15 - 0.075 * sk, sp = 0.78 + 0.5 * sk; // the champion's scatter in board radii; the speed of your sway
+    const scoreOf = (x, y) => { const r = Math.hypot(x, y); return r >= 1 ? 0 : 10 - Math.floor(r * 10); };
+    const sway = (t) => { const a = t * sp * 6.2832; return [0.62 * Math.sin(a * 0.43 + st.ph) + 0.2 * Math.sin(a * 1.31 + 1.7), 0.62 * Math.sin(a * 0.59 + st.ph * 1.7 + 0.8) + 0.2 * Math.cos(a * 1.13)]; };
+    const total = (a) => a.reduce((s, q) => s + q.s, 0);
+    const btn = $('<button class="btn big gb-throw">Throw</button>'), quit = $('<button class="btn ghost">Give up</button>'); ui.foot.appendChild(btn); ui.foot.appendChild(quit);
+    const head = () => { ui.score.innerHTML = `<span class="gb-you">You <b>${total(st.you)}</b></span><span class="gb-mid">throw ${Math.min(5, Math.floor(st.turn / 2) + 1)} of 5</span><span class="gb-them">${o.champ.split(' ')[0]} <b>${total(st.them)}</b></span>`; };
+    const land = (x, y, mine) => { const s = scoreOf(x, y); (mine ? st.you : st.them).push({ x, y, s }); st.turn++; head();
+      ui.say.textContent = mine ? (s === 10 ? 'Dead in the heart. Ten.' : s >= 8 ? `${s}. A good one.` : s >= 5 ? `${s}.` : s > 0 ? `${s}. Wide.` : 'Off the board.') : (s === 10 ? `${o.champ.split(' ')[0]} puts it in the heart. Ten.` : s > 0 ? `${o.champ.split(' ')[0]} throws ${s}.` : `${o.champ.split(' ')[0]} misses the board.`);
+      if (st.turn >= 10) { const a = total(st.you), b = total(st.them); st.over = true; btn.remove(); quit.remove(); finish(ui, o, a > b ? 'win' : a < b ? 'lose' : 'draw', a > b ? `${a} to ${b}. The stake is yours.` : a < b ? `${a} to ${b}. ${o.champ.split(' ')[0]} takes your stake.` : `${a} all. Nobody pays.`); return; }
+      st.mine = !mine; st.wait = mine ? 0.9 : 0.35; st.clock = 7; btn.disabled = !st.mine; };
+    const yours = () => { if (st.over || !st.mine || st.fly || st.wait > 0) return; const [sx, sy] = sway(st.t); st.fly = { x: sx + gauss() * 0.025, y: sy + gauss() * 0.025, k: 0, mine: true }; btn.disabled = true; };
+    btn.addEventListener('click', yours); cv.addEventListener('pointerdown', yours);
+    quit.addEventListener('click', () => { st.over = true; close(); if (o.onEnd) o.onEnd('lose'); });
+    const quill = (x, y, col, k) => { const px = cx + x * S, py = cy + y * S; g.save(); g.translate(px, py); g.rotate(-0.6); g.fillStyle = 'rgba(0,0,0,.25)'; g.beginPath(); g.ellipse(3, 4, 5, 2.4, 0, 0, 6.3); g.fill();
+      g.strokeStyle = '#3a2a18'; g.lineWidth = 2.4; g.beginPath(); g.moveTo(0, 0); g.lineTo(15 * k, -15 * k); g.stroke(); g.fillStyle = col; g.beginPath(); g.moveTo(11 * k, -11 * k); g.lineTo(22 * k, -15 * k); g.lineTo(15 * k, -22 * k); g.closePath(); g.fill(); g.fillStyle = '#f4ead0'; g.beginPath(); g.arc(0, 0, 2.2, 0, 6.3); g.fill(); g.restore(); };
+    function draw() {
+      g.clearRect(0, 0, W, W);
+      g.fillStyle = '#6b4a2a'; g.beginPath(); g.arc(cx, cy, S + 8, 0, 6.3); g.fill(); // the bark round the slice
+      for (let i = 10; i >= 1; i--) { g.fillStyle = i === 1 ? '#c8452e' : i % 2 ? '#e9d6a8' : '#cfae72'; g.beginPath(); g.arc(cx, cy, S * i / 10, 0, 6.3); g.fill(); }
+      g.strokeStyle = 'rgba(70,45,20,.35)'; g.lineWidth = 1; for (let i = 1; i <= 10; i++) { g.beginPath(); g.arc(cx, cy, S * i / 10, 0, 6.3); g.stroke(); }
+      g.fillStyle = 'rgba(60,40,20,.55)'; g.font = '700 10px Nunito, sans-serif'; g.textAlign = 'center'; for (let i = 2; i <= 9; i += 1) g.fillText(String(11 - i), cx, cy - S * (i - 0.5) / 10 + 3.5);
+      for (const q of st.them) quill(q.x, q.y, '#d8503a', 1); for (const q of st.you) quill(q.x, q.y, '#3f8fd8', 1);
+      if (st.fly) { const k = st.fly.k, e = 1 - (1 - k) * (1 - k); g.globalAlpha = 0.5 + 0.5 * k; quill(st.fly.x * e + (st.fly.mine ? 0 : 0.3) * (1 - e), st.fly.y * e + 1.5 * (1 - e), st.fly.mine ? '#3f8fd8' : '#d8503a', 2.2 - 1.2 * k); g.globalAlpha = 1; }
+      else if (st.mine && !st.over && st.wait <= 0) { const [sx, sy] = sway(st.t), px = cx + sx * S, py = cy + sy * S; g.strokeStyle = '#17324e'; g.lineWidth = 2.5; g.beginPath(); g.arc(px, py, 11, 0, 6.3); g.moveTo(px - 17, py); g.lineTo(px - 5, py); g.moveTo(px + 5, py); g.lineTo(px + 17, py); g.moveTo(px, py - 17); g.lineTo(px, py - 5); g.moveTo(px, py + 5); g.lineTo(px, py + 17); g.stroke();
+        g.strokeStyle = '#fff'; g.lineWidth = 1; g.beginPath(); g.arc(px, py, 11, 0, 6.3); g.stroke(); }
+    }
+    function advance(dt) { st.t += dt; if (st.over) return;
+      if (st.wait > 0) { st.wait -= dt; if (st.wait <= 0 && !st.mine) { const wob = Math.random() < 0.07 ? 2.6 : 1; st.fly = { x: gauss() * sd * wob, y: gauss() * sd * wob, k: 0, mine: false }; } }
+      else if (st.mine && !st.fly) { st.clock -= dt; if (st.clock <= 0) yours(); }
+      if (st.fly) { st.fly.k += dt * 3.4; if (st.fly.k >= 1) { const f = st.fly; st.fly = null; land(f.x, f.y, f.mine); } } }
+    function tick(now) { if (cur !== st) return; const dt = Math.min(0.1, (now - st.last) / 1000); st.last = now; advance(dt); draw(); st.raf = requestAnimationFrame(tick); } // on a slow frame the hand still moves at its own speed
+    st.stop = () => cancelAnimationFrame(st.raf); head(); ui.say.textContent = 'Your hand will not hold still. Throw when the ring is over the heart.'; st.raf = requestAnimationFrame(tick);
+    st.debug = { throwAt: (x, y) => { if (st.mine && !st.fly && st.wait <= 0 && !st.over) { st.fly = { x, y, k: 0, mine: true }; btn.disabled = true; return true; } return false; }, step: (dt) => { advance(dt); draw(); }, state: st };
+  }
+
+  // ================= draughts =================
+  // The board is eight by eight, you play up it. Men step and take forwards, kings both ways, a take must be made, and a man that takes keeps taking.
+  const D = {
+    start() { const b = []; for (let r = 0; r < 8; r++) { b.push([]); for (let c = 0; c < 8; c++) b[r].push((r + c) % 2 ? (r < 3 ? -1 : r > 4 ? 1 : 0) : 0); } return b; },
+    copy: (b) => b.map(r => r.slice()),
+    dirs: (p) => Math.abs(p) === 2 ? [[-1, -1], [-1, 1], [1, -1], [1, 1]] : p > 0 ? [[-1, -1], [-1, 1]] : [[1, -1], [1, 1]],
+    jumps(b, r, c, p, path, caps, out) { let any = false;
+      for (const [dr, dc] of D.dirs(p)) { const mr = r + dr, mc = c + dc, tr = r + 2 * dr, tc = c + 2 * dc; if (tr < 0 || tr > 7 || tc < 0 || tc > 7) continue; const m = b[mr][mc]; if (!m || Math.sign(m) === Math.sign(p) || b[tr][tc] !== 0 || caps.some(q => q[0] === mr && q[1] === mc)) continue;
+        any = true; const crown = Math.abs(p) === 1 && (p > 0 ? tr === 0 : tr === 7), np = path.concat([[tr, tc]]), nc = caps.concat([[mr, mc]]);
+        if (crown) out.push({ path: np, caps: nc }); else { const keep = b[r][c]; b[r][c] = 0; b[tr][tc] = keep; D.jumps(b, tr, tc, p, np, nc, out); b[tr][tc] = 0; b[r][c] = keep; } }
+      if (!any && caps.length) out.push({ path, caps }); },
+    moves(b, side) { const caps = [], steps = [];
+      for (let r = 0; r < 8; r++) for (let c = 0; c < 8; c++) { const p = b[r][c]; if (!p || Math.sign(p) !== side) continue; D.jumps(b, r, c, p, [[r, c]], [], caps);
+        if (!caps.length) for (const [dr, dc] of D.dirs(p)) { const tr = r + dr, tc = c + dc; if (tr >= 0 && tr < 8 && tc >= 0 && tc < 8 && b[tr][tc] === 0) steps.push({ path: [[r, c], [tr, tc]], caps: [] }); } }
+      return caps.length ? caps : steps; },
+    apply(b, m) { const [r0, c0] = m.path[0], [r1, c1] = m.path[m.path.length - 1]; let p = b[r0][c0]; b[r0][c0] = 0; for (const [r, c] of m.caps) b[r][c] = 0; if (Math.abs(p) === 1 && (p > 0 ? r1 === 0 : r1 === 7)) p *= 2; b[r1][c1] = p; },
+    score(b) { let s = 0; for (let r = 0; r < 8; r++) for (let c = 0; c < 8; c++) { const p = b[r][c]; if (!p) continue; const k = Math.abs(p) === 2, mine = p < 0; // from the champion's side (the negative men, moving down the board)
+        let v = k ? 172 : 100 + (mine ? r : 7 - r) * 4; if (!k && (mine ? r === 0 : r === 7)) v += 9; if (c > 1 && c < 6 && r > 1 && r < 6) v += k ? 6 : 4; if (c === 0 || c === 7) v -= 3; s += mine ? v : -v; } return s; },
+    search(b, side, depth, alpha, beta, st) { if (st.n++ > st.max) st.out = true; const ms = D.moves(b, side); if (!ms.length) return -9000 - depth; if (depth <= 0 && !ms[0].caps.length) return D.score(b) * -side; if (st.out) return D.score(b) * -side;
+      let best = -1e9; ms.sort((x, y) => y.caps.length - x.caps.length);
+      for (const m of ms) { const nb = D.copy(b); D.apply(nb, m); const v = -D.search(nb, -side, depth - 1, -beta, -alpha, st); if (v > best) best = v; if (v > alpha) alpha = v; if (alpha >= beta) break; } return best; },
+    best(b, side, depth, budget) { const ms = D.moves(b, side); if (!ms.length) return null; if (ms.length === 1) return ms[0]; let pick = ms[0]; const t0 = performance.now();
+      for (let d = 2; d <= depth; d += 2) { const st = { n: 0, max: 400000, out: false }; let bv = -1e9, bm = null; for (const m of ms) { const nb = D.copy(b); D.apply(nb, m); const v = -D.search(nb, -side, d - 1, -1e9, -bv + 1, st) + Math.random() * 0.5; if (v > bv) { bv = v; bm = m; } if (st.out) break; }
+        if (bm && !st.out) pick = bm; if (st.out || performance.now() - t0 > budget) break; } return pick; },
+  };
+  function draughts(o) {
+    const ui = shell('Draughts', `${o.champ} · ${o.stake} shards a side`), sk = U.clamp(o.skill == null ? 0.4 : o.skill, 0, 1), depth = sk < 0.3 ? 4 : sk < 0.6 ? 6 : sk < 0.85 ? 8 : 10;
+    const st = { b: D.start(), side: 1, sel: null, part: null, quiet: 0, over: false, busy: false, last: null }; cur = st;
+    const grid = $('<div class="gb-board"></div>'); ui.stage.appendChild(grid); const quit = $('<button class="btn ghost">Give up</button>'); ui.foot.appendChild(quit);
+    quit.addEventListener('click', () => { st.over = true; close(); if (o.onEnd) o.onEnd('lose'); });
+    const count = (s) => st.b.reduce((n, r) => n + r.filter(p => Math.sign(p) === s).length, 0);
+    const head = () => { ui.score.innerHTML = `<span class="gb-you">You <b>${count(1)}</b></span><span class="gb-mid">${st.over ? '' : st.side === 1 ? 'your move' : 'thinking'}</span><span class="gb-them">${o.champ.split(' ')[0]} <b>${count(-1)}</b></span>`; };
+    const legal = () => D.moves(st.b, 1);
+    function render() { grid.innerHTML = ''; const ms = st.side === 1 && !st.over ? legal() : []; const from = new Set(ms.map(m => m.path[0].join())); let dests = new Map();
+      if (st.sel) for (const m of ms) { if (m.path[0].join() !== st.sel.join()) continue; const pre = st.part || [st.sel]; if (pre.every((q, i) => m.path[i] && m.path[i].join() === q.join()) && m.path.length > pre.length) dests.set(m.path[pre.length].join(), m); }
+      for (let r = 0; r < 8; r++) for (let c = 0; c < 8; c++) { const dark = (r + c) % 2 === 1, p = st.b[r][c], k = r + ',' + c, here = st.part ? st.part[st.part.length - 1].join() === k : st.sel && st.sel.join() === k;
+        const lastHit = st.last && st.last.some(q => q.join() === k);
+        const cell = $(`<div class="gb-sq ${dark ? 'dk' : 'lt'}${dests.has(k) ? ' go' : ''}${lastHit ? ' was' : ''}"></div>`);
+        const shown = st.part && st.sel && st.sel.join() === k ? 0 : (st.part && here ? st.b[st.sel[0]][st.sel[1]] : p); // a man in the middle of a run of takes is shown where it has got to
+        if (shown) cell.appendChild($(`<i class="gb-man ${shown > 0 ? 'you' : 'them'}${Math.abs(shown) === 2 ? ' king' : ''}${here ? ' sel' : ''}${shown > 0 && from.has(k) && !st.sel ? ' can' : ''}"></i>`));
+        if (dark) cell.addEventListener('pointerdown', () => tap(r, c, dests)); grid.appendChild(cell); } head(); }
+    function tap(r, c, dests) { if (st.over || st.side !== 1 || st.busy) return; const k = r + ',' + c;
+      if (dests.has(k)) { const pre = (st.part || [st.sel]).concat([[r, c]]), rest = legal().filter(q => pre.every((p, i) => q.path[i] && q.path[i].join() === p.join())); if (!rest.length) return;
+        if (rest[0].path.length === pre.length) return play(rest[0]); st.part = pre; return render(); } // a run of takes is tapped out square by square
+      if (st.part) return; // in the middle of a run of takes you must finish it
+      if (st.b[r][c] > 0 && legal().some(m => m.path[0].join() === k)) { st.sel = [r, c]; st.part = null; } else st.sel = null; render(); }
+    function after(m) { st.quiet = m.caps.length || Math.abs(st.b[m.path[m.path.length - 1][0]][m.path[m.path.length - 1][1]]) === 1 ? 0 : st.quiet + 1; st.last = [m.path[0], m.path[m.path.length - 1]]; }
+    function done(res, line) { st.over = true; quit.remove(); render(); finish(ui, o, res, line); }
+    function play(m) { D.apply(st.b, m); after(m); st.sel = null; st.part = null; st.side = -1; render();
+      if (!D.moves(st.b, -1).length) return done('win', `${o.champ.split(' ')[0]} cannot move. The stake is yours.`); if (st.quiet >= 50) return done('draw', 'Fifty moves and nothing taken. A draw.');
+      st.busy = true; ui.say.textContent = `${o.champ.split(' ')[0]} looks at the board.`; setTimeout(() => { if (cur !== st) return; const r = D.best(st.b, -1, depth, 380); st.busy = false; if (!r) return done('win', `${o.champ.split(' ')[0]} cannot move. The stake is yours.`);
+        D.apply(st.b, r); after(r); st.side = 1; ui.say.textContent = r.caps.length ? (r.caps.length > 1 ? `${o.champ.split(' ')[0]} takes ${r.caps.length}.` : `${o.champ.split(' ')[0]} takes one.`) : 'Your move.';
+        if (!legal().length) return done('lose', `You cannot move. ${o.champ.split(' ')[0]} takes your stake.`); if (st.quiet >= 50) return done('draw', 'Fifty moves and nothing taken. A draw.'); render(); }, 420); }
+    ui.say.textContent = 'You play the blue men, up the board. A take must be made.'; render();
+    st.debug = { state: st, D, play, legal };
+  }
+  const KINDS = { ringboard: { name: 'Ringboard', fn: ringboard, blurb: 'Five throws each at the ringboard. Highest count takes both stakes.' }, draughts: { name: 'Draughts', fn: draughts, blurb: 'One game of draughts. Whoever is left without a move pays.' } };
+  return { KINDS, play(kind, o) { const K = KINDS[kind]; if (!K) return false; K.fn(o || {}); return true; }, close, get current() { return cur; }, D };
+})();
+
+</script>
+<script>
 'use strict';
 // Villages. Many of them, spread across the map a good walk apart, each held by a tyrant until you free it. A freed village is under
 // your protection: it pays Shards at every dawn, levels up on what it has earned, and can be walled (wood, stone, iron, voidsteel),
@@ -10405,7 +10788,7 @@ const Village = (() => {
     halo: [{ name: 'Sandstone', block: B.HALOWALL, bonus: 3, level: 1 }, { name: 'Basalt', block: B.BASALT, bonus: 8, level: 2, cost: { shards: 60, items: { stone: 40 } } }, WALLS[2], WALLS[3]],
   };
   const wallSet = (v) => WALL_SETS[v.style] || WALLS;
-  const WALL_BLOCKS = new Set([B.PLANKS, B.STONE, B.MASONRY, B.PALISADE, B.IRONWALL, B.VOIDWALL, B.TORCH, B.LOG, B.REGOLITH, B.BASALT, B.MOONGLOW, B.RINGSHARD]);
+  const WALL_BLOCKS = new Set([B.PLANKS, B.STONE, B.MASONRY, B.PALISADE, B.IRONWALL, B.VOIDWALL, B.TORCH, B.LOG, B.REGOLITH, B.BASALT, B.MOONGLOW, B.RINGSHARD, B.GATE]);
   const LEVELS = [0, 90, 300, 700, 1500]; // lifetime Shards earned for level 1..5
   const EXPAND = { level: 2, cost: { shards: 200, items: { planks: 40 } } };
   const SHOP_BUILD = {
@@ -10423,6 +10806,7 @@ const Village = (() => {
     stables: { name: 'Riding School', marker: B.LOG, level: 2, cost: { shards: 300, items: { planks: 30 } } },
     aerie: { name: 'Flying School', marker: B.CLOUD, level: 2, cost: { shards: 300, items: { planks: 30 } } },
     station: { name: 'Station', marker: B.IRON, level: 1, cost: { shards: 200, items: { planks: 30, iron: 8 } } },
+    games: { name: 'Games Hall', marker: B.GOLD, level: 1, cost: { shards: 250, items: { planks: 24 } } },
     kinmarket: { name: 'Kin Sale Yard', marker: B.LOG, level: 2, cost: { shards: 400, items: { planks: 30 } } },
     kinshow: { name: 'Kin Show', marker: B.GOLD, level: 2, cost: { shards: 400, items: { planks: 30 } } },
     barber: { name: 'Barber', marker: B.GOLD, level: 2, cost: { shards: 300, items: { planks: 20 } } },
@@ -10448,6 +10832,7 @@ const Village = (() => {
     juice: { title: 'Juice Bar', keeper: 'Mira', greet: 'A smoothie mends a tired party. Tonics too, if you have the Shards.', stock: [{ item: 'smoothie', price: 15 }, { item: 'tonic_heal', price: 12 }, { item: 'tonic_vigor', price: 40 }] },
     voodoo: { title: 'Voodoo Hut', keeper: 'Mama Oyé', greet: 'Fainted Kin do not wake on their own. I wake them, for Shards.', stock: [{ service: 'rest', name: 'Revive and heal the whole party', price: 20 }, { item: 'tonic_revive', price: 25 }, { item: 'tonic_heal', price: 12 }] },
     trader: { title: 'Trader', keeper: 'Oskar', greet: 'Snares, planks, the odd crystal. Shards only. I buy too: ores, crystals, anything you dug up.', sell: true, stock: [{ item: 'snare', price: 12, n: 2 }, { item: 'snare2', price: 45 }, { item: 'planks', price: 6, n: 8 }, { item: 'void', price: 30 }, { item: 'glass', price: 5, n: 4 }, { item: 'snow', price: 9, n: 8 }, { item: 'frond', price: 4, n: 6 }, { item: 'iron', price: 20, n: 2 }, { item: 'copper', price: 14, n: 2 }, { item: 'ember', price: 12, n: 2 }] },
+    games: { title: 'Games Hall', keeper: 'The champion', greet: '', stock: [] },
     post: { title: 'Trading Post', keeper: 'Nadia', greet: 'Whatever the travellers bring in, I sell. New stock every two days.', stock: [] },
     armoury: { title: 'Armoury', keeper: 'Bram', greet: 'Blades and axes. Nothing here is for show.', stock: [] },
     armourer: { title: 'Armourer', keeper: 'Hilde', greet: 'Helms, plate, shields. Stand still, I need your size.', stock: [] },
@@ -10509,8 +10894,17 @@ const Village = (() => {
       const lv = Math.max(2, Math.min(KIN.capOf(sp), Math.round((G.trainerLevel || 1) * (0.6 + r() * 0.5)))); out.push({ service: 'kin', seed: sp.seed, level: lv, name: `${sp.names[0]}, Lv ${lv} · ${KIN.RARITY[rar].name} · from the ${sp.home.layer === 'Surface' ? sp.home.biome : sp.home.layer}`, price: Math.round(PR[rar] * (1 + lv / 40)) }); }
     return out;
   }
+  // ---- every town has its own game and its own champion, and you play them for shards. The stake goes down before the first move; the winner takes both ----
+  const GAME_ORDER = ['draughts', 'ringboard'], CHAMPS = ['Marta Steadyhand', 'Tobin Rook', 'Old Hesper', 'Ines Quill', 'Garrick Stone', 'Wenna Vale', 'Dorrit Crane', 'Osric Thorn', 'Liesel Marsh', 'Cato Finch'];
+  function gameOf(v) { const h = U.strHash(v.id), near = v.starter ? -1 : (PLANNED || []).filter(t => t.type === 'land').sort((a, b) => a.dist - b.dist).findIndex(t => t.id === v.id);
+    return { kind: v.starter ? 'ringboard' : GAME_ORDER[Math.max(0, near) % GAME_ORDER.length], champ: CHAMPS[h % CHAMPS.length], skill: U.clamp(0.22 + (v.tier || 0) * 0.14, 0.22, 1), stakes: [10, 40, 150].map(x => x * (1 + Math.min(4, v.tier || 0))) }; }
+  function gameStats(v) { const gs = G.stats.games || (G.stats.games = {}); return gs[v.id] || (gs[v.id] = { won: 0, lost: 0, day: -1, n: 0 }); }
+  function gamesDef(v) { const g = gameOf(v), K = Games.KINDS[g.kind], st = gameStats(v), first = g.champ.split(' ')[0];
+    const greet = st.won >= 3 ? `Champion of ${v.name}. That is you now, and I have not forgotten it. Sit down.` : st.won + st.lost === 0 ? `${K.blurb} I match whatever you put down. I do not lose often.` : `You have had ${st.won} off me. I have had ${st.lost} off you. Sit down.`;
+    return { title: `${K.name} · ${v.name}`, keeper: g.champ, greet, stock: g.stakes.map((stake, i) => ({ service: 'game', game: g.kind, stake, skill: g.skill, champ: g.champ, name: `${i === 0 ? 'A friendly game' : i === 1 ? 'A proper game' : 'For the title'}: ${stake} shards a side`, sub: i === 2 ? `Beat ${first} three times and the town calls you champion` : 'Winner takes both stakes', price: stake, btn: 'Play' })) }; }
   function shopDef(kind, v) {
     if (v && v.atlantis && kind === 'armoury') return atlForge(v);
+    if (kind === 'games' && v && typeof Games !== 'undefined') return gamesDef(v);
     if (kind === 'kinmarket' && v) { const d = SHOPS.kinmarket; const parade = (G.dayCount || 0) % 7 === 6; return Object.assign({}, d, { greet: parade ? 'PARADE DAY! The rare ones are in the ring this morning. Bid quick.' : d.greet + ` The parade is in ${6 - ((G.dayCount || 0) % 7)} day${6 - ((G.dayCount || 0) % 7) === 1 ? '' : 's'}.`, stock: saleStock(v) }); } const st = v && SHOP_STYLE[v.style]; const d = (st && st[kind]) || SHOPS[kind]; if (d && typeof Combat !== 'undefined' && world && world.preset.id === 'earth' && ['trader', 'armoury', 'armourer', 'alchemist'].includes(kind)) return Object.assign({}, d, { stock: d.stock.concat(Combat.rack(v, kind)) }); return d; }
   const POST_POOL = [
     { item: 'iron', n: 4, price: 28 }, { item: 'copper', n: 4, price: 22 }, { item: 'void', n: 2, price: 50 }, { item: 'cloud', n: 4, price: 20 }, { item: 'ember', n: 4, price: 18 },
@@ -10688,13 +11082,13 @@ const Village = (() => {
   // ================= towns as part of the world =================
   // A town's streets, houses, shops and levelled ground are drawn into each chunk as it is generated, like terrain, so nothing
   // the size of a city ever goes into the save. Only what you change yourself is saved.
-  const TOWN_R = { start: 34, hamlet: 24, town: 46, city: 66 };
+  const TOWN_R = { start: 34, hamlet: 40, town: 50, city: 66 }; // only the place you start in is small: the next one along is already a proper village, bigger than home
   const NCH = WORLD_W / CH;
   const TOWN_SHOPS = {
-    start: ['elder', 'bakery', 'juice', 'trader', 'voodoo', 'inn', 'restaurant', 'station'],
-    hamlet: ['elder', 'bakery', 'trader', 'voodoo', 'station'],
-    town: ['elder', 'bakery', 'juice', 'trader', 'voodoo', 'inn', 'restaurant', 'armoury', 'alchemist', 'post', 'daycare', 'station'],
-    city: ['elder', 'bakery', 'juice', 'trader', 'voodoo', 'inn', 'restaurant', 'armoury', 'armourer', 'alchemist', 'post', 'sanctuary', 'tailor', 'enchanter', 'cartographer', 'daycare', 'kinmarket', 'kinshow', 'restaurant', 'inn', 'station', 'stables', 'aerie'],
+    start: ['elder', 'bakery', 'juice', 'trader', 'voodoo', 'games', 'inn', 'restaurant', 'station'],
+    hamlet: ['elder', 'bakery', 'juice', 'trader', 'voodoo', 'games', 'inn', 'restaurant', 'armoury', 'alchemist', 'station'],
+    town: ['elder', 'bakery', 'juice', 'trader', 'voodoo', 'games', 'inn', 'restaurant', 'armoury', 'alchemist', 'post', 'daycare', 'station'],
+    city: ['elder', 'bakery', 'juice', 'trader', 'voodoo', 'inn', 'restaurant', 'armoury', 'armourer', 'alchemist', 'post', 'sanctuary', 'tailor', 'enchanter', 'cartographer', 'daycare', 'kinmarket', 'kinshow', 'games', 'restaurant', 'inn', 'station', 'stables', 'aerie'],
   };
   const towns = new Map(); // id -> layout
   function townList() { const out = []; const st = villages.get('start'); if (st && st.R) out.push(st); if (PLAN) for (const id of PLAN.keys()) { const v = villages.get(id); if (v && v.R) out.push(v); } return out; }
@@ -11361,7 +11755,7 @@ const Village = (() => {
   function furnishElder(hx, hz, dx, dz, vy) { world.setBlock(hx - dx * 2 + (dz ? 1 : 0), vy, hz - dz * 2 + (dx ? 1 : 0), B.PLANKS); world.setBlock(hx - dx * 2 + (dz ? 1 : 0), vy + 1, hz - dz * 2 + (dx ? 1 : 0), B.SNOW); side(hx, hz, dx, dz, vy, -1, B.LOG, B.CLOUD); }
   function furnishVoodoo(hx, hz, dx, dz, vy) { counter(hx, hz, dx, dz, vy); side(hx, hz, dx, dz, vy, 1, B.BASALT, B.VOID); side(hx, hz, dx, dz, vy, -1, B.BASALT, B.EMBER); }
   function furnishPost(hx, hz, dx, dz, vy) { counter(hx, hz, dx, dz, vy); side(hx, hz, dx, dz, vy, 1, B.IRON, B.GLASS); side(hx, hz, dx, dz, vy, -1, B.PLANKS, B.CLOUD); }
-  const FURNISH = { bakery: furnishBakery, juice: furnishJuice, trader: furnishTrader, voodoo: furnishVoodoo, post: furnishPost, armoury: furnishTrader, armourer: furnishTrader, alchemist: furnishJuice, inn: furnishBakery, restaurant: furnishBakery, sanctuary: furnishVoodoo, stables: furnishJuice, aerie: furnishPost, station: furnishPost, elder: furnishElder, tailor: furnishJuice, barber: furnishJuice, kinmarket: furnishBakery, kinshow: furnishElder, mirror: furnishPost, designer: furnishJuice, kinwear: furnishBakery, enchanter: furnishVoodoo, cartographer: furnishPost, daycare: furnishBakery };
+  const FURNISH = { bakery: furnishBakery, juice: furnishJuice, trader: furnishTrader, voodoo: furnishVoodoo, post: furnishPost, armoury: furnishTrader, armourer: furnishTrader, alchemist: furnishJuice, inn: furnishBakery, restaurant: furnishBakery, sanctuary: furnishVoodoo, stables: furnishJuice, aerie: furnishPost, station: furnishPost, games: furnishBakery, elder: furnishElder, tailor: furnishJuice, barber: furnishJuice, kinmarket: furnishBakery, kinshow: furnishElder, mirror: furnishPost, designer: furnishJuice, kinwear: furnishBakery, enchanter: furnishVoodoo, cartographer: furnishPost, daycare: furnishBakery };
 
   // ---- portals: every village has an arch; held villages' arches are dead, yours link up ----
   function portalBlock(v) { return v.type === 'land' ? { x: v.x + 5, y: v.y, z: v.z - 5 } : v.type === 'sea' ? { x: v.x - 3, y: v.y, z: v.z - 2 } : { x: v.x + 4, y: v.y, z: v.z - 4 }; }
@@ -11425,7 +11819,14 @@ const Village = (() => {
   function ringCols(v, st) {
     const wr = wallRadius(st); const out = []; const rl = v.R ? layout(v).rail : null;
     const railGate = (dx, dz) => { if (!rl) return false; return rl.ax ? (dx === rl.sgn * wr && Math.abs(v.z + dz - rl.line) <= 1) : (dz === rl.sgn * wr && Math.abs(v.x + dx - rl.line) <= 1); }; // the track goes out through its own opening
-    for (let dx = -wr; dx <= wr; dx++) for (let dz = -wr; dz <= wr; dz++) if (Math.max(Math.abs(dx), Math.abs(dz)) === wr) out.push([v.x + dx, v.z + dz, isGateCol(dx, dz, wr) || railGate(dx, dz)]);
+    // every opening is a proper gateway: a tall pier each side of it, the mark of its head at the middle, a light on the wall beyond each pier.
+    // Where the railway leaves beside the road they share a pier, and where the two openings touch they are one wide gate
+    const role = new Map();
+    for (let s = 0; s < 4; s++) { const P = (a) => s === 0 ? [wr, a] : s === 1 ? [-wr, a] : s === 2 ? [a, wr] : [a, -wr], g = (a) => { const [dx, dz] = P(a); return Math.abs(a) < wr && (isGateCol(dx, dz, wr) || railGate(dx, dz)); };
+      for (let a = -wr + 1; a < wr; a++) { if (!g(a) || g(a - 1)) continue; let b = a; while (g(b + 1)) b++;
+        for (let q = a; q <= b; q++) role.set(P(q).join(), 'gate'); role.set(P(Math.floor((a + b) / 2)).join(), 'mark');
+        for (const [q, r] of [[a - 1, 'post'], [b + 1, 'post'], [a - 2, 'light'], [b + 2, 'light']]) { if (Math.abs(q) > wr || g(q)) continue; const k = P(q).join(); if (r === 'post' || !role.has(k)) role.set(k, r); } } }
+    for (let dx = -wr; dx <= wr; dx++) for (let dz = -wr; dz <= wr; dz++) if (Math.max(Math.abs(dx), Math.abs(dz)) === wr) { const r = role.get(dx + ',' + dz); out.push([v.x + dx, v.z + dz, r === 'gate' || r === 'mark', r]); }
     return out;
   }
   // the line beyond the wall: dead level at the station's height for a good way, as a railway is. Low ground gets an embankment, a
@@ -11454,21 +11855,20 @@ const Village = (() => {
     const set = (x, y, z, id) => world.setBlock(x, y, z, id);
     const masonry = !(blk === B.PALISADE || blk === B.LOG || blk === B.REGOLITH); // stone and metal walls stand three high with battlements; a palisade is two posts tall
     const H = masonry ? 3 : 2;
-    for (const [x, z, gate] of ringCols(v, st)) {
+    for (const [x, z, gate, role] of ringCols(v, st)) {
       const gy = world.groundY(x, z, vy + 6);
       for (let y = Math.min(gy, vy) + 1; y <= vy + 7; y++) { const b = world.getBlock(x, y, z); if (b !== B.AIR && b !== B.WATER) set(x, y, z, B.AIR); }
       const dx = x - v.x, dz = z - v.z; const along = Math.abs(dx) === wr ? dz : dx; const corner = Math.abs(dx) === wr && Math.abs(dz) === wr;
-      if (gate) { // the gateway: floor under it, an arch over it with a merlon on top (masonry) or a lintel beam (palisade)
+      if (gate) { // the gateway: a floor under it, nothing in it for four blocks up (a train's chimney goes under), and the mark its head is drawn from
         if (!isSolid(world.getBlock(x, vy - 1, z))) set(x, vy - 1, z, M.floor);
-        const railCol = (() => { const rl = v.R ? layout(v).rail : null; if (!rl) return false; return rl.ax ? Math.abs(z - rl.line) <= 1 && dx === rl.sgn * wr : Math.abs(x - rl.line) <= 1 && dz === rl.sgn * wr; })();
-        if (masonry) { set(x, vy + 3, z, blk); if (along === 0) set(x, vy + 4, z, blk); } else set(x, vy + (railCol ? 3 : 2), z, B.LOG); // the train's chimney clears a lintel a block higher
+        if (role === 'mark') set(x, vy + 4, z, B.GATE);
         continue;
       }
-      const lightCol = (Math.abs(dx) === wr && Math.abs(dz) === 2) || (Math.abs(dz) === wr && Math.abs(dx) === 2);
-      const base = Math.min(gy + 1, vy), top = Math.max(vy + H - 1, gy + H);
-      const post = !masonry && (lightCol || corner); // in a palisade the gate flanks and corners are single stout posts that carry the lamps
+      const lightCol = role === 'light', pier = role === 'post';
+      const base = Math.min(gy + 1, vy), top = pier ? vy + 4 : Math.max(vy + H - 1, gy + H);
+      const post = !masonry && (lightCol || corner || pier); // in a palisade the piers of the gates, the corners and the posts that carry the lamps are single stout logs
       for (let y = base; y <= top; y++) set(x, y, z, post ? B.LOG : blk);
-      if (masonry) { if (corner) { for (let y = top + 1; y <= top + 3; y++) set(x, y, z, blk); } else if (along % 2 === 0) set(x, top + 1, z, blk); } // battlements, and a taller pier at each corner
+      if (masonry && !pier) { if (corner) { for (let y = top + 1; y <= top + 3; y++) set(x, y, z, blk); } else if (along % 2 === 0) set(x, top + 1, z, blk); } // battlements, and a taller pier at each corner
       if (lightCol) set(x, top + (masonry && along % 2 === 0 ? 2 : 1), z, M.light);
     }
     for (const [x, z] of st.holeCols) for (let y = vy; y <= vy + 4; y++) if (world.getBlock(x, y, z) !== B.AIR) set(x, y, z, B.AIR);
@@ -11723,7 +12123,7 @@ const Village = (() => {
       let y; const aquatic = v.type !== 'land';
       if (aquatic) y = v.type === 'sea' ? SEA - 1 : v.y + 3; else { const gy = world.groundY(c.x, c.z, v.y + 8); y = gy + 1; }
       const px = c.az ? 1 : 0, pz = c.ax ? 1 : 0; // across the road
-      const e = Wild.makeEntity(sp, Math.max(2, bossLevelFor(v) - 2 + i), c.x + 0.5, y, c.z + 0.5, { elite: true, senseR: 5.2 + 0.4 * i, aquatic, patrol: { ax: c.x + 0.5 - px * 2.5, az: c.z + 0.5 - pz * 2.5, bx: c.x + 0.5 + px * 2.5, bz: c.z + 0.5 + pz * 2.5, period: 6 + i, phase: 0 } });
+      const e = Wild.makeEntity(sp, Math.max(2, bossLevelFor(v) - 2 + i), c.x + 0.5, y, c.z + 0.5, { elite: true, wear: { item: 'bound' }, senseR: 5.2 + 0.4 * i, aquatic, patrol: { ax: c.x + 0.5 - px * 2.5, az: c.z + 0.5 - pz * 2.5, bx: c.x + 0.5 + px * 2.5, bz: c.z + 0.5 + pz * 2.5, period: 6 + i, phase: 0 } });
       e.lieutenant = { id: v.id, i }; e.speed = 1.4; e.flying = false; e.siegeAble = true;
       Wild.list.push(e); v.lieus[i] = e;
     }
@@ -12037,13 +12437,13 @@ const Village = (() => {
     const sp = KIN.species(h, [prim], 1 + v.tier, { primary: prim, shape, total: 285 + v.tier * 40, neon: world.preset.id !== 'earth' });
     const tn = styleOf(v) ? STYLE_NAMES[v.style].tyrant : null;
     const nm = v.starter ? 'Grakor the Tyrant' : tn ? tn[h % tn.length] : TYRANT[h % TYRANT.length] + ' the Tyrant';
-    sp.names = [nm, nm, nm]; sp.feat.horns = true; sp.feat.spikes = true; sp.feat.crest = true; sp.size = 1.25 + v.tier * 0.08; sp.boss = true;
+    sp.names = [nm, nm, nm]; sp.feat.horns = true; sp.feat.spikes = true; sp.feat.crest = true; sp.size = 1.5 + v.tier * 0.08; sp.boss = true; sp.colors = Object.assign({}, sp.colors, { eye: '#c58bff' }); // the eyes of the Bound are the colour of the crystal
     const kin = KIN.create(sp, bossLevelFor(v));
-    const m = KIN.model(sp, 2);
+    const m = KIN.dress(KIN.model(sp, 2), { item: 'tyrant' }); // crowned in iron, the shard of the Binding on its chest
     const bx = v.type === 'deep' ? v.x - 0.5 : v.x + 0.5, bz = v.z + 2.5;
     // at sea the tyrant lurks under the deck and comes up when you reach the platform, however you got there
     const lurk = v.type === 'sea'; const by = lurk ? SEA - 3 : v.y;
-    v.boss = { kin, x: bx, y: by, z: bz, yaw: Math.PI, tx: bx, tz: bz, wait: 99, speed: 0, senseR: lurk ? 0 : 5.5, alert: 0, model: m, scale: 1, hover: 0, bob: 0, mesh: R.entityMesh(KIN.meshKey(sp, 2) + ':boss:' + v.id, (mb) => KIN.buildMesh(mb, m)), skyMul: 1, isBoss: true, villageId: v.id, sleep: lurk, aquatic: lurk, lurk, patrol: { ax: bx - 3, az: bz, bx: bx + 3, bz: bz, period: lurk ? 12 : 8, phase: 0 }, skyT: 0, elite: true };
+    v.boss = { kin, x: bx, y: by, z: bz, yaw: Math.PI, tx: bx, tz: bz, wait: 99, speed: 0, senseR: lurk ? 0 : 5.5, alert: 0, model: m, scale: 1, hover: 0, bob: 0, mesh: R.entityMesh(KIN.meshKey(sp, 2) + ':tyrant:' + v.id, (mb) => KIN.buildMesh(mb, m)), skyMul: 1, isBoss: true, villageId: v.id, sleep: lurk, aquatic: lurk, lurk, patrol: { ax: bx - 3, az: bz, bx: bx + 3, bz: bz, period: lurk ? 12 : 8, phase: 0 }, skyT: 0, elite: true };
     Wild.list.push(v.boss);
   }
   // touching the table in a village the tyrant still holds brings him down on you
@@ -12252,7 +12652,7 @@ const Village = (() => {
       st.report = { night, text: `Raiders came and the ${st.guards.length ? 'guards and the ' : ''}wall held.` }; return false;
     }
     const holes = 2 + Math.floor(U.hash3(night, 9, U.strHash(v.id), world.seed) * 3);
-    if (v.type === 'land' && !v.founded) { const cols = ringCols(v, st).filter(c => !c[2]); for (let i = 0; i < holes && st.holeCols.length < 12; i++) { const c = cols[Math.floor(U.hash3(night, 20 + i, U.strHash(v.id), world.seed) * cols.length)]; if (!st.holeCols.some(h => h[0] === c[0] && h[1] === c[1])) st.holeCols.push([c[0], c[1]]); } if (villages.get(v.id) === v && state(v.id).stamped && (active === v || dist2d(v.x, v.z, G.player.x, G.player.z) < 120)) stampWall(v, st); }
+    if (v.type === 'land' && !v.founded) { const cols = ringCols(v, st).filter(c => !c[2] && c[3] !== 'post'); for (let i = 0; i < holes && st.holeCols.length < 12; i++) { const c = cols[Math.floor(U.hash3(night, 20 + i, U.strHash(v.id), world.seed) * cols.length)]; if (!st.holeCols.some(h => h[0] === c[0] && h[1] === c[1])) st.holeCols.push([c[0], c[1]]); } if (villages.get(v.id) === v && state(v.id).stamped && (active === v || dist2d(v.x, v.z, G.player.x, G.player.z) < 120)) stampWall(v, st); }
     const alive = st.guards.filter(k => k.hp > 0).sort((a, b) => guardPower(a) - guardPower(b));
     if (alive.length) { alive[0].hp = 0; for (const k of alive.slice(1)) k.hp = Math.max(1, k.hp - KIN.stats(k).hp * 0.3); }
     st.report = { night, text: `Raiders broke through${holes ? ' and tore ' + holes + ' holes in the wall' : ''}. The village barricaded itself: no pay.${alive.length ? ' ' + KIN.name(alive[0]) + ' fell.' : ''}` };
@@ -12304,6 +12704,7 @@ const Village = (() => {
     pay(next.cost); clearWall(v, st); st.wall++; st.holeCols = []; stampWall(v, st); // the ring comes down and goes up again in the new material, battlements and all
     return null;
   }
+  function designerWall(v, n) { const st = state(v.id); if (v.type !== 'land' || v.founded || !wallSet(v)[n]) return false; clearWall(v, st); st.wall = n; st.holeCols = []; stampWall(v, st); return true; } // for looking at a wall in each of its materials without paying for it: the tests use it
   function repairWall(v) {
     const st = state(v.id); const n = st.holeCols.length; if (!n) return 'The wall is whole.';
     const cost = { shards: 5 * n }; if (!canPay(cost)) return `Repairs cost ◆ ${cost.shards}.`;
@@ -12788,6 +13189,14 @@ const Village = (() => {
     }
     const price = entry.price; if (G.shards < price) { UI.toast('Not enough Shards.', 'bad'); return false; }
     if (entry.service === 'locked') { UI.toast(entry.sub || 'Not yet.'); return false; }
+    if (entry.service === 'game') { const v = active, st = gameStats(v), day = G.dayCount || 0, first = entry.champ.split(' ')[0]; if (st.day !== day) { st.day = day; st.n = 0; }
+      if (st.n >= 5) { UI.toast(`${first} has played enough for one day. Come back tomorrow.`); return false; } if (G.shards < entry.stake) { UI.toast('You have not got the stake.', 'bad'); return false; }
+      G.shards -= entry.stake; st.n++; UI.closePanel(); // the stake is on the table before the first move: walk away and it stays there
+      Games.play(entry.game, { champ: entry.champ, stake: entry.stake, skill: entry.skill, onEnd: (res) => {
+        if (res === 'win') { G.shards += entry.stake * 2; st.won++; UI.sfx('caught'); UI.toast(`${entry.stake} shards off ${first}.`, 'good'); if (st.won === 3) UI.toast(`They chalk your name over the board: champion of ${v.name}.`, 'good'); }
+        else if (res === 'draw') { G.shards += entry.stake; UI.toast('A draw. You take your stake back.'); } else { st.lost++; UI.toast(`${first} takes your ${entry.stake} shards.`, 'bad'); }
+        if (G.save) G.save(); } });
+      return true; }
     if (entry.service === 'meal') { if (G.shards < price) { UI.toast('Not enough Shards.', 'bad'); return false; } G.shards -= price; G.addBuff(entry.buff, entry.amt, entry.mins); UI.sfx('caught'); UI.toast(entry.name.split(':')[0] + '. ' + entry.name.split(':')[1].trim() + '.', 'good'); return true; }
     if (entry.service === 'teach') { const k = G.kin[G.activeIdx]; if (!k) return false; if (k.tech) { UI.toast(`${KIN.name(k)} already knows ${k.tech}.`); return false; } const pr = 60 + k.level * 12; if (G.shards < pr) { UI.toast(`Teaching ${KIN.name(k)} costs ${pr} shards.`, 'bad'); return false; } G.shards -= pr; k.tech = KIN.techFor(k); UI.sfx('quest'); UI.toast(`${KIN.name(k)} learned ${k.tech}.`, 'good'); return true; }
     if (entry.service === 'kin') { if (G.shards < price) { UI.toast('Not enough Shards.', 'bad'); return false; } const sp = KIN.bySeed(entry.seed); if (!sp) return false; const st0 = G.stats.boughtKin || (G.stats.boughtKin = {}); const key = (G.dayCount || 0) + ':' + entry.seed; if (st0[key]) { UI.toast('Sold already. Come back tomorrow.'); return false; } G.shards -= price; st0[key] = true; const k = KIN.create(sp, entry.level); const where = G.addKin(k); G.seenDex(k.sp, 'caught'); UI.sfx('caught'); UI.toast(`${KIN.name(k)} is yours${where === 'party' ? '' : ' (sent to storage: your party is full)'}.`, 'good'); return true; }
@@ -12852,7 +13261,7 @@ const Village = (() => {
   }
   // which quarter of a city a spot is in (null in the square, on the castle hill, or outside a city)
   function quarterAt(v, x, z) { if (!v || !v.R || v.size !== 'city' || (MATS[v.style] || MATS.land) !== MATS.land) return null; const dx = x - v.x, dz = z - v.z, m = Math.max(Math.abs(dx), Math.abs(dz)); if (m > v.R - 4 || m <= 7 || (Math.abs(dx) <= 14 && dz <= -v.R + 28)) return null; return QUARTERS[quarterOf(dx, dz)].name; }
-  return { atlantis: () => { if (world && world.preset.id === 'earth') plan(); return ATL; }, railAt, quarterAt, plotsOf, plotPrice, ownsPlotAt, buyPlot, enterShow, thiefCaught, layout, townList, init, stamp, restoreStart, update, pick, talk, entities, buy, boardTrain, trainArrive, trainFilm, trainOf, sell, sellValue, raiseDome, shopDef, freed, onBossGone, lieutenantDown, tableChallenge, placeKit, portalList, portalHere, markers, wakeDialogue, questTarget, dawn, pendingIncome, foundingInfo, foundVillage, summaryHtml, ledger, station, recall, upgradeWall, repairWall, expand, build, postShop, levelOf, SHOPS, WALLS,
+  return { designerWall, wallRadiusOf: (v) => wallRadius(state(v.id)), atlantis: () => { if (world && world.preset.id === 'earth') plan(); return ATL; }, railAt, quarterAt, plotsOf, plotPrice, ownsPlotAt, buyPlot, enterShow, thiefCaught, layout, townList, init, stamp, restoreStart, update, pick, talk, entities, buy, boardTrain, trainArrive, trainFilm, trainOf, sell, sellValue, raiseDome, shopDef, freed, onBossGone, lieutenantDown, tableChallenge, placeKit, portalList, portalHere, markers, wakeDialogue, questTarget, dawn, pendingIncome, foundingInfo, foundVillage, summaryHtml, ledger, station, recall, upgradeWall, repairWall, expand, build, postShop, levelOf, SHOPS, WALLS,
     get def() { return active ? { x: active.x, y: active.y, z: active.z } : null; }, set def(v) { restoreStart(v); }, get active() { return active; }, get boss() { return active ? active.boss : null; }, get elder() { return active ? active.elder : null; }, get walking() { return !!walkState; }, get fisher() { return fisher; } };
 })();
 
@@ -16332,7 +16741,7 @@ const UI = (() => {
       <div class="settings"><button class="btn ghost tog on" id="m-camera">Camera <span>${G.thirdPerson ? 'third person' : 'first person'}</span></button><button class="btn ghost tog on" id="m-skins">Skin <span>${Avatar.skin().name}</span></button></div>
       <h4>Designer shortcuts</h4>
       <p class="small">For looking at new work without making the journey. They move you, nothing else: no quest is skipped and nothing is given.</p>
-      <div class="settings"><button class="btn ghost" id="m-go-atl">Go to Atlantis</button><button class="btn ghost" id="m-go-home">Back to the first village</button></div>
+      <div class="settings"><button class="btn ghost" id="m-go-atl">Go to Atlantis</button><button class="btn ghost" id="m-go-lost">Go to the Lost World</button><button class="btn ghost" id="m-go-home">Back to the first village</button></div>
       <h4>How to play</h4>
       <p class="small">${Controls.isTouch ? 'Left stick walks; drag anywhere on the right of the screen to turn the camera. <b>Hold</b> to mine, or to block when you hold a weapon; <b>tap</b> to place a block, swing, talk, or use a Fusion Table. ▲ jumps, ▼ crouches, hold ▲ in the air with a Glider to glide. In third person the camera orbits you: swing it round to see your face, or your Kin\'s.' : 'WASD to move, mouse to look, <b>hold left click</b> to mine or block, <b>right click</b> to place or use. Space jumps, Shift sneaks, 1-9 or the wheel pick an item. E opens Craft, Q opens Kin, J opens Quests, V switches the camera, F deploys a Kin or sets a snare. Esc releases the mouse.'}</p>
       <p class="small">Chests (Craft › Blocks) keep what you store in them through anything. Amulets come from the people by the fires on the road; nobody sells them. Third person shows your skin: unlock more by playing.</p>
@@ -16345,7 +16754,7 @@ const UI = (() => {
     </div>`;
     q('m-save').addEventListener('click', () => { toast(G.save() ? `Saved${G.gameName ? ' · ' + G.gameName : ''}.` : 'Saving is not available here.'); });
     q('m-games').addEventListener('click', () => G.toGames(false));
-    q('m-go-atl').addEventListener('click', () => G.designerJump('atlantis')); q('m-go-home').addEventListener('click', () => G.designerJump('home'));
+    q('m-go-atl').addEventListener('click', () => G.designerJump('atlantis')); q('m-go-lost').addEventListener('click', () => G.designerJump('lost')); q('m-go-home').addEventListener('click', () => G.designerJump('home'));
     q('m-sound').addEventListener('click', () => { soundOn = !soundOn; if (!soundOn) Music.stop(); renderMenu(); });
     q('m-music').addEventListener('click', () => { Music.setEnabled(!Music.enabled); renderMenu(); });
     q('m-map').addEventListener('click', () => { setMinimap(!MM.on); renderMenu(); });
@@ -18652,6 +19061,7 @@ G.mountBase = function (p) { return p.inWater ? p.y - 0.95 : p.y + p.drawLift();
 G.designerJump = function (where) {
   const p = this.player, w = this.world; if (Battle.active || Taming.active) return; let x, y = null, z, say;
   if (where === 'atlantis') { if (this.worldId !== 'earth') { UI.toast('Atlantis is on Earth.'); return; } const a = Village.atlantis(); if (!a) { UI.toast('This world has no water deep and wide enough for Atlantis.', 'bad'); return; } x = a.x + 0.5; z = a.z + 15.5; y = a.y + 0.1; say = 'Atlantis. The ring is in front of you, the gates are at the foot of the dome, and the way out is up the falls.'; }
+  else if (where === 'lost') { if (this.worldId !== 'earth' || !w.lost) { UI.toast('The Lost World is on Earth.'); return; } x = w.lost.x + 62.5; z = w.lost.z + 0.5; say = 'The Lost World. The tyrant\'s clearing is in the middle: keep out of it unless you mean it.'; }
   else { const s = (this.worldId === 'earth' && this.village) ? { x: this.village.x + 0.5, z: this.village.z + 4.5 } : w.spawn; x = s.x; z = s.z; say = 'Back at the first village.'; }
   p.mount = null; p.flying = false; p.gliding = false; p.vx = p.vy = p.vz = 0; p.fallStart = null; p.frozen = false;
   w.ensureAround(Math.floor(x / CH), Math.floor(z / CH), 2, 9999); if (y == null) y = w.groundY(Math.floor(x), Math.floor(z)) + 1.2;

@@ -212,6 +212,7 @@ G.mountBase = function (p) { return p.inWater ? p.y - 0.95 : p.y + p.drawLift();
 G.designerJump = function (where) {
   const p = this.player, w = this.world; if (Battle.active || Taming.active) return; let x, y = null, z, say;
   if (where === 'atlantis') { if (this.worldId !== 'earth') { UI.toast('Atlantis is on Earth.'); return; } const a = Village.atlantis(); if (!a) { UI.toast('This world has no water deep and wide enough for Atlantis.', 'bad'); return; } x = a.x + 0.5; z = a.z + 15.5; y = a.y + 0.1; say = 'Atlantis. The ring is in front of you, the gates are at the foot of the dome, and the way out is up the falls.'; }
+  else if (where === 'lost') { if (this.worldId !== 'earth' || !w.lost) { UI.toast('The Lost World is on Earth.'); return; } x = w.lost.x + 62.5; z = w.lost.z + 0.5; say = 'The Lost World. The tyrant\'s clearing is in the middle: keep out of it unless you mean it.'; }
   else { const s = (this.worldId === 'earth' && this.village) ? { x: this.village.x + 0.5, z: this.village.z + 4.5 } : w.spawn; x = s.x; z = s.z; say = 'Back at the first village.'; }
   p.mount = null; p.flying = false; p.gliding = false; p.vx = p.vy = p.vz = 0; p.fallStart = null; p.frozen = false;
   w.ensureAround(Math.floor(x / CH), Math.floor(z / CH), 2, 9999); if (y == null) y = w.groundY(Math.floor(x), Math.floor(z)) + 1.2;
