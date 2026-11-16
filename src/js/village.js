@@ -1824,7 +1824,10 @@ const Village = (() => {
     const sp = KIN.species(h, [prim], 1 + v.tier, { primary: prim, shape, total: 285 + v.tier * 40, neon: world.preset.id !== 'earth' });
     const tn = styleOf(v) ? STYLE_NAMES[v.style].tyrant : null;
     const cast = castOf(v, h), nm = v.starter ? 'Grakor the Tyrant' : cast ? (cast.full ? cast.name : cast.name + ' the Tyrant') : tn ? tn[h % tn.length] : TYRANT[h % TYRANT.length] + ' the Tyrant';
-    if (shape === 'biped') { const PAL = prim === 'Tide' ? [['#4d6470', '#aebfba', '#1f2c33'], ['#56707a', '#c4cfc0', '#222f36']] : prim === 'Void' ? [['#4a4358', '#a79fb0', '#1c1824'], ['#3f4a55', '#9aa6ab', '#191f25']] : [['#8a7a66', '#d8c8a4', '#3a322a'], ['#96785a', '#e0c698', '#40301f'], ['#7f7468', '#cdbfa6', '#352f2a'], ['#8f6f5e', '#dcc0a0', '#3d2c26']], c = PAL[(cast ? cast.pal : h) % PAL.length];
+    const md = cast ? cast.mood : (h >>> 3) % 3;
+    if (shape === 'biped' && v.type === 'land' && md !== 1) { const c = md === 0 ? [['#3f8a6a', '#e6dc9a', '#17392e'], ['#5a7fa0', '#e8e2b4', '#1c2f44'], ['#8a8a3a', '#f0e6a8', '#35360f']] : [['#9a7438', '#efdfae', '#3f2a12'], ['#6f8a3c', '#eee8b0', '#28340f'], ['#a05a4a', '#f2d6b8', '#40201a']], q = c[(cast ? 0 : h) % 3];
+      sp.colors = { body: q[0], belly: q[1], dark: q[2], accent: '#b070ff', eye: md === 0 ? '#ffd24a' : '#c58bff' }; sp.natId = md === 0 ? 'x_tyr_liz' : 'x_tyr_toad'; KIN.nativize(sp); } // each of them is a creature of his own: the sly one a lizard up on his hind legs, the merry one a toad, the grim one the ape of rock
+    else if (shape === 'biped') { const PAL = prim === 'Tide' ? [['#4d6470', '#aebfba', '#1f2c33'], ['#56707a', '#c4cfc0', '#222f36']] : prim === 'Void' ? [['#4a4358', '#a79fb0', '#1c1824'], ['#3f4a55', '#9aa6ab', '#191f25']] : [['#8a7a66', '#d8c8a4', '#3a322a'], ['#96785a', '#e0c698', '#40301f'], ['#7f7468', '#cdbfa6', '#352f2a'], ['#8f6f5e', '#dcc0a0', '#3d2c26']], c = PAL[(cast ? cast.pal : h) % PAL.length];
       sp.colors = { body: c[0], belly: c[1], dark: c[2], accent: '#b070ff', eye: '#c58bff' }; sp.natId = 'x_tyrant'; KIN.nativize(sp); } // a tyrant who walks on two legs is a shape of his own, not one of the wild Kin grown large
     else { const PL = shape === 'floater' ? ['x_tyr_moon', [['#9fb6d8', '#e8f0ff', '#2a3350', '#7df0ff'], ['#b8a8dc', '#f0eaff', '#33284f', '#ffd27a'], ['#8fcfc4', '#e6fff8', '#1f3d40', '#ff9ad8']]] : shape === 'quadruped' ? ['x_tyr_halo', [['#5a3526', '#d08a4a', '#241410', '#ff7a1e'], ['#4a3030', '#c9785a', '#1e1212', '#ffb020'], ['#3f3a36', '#b89070', '#191614', '#ff5a2a']]] : ['x_tyr_sea', [['#2f6a5c', '#d8e6b8', '#12302a', '#ffd84a'], ['#3a5f86', '#dfe8d0', '#152a40', '#5affd0'], ['#6a4a7a', '#ead8e0', '#2a1a36', '#ff8ab0']]], c = PL[1][(cast ? cast.pal : h) % PL[1].length];
       sp.colors = { body: c[0], belly: c[1], dark: c[2], accent: c[3], eye: '#c58bff' }; sp.natId = PL[0]; KIN.nativize(sp); } // and so are the Moon's, the Halo's and the one under the sea
@@ -1832,7 +1835,8 @@ const Village = (() => {
     sp.names = [nm, nm, nm]; sp.feat.horns = true; sp.feat.spikes = true; sp.feat.crest = true; sp.size = 1.5 + v.tier * 0.08; sp.boss = true; sp.colors = Object.assign({}, sp.colors, { eye: '#c58bff' }); // the eyes of the Bound are the colour of the crystal
     const lastStand = cast && !cast.full && metCount(cast.name) >= LAST_AT; if (cast) state(v.id).tyrant = cast.name; if (lastStand) { sp.size *= 1.12; sp.names = sp.names.map(() => cast.name + ', at the last'); }
     const kin = KIN.create(sp, bossLevelFor(v) + (lastStand ? 4 : 0));
-    const m = KIN.dress(KIN.model(sp, 2), { item: 'tyrant' }); // crowned in iron, the shard of the Binding on its chest
+    const m0 = KIN.model(sp, 2); if (sp.natId === 'x_tyr_liz' || sp.natId === 'x_tyr_toad') m0.noCrown = true; // those two wear crowns of their own
+    const m = sp.natId === 'x_tyr_toad' ? m0 : KIN.dress(m0, { item: 'tyrant' }); // the toad has no neck to strap anything to: his shard is pinned on with the medals // crowned in iron, the shard of the Binding on its chest
     const bx = v.type === 'deep' ? v.x - 0.5 : v.x + 0.5, bz = v.z + 2.5;
     // at sea the tyrant lurks under the deck and comes up when you reach the platform, however you got there
     const lurk = v.type === 'sea'; const by = lurk ? SEA - 3 : v.y;
