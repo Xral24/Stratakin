@@ -30,7 +30,7 @@ const Npcs = (() => {
     amulet_haste: { name: 'Amulet of Haste', col: '#ffe34a', amulet: 'haste', desc: 'Activate: you walk and swim 60% faster for 45 seconds.', dur: 45 },
     amulet_skin: { name: 'Amulet of Iron Skin', col: '#8f98a6', amulet: 'skin', desc: 'Activate: everything hurts you half as much for a minute. Worms and falling stones included.', dur: 60 },
     amulet_focus: { name: 'Amulet of Focus', col: '#ff8a3a', amulet: 'focus', desc: 'Activate: your Kin hit 25% harder for the next three fights.', charges: 3 },
-    amulet_hunter: { name: "Hunter's Amulet", col: '#7fe0c0', amulet: 'hunter', desc: 'Activate: your next three snares have half again the catch chance.', charges: 3 },
+    amulet_hunter: { name: "Hunter's Amulet", col: '#7fe0c0', amulet: 'hunter', desc: 'Activate: your next three nets have half again the catch chance.', charges: 3 },
     amulet_mender: { name: "Mender's Amulet", col: '#ff5f7a', amulet: 'mender', desc: 'Activate: every Kin with you wakes and heals, wherever you are.' },
     amulet_shadow: { name: 'Amulet of Shadow', col: '#5a2a9a', amulet: 'shadow', desc: 'Activate: wild Kin and camp guards do not notice you for a minute.', dur: 60 },
   };

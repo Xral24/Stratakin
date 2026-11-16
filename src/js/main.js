@@ -117,7 +117,7 @@ G.dropItem = function (key, n) {
   p.take(key, take); UI.sfx('miss'); UI.toast(`Dropped ${info.name} ×${take}.`); UI.renderHotbar();
 };
 G.dropSelected = function (n) { this.dropItem(this.player.selected(), n); };
-// ---------- stealth snare ----------
+// ---------- stealth net ----------
 G.stealthTarget = function () {
   const p = this.player; let best = null, bd = Infinity;
   for (const e of Wild.list) {
@@ -131,7 +131,7 @@ G.stealthTarget = function () {
 };
 G.stealthSnare = function () {
   const e = this.stealthTarget(); if (!e || Battle.active) return;
-  if (!this.player.has('snare') && !this.player.has('snare2')) { UI.toast('No snares. Craft one: 2 wood, 2 stone.'); return; }
+  if (!this.player.has('snare') && !this.player.has('snare2')) { UI.toast('No nets. Craft one: 2 wood, 2 stone.'); return; }
   if (!this.healthyKin().length) { UI.toast('You need an awake Kin with you to set a snare.'); return; }
   Battle.start(e, true, { stealth: true });
 };
@@ -538,7 +538,7 @@ G.onBattleEnd = function (result, wildE, wild, mine, ambush) {
     if (result === 'won') {
       const dom = KIN.dominant(wild.sp.elem, 1)[0];
       if (Math.random() < ((wild.sp.rarity || 0) >= 2 || wildE.elite ? 1 : 0.6)) { p.add('ess_' + dom, 1); UI.toast(`${dom} Essence collected.`); }
-      if (st) { this.stats.mythicDone = true; UI.toast('The Mantlewyrm sinks back into the Starmetal. Next time, bring Void Snares.', 'good'); }
+      if (st) { this.stats.mythicDone = true; UI.toast('The Mantlewyrm sinks back into the Starmetal. Next time, bring Void Nets.', 'good'); }
     } else {
       wild.buffs = null; wild.hp = Math.max(1, wild.hp);
       this.stats.caught++; this.seenDex(wild.sp, "caught");
@@ -779,7 +779,7 @@ G.loop = function (t) {
         this.questTimer = 0;
         for (const ev of Quests.update()) {
           if (ev.type === 'quest') { UI.sfx('quest'); UI.toast(`Quest complete: ${ev.q.title}`, 'good'); document.getElementById('quest-dot').classList.remove('hidden'); }
-          if (ev.type === 'bounty') { UI.sfx('quest'); UI.toast(`Bounty ${ev.round - 1} paid: a Snare Cube and XP.`, 'good'); }
+          if (ev.type === 'bounty') { UI.sfx('quest'); UI.toast(`Bounty ${ev.round - 1} paid: a Cast Net and XP.`, 'good'); }
         }
       }
       Battle.tick(dt); // particle effects outside fights (guards at the walls)
@@ -904,7 +904,7 @@ G.onTap = function () {
   // with a weapon in hand, a tap on something you use (the camp fire, a table, a door, a chest, a bed) still uses it; anything else is a swing
   const usable = hit && !e && (hit.id === B.CAMPFIRE || hit.id === B.FUSION || hit.id === B.DARKTABLE || hit.id === B.STARMETAL || hit.id === B.PORTAL || hit.id === B.DOOR || hit.id === B.DOOR_OPEN || hit.id === B.CHEST || hit.id === B.BOOKS || hit.id === B.INCUBATOR || hit.id === B.BED || hit.id === B.THORN || hit.id === B.DEADGATE || hit.id === B.RUBBLE);
   if (Combat.weapon() && !usable && !(e && e.rogue) && !(e && e.dazed > 0)) { Combat.swing(); return; }
-  if (e && e.dazed > 0) { if (p.has('snare') || p.has('snare2')) { this.stealthSnare(); } else UI.toast('It is dazed. A snare would take it now: 2 wood, 2 stone.'); return; }
+  if (e && e.dazed > 0) { if (p.has('snare') || p.has('snare2')) { this.stealthSnare(); } else UI.toast('It is dazed. A net would take it now: 2 wood, 2 stone.'); return; }
   if (e && e.rogue) { const c = Campaign.C(); if (c.ranch !== 2) { UI.toast('Thunderhoof flattens his ears at you. Talk to Dusty Hale first.'); return; } const k = KIN.create(e.kin.sp, e.kin.level); Taming.start(k, { hard: true, ent: e, onDone: (kk) => { kk.tamed = true; this.addKin(kk); Campaign.onRogueTamed(kk); UI.toast('Thunderhoof is yours, and you can ride now. Every Kin still has to be broken in once: press Ride and hold on.', 'good'); } }); return; }
   if (e && (!hit || Math.hypot(e.x - p.x, e.z - p.z, e.y - p.y) < hit.dist + 0.5)) {
     if (e.cool > 0) e.cool = 0;
@@ -916,10 +916,10 @@ G.onTap = function () {
   const interactable = hit && (hit.id === B.CAMPFIRE || hit.id === B.FUSION || hit.id === B.DARKTABLE || hit.id === B.STARMETAL || hit.id === B.PORTAL || hit.id === B.DOOR || hit.id === B.DOOR_OPEN || hit.id === B.CHEST || hit.id === B.INCUBATOR || hit.id === B.BOOKS);
   if (!interactable && selInfo && selInfo.rod) { Fishing.cast(); return; }
   if (!interactable && selInfo && selInfo.use) { this.useItem(p.selected()); return; }
-  if (!interactable && selInfo && selInfo.snare) { if (this.stealthTarget()) { this.stealthSnare(); } else UI.toast('Snares work in a fight, or sneak up close behind an unaware Kin and press Set snare.'); return; }
+  if (!interactable && selInfo && selInfo.snare) { if (this.stealthTarget()) { this.stealthSnare(); } else UI.toast('Snares work in a fight, or sneak up close behind an unaware Kin and press Throw net.'); return; }
   const ev = p.place();
   if (!ev) return;
-  if (ev.interact === 'fusion') { if (ev.dark && !Keeps.tableOpen(ev.x, ev.z)) { UI.toast('The warlord\'s table. It will not answer you until this place is yours.', 'bad'); return; } if (!ev.dark && Village.tableChallenge()) return; if (ev.dark && !this.stats.darkTold) { this.stats.darkTold = true; this.explain('The Dark Fusion Table', 'The Kinmaster\'s own table. It is the only one that takes dark materials: Void Crystal, Void Essence and Void Stones. Every fusion that needs a Void Stone, the Void Snare, and anything else made with Void has to be made here.'); } UI.openPanel('fusion', { table: { x: ev.x, y: ev.y, z: ev.z }, dark: !!ev.dark }); if (!ev.dark) UI.openPanel('table', { table: { x: ev.x, y: ev.y, z: ev.z } }); return; } // tapping a table asks what you came for: crafting or Kin
+  if (ev.interact === 'fusion') { if (ev.dark && !Keeps.tableOpen(ev.x, ev.z)) { UI.toast('The warlord\'s table. It will not answer you until this place is yours.', 'bad'); return; } if (!ev.dark && Village.tableChallenge()) return; if (ev.dark && !this.stats.darkTold) { this.stats.darkTold = true; this.explain('The Dark Fusion Table', 'The Kinmaster\'s own table. It is the only one that takes dark materials: Void Crystal, Void Essence and Void Stones. Every fusion that needs a Void Stone, the Void Net, and anything else made with Void has to be made here.'); } UI.openPanel('fusion', { table: { x: ev.x, y: ev.y, z: ev.z }, dark: !!ev.dark }); if (!ev.dark) UI.openPanel('table', { table: { x: ev.x, y: ev.y, z: ev.z } }); return; } // tapping a table asks what you came for: crafting or Kin
   if (ev.interact === 'portal') { const r = Village.portalHere(ev.x, ev.z); if (r.err) { UI.toast(r.err, 'bad'); return; } UI.openPanel('portal', r.v); return; }
   if (ev.interact === 'chest') { UI.openPanel('chest', { x: ev.x, y: ev.y, z: ev.z }); return; }
   if (ev.interact === 'books') { Books.open('atlantis'); return; }

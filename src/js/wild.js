@@ -41,7 +41,7 @@ const Wild = (() => {
     if (world.legend) { const dl = Math.hypot(wdd(x - world.legend.x), wdd(z - world.legend.z)); if (dl < world.legend.r) { lv += pr.legend.zone * (1 - dl / world.legend.r * 0.4); cap += pr.legend.zone; } }
     return U.clamp(Math.round(lv), 1, Math.min(cap, KIN.MAX_LEVEL));
   }
-  // ---- high flyers: the birds that never come down. They wheel twenty blocks up, drop stones on you, and only a Flight Snare thrown from the air holds them ----
+  // ---- high flyers: the birds that never come down. They wheel twenty blocks up, drop stones on you, and only a Flight Net thrown from the air holds them ----
   function isHigh(sp) { return sp.shape === 'bird' && (sp.rarity || 0) >= 1 && sp.home && sp.home.layer === 'Surface'; }
   const drops = []; let highTimer = 8, dropWarned = false;
   function openSky(x, y, z) { return world.topAt(Math.floor(x), Math.floor(z)) <= Math.floor(y) + 1; }
@@ -466,7 +466,7 @@ const Wild = (() => {
         // once it has seen you, stay in its ring for three seconds and it attacks; walk out in time and it lets you go
         if (e.alert >= 1) { e.ringT = (e.ringT || 0) + dt; if (!strong) e.hunt = 4; } else e.ringT = Math.max(0, (e.ringT || 0) - dt);
         if (e.alert >= 1 && !trigger && (strong || e.ringT >= 3)) trigger = { e, ambush: false };
-        // bump into it and it attacks, seen or not (sneak up and set the snare instead)
+        // bump into it and it attacks, seen or not (sneak up and set the net instead)
         const touch = 1.0 + Math.min(2, (e.model.radius || 0.6) * 0.6);
         if (dist < touch && !trigger) trigger = { e, ambush: e.alert < 0.6 };
       } else { e.alert = Math.max(0, e.alert - dt * 0.8); e.ringT = 0; e.sus = false; e.lookT = 0; }
@@ -530,14 +530,14 @@ const Wild = (() => {
     if (e.kin.hp <= 0) { daze(e); return { dmg: before, pct: 0, dazed: true }; }
     return { dmg: before - e.kin.hp, pct: Math.round(e.kin.hp / st.hp * 100), dazed: false };
   }
-  // the great ones you are meant to be able to cage: beaten live, they go down dazed like any other so a snare can take them
-  // story Kin you may still snare when they go down: a tyrant's, his lieutenants', a raider, a lair's or a night's quarry, the Kinmaster's and his warlords'. Only the very last fight is not for catching.
+  // the great ones you are meant to be able to cage: beaten live, they go down dazed like any other so a net can take them
+  // story Kin you may still net when they go down: a tyrant's, his lieutenants', a raider, a lair's or a night's quarry, the Kinmaster's and his warlords'. Only the very last fight is not for catching.
   function snareable(e) { return !!(e.isBoss || e.lieutenant || e.raider || e.lairQuest || e.nightQuest || e.kinmaster || e.keepBoss || e.citadelFirst) && !e.finalBoss; }
   function cageable(e) { return !!(e.isApex || e.isLegend || e.isMythic); }
   function daze(e, k) {
     e.kin.hp = 1; e.dazed = 10; disengage(e, 0); e.cool = 0; e.alert = 0; e.stunT = 0;
     G.knockout(e.x, e.y, e.z);
-    UI.sfx('win'); UI.toast(`${KIN.name(e.kin)} goes down, dazed. Walk up and tap it to snare it, or let it be.`, 'good');
+    UI.sfx('win'); UI.toast(`${KIN.name(e.kin)} goes down, dazed. Walk up and tap it to net it, or let it be.`, 'good');
     if (!cageable(e) && !(scripted(e) && snareable(e))) rewardWin(e, k || null); else e.cageWin = k || true; // a story Kin left in the dirt still counts as beaten when the daze runs out G.stats.liveWins = (G.stats.liveWins || 0) + 1;
     const dom = KIN.dominant(e.kin.sp.elem, 1)[0]; if (Math.random() < 0.35) { G.player.add('ess_' + dom, 1); UI.toast(`${dom} Essence collected.`); }
   }
@@ -547,7 +547,7 @@ const Wild = (() => {
     if (r.result === 'parry') { e.stunT = 1.4; e.hitT = 0.3; e.chase.hitCd = 1.6; }
     else { e.chase.t = Math.max(e.chase.t, 18); e.chase.hitCd = 1.0; }
   }
-  // your Kin's blow lands: full battle damage, and a Kin can finish anything. A common Kin goes down dazed (your snare window); the scripted ones (tyrants, legends, bosses, quest Kin) are beaten outright
+  // your Kin's blow lands: full battle damage, and a Kin can finish anything. A common Kin goes down dazed (your net window); the scripted ones (tyrants, legends, bosses, quest Kin) are beaten outright
   function scripted(e) { return !!(e.lieutenant || e.isBoss || e.isLegend || e.isApex || e.isLabBoss || e.isMythic || e.isWarden || e.lairQuest || e.nightQuest || e.kinmaster || e.keepBoss || e.finalBoss || e.skyBoss || e.tangleBoss || e.citadelFirst || e.thief || e.pest || e.rogue || e.raider || e.siege || e.kin.sp.mythic); }
   function hitByKin(e, dmg, k) {
     if (e.dazed > 0 || !list.includes(e) || e.peaceful) return 0;

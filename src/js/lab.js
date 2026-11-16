@@ -124,7 +124,7 @@ const Lab = (() => {
         // the maker comes over, then the incubator is explained
         const d = Math.hypot(p.x - sc.x, p.z - sc.z);
         if (d > 2.2 && d < 30) { const sp = 2.2 * dt; const nx = sc.x + dx / d * sp, nz = sc.z + dz / d * sp; const gy = standY(nx, sc.y, nz); if (gy != null) { sc.x = nx; sc.z = nz; sc.y += (gy - sc.y) * 0.5; } sc.yaw = Math.atan2(dx, dz); sc.moving = true; }
-        else if (d <= 2.2 && !Dialogue.active() && !inBattle) { sc.moving = false; L.thanked = true; G.talkNpc = sc; Dialogue.show(story().who, story().thanks, () => { G.shards += 200; G.player.add('snare2', 2); UI.sfx('quest'); UI.toast('+200 Shards and two Void Snares. The incubator is yours.', 'good'); G.stats.labDone = (G.stats.labDone || 0) + 1; if (world.preset.id === 'earth' && !G.stats.lostMap) setTimeout(() => G.giveLostMap(story().who), 600); }); }
+        else if (d <= 2.2 && !Dialogue.active() && !inBattle) { sc.moving = false; L.thanked = true; G.talkNpc = sc; Dialogue.show(story().who, story().thanks, () => { G.shards += 200; G.player.add('snare2', 2); UI.sfx('quest'); UI.toast('+200 Shards and two Void Nets. The incubator is yours.', 'good'); G.stats.labDone = (G.stats.labDone || 0) + 1; if (world.preset.id === 'earth' && !G.stats.lostMap) setTimeout(() => G.giveLostMap(story().who), 600); }); }
       }
     } else { scientist = null; if (bossRef && dh > 90) { Wild.remove(bossRef); bossRef = null; } }
   }

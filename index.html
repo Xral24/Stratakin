@@ -597,7 +597,7 @@ select { font-family: var(--font); font-size: 14px; padding: 9px 11px; border-ra
     <button id="btn-jump">▲</button>
     <button id="btn-sneak" aria-label="Down">▼</button>
     <button id="btn-deploy" class="hidden">Deploy Kin</button>
-    <button id="btn-snare" class="hidden">Set snare</button>
+    <button id="btn-snare" class="hidden">Set net</button>
     <div id="fishbar" class="hidden"><div class="snare-tip">A bite! Tap when the marker is in the glow.</div><div class="snare-track"><div class="snare-zone"></div><div class="snare-marker"></div></div></div>
     <button id="btn-ride" class="hidden">Ride</button>
     <button id="btn-block" class="hidden" aria-label="Shield">🛡<small>SHIELD</small></button>
@@ -625,8 +625,8 @@ select { font-family: var(--font); font-size: 14px; padding: 9px 11px; border-ra
     <div class="snare-tip">Swing the net round to open it, flick it at the Kin, then swirl the other way fast to draw it shut.</div>
     <canvas id="snare-net" width="640" height="560"></canvas>
     <div class="snare-track"><div class="snare-zone"></div><div class="snare-marker"></div></div>
-    <button id="snare-go">Set the snare!</button>
-    <button id="snare-cancel">Not this one: pick the snare back up</button>
+    <button id="snare-go">Set the net!</button>
+    <button id="snare-cancel">Not this one: pick the net back up</button>
   </div>
   <div id="b-log"></div>
   <div id="b-actions"></div>
@@ -5081,13 +5081,13 @@ const ITEMS = {
   void: { name: 'Void Crystal', col: '#9a4de0', elem: 'Void', desc: 'Deep crystal (below y 22). Void ingredient.' },
   torch: { name: 'Torch', block: B.TORCH, col: '#ffd36a', light: true, crafted: true, desc: 'Hold it to see in the dark, or place it.' },
   fusion: { name: 'Fusion Table', block: B.FUSION, col: '#7ad7ff', crafted: true, desc: 'Place it, then tap it to fuse Kin.' },
-  snare: { name: 'Snare Cube', col: '#7fe0c0', snare: 0.40, desc: 'Unfolds into a crystal cage. Weaken a Kin first.' },
+  snare: { name: 'Cast Net', col: '#7fe0c0', snare: 0.40, desc: 'A weighted net on a hand line. Swing it open, throw it over a Kin, draw it shut. Weaken the Kin first.' },
   deepchart: { name: 'The Deep Chart', col: '#6a4a8a', keep: true, desc: 'An old miner\'s chart of the Core. It marks where to dig down to the twelfth Hold, out on the lava, and one older mark further on: the Heart, the Starmetal chamber where something enormous sleeps. Your compass follows it.' },
   painted_piece: { name: 'Indian Cloth', col: '#c96a3a', keep: true, desc: 'A strip of painted cloth from an Indian camp. One of the pieces of something. Somebody in a town might know what.' },
   painted_cloak: { name: 'Indian Cloak', col: '#c9643a', gear: true, keep: true, desc: 'Stitched by Zazu from a piece out of every Indian camp. Walk into a camp in broad daylight and nobody looks twice, for a few minutes. Take their hoard and try to leave, and someone will ask who you are.' },
-  snare_sky: { name: 'Flight Snare', col: '#9fd8ff', snare: 0.55, desc: 'A light cage on a long cord, for the birds that never come down. Only works thrown from the air: off the glider or the back of a flier. Tap the bird as you pass.' },
+  snare_sky: { name: 'Flight Net', col: '#9fd8ff', snare: 0.55, desc: 'A light net on a long cord, for the birds that never come down. Only works thrown from the air: off the glider or the back of a flier. Tap the bird as you pass.' },
   feather: { name: 'Sky Feather', col: '#e8f4ff', desc: 'Shed by the high flyers. Shoot one with the bow, or beat one, and feathers come down.' },
-  snare2: { name: 'Void Snare', col: '#c07fe0', snare: 0.66, desc: 'A stronger snare laced with void crystal.' },
+  snare2: { name: 'Void Net', col: '#c07fe0', snare: 0.66, desc: 'A stronger net laced with void crystal.' },
   tidelung: { name: 'Tidal Lung', col: '#3fd4ff', gear: true, keep: true, desc: 'Atlantean. A band of living pearl worn at the throat: you breathe water as if it were air, for as long as you like. Does everything a Breathing Bulb does.' },
   abysstooth: { name: 'Abyssaurus Tooth', col: '#e8e2d0', keep: true, desc: 'As long as your forearm, and still sharp. The Tideforge in Atlantis wants one for the trident.' },
   bulb: { name: 'Breathing Bulb', col: '#9fd8ff', gear: true, desc: 'Breathe underwater for two minutes.' },
@@ -10650,7 +10650,7 @@ const Wild = (() => {
     if (world.legend) { const dl = Math.hypot(wdd(x - world.legend.x), wdd(z - world.legend.z)); if (dl < world.legend.r) { lv += pr.legend.zone * (1 - dl / world.legend.r * 0.4); cap += pr.legend.zone; } }
     return U.clamp(Math.round(lv), 1, Math.min(cap, KIN.MAX_LEVEL));
   }
-  // ---- high flyers: the birds that never come down. They wheel twenty blocks up, drop stones on you, and only a Flight Snare thrown from the air holds them ----
+  // ---- high flyers: the birds that never come down. They wheel twenty blocks up, drop stones on you, and only a Flight Net thrown from the air holds them ----
   function isHigh(sp) { return sp.shape === 'bird' && (sp.rarity || 0) >= 1 && sp.home && sp.home.layer === 'Surface'; }
   const drops = []; let highTimer = 8, dropWarned = false;
   function openSky(x, y, z) { return world.topAt(Math.floor(x), Math.floor(z)) <= Math.floor(y) + 1; }
@@ -11075,7 +11075,7 @@ const Wild = (() => {
         // once it has seen you, stay in its ring for three seconds and it attacks; walk out in time and it lets you go
         if (e.alert >= 1) { e.ringT = (e.ringT || 0) + dt; if (!strong) e.hunt = 4; } else e.ringT = Math.max(0, (e.ringT || 0) - dt);
         if (e.alert >= 1 && !trigger && (strong || e.ringT >= 3)) trigger = { e, ambush: false };
-        // bump into it and it attacks, seen or not (sneak up and set the snare instead)
+        // bump into it and it attacks, seen or not (sneak up and set the net instead)
         const touch = 1.0 + Math.min(2, (e.model.radius || 0.6) * 0.6);
         if (dist < touch && !trigger) trigger = { e, ambush: e.alert < 0.6 };
       } else { e.alert = Math.max(0, e.alert - dt * 0.8); e.ringT = 0; e.sus = false; e.lookT = 0; }
@@ -11139,14 +11139,14 @@ const Wild = (() => {
     if (e.kin.hp <= 0) { daze(e); return { dmg: before, pct: 0, dazed: true }; }
     return { dmg: before - e.kin.hp, pct: Math.round(e.kin.hp / st.hp * 100), dazed: false };
   }
-  // the great ones you are meant to be able to cage: beaten live, they go down dazed like any other so a snare can take them
-  // story Kin you may still snare when they go down: a tyrant's, his lieutenants', a raider, a lair's or a night's quarry, the Kinmaster's and his warlords'. Only the very last fight is not for catching.
+  // the great ones you are meant to be able to cage: beaten live, they go down dazed like any other so a net can take them
+  // story Kin you may still net when they go down: a tyrant's, his lieutenants', a raider, a lair's or a night's quarry, the Kinmaster's and his warlords'. Only the very last fight is not for catching.
   function snareable(e) { return !!(e.isBoss || e.lieutenant || e.raider || e.lairQuest || e.nightQuest || e.kinmaster || e.keepBoss || e.citadelFirst) && !e.finalBoss; }
   function cageable(e) { return !!(e.isApex || e.isLegend || e.isMythic); }
   function daze(e, k) {
     e.kin.hp = 1; e.dazed = 10; disengage(e, 0); e.cool = 0; e.alert = 0; e.stunT = 0;
     G.knockout(e.x, e.y, e.z);
-    UI.sfx('win'); UI.toast(`${KIN.name(e.kin)} goes down, dazed. Walk up and tap it to snare it, or let it be.`, 'good');
+    UI.sfx('win'); UI.toast(`${KIN.name(e.kin)} goes down, dazed. Walk up and tap it to net it, or let it be.`, 'good');
     if (!cageable(e) && !(scripted(e) && snareable(e))) rewardWin(e, k || null); else e.cageWin = k || true; // a story Kin left in the dirt still counts as beaten when the daze runs out G.stats.liveWins = (G.stats.liveWins || 0) + 1;
     const dom = KIN.dominant(e.kin.sp.elem, 1)[0]; if (Math.random() < 0.35) { G.player.add('ess_' + dom, 1); UI.toast(`${dom} Essence collected.`); }
   }
@@ -11156,7 +11156,7 @@ const Wild = (() => {
     if (r.result === 'parry') { e.stunT = 1.4; e.hitT = 0.3; e.chase.hitCd = 1.6; }
     else { e.chase.t = Math.max(e.chase.t, 18); e.chase.hitCd = 1.0; }
   }
-  // your Kin's blow lands: full battle damage, and a Kin can finish anything. A common Kin goes down dazed (your snare window); the scripted ones (tyrants, legends, bosses, quest Kin) are beaten outright
+  // your Kin's blow lands: full battle damage, and a Kin can finish anything. A common Kin goes down dazed (your net window); the scripted ones (tyrants, legends, bosses, quest Kin) are beaten outright
   function scripted(e) { return !!(e.lieutenant || e.isBoss || e.isLegend || e.isApex || e.isLabBoss || e.isMythic || e.isWarden || e.lairQuest || e.nightQuest || e.kinmaster || e.keepBoss || e.finalBoss || e.skyBoss || e.tangleBoss || e.citadelFirst || e.thief || e.pest || e.rogue || e.raider || e.siege || e.kin.sp.mythic); }
   function hitByKin(e, dmg, k) {
     if (e.dazed > 0 || !list.includes(e) || e.peaceful) return 0;
@@ -11657,9 +11657,9 @@ const Village = (() => {
     restaurant: { title: 'Restaurant', keeper: 'Chef Anselm', greet: 'Sit, eat. A proper meal stays with you: you will feel it for the next half hour.', stock: [{ service: 'meal', buff: 'hearts', amt: 2, mins: 30, name: 'Hearty Stew: two extra hearts for 30 minutes', price: 40 }, { service: 'meal', buff: 'mine', amt: 2, mins: 30, name: 'Miner\'s Breakfast: dig twice as fast for 30 minutes', price: 35 }, { service: 'meal', buff: 'speed', amt: 1.25, mins: 20, name: 'Swift Salad: quicker on your feet for 20 minutes', price: 30 }, { service: 'meal', buff: 'breath', amt: 2, mins: 30, name: 'Diver\'s Chowder: hold your breath twice as long for 30 minutes', price: 30 }] },
     sanctuary: { title: 'Kin Sanctuary', keeper: 'Sister Imelda', greet: 'Bring me your lead Kin. Here they learn what their element can really do.', stock: [{ service: 'teach', name: 'Teach your lead Kin a fourth move: its element\'s technique', price: 0 }, { service: 'calm', name: 'A day of rest: your whole party healed and calmed', price: 25 }] },
     stables: { title: 'Riding School', keeper: 'Wrangler Tess', greet: 'A Kin that trusts you runs faster under you. We can speed that up.', stock: [{ service: 'trust', name: 'A riding lesson: your lead Kin\'s trust goes up a good way', price: 120 }, { item: 'berry', price: 3, n: 6 }] },
-    aerie: { title: 'Flying School', keeper: 'Captain Merrow', greet: 'Gliders, flight snares, and a lesson in reading the wind. And no, a glider will not get you to Highmere. Nothing gets you up there but wings.', stock: [{ service: 'tune', name: 'Tune your glider: it flies further and faster (once)', price: 400 }, { item: 'snare_sky', price: 60, n: 2 }, { item: 'feather', price: 12, n: 3 }] },
+    aerie: { title: 'Flying School', keeper: 'Captain Merrow', greet: 'Gliders, flight nets, and a lesson in reading the wind. And no, a glider will not get you to Highmere. Nothing gets you up there but wings.', stock: [{ service: 'tune', name: 'Tune your glider: it flies further and faster (once)', price: 400 }, { item: 'snare_sky', price: 60, n: 2 }, { item: 'feather', price: 12, n: 3 }] },
     tailor: { title: 'Tailor', keeper: 'Madame Orla', greet: 'New clothes, new you. Cut to measure, worn out of here.', stock: [{ service: 'skin', skin: 'noble', name: 'Noble: velvet and gold thread', price: 600 }, { service: 'skin', skin: 'knight', name: 'Knight: polished plate and a plumed helm', price: 900 }, { service: 'skin', skin: 'corsair', name: 'Corsair: sea coat and a red sash', price: 700 }, { service: 'skin', skin: 'sage', name: 'Sage: robes the colour of dusk', price: 800 }, { service: 'skin', skin: 'duelist', name: 'Duelist: black and silver', price: 1000 }, { service: 'skin', skin: 'royal', name: 'Royal: for those who have freed a kingdom', price: 5000 }] },
-    enchanter: { title: 'Enchanter', keeper: 'Magister Vael', greet: 'A word over your armour, a whisper on your blade. It wears off, they always do.', stock: [{ service: 'meal', buff: 'ward', amt: 15, mins: 60, name: 'Ward: fifteen extra armour points for an hour', price: 250 }, { service: 'meal', buff: 'blade', amt: 1.35, mins: 60, name: 'Keen Edge: your sword and axe hit a third harder for an hour', price: 220 }, { service: 'meal', buff: 'luck', amt: 1.3, mins: 30, name: 'Lucky Hand: snares hold better for 30 minutes', price: 300 }, { service: 'meal', buff: 'speed', amt: 1.35, mins: 30, name: 'Fleet Foot: run faster for 30 minutes', price: 120 }] },
+    enchanter: { title: 'Enchanter', keeper: 'Magister Vael', greet: 'A word over your armour, a whisper on your blade. It wears off, they always do.', stock: [{ service: 'meal', buff: 'ward', amt: 15, mins: 60, name: 'Ward: fifteen extra armour points for an hour', price: 250 }, { service: 'meal', buff: 'blade', amt: 1.35, mins: 60, name: 'Keen Edge: your sword and axe hit a third harder for an hour', price: 220 }, { service: 'meal', buff: 'luck', amt: 1.3, mins: 30, name: 'Lucky Hand: nets hold better for 30 minutes', price: 300 }, { service: 'meal', buff: 'speed', amt: 1.35, mins: 30, name: 'Fleet Foot: run faster for 30 minutes', price: 120 }] },
     cartographer: { title: 'Cartographer', keeper: 'Pim the Mapper', greet: 'I sell what I have seen, and I have seen a great deal.', stock: [{ service: 'map', what: 'holds', name: 'Map of the Holds: every one of his fortresses, marked', price: 400 }, { service: 'map', what: 'towns', name: 'Map of the Realm: every town and city, named', price: 250 }] },
     daycare: { title: 'Kin Daycare', keeper: 'Nanny Bree', greet: 'Leave them with me while you go about your business. They will come back stronger.', stock: [{ service: 'meal', buff: 'train', amt: 1, mins: 60, name: 'An hour of training: your whole party gains experience every minute you play', price: 180 }, { service: 'calm', name: 'A nap and a snack: your whole party healed', price: 20 }] },
     barber: { title: 'Barber', keeper: 'Fenwick the Barber', greet: 'Sit down. Something bold, or something sensible?', stock: [{ service: 'look', panel: 'barber', name: 'A new cut, a new colour', price: 0 }] },
@@ -11691,7 +11691,7 @@ const Village = (() => {
       bakery: { title: 'Biscuit House', keeper: 'Dolly', greet: 'Biscuits and berry pie. Sit a spell.', stock: [{ item: 'bread', price: 10 }, { item: 'berry', price: 3, n: 3 }, { item: 'torch', price: 8, n: 4 }] },
       juice: { title: 'Saloon', keeper: 'Buck', greet: 'Sarsaparilla for you, a tonic for your critters. Mind the doors on the way out.', stock: [{ item: 'smoothie', price: 15 }, { item: 'tonic_heal', price: 12 }, { item: 'tonic_swift', price: 40 }] },
       voodoo: { title: 'Doc\'s', keeper: 'Doc Hattie', greet: 'Fainted Kin, I patch them up. Shards on the counter.', stock: [{ service: 'rest', name: 'Revive and heal the whole party', price: 20 }, { item: 'tonic_revive', price: 25 }, { item: 'tonic_heal', price: 12 }] },
-      trader: { title: 'General Store', keeper: 'Clem', greet: 'Rope, planks, snares. I buy ore and gold, if you have any.', sell: true, stock: [{ item: 'snare', price: 12, n: 2 }, { item: 'snare2', price: 45 }, { item: 'planks', price: 6, n: 8 }, { item: 'door', price: 14 }, { item: 'iron', price: 20, n: 2 }, { item: 'copper', price: 14, n: 2 }, { item: 'chest', price: 30 }] },
+      trader: { title: 'General Store', keeper: 'Clem', greet: 'Rope, planks, nets. I buy ore and gold, if you have any.', sell: true, stock: [{ item: 'snare', price: 12, n: 2 }, { item: 'snare2', price: 45 }, { item: 'planks', price: 6, n: 8 }, { item: 'door', price: 14 }, { item: 'iron', price: 20, n: 2 }, { item: 'copper', price: 14, n: 2 }, { item: 'chest', price: 30 }] },
       post: { title: 'Trading Post', keeper: 'Earl', greet: 'Whatever the wagons bring. New stock every two days.', stock: [] },
     },
     atlantis: {
@@ -11728,7 +11728,7 @@ const Village = (() => {
     stall_lamps: { title: 'Lamp Stall', keeper: 'Tavish', greet: 'It is never dark here, so I sell to people who are leaving. That would be you.', stock: [{ item: 'torch', price: 7, n: 4 }, { item: 'bulb', price: 175 }] },
     stall_rolls: { title: 'Kelp Rolls', keeper: 'Dorrie', greet: 'Hot. Well, warm. Nothing is hot down here.', stock: [{ item: 'bread', price: 9 }] },
     stall_tonics: { title: 'Tide Tonics', keeper: 'Lune', greet: 'One at a time. Somebody always mixes them and then I have to explain it to the healer.', stock: [{ item: 'tonic_heal', price: 12 }, { item: 'tonic_swift', price: 40 }, { item: 'tonic_might', price: 40 }, { item: 'tonic_vigor', price: 40 }] },
-    stall_nets: { title: 'The Net Maker', keeper: 'Pike', greet: 'A snare is a small net with opinions. Mine hold.', stock: [{ item: 'snare', price: 11, n: 2 }, { item: 'snare2', price: 44 }] },
+    stall_nets: { title: 'The Net Maker', keeper: 'Pike', greet: 'A cast net is a fishing net with opinions. Mine hold.', stock: [{ item: 'snare', price: 11, n: 2 }, { item: 'snare2', price: 44 }] },
     stall_curios: { title: 'Wreck Curios', keeper: 'Senna', greet: 'All of it came down in a ship. I do not ask whose.', stock: [{ item: 'iron', price: 19, n: 2 }, { item: 'copper', price: 13, n: 2 }, { item: 'chest', price: 28 }] },
   };
   // the stalls on a town square: cheap, plain, the same three trades everywhere and a different face behind each
@@ -12331,8 +12331,8 @@ const Village = (() => {
   const HERMIT_JOBS = [
     { give: { berry: 8 }, get: { tonic_heal: 2 }, shards: 15, line: 'My jam pot is empty. Eight berries and I will share the tonic.' },
     { give: { glowworm: 3 }, get: { torch: 8 }, shards: 10, line: 'Three glowworms. My lamps have gone dark.' },
-    { give: { ember: 3 }, get: { snare: 2 }, shards: 20, line: 'Ember Ore for my stove, three lumps. I keep snares I never use.' },
-    { give: { iron: 4 }, get: { snare2: 1 }, shards: 30, line: 'Four iron. I have a void snare I am too old to throw.' },
+    { give: { ember: 3 }, get: { snare: 2 }, shards: 20, line: 'Ember Ore for my stove, three lumps. I keep nets I never use.' },
+    { give: { iron: 4 }, get: { snare2: 1 }, shards: 30, line: 'Four iron. I have a void net I am too old to throw.' },
     { give: { frond: 10 }, get: { tonic_vigor: 1 }, shards: 20, line: 'Fronds for my bedding, ten of them.' },
     { give: { stone: 16 }, get: { ess_Stone: 1 }, shards: 15, line: 'Sixteen stone to mend my wall and the essence is yours.' },
     { give: { wood: 10 }, get: { bread: 3 }, shards: 15, line: 'Ten logs for the winter. I bake, when there is wood.' },
@@ -12345,7 +12345,7 @@ const Village = (() => {
   const HERMIT_WORLD = {
     moon: { names: ['Old Vruk', 'Mother Zyl', 'Ixthu the Quiet', 'Grey Oom', 'Kelp-Eye', 'Sister Qa', 'Dunmer of the Mare', 'Yrr', 'Thrum', 'Aunt Vexa'],
       jobs: [
-        { give: { selenite: 3 }, get: { tonic_heal: 2 }, shards: 25, line: 'Selenite. Three crystals. My lamps have gone pale.' }, { give: { tycho: 2 }, get: { snare2: 1 }, shards: 35, line: 'Tycho ore, two lumps. I keep a snare I cannot throw.' },
+        { give: { selenite: 3 }, get: { tonic_heal: 2 }, shards: 25, line: 'Selenite. Three crystals. My lamps have gone pale.' }, { give: { tycho: 2 }, get: { snare2: 1 }, shards: 35, line: 'Tycho ore, two lumps. I keep a net I cannot throw.' },
         { give: { starsalt: 4 }, get: { tonic_vigor: 1 }, shards: 30, line: 'Starsalt from the crater floors. Four handfuls.' }, { give: { stone: 16 }, get: { ess_Stone: 1 }, shards: 15, line: 'Sixteen stone to mend my wall.' },
         { give: { iron: 4 }, get: { ess_Light: 1 }, shards: 30, line: 'Four iron. Do not ask what for.' }, { give: { void: 2 }, get: { tonic_revive: 1 }, shards: 40, line: 'Two void crystals, and I wake the fainted for you.' },
         { give: { sand: 10 }, get: { glass: 8 }, shards: 10, line: 'Ten sand from the craters. I melt it.' }, { give: { copper: 3 }, get: { ess_Spark: 1 }, shards: 20, line: 'Copper. Three.' },
@@ -12361,7 +12361,7 @@ const Village = (() => {
       lore: ['Amber sits in the rock under the dunes. Sulfur crusts the flats; do not drink the brine.', 'When the sky whistles, move. The ring drops shards that flatten a house.', 'The Ringwarden roosts on the highest mesa. Nothing that lives near it is under three hundred strong.', 'The Caravan Store pays for ring shards. Sixty, last I asked.', 'Brine eats skin. A Lava Suit keeps it off.'] },
   };
   const hermitWorld = () => HERMIT_WORLD[world.preset.id] || null;
-  const HERMIT_LORE = ['The orange-flecked stone is Ember Ore. A few blocks down, never deep.', 'Glowworms sit in the grass at night. Pinch one, add wood: torches.', 'Every tyrant keeps guards on the road. They come at you one by one; bring tonics.', 'Put a Kin in a village as a guard and it grows on the job.', 'There is a village under the sea. Swim down the shaft in its roof.', 'Sixteen Kin in a table. I saw it done once. The ground shook.', 'The Core is lava. The Lava Suit is five iron, three void, four ember.', 'Mountains freeze you without a cloak: fronds, snow, wood.', 'Stand behind a Kin that has not seen you and the snare never misses.'];
+  const HERMIT_LORE = ['The orange-flecked stone is Ember Ore. A few blocks down, never deep.', 'Glowworms sit in the grass at night. Pinch one, add wood: torches.', 'Every tyrant keeps guards on the road. They come at you one by one; bring tonics.', 'Put a Kin in a village as a guard and it grows on the job.', 'There is a village under the sea. Swim down the shaft in its roof.', 'Sixteen Kin in a table. I saw it done once. The ground shook.', 'The Core is lava. The Lava Suit is five iron, three void, four ember.', 'Mountains freeze you without a cloak: fronds, snow, wood.', 'Stand behind a Kin that has not seen you and the net never misses.'];
   const hermits = new Map();
   function hermitFor(cx, cz) {
     if (!world.preset.villages) return null;
@@ -14136,7 +14136,7 @@ const Village = (() => {
         // whoever you ask knows about one of the Kin you are after; go round the people in town and you hear about each of them
         G.stats.hintTurn = (G.stats.hintTurn || 0) + 1; const all = hs.map(h => ['haunt', h]).concat(ls.map(l => ['lead', l])); const [kind, pick] = all[G.stats.hintTurn % all.length];
         if (kind === 'lead') { const l = pick; const where = { Forest: 'deep in the woods', Plains: 'far out on the grass', Desert: 'out in the dunes', Swamp: 'in the marsh', Snowfield: 'up in the snowfields', Mountains: 'high on the peaks', Ocean: 'on the open sea' }[l.biome] || 'out in the wilds';
-          if (l.x == null) { Dialogue.show(n.name, [`${an(l.name)}? Rare as anything. ${l.layer === 'Mines' ? 'The miners say they have seen one down in the Mines, in the dark galleries.' : l.layer === 'Water' ? 'Fishermen talk of one in the deep water, out past the shallows.' : l.layer === 'Sky' ? 'Only up in the sky, they say, among the cloud islands.' : 'Only in the deepest places, they say.'} Take snares and patience.`]); return; }
+          if (l.x == null) { Dialogue.show(n.name, [`${an(l.name)}? Rare as anything. ${l.layer === 'Mines' ? 'The miners say they have seen one down in the Mines, in the dark galleries.' : l.layer === 'Water' ? 'Fishermen talk of one in the deep water, out past the shallows.' : l.layer === 'Sky' ? 'Only up in the sky, they say, among the cloud islands.' : 'Only in the deepest places, they say.'} Take nets and patience.`]); return; }
           const dx = wd(l.x - p.x), dz = wd(l.z - p.z), d = Math.round(Math.hypot(dx, dz) / 50) * 50;
           Dialogue.show(n.name, [U.rng(Date.now() | 0).pick([`${an(l.name)}? I saw one once, ${where}, a good ${d} blocks ${dirWord(dx, dz)} of here. You don't see them often, mind.`, `People say the ${l.name}s keep ${where}, about ${d} blocks to the ${dirWord(dx, dz)}. A rare thing. Go when you have time to wait.`])]); return; }
         const h = pick; const dx = wd(h.x - p.x), dz = wd(h.z - p.z), d = Math.round(Math.hypot(dx, dz) / 10) * 10;
@@ -14401,7 +14401,7 @@ const Dialogue = (() => {
 </script>
 <script>
 'use strict';
-// Turn-based battle in the 3D scene with a bottom-sheet UI. Capture is a placed Snare Cube with a timing bar, not a thrown ball.
+// Turn-based battle in the 3D scene with a bottom-sheet UI. Capture is a placed Cast Net with a timing bar, not a thrown ball.
 const Battle = (() => {
   let G = null, active = false, busy = false, wildE = null, wild = null, mine = null, ambush = false, mineE = null, turn = 0;
   let camState = null; const fx = []; let stealth = false, focusOn = false;
@@ -14413,7 +14413,7 @@ const Battle = (() => {
     el.root = q('battle'); el.wild = q('b-wild'); el.mine = q('b-mine'); el.log = q('b-log'); el.actions = q('b-actions'); el.snare = q('b-snare');
     el.snareGo = q('snare-go'); el.zone = el.snare.querySelector('.snare-zone'); el.marker = el.snare.querySelector('.snare-marker');
     el.net = q('snare-net'); netWire();
-    // changed your mind (or pressed Snare by accident): the snare goes back in the bag and the fight carries on
+    // changed your mind (or pressed Net by accident): the net goes back in the bag and the fight carries on
     const cancel = q('snare-cancel'); const stop = (e) => { e.stopPropagation(); e.preventDefault(); cancelSnare(); };
     cancel.addEventListener('click', stop); cancel.addEventListener('touchstart', stop, { passive: false });
     el.snare.addEventListener('touchstart', (e) => { e.preventDefault(); onSnareGo(); }, { passive: false });
@@ -14448,7 +14448,7 @@ const Battle = (() => {
     if (wildE.finalBoss) log(`${n}, left behind to hold you. Lv ${wild.level}. Beat it, or cage a legend.`, 'bad');
     camState = null;
     stealth = !!opts.stealth;
-    if (stealth) { el.log.innerHTML = ''; log(`${n} has not seen you. Set the snare before it does.`, 'good'); renderActions(); busy = false; beginSnare(); return; }
+    if (stealth) { el.log.innerHTML = ''; log(`${n} has not seen you. Set the net before it does.`, 'good'); renderActions(); busy = false; beginSnare(); return; }
     renderActions();
     busy = false;
   }
@@ -14493,14 +14493,14 @@ const Battle = (() => {
     while (el.log.children.length > 4) el.log.removeChild(el.log.firstChild);
     el.log.scrollTop = el.log.scrollHeight;
   }
-  // which snare this Kin takes: the high flyers only a Flight Snare thrown from the air, the water Kin none at all (that is the rod's job)
+  // which net this Kin takes: the high flyers only a Flight Net thrown from the air, the water Kin none at all (that is the rod's job)
   function snareRule() {
     const p = G.player;
     if (wildE && wildE.isBoss) return { list: [], why: 'A tyrant cannot be caged. Beat him and he runs' };
     if (wildE && wildE.finalBoss) return { list: [], why: 'Not this one. This one you end' }; // the last fight only; the Kinmaster's own Kin and his warlords' can be caught
     if (wildE && wildE.aquatic && !wildE.isApex) return { list: [], why: 'Water Kin slip any cage. Fish them with a rod.' };
-    if (wildE && wildE.high) { const air = p.gliding || p.mountMode === 'air'; if (!air) return { list: [], why: 'Only from the air' }; return { list: p.has('snare_sky') ? ['snare_sky'] : [], why: 'Needs a Flight Snare' }; }
-    return { list: ['snare2', 'snare'].filter(s => p.has(s)), why: 'No snares' };
+    if (wildE && wildE.high) { const air = p.gliding || p.mountMode === 'air'; if (!air) return { list: [], why: 'Only from the air' }; return { list: p.has('snare_sky') ? ['snare_sky'] : [], why: 'Needs a Flight Net' }; }
+    return { list: ['snare2', 'snare'].filter(s => p.has(s)), why: 'No nets' };
   }
   function renderActions() {
     const mv = KIN.moves(mine);
@@ -14514,7 +14514,7 @@ const Battle = (() => {
       html += `<button class="act move ${m.tech ? 'tech' : ''}" data-i="${i}" style="--c:${col}"><b>${m.name}${m.tech ? ' ✦' : ''}</b><small>${m.kind === 'util' ? m.desc : m.kind + ' · ' + m.power + (m.desc ? ' · ' + m.desc : '')}</small>${tag}</button>`;
     });
     const snareLabel = snares.length ? `${ITEMS[snares[0]].name} ×${G.player.count(snares[0])}` : rule.why;
-    html += `<button class="act snare" data-a="snare" ${(!snares.length || bagFull) ? 'disabled' : ''}><b>Snare</b><small>${bagFull ? 'Bag full (20). Fuse first.' : snareLabel}</small></button>`;
+    html += `<button class="act snare" data-a="snare" ${(!snares.length || bagFull) ? 'disabled' : ''}><b>Net</b><small>${bagFull ? 'Bag full (20). Fuse first.' : snareLabel}</small></button>`;
     const th = G.player.count('tonic_heal');
     html += `<button class="act" data-a="tonic" ${th ? '' : 'disabled'}><b>Tonic</b><small>${th ? 'Heal Tonic ×' + th + ' · costs the turn' : 'no Heal Tonic'}</small></button>`;
     html += `<button class="act" data-a="swap"><b>Swap</b><small>${G.healthyKin().length - 1} ready</small></button>`;
@@ -14622,7 +14622,7 @@ const Battle = (() => {
   async function afterTurn() {
     await ailTick();
     refresh();
-    // the snare moment: as soon as one more of your Kin's strongest attack would finish it (however much life it has left), it is out of it for a
+    // the net moment: as soon as one more of your Kin's strongest attack would finish it (however much life it has left), it is out of it for a
     // few seconds. A blow that finishes it outright from above that line staggers it instead, so the moment is never skipped
     if (!stunUsed && mine.hp > 0 && (wild.hp <= 0 || wild.hp <= strongestHit())) { stunUsed = true; if (wild.hp <= 0) wild.hp = 1; refresh(); return stunWindow(); }
     if (wild.hp <= 0) {
@@ -14653,7 +14653,7 @@ const Battle = (() => {
       else doTurn({ type: 'swap', kin: k });
     }));
   }
-  // ---- snare mini-game ----
+  // ---- net mini-game ----
   let snareState = null;
   const bossKin = () => !!(wildE && (wildE.isBoss || wildE.kinmaster || wildE.keepBoss || wildE.citadelFirst));
   function catchChance() {
@@ -14663,7 +14663,7 @@ const Battle = (() => {
     if (wild.level > mine.level + 3) c *= 0.75;
     if ((stunned || (stunUsed && wild.hp <= strongestHit())) && !bossKin()) c *= 1.8; // stunned: much easier to hold (a boss's Kin does not give you that)
     // the level gap: a little above you is fair, 20% above is a long shot, twice your level and nothing holds it
-    const grip = 2 * Math.max(1, G.trainerLevel || 1); // snare strength: twice your trainer level, not your Kin's level
+    const grip = 2 * Math.max(1, G.trainerLevel || 1); // net strength: twice your trainer level, not your Kin's level
     const gap = wild.level / grip;
     if (gap >= 2) return { chance: 0, item, gap, grip, hopeless: true };
     if (gap > 1.2) c *= 0.55 * Math.pow((2 - gap) / 0.8, 3);
@@ -14683,11 +14683,11 @@ const Battle = (() => {
     return best;
   }
   function stunWindow() {
-    log(`${KIN.name(wild)} staggers, stunned! Snare it now, or let it fall.`, 'good'); G.sfx('win'); if (G.knockout) G.knockout();
+    log(`${KIN.name(wild)} staggers, stunned! Net it now, or let it fall.`, 'good'); G.sfx('win'); if (G.knockout) G.knockout();
     stunned = true; let left = 4.0;
     const rule = snareRule(); const can = rule.list.length > 0; const cc = can ? catchChance() : null;
     const what = !can ? rule.why : cc.hopeless ? `too strong to hold yet (Lv ${wild.level}; raise your trainer level)` : `${ITEMS[rule.list[0]].name} · about ${Math.max(1, Math.round(Math.min(1, cc.chance * (bossKin() ? 1 : 1.8)) * 100))}%${bossKin() ? ' · one chance' : ''}`;
-    el.actions.innerHTML = `<button class="act snare stun" data-a="stunsnare" ${can && !cc.hopeless ? '' : 'disabled'}><b>Snare it!</b><small>${what} · <span id="stun-left">4</span>s</small><i class="stunbar"><i id="stun-fill"></i></i></button><button class="act" data-a="finish"><b>Finish it</b><small>win the fight</small></button>`;
+    el.actions.innerHTML = `<button class="act snare stun" data-a="stunsnare" ${can && !cc.hopeless ? '' : 'disabled'}><b>Net it!</b><small>${what} · <span id="stun-left">4</span>s</small><i class="stunbar"><i id="stun-fill"></i></i></button><button class="act" data-a="finish"><b>Finish it</b><small>win the fight</small></button>`;
     const fill = document.getElementById('stun-fill');
     const done = (snare) => { if (!stunned) return; stunned = false; clearInterval(stunTimer); stunTimer = null; if (snare) { busy = false; beginSnare(); } else { wild.hp = 0; refresh(); log(`${KIN.name(wild)} is defeated!`, 'good'); faintFx(wildE); G.sfx('win'); end('won'); } };
     el.actions.querySelector('[data-a="stunsnare"]').addEventListener('click', () => done(true));
@@ -14714,8 +14714,8 @@ const Battle = (() => {
     el.snare.classList.remove('hidden'); el.root.classList.add('snaring'); el.root.scrollTop = 0;
     const pct = chance === 0 ? '0%' : chance < 0.01 ? 'under 1%' : Math.round(chance * 100) + '%';
     log(`You shake out a ${ITEMS[item].name}${stealth ? ', quietly' : ''}. Swing it open and throw. Catch chance ${pct} with a good throw.`);
-    if (hopeless) log(`${KIN.name(wild)} is more than twice your snare strength (${grip}, twice your trainer level). No snare made will hold it. Beat it, or come back stronger.`, 'bad');
-    else if (gap > 1.2) log(`${KIN.name(wild)} is far above your snare strength (${grip}). It will fight the cage hard.`, 'bad');
+    if (hopeless) log(`${KIN.name(wild)} is more than twice your net strength (${grip}, twice your trainer level). No net made will hold it. Beat it, or come back stronger.`, 'bad');
+    else if (gap > 1.2) log(`${KIN.name(wild)} is far above your net strength (${grip}). It will fight the net hard.`, 'bad');
     G.sfx('snare');
     requestAnimationFrame(snareFrame);
   }
@@ -14723,7 +14723,7 @@ const Battle = (() => {
     if (!snareState || snareState.done) return;
     netHome(); snareState.done = true; G.player.add(snareState.item, 1); snareState = null;
     el.snare.classList.add('hidden'); el.root.classList.remove('snaring');
-    log('You pick the snare back up.'); busy = false; renderActions();
+    log('You pick the net back up.'); busy = false; renderActions();
   }
   // ---- the cast net, thrown the way it is thrown from a boat at dusk: gathered in the hand, swung to get the weights flying, let go, and it opens in the air into a great wheel of mesh and comes down over what you threw it at.
   // It is drawn over the world itself, so the Kin you are after is the real one standing in front of you, and it will not keep still. Swing to open it (more swing, wider net, and it sits heavier), flick to throw, and the moment it lands swirl the other way to draw the cord
@@ -14802,8 +14802,9 @@ const Battle = (() => {
       log(`The net draws tight. ${KIN.name(wild)} is yours!`, 'good'); G.sfx('caught');
       await sleep(900); return end('caught');
     }
-    if (bossKin()) { log(`${KIN.name(wild)} tears the cage apart, and the effort finishes it. It falls. One chance, and it is gone.`, 'bad'); G.sfx('miss'); snareState = null; wild.hp = 0; refresh(); await sleep(1100); return end('won'); } // one try at a boss's Kin
-    log(stealth ? `${KIN.name(wild)} breaks free and turns on you!` : `${KIN.name(wild)} breaks free!`, 'bad'); G.sfx('miss'); stealth = false;
+    if (bossKin()) { log(`${KIN.name(wild)} tears the net apart, and the effort finishes it. It falls. One chance, and it is gone.`, 'bad'); G.sfx('miss'); snareState = null; wild.hp = 0; refresh(); await sleep(1100); return end('won'); } // one try at a boss's Kin
+    G.player.add(snareState.item, 1); // a net is not lost by missing with it: you haul it back in by the hand line. It only leaves your bag with a Kin in it
+    log(stealth ? `${KIN.name(wild)} gets clear and turns on you! You haul the net back in.` : `${KIN.name(wild)} gets clear. You haul the net back in.`, 'bad'); G.sfx('miss'); stealth = false;
     await sleep(500);
     await useMove(wild, mine, wildChoose(), false);
     snareState = null;
@@ -15045,9 +15046,9 @@ const RECIPES = [
 const QUESTS = [
   { id: 'village', title: 'Free the Village', desc: 'Grakor the Tyrant holds the village by your camp and keeps its people shut in their homes. A fresh starter can take it; a second Kin makes it safe. Tap the blue camp fire to revive and heal everyone if it goes wrong.', hint: 'Free the village: beat Grakor in the square', check: G => G.stats.villageFreed ? 1 : 0, reward: { items: { snare: 1, shovel: 1, hatchet: 1 }, xp: 40 } },
   { id: 'timber', title: 'Timber', desc: 'The village gave you a hatchet and a shovel. Your hands only pick plants and berries; the hatchet cuts wood. Hold your finger (or left mouse) on a tree trunk until it gives: the whole tree comes down and every log in it is yours. Collect 6 wood.', hint: 'Fell a tree: hold your finger on the trunk', check: G => G.stats.got.wood / 6, reward: { items: { snare: 1 }, xp: 10 } },
-  { id: 'foreman', title: 'The Mining Camp', desc: 'A Snare Cube needs stone, and stone needs a pick: no shovel will bite it. There is a mining camp out past the village: a headframe over a shaft, and a crew. Find Foreman Garrick (⛏ on the map) and ask for a pick.', hint: 'Talk to Foreman Garrick at the Mining Camp', check: G => (G.stats.camp || {}).pick ? 1 : 0, reward: { xp: 25 } },
-  { id: 'snare', title: 'Snare Cube', desc: 'Dig two stone blocks with the stone pick (slow, hard work: stone takes about five times longer than dirt) and craft a Snare Cube at a Fusion Table. There is one in the foreman\'s hut.', hint: 'Craft a Snare Cube at a table (2 wood, 2 stone)', check: G => (G.stats.crafted.snare || 0) >= 1 ? 1 : 0, reward: { xp: 15 } },
-  { id: 'catch', title: 'First Kin', desc: 'Find a wild Kin. Weaken it in battle, then set a snare. Sneak up from behind for a bonus.', hint: 'Catch a wild Kin', check: G => G.stats.caught >= 1 ? 1 : 0, reward: { items: { snare: 2 }, xp: 20 } },
+  { id: 'foreman', title: 'The Mining Camp', desc: 'A Cast Net needs stone, and stone needs a pick: no shovel will bite it. There is a mining camp out past the village: a headframe over a shaft, and a crew. Find Foreman Garrick (⛏ on the map) and ask for a pick.', hint: 'Talk to Foreman Garrick at the Mining Camp', check: G => (G.stats.camp || {}).pick ? 1 : 0, reward: { xp: 25 } },
+  { id: 'snare', title: 'Cast Net', desc: 'Dig two stone blocks with the stone pick (slow, hard work: stone takes about five times longer than dirt) and craft a Cast Net at a Fusion Table. There is one in the foreman\'s hut.', hint: 'Craft a Cast Net at a table (2 wood, 2 stone)', check: G => (G.stats.crafted.snare || 0) >= 1 ? 1 : 0, reward: { xp: 15 } },
+  { id: 'catch', title: 'First Kin', desc: 'Find a wild Kin. Weaken it in battle, then throw your net. Sneak up from behind for a bonus.', hint: 'Catch a wild Kin', check: G => G.stats.caught >= 1 ? 1 : 0, reward: { items: { snare: 2 }, xp: 20 } },
   { id: 'ember', title: 'A Warm Glow', desc: 'It is dark down a mine. Pick a Glowworm out of the grass (fat little lights in the plains, forests and swamps, brightest at night), or dig an Ember Ore.', hint: 'Pick 1 Glowworm (glowing in the grass)', check: G => Math.min(1, (G.stats.got.glowworm || 0) + (G.stats.got.ember || 0)), reward: { xp: 15 } },
   { id: 'torch', title: 'Light the Dark', desc: 'Craft torches at a Fusion Table (1 wood + 1 glowworm, or 1 wood + 1 ember). The mining camp has a table in the foreman\'s hut.', hint: 'Craft torches', check: G => (G.stats.crafted.torch || 0) >= 1 ? 1 : 0, reward: { items: { snare: 1 }, xp: 15 } },
   { id: 'mines', title: 'Into the Mines', desc: 'Climb down the shaft at the mining camp (the ladder is on the side) to the gallery at the bottom. Ore shows in the walls: copper brown-green, iron pale, ember orange, void purple.', hint: 'Go down the shaft into the Mines', check: G => G.stats.reachedMines ? 1 : 0, reward: { xp: 30 } },
@@ -15068,12 +15069,12 @@ const QUESTS = [
   { id: 'lavasuit', title: 'Suit Up', desc: 'Under the basalt the Core is so hot it cooks you where you stand. Only Garrick knows how to make a Lava Suit that keeps the heat off. Ask him.', hint: 'Get a Lava Suit from Garrick', check: G => G.player.has('lavasuit') ? 1 : 0, reward: { xp: 60 } },
   { id: 'core', title: 'The Core', desc: 'Dig through the basalt ceiling beneath the Mines (below y 14), anywhere you like. Where you come out is luck: a lava lake, a cave, a seam of ore. Expect Flame and Void Kin far above your level.', hint: 'Reach the Core (y below 14)', check: G => G.stats.reachedCore ? 1 : 0, reward: { xp: 80 } },
   { id: 'job', title: 'Odd Jobs', desc: 'People sit by little fires all over the world, and the Moon and Halo too, each with a job: fetch this, beat that, carry a parcel, clear a den. Yellow dots on the map. Some of them pay in amulets, which nobody sells.', hint: 'Do a job for someone on the road', check: G => (G.stats.questsDone || 0) >= 1 ? 1 : 0, reward: { xp: 120 } },
-  { id: 'lab', title: 'The Splice', desc: 'Somewhere out there an apprentice waits by a tent: her master is shut in his own lab with the thing he made. Find her, follow ⚗ to the hatch, and beat or cage what is down there. The incubator is the reward: Kin grow fast in it and learn techniques.', hint: 'Find the apprentice by the tent and rescue the maker', check: G => (G.stats.labDone || 0) >= 1 ? 1 : 0, reward: { xp: 400 , items: { draught: 1 } } },
+  { id: 'lab', title: 'The Splice', desc: 'Somewhere out there an apprentice waits by a tent: her master is shut in his own lab with the thing he made. Find her, follow ⚗ to the hatch, and beat or net what is down there. The incubator is the reward: Kin grow fast in it and learn techniques.', hint: 'Find the apprentice by the tent and rescue the maker', check: G => (G.stats.labDone || 0) >= 1 ? 1 : 0, reward: { xp: 400 , items: { draught: 1 } } },
   { id: 'skyroot', title: 'The Skyroot', desc: 'The elder of the first village you freed told you about a tree taller than the hills, the Skyroot (🌳 on the map), with a ladder nailed up its trunk. The folk who climbed it came back talking about the Tangle: scraps of cloud on rope bridges one block wide, climbing and dropping and doubling back, and something nesting at the far end. Climb it, cross it, beat what lives there.', hint: 'Climb the Skyroot and cross the Tangle', check: G => ((G.stats.sky || {}).tangleDone) ? 1 : 0, reward: { xp: 250, items: { windcharm: 1, tonic_heal: 2 } } },
   { id: 'sky', title: 'Highmere', desc: 'Captain Merrow at the Flying School says there is a city above the clouds, Highmere, and no glider and no train will get you there. Only wings. Raise a flying Kin to level 20 (you need trainer level 18 to ride one), then fly it up to the city (☁ on the map).', hint: 'Fly a level 20 Kin up to Highmere', check: G => (G.stats.sky || {}).seen_highmere ? 1 : 0, reward: { xp: 150 } },
   { id: 'lost', title: 'The Lost World', desc: 'People by the fires talk about a dinosaur someone caught. Barnaby Quill keeps it in his menagerie (🦎 on the map). Ask him where it came from, then find the two people out in the trapper country who each have half a map. Your Kindex will read it. Then follow 🦖.', hint: 'Find the dinosaur, then the two halves of the map', check: G => G.stats.lostFound ? 1 : 0, reward: { xp: 500 } },
-  { id: 'abyss', title: 'Abyssaurus', desc: 'Something circles the deep water outside the Lost World cliffs, level 160, and comes up for air now and then. A water mount helps.', hint: 'Beat or cage Abyssaurus in the sea by the Lost World', check: G => (G.stats.apex || {}).mosa ? 1 : 0, reward: { xp: 5000 } },
-  { id: 'rex', title: 'The Tyrant', desc: 'In the clearing at the middle of the Lost World stands Tyrannorex, level 170. Beating it is not enough: it limps off and comes back in about ten days. Cage it. Your snare strength is twice your trainer level, and nothing above twice that will stay caged: you need trainer level 43 to have any chance, and more like 70 for real odds.', hint: 'Cage Tyrannorex in the Lost World', check: G => (G.stats.apex || {}).rex === true ? 1 : 0, reward: { xp: 5000 , items: { draught: 1 } } },
+  { id: 'abyss', title: 'Abyssaurus', desc: 'Something circles the deep water outside the Lost World cliffs, level 160, and comes up for air now and then. A water mount helps.', hint: 'Beat or net Abyssaurus in the sea by the Lost World', check: G => (G.stats.apex || {}).mosa ? 1 : 0, reward: { xp: 5000 } },
+  { id: 'rex', title: 'The Tyrant', desc: 'In the clearing at the middle of the Lost World stands Tyrannorex, level 170. Beating it is not enough: it limps off and comes back in about ten days. Net it. Your net strength is twice your trainer level, and nothing above twice that will stay caged: you need trainer level 43 to have any chance, and more like 70 for real odds.', hint: 'Net Tyrannorex in the Lost World', check: G => (G.stats.apex || {}).rex === true ? 1 : 0, reward: { xp: 5000 , items: { draught: 1 } } },
   { id: 'holds', title: 'The Twelve Holds', desc: 'The Kinmaster bound his warriors with a crystal and broke it into twelve shards, one in each of his Holds: eleven under grey skies out across Earth, one on the lava in the Core. Take every hold: fight his warriors on foot, then beat the warlord\'s Kin. Each one gives you a shard.', hint: 'Take the Holds (☠ on the map)', check: G => (G.stats.crystal || 0) / Math.max(1, Keeps.sites().length), reward: { xp: 3000 } },
   { id: 'storm', title: 'Stormspire', desc: 'Lady Aurelle of Highmere says the Storm Warden, one of the Kinmaster\'s own, holds a fortress on the clouds far out from the city, and his storm creeps closer. Fly there, beat his warriors on foot, then his Kin.', hint: 'Take Stormspire (⛈ on the map)', check: G => (G.stats.sky || {}).fortTaken ? 1 : 0, reward: { xp: 800 , items: { draught: 1 } } },
   { id: 'citadel', title: 'The Black Citadel', desc: 'The whole crystal knows where he is. Sable at Thornhold will read it for you. Then the Citadel: glide the chasm, burn the thorns, wake the dead gate, swim the flooded hall, break the rubble, shoot the three targets, and end him.', hint: 'End the Kinmaster in the Black Citadel', check: G => G.stats.lightReturned ? 1 : 0, reward: { xp: 6000 } },
@@ -15084,9 +15085,9 @@ const QUESTS = [
   { id: 'moonjobs', title: 'Moonfolk', desc: 'The Moon has its own people by its own fires, out on the grey between the domes. They do not trust you yet. Do three of their jobs before anyone tells you where the Selenaut sleeps.', hint: 'Do 3 jobs for people on the Moon', check: G => ((G.stats.jobsBy || {}).moon || 0) / 3, reward: { xp: 600, items: { snare2: 3 } } },
   { id: 'moonfree', title: 'Under the Dome', desc: 'Every alien town on the Moon has a tyrant in its square, the same as on Earth. Free one and its people will open the dome to you and keep your Kin fed.', hint: 'Free a village on the Moon', check: G => Object.values(G.villageState || {}).some(st => st.freed && st.meta && st.meta.world === 'moon') ? 1 : 0, reward: { xp: 800 } },
   { id: 'halojobs', title: 'Caravan Work', desc: 'The caravan people on Halo pay well and talk even better. Three jobs for them and someone will mention the Ringwarden on the high mesa.', hint: 'Do 3 jobs for people on Halo', check: G => ((G.stats.jobsBy || {}).halo || 0) / 3, reward: { xp: 900, items: { snare2: 3, wings: 1 } } },
-  { id: 'legend', title: 'Legend', desc: 'With the Tyrannorex in your bag, the old ones notice. Every world beyond Earth has one creature at a level even it does not reach: the Selenaut over the Moon, the Ringwarden on Halo. ✶ on the map. Beat or cage one, and you will hear what still sleeps under Earth.', hint: 'Beat or cage a world\'s legendary (✶ on the map)', check: G => Object.keys(G.stats.legends || {}).length ? 1 : 0, reward: { xp: 2000 } },
+  { id: 'legend', title: 'Legend', desc: 'With the Tyrannorex in your bag, the old ones notice. Every world beyond Earth has one creature at a level even it does not reach: the Selenaut over the Moon, the Ringwarden on Halo. ✶ on the map. Beat or net one, and you will hear what still sleeps under Earth.', hint: 'Beat or net a world\'s legendary (✶ on the map)', check: G => Object.keys(G.stats.legends || {}).length ? 1 : 0, reward: { xp: 2000 } },
   { id: 'heart', title: 'The Heart', desc: 'The Deep Chart marks a chamber far out in the Core with a pedestal of Starmetal, on an island in a lava sea nobody can cross on foot or on a Kin. Halo Wings would do it. Inside, two Wardens patrol in step: find the gap.', hint: 'Find the Heart chamber', check: G => G.stats.heartFound ? 1 : 0, reward: { xp: 100 } },
-  { id: 'mythic', title: 'Mantlewyrm', desc: 'The Mythic sleeps on the Starmetal in the Heart. The hardest thing on Earth: catch it (bring Void Snares and a strong, evolved team) or defeat it.', hint: 'Catch or defeat the Mantlewyrm', check: G => G.stats.mythicDone ? 1 : 0, reward: { xp: 500 } },
+  { id: 'mythic', title: 'Mantlewyrm', desc: 'The Mythic sleeps on the Starmetal in the Heart. The hardest thing on Earth: catch it (bring Void Nets and a strong, evolved team) or defeat it.', hint: 'Catch or defeat the Mantlewyrm', check: G => G.stats.mythicDone ? 1 : 0, reward: { xp: 500 } },
 ];
 
 const Quests = (() => {
@@ -16195,8 +16196,8 @@ const Campaign = (() => {
     if (n.job === 'hermit') {
       if (!c.glider) return say(['Up there, on the peak, a sky Kin keeps her nest on a pillar of rock. One egg every spring. Nobody has climbed the pillar: you cannot. You fall to it.', 'Take my glider. Climb the peak, jump, hold ▲ to glide, and come down on that pillar top. Walk the egg home and it will hatch into something that flies.', 'Listen, because the pillar is small. Read the wind first: the little compass shows where it blows. Start upwind of the pillar and let it carry you in.', 'The stick: sideways to turn, forward to dive and gather speed, back to brake. Hold back too long and she stalls and drops like a stone.', 'Coming down, keep your speed until the last moment, then pull back. That is the flare: the speed turns into lift and you touch down like a leaf. Let go of ▲ only when your feet are almost on it.', 'And no ladders, no digging. She knows.'], () => { c.glider = 1; give('glider'); });
       if (c.glider === 1) return say(['The pillar, from the peak. Start upwind, the compass shows it. Forward to dive, back to brake, and pull back just before you touch. Let go of ▲ only when you are almost down.']);
-      if (!c.flightSnare) return say(['You brought it down whole. Good hands.', 'Now look up. Those birds wheeling high over the hills: they never land. They drop stones on walkers and laugh about it. A cage on the ground is no use to them.', 'This is a Flight Snare: a light cage on a long cord. It only works thrown from the air. Get above one on the glider, or on the back of a flier, pass close and tap it.', 'I will show you how to tie them. Two Snare Cubes and three Sky Feathers each pair. Feathers come down when you hit one of those birds with an arrow, or beat one. Here are three snares and some feathers to start.'], () => { c.flightSnare = true; give('snare_sky', 3); G.player.add('feather', 6); UI.toast('Flight Snare recipe learned. Throw them from the air only.', 'good'); });
-      return say(['Walk the egg until it hatches. Then it will carry you, below the clouds at least. Higher than that is for ships.', 'And the high birds: from the air, with the Flight Snare. Feathers from arrows.', 'One more thing. I have a talon from the old queen of the high birds. I would sell it, to the right person, for the right sum.'], relic('hermit'));
+      if (!c.flightSnare) return say(['You brought it down whole. Good hands.', 'Now look up. Those birds wheeling high over the hills: they never land. They drop stones on walkers and laugh about it. A net thrown along the ground is no use to them.', 'This is a Flight Net: a light cage on a long cord. It only works thrown from the air. Get above one on the glider, or on the back of a flier, pass close and tap it.', 'I will show you how to tie them. Two Cast Nets and three Sky Feathers each pair. Feathers come down when you hit one of those birds with an arrow, or beat one. Here are three nets and some feathers to start.'], () => { c.flightSnare = true; give('snare_sky', 3); G.player.add('feather', 6); UI.toast('Flight Net recipe learned. Throw them from the air only.', 'good'); });
+      return say(['Walk the egg until it hatches. Then it will carry you, below the clouds at least. Higher than that is for ships.', 'And the high birds: from the air, with the Flight Net. Feathers from arrows.', 'One more thing. I have a talon from the old queen of the high birds. I would sell it, to the right person, for the right sum.'], relic('hermit'));
     }
   }
   // the fisherman, from Village: the rod first, then the water egg after your first fish
@@ -16371,7 +16372,7 @@ const Npcs = (() => {
     amulet_haste: { name: 'Amulet of Haste', col: '#ffe34a', amulet: 'haste', desc: 'Activate: you walk and swim 60% faster for 45 seconds.', dur: 45 },
     amulet_skin: { name: 'Amulet of Iron Skin', col: '#8f98a6', amulet: 'skin', desc: 'Activate: everything hurts you half as much for a minute. Worms and falling stones included.', dur: 60 },
     amulet_focus: { name: 'Amulet of Focus', col: '#ff8a3a', amulet: 'focus', desc: 'Activate: your Kin hit 25% harder for the next three fights.', charges: 3 },
-    amulet_hunter: { name: "Hunter's Amulet", col: '#7fe0c0', amulet: 'hunter', desc: 'Activate: your next three snares have half again the catch chance.', charges: 3 },
+    amulet_hunter: { name: "Hunter's Amulet", col: '#7fe0c0', amulet: 'hunter', desc: 'Activate: your next three nets have half again the catch chance.', charges: 3 },
     amulet_mender: { name: "Mender's Amulet", col: '#ff5f7a', amulet: 'mender', desc: 'Activate: every Kin with you wakes and heals, wherever you are.' },
     amulet_shadow: { name: 'Amulet of Shadow', col: '#5a2a9a', amulet: 'shadow', desc: 'Activate: wild Kin and camp guards do not notice you for a minute.', dur: 60 },
   };
@@ -17074,7 +17075,7 @@ const Lab = (() => {
         // the maker comes over, then the incubator is explained
         const d = Math.hypot(p.x - sc.x, p.z - sc.z);
         if (d > 2.2 && d < 30) { const sp = 2.2 * dt; const nx = sc.x + dx / d * sp, nz = sc.z + dz / d * sp; const gy = standY(nx, sc.y, nz); if (gy != null) { sc.x = nx; sc.z = nz; sc.y += (gy - sc.y) * 0.5; } sc.yaw = Math.atan2(dx, dz); sc.moving = true; }
-        else if (d <= 2.2 && !Dialogue.active() && !inBattle) { sc.moving = false; L.thanked = true; G.talkNpc = sc; Dialogue.show(story().who, story().thanks, () => { G.shards += 200; G.player.add('snare2', 2); UI.sfx('quest'); UI.toast('+200 Shards and two Void Snares. The incubator is yours.', 'good'); G.stats.labDone = (G.stats.labDone || 0) + 1; if (world.preset.id === 'earth' && !G.stats.lostMap) setTimeout(() => G.giveLostMap(story().who), 600); }); }
+        else if (d <= 2.2 && !Dialogue.active() && !inBattle) { sc.moving = false; L.thanked = true; G.talkNpc = sc; Dialogue.show(story().who, story().thanks, () => { G.shards += 200; G.player.add('snare2', 2); UI.sfx('quest'); UI.toast('+200 Shards and two Void Nets. The incubator is yours.', 'good'); G.stats.labDone = (G.stats.labDone || 0) + 1; if (world.preset.id === 'earth' && !G.stats.lostMap) setTimeout(() => G.giveLostMap(story().who), 600); }); }
       }
     } else { scientist = null; if (bossRef && dh > 90) { Wild.remove(bossRef); bossRef = null; } }
   }
@@ -17844,7 +17845,7 @@ const UI = (() => {
   function renderTable(data) {
     setTitle('Table'); if (data && data.table) lastTable = data;
     el['panel-body'].innerHTML = `<div class="choose">
-      <button class="pick" data-go="craft"><span class="ico big" style="${Icons.style('snare')}"></span><b>Craft tools and items</b><small>Snares, picks, weapons, shields, blocks, tonics and Kin gear</small></button>
+      <button class="pick" data-go="craft"><span class="ico big" style="${Icons.style('snare')}"></span><b>Craft tools and items</b><small>Nets, picks, weapons, shields, blocks, tonics and Kin gear</small></button>
       <button class="pick" data-go="fusion"><span class="ico big" style="${Icons.style('ess_Flame') || ''}"></span><b>Fuse Kin</b><small>Put Kin and essences together into something new${G.player.has('voidshard') ? '. Your Void Shard lets this table take dark materials' : ''}</small></button>
       <button class="pick" data-go="kin"><span class="ico big" style="${Icons.style('snare')}"></span><b>Your Kin and storage</b><small>Store a Kin here or swap one in${G.box.length ? ` (${G.box.length} waiting)` : ''}</small></button></div>`;
     el['panel-body'].querySelectorAll('[data-go]').forEach(b => b.addEventListener('click', () => b.dataset.go === 'craft' ? openPanel('craft') : b.dataset.go === 'kin' ? openPanel('kin') : openPanel('fusion', lastTable || undefined)));
@@ -17880,7 +17881,7 @@ const UI = (() => {
     const JOBCOL = Object.assign({ fetch: '#9fd36a', hunt: '#ff7060', catch: '#ff7060', dig: '#c8a070', deliver: '#9fd36a', lair: '#ff8040', explore: '#ff8040' }, Builds.COL);
     const JOBTAG = { build: 'BUILD', archery: 'ARCHERY', night: 'NIGHT', lair: 'DEN', explore: 'FIND', hunt: 'HUNT', catch: 'CATCH', dig: 'DIG', fetch: 'FETCH', deliver: 'DELIVER' };
     const jobs = Npcs.takenList(); const jobsHtml = jobs.length ? `<div class="quest bounty"><b>Jobs (${jobs.length})</b>` + jobs.map(([w, q]) => `<div class="small" style="margin-top:4px"><span style="display:inline-block;padding:1px 6px;border-radius:6px;font-size:10px;font-weight:700;background:${JOBCOL[q.kind] || '#888'};color:#111">${JOBTAG[q.kind] || q.kind.toUpperCase()}</span> ${Npcs.questText(q)} <span style="opacity:.7">· for ${q.wname}</span></div>`).join('') + '</div>' : '';
-    el['panel-body'].innerHTML = head + jobsHtml + `<div class="quest bounty"><b>Villages</b><div class="small">${Village.summaryHtml()}</div></div><div class="quest bounty"><b>Bounty ${b.round}</b><div class="small">Win ${b.need} battles: ${G.stats.battlesWon - (b.base || 0)}/${b.need}. Reward: Snare Cube and XP. Repeats, bigger each time.</div></div>` +
+    el['panel-body'].innerHTML = head + jobsHtml + `<div class="quest bounty"><b>Villages</b><div class="small">${Village.summaryHtml()}</div></div><div class="quest bounty"><b>Bounty ${b.round}</b><div class="small">Win ${b.need} battles: ${G.stats.battlesWon - (b.base || 0)}/${b.need}. Reward: Cast Net and XP. Repeats, bigger each time.</div></div>` +
       Object.keys(Quests.ARCS).map(a => { const A = Quests.ARCS[a]; const L = Quests.arcList(a); const ai = (G.questState.arcs || {})[a] || 0; const cq = Quests.arcCurrent(a); const gate = Quests.gated(cq); const focus = (G.questState.focus || 'main') === a;
         const gateTxt = gate ? `Opens after: ${(QUESTS.find(x => x.id === gate) || {}).title || gate}` : '';
         return `<div class="arc" style="--ac:${A.col}"><div class="archead"><b>${A.name}</b> <span class="small">${Math.min(ai, L.length)}/${L.length}</span>${cq && !gate ? `<button class="btn ghost" data-focus="${a}" ${focus ? 'disabled' : ''}>${focus ? 'Following' : 'Follow'}</button>` : ''}</div>` +
@@ -17906,7 +17907,7 @@ const UI = (() => {
       <h4>How to play</h4>
       <p class="small">${Controls.isTouch ? 'Left stick walks; drag anywhere on the right of the screen to turn the camera. <b>Hold</b> to mine, or to block when you hold a weapon; <b>tap</b> to place a block, swing, talk, or use a Fusion Table. ▲ jumps, ▼ crouches, hold ▲ in the air with a Glider to glide. In third person the camera orbits you: swing it round to see your face, or your Kin\'s.' : 'WASD to move, mouse to look, <b>hold left click</b> to mine or block, <b>right click</b> to place or use. Space jumps, Shift sneaks, 1-9 or the wheel pick an item. E opens Craft, Q opens Kin, J opens Quests, V switches the camera, F deploys a Kin or sets a snare. Esc releases the mouse.'}</p>
       <p class="small">Chests (Craft › Blocks) keep what you store in them through anything. Amulets come from the people by the fires on the road; nobody sells them. Third person shows your skin: unlock more by playing.</p>
-      <p class="small">Wild Kin have a sense ring. Walk into it from the front and they come for you, live: they crouch, then lunge. Hold a weapon and hold the screen to block with your shield; raise it, or swing, just as the lunge lands to parry. Swords and axes chip a Kin's health (a wooden sword a twentieth a blow, Starmetal about a seventh), arrows more but never the last point. Your lead Kin fights beside you on its own, with its real moves and strength: far harder than any blade, and the big ones only fall to Kin. It takes lunges too and goes down if they are too much. <b>Deploy</b> picks which Kin is at your side, or sends one in when nobody is; with no Kin beside you it is just you. Beat a common Kin and it lies dazed for ten seconds: snare it, or let it go. Sneak up from behind and stay still when the ring flashes for a better catch.</p>
+      <p class="small">Wild Kin have a sense ring. Walk into it from the front and they come for you, live: they crouch, then lunge. Hold a weapon and hold the screen to block with your shield; raise it, or swing, just as the lunge lands to parry. Swords and axes chip a Kin's health (a wooden sword a twentieth a blow, Starmetal about a seventh), arrows more but never the last point. Your lead Kin fights beside you on its own, with its real moves and strength: far harder than any blade, and the big ones only fall to Kin. It takes lunges too and goes down if they are too much. <b>Deploy</b> picks which Kin is at your side, or sends one in when nobody is; with no Kin beside you it is just you. Beat a common Kin and it lies dazed for ten seconds: net it, or let it go. Sneak up from behind and stay still when the ring flashes for a better catch.</p>
       <p class="small">Layers, top to bottom: Sky islands (Light, Gale), Surface, the Mines (dark, bring a torch), and the Core: lava, Flame and Void, the Mythic. The world wraps after about an hour of walking in one direction; the further you go from camp, the stranger the Kin.</p>
       <p class="small">Shards (◆) are the currency: you earn them by dismantling objects and gear that had a Kin in them. Shops to spend them in come later.</p>
       <p class="small">The Fusion Table: a fusion is a recipe, two particular Kin and an element stone (three essences and an iron), and the table lists the recipes you know. Quest people and beaten tyrants teach more; some fusions fork, and the table you use decides which way. Items alone craft gear, and the table keeps your spare Kin.</p>
@@ -18097,7 +18098,7 @@ const UI = (() => {
   }
   // ---------- the reveal: what the table just made ----------
   const KIT_HOW = 'Select it in the Bag (Hold), stand on open ground, face where you want it and tap the ground a few steps ahead. The building rises with its door toward you.';
-  const GEAR_HOW = { amulet_haste: 'Bag › Amulets › Activate. Any amulet used puts all of them to sleep for four minutes.', amulet_skin: 'Bag › Amulets › Activate before you cross something dangerous.', amulet_focus: 'Bag › Amulets › Activate; the next three fights hit harder.', amulet_hunter: 'Bag › Amulets › Activate; the next three snares catch better.', amulet_mender: 'Bag › Amulets › Activate when your Kin are down and the hut is far.', amulet_shadow: 'Bag › Amulets › Activate to walk past wild Kin and camp guards for a minute.', wings: 'Jump, then jump again in the air: the wings open. Hold ▲ to climb, hold ▼ to come down.', reeffins: 'Wear them (gear is always on): you swim nearly twice as fast and breathe twice as long.', pick: 'Wear it: everything mines twice as fast.', kit_dome: 'In a land village you hold: open the headman\'s ledger and Raise the Moon Dome, or tap the ground inside the walls with the kit in hand.', moonlamp: 'Place it like a torch. It lights twelve blocks, air or no air.', selglass: 'See-through blocks that glow a little. Twenty-four of them go into a Moon Dome kit.', chest: 'Place it, tap it, store what you do not want to lose. Mine it to pick it up again with everything inside.', rod: 'Hold it (Bag › Hold), stand by the water, face it and tap. When the toast says a bite, a bar appears: tap when the marker is inside the glow. Rarer fish run faster and the glow is narrower; a better rod widens it. Bait is used up on each cast.', kit_portal: 'Place it like a block inside a village you hold. Tap the arch to pick any other village of yours, or Brannock\'s shore.', door: 'Place it in a wall gap like a block. Tap it to open or shut. Shut, it counts as wall; raiders have to break it down.', kit_house: KIT_HOW, kit_bakery: KIT_HOW, kit_juice: KIT_HOW, kit_trader: KIT_HOW, kit_voodoo: KIT_HOW, kit_post: KIT_HOW, kit_wall: 'Select it, face along the line you want and tap the ground: seven blocks of wall rise across your view, two high.', kit_wall_stone: 'Same as the wood wall, in stone. Raiders need about three seconds a block instead of two.', kit_wall_iron: 'Same as the wood wall, in iron. Raiders need about ten seconds a block.', kit_bridge: 'Stand at the edge, face across the gap and tap the last block of ground: planks run out ahead until they meet ground, twelve blocks at most.', claw: 'Open the Kin, Put on. One weapon, one armour, one charm per Kin. Comes back to your bag if the Kin is fused.', bulb: 'Wear it (gear is always on). Under water your air lasts two minutes instead of twenty seconds.', glider: 'Hold Jump while falling and you glide. Jump off anything tall.', lavasuit: 'Lava no longer burns: you swim in it. The Core is open to you.', frostcloak: 'Snowfields and mountain tops no longer freeze you.', spacesuit: 'Air and warmth off-world. Now the Moon will not kill you.', torch: 'Hold it to light caves, or place it on a block. Holding it, select it in the Bag.', snare: 'Fight a Kin down, then use it: a timing bar appears; tap when the marker is in the green. Or sneak up behind an unaware Kin and press Set snare.', snare2: 'A stronger snare: a wider green zone. Needed for the rarest Kin.', fusion: 'Place it anywhere and tap it to fuse Kin or craft, wherever you are.', planks: 'Building blocks. Forty of them around a table help found a village.', glass: 'Windows. See-through blocks.', ironwall: 'Wall blocks for a village you found: raiders take far longer to break through.', voidwall: 'The strongest wall blocks there are. They glow.', smoothie: 'Use it from the Bag: every Kin recovers half its health.', bread: 'Use it from the Bag: your own health back to full.' };
+  const GEAR_HOW = { amulet_haste: 'Bag › Amulets › Activate. Any amulet used puts all of them to sleep for four minutes.', amulet_skin: 'Bag › Amulets › Activate before you cross something dangerous.', amulet_focus: 'Bag › Amulets › Activate; the next three fights hit harder.', amulet_hunter: 'Bag › Amulets › Activate; the next three nets catch better.', amulet_mender: 'Bag › Amulets › Activate when your Kin are down and the hut is far.', amulet_shadow: 'Bag › Amulets › Activate to walk past wild Kin and camp guards for a minute.', wings: 'Jump, then jump again in the air: the wings open. Hold ▲ to climb, hold ▼ to come down.', reeffins: 'Wear them (gear is always on): you swim nearly twice as fast and breathe twice as long.', pick: 'Wear it: everything mines twice as fast.', kit_dome: 'In a land village you hold: open the headman\'s ledger and Raise the Moon Dome, or tap the ground inside the walls with the kit in hand.', moonlamp: 'Place it like a torch. It lights twelve blocks, air or no air.', selglass: 'See-through blocks that glow a little. Twenty-four of them go into a Moon Dome kit.', chest: 'Place it, tap it, store what you do not want to lose. Mine it to pick it up again with everything inside.', rod: 'Hold it (Bag › Hold), stand by the water, face it and tap. When the toast says a bite, a bar appears: tap when the marker is inside the glow. Rarer fish run faster and the glow is narrower; a better rod widens it. Bait is used up on each cast.', kit_portal: 'Place it like a block inside a village you hold. Tap the arch to pick any other village of yours, or Brannock\'s shore.', door: 'Place it in a wall gap like a block. Tap it to open or shut. Shut, it counts as wall; raiders have to break it down.', kit_house: KIT_HOW, kit_bakery: KIT_HOW, kit_juice: KIT_HOW, kit_trader: KIT_HOW, kit_voodoo: KIT_HOW, kit_post: KIT_HOW, kit_wall: 'Select it, face along the line you want and tap the ground: seven blocks of wall rise across your view, two high.', kit_wall_stone: 'Same as the wood wall, in stone. Raiders need about three seconds a block instead of two.', kit_wall_iron: 'Same as the wood wall, in iron. Raiders need about ten seconds a block.', kit_bridge: 'Stand at the edge, face across the gap and tap the last block of ground: planks run out ahead until they meet ground, twelve blocks at most.', claw: 'Open the Kin, Put on. One weapon, one armour, one charm per Kin. Comes back to your bag if the Kin is fused.', bulb: 'Wear it (gear is always on). Under water your air lasts two minutes instead of twenty seconds.', glider: 'Hold Jump while falling and you glide. Jump off anything tall.', lavasuit: 'Lava no longer burns: you swim in it. The Core is open to you.', frostcloak: 'Snowfields and mountain tops no longer freeze you.', spacesuit: 'Air and warmth off-world. Now the Moon will not kill you.', torch: 'Hold it to light caves, or place it on a block. Holding it, select it in the Bag.', snare: 'Fight a Kin down, then use it: a timing bar appears; tap when the marker is in the green. Or sneak up behind an unaware Kin and press Throw net.', snare2: 'A stronger net: a wider green zone. Needed for the rarest Kin.', fusion: 'Place it anywhere and tap it to fuse Kin or craft, wherever you are.', planks: 'Building blocks. Forty of them around a table help found a village.', glass: 'Windows. See-through blocks.', ironwall: 'Wall blocks for a village you found: raiders take far longer to break through.', voidwall: 'The strongest wall blocks there are. They glow.', smoothie: 'Use it from the Bag: every Kin recovers half its health.', bread: 'Use it from the Bag: your own health back to full.' };
   function renderReveal(d) {
     const body = el['panel-body'];
     if (d.kind === 'kin') {
@@ -20153,7 +20154,7 @@ G.dropItem = function (key, n) {
   p.take(key, take); UI.sfx('miss'); UI.toast(`Dropped ${info.name} ×${take}.`); UI.renderHotbar();
 };
 G.dropSelected = function (n) { this.dropItem(this.player.selected(), n); };
-// ---------- stealth snare ----------
+// ---------- stealth net ----------
 G.stealthTarget = function () {
   const p = this.player; let best = null, bd = Infinity;
   for (const e of Wild.list) {
@@ -20167,7 +20168,7 @@ G.stealthTarget = function () {
 };
 G.stealthSnare = function () {
   const e = this.stealthTarget(); if (!e || Battle.active) return;
-  if (!this.player.has('snare') && !this.player.has('snare2')) { UI.toast('No snares. Craft one: 2 wood, 2 stone.'); return; }
+  if (!this.player.has('snare') && !this.player.has('snare2')) { UI.toast('No nets. Craft one: 2 wood, 2 stone.'); return; }
   if (!this.healthyKin().length) { UI.toast('You need an awake Kin with you to set a snare.'); return; }
   Battle.start(e, true, { stealth: true });
 };
@@ -20574,7 +20575,7 @@ G.onBattleEnd = function (result, wildE, wild, mine, ambush) {
     if (result === 'won') {
       const dom = KIN.dominant(wild.sp.elem, 1)[0];
       if (Math.random() < ((wild.sp.rarity || 0) >= 2 || wildE.elite ? 1 : 0.6)) { p.add('ess_' + dom, 1); UI.toast(`${dom} Essence collected.`); }
-      if (st) { this.stats.mythicDone = true; UI.toast('The Mantlewyrm sinks back into the Starmetal. Next time, bring Void Snares.', 'good'); }
+      if (st) { this.stats.mythicDone = true; UI.toast('The Mantlewyrm sinks back into the Starmetal. Next time, bring Void Nets.', 'good'); }
     } else {
       wild.buffs = null; wild.hp = Math.max(1, wild.hp);
       this.stats.caught++; this.seenDex(wild.sp, "caught");
@@ -20815,7 +20816,7 @@ G.loop = function (t) {
         this.questTimer = 0;
         for (const ev of Quests.update()) {
           if (ev.type === 'quest') { UI.sfx('quest'); UI.toast(`Quest complete: ${ev.q.title}`, 'good'); document.getElementById('quest-dot').classList.remove('hidden'); }
-          if (ev.type === 'bounty') { UI.sfx('quest'); UI.toast(`Bounty ${ev.round - 1} paid: a Snare Cube and XP.`, 'good'); }
+          if (ev.type === 'bounty') { UI.sfx('quest'); UI.toast(`Bounty ${ev.round - 1} paid: a Cast Net and XP.`, 'good'); }
         }
       }
       Battle.tick(dt); // particle effects outside fights (guards at the walls)
@@ -20940,7 +20941,7 @@ G.onTap = function () {
   // with a weapon in hand, a tap on something you use (the camp fire, a table, a door, a chest, a bed) still uses it; anything else is a swing
   const usable = hit && !e && (hit.id === B.CAMPFIRE || hit.id === B.FUSION || hit.id === B.DARKTABLE || hit.id === B.STARMETAL || hit.id === B.PORTAL || hit.id === B.DOOR || hit.id === B.DOOR_OPEN || hit.id === B.CHEST || hit.id === B.BOOKS || hit.id === B.INCUBATOR || hit.id === B.BED || hit.id === B.THORN || hit.id === B.DEADGATE || hit.id === B.RUBBLE);
   if (Combat.weapon() && !usable && !(e && e.rogue) && !(e && e.dazed > 0)) { Combat.swing(); return; }
-  if (e && e.dazed > 0) { if (p.has('snare') || p.has('snare2')) { this.stealthSnare(); } else UI.toast('It is dazed. A snare would take it now: 2 wood, 2 stone.'); return; }
+  if (e && e.dazed > 0) { if (p.has('snare') || p.has('snare2')) { this.stealthSnare(); } else UI.toast('It is dazed. A net would take it now: 2 wood, 2 stone.'); return; }
   if (e && e.rogue) { const c = Campaign.C(); if (c.ranch !== 2) { UI.toast('Thunderhoof flattens his ears at you. Talk to Dusty Hale first.'); return; } const k = KIN.create(e.kin.sp, e.kin.level); Taming.start(k, { hard: true, ent: e, onDone: (kk) => { kk.tamed = true; this.addKin(kk); Campaign.onRogueTamed(kk); UI.toast('Thunderhoof is yours, and you can ride now. Every Kin still has to be broken in once: press Ride and hold on.', 'good'); } }); return; }
   if (e && (!hit || Math.hypot(e.x - p.x, e.z - p.z, e.y - p.y) < hit.dist + 0.5)) {
     if (e.cool > 0) e.cool = 0;
@@ -20952,10 +20953,10 @@ G.onTap = function () {
   const interactable = hit && (hit.id === B.CAMPFIRE || hit.id === B.FUSION || hit.id === B.DARKTABLE || hit.id === B.STARMETAL || hit.id === B.PORTAL || hit.id === B.DOOR || hit.id === B.DOOR_OPEN || hit.id === B.CHEST || hit.id === B.INCUBATOR || hit.id === B.BOOKS);
   if (!interactable && selInfo && selInfo.rod) { Fishing.cast(); return; }
   if (!interactable && selInfo && selInfo.use) { this.useItem(p.selected()); return; }
-  if (!interactable && selInfo && selInfo.snare) { if (this.stealthTarget()) { this.stealthSnare(); } else UI.toast('Snares work in a fight, or sneak up close behind an unaware Kin and press Set snare.'); return; }
+  if (!interactable && selInfo && selInfo.snare) { if (this.stealthTarget()) { this.stealthSnare(); } else UI.toast('Snares work in a fight, or sneak up close behind an unaware Kin and press Throw net.'); return; }
   const ev = p.place();
   if (!ev) return;
-  if (ev.interact === 'fusion') { if (ev.dark && !Keeps.tableOpen(ev.x, ev.z)) { UI.toast('The warlord\'s table. It will not answer you until this place is yours.', 'bad'); return; } if (!ev.dark && Village.tableChallenge()) return; if (ev.dark && !this.stats.darkTold) { this.stats.darkTold = true; this.explain('The Dark Fusion Table', 'The Kinmaster\'s own table. It is the only one that takes dark materials: Void Crystal, Void Essence and Void Stones. Every fusion that needs a Void Stone, the Void Snare, and anything else made with Void has to be made here.'); } UI.openPanel('fusion', { table: { x: ev.x, y: ev.y, z: ev.z }, dark: !!ev.dark }); if (!ev.dark) UI.openPanel('table', { table: { x: ev.x, y: ev.y, z: ev.z } }); return; } // tapping a table asks what you came for: crafting or Kin
+  if (ev.interact === 'fusion') { if (ev.dark && !Keeps.tableOpen(ev.x, ev.z)) { UI.toast('The warlord\'s table. It will not answer you until this place is yours.', 'bad'); return; } if (!ev.dark && Village.tableChallenge()) return; if (ev.dark && !this.stats.darkTold) { this.stats.darkTold = true; this.explain('The Dark Fusion Table', 'The Kinmaster\'s own table. It is the only one that takes dark materials: Void Crystal, Void Essence and Void Stones. Every fusion that needs a Void Stone, the Void Net, and anything else made with Void has to be made here.'); } UI.openPanel('fusion', { table: { x: ev.x, y: ev.y, z: ev.z }, dark: !!ev.dark }); if (!ev.dark) UI.openPanel('table', { table: { x: ev.x, y: ev.y, z: ev.z } }); return; } // tapping a table asks what you came for: crafting or Kin
   if (ev.interact === 'portal') { const r = Village.portalHere(ev.x, ev.z); if (r.err) { UI.toast(r.err, 'bad'); return; } UI.openPanel('portal', r.v); return; }
   if (ev.interact === 'chest') { UI.openPanel('chest', { x: ev.x, y: ev.y, z: ev.z }); return; }
   if (ev.interact === 'books') { Books.open('atlantis'); return; }
