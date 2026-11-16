@@ -481,6 +481,7 @@ class Player {
   mineTick(dt) {
     const hit = this.raycast(5.5);
     if (!hit || BLOCKS[hit.id].hard === Infinity) { this.mineTarget = null; this.mineProgress = 0; return null; }
+    if (hit.id !== B.BERRY && hit.id !== B.BERRYLEAF && this.world.lostKeep(hit.x, hit.z)) { this.mineTarget = null; this.mineProgress = 0; if (typeof UI !== 'undefined' && UI.toast && (!this._keepT || performance.now() > this._keepT)) { this._keepT = performance.now() + 6000; UI.toast('Nothing in the Lost World can be dug. Not the dome, not the tunnel, not the ground.'); } return null; } /* the Lost World is kept whole */
     const key = hit.x + ',' + hit.y + ',' + hit.z;
     if (this.mineTarget !== key) { this.mineTarget = key; this.mineProgress = 0; }
     if (typeof G !== 'undefined' && G.protectedAt) { const pr = G.protectedAt(hit); if (pr) { this.mineProgress = 0; this.mineTarget = null; this.cantMine = null; G.onProtectedMine(pr, hit); return null; } }
@@ -539,6 +540,7 @@ class Player {
       return { placed: B.STATUE, x: px, y: py, z: pz };
     }
     if (overlaps && isSolid(info.block)) return null;
+    if (this.world.lostKeep(px, pz)) return null; /* and nothing is built there, since it could never be taken down again */
     this.world.setBlock(px, py, pz, info.block);
     this.take(item, 1);
     if (R.isSoil(info.block)) this.world.markCut(px, pz);

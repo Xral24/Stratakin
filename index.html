@@ -1050,6 +1050,9 @@ class World {
   inLostTunnel(x, y, z) { const L = this.lost; if (!L) return false; const W = WORLD_W, dx = ((x - L.x) % W + W * 1.5) % W - W / 2, dz = ((z - L.z) % W + W * 1.5) % W - W / 2, d = Math.hypot(dx, dz); if (d < L.inner - 8 || d > L.rim + 12) return false;
     const T = this.lostTunnel(); if (!T) return false; const px = ((x - T.ax) % W + W * 1.5) % W - W / 2, pz = ((z - T.az) % W + W * 1.5) % W - W / 2, k = px * T.ix + pz * T.iz, lat = Math.abs(-px * T.iz + pz * T.ix); if (k < T.pa - 2.5 || k > T.pb + 2.5 || lat > 3.6) return false;
     const fy = T.ya + (T.yb - T.ya) * (k / T.len); return y > fy - 1.5 && y < fy + 8; }
+  // the Lost World is kept whole: the dome, everything inside it, the tunnel and its landing. No digging, no building
+  lostKeep(x, z) { const L = this.lost; if (!L) return false; const W = WORLD_W, dx = ((x + 0.5 - L.x) % W + W * 1.5) % W - W / 2, dz = ((z + 0.5 - L.z) % W + W * 1.5) % W - W / 2, d = Math.hypot(dx, dz); if (d <= L.rim + 1) return true; if (d > L.rim + 30) return false;
+    const T = this.lostTunnel(); if (!T) return false; const px = ((x + 0.5 - T.ax) % W + W * 1.5) % W - W / 2, pz = ((z + 0.5 - T.az) % W + W * 1.5) % W - W / 2, k = px * T.ix + pz * T.iz; return k > -9 && Math.abs(-px * T.iz + pz * T.ix) < 9; }
   lostTunnel() {
     if (!this.lost || this.lost.tunnel) return this.lost ? this.lost.tunnel : null;
     const L = this.lost;
@@ -5414,6 +5417,7 @@ class Player {
   mineTick(dt) {
     const hit = this.raycast(5.5);
     if (!hit || BLOCKS[hit.id].hard === Infinity) { this.mineTarget = null; this.mineProgress = 0; return null; }
+    if (hit.id !== B.BERRY && hit.id !== B.BERRYLEAF && this.world.lostKeep(hit.x, hit.z)) { this.mineTarget = null; this.mineProgress = 0; if (typeof UI !== 'undefined' && UI.toast && (!this._keepT || performance.now() > this._keepT)) { this._keepT = performance.now() + 6000; UI.toast('Nothing in the Lost World can be dug. Not the dome, not the tunnel, not the ground.'); } return null; } /* the Lost World is kept whole */
     const key = hit.x + ',' + hit.y + ',' + hit.z;
     if (this.mineTarget !== key) { this.mineTarget = key; this.mineProgress = 0; }
     if (typeof G !== 'undefined' && G.protectedAt) { const pr = G.protectedAt(hit); if (pr) { this.mineProgress = 0; this.mineTarget = null; this.cantMine = null; G.onProtectedMine(pr, hit); return null; } }
@@ -5472,6 +5476,7 @@ class Player {
       return { placed: B.STATUE, x: px, y: py, z: pz };
     }
     if (overlaps && isSolid(info.block)) return null;
+    if (this.world.lostKeep(px, pz)) return null; /* and nothing is built there, since it could never be taken down again */
     this.world.setBlock(px, py, pz, info.block);
     this.take(item, 1);
     if (R.isSoil(info.block)) this.world.markCut(px, pz);
@@ -20361,7 +20366,7 @@ G.loop = function (t) {
   if (w.heart && p.y < 20 && Math.hypot(w.heart.x - p.x, w.heart.z - p.z) < 48) lights.push([w.heart.x + 0.5, 7, w.heart.z + 0.5, 18]);
   for (let i = 0; i < torches.length && lights.length < 8; i++) lights.push([torches[i][0], torches[i][1], torches[i][2], torches[i][4] || 10]);
   const lines = [];
-  if (!inBattle && !this.paused) { const hit = p.raycast(5.5); if (hit && BLOCKS[hit.id].hard !== Infinity) lines.push({ data: R.targetLines(w, hit.x, hit.y, hit.z), color: [0, 0, 0, 0.75] }); }
+  if (!inBattle && !this.paused) { const hit = p.raycast(5.5); if (hit && BLOCKS[hit.id].hard !== Infinity && !w.lostKeep(hit.x, hit.z)) lines.push({ data: R.targetLines(w, hit.x, hit.y, hit.z), color: [0, 0, 0, 0.75] }); }
   lines.push(...Wild.rings(p)); lines.push(...Hazards.lines());
   if (!R.state.underwater && !R.state.inCore && p.y >= w.topAt(Math.floor(p.x), Math.floor(p.z)) - 1) { const rl = Weather.rainLines(w, cam, performance.now() / 1000); if (rl) lines.push(rl); }
   document.getElementById('flash').style.opacity = Weather.state.flash > 0.6 ? 0.7 : 0;

@@ -237,6 +237,9 @@ class World {
   inLostTunnel(x, y, z) { const L = this.lost; if (!L) return false; const W = WORLD_W, dx = ((x - L.x) % W + W * 1.5) % W - W / 2, dz = ((z - L.z) % W + W * 1.5) % W - W / 2, d = Math.hypot(dx, dz); if (d < L.inner - 8 || d > L.rim + 12) return false;
     const T = this.lostTunnel(); if (!T) return false; const px = ((x - T.ax) % W + W * 1.5) % W - W / 2, pz = ((z - T.az) % W + W * 1.5) % W - W / 2, k = px * T.ix + pz * T.iz, lat = Math.abs(-px * T.iz + pz * T.ix); if (k < T.pa - 2.5 || k > T.pb + 2.5 || lat > 3.6) return false;
     const fy = T.ya + (T.yb - T.ya) * (k / T.len); return y > fy - 1.5 && y < fy + 8; }
+  // the Lost World is kept whole: the dome, everything inside it, the tunnel and its landing. No digging, no building
+  lostKeep(x, z) { const L = this.lost; if (!L) return false; const W = WORLD_W, dx = ((x + 0.5 - L.x) % W + W * 1.5) % W - W / 2, dz = ((z + 0.5 - L.z) % W + W * 1.5) % W - W / 2, d = Math.hypot(dx, dz); if (d <= L.rim + 1) return true; if (d > L.rim + 30) return false;
+    const T = this.lostTunnel(); if (!T) return false; const px = ((x + 0.5 - T.ax) % W + W * 1.5) % W - W / 2, pz = ((z + 0.5 - T.az) % W + W * 1.5) % W - W / 2, k = px * T.ix + pz * T.iz; return k > -9 && Math.abs(-px * T.iz + pz * T.ix) < 9; }
   lostTunnel() {
     if (!this.lost || this.lost.tunnel) return this.lost ? this.lost.tunnel : null;
     const L = this.lost;
