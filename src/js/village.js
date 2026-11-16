@@ -1767,6 +1767,29 @@ const Village = (() => {
     const t = makeNpc(50, 'traveller', v.x - 2, v.z - 5, 'Traveller', null, gy, v.id); t.wander = false; t.offer = offer; t.day = day;
     v.npcs.push(t);
   }
+  // ---- what a tyrant says. Each of them wants something small and particular and is a little ridiculous about it; that is what you remember him by.
+  // hail: once, when he first sees you. taunts: now and then while you stand about. fight: as it starts. beaten: his last word on the way out
+  const VOICE = {
+    sly: { hail: ['Every door in {t} locks from the outside now. I counted them. Twice.', 'I never hurt a soul in {t}. I only keep the keys. People are so much tidier indoors.', 'The mayor\'s sash fits me better than it ever fitted him. Say it does.', 'I know which key opens which door in {t} by the sound. Go on, test me. No, don\'t.'],
+      taunts: ['Looking for a key? I have all of them.', 'Jingle, jingle.', 'You could knock. Nobody is allowed to answer.', 'I locked the bakery last. The smell was distracting.'], fight: 'Fine. But I am holding the keys while we do this.', beaten: 'Take them, take them! Half of them never fitted anything anyway.' },
+    grim: { hail: ['I broke the old wall of {t} with this. Then I made them build me a better one.', 'The Kinmaster said hold {t}. Nobody said for how long. So: for good.', 'I was part of a mountain once. They cut a road through it. Now I stand in theirs.', 'Nobody in {t} has laughed since I came. I do not see why that is my fault.'],
+      taunts: ['Still here.', 'I can stand like this for a year. I have.', 'Say what you came to say.', 'The square is mine. The rest I am only borrowing.'], fight: 'Good. Talking wears me out.', beaten: 'Hm. Tell them the wall was well built. That part was me.' },
+    glee: { hail: ['{t} bakes for me now! Four pies a day. Five on feast days, and I have made every day a feast day.', 'They gave me these medals so I would stop singing. I did not stop singing!', 'A guest! I have not had a guest since I ate the welcome mat.', 'Do you know what {t} is famous for? Me! As of this spring.'],
+      taunts: ['Ha! Ha ha! Sorry. I thought of something.', 'Is that food? You would tell me if that was food.', 'I gave myself this medal for patience. Hurry up.', 'La la laaa. That one is about me.'], fight: 'Oh, a game! I love a game. I always win. I am the only one who plays.', beaten: 'Well! That was the best afternoon I have had in {t}. Same time next year?' },
+    alien: { hail: ['I came down on {t} the way night does. Nobody saw me arrive. Nobody sees much of anything now.', 'The lamps of {t} burn for me. I count them from above, and I know who is still awake.', 'I do not want {t}. I want it quiet. They turned out to be the same thing.'],
+      taunts: ['Shh.', 'You are very loud for something so small.', 'I was nearly asleep. It has been ninety years.'], fight: 'Then I will make you quiet as well.', beaten: 'So loud. All of you. Keep it, then. I am going up where there is nobody.' },
+    halo: { hail: ['The ground under {t} was mine when it still ran like water. I have only come back for it.', 'I ran the whole ring round once to see if it ended. It does not. So I stopped here.', 'They built {t} on my back while I slept. I woke up. That is the whole story.'],
+      taunts: ['Mind the cracks. They are warm.', 'I can wait. I waited for the rock to cool.', 'Hff.'], fight: 'Come on, then. I have not had a proper run at anything in an age.', beaten: 'Hff. Good run. The ground is yours until it melts again.' },
+    atlantis: { hail: ['I was small enough to swim in through the gate once. They fed me. That was their mistake.', 'A city under glass. A bowl with the lid on. Somebody had to be the big fish.'],
+      taunts: ['Closer. I see badly.', 'Everything in here tastes of pearl.'], fight: 'At last, something that came in from outside.', beaten: 'Open the gate, then. I have outgrown the place anyway.' },
+  };
+  function tyrantVoice(v, mood, h) { const key = v.style === 'alien' ? 'alien' : v.style === 'halo' ? 'halo' : v.style === 'atlantis' ? 'atlantis' : ['sly', 'grim', 'glee'][mood % 3], V = VOICE[key], f = (t) => t.replace(/\{t\}/g, v.name || 'this place');
+    if (v.starter) return { hail: 'Ah. The one from the camp. Every key in this village is on this ring, and not one of them is for you.', taunts: V.taunts.map(f), fight: f(V.fight), beaten: 'Take them, take them! And tell the Kinmaster nothing. He will hear of it anyway. He always does.' };
+    return { hail: f(V.hail[(h >>> 5) % V.hail.length]), taunts: V.taunts.map(f), fight: f(V.fight), beaten: f(V.beaten) }; }
+  // he speaks when he first sees you, and again now and then while you hang about
+  function tyrantTalk(v, player, dt) { const b = v.boss; if (!b || !b.persona || b.sleep || state(v.id).freed || Battle.active) return; const d = Math.hypot(b.x - player.x, b.z - player.z); if (d > 17) { b.talkT = Math.min(b.talkT || 0, 2); return; }
+    b.talkT = (b.talkT == null ? 0.6 : b.talkT) - dt; if (b.talkT > 0) return; const line = !b.hailed ? b.persona.hail : b.persona.taunts[(b.tauntI = ((b.tauntI || 0) + 1)) % b.persona.taunts.length]; b.hailed = true; b.talkT = 11 + Math.random() * 7;
+    say(b.x, b.y + (b.model ? b.model.height : 2) + 0.5, b.z, line, line.length > 60 ? 7.5 : 4.5, b); const el = bubbles[bubbles.length - 1].el; el.style.font = '700 14px/1.3 system-ui,sans-serif'; el.style.padding = '8px 13px'; el.style.maxWidth = '74vw'; el.style.background = '#2a1f33'; el.style.color = '#f6eaff'; el.style.border = '2px solid #b070ff'; el.style.opacity = '1'; }
   function ensureBoss(v, trainerLevel) {
     if (state(v.id).freed || v.boss) return;
     const prim = v.style === 'alien' ? 'Light' : v.style === 'halo' ? 'Flame' : v.style === 'atlantis' ? 'Tide' : v.type === 'land' ? 'Stone' : v.type === 'sea' ? 'Tide' : 'Void';
@@ -1787,6 +1810,7 @@ const Village = (() => {
     // at sea the tyrant lurks under the deck and comes up when you reach the platform, however you got there
     const lurk = v.type === 'sea'; const by = lurk ? SEA - 3 : v.y;
     v.boss = { kin, x: bx, y: by, z: bz, yaw: Math.PI, tx: bx, tz: bz, wait: 99, speed: 0, senseR: lurk ? 0 : 5.5, alert: 0, model: m, scale: 1, hover: 0, bob: 0, mesh: R.entityMesh(KIN.meshKey(sp, 2) + ':tyrant:' + v.id, (mb) => KIN.buildMesh(mb, m)), skyMul: 1, isBoss: true, villageId: v.id, sleep: lurk, aquatic: lurk, lurk, patrol: { ax: bx - 3, az: bz, bx: bx + 3, bz: bz, period: lurk ? 12 : 8, phase: 0 }, skyT: 0, elite: true };
+    v.boss.persona = tyrantVoice(v, sp.tyrMood || 0, h); v.boss.sayH = (m.height || 2.4) + 0.35;
     Wild.list.push(v.boss);
   }
   // touching the table in a village the tyrant still holds brings him down on you
@@ -1818,6 +1842,7 @@ const Village = (() => {
     G.stats.villagesFreed = (G.stats.villagesFreed || 0) + 1;
     if (v.starter) G.stats.villageFreed = true;
     const tyrant = v.boss ? (v.boss.title || v.boss.name || (v.boss.kin ? KIN.name(v.boss.kin) : null)) : null;
+    if (v.boss && v.boss.persona) { say(v.boss.x, v.boss.y + 3.2, v.boss.z, v.boss.persona.beaten, 7); const el = bubbles[bubbles.length - 1].el; el.style.font = '700 14px/1.3 system-ui,sans-serif'; el.style.maxWidth = '74vw'; el.style.background = '#2a1f33'; el.style.color = '#f6eaff'; el.style.border = '2px solid #b070ff'; if (typeof UI !== 'undefined' && UI.toast) UI.toast(`${tyrant}: "${v.boss.persona.beaten}"`); }
     if (v.elder) { v.elder.wander = false; walkState = { v, tyrant, stage: (v.starter && !G.stats.elderDone) ? 'approach' : 'approach-headman' }; }
     else { // no headman here: whoever is nearest says thank you, straight away
       const n = v.npcs.filter(n => !n.hidden).sort((a, b) => Math.hypot(a.x - G.player.x, a.z - G.player.z) - Math.hypot(b.x - G.player.x, b.z - G.player.z))[0];
@@ -2288,7 +2313,7 @@ const Village = (() => {
         if (!G.lastVillage || G.lastVillage.id !== near.id) G.lastVillage = { id: near.id, x: near.x, y: near.y, z: near.z, name: near.name, world: world.preset.id };
         if (state(near.id).freed) { G.respawnPoint = { x: near.x + 0.5, y: near.y, z: near.z + (near.atlantis ? 14.5 : near.type === 'deep' ? -4.5 : 4.5) }; if (near.atlantis && G.addRoost) G.addRoost({ id: near.id, name: 'Atlantis', x: near.x + 0.5, y: near.y, z: near.z + 15.5, world: world.preset.id, ferry: true, tide: true }); /* the Current carries you there and back once you have stood in the city */ if (!near.R && near.type !== 'deep' && G.addRoost) G.addRoost(near.type === 'sea' ? { id: near.id, name: near.name, x: near.x + 17.5, y: near.y, z: near.z - 3, world: world.preset.id, ferry: true } : { id: near.id, name: near.name, x: near.x + 0.5, y: near.y, z: near.z + 4.5, world: world.preset.id }); }
       }
-      if (nd < 50) ensureBoss(near, G.trainerLevel);
+      if (nd < 50) { ensureBoss(near, G.trainerLevel); tyrantTalk(near, player, dt); }
       ensureLieutenants(near, state(near.id), player);
       if (!inBattle && !Dialogue.active() && !UI.panelOpen && !walkState && !player.flying) siege(near, state(near.id), player, dt, nd);
       if (!state(near.id).freed) Wild.noSpawn = { x: near.x, z: near.z, r: 60 };
@@ -2582,7 +2607,7 @@ const Village = (() => {
   // ---- the train's little films: words over people's heads, and a camera that stands still and watches ----
   const bubbles = [];
   function say(x, y, z, text, secs, on) { const el = document.createElement('div'); el.textContent = text; el.style.cssText = 'position:fixed;z-index:30;max-width:52vw;padding:6px 11px;border-radius:13px;background:#fffdf4;color:#2a2318;font:600 13px/1.25 system-ui,sans-serif;box-shadow:0 2px 7px rgba(0,0,0,.4);transform:translate(-50%,-100%);pointer-events:none;white-space:normal;text-align:center;'; if (on) { el.style.font = '600 12px/1.2 system-ui,sans-serif'; el.style.padding = '4px 9px'; el.style.opacity = '0.95'; el.style.zIndex = '6'; } document.body.appendChild(el); bubbles.push({ x, y, z, el, on: on || null, soft: !!on, until: performance.now() + secs * 1000 }); } // on: somebody the words stay over as they move
-  function tickBubbles() { const now = performance.now(); for (let i = bubbles.length - 1; i >= 0; i--) { const b = bubbles[i]; if (now > b.until || (b.on && b.on.hidden)) { b.el.remove(); bubbles.splice(i, 1); continue; } const q = b.on ? R.project(b.on.x, b.on.y + 2.05 * (b.on.scale || 1), b.on.z) : R.project(b.x, b.y, b.z); if (!q || !q.on) { b.el.style.display = 'none'; continue; } b.el.style.display = ''; b.el.style.left = q.x + 'px'; b.el.style.top = (q.y - 6) + 'px'; } }
+  function tickBubbles() { const now = performance.now(); for (let i = bubbles.length - 1; i >= 0; i--) { const b = bubbles[i]; if (now > b.until || (b.on && b.on.hidden)) { b.el.remove(); bubbles.splice(i, 1); continue; } const q = b.on ? R.project(b.on.x, b.on.y + (b.on.sayH || 2.05 * (b.on.scale || 1)), b.on.z) : R.project(b.x, b.y, b.z); if (!q || !q.on) { b.el.style.display = 'none'; continue; } b.el.style.display = ''; b.el.style.left = q.x + 'px'; b.el.style.top = (q.y - 6) + 'px'; } }
   function filmCam(v, rl, p) { // a place to stand and watch from: somewhere round the carriage with a clear sight of it and of the engine, on his side of the line if there is one
     const W = (al, pp) => rl.ax ? [al, rl.line + 0.5 + pp] : [rl.line + 0.5 + pp, al], car = W(rl.along0 + 0.5 + rl.sgn * 2, 0), eng = W(rl.along0 + 0.5 + rl.sgn * 4.9, 0);
     const perpOf = rl.ax ? p.z - (rl.line + 0.5) : p.x - (rl.line + 0.5), side0 = perpOf >= 0 ? 1 : -1;

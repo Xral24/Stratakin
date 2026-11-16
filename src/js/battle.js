@@ -39,7 +39,7 @@ const Battle = (() => {
     const n = KIN.name(wild);
     log(isAmbush ? `You caught ${n} off guard!` : `${n} noticed you!`, isAmbush ? 'good' : 'bad');
     if (wild.sp.mythic) log('The Heart stirs. This is the Mythic of the Core.', 'bad');
-    if (wildE.isBoss) log(`${n} blocks the square.`, 'bad');
+    if (wildE.isBoss) log(wildE.persona ? `${n}: "${wildE.persona.fight}"` : `${n} blocks the square.`, 'bad');
     if (wildE.isLegend) log(`${n}, the legend of this world. Lv ${wild.level}.`, 'bad');
     if (wildE.isApex) log(`${n}. Lv ${wild.level}. Run, or be very, very sure.`, 'bad');
     if (wildE.keepBoss) log(`${n}, the warlord of this hold. Lv ${wild.level}.`, 'bad');
