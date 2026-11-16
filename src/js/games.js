@@ -1,6 +1,6 @@
 // ---- the games of the towns. Every town keeps a champion at its own game and you play them for shards: you put a stake down,
-// the champion matches it, the winner takes both. You can lose, and they are good. Two games so far: the ringboard (five throws each
-// at a slice of trunk with its rings painted) and draughts. Each one opens over the world, which waits ----
+// the champion matches it, the winner takes both. You can lose, and they are good. Four games: the ringboard (five throws each
+// at a slice of trunk with its rings painted), draughts, chess and a card game called High Tide. Each one opens over the world, which waits ----
 const Games = (() => {
   let box = null, cur = null;
   const $ = (h) => { const d = document.createElement('div'); d.innerHTML = h; return d.firstElementChild; };
@@ -114,6 +114,101 @@ const Games = (() => {
     ui.say.textContent = 'You play the blue men, up the board. A take must be made.'; render();
     st.debug = { state: st, D, play, legal };
   }
-  const KINDS = { ringboard: { name: 'Ringboard', fn: ringboard, blurb: 'Five throws each at the ringboard. Highest count takes both stakes.' }, draughts: { name: 'Draughts', fn: draughts, blurb: 'One game of draughts. Whoever is left without a move pays.' } };
-  return { KINDS, play(kind, o) { const K = KINDS[kind]; if (!K) return false; K.fn(o || {}); return true; }, close, get current() { return cur; }, D };
+  // ================= chess =================
+  // the board is 64 squares, 0 at the top left; your men are capitals and move up it. Every rule is here: castling, taking in passing, a pawn that gets home becomes a queen
+  const C = {
+    start() { return { b: 'rnbqkbnrpppppppp' + '.'.repeat(32) + 'PPPPPPPPRNBQKBNR', t: 1, c: 'KQkq', ep: -1, half: 0 }; },
+    mine: (p, t) => p !== '.' && (p === p.toUpperCase()) === (t === 1),
+    VAL: { p: 100, n: 320, b: 330, r: 500, q: 900, k: 0 },
+    attacked(b, sq, by) { const r = sq >> 3, c = sq & 7, at = (rr, cc) => rr < 0 || rr > 7 || cc < 0 || cc > 7 ? null : b[rr * 8 + cc], is = (p, k) => p && p !== '.' && p.toLowerCase() === k && C.mine(p, by);
+      const pr = r + by; if (is(at(pr, c - 1), 'p') || is(at(pr, c + 1), 'p')) return true; // a pawn of theirs stands one row behind (from where it moves) and takes forward
+      for (const [dr, dc] of [[1, 2], [2, 1], [-1, 2], [-2, 1], [1, -2], [2, -1], [-1, -2], [-2, -1]]) if (is(at(r + dr, c + dc), 'n')) return true;
+      for (const [dr, dc] of [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]]) { if (is(at(r + dr, c + dc), 'k')) return true; const diag = dr && dc; for (let i = 1; i < 8; i++) { const p = at(r + dr * i, c + dc * i); if (p == null) break; if (p === '.') continue; if (C.mine(p, by) && (p.toLowerCase() === 'q' || p.toLowerCase() === (diag ? 'b' : 'r'))) return true; break; } }
+      return false; },
+    pseudo(s) { const { b, t } = s, out = [], add = (f, to, x) => out.push(Object.assign({ f, to }, x));
+      for (let f = 0; f < 64; f++) { const p = b[f]; if (!C.mine(p, t)) continue; const k = p.toLowerCase(), r = f >> 3, c = f & 7;
+        if (k === 'p') { const d = -t, r1 = r + d; if (r1 < 0 || r1 > 7) continue; const pro = r1 === (t === 1 ? 0 : 7) ? { pro: 1 } : null;
+          if (b[r1 * 8 + c] === '.') { add(f, r1 * 8 + c, pro); if (r === (t === 1 ? 6 : 1) && b[(r1 + d) * 8 + c] === '.') add(f, (r1 + d) * 8 + c, { dbl: 1 }); }
+          for (const dc of [-1, 1]) { const cc = c + dc; if (cc < 0 || cc > 7) continue; const to = r1 * 8 + cc, q = b[to]; if (q !== '.' && !C.mine(q, t)) add(f, to, pro); else if (to === s.ep) add(f, to, { ep: 1 }); } continue; }
+        const steps = k === 'n' ? [[1, 2], [2, 1], [-1, 2], [-2, 1], [1, -2], [2, -1], [-1, -2], [-2, -1]] : k === 'b' ? [[1, 1], [1, -1], [-1, 1], [-1, -1]] : k === 'r' ? [[1, 0], [-1, 0], [0, 1], [0, -1]] : [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]], far = k === 'b' || k === 'r' || k === 'q';
+        for (const [dr, dc] of steps) for (let i = 1; i < (far ? 8 : 2); i++) { const rr = r + dr * i, cc = c + dc * i; if (rr < 0 || rr > 7 || cc < 0 || cc > 7) break; const to = rr * 8 + cc, q = b[to]; if (q === '.') { add(f, to); continue; } if (!C.mine(q, t)) add(f, to); break; }
+        if (k === 'k' && f === (t === 1 ? 60 : 4) && !C.attacked(b, f, -t)) { const K = t === 1 ? 'K' : 'k', Q = t === 1 ? 'Q' : 'q';
+          if (s.c.includes(K) && b[f + 1] === '.' && b[f + 2] === '.' && !C.attacked(b, f + 1, -t)) add(f, f + 2, { cas: 1 });
+          if (s.c.includes(Q) && b[f - 1] === '.' && b[f - 2] === '.' && b[f - 3] === '.' && !C.attacked(b, f - 1, -t)) add(f, f - 2, { cas: -1 }); } }
+      return out; },
+    make(s, m) { const a = s.b.split(''), p = a[m.f], t = s.t; let c = s.c, ep = -1; const took = a[m.to] !== '.' || m.ep;
+      a[m.to] = m.pro ? (t === 1 ? 'Q' : 'q') : p; a[m.f] = '.'; if (m.ep) a[m.to + t * 8] = '.'; if (m.dbl) ep = m.to + t * 8;
+      if (m.cas === 1) { a[m.f + 1] = a[m.f + 3]; a[m.f + 3] = '.'; } if (m.cas === -1) { a[m.f - 1] = a[m.f - 4]; a[m.f - 4] = '.'; }
+      const drop = (ch) => { c = c.replace(ch, ''); }; if (p === 'K') { drop('K'); drop('Q'); } if (p === 'k') { drop('k'); drop('q'); }
+      for (const sq of [m.f, m.to]) { if (sq === 63) drop('K'); if (sq === 56) drop('Q'); if (sq === 7) drop('k'); if (sq === 0) drop('q'); }
+      return { b: a.join(''), t: -t, c, ep, half: took || p.toLowerCase() === 'p' ? 0 : s.half + 1 }; },
+    king: (b, t) => b.indexOf(t === 1 ? 'K' : 'k'),
+    inCheck: (s) => C.attacked(s.b, C.king(s.b, s.t), -s.t),
+    moves(s) { return C.pseudo(s).filter(m => { const n = C.make(s, m); return !C.attacked(n.b, C.king(n.b, s.t), n.t); }); },
+    // how the board stands for the side to move: the men, and where they stand (the middle is worth having, pawns are worth more the further they get, a king stays home until the queens are off)
+    score(s) { let v = 0, heavy = 0; for (let i = 0; i < 64; i++) { const p = s.b[i]; if (p !== '.' && 'qrQR'.includes(p)) heavy++; }
+      for (let i = 0; i < 64; i++) { const p = s.b[i]; if (p === '.') continue; const w = p === p.toUpperCase(), k = p.toLowerCase(), r = w ? i >> 3 : 7 - (i >> 3), c = i & 7, mid = 3.5 - Math.max(Math.abs(r - 3.5), Math.abs(c - 3.5)); let x = C.VAL[k];
+        if (k === 'p') x += (6 - r) * 7 + (c > 1 && c < 6 ? mid * 6 : 0); else if (k === 'n' || k === 'b') x += mid * 9 - (r === 7 ? 12 : 0); else if (k === 'q') x += mid * 2; else if (k === 'r') x += r === 1 ? 18 : 0; else x += heavy > 2 ? (r === 7 ? 10 + Math.abs(c - 3.5) * 5 : -30) : mid * 12;
+        v += w ? x : -x; } return v * s.t; },
+    best(s, depth, ms) { const t0 = Date.now(); let out = false; const order = (st, ms2) => ms2.map(m => [m, (st.b[m.to] !== '.' ? C.VAL[st.b[m.to].toLowerCase()] * 10 - C.VAL[st.b[m.f].toLowerCase()] : 0) + (m.pro ? 800 : 0)]).sort((a, b) => b[1] - a[1]).map(x => x[0]);
+      const quiet = (st, a, be) => { const stand = C.score(st); if (stand >= be) return stand; if (stand > a) a = stand; for (const m of order(st, C.pseudo(st).filter(q => st.b[q.to] !== '.' || q.pro))) { const n = C.make(st, m); if (C.attacked(n.b, C.king(n.b, st.t), n.t)) continue; const v = -quiet(n, -be, -a); if (v >= be) return v; if (v > a) a = v; } return a; };
+      const go = (st, d, a, be, ply) => { if (out) return 0; if ((ply & 3) === 3 && Date.now() - t0 > ms) { out = true; return 0; } if (d <= 0) return quiet(st, a, be); const ms2 = order(st, C.moves(st)); if (!ms2.length) return C.inCheck(st) ? -99000 + ply : 0; if (st.half >= 100) return 0;
+        for (const m of ms2) { const v = -go(C.make(st, m), d - 1, -be, -a, ply + 1); if (out) return 0; if (v >= be) return v; if (v > a) a = v; } return a; };
+      const root = order(s, C.moves(s)); if (!root.length) return null; let pick = root[0], scored = [];
+      for (let d = 1; d <= depth; d++) { let a = -1e9, bm = null; const sc = []; for (const m of (bm ? root : [pick].concat(root.filter(x => x !== pick)))) { const v = -go(C.make(s, m), d - 1, -1e9, -a + 60, 1); if (out) break; sc.push([m, v]); if (v > a) { a = v; bm = m; } } if (out) break; pick = bm; scored = sc; }
+      return { move: pick, scored }; },
+  };
+  const GLYPH = { k: '♚', q: '♛', r: '♜', b: '♝', n: '♞', p: '♟' };
+  function chess(o) {
+    const first = o.champ.split(' ')[0], ui = shell('Chess', `${o.champ} · ${o.stake} shards a side`), sk = U.clamp(o.skill == null ? 0.4 : o.skill, 0, 1), depth = sk < 0.3 ? 2 : sk < 0.6 ? 3 : sk < 0.85 ? 4 : 5, slip = sk < 0.3 ? 0.3 : sk < 0.6 ? 0.12 : 0;
+    const st = { s: C.start(), sel: -1, over: false, busy: false, last: null, n: 0 }; cur = st;
+    const grid = $('<div class="gb-board gb-chess"></div>'); ui.stage.appendChild(grid); const quit = $('<button class="btn ghost">Resign</button>'); ui.foot.appendChild(quit);
+    quit.addEventListener('click', () => { st.over = true; close(); if (o.onEnd) o.onEnd('lose'); });
+    const mat = (t) => { let v = 0; for (const p of st.s.b) if (C.mine(p, t)) v += Math.round(C.VAL[p.toLowerCase()] / 100); return v; };
+    const head = () => { ui.score.innerHTML = `<span class="gb-you">You <b>${mat(1)}</b></span><span class="gb-mid">${st.over ? '' : st.s.t === 1 ? (C.inCheck(st.s) ? 'check' : 'your move') : 'thinking'}</span><span class="gb-them">${first} <b>${mat(-1)}</b></span>`; };
+    function render() { grid.innerHTML = ''; const ms = st.s.t === 1 && !st.over ? C.moves(st.s) : [], dests = new Map(); if (st.sel >= 0) for (const m of ms) if (m.f === st.sel) dests.set(m.to, m); const chk = C.inCheck(st.s) ? C.king(st.s.b, st.s.t) : -1;
+      for (let i = 0; i < 64; i++) { const p = st.s.b[i], dark = ((i >> 3) + (i & 7)) % 2 === 1, cell = $(`<div class="gb-sq ${dark ? 'dk' : 'lt'}${dests.has(i) ? ' go' : ''}${st.last && (st.last.f === i || st.last.to === i) ? ' was' : ''}${i === chk ? ' chk' : ''}"></div>`);
+        if (p !== '.') { const e = $(`<i class="gb-pc ${p === p.toUpperCase() ? 'you' : 'them'}${i === st.sel ? ' sel' : ''}"></i>`); e.textContent = GLYPH[p.toLowerCase()]; cell.appendChild(e); }
+        cell.addEventListener('pointerdown', () => tap(i, dests)); grid.appendChild(cell); } head(); }
+    function tap(i, dests) { if (st.over || st.s.t !== 1 || st.busy) return; if (dests.has(i)) return play(dests.get(i)); st.sel = C.mine(st.s.b[i], 1) ? i : -1; render(); }
+    function done(res, line) { st.over = true; quit.remove(); render(); finish(ui, o, res, line); }
+    function ended() { const ms = C.moves(st.s); if (!ms.length) { if (!C.inCheck(st.s)) return done('draw', 'Stalemate. Nobody can move and nobody is in check. A draw.'), true; return done(st.s.t === 1 ? 'lose' : 'win', st.s.t === 1 ? `Checkmate. ${first} takes your stake.` : `Checkmate. The stake is yours.`), true; }
+      if (st.s.half >= 100) return done('draw', 'Fifty moves with nothing taken and no pawn moved. A draw.'), true; if (!/[pqrPQR]/.test(st.s.b) && st.s.b.replace(/[.kK]/g, '').length < 2) return done('draw', 'Not enough left on the board to mate with. A draw.'), true; if (st.n >= 300) return done('draw', 'A very long game. Call it a draw.'), true; return false; }
+    function play(m) { st.s = C.make(st.s, m); st.last = m; st.sel = -1; st.n++; render(); if (ended()) return;
+      st.busy = true; ui.say.textContent = `${first} looks at the board.`; setTimeout(() => { if (cur !== st) return; const r = C.best(st.s, depth, 500 + sk * 900); st.busy = false; if (!r) return ended(); let mv = r.move;
+        if (slip && Math.random() < slip && r.scored.length > 2) { const top = r.scored.slice().sort((a, b) => b[1] - a[1]), alt = top[1 + Math.floor(Math.random() * Math.min(3, top.length - 1))]; if (alt && top[0][1] - alt[1] < 260 && top[0][1] < 50000) mv = alt[0]; } // a lesser champion does not always find the best move, though he never gives a piece away for nothing
+        const took = st.s.b[mv.to] !== '.' || mv.ep; st.s = C.make(st.s, mv); st.last = mv; st.n++; ui.say.textContent = C.inCheck(st.s) ? 'Check.' : took ? `${first} takes.` : 'Your move.'; if (ended()) return; render(); }, 380); }
+    ui.say.textContent = 'You play the pale men, up the board. Tap a man, then where it goes.'; render();
+    st.debug = { state: st, C, play };
+  }
+  // ================= high tide: the card game =================
+  // Each of you holds the cards one to nine. Nine prizes are turned up one at a time, worth one to nine. You each lay a card face down
+  // and the higher takes the prize; the cards are spent. Level cards and the prize stays on the table for whoever wins the next. Most points wins
+  function tide(o) {
+    const first = o.champ.split(' ')[0], ui = shell('High Tide', `${o.champ} · ${o.stake} shards a side`), sk = U.clamp(o.skill == null ? 0.4 : o.skill, 0, 1);
+    const prizes = [1, 2, 3, 4, 5, 6, 7, 8, 9]; for (let i = 8; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [prizes[i], prizes[j]] = [prizes[j], prizes[i]]; }
+    const st = { you: [1, 2, 3, 4, 5, 6, 7, 8, 9], them: [1, 2, 3, 4, 5, 6, 7, 8, 9], prizes, r: 0, pot: 0, ys: 0, ts: 0, over: false, busy: false, shown: null }; cur = st;
+    const stage = $('<div class="gb-tide"><div class="gt-row gt-them"></div><div class="gt-mid"></div><div class="gt-row gt-you"></div></div>'); ui.stage.appendChild(stage); const quit = $('<button class="btn ghost">Give up</button>'); ui.foot.appendChild(quit);
+    quit.addEventListener('click', () => { st.over = true; close(); if (o.onEnd) o.onEnd('lose'); });
+    // the champion's card. A poor one plays near the prize's own number. A good one weighs what you have left: he will not waste a high card where yours beats it anyway, and he takes a prize with the least card that is likely to
+    function theirCard() { const prize = st.prizes[st.r] + st.pot, h = st.them, yh = st.you; if (h.length === 1) return h[0];
+      if (Math.random() > sk + 0.15) { const want = st.prizes[st.r] + Math.round((Math.random() - 0.5) * 3); return h.reduce((a, c) => Math.abs(c - want) < Math.abs(a - want) ? c : a, h[0]); }
+      const left = st.prizes.slice(st.r + 1), rank = left.filter(p => p < st.prizes[st.r]).length / Math.max(1, left.length), big = prize >= 6 || rank > 0.6, yTop = Math.max(...yh), hTop = Math.max(...h);
+      if (big) { if (hTop > yTop) { const need = h.filter(c => c > yTop); return Math.min(...need); } if (Math.random() < 0.45) return Math.min(...h); const guess = yh[Math.max(0, yh.length - 1 - Math.floor(Math.random() * 2))], over = h.filter(c => c > guess); return over.length ? Math.min(...over) : Math.min(...h); } // cannot be sure of it: sometimes throw the worst card away and let you spend your best
+      const lowHalf = h.slice().sort((a, b) => a - b).slice(0, Math.ceil(h.length / 2)), yLow = yh.slice().sort((a, b) => a - b)[Math.min(yh.length - 1, 1)], over = lowHalf.filter(c => c > yLow); return over.length && Math.random() < 0.7 ? Math.min(...over) : lowHalf[0]; }
+    const card = (n, cls) => `<i class="gt-card ${cls || ''}">${n == null ? '' : n}</i>`;
+    function render() { ui.score.innerHTML = `<span class="gb-you">You <b>${st.ys}</b></span><span class="gb-mid">${st.over ? '' : 'prize ' + (st.r + 1) + ' of 9'}</span><span class="gb-them">${first} <b>${st.ts}</b></span>`;
+      stage.querySelector('.gt-them').innerHTML = st.them.map(() => card(null, 'back')).join('');
+      const mid = stage.querySelector('.gt-mid'); mid.innerHTML = st.over ? '' : `${st.shown ? card(st.shown[1], 'them laid') : card(null, 'slot')}<div class="gt-prize"><i class="gt-card prize">${st.prizes[st.r]}</i>${st.pot ? `<span>and ${st.pot} left lying</span>` : ''}</div>${st.shown ? card(st.shown[0], 'you laid') : card(null, 'slot')}`;
+      const row = stage.querySelector('.gt-you'); row.innerHTML = ''; for (const c of st.you) { const e = $(card(c, 'you' + (st.busy ? ' off' : ''))); e.addEventListener('pointerdown', () => lay(c)); row.appendChild(e); } }
+    function lay(c) { if (st.over || st.busy || !st.you.includes(c)) return; st.busy = true; const t = theirCard(), prize = st.prizes[st.r] + st.pot; st.you = st.you.filter(x => x !== c); st.them = st.them.filter(x => x !== t); st.shown = [c, t]; render();
+      ui.say.textContent = c > t ? `Your ${c} beats the ${t}. ${prize} to you.` : t > c ? `${first}'s ${t} beats your ${c}. ${prize} to ${first}.` : `Both ${c}. The prize stays on the table.`;
+      setTimeout(() => { if (cur !== st) return; if (c > t) { st.ys += prize; st.pot = 0; } else if (t > c) { st.ts += prize; st.pot = 0; } else st.pot = prize; st.r++; st.shown = null; st.busy = false;
+        if (st.r >= 9) { st.over = true; quit.remove(); render(); return finish(ui, o, st.ys > st.ts ? 'win' : st.ys < st.ts ? 'lose' : 'draw', st.ys > st.ts ? `${st.ys} to ${st.ts}. The stake is yours.` : st.ys < st.ts ? `${st.ts} to ${st.ys}. ${first} takes your stake.` : `${st.ys} each. A draw.`); }
+        render(); }, 1250); }
+    ui.say.textContent = 'Lay a card on each prize. Higher card takes it. Every card can be played once.'; render();
+    st.debug = { state: st, lay, theirCard };
+  }
+  const KINDS = { ringboard: { name: 'Ringboard', fn: ringboard, blurb: 'Five throws each at the ringboard. Highest count takes both stakes.' }, draughts: { name: 'Draughts', fn: draughts, blurb: 'One game of draughts. Whoever is left without a move pays.' }, chess: { name: 'Chess', fn: chess, blurb: 'One game of chess. Mate takes both stakes.' }, tide: { name: 'High Tide', fn: tide, blurb: 'Nine prizes, nine cards each. Higher card takes the prize, most points takes both stakes.' } };
+  return { KINDS, play(kind, o) { const K = KINDS[kind]; if (!K) return false; K.fn(o || {}); return true; }, close, get current() { return cur; }, D, C };
 })();

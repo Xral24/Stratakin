@@ -676,7 +676,7 @@ class World {
         else if (r < 0.006 && (bio === BIOME.FOREST || bio === BIOME.SWAMP || bio === BIOME.LOSTWORLD)) blocks[base + h + 1] = B.MUSHROOM;
         else if (r < 0.02 && (bio === BIOME.PLAINS || bio === BIOME.FOREST) && U.vnoise2(x, z, 28, P, s + 953) > 0.6) blocks[base + h + 1] = B.FLOWERS;
         else if (r < 0.024 && bio === BIOME.FOREST && U.hash3(x, 27, z, s + 955) < 0.5) { blocks[base + h + 1] = B.LEAVES; if (U.hash3(x, 28, z, s) < 0.4) blocks[base + h + 2] = B.LEAVES; } // a bush
-      } else if ((top === B.STONE || top === B.GRAVEL) && r < 0.012) blocks[base + h + 1] = r < 0.004 ? B.BOULDER : B.PEBBLES;
+      } else if ((top === B.STONE || top === B.GRAVEL) && r < 0.012 && !info.lostRim) blocks[base + h + 1] = r < 0.004 ? B.BOULDER : B.PEBBLES;
       else if (top === B.SAND && r < 0.004) blocks[base + h + 1] = B.PEBBLES;
     }
     if (this.overlay) this.overlay(chunk); // towns are drawn into the world like terrain

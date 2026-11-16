@@ -505,3 +505,20 @@ select { font-family: var(--font); font-size: 14px; padding: 9px 11px; border-ra
 #bookbox .bk-page p { margin: 0; font-size: 19px; line-height: 1.5; font-weight: 700; }
 #bookbox .bk-foot { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
 #bookbox .bk-back { background: none; border: 0; color: var(--dim); font-size: 13px; text-decoration: underline; padding: 4px; align-self: center; }
+
+#gamebox .gb-pc { font-style: normal; font-size: min(9.2vw, 5.6vh, 44px); line-height: 1; display: block; }
+#gamebox .gb-pc.you { color: #fbf6e6; text-shadow: 0 0 2px #2a1c0c, 0 2px 0 #2a1c0c, 1px 0 0 #2a1c0c, -1px 0 0 #2a1c0c, 0 -1px 0 #2a1c0c; }
+#gamebox .gb-pc.them { color: #26190e; text-shadow: 0 0 2px #f1dfb2, 0 1px 0 rgba(255,240,200,.5); }
+#gamebox .gb-pc.sel { filter: drop-shadow(0 0 6px #ffe27a); transform: scale(1.12); }
+#gamebox .gb-sq.chk { box-shadow: inset 0 0 0 4px rgba(255, 90, 70, .85); }
+#gamebox .gb-tide { width: 100%; display: flex; flex-direction: column; gap: 14px; align-items: center; padding: 6px 0; }
+#gamebox .gt-row { display: flex; gap: 5px; justify-content: center; flex-wrap: wrap; min-height: 58px; }
+#gamebox .gt-mid { display: flex; gap: 16px; align-items: center; justify-content: center; min-height: 104px; }
+#gamebox .gt-card { font-style: normal; width: 36px; height: 54px; border-radius: 7px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 21px; box-shadow: 0 2px 4px rgba(0,0,0,.4); touch-action: manipulation; }
+#gamebox .gt-card.you { background: #e9f3ff; color: #1f5fa8; border: 2px solid #6fb6ff; } #gamebox .gt-card.you.off { opacity: .55; }
+#gamebox .gt-card.them { background: #ffeee8; color: #b0331f; border: 2px solid #ff8a70; }
+#gamebox .gt-card.back { width: 26px; height: 40px; background: repeating-linear-gradient(45deg, #a8452f, #a8452f 4px, #8c3524 4px, #8c3524 8px); border: 2px solid #e0a090; }
+#gamebox .gt-card.slot { background: transparent; border: 2px dashed rgba(255,255,255,.25); box-shadow: none; }
+#gamebox .gt-card.laid { width: 46px; height: 68px; font-size: 27px; }
+#gamebox .gt-card.prize { width: 58px; height: 84px; font-size: 36px; background: linear-gradient(160deg, #ffe9a0, #f0b53a); color: #5a3a08; border: 2px solid #fff3c4; }
+#gamebox .gt-prize { display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 12px; color: var(--dim); }
