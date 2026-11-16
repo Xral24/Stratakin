@@ -1,0 +1,9 @@
+const { open } = require('./harness');
+(async () => { const h = await open(); const { page, ev } = h; await h.newGame('look-3'); await h.calm();
+  const s0 = await ev(() => { window.__rr = R.render; const p = G.player; p.add('snare', 5); G.trainerLevel = 40; G.world.time = 0.4; let w = Wild.list.find(q => !q.isBoss && !q.aquatic && q.model.bones && q.model.bones[1]); if (!w) return { none: true }; w.scale = 5; Battle.start(w, false); return { wild: KIN.name(w.kin) }; });
+  console.log(JSON.stringify(s0)); await page.waitForTimeout(9000);
+  await page.evaluate(() => { const b = [...document.querySelectorAll('#b-actions button')].find(b => /\bnet\b/i.test(b.textContent)); if (b) b.click(); }); await page.waitForTimeout(5000);
+  await page.evaluate(() => { const b = [...document.querySelectorAll('#b-actions button, #battle button')].find(b => /\bnet\b/i.test(b.textContent) && b.offsetParent && b.id !== 'snare-cancel' && b.id !== 'snare-go'); if (b) b.click(); }); await page.waitForTimeout(9000);
+  const shots = [['aim', (W, H) => { const n = Battle.net; n.speed = 0; n.t = 0.08; n.spin = 0.85; n.turn = 2; n.down = true; n.hand = [W / 2 + 60, H - 190 - 40]; }], ];
+  for (const [name, fn] of shots) { await page.evaluate(`(${fn.toString()})(window.innerWidth, window.innerHeight)`); for (let i = 0; i < 3; i++) { await page.evaluate(() => { const n = Battle.net; if (n && n.__hold != null && n.fly) n.fly.u = n.__hold; if (n && n.phase === 'aim') n.spin = 0.85; }); await page.waitForTimeout(2500); } await page.screenshot({ path: `/home/claude/net4-${name}.png`, timeout: 150000 }); console.log(name, JSON.stringify(await ev(() => { const n = Battle.net; return n && { phase: n.phase, k: [Math.round(n.kx), Math.round(n.ky), Math.round(n.kpx)] }; }))); }
+  console.log('ERRORS:', h.errors.slice(0, 3).join(' | ') || 'none'); await h.close(); })();
