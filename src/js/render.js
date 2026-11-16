@@ -368,6 +368,7 @@ const R = (() => {
         } else if (mat == 12) { // thatch: bundles of straw combed down the slope, in ragged rows
           float along = abs(n.x) > abs(n.z) ? vWorld.z : vWorld.x;
           float straw = vn(vec2(along * 42.0, vWorld.y * 5.0)) * 0.6 + vn(vec2(along * 90.0 + 2.0, vWorld.y * 9.0)) * 0.4;
+          straw = mix(0.5, straw, 1.0 - smoothstep(5.0, 16.0, dist)); // single straws are for close to: from down the street they are finer than the screen can draw, and the eaves flickered dark and light as you walked
           float row = fract(vWorld.y * 1.8 + vn(vec2(along * 1.5, 1.0)) * 0.3); float lip = smoothstep(0.0, 0.18, row) * (0.85 + 0.15 * smoothstep(0.7, 1.0, row));
           col *= (0.72 + 0.4 * straw) * (0.8 + 0.2 * lip) * (0.94 + 0.1 * vn(vec2(along, vWorld.y) * 0.4 + 7.0));
         } else if (mat == 10) { // plaster: soft trowel marks, a little grime low down
