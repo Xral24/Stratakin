@@ -2611,6 +2611,7 @@ const R = (() => {
   function render(world, player, entities, cam, extras) {
     tickFps(); if (state.pendingQuality) { const q = state.pendingQuality; state.pendingQuality = null; setQuality(q); }
     resize();
+    for (let i = 0; i < 8; i++) gl.disableVertexAttribArray(i); // nothing left switched on from the last frame: a chunk remeshed since then has had its buffers deleted, and the sky would refuse to draw with one still attached
     setEnv(world, player);
     const sc = state.skyColor;
     gl.clearColor(sc[0], sc[1], sc[2], 1); gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);

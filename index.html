@@ -4291,6 +4291,7 @@ const R = (() => {
   function render(world, player, entities, cam, extras) {
     tickFps(); if (state.pendingQuality) { const q = state.pendingQuality; state.pendingQuality = null; setQuality(q); }
     resize();
+    for (let i = 0; i < 8; i++) gl.disableVertexAttribArray(i); // nothing left switched on from the last frame: a chunk remeshed since then has had its buffers deleted, and the sky would refuse to draw with one still attached
     setEnv(world, player);
     const sc = state.skyColor;
     gl.clearColor(sc[0], sc[1], sc[2], 1); gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
@@ -11237,7 +11238,15 @@ const Village = (() => {
     stall_nets: { title: 'The Net Maker', keeper: 'Pike', greet: 'A snare is a small net with opinions. Mine hold.', stock: [{ item: 'snare', price: 11, n: 2 }, { item: 'snare2', price: 44 }] },
     stall_curios: { title: 'Wreck Curios', keeper: 'Senna', greet: 'All of it came down in a ship. I do not ask whose.', stock: [{ item: 'iron', price: 19, n: 2 }, { item: 'copper', price: 13, n: 2 }, { item: 'chest', price: 28 }] },
   };
+  // the stalls on a town square: cheap, plain, the same three trades everywhere and a different face behind each
+  const TOWN_STALL_DEF = {
+    stall_fruit: { title: 'Fruit Barrow', greet: 'Picked this morning. The bruised ones are cheaper, and there are no bruised ones.', stock: [{ item: 'berry', price: 3, n: 4 }, { item: 'bread', price: 9 }, { item: 'smoothie', price: 14 }] },
+    stall_tackle: { title: 'Hook and Bait', greet: 'Fish do not care what you paid for the bait. I do.', stock: [{ item: 'bait_berry', price: 9 }, { item: 'bait_glow', price: 22 }, { item: 'snare', price: 11, n: 2 }] },
+    stall_sundry: { title: 'Odds and Ends', greet: 'If it is not on the table I have not got it. If it is on the table, the price is the price.', stock: [{ item: 'torch', price: 7, n: 4 }, { item: 'planks', price: 6, n: 8 }, { item: 'door', price: 13 }, { item: 'chest', price: 28 }] },
+  };
+  const STALL_NAMES = ['Annis', 'Corwin', 'Hobb', 'Petra', 'Wat', 'Ysolt', 'Garth', 'Mabel', 'Tam', 'Oriel', 'Dunstan', 'Ffion'];
   function shopDef(kind, v) {
+    if (TOWN_STALL_DEF[kind] && !(v && v.atlantis)) return Object.assign({}, TOWN_STALL_DEF[kind], { keeper: STALL_NAMES[(U.strHash((v ? v.id : 's') + kind) >>> 0) % STALL_NAMES.length] });
     if (v && v.atlantis && ATL_STALL_DEF[kind]) return ATL_STALL_DEF[kind];
     if (v && v.atlantis && kind === 'armoury') return atlForge(v);
     if (kind === 'games' && v && typeof Games !== 'undefined') return gamesDef(v);
@@ -11301,7 +11310,7 @@ const Village = (() => {
   function init(game) {
     G = game; world = game.world; villages.clear(); hermits.clear(); active = null; activeHermit = null; walkState = null; fisher = null;
     const vd = world.preset.villages || { nc: 64, prefix: '', style: 'land' }; NC = vd.nc; CELL = WORLD_W / NC; PREFIX = vd.prefix || ''; STYLE = vd.style || 'land';
-    PLAN = null; PLANNED = null; TRAILS = null; ATL = null; world.atlantis = null; SPECIAL.clear(); LOOK.clear(); towns.clear(); world.overlay = (c) => overlay(c); world.trailWear = (x, z) => trailWear(x, z); world.trackAt = (x, z) => trackAt(x, z);
+    PLAN = null; PLANNED = null; TRAILS = null; ATL = null; world.atlantis = null; SPECIAL.clear(); LOOK.clear(); towns.clear(); LIFE.clear(); world.overlay = (c) => overlay(c); world.trailWear = (x, z) => trailWear(x, z); world.trackAt = (x, z) => trackAt(x, z);
   }
   function state(id) {
     if (!G.villageState) G.villageState = {};
@@ -11451,6 +11460,7 @@ const Village = (() => {
     }
     world.fellCrowns(vx - R - 3, vz - R - 3, vx + R + 3, vz + R + 3, (x, y, z) => push(x, y, z, -1)); // and the crowns of the trees that stood here do not stay hanging beyond the edge (-1: clear only if it is tree)
     // the square: a fountain in the cities, the Fusion Table to one side
+    const stalls = [];
     if (city) {
       for (let a = -2; a <= 2; a++) for (let b = -2; b <= 2; b++) { push(vx + a, vy - 1, vz + b, B.MASONRY); if (Math.hypot(a, b) <= 2.5) push(vx + a, vy, vz + b, (a || b) ? B.BASIN : B.FOUNTAIN); }
       push(vx + 5, vy, vz - 5, B.FUSION);
@@ -11462,6 +11472,12 @@ const Village = (() => {
       for (const a of [-1, 1]) for (let y = vy + 1; y <= vy + 2; y++) push(wx0 + a, y, wz0, B.LOG);
       for (let b = -1; b <= 1; b++) { push(wx0 - 1, vy + 3, wz0 + b, B.TILES); push(wx0, vy + 4, wz0 + b, B.TILES); push(wx0 + 1, vy + 3, wz0 + b, B.TILES); }
       push(wx0, vy + 3, wz0, B.BEAM); // the windlass beam under the ridge
+      // market stalls on the square, in the hamlets and the towns: two posts, a counter with what is for sale on it, an awning, and somebody behind it. The first village has none: it is the small one
+      if (!v.starter) for (const [k, sx, sz, fx, fz] of (v.size === 'town' ? [['stall_fruit', 4, -5, 0, 1], ['stall_tackle', -4, -5, 0, 1], ['stall_sundry', 5, 4, -1, 0]] : [['stall_fruit', 4, -5, 0, 1], ['stall_tackle', -4, -5, 0, 1]])) { const x = vx + sx, z = vz + sz, ax = Math.abs(fz), az = Math.abs(fx); // (fx, fz): the way it faces; (ax, az): along the counter
+        for (const a of [-1, 1]) { push(x + ax * a, vy, z + az * a, M.post); push(x + ax * a, vy + 1, z + az * a, M.post); }
+        push(x, vy, z, M.counter); push(x, vy + 1, z, k === 'stall_fruit' ? B.BERRY : k === 'stall_tackle' ? B.PEBBLES : B.FLOWERS);
+        for (let a = -1; a <= 1; a++) push(x + ax * a, vy + 2, z + az * a, B.AWNING);
+        stalls.push({ kind: k, x, z, fx, fz }); }
     }
     // a market street in the cities: stalls under coloured awnings down the west road
     if (city) { for (let d = 10; d < R - 10; d += 4) for (const sg of [-1, 1]) { const x = vx - d, z = vz + sg * 2; // each stall: two posts, a counter with wares between them, an awning over all three
@@ -11634,7 +11650,7 @@ const Village = (() => {
       const r = U.rng(U.combine(world.seed, U.strHash(v.id)));
       for (const l of lots) if (!l.used) { if (r() < 0.12) { for (let a = -2; a <= 2; a++) for (let b = -2; b <= 2; b++) if (r() < 0.35 && M.bush) push(l.x + a, vy, l.z + b, M.bush); continue; } qs(l.x, l.z); build(l.x, l.z, vy, l.dirX, l.dirZ, null, null); l.home = true; }
     } finally { world.setBlock = sb; world.getBlock = gb; QSTYLE = null; ROOF_OVR = null; VST = null; }
-    const L = { R, buckets, shops, homes: lots.filter(l => l.home), streets, plots, rail, marks };
+    const L = { R, buckets, shops, homes: lots.filter(l => l.home), streets, plots, rail, marks, stalls };
     towns.set(v.id, L); return L;
   }
   // ---- Atlantis in the world: drawn into each chunk as it is generated, the way a town is, so none of it goes into the save. The blocks only say
@@ -12613,8 +12629,10 @@ const Village = (() => {
       if (sh.kind === 'voodoo') { v.npcs.push(Object.assign(makeNpc(13, 'voodoo', kx, kz, shopDef('voodoo', v).keeper, 'voodoo', vy, v.id, sty), { hidden: false, wander: false })); continue; }
       v.npcs.push(Object.assign(makeNpc(30 + i++, 'keeper', kx, kz, shopDef(sh.kind, v).keeper, sh.kind, vy, v.id, sty), { hidden: !freed, wander: false, shopAt: sh }));
     }
+    (L.stalls || []).forEach((t, k) => v.npcs.push(Object.assign(makeNpc(60 + k, 'keeper', t.x - t.fx, t.z - t.fz, shopDef(t.kind, v).keeper, t.kind, vy, v.id, sty), { hidden: !freed, wander: false }))); // behind the counter, looking out over the square
     const nV = Math.min(24, Math.round(v.R / 2.2));
     for (let j = 0; j < nV; j++) { const s0 = L.streets[r.int(L.streets.length)]; const d = (r() * 2 - 1) * (v.R - 8); const along = r() < 0.5; v.npcs.push(villager0(j, along ? s0 + (r() < 0.5 ? -1 : 1) : d, along ? d : s0 + (r() < 0.5 ? -1 : 1), pname(j), freed, vy, v, sty)); }
+    for (let k = 0; k < (v.starter ? 0 : v.size === 'hamlet' ? 1 : 2); k++) v.npcs.push(Object.assign(makeNpc(80 + k, 'villager', v.x + (k ? -1 : 1) * (v.R - 7), v.z, 'Watchman ' + pname(k + 3), null, vy, v.id, sty, false), { hidden: !freed, watch: true })); // the watch walks from gate to gate, and is the only one about after dark
     if (v.elder) v.npcs.push(v.elder);
     for (const n of v.npcs) { const gy = standY(n.x, vy, n.z); n.y = gy != null ? gy : vy; n.home = { x: n.x, z: n.z }; }
     v.wanderR = 6; makeTraveller(v); buildGuardEnts(v);
@@ -12688,13 +12706,13 @@ const Village = (() => {
       else if (h.kind === 'daycare') v.npcs.push(put(makeNpc(42, 'keeper', 0, 0, shopDef('daycare', v).keeper, 'daycare', vy, v.id, sty), ...back(4.7), { wander: false }));
       else if (h.kind === 'games') v.npcs.push(put(makeNpc(43, 'keeper', 0, 0, shopDef('games', v).keeper, 'games', vy, v.id, sty), ...back(3.6), { wander: false })); });
     L.courts.forEach((q, i) => { const c = Math.cos(q.a), s = Math.sin(q.a);
-      if (q.kind === 'kelp') v.npcs.push(put(makeNpc(44 + i, 'villager', 0, 0, i ? 'Gardener Lir' : 'Gardener Soraya', null, vy, v.id, sty), q.x - Math.round(c * 5), q.z - Math.round(s * 5), { wander: false, atl: 'garden' }));
+      if (q.kind === 'kelp') v.npcs.push(put(makeNpc(44 + i, 'villager', 0, 0, i ? 'Gardener Lir' : 'Gardener Soraya', null, vy, v.id, sty, false), q.x - Math.round(c * 5), q.z - Math.round(s * 5), { wander: false, atl: 'garden' }));
       else if (q.kind === 'park') { /* nobody keeps a park: whoever lives nearest sits in it */ }
-      else if (q.kind === 'statue') { v.npcs.push(put(makeNpc(48, 'villager', 0, 0, 'Old Pelagia', null, vy, v.id, sty), q.x - Math.round(c * 4), q.z - Math.round(s * 4), { wander: false, atl: 'statue' }));
-        for (let k = 0; k < 3; k++) v.npcs.push(put(makeNpc(65 + k, 'villager', 0, 0, ['Kip', 'Wren', 'Juno'][k], null, vy, v.id, sty, true), q.x + Math.round(Math.cos(k * 2.1) * 3), q.z + Math.round(Math.sin(k * 2.1) * 3), { atl: 'child', speed: 2.6 })); } // children playing round the statue
-      else v.npcs.push(put(makeNpc(49, 'villager', 0, 0, 'Clockwinder Orrin', null, vy, v.id, sty), q.x - Math.round(c * 4), q.z - Math.round(s * 4), { wander: false, atl: 'clock' })); });
+      else if (q.kind === 'statue') { v.npcs.push(put(makeNpc(48, 'villager', 0, 0, 'Old Pelagia', null, vy, v.id, sty, false), q.x - Math.round(c * 4), q.z - Math.round(s * 4), { wander: false, atl: 'statue' }));
+        for (let k = 0; k < 3; k++) v.npcs.push(put(makeNpc(65 + k, 'villager', 0, 0, ['Kip', 'Wren', 'Juno'][k], null, vy, v.id, sty, true), q.x + Math.round(Math.cos(k * 2.1) * 3), q.z + Math.round(Math.sin(k * 2.1) * 3), { atl: 'child', speed: 2.6, playAt: { x: v.x + q.x + 0.5, z: v.z + q.z + 0.5, r: 4.6 } })); } // children playing round the statue
+      else v.npcs.push(put(makeNpc(49, 'villager', 0, 0, 'Clockwinder Orrin', null, vy, v.id, sty, false), q.x - Math.round(c * 4), q.z - Math.round(s * 4), { wander: false, atl: 'clock' })); });
     // somebody lives in every home, and is out in front of it or along the lane by day
-    L.pods.forEach((q, i) => { const d = i % 2 ? 0.9 : 6; v.npcs.push(put(makeNpc(70 + i, 'villager', 0, 0, pname(i + 9), null, vy, v.id, sty), q.x - Math.round(Math.cos(q.a) * d), q.z - Math.round(Math.sin(q.a) * d), i % 2 ? { atl: 'home', homeI: i, wander: false, indoors: true } : { atl: 'home', homeI: i })); }); // every other one is at home when you call
+    L.pods.forEach((q, i) => { const d = i % 2 ? 0.9 : 6; v.npcs.push(put(makeNpc(70 + i, 'villager', 0, 0, pname(i + 9), null, vy, v.id, sty, false), q.x - Math.round(Math.cos(q.a) * d), q.z - Math.round(Math.sin(q.a) * d), i % 2 ? { atl: 'home', homeI: i, wander: false, indoors: true } : { atl: 'home', homeI: i })); }); // every other one is at home when you call
     L.stalls.forEach((t, i) => v.npcs.push(put(makeNpc(90 + i, 'keeper', 0, 0, shopDef(t.kind, v).keeper, t.kind, vy, v.id, sty), t.x + Math.round(Math.cos(t.a) * 1.45), t.z + Math.round(Math.sin(t.a) * 1.45), { wander: false }))); // behind the counter, looking in at the pool
     for (let i = 0; i < 8; i++) { const a = (i + 0.5) / 8 * Math.PI * 2 + 0.2, r = i % 2 ? 12.6 + (i % 3) * 0.5 : i % 4 === 2 ? 28.6 : 20.4; v.npcs.push(put(makeNpc(i, 'villager', 0, 0, pname(i + 2), null, vy, v.id, sty), Math.round(Math.cos(a) * r), Math.round(Math.sin(a) * r))); } // and the market has its crowd
     v.npcs.push(v.elder);
@@ -13203,6 +13221,123 @@ const Village = (() => {
 
   // ---- update ----
   let refreshT = 0;
+  // ---- town life: where people go, and how they get there ----
+  // Every town has places: the square, the well, each shop's door, each home's door, the ends of the streets by the gates. Somebody with nothing to keep
+  // picks a place that suits the hour, finds the way to it along the streets, walks there, stays a while, and picks another. Two who end up at the same
+  // place talk. Children play instead. At dusk people drift to the square and the taverns, at night they go home, and the streets are empty till morning.
+  const LIFE = new Map(); // town id -> { spots, grid of where you can walk, the clock }
+  const lifeTown = (v) => !!(v && ((v.R && v.type === 'land' && !v.founded) || v.atlantis));
+  function lifeOf(v) {
+    let L = LIFE.get(v.id); if (L) return L;
+    const half = (v.atlantis ? v.RH : v.R) + 6, W = half * 2 + 1;
+    L = { W, ox: v.x - half, oz: v.z - half, grid: new Int8Array(W * W).fill(-1), g: new Float32Array(W * W), from: new Int32Array(W * W), mark: new Int32Array(W * W), run: 0, clock: 0, fresh: 0, talk: 0, hail: 0, queue: 0, spots: null };
+    const streets = v.atlantis ? null : layout(v).streets, R = v.R;
+    L.cost = v.atlantis ? () => 1 : (x, z) => { const dx = x - v.x, dz = z - v.z, m = Math.max(Math.abs(dx), Math.abs(dz)); if (m <= 6 || (m >= R - 4 && m <= R - 2)) return 1; for (const s0 of streets) if (Math.abs(dx - s0) <= 1 || Math.abs(dz - s0) <= 1) return 1; return 3; }; // people keep to the streets unless the short way is much shorter
+    L.spots = lifeSpots(v); LIFE.set(v.id, L); return L;
+  }
+  function lifeSpots(v) {
+    const S = [], add = (kind, x, z, o) => { if (world.getBlock(Math.floor(x), v.y, Math.floor(z)) === undefined) { S.push(Object.assign({ kind, x: Math.floor(x) + 0.5, z: Math.floor(z) + 0.5, by: null }, o || {})); return; } /* that part of the town is not loaded yet: take the place on trust */ for (const [ax, az] of [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, -1], [2, 0], [0, 2], [-2, 0], [0, -2]]) { const px = Math.floor(x) + ax + 0.5, pz = Math.floor(z) + az + 0.5; if (roomAt(px, v.y, pz) == null) continue; S.push(Object.assign({ kind, x: px, z: pz, by: null }, o || {})); return; } }; // somewhere near that you can actually stand
+    if (v.atlantis) { const A = atlLayout(), P = (q, d) => [v.x + q.x - Math.cos(q.a) * d, v.z + q.z - Math.sin(q.a) * d], C = (q) => [v.x + q.x + 0.5, v.z + q.z + 0.5];
+      for (let k = 0; k < 14; k++) { const a = k / 14 * 6.283 + 0.22; add('square', v.x + Math.cos(a) * 12.5, v.z + Math.sin(a) * 12.5, { face: [v.x + 0.5, v.z + 0.5] }); } // round the pool, watching the falls
+      A.stalls.forEach(t => add('shop', ...P(t, 1.7), { face: C(t) })); A.halls.forEach(h => add('shop', ...P(h, 6.8), { face: C(h), eve: h.kind === 'juice' || h.kind === 'bakery' }));
+      A.civic.forEach(h => add('shop', ...P(h, h.R + 1.8), { face: C(h) })); A.courts.forEach(c => { add('well', ...P(c, 3.4), { face: C(c) }); add('well', v.x + c.x + Math.sin(c.a) * 3.6, v.z + c.z - Math.cos(c.a) * 3.6, { face: C(c) }); });
+      A.bridges.forEach(b => { if (!b.wide) add('gate', v.x + Math.cos(b.a) * 34.4, v.z + Math.sin(b.a) * 34.4, { face: [v.x + Math.cos(b.a + 0.2) * 34.4, v.z + Math.sin(b.a + 0.2) * 34.4] }); }); // stopped on a footbridge, looking along the canal
+      A.pods.forEach((q, i) => add('home', ...P(q, 5.6), { face: C(q), i }));
+    } else { const L = layout(v), R = v.R, city = v.size === 'city';
+      for (let k = 0; k < 10; k++) { const a = k / 10 * 6.283 + 0.3; add('square', v.x + Math.cos(a) * (city ? 5 : 4.2), v.z + Math.sin(a) * (city ? 5 : 4.2), { face: [v.x + 0.5, v.z + 0.5] }); }
+      if (city) for (let k = 0; k < 4; k++) add('well', v.x + [4, -4, 0, 0][k], v.z + [0, 0, 4, -4][k], { face: [v.x + 0.5, v.z + 0.5] }); // the fountain
+      else for (const [a, b] of [[-2, 4], [-4, 2], [-6, 4], [-4, 6]]) add('well', v.x + a, v.z + b, { face: [v.x - 3.5, v.z + 4.5] });
+      for (const sh of L.shops) { if (sh.castle) continue; add('shop', sh.x + sh.dirX * 5, sh.z + sh.dirZ * 5, { face: [sh.x + 0.5, sh.z + 0.5], eve: sh.kind === 'juice' || sh.kind === 'inn' || sh.kind === 'restaurant' || sh.kind === 'games' }); if (sh.kind !== 'station') add('shop', sh.x + sh.dirX * 5 - sh.dirZ * 2, sh.z + sh.dirZ * 5 + sh.dirX * 2, { face: [sh.x + 0.5, sh.z + 0.5], eve: sh.kind === 'juice' || sh.kind === 'inn' || sh.kind === 'restaurant' || sh.kind === 'games' }); }
+      L.homes.forEach((l, i) => add('home', l.x + l.dirX * 5, l.z + l.dirZ * 5, { face: [l.x + 0.5, l.z + 0.5], i }));
+      for (const s0 of L.streets) for (const sg of [-1, 1]) { add('gate', v.x + s0, v.z + sg * (R - 7), { face: [v.x + s0 + 0.5, v.z + sg * R] }); add('gate', v.x + sg * (R - 7), v.z + s0, { face: [v.x + sg * R, v.z + s0 + 0.5] }); }
+      if (city) for (let d = 10; d < R - 10; d += 4) for (const sg of [-1, 1]) add('shop', v.x - d, v.z + sg, { face: [v.x - d + 0.5, v.z + sg * 2 + 0.5] }); // the market stalls down the west road
+      for (const t of (L.stalls || [])) for (const o of [0, 1]) add('shop', t.x + t.fx * 2 + Math.abs(t.fz) * o, t.z + t.fz * 2 + Math.abs(t.fx) * o, { face: [t.x + 0.5, t.z + 0.5] }); // and the ones on the square
+    }
+    return S;
+  }
+  // the way from one square to another: A* over the squares you can stand on, eight ways, never cutting a corner. Squares are looked at once and remembered
+  function lifePath(L, v, x0, z0, x1, z1) {
+    const W = L.W, ox = L.ox, oz = L.oz, G = L.grid;
+    const ok = (x, z) => { if (x < ox || z < oz || x >= ox + W || z >= oz + W) return 0; const i = (x - ox) * W + (z - oz); let w = G[i]; if (w < 0) w = G[i] = roomAt(x + 0.5, v.y, z + 0.5) != null ? L.cost(x, z) : 0; return w; };
+    const sx = Math.floor(x0), sz = Math.floor(z0), tx = Math.floor(x1), tz = Math.floor(z1); if (!ok(tx, tz)) return null; if (sx === tx && sz === tz) return [];
+    if (sx < ox || sz < oz || sx >= ox + W || sz >= oz + W) return null;
+    const run = ++L.run, g = L.g, from = L.from, mark = L.mark, hk = [], hv = [], s = (sx - ox) * W + (sz - oz), t = (tx - ox) * W + (tz - oz);
+    const push = (k, val) => { let i = hk.length; hk.push(k); hv.push(val); while (i > 0) { const p = (i - 1) >> 1; if (hk[p] <= k) break; hk[i] = hk[p]; hv[i] = hv[p]; i = p; } hk[i] = k; hv[i] = val; };
+    const pop = () => { const top = hv[0], k = hk.pop(), val = hv.pop(), n = hk.length; if (n) { let i = 0; for (;;) { let c = i * 2 + 1; if (c >= n) break; if (c + 1 < n && hk[c + 1] < hk[c]) c++; if (hk[c] >= k) break; hk[i] = hk[c]; hv[i] = hv[c]; i = c; } hk[i] = k; hv[i] = val; } return top; };
+    const est = (i) => { const dx = Math.abs(Math.floor(i / W) + ox - tx), dz = Math.abs(i % W + oz - tz); return Math.max(dx, dz) + 0.414 * Math.min(dx, dz); };
+    g[s] = 0; mark[s] = run; from[s] = -1; push(est(s), s); let left = 9000;
+    while (hk.length && left-- > 0) { const cur = pop(); if (cur === t) break; if (mark[cur] === -run) continue; mark[cur] = -run; const cx = Math.floor(cur / W) + ox, cz = cur % W + oz, gc = g[cur];
+      for (let a = -1; a <= 1; a++) for (let b = -1; b <= 1; b++) { if (!a && !b) continue; const nx = cx + a, nz = cz + b, w = ok(nx, nz); if (!w) continue; if (a && b && (!ok(cx + a, cz) || !ok(cx, cz + b))) continue;
+        const ni = (nx - ox) * W + (nz - oz); if (mark[ni] === -run) continue; const ng = gc + w * (a && b ? 1.414 : 1); if (mark[ni] === run && g[ni] <= ng) continue; g[ni] = ng; mark[ni] = run; from[ni] = cur; push(ng + est(ni), ni); } }
+    if (mark[t] !== run && mark[t] !== -run) return null;
+    const out = []; for (let i = t, n = 0; i !== s && i >= 0 && n < 600; i = from[i], n++) out.push([Math.floor(i / W) + ox + 0.5, i % W + oz + 0.5]); out.reverse();
+    const thin = []; for (let i = 0; i < out.length; i++) { const a = thin[thin.length - 1], b = out[i], c = out[i + 1]; if (a && c && Math.abs((b[0] - a[0]) * (c[1] - b[1]) - (b[1] - a[1]) * (c[0] - b[0])) < 1e-6 && thin.length > 0 && (b[0] - a[0]) * (c[0] - b[0]) + (b[1] - a[1]) * (c[1] - b[1]) > 0) continue; thin.push(b); } // a straight run is one leg
+    return thin;
+  }
+  // what people say in passing. Short, and never the same pair twice running
+  const SAY_HAIL = { dawn: ['Morning.', 'You are up early.', 'Morning. Mind the cart.'], day: ['Afternoon.', 'You again.', 'Nice Kin.', 'Mind how you go.', 'Lost? The square is that way.', 'You are the one who beat him. Good.'], dusk: ['Evening.', 'Gates shut at dark.', 'Long day?', 'Evening. The tavern is open.'] };
+  const SAY_CHAT = [['Bread was late again.', 'It always is.'], ['Seen the champion play?', 'Lost ten shards finding out.'], ['Rain by night.', 'My knees say the same.'], ['Was the train on time?', 'It was not.'], ['That is the one who beat the tyrant.', 'Looks shorter up close.'], ['Your boy was on my roof.', 'He says it was your roof first.'], ['Prices at the trader.', 'Do not start.'], ['Any news off the road?', 'Mud. Mostly mud.'], ['I heard a Kin talk once.', 'You heard the tavern.'], ['Wall wants mending.', 'It has wanted mending since my father.']];
+  const SAY_ATL = [['Tide is late.', 'The clock is late. The tide is the tide.'], ['The canal is cold today.', 'It is cold every day.'], ['A land-walker. In the market.', 'Do not stare.'], ['Six foals this spring.', 'I counted seven.'], ['Oan took forty off my husband.', 'Oan takes forty off everybody.'], ['Is it night up there?', 'Who would know.'], ['The kelp wants thinning.', 'Tell a gardener, not me.'], ['Skerry looked at me.', 'She looks at everyone. She is deciding.']];
+  const SAY_WATCH = ['All quiet.', 'Gates are shut. Mind yourself.', 'You should be abed.', 'Nothing stirring. I like it that way.'];
+  const SAY_KID = ['Tag!', 'Not it!', 'You are the tyrant.', 'I am always the tyrant.', 'Race you to the well.', 'No fair!', 'Again!', 'Wait for me!'], SAY_KID_ATL = ['Tag!', 'Not it!', 'You be the sea.', 'I am Skerry!', 'Race you to the falls.', 'No fair!', 'Again!', 'Wait for me!'];
+  function lifeSay(L, n, text, secs) { if (!text || bubbles.filter(b => b.soft).length >= 3) return; const p = G.player; if (Math.hypot(p.x - n.x, p.z - n.z) > 16) return; say(n.x, n.y + 2.05 * (n.scale || 1), n.z, text, secs || 2.6, n); }
+  const lifeTurn = (n, tx, tz, dt) => { const want = Math.atan2(tx - n.x, tz - n.z); let d = want - n.yaw; d = Math.atan2(Math.sin(d), Math.cos(d)); n.yaw += d * Math.min(1, dt * 7); };
+  function lifePick(n, v, L, night) {
+    const A = n.act || {}, S = L.spots, kid = !!n.child; if (A.spot && A.spot.by === n) A.spot.by = null;
+    if (!n.homeSpot) { const hs = S.filter(s => s.kind === 'home'); n.homeSpot = hs.length ? hs[(n.id * 7 + 3) % hs.length] : null; n.pace = kid ? 2.5 : 1.15 + ((n.id * 37) % 10) * 0.045; }
+    const t = world.time || 0, dusk = t > 0.7 && !night, r = Math.random(); let spot = null;
+    if (n.watch) { const gs = S.filter(s => s.kind === 'gate'); if (gs.length) { n.beat = ((n.beat == null ? n.id * 3 : n.beat) + 1) % gs.length; spot = gs[n.beat]; } }
+    else if (night && n.homeSpot) spot = n.homeSpot;
+    else if (!kid && r < (dusk ? 0.34 : 0.24)) { let best = null, bd = 1e9; for (const m of v.npcs) { if (m === n || m.hidden || m.child || m.role !== 'villager' || m.wander === false || !m.act || m.act.kind !== 'stay' || m.act.mate || m.act.until - L.clock < 5) continue; const d = Math.hypot(m.x - n.x, m.z - n.z) * (0.6 + Math.random() * 0.8); if (d > 3 && d < bd) { bd = d; best = m; } }
+      if (best) { const a = Math.atan2(n.z - best.z, n.x - best.x); for (const da of [0, 0.8, -0.8, 1.6, -1.6, 3.14]) { const px = Math.floor(best.x + Math.cos(a + da) * 1.6) + 0.5, pz = Math.floor(best.z + Math.sin(a + da) * 1.6) + 0.5; if (roomAt(px, v.y, pz) != null) { spot = { kind: 'join', x: px, z: pz, face: [best.x, best.z] }; best.act.until = Math.max(best.act.until, L.clock + 14); break; } } } }
+    if (spot) { /* chosen */ } else if (kid && n.playAt) { const a = Math.random() * 6.283, d = 1.5 + Math.random() * n.playAt.r; spot = { kind: 'play', x: Math.floor(n.playAt.x + Math.cos(a) * d) + 0.5, z: Math.floor(n.playAt.z + Math.sin(a) * d) + 0.5 }; }
+    else if (!spot) { const kind = kid ? (r < 0.55 ? 'square' : r < 0.8 ? 'well' : 'gate') : dusk ? (r < 0.45 ? 'eve' : r < 0.8 ? 'square' : 'home') : (r < 0.38 ? 'shop' : r < 0.6 ? 'square' : r < 0.72 ? 'well' : r < 0.82 ? 'gate' : r < 0.92 ? 'visit' : 'home');
+      const pool = S.filter(s => s !== A.spot && !s.by && (s.bad || 0) < 3 && (kind === 'eve' ? s.eve : kind === 'visit' ? (s.kind === 'home' && s !== n.homeSpot) : kind === 'home' ? s === n.homeSpot : s.kind === kind));
+      if (pool.length) { let tot = 0; const ws = pool.map(s => { const w = 1 / (8 + Math.hypot(s.x - n.x, s.z - n.z)); tot += w; return w; }); let q = Math.random() * tot; for (let i = 0; i < pool.length; i++) { q -= ws[i]; if (q <= 0) { spot = pool[i]; break; } } spot = spot || pool[0]; } }
+    if (!spot) { n.act = { kind: 'stay', until: L.clock + 2 + Math.random() * 3 }; return; }
+    const path = lifePath(L, v, n.x, n.z, spot.x, spot.z);
+    if (!path && spot === n.homeSpot) { const hs = S.filter(s => s.kind === 'home' && s !== spot && (s.bad || 0) < 2); n.homeTry = (n.homeTry || 0) + 1; if (hs.length) n.homeSpot = hs[(n.id + n.homeTry * 5) % hs.length]; } // no way to that door: sleep somewhere else
+    if (!path) { spot.bad = (spot.bad || 0) + 1; n.act = { kind: 'stay', until: L.clock + 2 + Math.random() * 4, spot: A.spot }; n.fails = (n.fails || 0) + 1; if (n.fails > 6) { n.fails = 0; unstick(n); } return; }
+    n.fails = 0; if (spot.kind !== 'play' && spot.kind !== 'join' && !n.watch) spot.by = n; n.act = { kind: 'go', spot, path, pi: 0, stuck: 0, bed: night && spot === n.homeSpot };
+  }
+  function lifeStep(n, v, L, dt, player, night) {
+    let A = n.act; if (!A) { n.act = A = { kind: 'stay', until: L.clock + Math.random() * 4 }; }
+    if (G.talkNpc === n) { n.moving = false; lifeTurn(n, player.x, player.z, dt); return; } // while you are talking to them they stand and face you
+    if (A.kind === 'go' && night && !A.bed && n.homeSpot && !n.watch && L.queue < 2) { L.queue++; lifePick(n, v, L, true); return; }
+    if (A.kind === 'stay') { n.moving = false;
+      const dp = Math.hypot(player.x - n.x, player.z - n.z);
+      if (dp < 2.8) { lifeTurn(n, player.x, player.z, dt); if (!n.child && L.clock > L.hail && L.clock > (n.hailed || 0)) { const t = world.time || 0, pool = n.watch && night ? SAY_WATCH : SAY_HAIL[t < 0.36 ? 'dawn' : t > 0.68 ? 'dusk' : 'day']; L.hail = L.clock + 9; n.hailed = L.clock + 50; if (Math.random() < 0.7) { let line = v.atlantis && Math.random() < 0.4 ? 'Land-walker.' : pool[Math.floor(Math.random() * pool.length)]; if (line === L.lastHail) line = pool[(pool.indexOf(line) + 1) % pool.length]; L.lastHail = line; lifeSay(L, n, line, 2.4); } } }
+      else if (A.mate && !A.mate.hidden && Math.hypot(A.mate.x - n.x, A.mate.z - n.z) < 3.2) lifeTurn(n, A.mate.x, A.mate.z, dt);
+      else if (A.spot && A.spot.face) lifeTurn(n, A.spot.face[0], A.spot.face[1], dt);
+      if (A.lines && L.clock >= A.next) { const ln = A.lines.shift(); lifeSay(L, ln[0], ln[1], 2.8); A.next = L.clock + 3.1; if (!A.lines.length) A.lines = null; }
+      if (L.clock >= A.until && !A.lines) { if (night && A.spot && A.spot === n.homeSpot) { n.asleep = true; n.hidden = true; A.spot.by = null; n.act = null; return; } if (L.queue < 2) { L.queue++; lifePick(n, v, L, night); } }
+      return; }
+    const wp = A.path[A.pi]; if (!wp) { lifeArrive(n, v, L, night); return; }
+    const mdx = wp[0] - n.x, mdz = wp[1] - n.z, md = Math.hypot(mdx, mdz); if (md < 0.3) { A.pi++; if (A.pi >= A.path.length) lifeArrive(n, v, L, night); return; }
+    if (A.wpi !== A.pi) { A.wpi = A.pi; A.best = md; A.bt = L.clock; } else if (md < A.best - 0.08) { A.best = md; A.bt = L.clock; } else if (L.clock - A.bt > 2.5) { if (A.spot && A.spot.by === n) A.spot.by = null; n.moving = false; n.act = { kind: 'stay', until: L.clock + 0.4 + Math.random() }; return; } // sliding along something and getting no nearer: stop, and find another way
+    const step = Math.min(md, (n.pace || 1.3) * dt), ux = mdx / md, uz = mdz / md; let went = false; n.moving = true;
+    for (const ang of (n.side ? [0, n.side * 0.9, n.side * 1.7, -n.side * 0.9] : [0, 0.9, -0.9, 1.7, -1.7])) { const c = Math.cos(ang), sn = Math.sin(ang), vx = ux * c - uz * sn, vz = ux * sn + uz * c; const gy = roomAt(n.x + vx * (step + 0.25), n.y, n.z + vz * (step + 0.25)); if (gy == null) continue;
+      { let crowd = false; const qx = n.x + vx * (step + 0.2), qz = n.z + vz * (step + 0.2); for (const m of v.npcs) { if (m === n || m.hidden || Math.abs(m.y - n.y) > 1.5) continue; const d1 = Math.hypot(m.x - qx, m.z - qz); if (d1 < 0.8 && d1 < Math.hypot(m.x - n.x, m.z - n.z)) { crowd = true; break; } } if (crowd) continue; }
+      n.x += vx * step; n.z += vz * step; n.y += (gy - n.y) * Math.min(1, dt * 8); lifeTurn(n, n.x + vx, n.z + vz, dt * 1.6); n.side = ang ? Math.sign(ang) : 0; went = true; break; }
+    if (went) A.stuck = 0; else { n.moving = false; n.side = 0; A.stuck += dt; if (A.stuck > 1.4) { const bx = Math.floor(n.x + ux * 0.8), bz = Math.floor(n.z + uz * 0.8); if (roomAt(bx + 0.5, v.y, bz + 0.5) == null && bx >= L.ox && bz >= L.oz && bx < L.ox + L.W && bz < L.oz + L.W) L.grid[(bx - L.ox) * L.W + (bz - L.oz)] = 0; if (A.spot && A.spot.by === n) A.spot.by = null; n.act = { kind: 'stay', until: L.clock + 0.6 + Math.random() * 1.5 }; } } // the way is shut: remember it, and think again
+  }
+  function lifeArrive(n, v, L, night) {
+    const A = n.act, sp = A.spot, kid = !!n.child; n.moving = false;
+    const dur = kid ? 0.8 + Math.random() * 2.4 : A.bed ? 1.5 + Math.random() * 3 : sp.kind === 'shop' ? 7 + Math.random() * 10 : sp.kind === 'square' ? 9 + Math.random() * 16 : sp.kind === 'gate' ? 4 + Math.random() * 6 : 6 + Math.random() * 10;
+    const S = { kind: 'stay', spot: sp, until: L.clock + dur }; n.act = S;
+    if (kid) { if (Math.random() < 0.2 && L.clock > (L.kidSay || 0)) { L.kidSay = L.clock + 7; lifeSay(L, n, (v.atlantis ? SAY_KID_ATL : SAY_KID)[Math.floor(Math.random() * SAY_KID.length)], 1.8); } return; }
+    if (night) return;
+    // somebody already here, with time on their hands: stop and talk
+    for (const m of v.npcs) { if (m === n || m.hidden || m.child || !m.act || m.act.kind !== 'stay' || m.act.mate || m.wander === false) continue; if (Math.hypot(m.x - n.x, m.z - n.z) > 3.4) continue;
+      S.mate = m; m.act.mate = n; const until = L.clock + 9 + Math.random() * 6; S.until = Math.max(S.until, until); m.act.until = Math.max(m.act.until, until);
+      if (L.clock > L.talk && Math.hypot(G.player.x - n.x, G.player.z - n.z) < 18) { L.talk = L.clock + 14; /* near enough for you to overhear */ const pool = v.atlantis ? SAY_ATL : SAY_CHAT, pr = pool[Math.floor(Math.random() * pool.length)]; S.lines = [[n, pr[0]], [m, pr[1]]]; S.next = L.clock + 0.9; } break; }
+  }
+  function lifeTick(v, dt, player) {
+    const L = lifeOf(v); L.clock += dt; L.queue = 0; const night = isNight() || !!(v.raid && v.raid.state === 'active');
+    if (L.clock > L.fresh) { L.fresh = L.clock + 45; L.grid.fill(-1); for (const s of L.spots) { s.bad = 0; if (s.by && (s.by.hidden || !v.npcs.includes(s.by))) s.by = null; } } // what you have built or dug since is found out within the minute
+    if (!night) for (const n of v.npcs) if (n.asleep) { n.asleep = false; n.hidden = false; if (n.homeSpot) { n.x = n.homeSpot.x; n.z = n.homeSpot.z; } n.act = { kind: 'stay', until: L.clock + Math.random() * 12 }; } // morning: out of the door, one at a time
+    L.night = night; return L;
+  }
   function update(dt, player, inBattle) {
     if (!world.preset.villages) { active = null; activeHermit = null; return; }
     ensureFisher(); updateHermits(player, dt);
@@ -13242,12 +13377,14 @@ const Village = (() => {
     if (v.gatesClosed !== false && !isNight() && !(v.raid && v.raid.state === 'active')) setGates(v, st, false);
     // guards off duty: stand at their posts and watch you
     if (!(v.raid && v.raid.state === 'active')) for (const g of v.guardEnts) { g.bob += dt; const dx = player.x - g.x, dz = player.z - g.z; if (Math.hypot(dx, dz) < 7) g.yaw = Math.atan2(dx, dz); g.moving = false; g.leap = 0; if (((g.bob * 2) | 0) !== (((g.bob - dt) * 2) | 0)) unstick(g); }
+    const life = lifeTown(v) ? lifeTick(v, dt, player) : null;
     for (const n of v.npcs) {
       if (n.hidden) continue;
       n.bob = (n.bob || 0) + dt;
       if (((n.bob * 2) | 0) !== (((n.bob - dt) * 2) | 0)) unstick(n); // twice a second: nobody stands in a lamp post
       if (n === v.elder && walkState) continue;
       if (n.wander === false) { const dx = player.x - n.x, dz = player.z - n.z; if (Math.hypot(dx, dz) < 5) n.yaw = Math.atan2(dx, dz); continue; }
+      if (life && n.role === 'villager') { lifeStep(n, v, life, dt, player, life.night); continue; }
       n.wait -= dt;
       if (n.wait <= 0) { n.wait = 3 + Math.random() * 6; const a = Math.random() * 6.28, r = 2 + Math.random() * 5; n.tx = U.clamp(n.home.x + Math.cos(a) * r, v.x - v.wanderR, v.x + v.wanderR); n.tz = U.clamp(n.home.z + Math.sin(a) * r, v.z - v.wanderR, v.z + v.wanderR); n.moving = true; }
       if (n.moving) {
@@ -13519,8 +13656,8 @@ const Village = (() => {
   }
   // ---- the train's little films: words over people's heads, and a camera that stands still and watches ----
   const bubbles = [];
-  function say(x, y, z, text, secs) { const el = document.createElement('div'); el.textContent = text; el.style.cssText = 'position:fixed;z-index:30;max-width:52vw;padding:6px 11px;border-radius:13px;background:#fffdf4;color:#2a2318;font:600 13px/1.25 system-ui,sans-serif;box-shadow:0 2px 7px rgba(0,0,0,.4);transform:translate(-50%,-100%);pointer-events:none;white-space:normal;text-align:center;'; document.body.appendChild(el); bubbles.push({ x, y, z, el, until: performance.now() + secs * 1000 }); }
-  function tickBubbles() { const now = performance.now(); for (let i = bubbles.length - 1; i >= 0; i--) { const b = bubbles[i]; if (now > b.until) { b.el.remove(); bubbles.splice(i, 1); continue; } const q = R.project(b.x, b.y, b.z); if (!q || !q.on) { b.el.style.display = 'none'; continue; } b.el.style.display = ''; b.el.style.left = q.x + 'px'; b.el.style.top = (q.y - 6) + 'px'; } }
+  function say(x, y, z, text, secs, on) { const el = document.createElement('div'); el.textContent = text; el.style.cssText = 'position:fixed;z-index:30;max-width:52vw;padding:6px 11px;border-radius:13px;background:#fffdf4;color:#2a2318;font:600 13px/1.25 system-ui,sans-serif;box-shadow:0 2px 7px rgba(0,0,0,.4);transform:translate(-50%,-100%);pointer-events:none;white-space:normal;text-align:center;'; if (on) { el.style.font = '600 12px/1.2 system-ui,sans-serif'; el.style.padding = '4px 9px'; el.style.opacity = '0.95'; el.style.zIndex = '6'; } document.body.appendChild(el); bubbles.push({ x, y, z, el, on: on || null, soft: !!on, until: performance.now() + secs * 1000 }); } // on: somebody the words stay over as they move
+  function tickBubbles() { const now = performance.now(); for (let i = bubbles.length - 1; i >= 0; i--) { const b = bubbles[i]; if (now > b.until || (b.on && b.on.hidden)) { b.el.remove(); bubbles.splice(i, 1); continue; } const q = b.on ? R.project(b.on.x, b.on.y + 2.05 * (b.on.scale || 1), b.on.z) : R.project(b.x, b.y, b.z); if (!q || !q.on) { b.el.style.display = 'none'; continue; } b.el.style.display = ''; b.el.style.left = q.x + 'px'; b.el.style.top = (q.y - 6) + 'px'; } }
   function filmCam(v, rl, p) { // a place to stand and watch from: somewhere round the carriage with a clear sight of it and of the engine, on his side of the line if there is one
     const W = (al, pp) => rl.ax ? [al, rl.line + 0.5 + pp] : [rl.line + 0.5 + pp, al], car = W(rl.along0 + 0.5 + rl.sgn * 2, 0), eng = W(rl.along0 + 0.5 + rl.sgn * 4.9, 0);
     const perpOf = rl.ax ? p.z - (rl.line + 0.5) : p.x - (rl.line + 0.5), side0 = perpOf >= 0 ? 1 : -1;
