@@ -597,6 +597,7 @@ const Wild = (() => {
     return best;
   }
   function rings(player) {
+    return []; // no circles on the ground round anything any more: they made open country feel fenced in. A Kin that has noticed you shows it in its face
     const out = [];
     for (const e of list) {
       if (e.high) continue;
