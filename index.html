@@ -13453,12 +13453,19 @@ const Village = (() => {
   function onBossGone(id) { const v = villages.get(id); if (!v) return; const b = v.boss; v.boss = null; if (!b || !b.model) return;
     const p = G.player; let dx = b.x - p.x, dz = b.z - p.z; const d = Math.hypot(dx, dz) || 1; dx /= d; dz /= d;
     const shape = b.kin && b.kin.sp ? b.kin.sp.shape : ''; b.sleep = false; b.sus = 0;
-    runners.push({ e: b, dx, dz, t: 0, up: shape === 'floater' ? 1 : shape === 'serpent' ? -1 : 0, s0: b.scale || 1, wob: Math.random() * 6 }); }
+    runners.push({ e: b, dx, dz, t: 0, up: shape === 'floater' ? 1 : shape === 'serpent' ? -1 : 0, y0: Math.floor(b.y), s0: b.scale || 1, wob: Math.random() * 6 }); }
   function runTick(dt) { for (let i = runners.length - 1; i >= 0; i--) { const r = runners[i], e = r.e; r.t += dt;
       const go = r.t < 0.45 ? 0 : Math.min(1, (r.t - 0.45) * 2.2), sp = (r.up ? 4.5 : 7.5) * go, sw = Math.sin(r.t * 5 + r.wob) * 0.35 * go; /* a beat of standing there first, then off, weaving a bit */
-      const vx = r.dx + -r.dz * sw, vz = r.dz + r.dx * sw; e.x += vx * sp * dt; e.z += vz * sp * dt; if (go > 0) e.yaw = Math.atan2(vx, vz);
-      if (r.up) e.y += r.up * (r.up > 0 ? 3.2 : 1.6) * go * dt; else { const gy = world.groundY(Math.floor(e.x), Math.floor(e.z), Math.floor(e.y) + 3) + 1; e.y += (gy - e.y) * Math.min(1, dt * 10); }
-      const out = Math.max(0, (r.t - 2.3) / 0.6); e.scale = r.s0 * (1 - out * out);
+      /* he keeps to open ground: every fifth of a second he looks a few steps ahead and takes the clear way nearest the one he is on, never back at you. Houses, walls, carts, you and your Kin all get gone round */
+      if (!r.up) { r.look = (r.look || 0) - dt; if (r.look <= 0) { r.look = 0.18; const p = G.player, h0 = Math.atan2(r.dx, r.dz), fy = Math.floor(e.y); let best = null, bs = 1e9;
+          for (const o of [0, 0.45, -0.45, 0.9, -0.9, 1.4, -1.4, 2.0, -2.0, 2.6, -2.6]) { const hx = Math.sin(h0 + o), hz = Math.cos(h0 + o); let ok = true;
+            for (const st of [1.1, 2.3, 3.6]) { const cx = e.x + hx * st, cz = e.z + hz * st, g = world.groundY(Math.floor(cx), Math.floor(cz), fy + 2) + 1; if (g > fy + 1 || g > r.y0 + 1 || g < fy - 3) { ok = false; break; } /* never up onto a roof: thatch comes down low enough to step on */ if (Math.hypot(cx - p.x, cz - p.z) < 2.6) { ok = false; break; } }
+            if (!ok) continue; const ax = e.x - p.x, az = e.z - p.z, al = Math.hypot(ax, az) || 1, toward = -(hx * ax + hz * az) / al; const sc = Math.abs(o) + (toward > 0.2 && al < 9 ? 4 : 0); if (sc < bs) { bs = sc; best = [hx, hz]; } }
+          if (best) { r.tx = best[0]; r.tz = best[1]; r.stuck = 0; } else { r.stuck = (r.stuck || 0) + 1; if (r.stuck > 3 && r.t < 3.2) r.t = 3.2; } }
+        if (r.tx !== undefined) { const k = Math.min(1, dt * 9); r.dx += (r.tx - r.dx) * k; r.dz += (r.tz - r.dz) * k; const l = Math.hypot(r.dx, r.dz) || 1; r.dx /= l; r.dz /= l; } }
+      const sw2 = r.up ? sw : sw * 0.25, vx = r.dx + -r.dz * sw2, vz = r.dz + r.dx * sw2; e.x += vx * sp * (r.stuck ? 0.2 : 1) * dt; e.z += vz * sp * (r.stuck ? 0.2 : 1) * dt; if (go > 0) e.yaw = Math.atan2(vx, vz);
+      if (r.up) e.y += r.up * (r.up > 0 ? 3.2 : 1.6) * go * dt; else { const gy = world.groundY(Math.floor(e.x), Math.floor(e.z), Math.floor(e.y) + 3) + 1; if (gy <= r.y0 + 1.01) e.y += (gy - e.y) * Math.min(1, dt * 10); }
+      const out = Math.max(0, (r.t - (r.up ? 2.3 : 3.2)) / 0.6); e.scale = r.s0 * (1 - out * out);
       if (!r.up && go > 0 && (G.frame & 3) === 0 && typeof Hazards !== 'undefined') Hazards.puff(e.x, e.y + 0.2, e.z, 1, [0.72, 0.66, 0.52]);
       if (out >= 1) { if (typeof Hazards !== 'undefined') Hazards.puff(e.x, e.y + 1, e.z, 12, r.up > 0 ? [0.8, 0.9, 1.0] : [0.72, 0.66, 0.52]); runners.splice(i, 1); } } }
   function freed(id) {
@@ -17931,7 +17938,7 @@ const UI = (() => {
       <h4>How to play</h4>
       <p class="small">${Controls.isTouch ? 'Left stick walks; drag anywhere on the right of the screen to turn the camera. <b>Hold</b> to mine, or to block when you hold a weapon; <b>tap</b> to place a block, swing, talk, or use a Fusion Table. ▲ jumps, ▼ crouches, hold ▲ in the air with a Glider to glide. In third person the camera orbits you: swing it round to see your face, or your Kin\'s.' : 'WASD to move, mouse to look, <b>hold left click</b> to mine or block, <b>right click</b> to place or use. Space jumps, Shift sneaks, 1-9 or the wheel pick an item. E opens Craft, Q opens Kin, J opens Quests, V switches the camera, F deploys a Kin or sets a snare. Esc releases the mouse.'}</p>
       <p class="small">Chests (Craft › Blocks) keep what you store in them through anything. Amulets come from the people by the fires on the road; nobody sells them. Third person shows your skin: unlock more by playing.</p>
-      <p class="small">Wild Kin notice you. Come at one head on and it stops, stares, then comes for you, live: it crouches, then lunges. Hold a weapon and hold the screen to block with your shield; raise it, or swing, just as the lunge lands to parry. Swords and axes chip a Kin's health (a wooden sword a twentieth a blow, Starmetal about a seventh), arrows more but never the last point. Your lead Kin fights beside you on its own, with its real moves and strength: far harder than any blade, and the big ones only fall to Kin. It takes lunges too and goes down if they are too much. <b>Deploy</b> picks which Kin is at your side, or sends one in when nobody is; with no Kin beside you it is just you. Beat a common Kin and it lies dazed for ten seconds: net it, or let it go. Sneak up from behind for a better catch. If its head turns your way it is getting suspicious: stay still until it looks off again.</p>
+      <p class="small">Wild Kin notice you. Come at one head on and it stops, stares, then comes for you, live: it crouches, then lunges. Hold a weapon and hold the screen to block with your shield; raise it, or swing, just as the lunge lands to parry. Swords and axes chip a Kin's health (a wooden sword a twentieth a blow, Starmetal about a seventh), arrows more but never the last point. Your lead Kin fights beside you on its own, with its real moves and strength: far harder than any blade, and the big ones only fall to Kin. It takes lunges too and goes down if they are too much. <b>Deploy</b> picks which Kin is at your side, or sends one in when nobody is; with no Kin beside you it is just you. Beat a common Kin and it lies dazed for ten seconds: net it, or let it go. Every Kin has a temper, shown on its card. A drowsy one dawdles behind you but hits heavy. A shy one loses its nerve some turns. A cross one hits hard, a bright one keeps at your heel. Walk and win together and the bond grows: the dawdling and the nerves fade. Sneak up from behind for a better catch. If its head turns your way it is getting suspicious: stay still until it looks off again.</p>
       <p class="small">Layers, top to bottom: Sky islands (Light, Gale), Surface, the Mines (dark, bring a torch), and the Core: lava, Flame and Void, the Mythic. The world wraps after about an hour of walking in one direction; the further you go from camp, the stranger the Kin.</p>
       <p class="small">Shards (◆) are the currency: you earn them by dismantling objects and gear that had a Kin in them. Shops to spend them in come later.</p>
       <p class="small">The Fusion Table: a fusion is a recipe, two particular Kin and an element stone (three essences and an iron), and the table lists the recipes you know. Quest people and beaten tyrants teach more; some fusions fork, and the table you use decides which way. Items alone craft gear, and the table keeps your spare Kin.</p>
@@ -19800,7 +19807,8 @@ const Buddy = (() => {
     const hx = T.x - (T.x - e.x) * 0.3, hz = T.z - (T.z - e.z) * 0.3, hy = T.y + (T.isFoe ? 1.0 : (T.model ? T.model.height * T.scale * 0.55 : 0.8));
     if (T.isFoe) { const st = KIN.stats(k); const dmg = Math.max(2, Math.round(st.atk * 0.35 + k.level * 0.25)); Combat.hurtFoe(T, dmg, e.x, e.z); UI.floater(T.x, hy + 0.9, T.z, String(dmg)); Hazards.sparks(hx, hy, hz, 8, elemCol(move.elem)); UI.sfx('hit'); return; }
     if (Battle.dodges(k, T.kin)) { UI.sfx('miss'); return; }
-    const r = Battle.calcDamage(k, T.kin, move); const dealt = Wild.hitByKin(T, r.dmg, k);
+    const r = Battle.calcDamage(k, T.kin, move); const tq = temper(k), bq = k.bond || 0; r.dmg = Math.max(1, Math.round(r.dmg * (tq === 'drowsy' ? 1.18 : tq === 'cross' ? 1.1 : tq === 'shy' && bq >= 0.5 ? 1.15 : 1))); /* what each temper gives back: the dozy ones hit heavy, the cross ones hard, a shy one that trusts you fights for you */
+    const dealt = Wild.hitByKin(T, r.dmg, k);
     UI.floater(T.x, hy + 0.5, T.z, String(dealt), r.crit ? 'crit' : r.eff > 1.25 ? 'eff' : r.eff < 0.8 ? 'weak' : '');
     Hazards.sparks(hx, hy, hz, r.crit ? 16 : 10, elemCol(move.elem), r.eff > 1.25 ? 4.5 : 3.2); UI.sfx(r.eff > 1.25 ? 'hit2' : 'hit');
     if (r.crit && dealt > 0) UI.toast(`${KIN.name(k)}: critical!`);
@@ -19824,6 +19832,7 @@ const Buddy = (() => {
       const gy = e.flying ? p.y + 1.0 : ground(nx, nz, Math.max(p.y, e.y)); if (e.flying || Math.abs(gy - e.y) < 1.6) { e.x = nx; e.z = nz; if (gy > e.y) e.y = gy; else e.y += (gy - e.y) * Math.min(1, dt * 10); }
       e.hover = (e.model.hover || 0) + (e.flying ? Math.sin(e.bob * 2) * 0.08 : 0); return true; }
     e.hover = (e.model.hover || 0) + (flinchT > 0 ? Math.sin(flinchT * 40) * 0.06 : 0) + (e.flying ? Math.sin(e.bob * 2) * 0.08 : 0);
+    if (atkCd <= 0 && !pending && temper(k) === 'shy' && Math.random() < ((k.bond || 0) < 0.15 ? 0.5 : (k.bond || 0) < 0.5 ? 0.25 : 0)) { atkCd = 1.3; emote('…', '#d8c8ff'); flinchT = 0.4; } /* a shy one loses its nerve now and then, until it trusts you */
     if (atkCd <= 0 && !pending) { const st = KIN.stats(k); const mv = KIN.moves(k).filter(m => m.kind !== 'util'); const move = mv[Math.random() < 0.65 ? 0 : Math.min(1, mv.length - 1)];
       if (k.hp < st.hp * 0.4 && Math.random() < 0.2) { const heal = Math.round(st.hp * 0.22); k.hp = Math.min(st.hp, k.hp + heal); UI.floater(e.x, e.y + e.model.height * e.scale + 0.2, e.z, '+' + heal, 'heal'); Hazards.sparks(e.x, e.y + e.model.height * e.scale * 0.7, e.z, 10, [0.6, 1.0, 0.6], 1.5); UI.sfx('util'); atkCd = 1.4; }
       else if (move.kind === 'phys') { dash = { t: 0, x0: e.x, z0: e.z, hit: false, move }; atkCd = U.clamp(2.3 - st.agi / 90, 1.1, 2.3); }
@@ -19861,7 +19870,7 @@ const Buddy = (() => {
   // What it feels shows in its face and in a small mark over its head, and how it shows it depends on the temper
   const TEMPERS = ['steady', 'shy', 'cross', 'bright', 'drowsy'];
   const MOOD = { sneak: { b: -0.45, t: 0.35, lid: 0.38, one: 0.25 }, joy: { b: 0.85, t: -0.2, lid: 0.72 }, worry: { b: 0.55, t: -0.85, lid: 0.15 }, alert: { b: 0.95, t: -0.1, lid: 0 }, sleepy: { b: -0.15, t: -0.1, lid: 0.82 }, wonder: { b: 0.7, t: -0.3, lid: 0, one: 0.6 } };
-  let sneakK = 0, mood = null, moodT = 0, stillT = 0, wasFight = false, petT = 0, greetT = 0, worryT = 0;
+  let lagTold = 0; let sneakK = 0, mood = null, moodT = 0, stillT = 0, wasFight = false, petT = 0, greetT = 0, worryT = 0;
   const temper = (k) => TEMPERS[(e && e.model && e.model.temper || 0) % 5];
   function bond(k, d) { k.bond = Math.min(1, Math.max(0, (k.bond || 0) + d)); }
   function emote(ch, col) { if (!e || typeof R === 'undefined' || !R.project) return; const q = R.project(e.x, e.y + (e.model.height || 1) * e.scale + 0.45, e.z); if (!q || !q.on) return; const el = document.createElement('div'); el.textContent = ch;
@@ -19894,7 +19903,10 @@ const Buddy = (() => {
     if (d > 18 || Math.abs(p.y - e.y) > 8 || (gliding && !e.flying)) { if (gliding && !e.flying) { e.away = true; return; } place(p, true); return; }
     const pv = Math.hypot(p.vx, p.vz);
     if (d > 0.4) {
-      const sp = Math.min(d, Math.max(3.2, pv * 1.15) * (d > 4 ? 1.6 : 1) * dt);
+      /* a drowsy one dawdles until it knows you: it falls behind and you wait for it. A bright one is always at your heel */
+      const tq = temper(k), bq = k.bond || 0, lag = tq === 'drowsy' ? (bq < 0.15 ? 0.5 : bq < 0.5 ? 0.72 : 1) : tq === 'bright' ? 1.15 : 1;
+      if (lag < 1 && d > 7 && !lagTold) { lagTold = 40; emote('z', '#bcd0ff'); } if (lagTold > 0) lagTold -= dt;
+      const sp = Math.min(d, Math.max(3.2 * lag, pv * 1.15 * lag) * (d > 4 && lag >= 1 ? 1.6 : 1) * dt);
       e.x += dx / d * sp; e.z += dz / d * sp;
       const ty = Math.atan2(dx, dz); let dy = ty - e.yaw; while (dy > Math.PI) dy -= Math.PI * 2; while (dy < -Math.PI) dy += Math.PI * 2; e.yaw += dy * Math.min(1, dt * 8);
     } else { const ty = Math.atan2(p.x - e.x, p.z - e.z); let dy = ty - e.yaw; while (dy > Math.PI) dy -= Math.PI * 2; while (dy < -Math.PI) dy += Math.PI * 2; e.yaw += dy * Math.min(1, dt * 3); }

@@ -28,7 +28,8 @@ const Buddy = (() => {
     const hx = T.x - (T.x - e.x) * 0.3, hz = T.z - (T.z - e.z) * 0.3, hy = T.y + (T.isFoe ? 1.0 : (T.model ? T.model.height * T.scale * 0.55 : 0.8));
     if (T.isFoe) { const st = KIN.stats(k); const dmg = Math.max(2, Math.round(st.atk * 0.35 + k.level * 0.25)); Combat.hurtFoe(T, dmg, e.x, e.z); UI.floater(T.x, hy + 0.9, T.z, String(dmg)); Hazards.sparks(hx, hy, hz, 8, elemCol(move.elem)); UI.sfx('hit'); return; }
     if (Battle.dodges(k, T.kin)) { UI.sfx('miss'); return; }
-    const r = Battle.calcDamage(k, T.kin, move); const dealt = Wild.hitByKin(T, r.dmg, k);
+    const r = Battle.calcDamage(k, T.kin, move); const tq = temper(k), bq = k.bond || 0; r.dmg = Math.max(1, Math.round(r.dmg * (tq === 'drowsy' ? 1.18 : tq === 'cross' ? 1.1 : tq === 'shy' && bq >= 0.5 ? 1.15 : 1))); /* what each temper gives back: the dozy ones hit heavy, the cross ones hard, a shy one that trusts you fights for you */
+    const dealt = Wild.hitByKin(T, r.dmg, k);
     UI.floater(T.x, hy + 0.5, T.z, String(dealt), r.crit ? 'crit' : r.eff > 1.25 ? 'eff' : r.eff < 0.8 ? 'weak' : '');
     Hazards.sparks(hx, hy, hz, r.crit ? 16 : 10, elemCol(move.elem), r.eff > 1.25 ? 4.5 : 3.2); UI.sfx(r.eff > 1.25 ? 'hit2' : 'hit');
     if (r.crit && dealt > 0) UI.toast(`${KIN.name(k)}: critical!`);
@@ -52,6 +53,7 @@ const Buddy = (() => {
       const gy = e.flying ? p.y + 1.0 : ground(nx, nz, Math.max(p.y, e.y)); if (e.flying || Math.abs(gy - e.y) < 1.6) { e.x = nx; e.z = nz; if (gy > e.y) e.y = gy; else e.y += (gy - e.y) * Math.min(1, dt * 10); }
       e.hover = (e.model.hover || 0) + (e.flying ? Math.sin(e.bob * 2) * 0.08 : 0); return true; }
     e.hover = (e.model.hover || 0) + (flinchT > 0 ? Math.sin(flinchT * 40) * 0.06 : 0) + (e.flying ? Math.sin(e.bob * 2) * 0.08 : 0);
+    if (atkCd <= 0 && !pending && temper(k) === 'shy' && Math.random() < ((k.bond || 0) < 0.15 ? 0.5 : (k.bond || 0) < 0.5 ? 0.25 : 0)) { atkCd = 1.3; emote('…', '#d8c8ff'); flinchT = 0.4; } /* a shy one loses its nerve now and then, until it trusts you */
     if (atkCd <= 0 && !pending) { const st = KIN.stats(k); const mv = KIN.moves(k).filter(m => m.kind !== 'util'); const move = mv[Math.random() < 0.65 ? 0 : Math.min(1, mv.length - 1)];
       if (k.hp < st.hp * 0.4 && Math.random() < 0.2) { const heal = Math.round(st.hp * 0.22); k.hp = Math.min(st.hp, k.hp + heal); UI.floater(e.x, e.y + e.model.height * e.scale + 0.2, e.z, '+' + heal, 'heal'); Hazards.sparks(e.x, e.y + e.model.height * e.scale * 0.7, e.z, 10, [0.6, 1.0, 0.6], 1.5); UI.sfx('util'); atkCd = 1.4; }
       else if (move.kind === 'phys') { dash = { t: 0, x0: e.x, z0: e.z, hit: false, move }; atkCd = U.clamp(2.3 - st.agi / 90, 1.1, 2.3); }
@@ -89,7 +91,7 @@ const Buddy = (() => {
   // What it feels shows in its face and in a small mark over its head, and how it shows it depends on the temper
   const TEMPERS = ['steady', 'shy', 'cross', 'bright', 'drowsy'];
   const MOOD = { sneak: { b: -0.45, t: 0.35, lid: 0.38, one: 0.25 }, joy: { b: 0.85, t: -0.2, lid: 0.72 }, worry: { b: 0.55, t: -0.85, lid: 0.15 }, alert: { b: 0.95, t: -0.1, lid: 0 }, sleepy: { b: -0.15, t: -0.1, lid: 0.82 }, wonder: { b: 0.7, t: -0.3, lid: 0, one: 0.6 } };
-  let sneakK = 0, mood = null, moodT = 0, stillT = 0, wasFight = false, petT = 0, greetT = 0, worryT = 0;
+  let lagTold = 0; let sneakK = 0, mood = null, moodT = 0, stillT = 0, wasFight = false, petT = 0, greetT = 0, worryT = 0;
   const temper = (k) => TEMPERS[(e && e.model && e.model.temper || 0) % 5];
   function bond(k, d) { k.bond = Math.min(1, Math.max(0, (k.bond || 0) + d)); }
   function emote(ch, col) { if (!e || typeof R === 'undefined' || !R.project) return; const q = R.project(e.x, e.y + (e.model.height || 1) * e.scale + 0.45, e.z); if (!q || !q.on) return; const el = document.createElement('div'); el.textContent = ch;
@@ -122,7 +124,10 @@ const Buddy = (() => {
     if (d > 18 || Math.abs(p.y - e.y) > 8 || (gliding && !e.flying)) { if (gliding && !e.flying) { e.away = true; return; } place(p, true); return; }
     const pv = Math.hypot(p.vx, p.vz);
     if (d > 0.4) {
-      const sp = Math.min(d, Math.max(3.2, pv * 1.15) * (d > 4 ? 1.6 : 1) * dt);
+      /* a drowsy one dawdles until it knows you: it falls behind and you wait for it. A bright one is always at your heel */
+      const tq = temper(k), bq = k.bond || 0, lag = tq === 'drowsy' ? (bq < 0.15 ? 0.5 : bq < 0.5 ? 0.72 : 1) : tq === 'bright' ? 1.15 : 1;
+      if (lag < 1 && d > 7 && !lagTold) { lagTold = 40; emote('z', '#bcd0ff'); } if (lagTold > 0) lagTold -= dt;
+      const sp = Math.min(d, Math.max(3.2 * lag, pv * 1.15 * lag) * (d > 4 && lag >= 1 ? 1.6 : 1) * dt);
       e.x += dx / d * sp; e.z += dz / d * sp;
       const ty = Math.atan2(dx, dz); let dy = ty - e.yaw; while (dy > Math.PI) dy -= Math.PI * 2; while (dy < -Math.PI) dy += Math.PI * 2; e.yaw += dy * Math.min(1, dt * 8);
     } else { const ty = Math.atan2(p.x - e.x, p.z - e.z); let dy = ty - e.yaw; while (dy > Math.PI) dy -= Math.PI * 2; while (dy < -Math.PI) dy += Math.PI * 2; e.yaw += dy * Math.min(1, dt * 3); }

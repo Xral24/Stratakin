@@ -329,6 +329,8 @@ Scope (Alexander, 8 Nov evening): EVERYTHING visible goes to the same standard: 
 
 - 16 Nov, beaten tyrants run off (his ask: he runs off or vanishes, see you next time). **Stands a beat, bolts away weaving, gone in dust; Moon one lifts off, sea one dives.** Kin page shows temper and bond; help text no longer talks about sense rings.
 
+- 16 Nov, tyrant exit goes round things (his ask: not through a house, follow the road, round you and the Kin). **Looks ahead 5 times a second, takes the clear way, never climbs a roof.** Tempers now matter (his idea): drowsy dawdles but hits heavy, shy loses its nerve some turns, cross hits hard, bright keeps at heel; bond fades the downsides.
+
 ## Still to do
 UI polish as feedback comes in. Card battle screen still used for scripted encounters (raids at the walls, thief, citadel duel, holds) and the snare mini-game; converting those to live is the next big step if wanted. (Old list: train/ships, combat animation, eggs, avatar hair/paint, buddy WEAR cosmetics, Silas and Finch, UI polish (item icons), quality toggles in settings (state.shadows, state.grassQuality, state.dprCap).
 

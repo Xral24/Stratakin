@@ -1872,12 +1872,19 @@ const Village = (() => {
   function onBossGone(id) { const v = villages.get(id); if (!v) return; const b = v.boss; v.boss = null; if (!b || !b.model) return;
     const p = G.player; let dx = b.x - p.x, dz = b.z - p.z; const d = Math.hypot(dx, dz) || 1; dx /= d; dz /= d;
     const shape = b.kin && b.kin.sp ? b.kin.sp.shape : ''; b.sleep = false; b.sus = 0;
-    runners.push({ e: b, dx, dz, t: 0, up: shape === 'floater' ? 1 : shape === 'serpent' ? -1 : 0, s0: b.scale || 1, wob: Math.random() * 6 }); }
+    runners.push({ e: b, dx, dz, t: 0, up: shape === 'floater' ? 1 : shape === 'serpent' ? -1 : 0, y0: Math.floor(b.y), s0: b.scale || 1, wob: Math.random() * 6 }); }
   function runTick(dt) { for (let i = runners.length - 1; i >= 0; i--) { const r = runners[i], e = r.e; r.t += dt;
       const go = r.t < 0.45 ? 0 : Math.min(1, (r.t - 0.45) * 2.2), sp = (r.up ? 4.5 : 7.5) * go, sw = Math.sin(r.t * 5 + r.wob) * 0.35 * go; /* a beat of standing there first, then off, weaving a bit */
-      const vx = r.dx + -r.dz * sw, vz = r.dz + r.dx * sw; e.x += vx * sp * dt; e.z += vz * sp * dt; if (go > 0) e.yaw = Math.atan2(vx, vz);
-      if (r.up) e.y += r.up * (r.up > 0 ? 3.2 : 1.6) * go * dt; else { const gy = world.groundY(Math.floor(e.x), Math.floor(e.z), Math.floor(e.y) + 3) + 1; e.y += (gy - e.y) * Math.min(1, dt * 10); }
-      const out = Math.max(0, (r.t - 2.3) / 0.6); e.scale = r.s0 * (1 - out * out);
+      /* he keeps to open ground: every fifth of a second he looks a few steps ahead and takes the clear way nearest the one he is on, never back at you. Houses, walls, carts, you and your Kin all get gone round */
+      if (!r.up) { r.look = (r.look || 0) - dt; if (r.look <= 0) { r.look = 0.18; const p = G.player, h0 = Math.atan2(r.dx, r.dz), fy = Math.floor(e.y); let best = null, bs = 1e9;
+          for (const o of [0, 0.45, -0.45, 0.9, -0.9, 1.4, -1.4, 2.0, -2.0, 2.6, -2.6]) { const hx = Math.sin(h0 + o), hz = Math.cos(h0 + o); let ok = true;
+            for (const st of [1.1, 2.3, 3.6]) { const cx = e.x + hx * st, cz = e.z + hz * st, g = world.groundY(Math.floor(cx), Math.floor(cz), fy + 2) + 1; if (g > fy + 1 || g > r.y0 + 1 || g < fy - 3) { ok = false; break; } /* never up onto a roof: thatch comes down low enough to step on */ if (Math.hypot(cx - p.x, cz - p.z) < 2.6) { ok = false; break; } }
+            if (!ok) continue; const ax = e.x - p.x, az = e.z - p.z, al = Math.hypot(ax, az) || 1, toward = -(hx * ax + hz * az) / al; const sc = Math.abs(o) + (toward > 0.2 && al < 9 ? 4 : 0); if (sc < bs) { bs = sc; best = [hx, hz]; } }
+          if (best) { r.tx = best[0]; r.tz = best[1]; r.stuck = 0; } else { r.stuck = (r.stuck || 0) + 1; if (r.stuck > 3 && r.t < 3.2) r.t = 3.2; } }
+        if (r.tx !== undefined) { const k = Math.min(1, dt * 9); r.dx += (r.tx - r.dx) * k; r.dz += (r.tz - r.dz) * k; const l = Math.hypot(r.dx, r.dz) || 1; r.dx /= l; r.dz /= l; } }
+      const sw2 = r.up ? sw : sw * 0.25, vx = r.dx + -r.dz * sw2, vz = r.dz + r.dx * sw2; e.x += vx * sp * (r.stuck ? 0.2 : 1) * dt; e.z += vz * sp * (r.stuck ? 0.2 : 1) * dt; if (go > 0) e.yaw = Math.atan2(vx, vz);
+      if (r.up) e.y += r.up * (r.up > 0 ? 3.2 : 1.6) * go * dt; else { const gy = world.groundY(Math.floor(e.x), Math.floor(e.z), Math.floor(e.y) + 3) + 1; if (gy <= r.y0 + 1.01) e.y += (gy - e.y) * Math.min(1, dt * 10); }
+      const out = Math.max(0, (r.t - (r.up ? 2.3 : 3.2)) / 0.6); e.scale = r.s0 * (1 - out * out);
       if (!r.up && go > 0 && (G.frame & 3) === 0 && typeof Hazards !== 'undefined') Hazards.puff(e.x, e.y + 0.2, e.z, 1, [0.72, 0.66, 0.52]);
       if (out >= 1) { if (typeof Hazards !== 'undefined') Hazards.puff(e.x, e.y + 1, e.z, 12, r.up > 0 ? [0.8, 0.9, 1.0] : [0.72, 0.66, 0.52]); runners.splice(i, 1); } } }
   function freed(id) {
