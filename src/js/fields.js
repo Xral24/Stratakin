@@ -34,7 +34,9 @@ const Fields = (() => {
       else { const sp = (sn === 0 ? 3.4 : 1.5) * dt, st = Math.min(d, sp); n.x += dx / d * st; n.z += dz / d * st; n.yaw = Math.atan2(dx, dz); const g = ground(Math.floor(n.x), Math.floor(n.z), Math.floor(n.y)) + 1; n.y += (g - n.y) * Math.min(1, dt * 10); } } }
   /* the cart. Every town with fields has one on the move: a horse and a two-wheeled cart going the round of the plots, standing a while at each to be loaded, and on market day drawn up in the square beside the stall with the crop in the back. It can be robbed, and that has a price */
   const wanted = () => { const w = G.stats.wanted; if (w && (G.dayCount || 0) >= w.until) { G.stats.wanted = null; return null; } return w || null; };
-  const masked = () => { const pl = G.player, hb = pl.hotbar ? pl.hotbar() : []; return hb[pl.sel] === 'warmask'; };
+  /* two masks, two different people to answer for it. In the Indians' war mask the towns blame the Indians, and the Indians, who know their own colours, will not have you near their camps for two days. In a bandit's mask the towns blame the bandits, and the bandits go looking for whoever is working their patch: no train is safe for you for two days. Bare-faced, it is the towns that shut you out */
+  const masked = () => { const pl = G.player, hb = pl.hotbar ? pl.hotbar() : [], k = hb[pl.sel]; return k === 'warmask' ? 'ind' : k === 'bandana' ? 'ban' : null; };
+  const shunInd = () => (G.stats.shunInd || 0) > ((G && G.dayCount) || 0), shunRail = () => (G.stats.shunRail || 0) > ((G && G.dayCount) || 0);
   function cartTick(dt, p) { const sn = season(), mk = marketDay(); const towns = new Map(); for (const f of live) { const v = townOf(f); if (!v) continue; if (!towns.has(v.id)) towns.set(v.id, { v, fs: [] }); towns.get(v.id).fs.push(f); }
     for (const [id, T] of towns) { let c = carts.get(id); const v = T.v; if (!c) { const pts = T.fs.map(f => { const cx = f.x + f.w / 2, cz = f.z + f.d / 2, dx = v.x - cx, dz = v.z - cz, d = Math.hypot(dx, dz) || 1, r = Math.max(f.w, f.d) / 2 + 2.2; return [cx + dx / d * r, cz + dz / d * r, Math.atan2(cx - v.x, cz - v.z)]; }).sort((a, b) => a[2] - b[2]); c = { v, pts, i: 0, x: pts[0][0], z: pts[0][1], y: T.fs[0].y + 1, yaw: 0, wait: 3, day: -1, loaded: true, owner: null }; carts.set(id, c); }
       const fm = farmers.get(id); c.owner = fm ? fm.name : 'the farmer'; if (c.day !== (G.dayCount || 0)) { c.day = G.dayCount || 0; c.loaded = true; }
@@ -46,9 +48,11 @@ const Fields = (() => {
     if (robArm && (robArm.t -= dt) <= 0) robArm = null; }
   function cartNear(p) { for (const c of carts.values()) if (Math.hypot(c.x - p.x, c.z - p.z) < 3.2 && Math.abs(c.y - p.y) < 3) return c; return null; }
   function rob(p) { const c = cartNear(p); if (!c) return false; if (!c.loaded) { UI.toast('The cart is empty. Somebody has been at it already today.'); return true; }
-    if (!robArm || robArm.c !== c) { robArm = { c, t: 6 }; UI.toast(masked() ? 'The cart is loaded and nobody knows your face under that mask. Tap again to take the lot.' : 'The cart is loaded. Take it and ' + c.owner + ' will know it was you. Tap again to rob it.', 'bad'); return true; }
+    if (!robArm || robArm.c !== c) { robArm = { c, t: 6 }; UI.toast(masked() === 'ind' ? 'The cart is loaded. In that mask the Indians will take the blame, and they will know it was not them. Tap again to take the lot.' : masked() === 'ban' ? 'The cart is loaded. In that mask the bandits will take the blame, and they will come looking. Tap again to take the lot.' : 'The cart is loaded. Take it and ' + c.owner + ' will know it was you. Tap again to rob it.', 'bad'); return true; }
     robArm = null; c.loaded = false; const pl = G.player; pl.add('corn', 4); pl.add('wheat', 6); pl.add('sunseed', 6); UI.sfx('caught'); UI.renderHotbar();
-    if (masked()) { G.stats.maskRobs = (G.stats.maskRobs || 0) + 1; UI.toast('You empty the cart into your pack and are gone. By nightfall the story is that masked riders took it.', 'good'); }
+    const mk = masked(), until = (G.dayCount || 0) + 2;
+    if (mk === 'ind') { G.stats.shunInd = until; UI.toast('You empty the cart and are gone. The town blames the Indians. The Indians know those were not their colours: keep clear of their camps for two days.', 'bad'); }
+    else if (mk === 'ban') { G.stats.shunRail = until; UI.toast('You empty the cart and are gone. The town blames the bandits. The bandits want a word with whoever is working their patch: no trains for you for two days.', 'bad'); }
     else { G.stats.wanted = { town: c.v.id, name: c.v.name || 'the town', owner: c.owner, until: (G.dayCount || 0) + 2, owe: 30 }; UI.toast('You empty the cart into your pack. ' + c.owner + ' saw who did it. Word travels faster than you do.', 'bad'); }
     return true; }
   /* squaring it: the farmer you robbed will take thirty shards and call it even */
@@ -105,5 +109,5 @@ const Fields = (() => {
     if (S1.day === (G.dayCount || 0)) { UI.toast(sn === 0 ? 'This field is sown for today. There will be more rows tomorrow.' : sn === 2 ? 'You have done your share of this field today.' : 'Picked over for today. It will have grown back by morning.'); return true; }
     if (sn === 0) { S1.day = G.dayCount || 0; G.shards += PAY; UI.sfx('place'); UI.toast('You take a row and sow it, a seed to every hand span. ' + PAY + ' shards for the work.', 'good'); return true; }
     S1.day = G.dayCount || 0; const n = c[1] * (tst(v).scare ? 2 : 1); if (sn === 2) G.shards += PAY; G.player.add(c[0], n); UI.sfx('place'); UI.renderHotbar(); UI.toast(sn === 2 ? 'You cut and carry until the cart is full. ' + PAY + ' shards for the work, and ' + n + ' ' + ITEMS[c[0]].name.toLowerCase() + ' pressed into your hand as thanks.' : 'You pick ' + n + ' ' + ITEMS[c[0]].name.toLowerCase() + '.', 'good'); return true; }
-  return { init, update, entities, tap, label, season, SEASONS, marketDay, wanted, masked, get carts() { return carts; }, get live() { return live; }, get farmers() { return farmers; } };
+  return { init, update, entities, tap, label, season, SEASONS, marketDay, wanted, masked, shunInd, shunRail, get carts() { return carts; }, get live() { return live; }, get farmers() { return farmers; } };
 })();

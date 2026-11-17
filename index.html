@@ -5073,7 +5073,8 @@ const ITEMS = {
   glowworm: { name: 'Glowworm', col: '#d8ff6a', elem: 'Light', desc: 'A fat little worm that glows in the grass at night. One worm and one wood make four torches.' },
   draught: { name: 'Sage\'s Draught', col: '#b07aff', use: 'tech', keep: false, desc: 'Cannot be made, only won. Give it to your lead Kin and it forgets its fourth move and learns any technique you choose, from any element.' },
   lariat: { name: 'Long Lariat', col: '#c9a56a', desc: 'Hattie Copper\'s last, left on a post for whoever read all eight boards. Tied onto any net it opens half as wide again. Made for the big ones.' },
-  warmask: { name: 'War Mask', col: '#b0402c', desc: 'A painted mask of the kind the Indians of the plains wear to ride. Hold it and nobody will swear to your face. Whatever you do in it, they get the blame.' },
+  warmask: { name: 'War Mask', col: '#b0402c', desc: 'A painted mask from an Indian camp. Hold it and no townsman will swear to your face: they will blame the Indians. The Indians know their own colours, and will know it was not them.' },
+  bandana: { name: 'Bandit\'s Mask', col: '#2a2a30', desc: 'A black neckerchief, worn up over the nose. Hold it and the towns will blame the bandits for whatever you do. The bandits will want to know who is working their patch.' },
   seal: { name: 'Weaver\'s Seal', col: '#cfd8ff', desc: 'A knot of woven silver from under the last of the fourteen stones. A net you close holds a little longer while you carry it. Some people will know it on sight.' },
   corn: { name: 'Maize', col: '#f2c63a', use: 'player', desc: 'A cob from a town field, good raw and better roasted. Restores all your health.' },
   sunseed: { name: 'Sunflower Seeds', col: '#5a4632', use: 'treat', desc: 'A handful from a town field. Give them to the Kin walking with you: it will think more of you.' },
@@ -5111,7 +5112,7 @@ const ITEMS = {
 for (const e of ELEMENTS) ITEMS['ess_' + e] = { name: e + ' Essence', col: ELEM_COLOR[e], elem: e, desc: 'Left behind by ' + e + ' Kin. Three of them and an iron make a ' + e + ' Stone.' };
 for (const e of ELEMENTS) ITEMS['stone_' + e] = { name: e + ' Stone', col: ELEM_COLOR[e], crafted: true, desc: 'A fusion stone. A fusion recipe needs its two Kin and the right stone, together on the table.' };
 for (const e of ELEMENTS) ITEMS['lure_' + e] = { name: e + ' Lure', col: ELEM_COLOR[e], use: 'self', lure: e, crafted: true, desc: 'Drink it and ' + e + ' Kin come to you for four minutes, twice as often and far more of them.' };
-const HOTBAR_ORDER = ['torch', 'warmask', 'snare', 'snare2', 'snare_sky', 'bread', 'corn', 'sunseed', 'wheat', 'smoothie', 'tonic_revive', 'tonic_heal', 'tonic_vigor', 'tonic_might', 'tonic_swift', 'wood', 'planks', 'glass', 'door', 'ladder', 'chest', 'ironwall', 'voidwall', 'kit_house', 'kit_bakery', 'kit_juice', 'kit_trader', 'kit_voodoo', 'kit_post', 'kit_wall', 'kit_wall_stone', 'kit_wall_iron', 'kit_bridge', 'kit_portal', 'kit_dome', 'rod', 'rod_iron', 'rod_void', 'tonic_hush', 'moonlamp', 'selglass', 'stone', 'dirt', 'sand', 'gravel', 'snow', 'basalt', 'cloud', 'fusion', 'berry', 'glowworm', 'frond', 'copper', 'iron', 'ember', 'void', 'selenite', 'tycho', 'starsalt', 'amber', 'sulfur', 'ringshard', 'coral', 'pearl', 'gold', 'diamond', ...ELEMENTS.map(e => 'ess_' + e), 'bulb', 'glider', 'lavasuit'];
+const HOTBAR_ORDER = ['torch', 'warmask', 'bandana', 'snare', 'snare2', 'snare_sky', 'bread', 'corn', 'sunseed', 'wheat', 'smoothie', 'tonic_revive', 'tonic_heal', 'tonic_vigor', 'tonic_might', 'tonic_swift', 'wood', 'planks', 'glass', 'door', 'ladder', 'chest', 'ironwall', 'voidwall', 'kit_house', 'kit_bakery', 'kit_juice', 'kit_trader', 'kit_voodoo', 'kit_post', 'kit_wall', 'kit_wall_stone', 'kit_wall_iron', 'kit_bridge', 'kit_portal', 'kit_dome', 'rod', 'rod_iron', 'rod_void', 'tonic_hush', 'moonlamp', 'selglass', 'stone', 'dirt', 'sand', 'gravel', 'snow', 'basalt', 'cloud', 'fusion', 'berry', 'glowworm', 'frond', 'copper', 'iron', 'ember', 'void', 'selenite', 'tycho', 'starsalt', 'amber', 'sulfur', 'ringshard', 'coral', 'pearl', 'gold', 'diamond', ...ELEMENTS.map(e => 'ess_' + e), 'bulb', 'glider', 'lavasuit'];
 
 class Player {
   constructor(world) {
@@ -13113,7 +13114,7 @@ const Village = (() => {
   const ERRANDS = [{ item: 'wood', n: 8, pay: 10, say: 'logs' }, { item: 'berry', n: 6, pay: 10, say: 'berries' }, { item: 'planks', n: 6, pay: 12, say: 'planks' }, { item: 'glass', n: 2, pay: 14, say: 'panes of glass' }, { item: 'bread', n: 2, pay: 9, say: 'loaves' }, { item: 'wheat', n: 6, pay: 11, say: 'handfuls of wheat' }, { item: 'corn', n: 4, pay: 11, say: 'cobs of maize' }, { item: 'sunseed', n: 6, pay: 10, say: 'handfuls of sunflower seed' }];
   function bankerTalk(n) { const st = (G.stats.crowe = G.stats.crowe || { met: 0, i: 0, next: 0 }), now = Date.now(), e = ERRANDS[st.i % ERRANDS.length], say = (lines, done) => Dialogue.show('Mr Crowe', lines, done);
     if (typeof Fields !== 'undefined' && Fields.wanted()) return say(['I hear things. I heard about a cart. I do not do business with people who are being talked about. Settle it.']);
-    if (st.met && st.i >= 2 && !G.player.has('warmask') && !st.maskShown) { st.maskShown = 1; return say(['You deliver. So I will mention a thing that is not on any shelf.', 'A war mask, off the plains. A man in one of those has no face, and whatever he does, somebody else answers for it. Thirty shards, and I never had it. Take it or leave it.'], () => UI.openPanel('shop', { title: 'Under the counter', keeper: 'Mr Crowe', greet: 'I never had it. You never bought it.', stock: [{ item: 'warmask', price: 30, n: 1 }] })); }
+    if (st.met && st.i >= 2 && !G.player.has('bandana') && !st.maskShown) { st.maskShown = 1; return say(['You deliver. So I will mention a thing that is not on any shelf.', 'A bandit\'s mask. Came off a man who no longer needs it. Anyone in one of those is a bandit as far as a town is concerned, and whatever he does, the bandits answer for it. Thirty shards, and I never had it.'], () => UI.openPanel('shop', { title: 'Under the counter', keeper: 'Mr Crowe', greet: 'I never had it. You never bought it.', stock: [{ item: 'bandana', price: 30, n: 1 }] })); }
     if (!st.met) { st.met = 1; return say(['Crowe. Pennington Crowe. I hold the notes on half this town and I mean to hold the rest.', 'I pay for errands. Fair coin, promptly, and no questions about where a thing came from.', `This morning I want ${e.n} ${e.say}. Bring them and there are ${e.pay} shards in it for you.`]); }
     if (now < st.next) return say(['Nothing more today. I do not pay twice for the same morning.', 'Come back when the sun has been round.']);
     if (G.player.count(e.item) >= e.n) return say([`${e.n} ${e.say}. Counted, and correct. I do like a person who delivers.`], () => { G.player.take(e.item, e.n); G.shards += e.pay; st.i++; st.next = Date.now() + 8 * 60000; UI.sfx('gift'); UI.toast(`Mr Crowe paid you ${e.pay} shards.`, 'good'); });
@@ -14325,6 +14326,7 @@ const Village = (() => {
   }
   // every ride: you see yourself walk to the carriage and sit down, the whistle goes, the train rolls away with you, and then the dark and the journey
   function boardTrain(v, done) {
+    if (typeof Fields !== 'undefined' && Fields.shunRail()) { UI.toast('The stationmaster shakes his head. Men in black neckerchiefs have been asking up and down the line for somebody of your build. No train for you until it blows over.', 'bad'); return false; }
     const rl = trainOf(v); if (!rl) return false; const p = G.player, cam = filmCam(v, rl, p), W = (al, pp) => rl.ax ? [al, rl.line + 0.5 + pp] : [rl.line + 0.5 + pp, al];
     const carA = rl.along0 + 0.5 + rl.sgn * 2, st = W(carA, cam.side * 2.6), yaw = rl.ax ? (rl.sgn > 0 ? Math.PI / 2 : -Math.PI / 2) : (rl.sgn > 0 ? 0 : Math.PI), lo = W(rl.along0 + 0.5 + rl.sgn * 4.9, 0);
     trains.set(v.id, { t: 0, off: 0, wait: 2.1, dur: 5.6, puffT: 0, rider: true, cam, start: st, y0: rl.y + 0.05, whistle: 1.75, lines: [{ t: 1.5, at: () => [lo[0], rl.y + 3.3, lo[1]], text: 'All aboard!', secs: 1.8 }], done: () => { done(); } });
@@ -16847,7 +16849,7 @@ const Camps = (() => {
       set(tx + fx, vy, tz + fz, B.AIR); set(tx + fx, vy + 1, tz + fz, B.AIR);
       c['tent' + i] = { x: tx, z: tz };
     }
-    { const t = c['tent' + (c.seedN % 10)]; if (t) { set(t.x, vy, t.z, B.CHEST); c.pieceChest = { x: t.x, y: vy, z: t.z }; const pst = poi(c.id); if (!pst.pieceSet) { const ch = G.chestAt(t.x, vy, t.z, true); ch.items = { painted_piece: 1, berry: 3 }; pst.pieceSet = true; } } }
+    { const t = c['tent' + (c.seedN % 10)]; if (t) { set(t.x, vy, t.z, B.CHEST); c.pieceChest = { x: t.x, y: vy, z: t.z }; const pst = poi(c.id); if (!pst.pieceSet) { const ch = G.chestAt(t.x, vy, t.z, true); ch.items = { painted_piece: 1, berry: 3, warmask: 1 }; pst.pieceSet = true; } } }
     // the weapon tent: the Indians always keep a store of plain arrows, spears and bows, refilled every night
     { const t = c['tent' + ((c.seedN + 5) % 10)]; if (t) { set(t.x, vy, t.z, B.CHEST); c.armsChest = { x: t.x, y: vy, z: t.z }; const ast = poi(c.id); if (!ast.armsSet) { const ch = G.chestAt(t.x, vy, t.z, true); ch.items = stockArms(c, 0); ch.arms = true; ast.armsSet = true; } } }
     // the chief's lodge, north of the fire: a great tipi, totems either side of its door, the hoard at the back
@@ -16907,6 +16909,7 @@ const Camps = (() => {
   function dressed() { return G.player.has('painted_cloak') || G.skin === 'painted'; }
   function borrow(n) {
     const c = active; if (!c || n.out) return;
+    if (typeof Fields !== 'undefined' && Fields.shunInd()) { UI.toast('The horse is led away from you. Somebody rode against a town in their colours, and they think they know who.', 'bad'); return; }
     if (!dressed()) { UI.toast('The Windmane lays its ears back and sidesteps. It will not carry a stranger. In Indian dress it might.'); return; }
     if (G.player.mount) { UI.toast('Get down from your own mount first.'); return; }
     const k = KIN.create(n.sp, Math.max(10, G.trainerLevel)); k.borrowed = true; k.tamed = true; k.trust = 1;
@@ -16944,7 +16947,8 @@ const Camps = (() => {
     else if (c.scared && !onDino && c.scaredUntil - now < 16.9 && (G.frame & 63) === 0 && nd < 40) UI.toast(`${Math.ceil(c.scaredUntil - now)}s before the Indians return.`);
     if (c.alarm > 0) c.alarm -= dt;
     // the Indian Cloak: in it you pass as one of them, for a while, until you take their hoard and try to walk out with it
-    const cloak = p.has('painted_cloak') && !c.blown && c.alarm <= 0 && !c.scared;
+    const shun = typeof Fields !== 'undefined' && Fields.shunInd(); if (shun && nd < 40 && !c.shunTold) { c.shunTold = true; UI.toast('They have heard what was done in their colours. No cloak will pass you here, and no horse will be lent, for two days.', 'bad'); } if (!shun) c.shunTold = false;
+    const cloak = p.has('painted_cloak') && !c.blown && c.alarm <= 0 && !c.scared && !shun;
     if (cloak && nd < 26) {
       c.disguiseT = (c.disguiseT || 0) + dt;
       if (!c.cloakTold) { c.cloakTold = true; UI.toast('In the cloak, the Indians nod at you and look away. You have a few minutes.', 'good'); }
@@ -17013,6 +17017,7 @@ const Camps = (() => {
   // taking the Duststrider: by night, unseen, or while they are scared
   function tame(n) {
     const c = active; if (!c || c.strider !== n) return;
+    if (typeof Fields !== 'undefined' && Fields.shunInd()) { UI.toast('They will not let you near it. Not for two days.', 'bad'); return; }
     const night = isNight();
     if (c.alarm > 0) { UI.toast('It shies away from you while the camp is roused.'); return; }
     if (!night && !c.scared) { UI.toast('In daylight the whole camp watches it. Come back at night and be quiet, or come on the Tyrannorex.'); return; }
@@ -20410,7 +20415,9 @@ const Fields = (() => {
       else { const sp = (sn === 0 ? 3.4 : 1.5) * dt, st = Math.min(d, sp); n.x += dx / d * st; n.z += dz / d * st; n.yaw = Math.atan2(dx, dz); const g = ground(Math.floor(n.x), Math.floor(n.z), Math.floor(n.y)) + 1; n.y += (g - n.y) * Math.min(1, dt * 10); } } }
   /* the cart. Every town with fields has one on the move: a horse and a two-wheeled cart going the round of the plots, standing a while at each to be loaded, and on market day drawn up in the square beside the stall with the crop in the back. It can be robbed, and that has a price */
   const wanted = () => { const w = G.stats.wanted; if (w && (G.dayCount || 0) >= w.until) { G.stats.wanted = null; return null; } return w || null; };
-  const masked = () => { const pl = G.player, hb = pl.hotbar ? pl.hotbar() : []; return hb[pl.sel] === 'warmask'; };
+  /* two masks, two different people to answer for it. In the Indians' war mask the towns blame the Indians, and the Indians, who know their own colours, will not have you near their camps for two days. In a bandit's mask the towns blame the bandits, and the bandits go looking for whoever is working their patch: no train is safe for you for two days. Bare-faced, it is the towns that shut you out */
+  const masked = () => { const pl = G.player, hb = pl.hotbar ? pl.hotbar() : [], k = hb[pl.sel]; return k === 'warmask' ? 'ind' : k === 'bandana' ? 'ban' : null; };
+  const shunInd = () => (G.stats.shunInd || 0) > ((G && G.dayCount) || 0), shunRail = () => (G.stats.shunRail || 0) > ((G && G.dayCount) || 0);
   function cartTick(dt, p) { const sn = season(), mk = marketDay(); const towns = new Map(); for (const f of live) { const v = townOf(f); if (!v) continue; if (!towns.has(v.id)) towns.set(v.id, { v, fs: [] }); towns.get(v.id).fs.push(f); }
     for (const [id, T] of towns) { let c = carts.get(id); const v = T.v; if (!c) { const pts = T.fs.map(f => { const cx = f.x + f.w / 2, cz = f.z + f.d / 2, dx = v.x - cx, dz = v.z - cz, d = Math.hypot(dx, dz) || 1, r = Math.max(f.w, f.d) / 2 + 2.2; return [cx + dx / d * r, cz + dz / d * r, Math.atan2(cx - v.x, cz - v.z)]; }).sort((a, b) => a[2] - b[2]); c = { v, pts, i: 0, x: pts[0][0], z: pts[0][1], y: T.fs[0].y + 1, yaw: 0, wait: 3, day: -1, loaded: true, owner: null }; carts.set(id, c); }
       const fm = farmers.get(id); c.owner = fm ? fm.name : 'the farmer'; if (c.day !== (G.dayCount || 0)) { c.day = G.dayCount || 0; c.loaded = true; }
@@ -20422,9 +20429,11 @@ const Fields = (() => {
     if (robArm && (robArm.t -= dt) <= 0) robArm = null; }
   function cartNear(p) { for (const c of carts.values()) if (Math.hypot(c.x - p.x, c.z - p.z) < 3.2 && Math.abs(c.y - p.y) < 3) return c; return null; }
   function rob(p) { const c = cartNear(p); if (!c) return false; if (!c.loaded) { UI.toast('The cart is empty. Somebody has been at it already today.'); return true; }
-    if (!robArm || robArm.c !== c) { robArm = { c, t: 6 }; UI.toast(masked() ? 'The cart is loaded and nobody knows your face under that mask. Tap again to take the lot.' : 'The cart is loaded. Take it and ' + c.owner + ' will know it was you. Tap again to rob it.', 'bad'); return true; }
+    if (!robArm || robArm.c !== c) { robArm = { c, t: 6 }; UI.toast(masked() === 'ind' ? 'The cart is loaded. In that mask the Indians will take the blame, and they will know it was not them. Tap again to take the lot.' : masked() === 'ban' ? 'The cart is loaded. In that mask the bandits will take the blame, and they will come looking. Tap again to take the lot.' : 'The cart is loaded. Take it and ' + c.owner + ' will know it was you. Tap again to rob it.', 'bad'); return true; }
     robArm = null; c.loaded = false; const pl = G.player; pl.add('corn', 4); pl.add('wheat', 6); pl.add('sunseed', 6); UI.sfx('caught'); UI.renderHotbar();
-    if (masked()) { G.stats.maskRobs = (G.stats.maskRobs || 0) + 1; UI.toast('You empty the cart into your pack and are gone. By nightfall the story is that masked riders took it.', 'good'); }
+    const mk = masked(), until = (G.dayCount || 0) + 2;
+    if (mk === 'ind') { G.stats.shunInd = until; UI.toast('You empty the cart and are gone. The town blames the Indians. The Indians know those were not their colours: keep clear of their camps for two days.', 'bad'); }
+    else if (mk === 'ban') { G.stats.shunRail = until; UI.toast('You empty the cart and are gone. The town blames the bandits. The bandits want a word with whoever is working their patch: no trains for you for two days.', 'bad'); }
     else { G.stats.wanted = { town: c.v.id, name: c.v.name || 'the town', owner: c.owner, until: (G.dayCount || 0) + 2, owe: 30 }; UI.toast('You empty the cart into your pack. ' + c.owner + ' saw who did it. Word travels faster than you do.', 'bad'); }
     return true; }
   /* squaring it: the farmer you robbed will take thirty shards and call it even */
@@ -20481,7 +20490,7 @@ const Fields = (() => {
     if (S1.day === (G.dayCount || 0)) { UI.toast(sn === 0 ? 'This field is sown for today. There will be more rows tomorrow.' : sn === 2 ? 'You have done your share of this field today.' : 'Picked over for today. It will have grown back by morning.'); return true; }
     if (sn === 0) { S1.day = G.dayCount || 0; G.shards += PAY; UI.sfx('place'); UI.toast('You take a row and sow it, a seed to every hand span. ' + PAY + ' shards for the work.', 'good'); return true; }
     S1.day = G.dayCount || 0; const n = c[1] * (tst(v).scare ? 2 : 1); if (sn === 2) G.shards += PAY; G.player.add(c[0], n); UI.sfx('place'); UI.renderHotbar(); UI.toast(sn === 2 ? 'You cut and carry until the cart is full. ' + PAY + ' shards for the work, and ' + n + ' ' + ITEMS[c[0]].name.toLowerCase() + ' pressed into your hand as thanks.' : 'You pick ' + n + ' ' + ITEMS[c[0]].name.toLowerCase() + '.', 'good'); return true; }
-  return { init, update, entities, tap, label, season, SEASONS, marketDay, wanted, masked, get carts() { return carts; }, get live() { return live; }, get farmers() { return farmers; } };
+  return { init, update, entities, tap, label, season, SEASONS, marketDay, wanted, masked, shunInd, shunRail, get carts() { return carts; }, get live() { return live; }, get farmers() { return farmers; } };
 })();
 
 </script>

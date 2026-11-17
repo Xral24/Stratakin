@@ -66,7 +66,7 @@ const Camps = (() => {
       set(tx + fx, vy, tz + fz, B.AIR); set(tx + fx, vy + 1, tz + fz, B.AIR);
       c['tent' + i] = { x: tx, z: tz };
     }
-    { const t = c['tent' + (c.seedN % 10)]; if (t) { set(t.x, vy, t.z, B.CHEST); c.pieceChest = { x: t.x, y: vy, z: t.z }; const pst = poi(c.id); if (!pst.pieceSet) { const ch = G.chestAt(t.x, vy, t.z, true); ch.items = { painted_piece: 1, berry: 3 }; pst.pieceSet = true; } } }
+    { const t = c['tent' + (c.seedN % 10)]; if (t) { set(t.x, vy, t.z, B.CHEST); c.pieceChest = { x: t.x, y: vy, z: t.z }; const pst = poi(c.id); if (!pst.pieceSet) { const ch = G.chestAt(t.x, vy, t.z, true); ch.items = { painted_piece: 1, berry: 3, warmask: 1 }; pst.pieceSet = true; } } }
     // the weapon tent: the Indians always keep a store of plain arrows, spears and bows, refilled every night
     { const t = c['tent' + ((c.seedN + 5) % 10)]; if (t) { set(t.x, vy, t.z, B.CHEST); c.armsChest = { x: t.x, y: vy, z: t.z }; const ast = poi(c.id); if (!ast.armsSet) { const ch = G.chestAt(t.x, vy, t.z, true); ch.items = stockArms(c, 0); ch.arms = true; ast.armsSet = true; } } }
     // the chief's lodge, north of the fire: a great tipi, totems either side of its door, the hoard at the back
@@ -126,6 +126,7 @@ const Camps = (() => {
   function dressed() { return G.player.has('painted_cloak') || G.skin === 'painted'; }
   function borrow(n) {
     const c = active; if (!c || n.out) return;
+    if (typeof Fields !== 'undefined' && Fields.shunInd()) { UI.toast('The horse is led away from you. Somebody rode against a town in their colours, and they think they know who.', 'bad'); return; }
     if (!dressed()) { UI.toast('The Windmane lays its ears back and sidesteps. It will not carry a stranger. In Indian dress it might.'); return; }
     if (G.player.mount) { UI.toast('Get down from your own mount first.'); return; }
     const k = KIN.create(n.sp, Math.max(10, G.trainerLevel)); k.borrowed = true; k.tamed = true; k.trust = 1;
@@ -163,7 +164,8 @@ const Camps = (() => {
     else if (c.scared && !onDino && c.scaredUntil - now < 16.9 && (G.frame & 63) === 0 && nd < 40) UI.toast(`${Math.ceil(c.scaredUntil - now)}s before the Indians return.`);
     if (c.alarm > 0) c.alarm -= dt;
     // the Indian Cloak: in it you pass as one of them, for a while, until you take their hoard and try to walk out with it
-    const cloak = p.has('painted_cloak') && !c.blown && c.alarm <= 0 && !c.scared;
+    const shun = typeof Fields !== 'undefined' && Fields.shunInd(); if (shun && nd < 40 && !c.shunTold) { c.shunTold = true; UI.toast('They have heard what was done in their colours. No cloak will pass you here, and no horse will be lent, for two days.', 'bad'); } if (!shun) c.shunTold = false;
+    const cloak = p.has('painted_cloak') && !c.blown && c.alarm <= 0 && !c.scared && !shun;
     if (cloak && nd < 26) {
       c.disguiseT = (c.disguiseT || 0) + dt;
       if (!c.cloakTold) { c.cloakTold = true; UI.toast('In the cloak, the Indians nod at you and look away. You have a few minutes.', 'good'); }
@@ -232,6 +234,7 @@ const Camps = (() => {
   // taking the Duststrider: by night, unseen, or while they are scared
   function tame(n) {
     const c = active; if (!c || c.strider !== n) return;
+    if (typeof Fields !== 'undefined' && Fields.shunInd()) { UI.toast('They will not let you near it. Not for two days.', 'bad'); return; }
     const night = isNight();
     if (c.alarm > 0) { UI.toast('It shies away from you while the camp is roused.'); return; }
     if (!night && !c.scared) { UI.toast('In daylight the whole camp watches it. Come back at night and be quiet, or come on the Tyrannorex.'); return; }
