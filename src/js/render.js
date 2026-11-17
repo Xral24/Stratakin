@@ -1692,7 +1692,7 @@ const R = (() => {
         const wx = ox + lx, wz = oz + lz;
         const vr = SOIL.has(id) ? 0.98 + U.hash3(wx, y, wz, 5) * 0.03 : 0.92 + U.hash3(wx, y, wz, 5) * 0.12; // per-block variation (the ground keeps almost none: its shader paints it smoothly)
         if (id === B.STATUE) continue; // drawn as an entity
-        if (id === B.ATLAN || id === B.AGLASS || id === B.ALIGHT || id === B.JLOG || id === B.BOOKS || id === B.MEGA) continue; // Atlantis is never blocks, nor is a trunk in the Lost World: drawn whole, above
+        if (id === B.ATLAN || id === B.AGLASS || id === B.ALIGHT || id === B.JLOG || id === B.BOOKS || id === B.MEGA || id === B.CACTUS) continue; // Atlantis is never blocks, nor is a trunk in the Lost World: drawn whole, above
         if ((id === B.SAIL || id === B.WEAVE || id === B.BEAM) && reefHere()) { let mine = null, skip = false; // part of a reef house or its sail: drawn whole, by the peak
           for (const t of reefTents()) { const ax = Math.abs(lx - t.x), az = Math.abs(lz - t.z);
             if (id === B.SAIL) { if (ax <= t.rr && az <= t.rr && y <= t.y && y >= t.y - t.rr) { skip = true; if (ax === 0 && az === 0 && y === t.y) mine = t; } }

@@ -360,6 +360,8 @@ Scope (Alexander, 8 Nov evening): EVERYTHING visible goes to the same standard: 
 
 - 17 Nov, tempers in the wild (his ask: lean into every character). **Shy: hears you 35% further, only the slowest creep fools it, bolts when it sees you, lets you run nearly every time. Cross: charges half a second after seeing you (others take three), follows more than twice as long, hard to run from. Bright: comes to look, takes 4.5 s to decide. Drowsy: short hearing, slow to notice, gives up quickly, easy to run from. Steady unchanged.** Tyrants now say two lines the first time.
 
+- 17 Nov, the desert as a western, first part (his ask: western ruins, tumbleweeds, dead trees, an old saloon sign; every area its own set and reward). **Desert relic sites in place of standing stones: weathered signboard you walk up to and read, with a dead tree, broken wagon, fallen saloon sign, barrel, crosses or a cattle skull round it. Eight boards read in order tell of the railway company and the Copper Gang; the eighth gives Hattie Copper's Long Lariat (any net opens half as wide again: the big net for dinosaurs he asked for). Tumbleweeds bowl across any desert with the wind. Cactus drawn as ribbed saguaros with arms and a flower, not green cubes.** Not built: bandits holding up the train, western dress.
+
 ## Still to do
 UI polish as feedback comes in. Card battle screen still used for scripted encounters (raids at the walls, thief, citadel duel, holds) and the snare mini-game; converting those to live is the next big step if wanted. (Old list: train/ships, combat animation, eggs, avatar hair/paint, buddy WEAR cosmetics, Silas and Finch, UI polish (item icons), quality toggles in settings (state.shadows, state.grassQuality, state.dprCap).
 

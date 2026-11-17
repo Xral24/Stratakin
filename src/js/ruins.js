@@ -20,7 +20,19 @@ const Ruins = (() => {
     'WHEN THE WATER ROSE WE CARRIED THE YOUNG ONES TO THE HILLS. THE KIN CARRIED US.',
     'THE ROAD TO THE GLASS CITY RUNS OUT WHERE THE WATER GOES DARK. IF YOU CAN READ THIS YOU ARE ONE OF OURS. COME HOME.',
   ];
-  function init(game) { G = game; tick = 0; }
+  /* the desert has its own dead: not standing stones but what the railway left. Eight boards, read in order wherever you find them */
+  const WEST = [
+    'DRY GULCH LINE. THE LAST SPIKE WAS DRIVEN HERE. THE COMPANY THANKS NOBODY.',
+    'NOTICE. THE WELLS ARE COMPANY WELLS NOW. WATER BY TICKET ONLY.',
+    'WANTED: THE COPPER GANG. FOR THE PAY TRAIN, TWICE. REWARD PAID IN FULL BY THE RAILWAY.',
+    'THEY SAY THE GANG ROBS THE TRAIN AND FILLS THE TROUGHS. NOBODY HERE SAW A THING. SIGNED, THE TOWN.',
+    'MARSHAL WANTED. THE LAST ONE RODE OUT WITH THEM.',
+    'ROPEWORK BY HATTIE COPPER. LARIATS FOR ANYTHING WITH LEGS. THE BIG ONES TOO.',
+    'LINE CLOSED BEYOND THIS POINT. SOMETHING IS ON THE TRACK AND IT IS NOT MOVING.',
+    'HATTIE\'S LAST LARIAT HANGS ON THIS POST. SHE SAID LEAVE IT FOR WHOEVER READS ALL THE WAY TO THE END. THAT IS YOU.',
+  ];
+  function init(game) { G = game; tick = 0; weeds = []; cacti = []; cScan = null; }
+  let weeds = [];
   const store = () => (G.stats.ruins = G.stats.ruins || {});
   const H = (cx, cz, k) => U.hash3(cx, k, cz, G.world.seed + 7717);
   function ground(x, z, y0) { const w = G.world; let g = w.groundY(x, z, y0 + 12); while (g > 2 && (isLeaf(w.getBlock(x, g, z)) || w.getBlock(x, g, z) === B.LOG || w.getBlock(x, g, z) === B.BIRCHLOG)) g--; return g; }
@@ -34,6 +46,15 @@ const Ruins = (() => {
     const col = (a, b, n, top) => { const [dx, dz] = rot(a, b), X = pl.x + dx, Z = pl.z + dz, g = ground(X, Z, info.h); for (let y = g + 1; y <= g + 9; y++) { const bb = w.getBlock(X, y, Z); if (isLeaf(bb)) w.setBlock(X, y, Z, B.AIR); } for (let i = 1; i <= n; i++) w.setBlock(X, g + i, Z, B.MEGA); cols.push([X, g, Z, n]); return [X, g, Z]; }; /* every upright is a standing stone, drawn as one worn rock: nothing here is a cube */
     const floor = () => {}; /* no paving: set into soft ground it showed as a square hole */
     let stone = null, gem = null;
+    const deco = (a, b, kind) => { const [dx, dz] = rot(a, b), X = pl.x + dx, Z = pl.z + dz; cols.push([X, ground(X, Z, info.h), Z, 0, kind]); };
+    const solid = (a, b, n, kind) => { const [dx, dz] = rot(a, b), X = pl.x + dx, Z = pl.z + dz, g = ground(X, Z, info.h); cols.push([X, g, Z, n, kind]); return [X, g, Z]; }; /* no block under these: set into sand a block shows as a square pit */
+    if (info.biome === BIOME.DESERT) { /* what the railway left: a signboard that can still be read, and round it a dead tree, a wagon gone to pieces, a saloon sign face down in the sand, a few crosses */
+      stone = solid(0, 0, 2, 'board');
+      if (pl.shape === 0) { solid(3, 1, 3, 'dead'); deco(-2, 2, 'skull'); deco(2, -2, 'wheel'); }
+      else if (pl.shape === 1) { solid(-2, 1, 1, 'wagon'); deco(-3, -1, 'wheel'); solid(3, 2, 3, 'dead'); }
+      else if (pl.shape === 2) { solid(-2, -2, 2, 'post'); solid(2, -2, 2, 'post'); deco(0, -3, 'sign'); deco(3, 1, 'barrel'); }
+      else { for (const [a, b] of [[-2, 2], [0, 3], [2, 2]]) solid(a, b, 1, 'cross'); solid(-3, -1, 3, 'dead'); deco(2, -1, 'skull'); }
+      return { x: stone[0], y: stone[1] + 1, z: stone[2], l: pl.line % WEST.length, g: null, b: 0, c: cols, d: 1, w: 1 }; }
     if (pl.big) { /* a roofless hall: the walls stand shoulder high in places and are gone in others, four columns down the middle, the stone at the far end */
       for (let a = -5; a <= 5; a++) for (let b = -4; b <= 4; b++) { const edge = Math.abs(a) === 5 || Math.abs(b) === 4; if (edge) { if (a === -5 && Math.abs(b) <= 1) continue; const n = Math.floor(hs(a, b, 1) * 4.4); if (n > 0) col(a, b, n); } else if (hs(a, b, 2) < 0.6) floor(a, b); }
       for (const [a, b] of [[-2, -2], [-2, 2], [2, -2], [2, 2]]) col(a, b, 2 + Math.floor(hs(a, b, 3) * 3));
@@ -47,12 +68,17 @@ const Ruins = (() => {
     } else { /* a paved ring, half gone, the stone in the middle */
       for (let k = 0; k < 12; k++) { const a = Math.round(Math.cos(k * 0.5236) * 3), b = Math.round(Math.sin(k * 0.5236) * 3); if (hs(a, b, 1) < 0.7) floor(a, b); if (k % 3 === 0 && hs(a, b, 2) < 0.75) col(a, b, 1 + Math.floor(hs(a, b, 3) * 2)); } stone = col(0, 0, 3); { const [dx, dz] = rot(1, -1); gem = [pl.x + dx, pl.z + dz]; } }
     return { x: stone[0], y: stone[1] + 1, z: stone[2], l: pl.line, g: pl.gem ? gem : null, b: pl.big ? 1 : 0, c: cols, d: info.biome === BIOME.DESERT ? 1 : info.biome === BIOME.SNOW ? 2 : 0 }; }
-  function update(dt, p) { if (!G || G.worldId !== 'earth') return; tick -= dt; if (tick > 0) return; tick = 0.7; const st = store(), cx0 = Math.floor(p.x / CELL), cz0 = Math.floor(p.z / CELL);
+  function update(dt, p) { if (!G || G.worldId !== 'earth') return; weedTick(dt, p); cactusScan(p); tick -= dt; if (tick > 0) return; tick = 0.7; const st = store(), cx0 = Math.floor(p.x / CELL), cz0 = Math.floor(p.z / CELL);
     for (let a = -1; a <= 1; a++) for (let b = -1; b <= 1; b++) { const cx = cx0 + a, cz = cz0 + b, key = cx + ',' + cz; if (st[key] !== undefined) continue; const pl = plan(cx, cz); if (!pl) { st[key] = 0; continue; } const d = Math.hypot(pl.x - p.x, pl.z - p.z); if (d > 58 || d < 22) continue; /* built while it is still out of sight in the trees, never under your nose */ st[key] = stamp(cx, cz, pl) || 0; } }
   function near(fn) { const st = store(), p = G.player, cx0 = Math.floor(p.x / CELL), cz0 = Math.floor(p.z / CELL); for (let a = -1; a <= 1; a++) for (let b = -1; b <= 1; b++) { const r = st[(cx0 + a) + ',' + (cz0 + b)]; if (r && fn(r, (cx0 + a) + ',' + (cz0 + b))) return r; } return null; }
   const stoneAt = (x, y, z) => !!(G && G.worldId === 'earth' && near(r => r.x === x && r.z === z && y >= r.y && y <= r.y + 2));
   /* the stones are read in the order of the telling, whichever ruin you come to first: your first is the first line, your fourteenth the last. Nobody else alive can read them, and you do not know why you can */
-  function read(x, y, z) { if (!stoneAt(x, y, z)) return false; const r = near(q => q.x === x && q.z === z), seen = (G.stats.stonesRead = G.stats.stonesRead || {}); let n = Object.keys(seen).length;
+  function readBoard(r) { const seen = (G.stats.boardsRead = G.stats.boardsRead || {}); let n = Object.keys(seen).length; if (!r.rd) { r.rd = 1; if (n < WEST.length) { let nx = 0; while (seen[nx]) nx++; r.l = nx; } }
+    const fresh = !seen[r.l]; seen[r.l] = 1; n = Object.keys(seen).length; const last = fresh && n === WEST.length;
+    Dialogue.show('Weathered board', ['Sun and sand have had most of the paint. What is left says:', WEST[r.l]].concat(last ? ['And there it is, looped over the top of the post, stiff with dust: a lariat as long as a street, the old weavers\' thread plaited through the hemp.'] : []), () => {
+      if (last) { G.stats.boardsDone = true; G.player.add('lariat', 1); UI.sfx('gift'); if (G.addXp) G.addXp(150); UI.toast('Hattie Copper\'s Long Lariat.', 'good'); G.explain('The Long Lariat', 'You have read all eight boards. Tied onto any net, the lariat lets it open half as wide again: made for cattle the size of houses, and for the heads of bigger things than cattle.'); }
+      else { UI.toast(fresh ? `A new board: ${n} of ${WEST.length} read.` : `You have read this one. ${n} of ${WEST.length} found.`, fresh ? 'good' : undefined); if (fresh) { UI.sfx('gift'); if (G.addXp) G.addXp(8); } } }); return true; }
+  function read(x, y, z) { if (!stoneAt(x, y, z)) return false; { const r0 = near(q => q.x === x && q.z === z); if (r0 && r0.w) return readBoard(r0); } const r = near(q => q.x === x && q.z === z), seen = (G.stats.stonesRead = G.stats.stonesRead || {}); let n = Object.keys(seen).length;
     if (!r.rd) { r.rd = 1; if (n < LINES.length) { let nx = 0; while (seen[nx]) nx++; r.l = nx; } }
     const fresh = !seen[r.l], first = n === 0; seen[r.l] = 1; n = Object.keys(seen).length; const last = fresh && n === LINES.length;
     const pre = first ? ['The letters are worn nearly flat, in no script you have ever been taught.', 'You can read it. You do not know how.'] : ['The letters are worn nearly flat. You trace them with a finger.'];
@@ -66,6 +92,39 @@ const Ruins = (() => {
   function pillar(n, v, d) { return R.entityMesh('ruin:' + n + ':' + v + ':' + d, (mb) => { const [st, cap] = TINT[d]; for (let i = 0; i < n; i++) { const ox = Math.sin(i * 2.1 + v) * 0.06, oz = Math.cos(i * 1.7 + v * 2) * 0.06, w = 0.44 - (i === n - 1 ? 0.07 : 0) - (i % 2) * 0.03, k = 0.92 + ((i + v) % 3) * 0.05; mb.blob(-w + ox, i - 0.05, -w + oz, w + ox, i + 1.04, w + oz, 0.5, [st[0] * k, st[1] * k, st[2] * k], { n: 3 }); }
       if (v !== 1) mb.blob(-0.36, n - 0.12, -0.36, 0.3, n + 0.16, 0.34, 1, cap, { n: 3 }); if (v === 2 && n > 1) mb.blob(0.2, 0.9, -0.5, 0.52, 1.5, -0.1, 1, cap, { n: 2 }); }); }
   function slab(d) { return R.entityMesh('ruin:slab:' + d, (mb) => { const [st, cap] = TINT[d], dk = [st[0] * 0.55, st[1] * 0.55, st[2] * 0.55]; mb.blob(-0.48, -0.05, -0.24, 0.48, 2.7, 0.24, 0.45, st, { n: 3 }); mb.blob(-0.4, 2.5, -0.26, 0.34, 2.82, 0.26, 1, cap, { n: 3 }); for (let i = 0; i < 4; i++) for (const sg of [-1, 1]) mb.blob(-0.3 + (i % 2) * 0.05, 1.0 + i * 0.32, sg * 0.235, 0.3 - (i % 3) * 0.07, 1.07 + i * 0.32, sg * 0.262, 0.4, dk, { n: 2 }); }); }
-  function entities() { const out = []; if (!G || G.worldId !== 'earth') return out; near((r) => { if (r.c) for (let i = 0; i < r.c.length; i++) { const c = r.c[i], isStone = c[0] === r.x && c[2] === r.z; out.push({ x: c[0] + 0.5, y: c[1] + 1, z: c[2] + 0.5, yaw: isStone ? 0 : (c[0] * 7 + c[2] * 13) % 6, scale: 1, hover: 0, skyMul: 1, isStatue: true, mesh: isStone ? slab(r.d || 0) : pillar(c[3], Math.abs(c[0] * 3 + c[2]) % 3, r.d || 0) }); } return false; }); return out; }
-  return { init, update, stoneAt, read, gems, entities, LINES, plan };
+  const WD = [0.45, 0.33, 0.22], WL = [0.62, 0.5, 0.36], BONE = [0.9, 0.87, 0.78], IRON = [0.3, 0.27, 0.25];
+  function west(kind) { return R.entityMesh('west:' + kind, (mb) => {
+      if (kind === 'board') { mb.blob(-0.07, 0, -0.07, 0.07, 2.0, 0.07, 0.4, WD, { n: 2 }); mb.blob(-0.62, 1.25, -0.05, 0.62, 1.98, 0.05, 0.25, WL, { n: 2 }); for (let i = 0; i < 4; i++) for (const sg of [-1, 1]) mb.blob(-0.5 + (i % 2) * 0.06, 1.36 + i * 0.15, sg * 0.052, 0.5 - (i % 3) * 0.12, 1.41 + i * 0.15, sg * 0.066, 0.3, [0.2, 0.14, 0.1], { n: 2 }); mb.blob(-0.66, 1.2, -0.03, -0.5, 1.34, 0.03, 0.5, IRON, { n: 2 }); }
+      else if (kind === 'post') { mb.blob(-0.1, 0, -0.1, 0.1, 2.3, 0.1, 0.4, WD, { n: 2 }); mb.blob(-0.14, 2.2, -0.14, 0.14, 2.36, 0.14, 0.6, WL, { n: 2 }); }
+      else if (kind === 'dead') { /* a tree the drought finished: a bleached trunk leaning, three bare limbs stepping out */ for (let i = 0; i < 7; i++) { const w = 0.2 - i * 0.02; mb.blob(-w + i * 0.03, i * 0.45, -w, w + i * 0.03, i * 0.45 + 0.55, w, 0.6, [0.6 - i * 0.01, 0.55, 0.47], { n: 2 }); }
+        for (const [sx, sz, y0] of [[1, 0, 1.6], [-1, 0.4, 2.1], [0.3, -1, 2.5]]) for (let i = 1; i <= 5; i++) { const w = 0.1 - i * 0.012; mb.blob(sx * i * 0.22 - w + 0.1, y0 + i * 0.2, sz * i * 0.22 - w, sx * i * 0.22 + w + 0.1, y0 + i * 0.2 + 0.3, sz * i * 0.22 + w, 0.7, [0.58, 0.53, 0.45], { n: 2 }); } }
+      else if (kind === 'wagon') { mb.blob(-0.95, 0.38, -0.5, 0.95, 0.56, 0.5, 0.2, WD, { n: 2 }); for (const sg of [-1, 1]) mb.blob(-0.95, 0.5, sg * 0.5 - 0.04, 0.7, 0.95 - (sg > 0 ? 0.2 : 0), sg * 0.5 + 0.04, 0.2, WL, { n: 2 }); mb.blob(-0.99, 0.5, -0.5, -0.91, 0.92, 0.5, 0.2, WL, { n: 2 });
+        for (const [x, z] of [[-0.6, 0.58], [0.55, 0.58], [-0.6, -0.58]]) { mb.blob(x - 0.36, 0.02, z - 0.045, x + 0.36, 0.74, z + 0.045, 1, WD, { n: 3 }); mb.blob(x - 0.09, 0.29, z - 0.07, x + 0.09, 0.47, z + 0.07, 1, IRON, { n: 2 }); } mb.blob(0.9, 0.42, -0.06, 1.9, 0.5, 0.06, 0.4, WD, { n: 2 }); }
+      else if (kind === 'wheel') { mb.blob(-0.4, 0.0, -0.4, 0.4, 0.09, 0.4, 1, WD, { n: 3 }); mb.blob(-0.1, 0.02, -0.1, 0.1, 0.14, 0.1, 1, IRON, { n: 2 }); for (let i = 0; i < 4; i++) { const a = i * 0.785; mb.blob(Math.cos(a) * -0.36 - 0.03, 0.03, Math.sin(a) * -0.36 - 0.03, Math.cos(a) * 0.36 + 0.03, 0.11, Math.sin(a) * 0.36 + 0.03, 0.3, WL, { n: 2 }); } }
+      else if (kind === 'sign') { /* the saloon's name board, down in the sand, one corner up on a rock */ mb.blob(-1.3, 0.02, -0.45, 1.3, 0.14, 0.45, 0.2, WL, { n: 2 }); mb.blob(-1.36, 0.0, -0.5, 1.36, 0.08, -0.4, 0.3, WD, { n: 2 }); mb.blob(-1.36, 0.0, 0.4, 1.36, 0.08, 0.5, 0.3, WD, { n: 2 }); for (let i = 0; i < 6; i++) mb.blob(-1.05 + i * 0.36, 0.13, -0.2, -0.85 + i * 0.36, 0.165, 0.2 - (i % 2) * 0.12, 0.3, [0.5, 0.16, 0.12], { n: 2 }); mb.blob(0.9, 0, 0.3, 1.5, 0.3, 0.8, 1, [0.7, 0.6, 0.45], { n: 3 }); }
+      else if (kind === 'barrel') { mb.blob(-0.3, 0, -0.3, 0.3, 0.75, 0.3, 0.8, WD, { n: 3 }); for (const y of [0.14, 0.56]) mb.blob(-0.32, y, -0.32, 0.32, y + 0.07, 0.32, 0.9, IRON, { n: 3 }); }
+      else if (kind === 'cross') { mb.blob(-0.06, 0, -0.06, 0.06, 1.25, 0.06, 0.4, WL, { n: 2 }); mb.blob(-0.36, 0.82, -0.05, 0.36, 0.94, 0.05, 0.4, WL, { n: 2 }); mb.blob(-0.45, 0, -0.3, 0.45, 0.14, 0.7, 1, [0.76, 0.65, 0.46], { n: 3 }); }
+      else if (kind === 'skull') { mb.blob(-0.2, 0.0, -0.3, 0.2, 0.3, 0.16, 0.9, BONE, { n: 3 }); mb.blob(-0.12, 0.0, 0.1, 0.12, 0.2, 0.42, 0.8, BONE, { n: 3 }); for (const sg of [-1, 1]) { for (let i = 0; i < 4; i++) mb.blob(sg * (0.18 + i * 0.12) - 0.05, 0.2 + i * 0.07, -0.2, sg * (0.18 + i * 0.12) + 0.05, 0.3 + i * 0.07, -0.1, 1, BONE, { n: 2 }); mb.blob(sg * 0.09 - 0.045, 0.14, 0.06, sg * 0.09 + 0.045, 0.23, 0.13, 1, [0.12, 0.1, 0.1], { n: 2 }); } }
+      else if (kind === 'weed') { /* a tumbleweed: a ball of dry stems, more air than plant */ for (let i = 0; i < 9; i++) { const a = i * 0.7, b = i * 1.3, r = 0.42, x = Math.cos(a) * Math.cos(b) * r, y = Math.sin(b) * r, z = Math.sin(a) * Math.cos(b) * r; mb.blob(Math.min(-x, x) - 0.03, 0.45 + Math.min(-y, y) - 0.03, Math.min(-z, z) - 0.03, Math.max(-x, x) + 0.03, 0.45 + Math.max(-y, y) + 0.03, Math.max(-z, z) + 0.03, 1, [0.72 - (i % 3) * 0.05, 0.6 - (i % 2) * 0.04, 0.36], { n: 2 }); } mb.blob(-0.3, 0.15, -0.3, 0.3, 0.75, 0.3, 1, [0.66, 0.54, 0.32], { n: 3 }); } }); }
+  /* tumbleweeds: a few always on the move across any desert you are standing in, bowling along with the wind and hopping as they go */
+  function weedTick(dt, p) { const w = G.world; if (w.biomeAt(Math.floor(p.x), Math.floor(p.z)) !== BIOME.DESERT) { weeds.length = 0; return; } const wa = (w.seed % 628) / 100, wx = Math.sin(wa), wz = Math.cos(wa);
+    while (weeds.length < 5) { const side = (Math.random() - 0.5) * 60, back = 18 + Math.random() * 30; weeds.push({ x: p.x - wx * back - wz * side, z: p.z - wz * back + wx * side, y: p.y, sp: 2.2 + Math.random() * 2.6, ph: Math.random() * 6, yaw: Math.random() * 6 }); }
+    for (let i = weeds.length - 1; i >= 0; i--) { const t = weeds[i]; t.x += wx * t.sp * dt; t.z += wz * t.sp * dt; t.ph += dt * t.sp * 1.6; t.yaw += dt * t.sp * 1.4; const g = w.groundY(Math.floor(t.x), Math.floor(t.z), Math.floor(p.y) + 12) + 1; t.y += (g - t.y) * Math.min(1, dt * 8); if (Math.hypot(t.x - p.x, t.z - p.z) > 52 || w.getBlock(Math.floor(t.x), g, Math.floor(t.z)) === B.WATER) weeds.splice(i, 1); } }
+  function entities() { const out = []; if (!G || G.worldId !== 'earth') return out; for (const t of weeds) out.push({ x: t.x, y: t.y + Math.abs(Math.sin(t.ph)) * 0.35, z: t.z, yaw: t.yaw, scale: 0.8 + (t.sp - 2.2) * 0.12, hover: 0, skyMul: 1, isStatue: true, mesh: west('weed') });
+    for (const c of cacti) out.push({ x: c[0] + 0.5, y: c[1], z: c[2] + 0.5, yaw: 0, scale: 1, hover: 0, skyMul: 1, isStatue: true, mesh: saguaro(Math.min(4, c[3]), c[4]) });
+    near((r) => { if (r.c) for (let i = 0; i < r.c.length; i++) { const c = r.c[i]; if (c[4]) { out.push({ x: c[0] + 0.5, y: c[1] + 0.8, z: c[2] + 0.5, yaw: c[4] === 'board' ? 0 : (c[0] * 7 + c[2] * 13) % 6, scale: 1, hover: 0, skyMul: 1, isStatue: true, mesh: west(c[4]) }); continue; } const isStone = c[0] === r.x && c[2] === r.z; out.push({ x: c[0] + 0.5, y: c[1] + 1, z: c[2] + 0.5, yaw: isStone ? 0 : (c[0] * 7 + c[2] * 13) % 6, scale: 1, hover: 0, skyMul: 1, isStatue: true, mesh: isStone ? slab(r.d || 0) : pillar(c[3], Math.abs(c[0] * 3 + c[2]) % 3, r.d || 0) }); } return false; }); return out; }
+  /* a board has no block to tap, so it is read by walking up to it and tapping while you face it */
+  function boardNear(p) { if (!G || G.worldId !== 'earth') return null; const f = U.forwardVec(p.yaw, 0); return near(r => { if (!r.w) return false; const dx = r.x + 0.5 - p.x, dz = r.z + 0.5 - p.z, d = Math.hypot(dx, dz); return d < 3.4 && Math.abs(r.y - p.y) < 3 && (d < 1.2 || (dx * f[0] + dz * f[2]) / d > 0.2); }); }
+  function tapBoard(p) { const r = boardNear(p); return r ? readBoard(r) : false; }
+  /* cactus: the world still holds them as blocks, to bump into and to cut, but what is drawn is a saguaro: a ribbed green column with a rounded head, an arm or two turned up, a flower on top */
+  let cacti = [], cScan = null;
+  function cactusScan(p) { const w = G.world; if (w.biomeAt(Math.floor(p.x), Math.floor(p.z)) !== BIOME.DESERT) { if (cacti.length && cScan && Math.hypot(p.x - cScan[0], p.z - cScan[1]) > 70) cacti = []; return; } if (cScan && Math.hypot(p.x - cScan[0], p.z - cScan[1]) < 7 && performance.now() - cScan[2] < 4000) return; cScan = [p.x, p.z, performance.now()]; const out = [], px = Math.floor(p.x), pz = Math.floor(p.z), py = Math.floor(p.y);
+    for (let x = px - 56; x <= px + 56; x++) for (let z = pz - 56; z <= pz + 56; z++) { let top = w.groundY(x, z, py + 16); if (w.getBlock(x, top, z) !== B.CACTUS) continue; let base = top; while (w.getBlock(x, base - 1, z) === B.CACTUS) base--; if (w.getBlock(x, base - 1, z) === B.AIR) continue; /* an arm, drawn with its trunk */ const hgt = top - base + 1; let arm = 0; for (const sd of [1, -1]) if (w.getBlock(x + sd, top, z) === B.CACTUS || w.getBlock(x + sd, top - 1, z) === B.CACTUS) arm = sd; out.push([x, base, z, hgt, arm]); }
+    cacti = out; }
+  const CG = [0.33, 0.58, 0.3], CD = [0.24, 0.45, 0.24];
+  function saguaro(hgt, arm) { return R.entityMesh('saguaro:' + hgt + ':' + arm, (mb) => { const H = hgt + 0.35; mb.blob(-0.3, -0.1, -0.3, 0.3, H, 0.3, 0.75, CG, { n: 3 }); for (let i = 0; i < 6; i++) { const a = i * 1.047, x = Math.cos(a) * 0.27, z = Math.sin(a) * 0.27; mb.blob(x - 0.045, 0, z - 0.045, x + 0.045, H - 0.22, z + 0.045, 0.8, CD, { n: 2 }); }
+      if (arm) { const y0 = Math.max(0.6, hgt - 1.25); mb.blob(arm > 0 ? 0.15 : -0.95, y0, -0.17, arm > 0 ? 0.95 : -0.15, y0 + 0.36, 0.17, 0.9, CG, { n: 3 }); mb.blob(arm * 0.78 - 0.19, y0, -0.19, arm * 0.78 + 0.19, y0 + 1.3, 0.19, 0.9, CG, { n: 3 }); if (hgt >= 3) { mb.blob(arm > 0 ? -0.8 : 0.15, y0 - 0.5, -0.15, arm > 0 ? -0.15 : 0.8, y0 - 0.2, 0.15, 0.9, CG, { n: 3 }); mb.blob(-arm * 0.66 - 0.16, y0 - 0.5, -0.16, -arm * 0.66 + 0.16, y0 + 0.5, 0.16, 0.9, CG, { n: 3 }); } }
+      mb.blob(-0.1, H - 0.05, -0.1, 0.1, H + 0.1, 0.1, 1, [0.98, 0.86, 0.9], { n: 2 }); }); }
+  const boardAt = (x, y, z) => !!(G && G.worldId === 'earth' && near(r => r.w && r.x === x && r.z === z));
+  return { init, update, stoneAt, boardAt, boardNear, tapBoard, read, gems, entities, LINES, WEST, plan, get weeds() { return weeds; } };
 })();
