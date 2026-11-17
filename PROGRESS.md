@@ -417,6 +417,8 @@ Scope (Alexander, 8 Nov evening): EVERYTHING visible goes to the same standard: 
 
 - 17 Nov, the froglet and the kitten redrawn (his ask: those two look like creatures that already exist elsewhere, a big no). **Froglet is now a tree frog sat low and wide: knees up beside it, eyes at the sides of a flat head, a stripe down each flank, a pad on each foot, no tadpole fin. The kitten has small round ears set low and a ruff each side of the face; the round red cheek sparks on every Spark creature are gone.** The kitten body is shared by Sootkit, Statikit and the shadow kitten, so all three changed.
 
+- 17 Nov, the weak tricks fixed (carried on from the sheet of all twelve). **Cobra: its own hood moved to a joint so it lies shut along the neck and swings open. Froglet: a pale throat sac out in front of the chin, twice the size. Kitten: a tall nine-spike crest down the spine and a bigger brush. Hermit: a bigger door. Meerkat: up to 1.6 times its height with its arms raised. Pangolin: down into a ball with the tail over.** All twelve now photographed and readable (kin-sheet-2.png); the hornbill's drumming is still only seen as a still.
+
 ## Still to do
 UI polish as feedback comes in. Card battle screen still used for scripted encounters (raids at the walls, thief, citadel duel, holds) and the snare mini-game; converting those to live is the next big step if wanted. (Old list: train/ships, combat animation, eggs, avatar hair/paint, buddy WEAR cosmetics, Silas and Finch, UI polish (item icons), quality toggles in settings (state.shadows, state.grassQuality, state.dprCap).
 
