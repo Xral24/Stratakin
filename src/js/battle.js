@@ -204,9 +204,10 @@ const Battle = (() => {
     el.actions.querySelectorAll('button').forEach(b => b.disabled = true);
     if (action.type === 'run') {
       const sm = KIN.stats(mine), sw = KIN.stats(wild);
-      const p = (wild.sp.mythic || wild.sp.legend) ? 0.9 : U.clamp(0.45 + (sm.spd - sw.spd) / 120, 0.2, 0.9);
-      if (Math.random() < p) { log('You slip away.'); await sleep(500); end('ran'); return; }
-      log(`${KIN.name(wild)} blocks your escape!`, 'bad'); await sleep(500);
+      const tw = (wildE && !wildE.isBoss && wildE.model) ? (wildE.model.temper || 0) % 5 : 0; /* a shy one lets you go nearly every time, a drowsy one cannot be bothered to stop you, a cross one takes it personally */
+      const p = (wild.sp.mythic || wild.sp.legend) ? 0.9 : U.clamp(0.45 + (sm.spd - sw.spd) / 120 + (tw === 1 ? 0.45 : tw === 4 ? 0.25 : tw === 2 ? -0.22 : 0), tw === 2 ? 0.12 : 0.2, 0.97);
+      if (Math.random() < p) { log(tw === 1 ? `You back away. ${KIN.name(wild)} is glad to see you go.` : 'You slip away.'); await sleep(500); end('ran'); return; }
+      log(tw === 2 ? `${KIN.name(wild)} is not finished with you!` : `${KIN.name(wild)} blocks your escape!`, 'bad'); await sleep(500);
       await useMove(wild, mine, wildChoose(), false);
       return afterTurn();
     }

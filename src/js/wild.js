@@ -447,7 +447,9 @@ const Wild = (() => {
       if (e.cool > 0) continue;
       if (player.flying) { e.alert = Math.max(0, e.alert - dt); e.hunt = 0; continue; } // nothing reaches you in the Starship
       if (G.repelUntil > performance.now() && !e.isBoss && !e.lieutenant && !e.raider) { e.alert = 0; e.hunt = 0; continue; } // hushed: they do not notice you
-      const senseR = e.senseR * (sneaking ? (inTallGrass() ? 0.38 : 0.7) : 1) * (player.senseMul || 1) * (player.wingsOn && player.y - e.y > 2.5 ? 0.15 : 1); // silent wings overhead
+      /* every wild Kin meets you as the creature it is. A shy one hears you from further off, is only fooled by the slowest creep, and bolts sooner than fight. A cross one is on you the moment it sees you and does not give up. A bright one comes to look and takes its time deciding. A drowsy one barely stirs. A steady one is as it always was */
+      const tq = (e.isBoss || e.lieutenant || e.raider || !e.model) ? 0 : (e.model.temper || 0) % 5, pvs = Math.hypot(player.vx, player.vz);
+      const senseR = (tq === 1 ? 1.35 : tq === 2 ? 1.15 : tq === 4 ? 0.7 : 1) * e.senseR * (sneaking ? (inTallGrass() ? 0.38 : 0.7) : 1) * (player.senseMul || 1) * (player.wingsOn && player.y - e.y > 2.5 ? 0.15 : 1); // silent wings overhead
       if (dist < senseR + 0.5) {
         const fx = Math.sin(e.yaw), fz = Math.cos(e.yaw);
         const dl = Math.hypot(dx, dz) || 1;
@@ -458,6 +460,7 @@ const Wild = (() => {
         else if (moving && !sneaking) rate = 1.1;
         else if (moving && sneaking) rate = 0.18;
         else rate = -0.6;
+        if (!e.sleep) { if (tq === 1) { if (moving && sneaking) rate = pvs < 1.25 ? 0.14 : 1.0; else if (rate > 0) rate *= 1.3; } else if (tq === 2) { if (rate > 0) rate *= 1.6; } else if (tq === 4) { if (rate > 0) rate *= 0.55; } else if (tq === 3) { if (rate > 0 && facing <= 0.35) rate *= 1.2; } }
         e.alert = U.clamp(e.alert + rate * dt * (dist < senseR * 0.5 && !sneaking ? 1.5 : 1), 0, 1);
         // it shows you what it is thinking by what it does, since there is nothing drawn on the ground to tell you. Something has caught its attention: its head comes up with a jerk, it stops where it is, and the head turns to find you while the body stays put. Lose its interest and it goes back to what it was doing
         if (!e.sleep && !e.chase && e.alert > 0.12 && e.alert < 1) { if (!e.sus) { e.sus = true; e.susT = 0.4; } e.tx = e.x; e.tz = e.z; e.wait = Math.max(e.wait || 0, 0.6); let rel = Math.atan2(dx, dz) - e.yaw; while (rel > Math.PI) rel -= Math.PI * 2; while (rel < -Math.PI) rel += Math.PI * 2; e.lookT = U.clamp(rel, -1.15, 1.15); }
@@ -465,8 +468,9 @@ const Wild = (() => {
         // only the real threats force a fight: tyrants, their guards, legends, the lab's splice and the truly rare; everything else follows you and gives up
         const strong = (e.kin.sp.rarity || 0) >= 3 || e.lieutenant || e.isBoss || e.isLegend || e.isApex || e.isLabBoss || e.lairQuest || e.nightQuest || e.kinmaster || e.keepBoss || e.finalBoss || e.skyBoss;
         // once it has seen you, stay in its ring for three seconds and it attacks; walk out in time and it lets you go
-        if (e.alert >= 1) { e.ringT = (e.ringT || 0) + dt; if (!strong) e.hunt = 4; } else e.ringT = Math.max(0, (e.ringT || 0) - dt);
-        if (e.alert >= 1 && !trigger && (strong || e.ringT >= 3)) trigger = { e, ambush: false };
+        if (e.alert >= 1 && tq === 1 && !strong && !e.chase) { /* seen you: it is gone */ const a = Math.atan2(e.x - player.x, e.z - player.z) + (Math.random() - 0.5) * 0.9; e.tx = e.x + Math.sin(a) * 14; e.tz = e.z + Math.cos(a) * 14; e.flee = 5; e.cool = 7; e.alert = 0; e.ringT = 0; e.sus = false; e.lookT = 0; if (!e.boltT || performance.now() > e.boltT) { e.boltT = performance.now() + 9000; if (typeof UI !== 'undefined' && dist < 12) UI.toast(`${KIN.name(e.kin)} saw you and bolted. A shy one needs the slowest creep, from behind.`); } continue; }
+        if (e.alert >= 1) { e.ringT = (e.ringT || 0) + dt; if (!strong) e.hunt = tq === 2 ? 9 : tq === 4 ? 2 : 4; } else e.ringT = Math.max(0, (e.ringT || 0) - dt);
+        if (e.alert >= 1 && !trigger && (strong || e.ringT >= (tq === 2 ? 0.5 : tq === 3 ? 4.5 : tq === 4 ? 4 : 3))) trigger = { e, ambush: false };
         // bump into it and it attacks, seen or not (sneak up and set the net instead)
         const touch = 1.0 + Math.min(2, (e.model.radius || 0.6) * 0.6);
         if (dist < touch && !trigger) trigger = { e, ambush: e.alert < 0.6 };

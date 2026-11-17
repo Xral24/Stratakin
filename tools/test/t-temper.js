@@ -1,0 +1,7 @@
+const { open } = require('./harness');
+(async () => { const h = await open(); const { page, ev } = h; await h.newGame('look-3'); await h.calm();
+  for (const [name, t] of [['shy', 1], ['cross', 2], ['steady', 0]]) {
+    await ev((t) => { R.render = () => {}; G.repelUntil = 0; const p = G.player; const e = Wild.list.find(q => !q.isBoss && !q.aquatic && !q.high && !q.flee && (q.kin.sp.rarity || 0) < 3 && !q.__used); e.__used = 1; e.model = Object.assign({}, e.model, { temper: t }); e.sleep = false; e.cool = 0; e.alert = 0; window.__e = e; e.yaw = 0; p.x = e.x; p.z = e.z + Math.min(4, e.senseR * 0.6); p.y = e.y + 0.2; p.vx = 0; p.vz = 0.9; window.__t0 = performance.now(); window.__d0 = Math.hypot(p.x - e.x, p.z - e.z); }, t);
+    let res = null; for (let i = 0; i < 14; i++) { await page.waitForTimeout(300); res = await ev(() => { const e = window.__e, p = G.player; p.vz = 0.9; return { t: +((performance.now() - window.__t0) / 1000).toFixed(1), flee: +(e.flee || 0).toFixed(1), battle: Battle.active, chase: !!e.chase, alert: +e.alert.toFixed(2), d: +Math.hypot(p.x - e.x, p.z - e.z).toFixed(1) }; }); if (res.battle || res.chase || res.flee > 0) break; }
+    console.log(name, JSON.stringify(res)); await ev(() => { if (Battle.active) Battle.forceEnd ? Battle.forceEnd() : null; const e = window.__e; if (e.chase) Wild.remove(e); }); await page.waitForTimeout(400); if (await ev(() => Battle.active)) break; }
+  console.log('ERRORS:', h.errors.slice(0, 3).join(' | ') || 'none'); await h.close(); })();

@@ -358,6 +358,8 @@ Scope (Alexander, 8 Nov evening): EVERYTHING visible goes to the same standard: 
 
 - 17 Nov, tyrant meeting is a scene (his ask: you stop, the view goes to him, he looks at you, talks with his mouth, head back and laughs, then the fight, no escape). **Built for every tyrant: frozen on entering his reach, close view of his face, line in a dialogue box with the jaw going, then head thrown back, jaw wide, 'Ha! Ha! Haaa!' and five barks of sound, then the fight.** Decision left to me: Atlantis still needs the diving gear after the seal (the seal shows the way and is your welcome; the gear is how you get down).
 
+- 17 Nov, tempers in the wild (his ask: lean into every character). **Shy: hears you 35% further, only the slowest creep fools it, bolts when it sees you, lets you run nearly every time. Cross: charges half a second after seeing you (others take three), follows more than twice as long, hard to run from. Bright: comes to look, takes 4.5 s to decide. Drowsy: short hearing, slow to notice, gives up quickly, easy to run from. Steady unchanged.** Tyrants now say two lines the first time.
+
 ## Still to do
 UI polish as feedback comes in. Card battle screen still used for scripted encounters (raids at the walls, thief, citadel duel, holds) and the snare mini-game; converting those to live is the next big step if wanted. (Old list: train/ships, combat animation, eggs, avatar hair/paint, buddy WEAR cosmetics, Silas and Finch, UI polish (item icons), quality toggles in settings (state.shadows, state.grassQuality, state.dprCap).
 

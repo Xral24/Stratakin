@@ -11064,7 +11064,9 @@ const Wild = (() => {
       if (e.cool > 0) continue;
       if (player.flying) { e.alert = Math.max(0, e.alert - dt); e.hunt = 0; continue; } // nothing reaches you in the Starship
       if (G.repelUntil > performance.now() && !e.isBoss && !e.lieutenant && !e.raider) { e.alert = 0; e.hunt = 0; continue; } // hushed: they do not notice you
-      const senseR = e.senseR * (sneaking ? (inTallGrass() ? 0.38 : 0.7) : 1) * (player.senseMul || 1) * (player.wingsOn && player.y - e.y > 2.5 ? 0.15 : 1); // silent wings overhead
+      /* every wild Kin meets you as the creature it is. A shy one hears you from further off, is only fooled by the slowest creep, and bolts sooner than fight. A cross one is on you the moment it sees you and does not give up. A bright one comes to look and takes its time deciding. A drowsy one barely stirs. A steady one is as it always was */
+      const tq = (e.isBoss || e.lieutenant || e.raider || !e.model) ? 0 : (e.model.temper || 0) % 5, pvs = Math.hypot(player.vx, player.vz);
+      const senseR = (tq === 1 ? 1.35 : tq === 2 ? 1.15 : tq === 4 ? 0.7 : 1) * e.senseR * (sneaking ? (inTallGrass() ? 0.38 : 0.7) : 1) * (player.senseMul || 1) * (player.wingsOn && player.y - e.y > 2.5 ? 0.15 : 1); // silent wings overhead
       if (dist < senseR + 0.5) {
         const fx = Math.sin(e.yaw), fz = Math.cos(e.yaw);
         const dl = Math.hypot(dx, dz) || 1;
@@ -11075,6 +11077,7 @@ const Wild = (() => {
         else if (moving && !sneaking) rate = 1.1;
         else if (moving && sneaking) rate = 0.18;
         else rate = -0.6;
+        if (!e.sleep) { if (tq === 1) { if (moving && sneaking) rate = pvs < 1.25 ? 0.14 : 1.0; else if (rate > 0) rate *= 1.3; } else if (tq === 2) { if (rate > 0) rate *= 1.6; } else if (tq === 4) { if (rate > 0) rate *= 0.55; } else if (tq === 3) { if (rate > 0 && facing <= 0.35) rate *= 1.2; } }
         e.alert = U.clamp(e.alert + rate * dt * (dist < senseR * 0.5 && !sneaking ? 1.5 : 1), 0, 1);
         // it shows you what it is thinking by what it does, since there is nothing drawn on the ground to tell you. Something has caught its attention: its head comes up with a jerk, it stops where it is, and the head turns to find you while the body stays put. Lose its interest and it goes back to what it was doing
         if (!e.sleep && !e.chase && e.alert > 0.12 && e.alert < 1) { if (!e.sus) { e.sus = true; e.susT = 0.4; } e.tx = e.x; e.tz = e.z; e.wait = Math.max(e.wait || 0, 0.6); let rel = Math.atan2(dx, dz) - e.yaw; while (rel > Math.PI) rel -= Math.PI * 2; while (rel < -Math.PI) rel += Math.PI * 2; e.lookT = U.clamp(rel, -1.15, 1.15); }
@@ -11082,8 +11085,9 @@ const Wild = (() => {
         // only the real threats force a fight: tyrants, their guards, legends, the lab's splice and the truly rare; everything else follows you and gives up
         const strong = (e.kin.sp.rarity || 0) >= 3 || e.lieutenant || e.isBoss || e.isLegend || e.isApex || e.isLabBoss || e.lairQuest || e.nightQuest || e.kinmaster || e.keepBoss || e.finalBoss || e.skyBoss;
         // once it has seen you, stay in its ring for three seconds and it attacks; walk out in time and it lets you go
-        if (e.alert >= 1) { e.ringT = (e.ringT || 0) + dt; if (!strong) e.hunt = 4; } else e.ringT = Math.max(0, (e.ringT || 0) - dt);
-        if (e.alert >= 1 && !trigger && (strong || e.ringT >= 3)) trigger = { e, ambush: false };
+        if (e.alert >= 1 && tq === 1 && !strong && !e.chase) { /* seen you: it is gone */ const a = Math.atan2(e.x - player.x, e.z - player.z) + (Math.random() - 0.5) * 0.9; e.tx = e.x + Math.sin(a) * 14; e.tz = e.z + Math.cos(a) * 14; e.flee = 5; e.cool = 7; e.alert = 0; e.ringT = 0; e.sus = false; e.lookT = 0; if (!e.boltT || performance.now() > e.boltT) { e.boltT = performance.now() + 9000; if (typeof UI !== 'undefined' && dist < 12) UI.toast(`${KIN.name(e.kin)} saw you and bolted. A shy one needs the slowest creep, from behind.`); } continue; }
+        if (e.alert >= 1) { e.ringT = (e.ringT || 0) + dt; if (!strong) e.hunt = tq === 2 ? 9 : tq === 4 ? 2 : 4; } else e.ringT = Math.max(0, (e.ringT || 0) - dt);
+        if (e.alert >= 1 && !trigger && (strong || e.ringT >= (tq === 2 ? 0.5 : tq === 3 ? 4.5 : tq === 4 ? 4 : 3))) trigger = { e, ambush: false };
         // bump into it and it attacks, seen or not (sneak up and set the net instead)
         const touch = 1.0 + Math.min(2, (e.model.radius || 0.6) * 0.6);
         if (dist < touch && !trigger) trigger = { e, ambush: e.alert < 0.6 };
@@ -13412,7 +13416,8 @@ const Village = (() => {
     const line = !b.hailed ? b.persona.hail : b.persona.taunts[(b.tauntI = ((b.tauntI || 0) + 1)) % b.persona.taunts.length];
     b.hailed = true; b.fought = true; b.patrol = null; b.spotT = 0.6; b.scene = { stage: 'talk', x: b.x, z: b.z, t: 0 }; player.frozen = true; player.vx = player.vz = 0;
     const hgt = b.model ? b.model.height : 2; b.faceY = hgt * 0.8; b.faceD = 2.2 + hgt * 0.75; G.talkNpc = b; G.sceneHold = performance.now() + 60000; if (typeof UI !== 'undefined') UI.sfx('whistle');
-    Dialogue.show(b.kin.sp.names ? KIN.name(b.kin) : 'The tyrant', [line], () => { if (!b.scene) return; b.scene.stage = 'laugh'; b.scene.t = 0; UI.sfx('laugh'); say(b.x, b.y + hgt + 0.5, b.z, b.persona.laugh || 'Ha! Ha! Haaa!', 1.7, b); const el = bubbles[bubbles.length - 1].el; el.style.font = '900 19px/1.2 system-ui,sans-serif'; el.style.background = '#2a1f33'; el.style.color = '#ffd9a0'; el.style.border = '2px solid #b070ff'; }); }
+    const lines = b.tauntI ? [line] : [line, b.persona.taunts[0]]; /* the first time he has more to say */
+    Dialogue.show(b.kin.sp.names ? KIN.name(b.kin) : 'The tyrant', lines, () => { if (!b.scene) return; b.scene.stage = 'laugh'; b.scene.t = 0; UI.sfx('laugh'); say(b.x, b.y + hgt + 0.5, b.z, b.persona.laugh || 'Ha! Ha! Haaa!', 1.7, b); const el = bubbles[bubbles.length - 1].el; el.style.font = '900 19px/1.2 system-ui,sans-serif'; el.style.background = '#2a1f33'; el.style.color = '#ffd9a0'; el.style.border = '2px solid #b070ff'; }); }
   function sceneTick(v, b, player, dt) { const sc = b.scene, now = performance.now(); if (!b._an && typeof Anim !== 'undefined') b._an = Anim.fresh(b, now); sc.t += dt; b.x = sc.x; b.z = sc.z; b.yaw = Math.atan2(player.x - b.x, player.z - b.z); b.alert = 0; b.sus = 0; player.frozen = true; player.vx = player.vz = 0; G.talkNpc = b;
     if (sc.stage === 'talk') { b.speakUntil = now + 220; if (!Dialogue.active() && sc.t > 0.5) { sc.stage = 'laugh'; sc.t = 0; } /* however the box was closed, he still gets his laugh */ if (b._an) b._an.nod = Math.sin(now / 520) * 0.06; return; }
     /* the laugh: head right back, jaw wide, shoulders going */
@@ -14650,9 +14655,10 @@ const Battle = (() => {
     el.actions.querySelectorAll('button').forEach(b => b.disabled = true);
     if (action.type === 'run') {
       const sm = KIN.stats(mine), sw = KIN.stats(wild);
-      const p = (wild.sp.mythic || wild.sp.legend) ? 0.9 : U.clamp(0.45 + (sm.spd - sw.spd) / 120, 0.2, 0.9);
-      if (Math.random() < p) { log('You slip away.'); await sleep(500); end('ran'); return; }
-      log(`${KIN.name(wild)} blocks your escape!`, 'bad'); await sleep(500);
+      const tw = (wildE && !wildE.isBoss && wildE.model) ? (wildE.model.temper || 0) % 5 : 0; /* a shy one lets you go nearly every time, a drowsy one cannot be bothered to stop you, a cross one takes it personally */
+      const p = (wild.sp.mythic || wild.sp.legend) ? 0.9 : U.clamp(0.45 + (sm.spd - sw.spd) / 120 + (tw === 1 ? 0.45 : tw === 4 ? 0.25 : tw === 2 ? -0.22 : 0), tw === 2 ? 0.12 : 0.2, 0.97);
+      if (Math.random() < p) { log(tw === 1 ? `You back away. ${KIN.name(wild)} is glad to see you go.` : 'You slip away.'); await sleep(500); end('ran'); return; }
+      log(tw === 2 ? `${KIN.name(wild)} is not finished with you!` : `${KIN.name(wild)} blocks your escape!`, 'bad'); await sleep(500);
       await useMove(wild, mine, wildChoose(), false);
       return afterTurn();
     }
@@ -18002,7 +18008,7 @@ const UI = (() => {
       <h4>How to play</h4>
       <p class="small">${Controls.isTouch ? 'Left stick walks; drag anywhere on the right of the screen to turn the camera. <b>Hold</b> to mine, or to block when you hold a weapon; <b>tap</b> to place a block, swing, talk, or use a Fusion Table. ▲ jumps, ▼ crouches, hold ▲ in the air with a Glider to glide. In third person the camera orbits you: swing it round to see your face, or your Kin\'s.' : 'WASD to move, mouse to look, <b>hold left click</b> to mine or block, <b>right click</b> to place or use. Space jumps, Shift sneaks, 1-9 or the wheel pick an item. E opens Craft, Q opens Kin, J opens Quests, V switches the camera, F deploys a Kin or sets a snare. Esc releases the mouse.'}</p>
       <p class="small">Chests (Craft › Blocks) keep what you store in them through anything. Amulets come from the people by the fires on the road; nobody sells them. Third person shows your skin: unlock more by playing.</p>
-      <p class="small">Wild Kin notice you. Come at one head on and it stops, stares, then comes for you, live: it crouches, then lunges. Hold a weapon and hold the screen to block with your shield; raise it, or swing, just as the lunge lands to parry. Swords and axes chip a Kin's health (a wooden sword a twentieth a blow, Starmetal about a seventh), arrows more but never the last point. Your lead Kin fights beside you on its own, with its real moves and strength: far harder than any blade, and the big ones only fall to Kin. It takes lunges too and goes down if they are too much. <b>Deploy</b> picks which Kin is at your side, or sends one in when nobody is; with no Kin beside you it is just you. Beat a common Kin and it lies dazed for ten seconds: net it, or let it go. Every Kin has a temper, shown on its card. A drowsy one dawdles behind you but hits heavy. A shy one loses its nerve some turns. A cross one hits hard, a bright one keeps at your heel. Walk and win together and the bond grows: the dawdling and the nerves fade. Sneak up from behind for a better catch. If its head turns your way it is getting suspicious: stay still until it looks off again.</p>
+      <p class="small">Wild Kin notice you. Come at one head on and it stops, stares, then comes for you, live: it crouches, then lunges. Hold a weapon and hold the screen to block with your shield; raise it, or swing, just as the lunge lands to parry. Swords and axes chip a Kin's health (a wooden sword a twentieth a blow, Starmetal about a seventh), arrows more but never the last point. Your lead Kin fights beside you on its own, with its real moves and strength: far harder than any blade, and the big ones only fall to Kin. It takes lunges too and goes down if they are too much. <b>Deploy</b> picks which Kin is at your side, or sends one in when nobody is; with no Kin beside you it is just you. Beat a common Kin and it lies dazed for ten seconds: net it, or let it go. Wild Kin have tempers too. A shy one hears you from further off and bolts when it sees you: creep very slowly, from behind. A cross one charges the moment it sees you, follows you a long way and is hard to run from. A bright one comes over to look before it decides. A drowsy one barely notices. Every Kin has a temper, shown on its card. A drowsy one dawdles behind you but hits heavy. A shy one loses its nerve some turns. A cross one hits hard, a bright one keeps at your heel. Walk and win together and the bond grows: the dawdling and the nerves fade. Sneak up from behind for a better catch. If its head turns your way it is getting suspicious: stay still until it looks off again.</p>
       <p class="small">Layers, top to bottom: Sky islands (Light, Gale), Surface, the Mines (dark, bring a torch), and the Core: lava, Flame and Void, the Mythic. The world wraps after about an hour of walking in one direction; the further you go from camp, the stranger the Kin.</p>
       <p class="small">Shards (◆) are the currency: you earn them by dismantling objects and gear that had a Kin in them. Shops to spend them in come later.</p>
       <p class="small">The Fusion Table: a fusion is a recipe, two particular Kin and an element stone (three essences and an iron), and the table lists the recipes you know. Quest people and beaten tyrants teach more; some fusions fork, and the table you use decides which way. Items alone craft gear, and the table keeps your spare Kin.</p>
