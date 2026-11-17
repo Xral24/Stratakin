@@ -95,7 +95,7 @@ const ITEMS = {
   seal: { name: 'Weaver\'s Seal', col: '#cfd8ff', desc: 'A knot of woven silver from under the last of the fourteen stones. A net you close holds a little longer while you carry it. Some people will know it on sight.' },
   corn: { name: 'Maize', col: '#f2c63a', use: 'player', desc: 'A cob from a town field, good raw and better roasted. Restores all your health.' },
   sunseed: { name: 'Sunflower Seeds', col: '#5a4632', use: 'treat', desc: 'A handful from a town field. Give them to the Kin walking with you: it will think more of you.' },
-  wheat: { name: 'Wheat', col: '#e2c060', desc: 'Cut from a town field. Mr Crowe pays for it, and a scarecrow can be stuffed with it.' },
+  wheat: { name: 'Wheat', col: '#e2c060', use: 'bake', desc: 'Three handfuls bake a loaf: hold it and tap, anywhere near a camp fire. Mr Crowe pays for it, and a scarecrow can be stuffed with it.' },
   bread: { name: 'Bread', col: '#d9a65b', use: 'player', desc: 'Restores all your health.' },
   smoothie: { name: 'Smoothie', col: '#ff8fb8', use: 'party', desc: 'Every Kin recovers half its health.' },
   tonic_heal: { name: 'Heal Tonic', col: '#ff5f7a', use: 'kin', desc: 'One Kin recovers 60% of its health. Does not wake a fainted Kin.' },
@@ -129,7 +129,7 @@ const ITEMS = {
 for (const e of ELEMENTS) ITEMS['ess_' + e] = { name: e + ' Essence', col: ELEM_COLOR[e], elem: e, desc: 'Left behind by ' + e + ' Kin. Three of them and an iron make a ' + e + ' Stone.' };
 for (const e of ELEMENTS) ITEMS['stone_' + e] = { name: e + ' Stone', col: ELEM_COLOR[e], crafted: true, desc: 'A fusion stone. A fusion recipe needs its two Kin and the right stone, together on the table.' };
 for (const e of ELEMENTS) ITEMS['lure_' + e] = { name: e + ' Lure', col: ELEM_COLOR[e], use: 'self', lure: e, crafted: true, desc: 'Drink it and ' + e + ' Kin come to you for four minutes, twice as often and far more of them.' };
-const HOTBAR_ORDER = ['torch', 'snare', 'snare2', 'snare_sky', 'bread', 'corn', 'sunseed', 'smoothie', 'tonic_revive', 'tonic_heal', 'tonic_vigor', 'tonic_might', 'tonic_swift', 'wood', 'planks', 'glass', 'door', 'ladder', 'chest', 'ironwall', 'voidwall', 'kit_house', 'kit_bakery', 'kit_juice', 'kit_trader', 'kit_voodoo', 'kit_post', 'kit_wall', 'kit_wall_stone', 'kit_wall_iron', 'kit_bridge', 'kit_portal', 'kit_dome', 'rod', 'rod_iron', 'rod_void', 'tonic_hush', 'moonlamp', 'selglass', 'stone', 'dirt', 'sand', 'gravel', 'snow', 'basalt', 'cloud', 'fusion', 'berry', 'glowworm', 'frond', 'copper', 'iron', 'ember', 'void', 'selenite', 'tycho', 'starsalt', 'amber', 'sulfur', 'ringshard', 'coral', 'pearl', 'gold', 'diamond', ...ELEMENTS.map(e => 'ess_' + e), 'bulb', 'glider', 'lavasuit'];
+const HOTBAR_ORDER = ['torch', 'snare', 'snare2', 'snare_sky', 'bread', 'corn', 'sunseed', 'wheat', 'smoothie', 'tonic_revive', 'tonic_heal', 'tonic_vigor', 'tonic_might', 'tonic_swift', 'wood', 'planks', 'glass', 'door', 'ladder', 'chest', 'ironwall', 'voidwall', 'kit_house', 'kit_bakery', 'kit_juice', 'kit_trader', 'kit_voodoo', 'kit_post', 'kit_wall', 'kit_wall_stone', 'kit_wall_iron', 'kit_bridge', 'kit_portal', 'kit_dome', 'rod', 'rod_iron', 'rod_void', 'tonic_hush', 'moonlamp', 'selglass', 'stone', 'dirt', 'sand', 'gravel', 'snow', 'basalt', 'cloud', 'fusion', 'berry', 'glowworm', 'frond', 'copper', 'iron', 'ember', 'void', 'selenite', 'tycho', 'starsalt', 'amber', 'sulfur', 'ringshard', 'coral', 'pearl', 'gold', 'diamond', ...ELEMENTS.map(e => 'ess_' + e), 'bulb', 'glider', 'lavasuit'];
 
 class Player {
   constructor(world) {
