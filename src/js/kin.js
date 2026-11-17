@@ -660,6 +660,36 @@ const KIN = (() => {
     put(['pangolinpup', 'pangolinknight'], [{ kind: 'head', s: [0.3, 0.3, 0.3], t: [0, -0.15, -0.1] }, { kind: 'leg', s: [0.25, 0.25, 0.25] }, { kind: 'arm', s: [0.25, 0.25, 0.25] }, { kind: 'tail', rx: 1.6 }, { all: true, s: [1.15, 0.85, 0.95] }]); /* rolled up tight, tail over its face */
     put(['meerkatpup', 'sunsentinel'], [{ all: true, s: [0.84, 1.32, 0.84] }, { kind: 'head', osc: { ry: 0.7, f: 2.4 } }], { idle: 0.06 }); /* up on its hind legs, scanning */
     return T; })();
+  /* bodies rebuilt round one idea. Each adds what the trick needs and says how it moves. s0 is how a part lies at rest, s how it stands when the trick is on */
+  const REBUILD = (() => { const R = {}, put = (names, fn) => { for (const n of names) R[n] = fn; };
+    put(['snowowlet', 'snowyowl', 'auroraowl'], (c) => { const L = 0.5, y0 = c.hp[1] - 0.1, z = c.hp[2]; c.B(13, 'part', [0, y0, z]); /* a neck in five sleeves, one inside the next like a spyglass: shut, the head sits on the shoulders; alarmed, it runs up out of them */
+      for (let i = 0; i < 5; i++) { const a = y0 + L * i / 5, b = y0 + L * (i + 1) / 5, r = 0.17 - i * 0.012; c.tube([[0, a, z], [0, b, z]], [r, r - 0.008], i % 2 ? '#f6f8fa' : '#dfe6ee', { cap0: 'none', cap1: 'none' }); c.tube([[0, b - 0.014, z], [0, b, z]], [r + 0.006, r + 0.006], '#3a3e48', { cap0: 'flat', cap1: 'flat' }); }
+      return { ops: [{ i: 13, s0: [1, 0.02, 1], s: [1, 1, 1] }, { kind: 'head', ta: [0, L * c.SY, 0], osc: { ry: 0.65, f: 1.5 } }] }; });
+    put(['heron'], (c) => { const cy = c.hp[1] + 0.22, cz = c.hp[2] - 0.14, grey = hexMix(c.C.body, '#8a94a4', 0.6); c.B(13, 'part', [0, cy, cz]); /* the wings are the parasol: twelve long feathers on a hub over its head, shut to nothing until it fishes or is frightened */
+      for (let i = 0; i < 12; i++) { const a = i / 12 * 6.283, R0 = 0.9; c.tube([[0, cy, cz], [Math.cos(a) * R0 * 0.55, cy + 0.03, cz + Math.sin(a) * R0 * 0.55], [Math.cos(a) * R0, cy - 0.32, cz + Math.sin(a) * R0]], [0.05, [0.17, 0.03], [0.1, 0.02]], i % 2 ? grey : '#3a3e48', { cap0: 'round', cap1: 'round' }); }
+      return { ops: [{ i: 13, s0: [0.03, 0.03, 0.03], s: [1, 1, 1] }, { kind: 'wing', s: [0.3, 0.3, 0.3] }], idle: 0.05 }; });
+    put(['hornbillchick', 'hornbill'], (c) => { c.at(1); const y = c.hp[1] - 0.02, z = c.hp[2] + 0.52; /* the casque is a mallet: a stone head set across the end of the beak, steel at both faces */
+      c.tube([[-0.15, y, z], [0.15, y, z]], [0.07, 0.07], '#6a6e78', { cap0: 'flat', cap1: 'flat' }); for (const sd of [-1, 1]) c.tube([[sd * 0.15, y, z], [sd * 0.175, y, z]], [0.082, 0.082], '#c9ccd4', { cap0: 'flat', cap1: 'flat' });
+      return { ops: [{ kind: 'head', osc: { rx: 0.55, f: 15 } }], idle: 0.07 }; });
+    put(['molekit', 'minermole', 'drillmole'], (c) => { c.B(13, 'part', [0, 0, 0]); const br = '#6b4a2e', dk = '#4a3220'; /* the mound it throws up as it goes under, and the clods still in the air */
+      for (let i = 0; i < 8; i++) { const a = i / 8 * 6.283; c.ball(Math.cos(a) * 0.42, 0.06, Math.sin(a) * 0.42, 0.2, i % 2 ? br : dk, { n: 2 }); } for (let i = 0; i < 5; i++) { const a = i * 1.3; c.ball(Math.cos(a) * 0.62, 0.32 + 0.1 * (i % 2), Math.sin(a) * 0.62, 0.07, br, { n: 1 }); }
+      return { ops: [{ all: true, not: [13], t: [0, -0.8, 0] }, { i: 13, s0: [0.02, 0.02, 0.02], s: [1, 1, 1], pulse: 9 }] }; });
+    put(['peachick', 'peafowl', 'bloompeacock'], () => ({ ops: [{ kind: 'tail', s0: [0.2, 0.5, 1], s: [1.1, 1.1, 1], rx0: -1.2, rx: 0 }], idle: 0.05 })); /* the train trails shut behind it and only stands up into the fan for the trick */
+    put(['puffer'], (c) => { const b = c.bb, cy = (b.y0 + b.y1) / 2, cz = (b.z0 + b.z1) / 2, r = Math.min(b.x1 - b.x0, b.y1 - b.y0) / 2 * 0.9; c.B(13, 'part', [0, cy, cz]); /* sixteen spines lying flat inside until it blows up */
+      for (let i = 0; i < 16; i++) { const u = 1 - 2 * (i + 0.5) / 16, ph = i * 2.399, rr = Math.sqrt(1 - u * u), d = [Math.cos(ph) * rr, u, Math.sin(ph) * rr]; c.cone([d[0] * r * 0.7, cy + d[1] * r * 0.7, cz + d[2] * r * 0.7], d, r * 0.75, 0.06, c.C.accent || '#ffffff'); }
+      return { ops: [{ all: true, s: [1.5, 1.5, 1.5], pulse: 5 }, { i: 13, s0: [0.5, 0.5, 0.5], s: [1, 1, 1] }] }; });
+    put(['flamecobra', 'goldencobra', 'suncobra'], (c) => { const h = c.hp; c.B(13, 'part', [0, h[1] - 0.15, h[2] - 0.04]); /* a real hood: two ribs of skin folded flat to the neck that swing out wide, an eye painted on each */
+      for (const sd of [-1, 1]) { c.plate([[0, h[1] - 0.6, h[2] - 0.06], [sd * 0.5, h[1] - 0.25, h[2] - 0.1], [sd * 0.55, h[1] + 0.1, h[2] - 0.1], [sd * 0.3, h[1] + 0.28, h[2] - 0.08], [0, h[1] + 0.2, h[2] - 0.06]], 0.035, c.C.body); c.ball(sd * 0.3, h[1] - 0.05, h[2] - 0.05, 0.09, c.C.accent || '#ffd24a', { n: 2 }); }
+      return { ops: [{ i: 13, s0: [0.1, 1, 1], s: [1, 1, 1] }, { all: true, s: [1, 1.15, 1] }] }; });
+    put(['hermit'], (c) => { const b = c.bb, y = b.y0 + (b.y1 - b.y0) * 0.42, z = b.z1 - 0.02, pts = []; c.B(13, 'part', [0, y, z]); /* a door for the shell: it pulls it shut behind it */
+      for (let i = 0; i < 10; i++) { const a = i / 10 * 6.283; pts.push([Math.cos(a) * 0.2, y + Math.sin(a) * 0.2, z]); } c.plate(pts, 0.04, '#c9b48a'); c.ball(0, y, z + 0.03, 0.05, '#8a6a42', { n: 1 });
+      return { ops: [{ i: 13, s0: [0.02, 0.02, 1], s: [1.15, 1.15, 1] }, { all: true, not: [13], s: [1.12, 0.8, 1.12] }] }; });
+    put(['masker'], (c) => { const b = c.bb, top = b.y1 - 0.03; c.B(13, 'part', [0, top, (b.z0 + b.z1) / 2]); /* a ridge of fur down the spine that lies flat until its back goes up */
+      for (let i = 0; i < 7; i++) { const z = b.z0 + 0.08 + (b.z1 - b.z0 - 0.16) * i / 6; c.cone([0, top - 0.02, z], [0, 1, -0.25], 0.2 + 0.05 * Math.sin(i * 1.3), 0.045, c.C.accent || c.C.dark); }
+      return { ops: [{ i: 13, s0: [1, 0.05, 1], s: [1, 1, 1] }, { kind: 'tail', s: [3.2, 1.5, 3.2], rx: -0.5 }, { all: true, s: [0.9, 1.22, 0.84] }] }; });
+    put(['froglet', 'riverfrog', 'sumofrog'], (c) => { const h = c.hp; c.B(13, 'part', [0, h[1] - 0.1, h[2] + 0.1]); c.ball(0, h[1] - 0.1, h[2] + 0.12, 0.16, c.C.belly, { n: 3 }); /* a throat sac under the chin: flat at rest, a drum as big as its head when it sings */
+      return { ops: [{ i: 13, s0: [0.2, 0.2, 0.2], s: [1.9, 1.7, 1.9], pulse: 8 }, { all: true, not: [13], s: [1.1, 0.95, 1.1] }] }; });
+    return R; })();
   function model(sp, stage) {
     const form = formOf(sp, stage); const shape = form.shape; stage = form.look; // the body this stage has, drawn as grown-up as it looks
     const s = (sp.size || 1) * (stage === 1 ? 0.78 : stage === 2 ? 1.05 : 1.4) * (1 + 0.04 * Math.min(6, sp.gen || 0));
@@ -4287,10 +4317,14 @@ const KIN = (() => {
       }
     }
     if ((sp.mythic || sp.neon) && !form.plan) for (const b of parts) if (b.c === C.accent || b.c === C.belly || b.c === C.eye) b.emis = true;
+    /* the ones rebuilt round their trick get the extra anatomy here, on a bone of its own (13) that lies folded away until the trick: the owl's telescope of a neck, the heron's canopy, the cobra's hood, the mound a mole throws up */
+    let trickBuilt = null;
+    if (form.plan && REBUILD[form.plan]) { try { const hb = bones[1] && bones[1].kind === 'head' ? bones[1].piv : null, b0 = parts.filter(q => (q.bone || 0) === 0); const mn = (f) => Math.min(...b0.map(f)), mx = (f) => Math.max(...b0.map(f));
+        trickBuilt = REBUILD[form.plan]({ ball, tube, plate, cone, B, at: (i) => { bone = i; }, C, SY, hp: hb ? [hb[0] / SX, hb[1] / SY, hb[2] / SZ] : [0, 1, 0.2], bb: b0.length ? { x0: mn(q => q.x) / SX, x1: mx(q => q.x + q.w) / SX, y0: mn(q => q.y) / SY, y1: mx(q => q.y + q.h) / SY, z0: mn(q => q.z) / SZ, z1: mx(q => q.z + q.d) / SZ } : { x0: -0.3, x1: 0.3, y0: 0, y1: 0.6, z0: -0.3, z1: 0.3 } }); bone = 0; } catch (err) { console.warn('rebuild ' + form.plan + ': ' + err.message); } }
     if (!bones[0]) bones[0] = { kind: 'body', piv: [0, 0, 0], runPitch: sp.shape === 'raptor' ? 0.08 : 0 };
     const height = Math.max(...parts.map(b => b.y + b.h));
     const radius = Math.max(...parts.map(b => Math.max(Math.abs(b.x), Math.abs(b.x + b.w), Math.abs(b.z), Math.abs(b.z + b.d))));
-    const trick = TRICKS[form.plan] || null;
+    const trick = trickBuilt || TRICKS[form.plan] || null;
     const M = { trick, boxes: parts, scale: s, hover, height, radius, bones, temper: temperOf(sp), legLen: legLen * SY, kind, flyer, sway, shape, native: natDone, fitBody };
     return sp.neon && form.plan && !natDone ? alienize(M, sp) : M;
   }

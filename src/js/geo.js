@@ -289,15 +289,18 @@
       /* its trick: the one thing this kind of creature does that no other does. A cat's tail goes to a bottle brush, an owl stands up tall and thin, a hedgehog shuts into a ball, a mole goes into the ground. It shows when the creature has noticed you, is after you, is struck or strikes, and eases in and out. Each trick is a short list of changes laid over the pose: a part grows, turns, drums or sinks, about its own joint */
       if (m.trick) { const T = m.trick, on = !e.sleep && ((e.alert || 0) > 0.3 || e.chase || (e.hitT || 0) > 0 || (e.trickT || 0) > now || (a.attack || 0) > 0.05 || (T.idle && ((t * T.idle + seed * 0.37) % 1) < 0.22));
         a.tk = (a.tk || 0) + ((on ? 1 : 0) - (a.tk || 0)) * 0.11; const k = a.tk;
-        if (k > 0.004) for (const op of T.ops) { const pu = op.pulse ? 0.86 + 0.14 * Math.sin(t * op.pulse + seed) : 1, kk = k * pu;
-          const sx = 1 + ((op.s ? op.s[0] : 1) - 1) * kk, sy = 1 + ((op.s ? op.s[1] : 1) - 1) * kk, sz = 1 + ((op.s ? op.s[2] : 1) - 1) * kk;
-          for (let i = 0; i < 14; i++) { const b = bones[i]; if (!b && !op.all) continue; const face = !op.all && op.kind === 'head' && b.kind !== 'head' && (b.kind === 'lid' || b.kind === 'brow' || b.kind === 'jaw' || b.kind === 'ear') && bones[1] && bones[1].kind === 'head'; /* what sits on the head goes with the head */ if (!op.all && b.kind !== op.kind && !face) continue; const sd = b && b.side ? Math.sign(b.side) : (b && b.piv && b.piv[0] < 0 ? -1 : 1);
-            const pv = face ? bones[1].piv : b ? b.piv : null, px = op.all ? 0 : pv[0], py = op.all ? 0 : pv[1], pz = op.all ? 0 : pv[2];
-            const rx = (op.rx || 0) * k + (op.osc && op.osc.rx ? Math.sin(t * op.osc.f + seed) * op.osc.rx * k : 0), ry = op.osc && op.osc.ry ? Math.sin(t * op.osc.f + seed) * op.osc.ry * k : 0, rz = (op.rz || 0) * k * sd;
+        for (const op of T.ops) { if (k <= 0.004 && !op.s0 && op.rx0 == null) continue; /* a part that is folded away at rest is held folded even when nothing is happening */
+          const pu = op.pulse ? 0.86 + 0.14 * Math.sin(t * op.pulse + seed) : 1, kk = Math.min(1.15, k * pu), A = op.s0 || [1, 1, 1], Z = op.s || [1, 1, 1];
+          const sx = A[0] + (Z[0] - A[0]) * kk, sy = A[1] + (Z[1] - A[1]) * kk, sz = A[2] + (Z[2] - A[2]) * kk;
+          for (let i = 0; i < 14; i++) { const b = bones[i]; if (op.i != null ? i !== op.i : (!b && !op.all)) continue; if (op.not && op.not.includes(i)) continue;
+            const face = op.i == null && !op.all && op.kind === 'head' && b.kind !== 'head' && (b.kind === 'lid' || b.kind === 'brow' || b.kind === 'jaw' || b.kind === 'ear') && bones[1] && bones[1].kind === 'head'; /* what sits on the head goes with the head */
+            if (op.i == null && !op.all && b.kind !== op.kind && !face) continue; const sd = b && b.side ? Math.sign(b.side) : (b && b.piv && b.piv[0] < 0 ? -1 : 1);
+            const pv = face ? bones[1].piv : b ? b.piv : [0, 0, 0], px = op.all ? 0 : pv[0], py = op.all ? 0 : pv[1], pz = op.all ? 0 : pv[2];
+            const r0 = op.rx0 || 0, rx = r0 + ((op.rx || 0) - r0) * k + (op.osc && op.osc.rx ? Math.sin(t * op.osc.f + seed) * op.osc.rx * k : 0), ry = op.osc && op.osc.ry ? Math.sin(t * op.osc.f + seed) * op.osc.ry * k : 0, rz = (op.rz || 0) * k * sd;
             const cx = Math.cos(rx), sxx = Math.sin(rx), cy = Math.cos(ry), syy = Math.sin(ry), cz = Math.cos(rz), szz = Math.sin(rz);
             /* X = move * turn * grow, about the joint */
             const x0 = (cy * cz + syy * sxx * szz) * sx, x1 = (cx * szz) * sx, x2 = (-syy * cz + cy * sxx * szz) * sx, x4 = (-cy * szz + syy * sxx * cz) * sy, x5 = (cx * cz) * sy, x6 = (syy * szz + cy * sxx * cz) * sy, x8 = (syy * cx) * sz, x9 = (-sxx) * sz, x10 = (cy * cx) * sz;
-            const H = m.height || 1, tx = (op.t ? op.t[0] : 0) * k * H, ty = (op.t ? op.t[1] : 0) * k * H, tz = (op.t ? op.t[2] : 0) * k * H;
+            const H = m.height || 1, tx = (op.t ? op.t[0] : 0) * k * H + (op.ta ? op.ta[0] : 0) * k, ty = (op.t ? op.t[1] : 0) * k * H + (op.ta ? op.ta[1] : 0) * k, tz = (op.t ? op.t[2] : 0) * k * H + (op.ta ? op.ta[2] : 0) * k;
             const x12 = px + tx - (x0 * px + x4 * py + x8 * pz), x13 = py + ty - (x1 * px + x5 * py + x9 * pz), x14 = pz + tz - (x2 * px + x6 * py + x10 * pz);
             const o = i * 16; for (let c = 0; c < 4; c++) { const m0 = mats[o + c * 4], m1 = mats[o + c * 4 + 1], m2 = mats[o + c * 4 + 2], w = c === 3 ? 1 : 0; mats[o + c * 4] = x0 * m0 + x4 * m1 + x8 * m2 + x12 * w; mats[o + c * 4 + 1] = x1 * m0 + x5 * m1 + x9 * m2 + x13 * w; mats[o + c * 4 + 2] = x2 * m0 + x6 * m1 + x10 * m2 + x14 * w; } } } }
       return { mats, sway };
