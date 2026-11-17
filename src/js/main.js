@@ -67,6 +67,13 @@ G.newWorld = function (seed, starterIdx, name) {
     w.ensureAround(Math.floor(s.x / CH), Math.floor(s.z / CH), 4, 999);
     this.village = Village.stamp(s);
     Wild.noSpawn = { x: this.village.x, z: this.village.z, r: 15 };
+    { /* the camp sits well out from the village, so its smoke is something you see over there and walk towards. Of the spots tried on the far side, the first on plain dry ground wins */
+      const v = this.village, a0 = Math.atan2(s.x - v.x, s.z - v.z); let done = false;
+      for (const r of [78, 70, 86, 62]) { if (done) break; for (const da of [0, 0.35, -0.35, 0.7, -0.7, 1.1, -1.1]) { const x = Math.floor(v.x + Math.sin(a0 + da) * r), z = Math.floor(v.z + Math.cos(a0 + da) * r); w.ensureAround(Math.floor(x / CH), Math.floor(z / CH), 2, 999);
+          let g = w.groundY(x, z, 120); while (g > 2 && (isLeaf(w.getBlock(x, g, z)) || w.getBlock(x, g, z) === B.LOG)) g--; const top = w.getBlock(x, g, z); if ((top !== B.GRASS && top !== B.DIRT && top !== B.SAND) || w.getBlock(x, g + 1, z) === B.WATER) continue;
+          let flat = true; for (const [ox, oz] of [[3, 0], [-3, 0], [0, 3], [0, -3]]) { let h = w.groundY(x + ox, z + oz, g + 6); while (h > 2 && (isLeaf(w.getBlock(x + ox, h, z + oz)) || w.getBlock(x + ox, h, z + oz) === B.LOG)) h--; if (Math.abs(h - g) > 2 || w.getBlock(x + ox, h + 1, z + oz) === B.WATER) flat = false; }
+          if (!flat) continue; s.x = x + 0.5; s.z = z + 0.5; s.y = g + 1; done = true; break; } }
+      w.ensureAround(Math.floor(s.x / CH), Math.floor(s.z / CH), 4, 999); }
     const p = this.player; p.x = s.x; p.y = s.y + 0.2; p.z = s.z;
     for (let dx = -1; dx <= 1; dx++) for (let dz = -1; dz <= 1; dz++) for (let y = Math.floor(s.y); y < s.y + 3; y++) { const b = w.getBlock(Math.floor(s.x) + dx, y, Math.floor(s.z) + dz); if (isLeaf(b) || (b === B.LOG && !dx && !dz)) w.setBlock(Math.floor(s.x) + dx, y, Math.floor(s.z) + dz, B.AIR); }
     w.setBlock(Math.floor(s.x) + 1, Math.floor(s.y), Math.floor(s.z) + 1, B.CAMPFIRE); // the magic camp fire: light and resting spot

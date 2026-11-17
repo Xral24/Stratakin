@@ -12,10 +12,10 @@ const First = (() => {
 
   // a brook past the camp, on the side away from the village: a shallow winding cut with gravel under it. Of the lines tried, the flattest wins
   function brook() { const w = G.world, c = G.camp, v = G.village; if (!c || !v) return null; const ax = Math.atan2(c.x - v.x, c.z - v.z); let best = null;
-    for (const da of [0, 0.6, -0.6, 1.2, -1.2]) { const a = ax + da, ox = c.x + Math.sin(a) * 8, oz = c.z + Math.cos(a) * 8, px = Math.cos(a), pz = -Math.sin(a); let lo = 999, hi = -999, wet = 0; const cols = [];
-      for (let t = -13; t <= 13; t++) { const m = Math.sin(t * 0.42) * 1.6, x = Math.floor(ox + px * t + Math.sin(a) * m), z = Math.floor(oz + pz * t + Math.cos(a) * m), g = w.groundY(x, z, c.y + 8); lo = Math.min(lo, g); hi = Math.max(hi, g); if (w.getBlock(x, g + 1, z) === B.WATER) wet++; cols.push([x, z, g]); }
-      const sc = (hi - lo) + wet * 2 + Math.abs(da) + Math.abs(lo + 1 - c.y) * 0.5; if (!best || sc < best.sc) best = { sc, cols, lo, a, ox, oz }; }
-    if (!best || best.sc > 9) return null; const L = best.lo - 1; /* the water stands one below the lowest bank */
+    for (const dist of [8, 11, 6]) for (const da of [0, 0.5, -0.5, 1.0, -1.0, 1.5, -1.5, 2.0, -2.0, 2.6, -2.6]) { const a = ax + da, ox = c.x + Math.sin(a) * dist, oz = c.z + Math.cos(a) * dist, px = Math.cos(a), pz = -Math.sin(a); let lo = 999, hi = -999, wet = 0; const cols = [];
+      for (let t = -11; t <= 11; t++) { const m = Math.sin(t * 0.42) * 1.6, x = Math.floor(ox + px * t + Math.sin(a) * m), z = Math.floor(oz + pz * t + Math.cos(a) * m), g = w.groundY(x, z, c.y + 8); lo = Math.min(lo, g); hi = Math.max(hi, g); if (w.getBlock(x, g + 1, z) === B.WATER) wet++; cols.push([x, z, g]); }
+      const sc = (hi - lo) + wet * 2 + Math.abs(da) * 0.4 + Math.abs(dist - 8) * 0.2 + Math.abs(lo + 1 - c.y) * 0.5; if (!best || sc < best.sc) best = { sc, cols, lo, a, ox, oz }; }
+    if (!best || best.sc > 7.5) return null; const L = best.lo - 1; /* the water stands one below the lowest bank */
     for (const [x, z] of best.cols) for (let dx = -2; dx <= 2; dx++) for (let dz = -2; dz <= 2; dz++) { const r = Math.max(Math.abs(dx), Math.abs(dz)), X = x + dx, Z = z + dz; if (Math.abs(X - c.x) < 2 && Math.abs(Z - c.z) < 2) continue; const g = w.groundY(X, Z, c.y + 8); if (isLeaf(w.getBlock(X, g, Z)) || w.getBlock(X, g, Z) === B.LOG) continue;
         if (r <= 1) { for (let y = L + 1; y <= g + 2; y++) if (w.getBlock(X, y, Z) !== B.AIR) w.setBlock(X, y, Z, B.AIR); w.setBlock(X, L, Z, B.WATER); w.setBlock(X, L - 1, Z, B.GRAVEL); }
         else if (g > L + 1) { for (let y = L + 2; y <= g + 2; y++) if (w.getBlock(X, y, Z) !== B.AIR && w.getBlock(X, y, Z) !== B.WATER) w.setBlock(X, y, Z, B.AIR); if (w.getBlock(X, L + 1, Z) !== B.WATER) w.setBlock(X, L + 1, Z, B.GRASS); } }
@@ -27,7 +27,7 @@ const First = (() => {
     for (const [da, r] of [[0, 9], [1.3, 10], [-1.3, 10], [0.8, 12], [-0.8, 12], [0.4, 13], [-0.4, 13], [1.6, 9], [-1.6, 9]]) { if (out.length >= 3) break; let x = c.x + Math.sin(back + da) * r, z = c.z + Math.cos(back + da) * r; if (!out.length && bk) { x = bk.x - Math.sin(bk.a) * 3.2; z = bk.z - Math.cos(bk.a) * 3.2; }
       if (dry(x, z, c.y) != null && Math.abs(gy(x, z, c.y) - c.y) < 5) out.push([x + 0.5, z + 0.5]); }
     while (out.length < 3) out.push([c.x + 4 + out.length * 2, c.z - 5]); return out; }
-  function build() { const s = S(), c = G.camp; if (!maren) { let mx = c.x - 1.5, mz = c.z + 2.5; maren = Village.makeNpc(98, 'traveller', mx, mz, 'Maren', null, gy(mx, mz, c.y), 'shore'); maren.wander = false; maren.tag = 'net-maker'; maren.onTalk = talk; Village.addLoose(maren); }
+  function build() { const s = S(), c = G.camp; if (!maren) { const vv = G.village, vl = Math.hypot(vv.x - c.x, vv.z - c.z) || 1, ux = (vv.x - c.x) / vl, uz = (vv.z - c.z) / vl; let mx = c.x - 0.5 + ux * 2.8 - uz * 1.1, mz = c.z - 0.5 + uz * 2.8 + ux * 1.1; /* in front of you as you come round, a step to one side of the way to the village */ maren = Village.makeNpc(98, 'traveller', mx, mz, 'Maren', null, gy(mx, mz, c.y), 'shore'); maren.wander = false; maren.tag = 'net-maker'; maren.onTalk = talk; Village.addLoose(maren); }
     if (s.stage <= 1 && !three.length) { const sts = KIN.starters(G.baseSeed), sp = spots(); const at = [1, 0, 2]; three = sts.map((q, i) => ent(q, sp[at[i]][0], sp[at[i]][1])); /* the tadpole gets the bank */ } }
 
   function say(lines, done) { G.talkNpc = maren; Dialogue.show('Maren', lines, done); }
