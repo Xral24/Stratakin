@@ -394,6 +394,8 @@ Scope (Alexander, 8 Nov evening): EVERYTHING visible goes to the same standard: 
 
 - 17 Nov, liberation film, tyrant names and levels (his ask: a ten second film when a place is freed, name them by what they are like Moneybags, levels that climb to 50 in the cities). **Film: view lifts over the square in gold light with the gates opening, then comes down behind you to watch the elder walk up. Grakor, Morrug and Obrin are now Keychain, Stonewall and Bigmouth. Earth levels: villages 3, 5, 8, 11 up to 26; towns from 18 up to 38; cities 42, 46, 50; each later member of a gang +2. A warning shows if your best Kin is more than 5 under.** Atlantis already had no tyrant.
 
+- 17 Nov, held places are shut and freed places stay free (his ask: doors and all gates but one closed until the film, a film everywhere, no daily pay, tyrants only return if you stay away). **While held: every front door is a locked door and only the gate facing your side is open; the film opens the lot. Film now plays for every kind of village. Freed places pay once (100 village, 220 town, 450 city) and nothing by the day; only a village you founded pays. Stay away 12 days and it is retaken, with a warning 3 days before.**
+
 ## Still to do
 UI polish as feedback comes in. Card battle screen still used for scripted encounters (raids at the walls, thief, citadel duel, holds) and the snare mini-game; converting those to live is the next big step if wanted. (Old list: train/ships, combat animation, eggs, avatar hair/paint, buddy WEAR cosmetics, Silas and Finch, UI polish (item icons), quality toggles in settings (state.shadows, state.grassQuality, state.dprCap).
 

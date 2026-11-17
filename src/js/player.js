@@ -525,6 +525,7 @@ class Player {
     if (hit.id === B.CHEST) return { interact: 'chest', x: hit.x, y: hit.y, z: hit.z };
     if (hit.id === B.BOOKS) return { interact: 'books', x: hit.x, y: hit.y, z: hit.z };
     if (hit.id === B.INCUBATOR) return { interact: 'incubator', x: hit.x, y: hit.y, z: hit.z };
+    if (hit.id === B.DOOR && typeof Village !== 'undefined' && Village.doorLocked) { const who = Village.doorLocked(hit.x, hit.y, hit.z); if (who) { if (typeof UI !== 'undefined') { UI.sfx('hurt'); UI.toast(`Locked. ${who} holds the key to every door here.`, 'bad'); } return { interact: 'locked' }; } }
     if (hit.id === B.DOOR || hit.id === B.DOOR_OPEN) { this.world.setBlock(hit.x, hit.y, hit.z, hit.id === B.DOOR ? B.DOOR_OPEN : B.DOOR); return { interact: 'door', open: hit.id === B.DOOR }; }
     const item = this.selected();
     const info = item ? this.itemInfo(item) : null;

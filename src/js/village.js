@@ -63,7 +63,7 @@ const Village = (() => {
     'Sneak up behind a Kin and it never sees you coming.', 'A statue of your best Kin would look fine in our square.', 'They say the Mantlewyrm sleeps on Starmetal.',
     'Every freed village pays its share. Ask the headman.', 'My cousin swears a man once walked straight into an Indian camp at noon. Dressed as one of them, he said. Never told me where he got the clothes.', 'Those Indian camps: every one keeps a strip of its own cloth in a tent. Take one from each and you would have quite a coat. If anyone could sew it.', 'Zazu, in the city, can stitch anything from anything. Even disguises, they say.', 'The Indian camps keep a paddock of Windmanes. Fastest horses I ever saw. They will only carry one of their own, and they always go home.', 'There are villages out on the water, and under it. Nobody here has seen the deep ones.',
     'Found your own village? Table, forty planks, two signs and a wall. People will come.', 'Raiders come at night for the walls. Leave us a guard or two.',
-    'The tyrants always try to come back. Strong guards send them packing.', 'Stone walls, then iron. The headman knows the price.',
+    'Stay away too long and the tyrants walk back in. Show your face now and then.', 'Stone walls, then iron. The headman knows the price.',
   ];
   const SHOPS = {
     bakery: { title: 'Bakery', keeper: 'Pell', greet: 'Fresh from the oven. Bread for you, berries for the road.', stock: [{ item: 'bread', price: 10 }, { item: 'berry', price: 3, n: 3 }, { item: 'torch', price: 8, n: 4 }] },
@@ -237,7 +237,9 @@ const Village = (() => {
   function nameFor(id, style) { const h = U.combine(0x7177, U.strHash(id)); const t = STYLE_NAMES[style]; if (t) return t.a[h % t.a.length] + t.b[(h >>> 8) % t.b.length]; return NAME_A[h % NAME_A.length] + NAME_B[(h >>> 8) % NAME_B.length]; }
   function levelOf(st) { let l = 1; for (let i = 1; i < LEVELS.length; i++) if ((st.earned || 0) >= LEVELS[i]) l = i + 1; return l; }
   function amenCount(v, st) { const base = v.founded ? (v.signCount || 0) : Object.keys(v.amen).filter(k => v.amen[k]).length; return base + (st.shops || []).length; }
+  const AWAY = 12; /* days a freed place can go without seeing you before its tyrants walk back in */
   function incomeFor(v, st) {
+    if (!v.founded) return 0; /* a place you freed owes you nothing by the day: it thanked you once, properly. Only a village you founded yourself pays */
     if (v.R) { const L = layout(v); const closed = st.closed || {}; const open = L.shops.filter(sh => sh.kind !== 'elder' && !closed[sh.kind]).length; const base = { start: 20, hamlet: 15, town: 45, city: 110 }[v.starter ? 'start' : v.size] || 15; return base + 8 * open; } // a town pays by its size, and more for every shop you get running
     return 8 + 5 * Math.min(12, amenCount(v, st));
   }
@@ -560,7 +562,7 @@ const Village = (() => {
       }
     }
     // draw the buildings into the overlay by borrowing the house builder
-    const sb = world.setBlock, gb = world.getBlock; world.setBlock = (x, y, z, id) => push(x, y, z, id); world.getBlock = () => B.AIR;
+    const sb = world.setBlock, gb = world.getBlock; world.setBlock = (x, y, z, id) => push(x, y, z, id); world.getBlock = () => B.AIR; DOORCOL = [];
     try {
       const build = M.pod ? pod : house;
       const qs = (x, z) => { QSTYLE = quartered ? QUARTERS[quarterOf(x - vx, z - vz)].house : null; };
@@ -568,7 +570,7 @@ const Village = (() => {
       const r = U.rng(U.combine(world.seed, U.strHash(v.id)));
       for (const l of lots) if (!l.used) { if (r() < 0.12) { for (let a = -2; a <= 2; a++) for (let b = -2; b <= 2; b++) if (r() < 0.35 && M.bush) push(l.x + a, vy, l.z + b, M.bush); continue; } qs(l.x, l.z); build(l.x, l.z, vy, l.dirX, l.dirZ, null, null); l.home = true; }
     } finally { world.setBlock = sb; world.getBlock = gb; QSTYLE = null; ROOF_OVR = null; VST = null; }
-    const L = { R, buckets, shops, homes: lots.filter(l => l.home), streets, plots, rail, marks, stalls };
+    const L = { R, buckets, shops, homes: lots.filter(l => l.home), streets, plots, rail, marks, stalls, doors: DOORCOL || [] }; DOORCOL = null;
     towns.set(v.id, L); return L;
   }
   // ---- Atlantis in the world: drawn into each chunk as it is generated, the way a town is, so none of it goes into the save. The blocks only say
@@ -963,11 +965,13 @@ const Village = (() => {
     for (const [dx, dz] of [[-3, -3], [3, -3], [-3, 3], [3, 3]]) lamp(vx + dx, vz + dz);
     const build = M.pod ? pod : house;
     ROOF_OVR = 'thatch'; VST = M === MATS.land ? villageStyle(vx, vz, false) : null;
+    DOORCOL = [];
     build(vx - 9, vz - 9, vy, 1, 0, B.EMBER, furnishBakery);
     build(vx + 9, vz - 9, vy, -1, 0, B.BERRY, furnishJuice);
     build(vx - 9, vz + 9, vy, 1, 0, B.COPPER, furnishTrader);
     build(vx + 9, vz + 9, vy, -1, 0, B.CLOUD, furnishElder);
     build(vx, vz + 10, vy, 0, -1, B.VOID, furnishVoodoo);
+    { const st0 = state(v.id); st0.doors = (st0.doors || []).concat(DOORCOL); DOORCOL = null; }
     ROOF_OVR = null; VST = null;
     if (M.saloon) { set(vx + 9 - 3, vy, vz - 9, B.DOOR); } // the saloon: swinging doors in the juice bar's doorway
     for (const [dx, dz] of [[-9, -5], [9, -5], [-9, 5], [9, 5], [0, 6]]) lamp(vx + dx, vz + dz);
@@ -986,6 +990,7 @@ const Village = (() => {
   // floors and round the door, framed windows on both floors with flower boxes under the lower ones, a pitched roof with its ridge along
   // the door's axis and eaves all round, a gable at each end, a chimney on the back gable, a lamp hung from the ceiling, and the shop's
   // marker over the door (drawn as a hanging sign). Each house picks its own style and roof from the town's list, so a street is not a row of copies.
+  let DOORCOL = null; /* where the front doors are, gathered as the houses go up */
   function house(hx, hz, vy, dirX, dirZ, marker, furnish) {
     const M = MAT; const set = (x, y, z, id) => world.setBlock(x, y, z, id);
     const styles = M.houses || [{ wall: M.wall, base: M.wall, beam: null, roofs: [M.roof] }];
@@ -1010,7 +1015,7 @@ const Village = (() => {
             id = y === vy && !framed ? st.base : WALL; // a framed house is limewash to the ground: more of the wall shows under a deep thatch
             if (beam && (corner || y === vy + 2 || (doorPost && y <= vy + 1))) id = beam;
             if ((lowWin && y === vy + 1) || (highWin && y === vy + 3)) id = M.window;
-            if (doorway) id = y === vy + 2 ? (marker || beam || WALL) : y > vy + 2 ? WALL : B.AIR;
+            if (doorway) { id = y === vy + 2 ? (marker || beam || WALL) : y > vy + 2 ? WALL : B.AIR; if (y === vy && DOORCOL) DOORCOL.push([x, vy, z]); }
           }
           set(x, y, z, id);
         }
@@ -1186,11 +1191,17 @@ const Village = (() => {
     const vy = v.y; const M = MATS[v.style] || MATS.land;
     for (const [x, z] of ringCols(v, st)) for (let y = vy - 1; y <= vy + 7; y++) { const b = world.getBlock(x, y, z); if (WALL_BLOCKS.has(b)) world.setBlock(x, y, z, y === vy - 1 ? M.ground : B.AIR); }
   }
+  function doorsOf(v) { const st = state(v.id); let out = st.doors || []; if (v.R) { try { out = out.concat(layout(v).doors || []); } catch (e) { /* no plan */ } } return out; }
+  function setDoors(v, shut) { for (const [x, y, z] of doorsOf(v)) { const b = world.getBlock(x, y, z); if (shut ? b === B.AIR : (b === B.DOOR || b === B.DOOR_OPEN)) world.setBlock(x, y, z, shut ? B.DOOR : B.AIR); } v.doorsShut = shut; }
+  function doorLocked(x, y, z) { const v = active; if (!v || state(v.id).freed || !v.doorsShut) return null; return doorsOf(v).some(d => d[0] === x && d[2] === z && Math.abs(d[1] - y) <= 1) ? (v.boss && v.boss.kin ? KIN.name(v.boss.kin) : 'the tyrant') : null; }
   function setGates(v, st, closed) {
     if (v.type !== 'land' || v.founded) return;
     const blk = wallSet(v)[st.wall || 0].block, vy = v.y;
     const rl = v.R ? layout(v).rail : null, onLine = (x, z) => !!rl && (rl.ax ? z === rl.line : x === rl.line) && ((rl.ax ? x - v.x : z - v.z) * rl.sgn > 0); /* the block of track in its own opening stays down when the gates open or shut: they used to wipe it, which left one sleeper missing at the wall */
-    for (const [x, z, gate] of ringCols(v, st)) if (gate) for (let y = vy; y <= vy + 1; y++) world.setBlock(x, y, z, closed ? (y === vy && onLine(x, z) ? B.RAIL : blk) : (y === vy && onLine(x, z) ? B.RAIL : B.AIR));
+    /* while a tyrant holds the place only one gate stands open, the one on the side you come from. The rest are barred, and so is every front door */
+    const held = !st.freed && world.preset.id === 'earth', wr = wallRadius(st), tg = v.starter && G.camp ? G.camp : world.spawn || { x: v.x, z: v.z + 1 }, tx = wd(tg.x - v.x), tz = wd(tg.z - v.z), side = Math.abs(tx) > Math.abs(tz) ? (tx > 0 ? 0 : 1) : (tz > 0 ? 2 : 3);
+    const sideOf = (x, z) => { const dx = x - v.x, dz = z - v.z; return dx === wr ? 0 : dx === -wr ? 1 : dz === wr ? 2 : 3; };
+    for (const [x, z, gate] of ringCols(v, st)) if (gate) { const shut = closed || (held && sideOf(x, z) !== side); for (let y = vy; y <= vy + 1; y++) world.setBlock(x, y, z, shut ? (y === vy && onLine(x, z) ? B.RAIL : blk) : (y === vy && onLine(x, z) ? B.RAIL : B.AIR)); }
     v.gatesClosed = closed;
   }
   // level the ground in the band between the old wall and the new one
@@ -1619,7 +1630,7 @@ const Village = (() => {
     const P = PROBLEMS[k]; const need = P.need || {}; const have = Object.keys(need).every(it => G.player.count(it) >= need[it]);
     if (P.thief || !have) { Dialogue.show(n.name, P.say.concat(P.need ? ['You have ' + Object.keys(need).map(it => `${G.player.count(it)}/${need[it]} ${ITEMS[it].name}`).join(', ') + '.'] : [])); return true; }
     Dialogue.show(n.name, ['That is everything. Give me a moment.', k === 'station' ? `There. ${v.name} is back on the line. Any open station, any time.` : 'Open for business. Thank you.'], () => {
-      for (const it in need) G.player.take(it, need[it]); delete closed[k]; st.income = incomeFor(v, st); UI.sfx('quest'); G.addTrainerXp(60); setTimeout(() => UI.toast(`${v.name} pays ◆ ${st.income} a day now.`, 'good'), 1500);
+      for (const it in need) G.player.take(it, need[it]); delete closed[k]; st.income = incomeFor(v, st); UI.sfx('quest'); G.addTrainerXp(60); if (st.income) setTimeout(() => UI.toast(`${v.name} pays ◆ ${st.income} a day now.`, 'good'), 1500);
       if (k === 'station') { const sh = shopOf(v, 'station'); G.addRoost({ id: v.id, name: v.name, x: sh.x + sh.dirX * 5 + 0.5, y: v.y, z: sh.z + sh.dirZ * 5 + 0.5, world: world.preset.id }); setTimeout(() => { try { trainFilm(v); } catch (e) { console.warn(e); } }, 600); /* and the first train comes in */ }
     });
     return true;
@@ -1967,12 +1978,12 @@ const Village = (() => {
   let film = null, filmEl = null;
   function filmEnd() { if (!film) return; const p = G.player; p.frozen = false; G.cutCam = null; if (film.third != null) G.thirdPerson = film.third; if (filmEl) { filmEl.remove(); filmEl = null; } if (film.ws && !walkState) walkState = film.ws; film = null; }
   function filmTick(dt) { const f = film, v = f.v, p = G.player; f.t += dt; if (f.t < 0) return; const u = f.t;
-    if (!f.on) { f.on = true; f.third = G.thirdPerson; G.thirdPerson = true; p.vx = p.vz = 0; UI.sfx('quest'); try { setGates(v, state(v.id), false); } catch (e) { /* no gates here */ }
+    if (!f.on) { f.on = true; f.third = G.thirdPerson; G.thirdPerson = true; p.vx = p.vz = 0; UI.sfx('quest'); try { setGates(v, state(v.id), false); } catch (e) { /* no gates here */ } try { setDoors(v, false); } catch (e) { /* no doors here */ } if (G.meshPass) G.meshPass(99);
       filmEl = document.createElement('div'); filmEl.style.cssText = 'position:fixed;inset:0;z-index:45;pointer-events:none'; filmEl.innerHTML = '<div style="position:absolute;inset:0;background:radial-gradient(circle at 50% 38%,rgba(255,236,170,.95),rgba(255,200,90,.55) 45%,rgba(255,170,60,0) 80%);opacity:0"></div><div style="position:absolute;left:0;right:0;top:0;height:11vh;background:#000"></div><div style="position:absolute;left:0;right:0;bottom:0;height:11vh;background:#000"></div><div style="position:absolute;left:0;right:0;bottom:13vh;text-align:center;font:800 22px/1.2 system-ui,sans-serif;color:#fff3c8;text-shadow:0 2px 8px #000;opacity:0"></div>'; document.body.appendChild(filmEl); filmEl.children[3].textContent = v.name + ' is free'; }
     p.frozen = true; p.vx = p.vz = 0; G.repelUntil = Math.max(G.repelUntil || 0, performance.now() + 4000);
     if (filmEl) { filmEl.children[0].style.opacity = String(u < 0.5 ? u * 1.3 : Math.max(0, 0.65 - (u - 0.5) * 0.24)); filmEl.children[3].style.opacity = String(u < 0.8 ? 0 : u < 4.6 ? Math.min(1, (u - 0.8) * 2) : Math.max(0, 1 - (u - 4.6) * 2)); }
     const look = (cx, cy, cz, lx, ly, lz) => { G.cutCam = { x: cx, y: cy, z: cz, yaw: Math.atan2(-(lx - cx), -(lz - cz)), pitch: Math.atan2(ly - cy, Math.hypot(lx - cx, lz - cz)) }; };
-    if (u < 5) { if (!Dialogue.active()) { G.talkNpc = null; G.sceneHold = 0; } const k = U.smooth(Math.min(1, u / 5)), a = f.a0 + 0.5 - k * 0.9, r = 15 + k * 9, h = 7 + k * 9; look(v.x + Math.sin(a) * r, v.y + h, v.z + Math.cos(a) * r, v.x, v.y + 1.5, v.z); /* up and round over the square */
+    if (u < 5) { if (!Dialogue.active()) { G.talkNpc = null; G.sceneHold = 0; } const k = U.smooth(Math.min(1, u / 5)), tight = v.type !== 'land' ? 0.55 : 1, a = f.a0 + 0.5 - k * 0.9, r = (15 + k * 9) * tight, h = (7 + k * 9) * tight; /* under a dome or on a deck the view keeps closer in */ look(v.x + Math.sin(a) * r, v.y + h, v.z + Math.cos(a) * r, v.x, v.y + 1.5, v.z); /* up and round over the square */
       if (u > 3.2 && f.ws && !walkState) walkState = f.ws; return; } /* the elder sets out while the view is still up there */
     const e = v.elder && f.ws ? v.elder : null; if (!e) { if (u > 6.5) filmEnd(); return; }
     const dx = e.x - p.x, dz = e.z - p.z, d = Math.hypot(dx, dz) || 1, sx = -dz / d, sz = dx / d; { const hx = p.x, hy = p.y + 1.7, hz = p.z, tx = p.x - dx / d * 4.6 + sx * 1.1, ty = p.y + 3.4, tz = p.z - dz / d * 4.6 + sz * 1.1; let q = 1; for (let i = 1; i <= 12; i++) { const k = i / 12, bx = hx + (tx - hx) * k, by = hy + (ty - hy) * k, bz = hz + (tz - hz) * k; if (world.getBlock(Math.floor(bx), Math.floor(by), Math.floor(bz)) !== B.AIR) { q = Math.max(0.15, (i - 1.5) / 12); break; } } /* never inside a wall or under an eave: it stops short of whatever is in the way */
@@ -1988,7 +1999,7 @@ const Village = (() => {
     const tyrant = tyr0 || (v.boss ? (v.boss.title || v.boss.name || (v.boss.kin ? KIN.name(v.boss.kin) : null)) : null);
     if (v.boss && v.boss.persona && v.boss.persona.cast) { const nm0 = v.boss.persona.cast.name; G.stats.tyrantMet = G.stats.tyrantMet || {}; G.stats.tyrantMet[nm0] = (G.stats.tyrantMet[nm0] || 0) + 1; }
     if (v.boss && v.boss.persona) { say(v.boss.x, v.boss.y + 3.2, v.boss.z, v.boss.persona.beaten, 7); const el = bubbles[bubbles.length - 1].el; el.style.font = '700 14px/1.3 system-ui,sans-serif'; el.style.maxWidth = '74vw'; el.style.background = '#2a1f33'; el.style.color = '#f6eaff'; el.style.border = '2px solid #b070ff'; if (typeof UI !== 'undefined' && UI.toast) UI.toast(`${tyrant}: "${v.boss.persona.beaten}"`); }
-    const p0 = G.player, canFilm = v.type === 'land' && world.preset.id === 'earth' && !p0.flying && !p0.mount && Math.hypot(p0.x - v.x, p0.z - v.z) < 45;
+    const p0 = G.player, canFilm = !p0.flying && !p0.mount && Math.hypot(p0.x - v.x, p0.z - v.z) < 45; /* every place a tyrant held gets its film: Earth, the Moon, the Halo, the stilt villages and the ones under the sea */
     if (v.elder) { v.elder.wander = false; const ws = { v, tyrant, stage: (v.starter && !G.stats.elderDone) ? 'approach' : 'approach-headman' }; if (canFilm) film = { v, t: -2.3, ws, a0: Math.atan2(p0.x - v.x, p0.z - v.z) }; else walkState = ws; }
     else if (canFilm) film = { v, t: -2.3, ws: null, a0: Math.atan2(p0.x - v.x, p0.z - v.z) };
     if (v.elder) { /* the thanks are his to give */ }
@@ -2003,7 +2014,7 @@ const Village = (() => {
   }
   // the tyrant takes the village back: doors shut, no pay, the boss waits in the square again
   function retaken(v, st) {
-    st.freed = false; st.bank = 0; st.lieuDown = {}; st.report = { night: curNight(), text: 'The tyrant returned and the guards could not hold. The village is his again.' };
+    st.freed = false; st.bank = 0; st.lieuDown = {}; st.gangOut = []; st.retakenOnce = true; st.lastVisit = null; v.doorsShut = null; v.gatesClosed = null; st.report = { night: curNight(), text: 'Nobody had seen you in a long while. They walked back in through the open gate.' };
     for (const k of st.guards) k.hp = 0;
     for (const n of v.npcs) if (n.role !== 'voodoo') n.hidden = true;
     v.boss = null; v.guardEnts = [];
@@ -2185,7 +2196,7 @@ const Village = (() => {
       st.income = incomeFor(v, st);
       st.bank += st.income; st.earned += st.income; out.paid++; out.sum += st.income;
       if (st.upkeepIn == null) st.upkeepIn = 2 + Math.floor(Math.random() * 3);
-      if (--st.upkeepIn <= 0) {
+      if (!st.income) st.report = { night, text: 'A quiet night.' }; else if (--st.upkeepIn <= 0) {
         st.upkeepIn = 2 + Math.floor(Math.random() * 3);
         const prot = Math.min(4, (st.wall || 0) + Math.min(2, (st.guards || []).length)); // stone wall 1, iron wall 2, each guard 1 (two count)
         const cut = prot >= 4 ? 0 : Math.max(1, Math.round(st.income * (0.45 + Math.random() * 0.45) * (1 - prot / 4)));
@@ -2195,7 +2206,10 @@ const Village = (() => {
         out.lines.push(cut ? `${v.name}: ${what.toLowerCase()}. Repairs ◆ ${cut}.` : `${v.name}: ${what.toLowerCase()}. No damage.`);
       } else st.report = { night, text: 'A quiet night.' };
       for (const n of v.npcs) if (n.role !== 'voodoo') n.hidden = false;
-      // (towns used to fall back to their tyrant every seventh night; they do not any more)
+      /* nobody comes back while you keep an eye on a place. Leave it AWAY days and they do, and it is all to do again. Three days before, word reaches you */
+      if (!v.founded && !v.atlantis && world.preset.id === (st.meta && st.meta.world || world.preset.id)) { if (st.lastVisit == null) st.lastVisit = G.dayCount || 0; const gone = (G.dayCount || 0) - st.lastVisit;
+        if (gone >= AWAY) { retaken(v, st); out.lines.push(`${v.name} has been retaken. You were away ${gone} days.`); continue; }
+        if (gone >= AWAY - 3 && !st.awayWarned) { st.awayWarned = 1; out.lines.push(`Word from ${v.name}: strangers on the road, asking after you. Show your face there within ${AWAY - gone} days.`); } }
       if (false) {
         if (st.dome) out.lines.push(`${v.name}: the tyrant came back and could not get through the dome.`);
         else if (guardTotal(st) >= tyrantNeed(v)) { for (const k of st.guards) if (k.hp > 0) KIN.gainXp(k, 25); out.lines.push(`${v.name}: the tyrant came back and your guards drove him off.`); }
@@ -2474,6 +2488,8 @@ const Village = (() => {
     // raids on freed towns now happen off-screen, as wall repairs at dawn
     if (!inBattle) ensureThief(v, st, player);
     if (v.gatesClosed !== false && !isNight() && !(v.raid && v.raid.state === 'active')) setGates(v, st, false);
+    if (st.freed) { st.lastVisit = G.dayCount || 0; st.awayWarned = 0; }
+    if (!st.freed && st.stamped && v.doorsShut == null && v.type === 'land' && world.preset.id === 'earth' && !v.founded) setDoors(v, true); /* shut in their own homes: that is what he has done to them */
     // guards off duty: stand at their posts and watch you
     if (!(v.raid && v.raid.state === 'active')) for (const g of v.guardEnts) { g.bob += dt; const dx = player.x - g.x, dz = player.z - g.z; if (Math.hypot(dx, dz) < 7) g.yaw = Math.atan2(dx, dz); g.moving = false; g.leap = 0; if (((g.bob * 2) | 0) !== (((g.bob - dt) * 2) | 0)) unstick(g); }
     const life = lifeTown(v) ? lifeTick(v, dt, player) : null;
@@ -2532,8 +2548,8 @@ const Village = (() => {
         if (d > 2.2 && d < 40 && walkState.t < 7) moveTo(player.x - dx / d * 1.8, player.z - dz / d * 1.8, 2.6);
         else if (d <= 2.2 || walkState.far || (d < 40 && walkState.t >= 7)) {
           e.yaw = Math.atan2(dx, dz); walkState.stage = 'done';
-          const reward = 80 + v.tier * 40; G.talkNpc = e;
-          Dialogue.show(e.name, [`Thank you! ${walkState.tyrant ? walkState.tyrant + ' kept' : 'That tyrant kept'} us shut in our own homes. We never thought anyone would stand up to him.`, `${v.name} is free. The doors are open again: ${shopDef('bakery', v).title}, ${shopDef('juice', v).title}, ${shopDef('trader', v).title}, and the ${shopDef('voodoo', v).title}. ${world.preset.id !== 'earth' ? 'The arch in the square is yours now: tap it to step to any village you hold on this world.' : 'The station (or the ferry) will take you to any village you hold once its line is running.'}`, `From today this village is under your protection. We set aside ${income} Shards for you every dawn; come to me to collect them. And here are ${reward} for the fight.`, 'Leave a Kin or two with us as guards. Raiders come at night for the walls, and the tyrant will try to come back. Talk to me for the village ledger.'], () => { G.shards += reward; UI.toast(`+${reward} Shards. ${v.name} pays ${income} a day.`, 'good'); walkState = null; e.wander = true; });
+          const reward = v.size === 'city' ? 450 : v.size === 'town' ? 220 : 100; G.talkNpc = e;
+          Dialogue.show(e.name, [`Thank you! ${walkState.tyrant ? walkState.tyrant + ' kept' : 'That tyrant kept'} us shut in our own homes. We never thought anyone would stand up to him.`, `${v.name} is free. The doors are open again: ${shopDef('bakery', v).title}, ${shopDef('juice', v).title}, ${shopDef('trader', v).title}, and the ${shopDef('voodoo', v).title}. ${world.preset.id !== 'earth' ? 'The arch in the square is yours now: tap it to step to any village you hold on this world.' : 'The station (or the ferry) will take you to any village you hold once its line is running.'}`, `We passed a hat round every door. Here are ${reward} Shards. It is all of it and it is yours, once and gladly.`, `They will not be back while you are about. But stay away ${AWAY} days and they will hear of it, and we will be shut indoors again. Look in on us. Talk to me for the village ledger.`], () => { G.shards += reward; UI.toast(`+${reward} Shards from ${v.name}.`, 'good'); walkState = null; e.wander = true; });
         } else if (d >= 40) { walkState.t = 99; walkState.far = true; }
         break;
       }
@@ -2569,8 +2585,8 @@ const Village = (() => {
           Dialogue.show(e.name, [
             'This is a Fusion Table. Tap it. A fusion is a recipe: two particular Kin and an element stone, and out of them comes a third, better than either. The table lists the recipes you know. Quest folk teach more, and so do the tyrants when they fall.',
             'Materials craft gear on the same table, swords, shields and bows among them, and anything it makes can be taken apart again. It also keeps your spare Kin: eight walk with you, the rest wait in the table.',
-            `Take these Shards for what you did. From today ${v.name} is under your protection: we set aside ${income} Shards for you every dawn. Come to me to collect them, and for the village ledger.`,
-            'Raiders come at night for the walls, and Keychain will try to come back. Leave a Kin or two with us as guards; the ledger shows what we need. Pell bakes, Mira\'s smoothies mend tired Kin, Oskar trades. Old Brannock on the shore knows where the other tyrants sit.',
+            `Take these Shards for what you did. Every house put something in. It is a thank you, not a wage: ${v.name} is free and means to stay that way.`,
+            `Keychain will not show his face here while you are about. Stay away ${AWAY} days, though, and he will hear of it. Look in on us. Pell bakes, Mira's smoothies mend tired Kin, Oskar trades. Old Brannock on the shore knows where the other tyrants sit.`,
           ], () => { G.player.frozen = false; G.shards += 60; UI.toast('+60 Shards from the village.', 'good'); G.stats.elderDone = true; walkState = null; e.wander = true; e.home = { x: v.x + 2.5, z: v.z + 3.5 }; });
         }
         break;
@@ -2914,7 +2930,7 @@ const Village = (() => {
   }
   // which quarter of a city a spot is in (null in the square, on the castle hill, or outside a city)
   function quarterAt(v, x, z) { if (!v || !v.R || v.size !== 'city' || (MATS[v.style] || MATS.land) !== MATS.land) return null; const dx = x - v.x, dz = z - v.z, m = Math.max(Math.abs(dx), Math.abs(dz)); if (m > v.R - 4 || m <= 7 || (Math.abs(dx) <= 14 && dz <= -v.R + 28)) return null; return QUARTERS[quarterOf(dx, dz)].name; }
-  return { bossBeaten, makeNpc, addLoose: (n) => { if (!loose.includes(n)) loose.push(n); }, designerWall, wallRadiusOf: (v) => wallRadius(state(v.id)), atlantis: () => { if (world && world.preset.id === 'earth') plan(); return ATL; }, railAt, quarterAt, plotsOf, plotPrice, ownsPlotAt, buyPlot, enterShow, thiefCaught, layout, townList, init, stamp, restoreStart, update, pick, talk, entities, buy, boardTrain, trainArrive, trainFilm, trainOf, sell, sellValue, raiseDome, shopDef, freed, onBossGone, lieutenantDown, tableChallenge, placeKit, portalList, portalHere, markers, wakeDialogue, questTarget, dawn, pendingIncome, foundingInfo, foundVillage, summaryHtml, ledger, station, recall, upgradeWall, repairWall, expand, build, postShop, levelOf, SHOPS, WALLS,
+  return { doorLocked, bossBeaten, makeNpc, addLoose: (n) => { if (!loose.includes(n)) loose.push(n); }, designerWall, wallRadiusOf: (v) => wallRadius(state(v.id)), atlantis: () => { if (world && world.preset.id === 'earth') plan(); return ATL; }, railAt, quarterAt, plotsOf, plotPrice, ownsPlotAt, buyPlot, enterShow, thiefCaught, layout, townList, init, stamp, restoreStart, update, pick, talk, entities, buy, boardTrain, trainArrive, trainFilm, trainOf, sell, sellValue, raiseDome, shopDef, freed, onBossGone, lieutenantDown, tableChallenge, placeKit, portalList, portalHere, markers, wakeDialogue, questTarget, dawn, pendingIncome, foundingInfo, foundVillage, summaryHtml, ledger, station, recall, upgradeWall, repairWall, expand, build, postShop, levelOf, SHOPS, WALLS,
     get def() { return active ? { x: active.x, y: active.y, z: active.z } : null; }, set def(v) { restoreStart(v); }, get active() { return active; }, get boss() { return active ? active.boss : null; }, get elder() { return active ? active.elder : null; }, get walking() { return !!walkState; }, get fisher() { return fisher; } };
 })();
 
