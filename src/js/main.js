@@ -61,7 +61,7 @@ G.newWorld = function (seed, starterIdx, name) {
   const slot = Saves.create(name); this.SAVE_KEY = slot.key; this.gameId = slot.id; this.gameName = slot.name;
   setTimeout(() => {
     this.stats = freshStats(); this.questState = null; this.xp = 0; this.trainerLevel = 1; this.mythicCaught = false; this.kin = []; this.box = []; this.eggs = []; this.activeIdx = 0; this.shards = 0; this.village = null; this.secure = {}; this.respawnPoint = null; this.worlds = {}; this.worldId = 'earth';
-    this.villageState = {}; this.poiState = {}; this.chests = {}; this.npcState = {}; this.labState = {}; this.amulet = { cd: 0, kind: null, until: 0, charges: 0 }; this.skin = 'ranger'; this.thirdPerson = false; this.lastVillage = null; this.fisherSpot = null; this.fisherTarget = null; this.founded = []; this.dayCount = 0; this.wasNight = null; this.fisherTried = false;
+    this.villageState = {}; this.poiState = {}; this.chests = {}; this.npcState = {}; this.labState = {}; this.amulet = { cd: 0, kind: null, until: 0, charges: 0 }; this.skin = 'ranger'; this.thirdPerson = true; this.lastVillage = null; this.fisherSpot = null; this.fisherTarget = null; this.founded = []; this.dayCount = 0; this.wasNight = null; this.fisherTried = false;
     this.player = null; this.setupWorld(seed, 'earth');
     const w = this.world, s = w.spawn;
     w.ensureAround(Math.floor(s.x / CH), Math.floor(s.z / CH), 4, 999);
@@ -76,10 +76,12 @@ G.newWorld = function (seed, starterIdx, name) {
       w.ensureAround(Math.floor(s.x / CH), Math.floor(s.z / CH), 4, 999); }
     const p = this.player; p.x = s.x; p.y = s.y + 0.2; p.z = s.z;
     for (let dx = -1; dx <= 1; dx++) for (let dz = -1; dz <= 1; dz++) for (let y = Math.floor(s.y); y < s.y + 3; y++) { const b = w.getBlock(Math.floor(s.x) + dx, y, Math.floor(s.z) + dz); if (isLeaf(b) || (b === B.LOG && !dx && !dz)) w.setBlock(Math.floor(s.x) + dx, y, Math.floor(s.z) + dz, B.AIR); }
+    for (let dx = -5; dx <= 5; dx++) for (let dz = -5; dz <= 5; dz++) for (let y = Math.floor(s.y); y < s.y + 16; y++) { const bb = w.getBlock(Math.floor(s.x) + dx, y, Math.floor(s.z) + dz); if (isLeaf(bb) || bb === B.LOG) w.setBlock(Math.floor(s.x) + dx, y, Math.floor(s.z) + dz, B.AIR); } /* a clearing: no tree within five steps, open sky over the camp: the view from behind your shoulder must not start inside a tree */
     w.setBlock(Math.floor(s.x) + 1, Math.floor(s.y), Math.floor(s.z) + 1, B.CAMPFIRE); // the magic camp fire: light and resting spot
     this.camp = { x: Math.floor(s.x) + 1, y: Math.floor(s.y), z: Math.floor(s.z) + 1 };
     w.placeSpawnRuin(); this.stats.ruinPlaced = true;
     p.yaw = Math.atan2(-(this.village.x - s.x), -(this.village.z - s.z));
+    if (this.orbit) { this.orbit.yaw = p.yaw; this.orbit.pitch = p.pitch; }
     this.stats.recipes = { earth: [0, 1], moon: [0], halo: [0] };
     const story = !(starterIdx >= 0); /* the opening: no Kin yet, you choose one by the brook. A card picked on the menu skips it */
     const starter = story ? null : KIN.create(KIN.starters(seed)[starterIdx], 5);
@@ -479,6 +481,7 @@ G.shoot = function (pick) {
 };
 // use a consumable from the Bag or by tapping with it held
 G.useItem = function (key) {
+  if (key === 'bread' && this.stats.first && this.stats.first.stage === 1) { UI.toast('That bread is for the Kin. Walk up to one on the brook and tap it.'); return false; }
   const p = this.player; const info = key ? p.itemInfo(key) : null; if (!info || !info.use || !p.has(key)) return false;
   if (info.use === 'warm') { p.take(key, 1); this.warmUntil = performance.now() + 240000; UI.sfx('util'); UI.toast('Warm all the way through. Four minutes before the cold can bite.', 'good'); UI.renderHotbar(); return true; }
   if (info.use === 'player') { if (p.hp >= p.maxHp) { UI.toast('You are at full health.'); return false; } p.take(key, 1); p.hp = p.maxHp; UI.sfx('util'); UI.toast('You feel whole again.', 'good'); UI.renderHotbar(); return true; }
@@ -1014,6 +1017,7 @@ G.load = function () {
   try { data = JSON.parse(localStorage.getItem(this.SAVE_KEY)); } catch (e) { return false; }
   if (!data || !data.seed) return false;
   this.stats = Object.assign(freshStats(), data.stats || {}); this.questState = data.questState || null; this.xp = data.xp || 0; this.trainerLevel = this.trainerLevelFor(this.xp); this.mythicCaught = !!data.mythicCaught; this.shards = data.shards || 0; this.secure = data.secure || {};
+  this.thirdPerson = true; /* every game opens looking over your own shoulder */
   this.villageState = data.villageState || {}; this.poiState = data.poiState || {}; this.pin = data.pin || null; this.chests = data.chests || {}; this.npcState = data.npcState || {}; this.labState = data.labState || {}; this.amulet = { cd: 0, kind: null, until: 0, charges: 0 }; this.skin = data.skin || 'ranger'; this.thirdPerson = !!data.thirdPerson; this.lastVillage = data.lastVillage || null; this.fisherSpot = data.fisherSpot || null; this.fisherTarget = data.fisherTarget || null; this.founded = data.founded || []; this.dayCount = data.dayCount || 0; this.wasNight = null; this.fisherTried = false;
   this.player = null;
   if (data.v >= 2) {

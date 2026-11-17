@@ -347,6 +347,8 @@ Scope (Alexander, 8 Nov evening): EVERYTHING visible goes to the same standard: 
 
 - 17 Nov, net size again (his play: half was too small, landed on the bird and said missed, looked like it closed on release). **Net is never smaller than the Kin and about 1.65 times it fully swung; any touch counts as in the net; how central it landed sets how long you get to close; it leaves the hand open and stays open.** His idea logged: a special big net for dinosaurs earned by a quest.
 
+- 17 Nov, from his play. **Maren asks you back after your first catch and teaches healing (camp fire, heal tonics, gives 2), new quest Mending. Every game opens in third person in a cleared camp. Bread arrives with a jingle, is put in your hand, the bar pulses and a pop-up explains the bar. Speech bubbles keep one shape. Fights: your Kin squares up a set distance from the other on clear ground, the camera pulls back to whichever side has a clear view of both, and you step out of the middle.**
+
 ## Still to do
 UI polish as feedback comes in. Card battle screen still used for scripted encounters (raids at the walls, thief, citadel duel, holds) and the snare mini-game; converting those to live is the next big step if wanted. (Old list: train/ships, combat animation, eggs, avatar hair/paint, buddy WEAR cosmetics, Silas and Finch, UI polish (item icons), quality toggles in settings (state.shadows, state.grassQuality, state.dprCap).
 

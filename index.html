@@ -14247,7 +14247,7 @@ const Village = (() => {
   }
   // ---- the train's little films: words over people's heads, and a camera that stands still and watches ----
   const bubbles = [];
-  function say(x, y, z, text, secs, on) { const el = document.createElement('div'); el.textContent = text; el.style.cssText = 'position:fixed;z-index:30;max-width:52vw;padding:6px 11px;border-radius:13px;background:#fffdf4;color:#2a2318;font:600 13px/1.25 system-ui,sans-serif;box-shadow:0 2px 7px rgba(0,0,0,.4);transform:translate(-50%,-100%);pointer-events:none;white-space:normal;text-align:center;'; if (on) { el.style.font = '600 12px/1.2 system-ui,sans-serif'; el.style.padding = '4px 9px'; el.style.opacity = '0.95'; el.style.zIndex = '6'; } document.body.appendChild(el); bubbles.push({ x, y, z, el, on: on || null, soft: !!on, until: performance.now() + secs * 1000 }); } // on: somebody the words stay over as they move
+  function say(x, y, z, text, secs, on) { const el = document.createElement('div'); el.textContent = text; el.style.cssText = 'position:fixed;z-index:30;max-width:52vw;padding:6px 11px;border-radius:13px;background:#fffdf4;color:#2a2318;font:600 13px/1.25 system-ui,sans-serif;box-shadow:0 2px 7px rgba(0,0,0,.4);transform:translate(-50%,-100%);pointer-events:none;white-space:normal;text-align:center;width:max-content;'; if (on) { el.style.font = '600 12px/1.2 system-ui,sans-serif'; el.style.padding = '4px 9px'; el.style.opacity = '0.95'; el.style.zIndex = '6'; } document.body.appendChild(el); bubbles.push({ x, y, z, el, on: on || null, soft: !!on, until: performance.now() + secs * 1000 }); } // on: somebody the words stay over as they move
   function tickBubbles() { const now = performance.now(); for (let i = bubbles.length - 1; i >= 0; i--) { const b = bubbles[i]; if (now > b.until || (b.on && b.on.hidden)) { b.el.remove(); bubbles.splice(i, 1); continue; } const q = b.on ? R.project(b.on.x, b.on.y + (b.on.sayH || 2.05 * (b.on.scale || 1)), b.on.z) : R.project(b.x, b.y, b.z); if (!q || !q.on) { b.el.style.display = 'none'; continue; } b.el.style.display = ''; b.el.style.left = q.x + 'px'; b.el.style.top = (q.y - 6) + 'px'; } }
   function filmCam(v, rl, p) { // a place to stand and watch from: somewhere round the carriage with a clear sight of it and of the engine, on his side of the line if there is one
     const W = (al, pp) => rl.ax ? [al, rl.line + 0.5 + pp] : [rl.line + 0.5 + pp, al], car = W(rl.along0 + 0.5 + rl.sgn * 2, 0), eng = W(rl.along0 + 0.5 + rl.sgn * 4.9, 0);
@@ -14480,11 +14480,15 @@ const Battle = (() => {
     renderActions();
     busy = false;
   }
+  /* is the way from one point to another open: no block of any kind in it, leaves included */
+  function sight(x0, y0, z0, x1, y1, z1) { const dx = x1 - x0, dy = y1 - y0, dz = z1 - z0, L = Math.hypot(dx, dy, dz), n = Math.ceil(L / 0.45); for (let i = 1; i < n; i++) { const u = i / n, b = G.world.getBlock(Math.floor(x0 + dx * u), Math.floor(y0 + dy * u), Math.floor(z0 + dz * u)); if (b !== B.AIR && b !== B.WATER && (isSolid(b) || isLeaf(b) || b === B.LOG)) return false; } return true; } /* flowers and grass tufts are not in the way */
   function placeMine() {
     const m = KIN.model(mine.sp, mine.stage);
     const p = G.player;
     const dx = wildE.x - p.x, dz = wildE.z - p.z, d = Math.hypot(dx, dz) || 1;
-    const px = p.x + dx / d * Math.min(2.0, d * 0.4), pz = p.z + dz / d * Math.min(2.0, d * 0.4);
+    /* your Kin squares up a set distance from the other one, on open ground, wherever the two of you happened to be: far enough apart that both are seen whole. Of the places tried round it, the one nearest you with clear ground and a clear line wins */
+    const wm = wildE.model, S = U.clamp(3.2 + 0.9 * ((m.height || 1) + (wm.height || 1) * (wildE.scale || 1)), 4.5, 10), a0 = Math.atan2(-dx, -dz); let px = wildE.x - dx / d * S, pz = wildE.z - dz / d * S, found = false;
+    for (const da of [0, 0.45, -0.45, 0.9, -0.9, 1.4, -1.4, 2.0, -2.0, 3.14]) { const x = wildE.x + Math.sin(a0 + da) * S, z = wildE.z + Math.cos(a0 + da) * S, g0 = G.world.groundY(Math.floor(x), Math.floor(z), Math.floor(wildE.y) + 4); if (Math.abs(g0 + 1 - wildE.y) > 2.5) continue; const b1 = G.world.getBlock(Math.floor(x), g0 + 1, Math.floor(z)), b2 = G.world.getBlock(Math.floor(x), g0 + 2, Math.floor(z)); if (b1 !== B.AIR || b2 !== B.AIR) continue; if (!sight(x, g0 + 1.6, z, wildE.x, wildE.y + 0.8, wildE.z)) continue; px = x; pz = z; found = true; break; }
     const gy = G.world.groundY(Math.floor(px), Math.floor(pz), Math.floor(Math.max(wildE.y, p.y)) + 3);
     mineE = { x: px, y: Math.max(gy + 1, wildE.y - 2), z: pz, yaw: Math.atan2(wildE.x - px, wildE.z - pz), model: m, scale: 1, hover: m.hover, mesh: R.entityMesh(KIN.meshKey(mine.sp, mine.stage) + KIN.wearKey(mine.wear), (mb) => KIN.buildMesh(mb, KIN.dress(m, mine.wear))), skyMul: wildE.skyMul };
     wildE.yaw = Math.atan2(px - wildE.x, pz - wildE.z);
@@ -14974,6 +14978,7 @@ const Battle = (() => {
     return out;
   }
   // ---- camera: behind your Kin, looking across at the wild one ----
+  let camPick = null;
   function camera(dt, mobile) {
     if (!wildE) return null;
     const me = mineE || { x: G.player.x, y: G.player.y, z: G.player.z, model: { height: 1.8, scale: 1 } };
@@ -14982,6 +14987,12 @@ const Battle = (() => {
     const side = [-bz, bx];
     const mh = me.model.height * (me.model.scale || 1), wh = wildE.model.height * (wildE.model.scale || 1);
     let cx = me.x + bx * 1.4 + side[0] * 2.8, cz = me.z + bz * 1.4 + side[1] * 2.8, cy = me.y + Math.max(1.2, mh * 0.7) + 0.6;
+    { /* pulled back and up so both of them are in the picture whole, on whichever side has nothing in the way: no trunk, no leaves between the lens and either one. The choice is made once and kept, so the view does not hop about */
+      const big = Math.max(mh, wh), back = 2.1 + big * 0.65 + d * 0.18, out = 2.5 + big * 0.42 + d * 0.1, up = Math.max(1.5, mh * 0.8) + 0.9 + big * 0.3;
+      if (!camPick || camPick.w !== wildE) { let best = null; for (const lift of [1, 1.35, 1.8, 2.4]) { for (const sg of [1, -1]) { const x = me.x + bx * back + side[0] * out * sg, z = me.z + bz * back + side[1] * out * sg, y = me.y + up * lift; if (isSolid(G.world.getBlock(Math.floor(x), Math.floor(y), Math.floor(z)))) continue; if (sight(x, y, z, me.x, me.y + mh * 0.6, me.z) && sight(x, y, z, wildE.x, wildE.y + wh * 0.6, wildE.z)) { best = { sg, lift }; break; } } if (best) break; } camPick = Object.assign({ w: wildE }, best || { sg: 1, lift: 2.4 });
+        /* and you step out of the picture's middle: behind your Kin, on the side away from the lens, so you are never standing between the two of them or in front of the view */
+        if (mineE) { const P = G.player; for (const [bk, sd] of [[2.0, 1.7], [2.8, 1.2], [1.4, 2.4], [3.4, 0.4]]) { const x = me.x + bx * bk - side[0] * sd * camPick.sg, z = me.z + bz * bk - side[1] * sd * camPick.sg, g0 = G.world.groundY(Math.floor(x), Math.floor(z), Math.floor(me.y) + 3); if (Math.abs(g0 + 1 - me.y) > 2 || G.world.getBlock(Math.floor(x), g0 + 1, Math.floor(z)) !== B.AIR || G.world.getBlock(Math.floor(x), g0 + 2, Math.floor(z)) !== B.AIR) continue; P.x = x; P.z = z; P.y = g0 + 1.02; P.vx = P.vy = P.vz = 0; P.yaw = Math.atan2(-(wildE.x - x), -(wildE.z - z)); break; } } }
+      cx = me.x + bx * back + side[0] * out * camPick.sg; cz = me.z + bz * back + side[1] * out * camPick.sg; cy = me.y + up * camPick.lift; }
     // keep the camera out of blocks
     for (let i = 0; i < 6 && isSolid(G.world.getBlock(Math.floor(cx), Math.floor(cy), Math.floor(cz))); i++) { cx -= bx * 0.4; cz -= bz * 0.4; cy += 0.3; }
     const lx = (me.x + wildE.x) / 2, lz = (me.z + wildE.z) / 2, ly = (me.y + mh * 0.5 + wildE.y + wh * 0.5) / 2;
@@ -15092,6 +15103,7 @@ const RECIPES = [
 const QUESTS = [
   { id: 'first', title: 'Three by the Brook', desc: 'Maren the net-maker pulled you out of the water. Three young Kin she freed are on the banks of the brook by the camp. Meet them, see how each behaves, and share your bread with the one you want at your side.', hint: 'Meet the three young Kin on the banks of the brook and share your bread with one', check: G => (!G.stats.first || G.stats.first.stage >= 2) ? 1 : 0, reward: { xp: 10 } },
   { id: 'firstcatch', title: 'The First Throw', desc: 'Maren gave you a net. Walk out past the camp until a wild Kin comes at you and let your Kin fight it. When the wild one goes down it lies dazed for about ten seconds: tap it, or the Net button. Hold and draw circles to swing the net open, flick up at the Kin, then swirl the other way as it lands to draw it shut. You can also creep up behind one that has not seen you and net it there. A second Kin makes Grakor a fair fight.', hint: 'Net a wild Kin: beat it with yours, then tap it while it is dazed', check: G => (!G.stats.first || (G.stats.caught || 0) >= 1 || G.kin.length + G.box.length >= 2 || G.stats.villageFreed) ? 1 : 0, reward: { items: { snare: 1 }, xp: 20 } },
+  { id: 'mend', title: 'Mending', desc: 'Maren asked you to come back once you had caught a Kin. A fight leaves them hurt, and she will show you how to mend them before you go near the village.', hint: 'Go back to Maren at the camp: she will show you how to heal your Kin', check: G => (!G.stats.first || G.stats.first.healed || G.stats.villageFreed) ? 1 : 0, reward: { xp: 10 } },
   { id: 'village', title: 'Free the Village', desc: 'Grakor the Tyrant holds the village by your camp and keeps its people shut in their homes. A fresh starter can take it; a second Kin makes it safe. Tap the blue camp fire to revive and heal everyone if it goes wrong.', hint: 'Free the village: beat Grakor in the square', check: G => G.stats.villageFreed ? 1 : 0, reward: { items: { snare: 1, shovel: 1, hatchet: 1 }, xp: 40 } },
   { id: 'timber', title: 'Timber', desc: 'The village gave you a hatchet and a shovel. Your hands only pick plants and berries; the hatchet cuts wood. Hold your finger (or left mouse) on a tree trunk until it gives: the whole tree comes down and every log in it is yours. Collect 6 wood.', hint: 'Fell a tree: hold your finger on the trunk', check: G => G.stats.got.wood / 6, reward: { items: { snare: 1 }, xp: 10 } },
   { id: 'foreman', title: 'The Mining Camp', desc: 'A Cast Net needs stone, and stone needs a pick: no shovel will bite it. There is a mining camp out past the village: a headframe over a shaft, and a crew. Find Foreman Garrick (⛏ on the map) and ask for a pick.', hint: 'Talk to Foreman Garrick at the Mining Camp', check: G => (G.stats.camp || {}).pick ? 1 : 0, reward: { xp: 25 } },
@@ -17525,6 +17537,7 @@ const UI = (() => {
       };
       switch (name) {
         case 'mine': tone(180, 120, 0.06, 'square', 0.05); break;
+        case 'gift': tone(784, 784, 0.1, 'triangle', 0.08); tone(988, 988, 0.1, 'triangle', 0.08, 0.1); tone(1175, 1175, 0.1, 'triangle', 0.08, 0.2); tone(1568, 1568, 0.3, 'triangle', 0.09, 0.3); tone(784, 1568, 0.3, 'sine', 0.04, 0.3); break; /* something put in your hands: four notes going up */
         case 'whistle': tone(880, 868, 0.32, 'sine', 0.09); tone(1108, 1094, 0.32, 'sine', 0.07); tone(880, 868, 0.55, 'sine', 0.09, 0.42); tone(1108, 1094, 0.55, 'sine', 0.07, 0.42); break;
         case 'gem': tone(1320, 1760, 0.08, 'sine', 0.06); tone(1980, 2640, 0.11, 'sine', 0.04, 0.05); break;
         case 'gemBig': tone(880, 1320, 0.12, 'triangle', 0.08); tone(1320, 1760, 0.14, 'sine', 0.07, 0.09); tone(1760, 2640, 0.22, 'sine', 0.06, 0.18); break;
@@ -20003,7 +20016,7 @@ const First = (() => {
     for (const [da, r] of [[0, 9], [1.3, 10], [-1.3, 10], [0.8, 12], [-0.8, 12], [0.4, 13], [-0.4, 13], [1.6, 9], [-1.6, 9]]) { if (out.length >= 3) break; let x = c.x + Math.sin(back + da) * r, z = c.z + Math.cos(back + da) * r; if (!out.length && bk) { x = bk.x - Math.sin(bk.a) * 3.2; z = bk.z - Math.cos(bk.a) * 3.2; }
       if (dry(x, z, c.y) != null && Math.abs(gy(x, z, c.y) - c.y) < 5) out.push([x + 0.5, z + 0.5]); }
     while (out.length < 3) out.push([c.x + 4 + out.length * 2, c.z - 5]); return out; }
-  function build() { const s = S(), c = G.camp; if (!maren) { const vv = G.village, vl = Math.hypot(vv.x - c.x, vv.z - c.z) || 1, ux = (vv.x - c.x) / vl, uz = (vv.z - c.z) / vl; let mx = c.x - 0.5 + ux * 2.8 - uz * 1.1, mz = c.z - 0.5 + uz * 2.8 + ux * 1.1; /* in front of you as you come round, a step to one side of the way to the village */ maren = Village.makeNpc(98, 'traveller', mx, mz, 'Maren', null, gy(mx, mz, c.y), 'shore'); maren.wander = false; maren.tag = 'net-maker'; maren.onTalk = talk; Village.addLoose(maren); }
+  function build() { const s = S(), c = G.camp; if (!maren) { const vv = G.village, vl = Math.hypot(vv.x - c.x, vv.z - c.z) || 1, ux = (vv.x - c.x) / vl, uz = (vv.z - c.z) / vl; let mx = c.x - 0.5 + ux * 2.6 - uz * 2.1, mz = c.z - 0.5 + uz * 2.6 + ux * 2.1; /* in front of you as you come round, a step to one side of the way to the village */ maren = Village.makeNpc(98, 'traveller', mx, mz, 'Maren', null, gy(mx, mz, c.y), 'shore'); maren.wander = false; maren.tag = 'net-maker'; maren.onTalk = talk; Village.addLoose(maren); }
     if (s.stage <= 1 && !three.length) { const sts = KIN.starters(G.baseSeed), sp = bankSpots() || spots(); const at = [1, 0, 2]; three = sts.map((q, i) => ent(q, sp[at[i]][0], sp[at[i]][1])); /* the tadpole gets the bank */ } }
 
   function say(lines, done) { G.talkNpc = maren; Dialogue.show('Maren', lines, done); }
@@ -20017,7 +20030,10 @@ const First = (() => {
       'I cannot do it. They know my face in there. You they have never seen. But you would not last a minute against him alone. You need a Kin of your own first.',
       'So. The night he came I cut the pens open, and three young ones followed me out. They are right here along the brook, keeping their distance from me. I smell of the pens.',
       'Take this bread and go and meet them. Watch how each one carries on: that is its temper talking. Whichever takes the bread from you is yours, and you are its. Then come back to me.'],
-      () => { G.player.add('bread', 1); S().stage = 1; UI.toast('Three young Kin are on the banks of the brook. Go and meet them.', 'good'); }); }
+      () => { const p = G.player; p.add('bread', 1); S().stage = 1; UI.sfx('gift'); const hb = p.hotbar(), i = hb.indexOf('bread'); if (i >= 0) p.sel = i; UI.renderHotbar(); pulseBar();
+        G.explain('Bread', 'Maren put bread in your hand. The bar at the bottom shows what you are holding, and the arrows either side of it switch between your things. It is on the bread now. Walk to the brook, go up to one of the three Kin and tap it to offer the bread.'); }); }
+  /* the bar at the bottom throbs for a few seconds, so a first-timer sees where the thing went */
+  function pulseBar() { const hb = document.getElementById('hotbar'); if (!hb) return; hb.style.transition = 'box-shadow .35s, transform .35s'; let n = 0; const iv = setInterval(() => { const on = n % 2 === 0; hb.style.boxShadow = on ? '0 0 0 3px #ffd45a, 0 0 22px 6px rgba(255,212,90,.8)' : ''; hb.style.transform = (hb.style.transform || '').replace(/ ?scale\([^)]*\)/, '') + (on ? ' scale(1.08)' : ''); if (++n > 9) { clearInterval(iv); hb.style.boxShadow = ''; hb.style.transform = (hb.style.transform || '').replace(/ ?scale\([^)]*\)/, ''); } }, 380); }
   function sendOff() { const k = G.kin[0], nm = k ? KIN.name(k) : 'That one';
     say([`Well. ${nm}. I would have bet on one of the others.`,
       'The other two have run for the village, looking for their own. Grakor\'s lot will have them penned by dark. So now there are three reasons to go.',
@@ -20025,10 +20041,17 @@ const First = (() => {
       'It does not hold a Kin by force, nothing would hold the big ones. It quiets them, like a cloth over a horse\'s eyes, and a quiet Kin makes up its own mind to stay.',
       `It only works on one that is worn out. So walk out into the forest until a wild one comes at you, and let ${nm} deal with it. When it goes down it lies dazed for a few breaths. Tap it then.`,
       'The rest is in the wrist. Draw circles to swing the net open. Flick it up at the Kin. As it lands, swirl the other way to draw it shut.',
-      'Then follow the smoke. He sits in the square. Rest at this fire whenever you need to. I will keep it in.'],
-      () => { G.player.add('snare', 1); S().stage = 3; UI.toast('Maren gave you a Cast Net.', 'good'); }); }
+      'One more thing. When you have caught one, come back to me before you go near the village. A fight leaves a Kin hurt, and I will show you how to mend them.'],
+      () => { const p = G.player; p.add('snare', 1); S().stage = 3; UI.sfx('gift'); pulseBar(); UI.toast('Maren gave you a Cast Net.', 'good'); }); }
+  function healTalk() { const k = G.kin[0], nm = k ? KIN.name(k) : 'your Kin';
+    say(['You got one. Good. Now look at them: every fight costs a Kin some of its health, and one that runs out faints and is no use to you until it is mended.',
+      'There are two ways. The first is this fire. Tap it and rest: you and every Kin you carry wake up whole. It costs nothing, and any camp fire will do it.',
+      'The second is for when you are far from a fire. A heal tonic. Take these two. Pick the tonic in your bar, tap the screen, and choose the Kin to give it to.',
+      `Check on them under Kin, at the top of the screen. Keep ${nm} on its feet and the rest follows. Now go: follow the smoke. He sits in the square.`],
+      () => { const p = G.player; p.add('tonic_heal', 2); S().healed = true; UI.sfx('gift'); pulseBar(); UI.toast('Maren gave you 2 Heal Tonics.', 'good'); }); }
   function talk() { const s = S(); if (!s) return; if (s.stage === 0) return wake(); if (s.stage === 2) return sendOff();
     if (s.stage === 1) return say(['All three are on the banks of the brook, a few steps from the water. A shy one you creep up on. A cross one you let come to you: stand near and keep still. A sleepy one only wants the bread.']);
+    if (!s.healed && ((G.stats.caught || 0) > 0 || G.kin.length + G.box.length >= 2)) return healTalk();
     if (!G.stats.villageFreed && !(G.stats.caught > 0)) return say(['The net? Let a wild Kin come at you and let yours beat it. It lies dazed a few breaths: tap it then.', 'Draw circles to swing the net open, flick it up at the Kin, and swirl the other way as it lands to shut it. Or creep up behind one that has not seen you, and the Net button shows.', G.player.has('snare') || G.player.has('snare2') ? 'If you miss, the net comes back to you. Take your time.' : 'Lost yours? Here, another.'], () => { if (!G.player.has('snare') && !G.player.has('snare2')) G.player.add('snare', 1); });
     say(G.stats.villageFreed ? ['They have let me back into the weaving shed. I like the fire better. Your two friends are in the square, fat as butter.'] : ['Still here. The fire is in. Sit by it if you are hurt.']); }
 
@@ -20058,7 +20081,7 @@ const First = (() => {
   let pals = null;
   function friends(dt, p) { const v = G.village; if (Math.hypot(p.x - v.x, p.z - v.z) > 60) { pals = null; return; } if (!pals) { const sts = KIN.starters(G.baseSeed); pals = S().held.map((i, n) => { const e = ent(sts[i], v.x + 3 - n * 6, v.z + 3); e.y = gy(e.x, e.z, v.y || p.y); e.pal = true; return e; }); }
     for (const e of pals) { e.t += dt; e.bob += dt; if (!go(e, dt, 1.4) && (e.wait = (e.wait || 2) - dt) <= 0) { e.wait = 2 + Math.random() * 4; e.tx = e.hx + (Math.random() - 0.5) * 7; e.tz = e.hz + (Math.random() - 0.5) * 7; } const g = gy(e.x, e.z, e.y); if (Math.abs(g - e.y) < 1.6) e.y += (g - e.y) * Math.min(1, dt * 10); else { e.tx = e.hx; e.tz = e.hz; } } }
-  function near(p, list) { const f = U.forwardVec(p.yaw, 0); let best = null, bd = 3.6; for (const e of list) { const dx = e.x - p.x, dz = e.z - p.z, d = Math.hypot(dx, dz); if (d < bd && (d < 1.2 || (dx * f[0] + dz * f[2]) / d > 0.3)) { bd = d; best = e; } } return best; }
+  function near(p, list) { const f = U.forwardVec(p.yaw, 0); let best = null, bd = 3.6; for (const e of list) { const dx = e.x - p.x, dz = e.z - p.z, d = Math.hypot(dx, dz); if (d < bd && (d < 1.2 || (dx * f[0] + dz * f[2]) / d > -0.25)) { bd = d; best = e; } } return best; }
   const HINT = ['', 'It bolts if you walk up on it. Creep: hold sneak and come slowly.', 'It will not be marched at. Stand near it, keep still, and let it come to you.', '', ''];
   function tap(p) { const s = S(); if (!s) return false; if (s.stage === 3 && pals) { const e = near(p, pals); if (e) { UI.toast(`${KIN.name(e.kin)} knows you from the brook, and comes to have its head scratched.`); emote(e, '♥', '#ff9ab8'); return true; } return false; }
     if (s.stage !== 1) return false; const e = near(p, three); if (!e) return false; const nm = KIN.name(e.kin), d = Math.hypot(e.x - p.x, e.z - p.z);
@@ -20287,7 +20310,7 @@ G.newWorld = function (seed, starterIdx, name) {
   const slot = Saves.create(name); this.SAVE_KEY = slot.key; this.gameId = slot.id; this.gameName = slot.name;
   setTimeout(() => {
     this.stats = freshStats(); this.questState = null; this.xp = 0; this.trainerLevel = 1; this.mythicCaught = false; this.kin = []; this.box = []; this.eggs = []; this.activeIdx = 0; this.shards = 0; this.village = null; this.secure = {}; this.respawnPoint = null; this.worlds = {}; this.worldId = 'earth';
-    this.villageState = {}; this.poiState = {}; this.chests = {}; this.npcState = {}; this.labState = {}; this.amulet = { cd: 0, kind: null, until: 0, charges: 0 }; this.skin = 'ranger'; this.thirdPerson = false; this.lastVillage = null; this.fisherSpot = null; this.fisherTarget = null; this.founded = []; this.dayCount = 0; this.wasNight = null; this.fisherTried = false;
+    this.villageState = {}; this.poiState = {}; this.chests = {}; this.npcState = {}; this.labState = {}; this.amulet = { cd: 0, kind: null, until: 0, charges: 0 }; this.skin = 'ranger'; this.thirdPerson = true; this.lastVillage = null; this.fisherSpot = null; this.fisherTarget = null; this.founded = []; this.dayCount = 0; this.wasNight = null; this.fisherTried = false;
     this.player = null; this.setupWorld(seed, 'earth');
     const w = this.world, s = w.spawn;
     w.ensureAround(Math.floor(s.x / CH), Math.floor(s.z / CH), 4, 999);
@@ -20302,10 +20325,12 @@ G.newWorld = function (seed, starterIdx, name) {
       w.ensureAround(Math.floor(s.x / CH), Math.floor(s.z / CH), 4, 999); }
     const p = this.player; p.x = s.x; p.y = s.y + 0.2; p.z = s.z;
     for (let dx = -1; dx <= 1; dx++) for (let dz = -1; dz <= 1; dz++) for (let y = Math.floor(s.y); y < s.y + 3; y++) { const b = w.getBlock(Math.floor(s.x) + dx, y, Math.floor(s.z) + dz); if (isLeaf(b) || (b === B.LOG && !dx && !dz)) w.setBlock(Math.floor(s.x) + dx, y, Math.floor(s.z) + dz, B.AIR); }
+    for (let dx = -5; dx <= 5; dx++) for (let dz = -5; dz <= 5; dz++) for (let y = Math.floor(s.y); y < s.y + 16; y++) { const bb = w.getBlock(Math.floor(s.x) + dx, y, Math.floor(s.z) + dz); if (isLeaf(bb) || bb === B.LOG) w.setBlock(Math.floor(s.x) + dx, y, Math.floor(s.z) + dz, B.AIR); } /* a clearing: no tree within five steps, open sky over the camp: the view from behind your shoulder must not start inside a tree */
     w.setBlock(Math.floor(s.x) + 1, Math.floor(s.y), Math.floor(s.z) + 1, B.CAMPFIRE); // the magic camp fire: light and resting spot
     this.camp = { x: Math.floor(s.x) + 1, y: Math.floor(s.y), z: Math.floor(s.z) + 1 };
     w.placeSpawnRuin(); this.stats.ruinPlaced = true;
     p.yaw = Math.atan2(-(this.village.x - s.x), -(this.village.z - s.z));
+    if (this.orbit) { this.orbit.yaw = p.yaw; this.orbit.pitch = p.pitch; }
     this.stats.recipes = { earth: [0, 1], moon: [0], halo: [0] };
     const story = !(starterIdx >= 0); /* the opening: no Kin yet, you choose one by the brook. A card picked on the menu skips it */
     const starter = story ? null : KIN.create(KIN.starters(seed)[starterIdx], 5);
@@ -20705,6 +20730,7 @@ G.shoot = function (pick) {
 };
 // use a consumable from the Bag or by tapping with it held
 G.useItem = function (key) {
+  if (key === 'bread' && this.stats.first && this.stats.first.stage === 1) { UI.toast('That bread is for the Kin. Walk up to one on the brook and tap it.'); return false; }
   const p = this.player; const info = key ? p.itemInfo(key) : null; if (!info || !info.use || !p.has(key)) return false;
   if (info.use === 'warm') { p.take(key, 1); this.warmUntil = performance.now() + 240000; UI.sfx('util'); UI.toast('Warm all the way through. Four minutes before the cold can bite.', 'good'); UI.renderHotbar(); return true; }
   if (info.use === 'player') { if (p.hp >= p.maxHp) { UI.toast('You are at full health.'); return false; } p.take(key, 1); p.hp = p.maxHp; UI.sfx('util'); UI.toast('You feel whole again.', 'good'); UI.renderHotbar(); return true; }
@@ -21240,6 +21266,7 @@ G.load = function () {
   try { data = JSON.parse(localStorage.getItem(this.SAVE_KEY)); } catch (e) { return false; }
   if (!data || !data.seed) return false;
   this.stats = Object.assign(freshStats(), data.stats || {}); this.questState = data.questState || null; this.xp = data.xp || 0; this.trainerLevel = this.trainerLevelFor(this.xp); this.mythicCaught = !!data.mythicCaught; this.shards = data.shards || 0; this.secure = data.secure || {};
+  this.thirdPerson = true; /* every game opens looking over your own shoulder */
   this.villageState = data.villageState || {}; this.poiState = data.poiState || {}; this.pin = data.pin || null; this.chests = data.chests || {}; this.npcState = data.npcState || {}; this.labState = data.labState || {}; this.amulet = { cd: 0, kind: null, until: 0, charges: 0 }; this.skin = data.skin || 'ranger'; this.thirdPerson = !!data.thirdPerson; this.lastVillage = data.lastVillage || null; this.fisherSpot = data.fisherSpot || null; this.fisherTarget = data.fisherTarget || null; this.founded = data.founded || []; this.dayCount = data.dayCount || 0; this.wasNight = null; this.fisherTried = false;
   this.player = null;
   if (data.v >= 2) {

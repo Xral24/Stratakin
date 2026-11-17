@@ -33,7 +33,7 @@ const First = (() => {
     for (const [da, r] of [[0, 9], [1.3, 10], [-1.3, 10], [0.8, 12], [-0.8, 12], [0.4, 13], [-0.4, 13], [1.6, 9], [-1.6, 9]]) { if (out.length >= 3) break; let x = c.x + Math.sin(back + da) * r, z = c.z + Math.cos(back + da) * r; if (!out.length && bk) { x = bk.x - Math.sin(bk.a) * 3.2; z = bk.z - Math.cos(bk.a) * 3.2; }
       if (dry(x, z, c.y) != null && Math.abs(gy(x, z, c.y) - c.y) < 5) out.push([x + 0.5, z + 0.5]); }
     while (out.length < 3) out.push([c.x + 4 + out.length * 2, c.z - 5]); return out; }
-  function build() { const s = S(), c = G.camp; if (!maren) { const vv = G.village, vl = Math.hypot(vv.x - c.x, vv.z - c.z) || 1, ux = (vv.x - c.x) / vl, uz = (vv.z - c.z) / vl; let mx = c.x - 0.5 + ux * 2.8 - uz * 1.1, mz = c.z - 0.5 + uz * 2.8 + ux * 1.1; /* in front of you as you come round, a step to one side of the way to the village */ maren = Village.makeNpc(98, 'traveller', mx, mz, 'Maren', null, gy(mx, mz, c.y), 'shore'); maren.wander = false; maren.tag = 'net-maker'; maren.onTalk = talk; Village.addLoose(maren); }
+  function build() { const s = S(), c = G.camp; if (!maren) { const vv = G.village, vl = Math.hypot(vv.x - c.x, vv.z - c.z) || 1, ux = (vv.x - c.x) / vl, uz = (vv.z - c.z) / vl; let mx = c.x - 0.5 + ux * 2.6 - uz * 2.1, mz = c.z - 0.5 + uz * 2.6 + ux * 2.1; /* in front of you as you come round, a step to one side of the way to the village */ maren = Village.makeNpc(98, 'traveller', mx, mz, 'Maren', null, gy(mx, mz, c.y), 'shore'); maren.wander = false; maren.tag = 'net-maker'; maren.onTalk = talk; Village.addLoose(maren); }
     if (s.stage <= 1 && !three.length) { const sts = KIN.starters(G.baseSeed), sp = bankSpots() || spots(); const at = [1, 0, 2]; three = sts.map((q, i) => ent(q, sp[at[i]][0], sp[at[i]][1])); /* the tadpole gets the bank */ } }
 
   function say(lines, done) { G.talkNpc = maren; Dialogue.show('Maren', lines, done); }
@@ -47,7 +47,10 @@ const First = (() => {
       'I cannot do it. They know my face in there. You they have never seen. But you would not last a minute against him alone. You need a Kin of your own first.',
       'So. The night he came I cut the pens open, and three young ones followed me out. They are right here along the brook, keeping their distance from me. I smell of the pens.',
       'Take this bread and go and meet them. Watch how each one carries on: that is its temper talking. Whichever takes the bread from you is yours, and you are its. Then come back to me.'],
-      () => { G.player.add('bread', 1); S().stage = 1; UI.toast('Three young Kin are on the banks of the brook. Go and meet them.', 'good'); }); }
+      () => { const p = G.player; p.add('bread', 1); S().stage = 1; UI.sfx('gift'); const hb = p.hotbar(), i = hb.indexOf('bread'); if (i >= 0) p.sel = i; UI.renderHotbar(); pulseBar();
+        G.explain('Bread', 'Maren put bread in your hand. The bar at the bottom shows what you are holding, and the arrows either side of it switch between your things. It is on the bread now. Walk to the brook, go up to one of the three Kin and tap it to offer the bread.'); }); }
+  /* the bar at the bottom throbs for a few seconds, so a first-timer sees where the thing went */
+  function pulseBar() { const hb = document.getElementById('hotbar'); if (!hb) return; hb.style.transition = 'box-shadow .35s, transform .35s'; let n = 0; const iv = setInterval(() => { const on = n % 2 === 0; hb.style.boxShadow = on ? '0 0 0 3px #ffd45a, 0 0 22px 6px rgba(255,212,90,.8)' : ''; hb.style.transform = (hb.style.transform || '').replace(/ ?scale\([^)]*\)/, '') + (on ? ' scale(1.08)' : ''); if (++n > 9) { clearInterval(iv); hb.style.boxShadow = ''; hb.style.transform = (hb.style.transform || '').replace(/ ?scale\([^)]*\)/, ''); } }, 380); }
   function sendOff() { const k = G.kin[0], nm = k ? KIN.name(k) : 'That one';
     say([`Well. ${nm}. I would have bet on one of the others.`,
       'The other two have run for the village, looking for their own. Grakor\'s lot will have them penned by dark. So now there are three reasons to go.',
@@ -55,10 +58,17 @@ const First = (() => {
       'It does not hold a Kin by force, nothing would hold the big ones. It quiets them, like a cloth over a horse\'s eyes, and a quiet Kin makes up its own mind to stay.',
       `It only works on one that is worn out. So walk out into the forest until a wild one comes at you, and let ${nm} deal with it. When it goes down it lies dazed for a few breaths. Tap it then.`,
       'The rest is in the wrist. Draw circles to swing the net open. Flick it up at the Kin. As it lands, swirl the other way to draw it shut.',
-      'Then follow the smoke. He sits in the square. Rest at this fire whenever you need to. I will keep it in.'],
-      () => { G.player.add('snare', 1); S().stage = 3; UI.toast('Maren gave you a Cast Net.', 'good'); }); }
+      'One more thing. When you have caught one, come back to me before you go near the village. A fight leaves a Kin hurt, and I will show you how to mend them.'],
+      () => { const p = G.player; p.add('snare', 1); S().stage = 3; UI.sfx('gift'); pulseBar(); UI.toast('Maren gave you a Cast Net.', 'good'); }); }
+  function healTalk() { const k = G.kin[0], nm = k ? KIN.name(k) : 'your Kin';
+    say(['You got one. Good. Now look at them: every fight costs a Kin some of its health, and one that runs out faints and is no use to you until it is mended.',
+      'There are two ways. The first is this fire. Tap it and rest: you and every Kin you carry wake up whole. It costs nothing, and any camp fire will do it.',
+      'The second is for when you are far from a fire. A heal tonic. Take these two. Pick the tonic in your bar, tap the screen, and choose the Kin to give it to.',
+      `Check on them under Kin, at the top of the screen. Keep ${nm} on its feet and the rest follows. Now go: follow the smoke. He sits in the square.`],
+      () => { const p = G.player; p.add('tonic_heal', 2); S().healed = true; UI.sfx('gift'); pulseBar(); UI.toast('Maren gave you 2 Heal Tonics.', 'good'); }); }
   function talk() { const s = S(); if (!s) return; if (s.stage === 0) return wake(); if (s.stage === 2) return sendOff();
     if (s.stage === 1) return say(['All three are on the banks of the brook, a few steps from the water. A shy one you creep up on. A cross one you let come to you: stand near and keep still. A sleepy one only wants the bread.']);
+    if (!s.healed && ((G.stats.caught || 0) > 0 || G.kin.length + G.box.length >= 2)) return healTalk();
     if (!G.stats.villageFreed && !(G.stats.caught > 0)) return say(['The net? Let a wild Kin come at you and let yours beat it. It lies dazed a few breaths: tap it then.', 'Draw circles to swing the net open, flick it up at the Kin, and swirl the other way as it lands to shut it. Or creep up behind one that has not seen you, and the Net button shows.', G.player.has('snare') || G.player.has('snare2') ? 'If you miss, the net comes back to you. Take your time.' : 'Lost yours? Here, another.'], () => { if (!G.player.has('snare') && !G.player.has('snare2')) G.player.add('snare', 1); });
     say(G.stats.villageFreed ? ['They have let me back into the weaving shed. I like the fire better. Your two friends are in the square, fat as butter.'] : ['Still here. The fire is in. Sit by it if you are hurt.']); }
 
@@ -88,7 +98,7 @@ const First = (() => {
   let pals = null;
   function friends(dt, p) { const v = G.village; if (Math.hypot(p.x - v.x, p.z - v.z) > 60) { pals = null; return; } if (!pals) { const sts = KIN.starters(G.baseSeed); pals = S().held.map((i, n) => { const e = ent(sts[i], v.x + 3 - n * 6, v.z + 3); e.y = gy(e.x, e.z, v.y || p.y); e.pal = true; return e; }); }
     for (const e of pals) { e.t += dt; e.bob += dt; if (!go(e, dt, 1.4) && (e.wait = (e.wait || 2) - dt) <= 0) { e.wait = 2 + Math.random() * 4; e.tx = e.hx + (Math.random() - 0.5) * 7; e.tz = e.hz + (Math.random() - 0.5) * 7; } const g = gy(e.x, e.z, e.y); if (Math.abs(g - e.y) < 1.6) e.y += (g - e.y) * Math.min(1, dt * 10); else { e.tx = e.hx; e.tz = e.hz; } } }
-  function near(p, list) { const f = U.forwardVec(p.yaw, 0); let best = null, bd = 3.6; for (const e of list) { const dx = e.x - p.x, dz = e.z - p.z, d = Math.hypot(dx, dz); if (d < bd && (d < 1.2 || (dx * f[0] + dz * f[2]) / d > 0.3)) { bd = d; best = e; } } return best; }
+  function near(p, list) { const f = U.forwardVec(p.yaw, 0); let best = null, bd = 3.6; for (const e of list) { const dx = e.x - p.x, dz = e.z - p.z, d = Math.hypot(dx, dz); if (d < bd && (d < 1.2 || (dx * f[0] + dz * f[2]) / d > -0.25)) { bd = d; best = e; } } return best; }
   const HINT = ['', 'It bolts if you walk up on it. Creep: hold sneak and come slowly.', 'It will not be marched at. Stand near it, keep still, and let it come to you.', '', ''];
   function tap(p) { const s = S(); if (!s) return false; if (s.stage === 3 && pals) { const e = near(p, pals); if (e) { UI.toast(`${KIN.name(e.kin)} knows you from the brook, and comes to have its head scratched.`); emote(e, '♥', '#ff9ab8'); return true; } return false; }
     if (s.stage !== 1) return false; const e = near(p, three); if (!e) return false; const nm = KIN.name(e.kin), d = Math.hypot(e.x - p.x, e.z - p.z);

@@ -13,4 +13,5 @@ const { open } = require('./harness');
   console.log('taps', JSON.stringify(r1), JSON.stringify(taps));
   await page.waitForTimeout(4500); console.log('dlg2', await ev(() => Dialogue.active() && document.getElementById('dialogue').textContent.slice(0, 80))); await adv();
   console.log('end', JSON.stringify(await ev(() => ({ stage: G.stats.first.stage, held: G.stats.first.held, kin: G.kin.map(k => KIN.name(k) + ' bond ' + k.bond), net: G.player.count('snare'), bread: G.player.count('bread'), buddy: Buddy.entities().length, quest: document.getElementById('quest-hint').textContent.slice(0, 60) }))));
+  await ev(() => { G.stats.caught = 1; First.maren.onTalk(First.maren); }); await page.waitForTimeout(400); console.log('heal dlg', await ev(() => document.getElementById('dialogue').textContent.slice(0, 60))); await adv(); console.log('heal', JSON.stringify(await ev(() => ({ healed: G.stats.first.healed, tonic: G.player.count('tonic_heal'), third: G.thirdPerson, quest: document.getElementById('quest-hint').textContent.slice(0, 50) }))));
   console.log('ERRORS:', h.errors.slice(0, 3).join(' | ') || 'none'); await h.close(); })();

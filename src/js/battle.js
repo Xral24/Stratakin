@@ -49,11 +49,15 @@ const Battle = (() => {
     renderActions();
     busy = false;
   }
+  /* is the way from one point to another open: no block of any kind in it, leaves included */
+  function sight(x0, y0, z0, x1, y1, z1) { const dx = x1 - x0, dy = y1 - y0, dz = z1 - z0, L = Math.hypot(dx, dy, dz), n = Math.ceil(L / 0.45); for (let i = 1; i < n; i++) { const u = i / n, b = G.world.getBlock(Math.floor(x0 + dx * u), Math.floor(y0 + dy * u), Math.floor(z0 + dz * u)); if (b !== B.AIR && b !== B.WATER && (isSolid(b) || isLeaf(b) || b === B.LOG)) return false; } return true; } /* flowers and grass tufts are not in the way */
   function placeMine() {
     const m = KIN.model(mine.sp, mine.stage);
     const p = G.player;
     const dx = wildE.x - p.x, dz = wildE.z - p.z, d = Math.hypot(dx, dz) || 1;
-    const px = p.x + dx / d * Math.min(2.0, d * 0.4), pz = p.z + dz / d * Math.min(2.0, d * 0.4);
+    /* your Kin squares up a set distance from the other one, on open ground, wherever the two of you happened to be: far enough apart that both are seen whole. Of the places tried round it, the one nearest you with clear ground and a clear line wins */
+    const wm = wildE.model, S = U.clamp(3.2 + 0.9 * ((m.height || 1) + (wm.height || 1) * (wildE.scale || 1)), 4.5, 10), a0 = Math.atan2(-dx, -dz); let px = wildE.x - dx / d * S, pz = wildE.z - dz / d * S, found = false;
+    for (const da of [0, 0.45, -0.45, 0.9, -0.9, 1.4, -1.4, 2.0, -2.0, 3.14]) { const x = wildE.x + Math.sin(a0 + da) * S, z = wildE.z + Math.cos(a0 + da) * S, g0 = G.world.groundY(Math.floor(x), Math.floor(z), Math.floor(wildE.y) + 4); if (Math.abs(g0 + 1 - wildE.y) > 2.5) continue; const b1 = G.world.getBlock(Math.floor(x), g0 + 1, Math.floor(z)), b2 = G.world.getBlock(Math.floor(x), g0 + 2, Math.floor(z)); if (b1 !== B.AIR || b2 !== B.AIR) continue; if (!sight(x, g0 + 1.6, z, wildE.x, wildE.y + 0.8, wildE.z)) continue; px = x; pz = z; found = true; break; }
     const gy = G.world.groundY(Math.floor(px), Math.floor(pz), Math.floor(Math.max(wildE.y, p.y)) + 3);
     mineE = { x: px, y: Math.max(gy + 1, wildE.y - 2), z: pz, yaw: Math.atan2(wildE.x - px, wildE.z - pz), model: m, scale: 1, hover: m.hover, mesh: R.entityMesh(KIN.meshKey(mine.sp, mine.stage) + KIN.wearKey(mine.wear), (mb) => KIN.buildMesh(mb, KIN.dress(m, mine.wear))), skyMul: wildE.skyMul };
     wildE.yaw = Math.atan2(px - wildE.x, pz - wildE.z);
@@ -543,6 +547,7 @@ const Battle = (() => {
     return out;
   }
   // ---- camera: behind your Kin, looking across at the wild one ----
+  let camPick = null;
   function camera(dt, mobile) {
     if (!wildE) return null;
     const me = mineE || { x: G.player.x, y: G.player.y, z: G.player.z, model: { height: 1.8, scale: 1 } };
@@ -551,6 +556,12 @@ const Battle = (() => {
     const side = [-bz, bx];
     const mh = me.model.height * (me.model.scale || 1), wh = wildE.model.height * (wildE.model.scale || 1);
     let cx = me.x + bx * 1.4 + side[0] * 2.8, cz = me.z + bz * 1.4 + side[1] * 2.8, cy = me.y + Math.max(1.2, mh * 0.7) + 0.6;
+    { /* pulled back and up so both of them are in the picture whole, on whichever side has nothing in the way: no trunk, no leaves between the lens and either one. The choice is made once and kept, so the view does not hop about */
+      const big = Math.max(mh, wh), back = 2.1 + big * 0.65 + d * 0.18, out = 2.5 + big * 0.42 + d * 0.1, up = Math.max(1.5, mh * 0.8) + 0.9 + big * 0.3;
+      if (!camPick || camPick.w !== wildE) { let best = null; for (const lift of [1, 1.35, 1.8, 2.4]) { for (const sg of [1, -1]) { const x = me.x + bx * back + side[0] * out * sg, z = me.z + bz * back + side[1] * out * sg, y = me.y + up * lift; if (isSolid(G.world.getBlock(Math.floor(x), Math.floor(y), Math.floor(z)))) continue; if (sight(x, y, z, me.x, me.y + mh * 0.6, me.z) && sight(x, y, z, wildE.x, wildE.y + wh * 0.6, wildE.z)) { best = { sg, lift }; break; } } if (best) break; } camPick = Object.assign({ w: wildE }, best || { sg: 1, lift: 2.4 });
+        /* and you step out of the picture's middle: behind your Kin, on the side away from the lens, so you are never standing between the two of them or in front of the view */
+        if (mineE) { const P = G.player; for (const [bk, sd] of [[2.0, 1.7], [2.8, 1.2], [1.4, 2.4], [3.4, 0.4]]) { const x = me.x + bx * bk - side[0] * sd * camPick.sg, z = me.z + bz * bk - side[1] * sd * camPick.sg, g0 = G.world.groundY(Math.floor(x), Math.floor(z), Math.floor(me.y) + 3); if (Math.abs(g0 + 1 - me.y) > 2 || G.world.getBlock(Math.floor(x), g0 + 1, Math.floor(z)) !== B.AIR || G.world.getBlock(Math.floor(x), g0 + 2, Math.floor(z)) !== B.AIR) continue; P.x = x; P.z = z; P.y = g0 + 1.02; P.vx = P.vy = P.vz = 0; P.yaw = Math.atan2(-(wildE.x - x), -(wildE.z - z)); break; } } }
+      cx = me.x + bx * back + side[0] * out * camPick.sg; cz = me.z + bz * back + side[1] * out * camPick.sg; cy = me.y + up * camPick.lift; }
     // keep the camera out of blocks
     for (let i = 0; i < 6 && isSolid(G.world.getBlock(Math.floor(cx), Math.floor(cy), Math.floor(cz))); i++) { cx -= bx * 0.4; cz -= bz * 0.4; cy += 0.3; }
     const lx = (me.x + wildE.x) / 2, lz = (me.z + wildE.z) / 2, ly = (me.y + mh * 0.5 + wildE.y + wh * 0.5) / 2;
