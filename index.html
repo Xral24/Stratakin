@@ -10308,18 +10308,32 @@ const KIN = (() => {
   }
   // outfits and gear for the folk: hats, beards, masks, packs, tools. Built with the same primitives as the bodies.
   // Landmarks of the folk model: head centre (0, 1.58, 0), radius 0.27 (0.3 tall), crown at 1.88; shoulders at (±0.33, 1.2); hands at (±0.45, 0.55, 0.06); hips 0.62.
-  function decorate(m, kind) {
+  function decorate(m, kind, tint) {
     const H = partHelpers(m); const { box, blob, ball, tube, plate, ring, cone, disc, faceZ, feather } = H;
     const setB = (b) => { H.bone = b; };
     /* headgear and the folk's own head: a helmet hides the ears and all the hair, a hat or crown sits where the swept clumps were, a mask lies where the fringe was */
     { const drop = kind === 'visor' ? ['hairtop', 'fringe', 'ear'] : ['hat', 'lamp', 'crown', 'veil', 'miner', 'silas', 'elder'].includes(kind) ? ['hairtop'] : ['mask', 'voodoo', 'diver'].includes(kind) ? ['fringe'] : null; if (drop) { for (let i = m.boxes.length - 1; i >= 0; i--) if (m.boxes[i].tag && drop.includes(m.boxes[i].tag)) m.boxes.splice(i, 1); } }
     const brimHat = (c, band, crownH, crownR, brimR) => { setB(1); disc(0, 1.86, 0, brimR, 0.05, c); blob(-crownR, 1.86, -crownR, crownR, 1.86 + crownH, crownR, 0.55, c, { tap: [1, 0.85] }); if (band) ring(0, 1.93, 0, crownR + 0.01, crownR + 0.01, 0.025, band); setB(0); };
-    if (kind === 'elder') {
-      setB(1); disc(0, 1.86, 0, 0.5, 0.05, '#3b2a4a'); blob(-0.3, 1.86, -0.3, 0.3, 2.34, 0.3, 0.5, '#3b2a4a', { tap: [1, 0.72] }); ring(0, 1.96, 0, 0.31, 0.31, 0.03, '#e0b84a', { emis: true });
+    /* what ordinary folk wear. Land villages dress as a country town of the old kind: hoods and mantles, aprons and coifs, straw hats, cloaks pinned at the shoulder, leather jerkins, wimples. Desert towns add a waistcoat, a neckerchief or a poncho to the hat. None of it is anybody's costume in particular */
+    if (/^garb\d$/.test(kind) || /^west\d$/.test(kind) || kind === 'banker' || kind === 'explorer') { const c = tint || '#6a4a7a', lin = '#e9e1cf', lea = '#5a3f28', gold = '#d8b04a', dropTop = () => { for (let i = m.boxes.length - 1; i >= 0; i--) if (m.boxes[i].tag === 'hairtop') m.boxes.splice(i, 1); }, belt = () => { ring(0, 0.84, 0, 0.345, 0.26, 0.032, lea); blob(-0.05, 0.8, 0.245, 0.05, 0.88, 0.285, 0.4, gold); };
+      if (kind === 'garb0') { dropTop(); setB(1); blob(-0.34, 1.44, -0.37, 0.34, 2.0, 0.13, 0.75, c); blob(-0.1, 1.9, -0.5, 0.1, 2.02, -0.3, 0.9, c); setB(0); blob(-0.45, 1.16, -0.31, 0.45, 1.42, 0.31, 0.65, c); belt(); }
+      else if (kind === 'garb1') { dropTop(); setB(1); blob(-0.31, 1.6, -0.33, 0.31, 1.97, 0.1, 0.85, lin); setB(0); blob(-0.25, 0.42, 0.2, 0.25, 1.22, 0.275, 0.3, lin); ring(0, 0.86, 0, 0.345, 0.265, 0.028, lin); }
+      else if (kind === 'garb2') { brimHat('#d6bf78', '#8a6a3a', 0.2, 0.27, 0.52); belt(); blob(0.2, 0.62, 0.2, 0.36, 0.82, 0.31, 0.6, lea); }
+      else if (kind === 'garb3') { blob(-0.41, 0.22, -0.36, 0.41, 1.4, -0.21, 0.4, c); ring(0, 1.36, 0, 0.35, 0.29, 0.055, c); ball(0.13, 1.35, 0.25, 0.05, gold); belt(); }
+      else if (kind === 'garb4') { dropTop(); blob(-0.335, 0.72, -0.235, 0.335, 1.31, 0.255, 0.4, lea); belt(); setB(1); blob(-0.31, 1.8, -0.31, 0.31, 1.99, 0.31, 0.8, c); blob(0.17, 1.93, -0.06, 0.23, 2.34, 0.0, 0.9, '#dcd3b4'); setB(0); }
+      else if (kind === 'garb5') { dropTop(); setB(1); blob(-0.33, 1.45, -0.35, 0.33, 1.98, 0.08, 0.78, lin); setB(0); blob(-0.2, 0.8, 0.2, 0.2, 1.2, 0.265, 0.3, '#3a2a20'); for (let i = 0; i < 3; i++) blob(-0.12, 0.88 + i * 0.1, 0.262, 0.12, 0.9 + i * 0.1, 0.275, 0.4, lin); blob(-0.43, 0.08, -0.31, 0.43, 0.7, 0.31, 0.5, c); }
+      else if (kind === 'west0') { blob(-0.33, 0.74, -0.23, 0.33, 1.3, 0.25, 0.35, '#2e2a2a'); blob(-0.08, 0.8, 0.245, 0.08, 1.28, 0.262, 0.3, '#d9d2c0'); ring(0.14, 0.96, 0.2, 0.1, 0.07, 0.014, gold); belt(); }
+      else if (kind === 'west1') { blob(-0.3, 1.26, -0.2, 0.3, 1.42, 0.3, 0.8, '#b0332c'); for (const sg of [-1, 1]) blob(sg * 0.17 - 0.035, 0.8, 0.235, sg * 0.17 + 0.035, 1.3, 0.262, 0.3, lea); belt(); }
+      else if (kind === 'west2') { blob(-0.52, 0.7, -0.33, 0.52, 1.42, 0.33, 0.45, c); for (const y of [0.82, 1.0, 1.18]) ring(0, y, 0, 0.525, 0.335, 0.02, '#e2d2a8'); }
+      else if (kind === 'banker') { /* the man with the money: black coat and tails, white front, wine bow tie, a top hat a hand too tall, an eyeglass, a cane he does not need */ dropTop(); brimHat('#1c1a20', '#8a2a3a', 0.52, 0.25, 0.4); blob(-0.36, 0.6, -0.26, 0.36, 1.33, 0.28, 0.4, '#22202a'); blob(-0.3, 0.26, -0.33, 0.3, 0.72, -0.19, 0.4, '#22202a'); blob(-0.11, 0.86, 0.265, 0.11, 1.3, 0.295, 0.3, '#f2efe6'); blob(-0.12, 1.27, 0.27, 0.12, 1.35, 0.32, 0.6, '#8a2a3a'); ring(0.1, 0.94, 0.22, 0.13, 0.09, 0.014, gold, { emis: true }); for (let i = 0; i < 3; i++) ball(0, 0.92 + i * 0.12, 0.3, 0.022, gold);
+        setB(1); ring(0.12, 1.69, 0.3, 0.07, 0.02, 0.012, gold, { emis: true }); ball(0.12, 1.69, 0.31, 0.04, '#cfe6ff'); setB(0); tube([[0.52, 0.02, 0.4], [0.5, 0.95, 0.38]], [0.022, 0.024], '#1a1418', { cap0: 'round', cap1: 'round', segs: 6 }); ball(0.5, 0.99, 0.38, 0.05, gold, { emis: true }); }
+      else if (kind === 'explorer') { /* somebody who goes looking for old things: a creased brown hat, a jacket the colour of dust, a satchel on a strap, a coil of rope */ dropTop(); brimHat('#6a4a2c', '#3a2616', 0.26, 0.27, 0.5); blob(-0.34, 0.72, -0.24, 0.34, 1.32, 0.26, 0.35, '#8a7350'); blob(-0.1, 0.9, 0.25, 0.1, 1.3, 0.268, 0.3, '#d8cfb4'); belt(); blob(0.24, 0.5, -0.12, 0.42, 0.82, 0.16, 0.5, lea); ring(-0.36, 0.72, 0.02, 0.06, 0.11, 0.03, '#b89a5a'); for (let i = 0; i < 6; i++) blob(-0.26 + i * 0.1, 1.22 - i * 0.085, 0.262, -0.18 + i * 0.1, 1.3 - i * 0.085, 0.276, 0.4, lea); }
+    } else if (kind === 'elder') {
+      setB(1); disc(0, 1.86, 0, 0.5, 0.05, '#3a3442'); blob(-0.3, 1.86, -0.3, 0.3, 2.34, 0.3, 0.5, '#3a3442', { tap: [1, 0.72] }); ring(0, 1.96, 0, 0.31, 0.31, 0.03, '#a88f52'); /* the hat gone grey with years, its band dull brass: only the chain and the stone at his throat still shine */
       blob(-0.17, 0.98, 0.18, 0.17, 1.44, 0.34, 0.7, '#e8e4dc', { tap: [0.55, 1.0] }); setB(0); // a long white beard
       m.stoop = 0.36; { const n0 = m.boxes.length; tube([[0.5, 0.02, 0.52], [0.47, 0.7, 0.48], [0.45, 1.28, 0.44]], [0.028, 0.03, 0.034], '#6a4a2a', { cap0: 'round', cap1: 'round', segs: 6 }); ball(0.45, 1.32, 0.44, 0.055, '#e0b84a', { emis: true }); for (let q = n0; q < m.boxes.length; q++) m.boxes[q].noStoop = true; } /* bent with age (the mesh leans everything above the hips), and a staff to lean on */
       ring(0, 1.14, 0.02, 0.28, 0.24, 0.025, '#ffd75a', { emis: true }); ball(0, 1.0, 0.25, 0.07, '#7ad7ff', { emis: true }); // chain and gem
-      blob(-0.42, 0.08, -0.3, 0.42, 0.66, 0.3, 0.6, '#8a3fd0', { tap: [0.75, 1.0] }); // genie pants
+      blob(-0.42, 0.08, -0.3, 0.42, 0.66, 0.3, 0.6, '#5b4a6e', { tap: [0.75, 1.0] }); // full breeches, the colour gone soft with washing
     } else if (kind === 'voodoo') {
       setB(1); plate([[-0.3, 1.33, 0.22], [-0.34, 1.6, 0.2], [-0.22, 1.86, 0.18], [0.22, 1.86, 0.18], [0.34, 1.6, 0.2], [0.3, 1.33, 0.22], [0.1, 1.24, 0.24], [-0.1, 1.24, 0.24]], 0.09, '#f1e3c0'); // the mask
       ball(-0.12, 1.62, 0.31, 0.06, '#111111', { n: 2 }); ball(0.12, 1.62, 0.31, 0.06, '#111111', { n: 2 }); plate([[-0.04, 1.3, 0.3], [0.04, 1.3, 0.3], [0.03, 1.48, 0.3], [-0.03, 1.48, 0.3]], 0.015, '#c0392b'); plate([[-0.3, 1.5, 0.3], [0.3, 1.5, 0.3], [0.3, 1.46, 0.3], [-0.3, 1.46, 0.3]], 0.015, '#2b6cc0');
@@ -11795,7 +11809,7 @@ const Village = (() => {
   }
   const TRAVELLER_LINES = ['Three days in the Mines for this. Trade?', 'Walked here from the far shore. My pack is heavy, my pockets light.', 'The sky islands are quiet this season. I brought something down.', 'I do not take Shards. Bring me what I ask and the thing is yours.'];
   const SKIN = ['#e8c39e', '#c68642', '#8d5524', '#f1d3b3'];
-  const CLOTH = ['#c94c4c', '#4c7bc9', '#4cc97a', '#c9a84c', '#9b4cc9', '#4cc9c0', '#c97a4c'];
+  const CLOTH = ['#8a3b32', '#3f5f86', '#5f7a3a', '#a8873a', '#6a4a7a', '#7a6a55', '#9a5a2e', '#4a6a66']; /* madder, woad, moss, ochre, plum, undyed wool, russet, teal: what a dye pot gives, not what a paint box does */
   const NAME_A = ['Oak', 'Salt', 'Moss', 'Fen', 'Stone', 'Ash', 'Reed', 'Hollow', 'Bright', 'Deep', 'Wind', 'Ember', 'Pearl', 'Kelp', 'Coral', 'Frost', 'Cloud', 'Tide', 'Glass', 'Hawk'];
   const NAME_B = ['mere', 'reach', 'haven', 'ford', 'moor', 'bury', 'stead', 'hold', 'fall', 'rest', 'shore', 'watch', 'well', 'dale', 'gate', 'keep'];
   // every style of village has its own names, people, shopkeepers and tyrants
@@ -13082,11 +13096,18 @@ const Village = (() => {
     const skins = SKIN_STYLE[style] || SKIN, cloths = CLOTH_STYLE[style] || CLOTH;
     const skin = r.pick(skins), cloth = r.pick(cloths);
     const plain = style && style !== 'frontier' && style !== 'land' && style !== 'sea';
-    const body = plain ? cloth : role === 'elder' ? '#f0d090' : role === 'voodoo' ? '#2c3e50' : role === 'fisher' ? '#5b7f95' : role === 'traveller' ? '#6b5a3e' : role === 'hermit' ? '#7a6f5a' : cloth;
-    const accent = style === 'alien' ? r.pick(skins) : role === 'elder' ? '#e0b84a' : cloth;
-    const build = role === 'elder' || role === 'voodoo' || role === 'hermit' ? 'man' : r.pick(['man', 'woman', 'stout', 'woman', 'slim', 'man']), hairVar = build === 'woman' ? r.pick([3, 3, 2]) : r.pick([0, 1, 2, 0]), hairCol = style === 'alien' ? null : role === 'elder' ? '#d8d8dc' : r.pick(['#3a2a1a', '#1a1410', '#6a4a22', '#b8862e', '#8a3a1a', '#d8c070', '#4a4a52', '#2a1a2a']); /* each villager: a build, a head of hair and its colour, all from the same roll every time */
+    const body = plain ? cloth : role === 'banker' ? '#22202a' : role === 'elder' ? '#b9a070' : role === 'voodoo' ? '#2c3e50' : role === 'fisher' ? '#5b7f95' : role === 'traveller' ? '#6b5a3e' : role === 'hermit' ? '#7a6f5a' : cloth;
+    const accent = style === 'alien' ? r.pick(skins) : role === 'elder' ? '#c9a64a' : cloth;
+    const build = role === 'banker' ? 'stout' : role === 'elder' || role === 'voodoo' || role === 'hermit' ? 'man' : r.pick(['man', 'woman', 'stout', 'woman', 'slim', 'man']), hairVar = build === 'woman' ? r.pick([3, 3, 2]) : r.pick([0, 1, 2, 0]), hairCol = style === 'alien' ? null : role === 'elder' ? '#d8d8dc' : r.pick(['#3a2a1a', '#1a1410', '#6a4a22', '#b8862e', '#8a3a1a', '#d8c070', '#4a4a52', '#2a1a2a']); /* each villager: a build, a head of hair and its colour, all from the same roll every time */
     return { build, hairVar, hair: hairCol || undefined, shape: 'human', feat: { crest: false, ears: false, horns: false, spikes: false, tail: false, wings: false, bigEyes: style === 'alien' }, colors: { body, belly: skin, accent, dark: style === 'alien' ? '#05050f' : style === 'atlantis' ? '#1a3a4a' : '#3a2a20', eye: style === 'alien' ? '#ffffff' : '#222222' }, size: role === 'elder' ? 1.15 : role === 'voodoo' ? 1.1 : 1, gen: 0, names: ['villager'], neon: style === 'alien' };
   }
+  /* Mr Crowe: holds the notes on half the town and pays, promptly, for small errands. One a morning, so he is pocket money and not a mine */
+  const ERRANDS = [{ item: 'wood', n: 8, pay: 10, say: 'logs' }, { item: 'berry', n: 6, pay: 10, say: 'berries' }, { item: 'planks', n: 6, pay: 12, say: 'planks' }, { item: 'glass', n: 2, pay: 14, say: 'panes of glass' }, { item: 'bread', n: 2, pay: 9, say: 'loaves' }];
+  function bankerTalk(n) { const st = (G.stats.crowe = G.stats.crowe || { met: 0, i: 0, next: 0 }), now = Date.now(), e = ERRANDS[st.i % ERRANDS.length], say = (lines, done) => Dialogue.show('Mr Crowe', lines, done);
+    if (!st.met) { st.met = 1; return say(['Crowe. Pennington Crowe. I hold the notes on half this town and I mean to hold the rest.', 'I pay for errands. Fair coin, promptly, and no questions about where a thing came from.', `This morning I want ${e.n} ${e.say}. Bring them and there are ${e.pay} shards in it for you.`]); }
+    if (now < st.next) return say(['Nothing more today. I do not pay twice for the same morning.', 'Come back when the sun has been round.']);
+    if (G.player.count(e.item) >= e.n) return say([`${e.n} ${e.say}. Counted, and correct. I do like a person who delivers.`], () => { G.player.take(e.item, e.n); G.shards += e.pay; st.i++; st.next = Date.now() + 8 * 60000; UI.sfx('gift'); UI.toast(`Mr Crowe paid you ${e.pay} shards.`, 'good'); });
+    say([`${e.n} ${e.say}. That is what I want, and ${e.pay} shards is what it is worth to me.`, 'You have not got them. Off you go.']); }
   function makeNpc(i, role, x, z, name, shop, y, vid, style, kid) {
     style = style || (vid === 'shore' ? 'land' : (world.preset.people || 'land'));
     const sp = villagerSpecies(i, role, vid, style);
@@ -13095,9 +13116,15 @@ const Village = (() => {
     if (style === 'alien') KIN.decorate(m, 'alien'); else if (style === 'halo') KIN.decorate(m, 'veil'); else if (style === 'atlantis') KIN.decorate(m, 'merfolk'); else if (style === 'sea') KIN.decorate(m, 'reef'); else if (style === 'frontier' && role !== 'hermit' && role !== 'traveller') KIN.decorate(m, 'hat');
     if ((role === 'elder' && (style === 'land' || !style)) || role === 'voodoo' || role === 'fisher' || role === 'traveller' || role === 'hermit') KIN.decorate(m, role);
     if (role === 'elder' && style === 'frontier') KIN.decorate(m, 'star');
+    { /* everyday dress, the same on the same person every time */ const hh = U.strHash((vid || 's') + ':' + i + ':garb'), tint = CLOTH[(hh >> 3) % CLOTH.length];
+      if (role === 'banker') KIN.decorate(m, 'banker');
+      else if ((style === 'land') && (role === 'villager' || role === 'keeper') && !child) KIN.decorate(m, role === 'keeper' ? (hh % 2 ? 'garb1' : 'garb4') : sp.build === 'woman' ? ['garb5', 'garb1', 'garb3', 'garb0'][hh % 4] : ['garb0', 'garb2', 'garb3', 'garb4', 'garb2', 'garb0'][hh % 6], tint);
+      else if (style === 'land' && child && hh % 2) KIN.decorate(m, 'garb0', tint);
+      else if (style === 'frontier' && (role === 'villager' || role === 'keeper')) KIN.decorate(m, 'west' + (hh % 3), CLOTH_STYLE.frontier[(hh >> 3) % 6]);
+      else if (role === 'traveller' && style === 'land' && hh % 2) KIN.decorate(m, 'explorer'); }
     if (child) KIN.childify(m, 1.32);
     const v = vid ? villages.get(vid) : null;
-    return { id: i, role, name, shop, shopTitle: shop ? shopDef(shop, v).title : null, x: x + 0.5, y, z: z + 0.5, yaw: Math.random() * 6.28, tx: x + 0.5, tz: z + 0.5, wait: 2 + Math.random() * 4, model: m, child, scale: child ? 0.64 : role === 'elder' ? 1 : 0.93 + (U.strHash((vid || 's') + ':' + i) % 100) / 100 * 0.14, hover: 0, mesh: R.entityMesh('npc:' + (vid || '') + ':' + i + ':' + role + ':' + style, (mb) => KIN.buildMesh(mb, m)), skyMul: 1, hidden: false, home: { x: x + 0.5, z: z + 0.5 } };
+    return { id: i, role, name, shop, shopTitle: shop ? shopDef(shop, v).title : null, x: x + 0.5, y, z: z + 0.5, yaw: Math.random() * 6.28, tx: x + 0.5, tz: z + 0.5, wait: 2 + Math.random() * 4, model: m, child, scale: child ? 0.64 : role === 'elder' ? 1 : 0.93 + (U.strHash((vid || 's') + ':' + i) % 100) / 100 * 0.14, hover: 0, mesh: R.entityMesh('npc2:' + (vid || '') + ':' + i + ':' + role + ':' + style + (child ? ':k' : ''), (mb) => KIN.buildMesh(mb, m)), skyMul: 1, hidden: false, home: { x: x + 0.5, z: z + 0.5 } };
   }
   // ---- inside a town: shops with their own troubles. Freeing the town opens the gates; some of the shops still need you ----
   const PROBLEMS = {
@@ -13140,6 +13167,7 @@ const Village = (() => {
     const nV = Math.min(24, Math.round(v.R / 2.2));
     for (let j = 0; j < nV; j++) { const s0 = L.streets[r.int(L.streets.length)]; const d = (r() * 2 - 1) * (v.R - 8); const along = r() < 0.5; v.npcs.push(villager0(j, along ? s0 + (r() < 0.5 ? -1 : 1) : d, along ? d : s0 + (r() < 0.5 ? -1 : 1), pname(j), freed, vy, v, sty)); }
     for (let k = 0; k < (v.starter ? 0 : v.size === 'hamlet' ? 1 : 2); k++) v.npcs.push(Object.assign(makeNpc(80 + k, 'villager', v.x + (k ? -1 : 1) * (v.R - 7), v.z, 'Watchman ' + pname(k + 3), null, vy, v.id, sty, false), { hidden: !freed, watch: true })); // the watch walks from gate to gate, and is the only one about after dark
+    if (world.preset.id === 'earth' && sty === 'land') v.npcs.push(Object.assign(makeNpc(61, 'banker', v.x - 3, v.z + 4, 'Mr Crowe', null, vy, v.id, sty), { hidden: !freed, wander: false, tag: 'pays for errands', onTalk: bankerTalk })); /* the man in the top hat, on the square */
     if (v.elder) v.npcs.push(v.elder);
     for (const n of v.npcs) { const gy = standY(n.x, vy, n.z); n.y = gy != null ? gy : vy; n.home = { x: n.x, z: n.z }; }
     v.wanderR = 6; makeTraveller(v); buildGuardEnts(v);
@@ -13319,6 +13347,7 @@ const Village = (() => {
     }
     v.npcs.push(v.elder);
     for (const n of v.npcs) { const gy = standY(n.x, vy, n.z); n.y = gy != null ? gy : vy; n.home = { x: n.x, z: n.z }; }
+    if (v.type === 'land' && world.preset.id === 'earth' && sty !== 'frontier') v.npcs.push(Object.assign(makeNpc(61, 'banker', v.x - 4, v.z + 5, 'Mr Crowe', null, vy, v.id, sty), { hidden: !freed, wander: false, tag: 'pays for errands', onTalk: bankerTalk }));
     if (v.type === 'land' || world.preset.id !== 'earth') { v.npcs.push(keeper(15, 'games', 3, -3)); [[-6, 6], [7, -6], [-7, -3], [3, 8]].forEach((h, i) => v.npcs.push(villager(40 + i, h[0], h[1]))); } // somebody to play against, and enough people about that the place is not empty
     v.wanderR = v.type === 'land' ? (st.expanded ? 12 : 7) : v.type === 'sea' ? 3 : v.style === 'atlantis' ? 9 : 5;
     makeTraveller(v); buildGuardEnts(v);

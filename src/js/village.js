@@ -202,7 +202,7 @@ const Village = (() => {
   }
   const TRAVELLER_LINES = ['Three days in the Mines for this. Trade?', 'Walked here from the far shore. My pack is heavy, my pockets light.', 'The sky islands are quiet this season. I brought something down.', 'I do not take Shards. Bring me what I ask and the thing is yours.'];
   const SKIN = ['#e8c39e', '#c68642', '#8d5524', '#f1d3b3'];
-  const CLOTH = ['#c94c4c', '#4c7bc9', '#4cc97a', '#c9a84c', '#9b4cc9', '#4cc9c0', '#c97a4c'];
+  const CLOTH = ['#8a3b32', '#3f5f86', '#5f7a3a', '#a8873a', '#6a4a7a', '#7a6a55', '#9a5a2e', '#4a6a66']; /* madder, woad, moss, ochre, plum, undyed wool, russet, teal: what a dye pot gives, not what a paint box does */
   const NAME_A = ['Oak', 'Salt', 'Moss', 'Fen', 'Stone', 'Ash', 'Reed', 'Hollow', 'Bright', 'Deep', 'Wind', 'Ember', 'Pearl', 'Kelp', 'Coral', 'Frost', 'Cloud', 'Tide', 'Glass', 'Hawk'];
   const NAME_B = ['mere', 'reach', 'haven', 'ford', 'moor', 'bury', 'stead', 'hold', 'fall', 'rest', 'shore', 'watch', 'well', 'dale', 'gate', 'keep'];
   // every style of village has its own names, people, shopkeepers and tyrants
@@ -1489,11 +1489,18 @@ const Village = (() => {
     const skins = SKIN_STYLE[style] || SKIN, cloths = CLOTH_STYLE[style] || CLOTH;
     const skin = r.pick(skins), cloth = r.pick(cloths);
     const plain = style && style !== 'frontier' && style !== 'land' && style !== 'sea';
-    const body = plain ? cloth : role === 'elder' ? '#f0d090' : role === 'voodoo' ? '#2c3e50' : role === 'fisher' ? '#5b7f95' : role === 'traveller' ? '#6b5a3e' : role === 'hermit' ? '#7a6f5a' : cloth;
-    const accent = style === 'alien' ? r.pick(skins) : role === 'elder' ? '#e0b84a' : cloth;
-    const build = role === 'elder' || role === 'voodoo' || role === 'hermit' ? 'man' : r.pick(['man', 'woman', 'stout', 'woman', 'slim', 'man']), hairVar = build === 'woman' ? r.pick([3, 3, 2]) : r.pick([0, 1, 2, 0]), hairCol = style === 'alien' ? null : role === 'elder' ? '#d8d8dc' : r.pick(['#3a2a1a', '#1a1410', '#6a4a22', '#b8862e', '#8a3a1a', '#d8c070', '#4a4a52', '#2a1a2a']); /* each villager: a build, a head of hair and its colour, all from the same roll every time */
+    const body = plain ? cloth : role === 'banker' ? '#22202a' : role === 'elder' ? '#b9a070' : role === 'voodoo' ? '#2c3e50' : role === 'fisher' ? '#5b7f95' : role === 'traveller' ? '#6b5a3e' : role === 'hermit' ? '#7a6f5a' : cloth;
+    const accent = style === 'alien' ? r.pick(skins) : role === 'elder' ? '#c9a64a' : cloth;
+    const build = role === 'banker' ? 'stout' : role === 'elder' || role === 'voodoo' || role === 'hermit' ? 'man' : r.pick(['man', 'woman', 'stout', 'woman', 'slim', 'man']), hairVar = build === 'woman' ? r.pick([3, 3, 2]) : r.pick([0, 1, 2, 0]), hairCol = style === 'alien' ? null : role === 'elder' ? '#d8d8dc' : r.pick(['#3a2a1a', '#1a1410', '#6a4a22', '#b8862e', '#8a3a1a', '#d8c070', '#4a4a52', '#2a1a2a']); /* each villager: a build, a head of hair and its colour, all from the same roll every time */
     return { build, hairVar, hair: hairCol || undefined, shape: 'human', feat: { crest: false, ears: false, horns: false, spikes: false, tail: false, wings: false, bigEyes: style === 'alien' }, colors: { body, belly: skin, accent, dark: style === 'alien' ? '#05050f' : style === 'atlantis' ? '#1a3a4a' : '#3a2a20', eye: style === 'alien' ? '#ffffff' : '#222222' }, size: role === 'elder' ? 1.15 : role === 'voodoo' ? 1.1 : 1, gen: 0, names: ['villager'], neon: style === 'alien' };
   }
+  /* Mr Crowe: holds the notes on half the town and pays, promptly, for small errands. One a morning, so he is pocket money and not a mine */
+  const ERRANDS = [{ item: 'wood', n: 8, pay: 10, say: 'logs' }, { item: 'berry', n: 6, pay: 10, say: 'berries' }, { item: 'planks', n: 6, pay: 12, say: 'planks' }, { item: 'glass', n: 2, pay: 14, say: 'panes of glass' }, { item: 'bread', n: 2, pay: 9, say: 'loaves' }];
+  function bankerTalk(n) { const st = (G.stats.crowe = G.stats.crowe || { met: 0, i: 0, next: 0 }), now = Date.now(), e = ERRANDS[st.i % ERRANDS.length], say = (lines, done) => Dialogue.show('Mr Crowe', lines, done);
+    if (!st.met) { st.met = 1; return say(['Crowe. Pennington Crowe. I hold the notes on half this town and I mean to hold the rest.', 'I pay for errands. Fair coin, promptly, and no questions about where a thing came from.', `This morning I want ${e.n} ${e.say}. Bring them and there are ${e.pay} shards in it for you.`]); }
+    if (now < st.next) return say(['Nothing more today. I do not pay twice for the same morning.', 'Come back when the sun has been round.']);
+    if (G.player.count(e.item) >= e.n) return say([`${e.n} ${e.say}. Counted, and correct. I do like a person who delivers.`], () => { G.player.take(e.item, e.n); G.shards += e.pay; st.i++; st.next = Date.now() + 8 * 60000; UI.sfx('gift'); UI.toast(`Mr Crowe paid you ${e.pay} shards.`, 'good'); });
+    say([`${e.n} ${e.say}. That is what I want, and ${e.pay} shards is what it is worth to me.`, 'You have not got them. Off you go.']); }
   function makeNpc(i, role, x, z, name, shop, y, vid, style, kid) {
     style = style || (vid === 'shore' ? 'land' : (world.preset.people || 'land'));
     const sp = villagerSpecies(i, role, vid, style);
@@ -1502,9 +1509,15 @@ const Village = (() => {
     if (style === 'alien') KIN.decorate(m, 'alien'); else if (style === 'halo') KIN.decorate(m, 'veil'); else if (style === 'atlantis') KIN.decorate(m, 'merfolk'); else if (style === 'sea') KIN.decorate(m, 'reef'); else if (style === 'frontier' && role !== 'hermit' && role !== 'traveller') KIN.decorate(m, 'hat');
     if ((role === 'elder' && (style === 'land' || !style)) || role === 'voodoo' || role === 'fisher' || role === 'traveller' || role === 'hermit') KIN.decorate(m, role);
     if (role === 'elder' && style === 'frontier') KIN.decorate(m, 'star');
+    { /* everyday dress, the same on the same person every time */ const hh = U.strHash((vid || 's') + ':' + i + ':garb'), tint = CLOTH[(hh >> 3) % CLOTH.length];
+      if (role === 'banker') KIN.decorate(m, 'banker');
+      else if ((style === 'land') && (role === 'villager' || role === 'keeper') && !child) KIN.decorate(m, role === 'keeper' ? (hh % 2 ? 'garb1' : 'garb4') : sp.build === 'woman' ? ['garb5', 'garb1', 'garb3', 'garb0'][hh % 4] : ['garb0', 'garb2', 'garb3', 'garb4', 'garb2', 'garb0'][hh % 6], tint);
+      else if (style === 'land' && child && hh % 2) KIN.decorate(m, 'garb0', tint);
+      else if (style === 'frontier' && (role === 'villager' || role === 'keeper')) KIN.decorate(m, 'west' + (hh % 3), CLOTH_STYLE.frontier[(hh >> 3) % 6]);
+      else if (role === 'traveller' && style === 'land' && hh % 2) KIN.decorate(m, 'explorer'); }
     if (child) KIN.childify(m, 1.32);
     const v = vid ? villages.get(vid) : null;
-    return { id: i, role, name, shop, shopTitle: shop ? shopDef(shop, v).title : null, x: x + 0.5, y, z: z + 0.5, yaw: Math.random() * 6.28, tx: x + 0.5, tz: z + 0.5, wait: 2 + Math.random() * 4, model: m, child, scale: child ? 0.64 : role === 'elder' ? 1 : 0.93 + (U.strHash((vid || 's') + ':' + i) % 100) / 100 * 0.14, hover: 0, mesh: R.entityMesh('npc:' + (vid || '') + ':' + i + ':' + role + ':' + style, (mb) => KIN.buildMesh(mb, m)), skyMul: 1, hidden: false, home: { x: x + 0.5, z: z + 0.5 } };
+    return { id: i, role, name, shop, shopTitle: shop ? shopDef(shop, v).title : null, x: x + 0.5, y, z: z + 0.5, yaw: Math.random() * 6.28, tx: x + 0.5, tz: z + 0.5, wait: 2 + Math.random() * 4, model: m, child, scale: child ? 0.64 : role === 'elder' ? 1 : 0.93 + (U.strHash((vid || 's') + ':' + i) % 100) / 100 * 0.14, hover: 0, mesh: R.entityMesh('npc2:' + (vid || '') + ':' + i + ':' + role + ':' + style + (child ? ':k' : ''), (mb) => KIN.buildMesh(mb, m)), skyMul: 1, hidden: false, home: { x: x + 0.5, z: z + 0.5 } };
   }
   // ---- inside a town: shops with their own troubles. Freeing the town opens the gates; some of the shops still need you ----
   const PROBLEMS = {
@@ -1547,6 +1560,7 @@ const Village = (() => {
     const nV = Math.min(24, Math.round(v.R / 2.2));
     for (let j = 0; j < nV; j++) { const s0 = L.streets[r.int(L.streets.length)]; const d = (r() * 2 - 1) * (v.R - 8); const along = r() < 0.5; v.npcs.push(villager0(j, along ? s0 + (r() < 0.5 ? -1 : 1) : d, along ? d : s0 + (r() < 0.5 ? -1 : 1), pname(j), freed, vy, v, sty)); }
     for (let k = 0; k < (v.starter ? 0 : v.size === 'hamlet' ? 1 : 2); k++) v.npcs.push(Object.assign(makeNpc(80 + k, 'villager', v.x + (k ? -1 : 1) * (v.R - 7), v.z, 'Watchman ' + pname(k + 3), null, vy, v.id, sty, false), { hidden: !freed, watch: true })); // the watch walks from gate to gate, and is the only one about after dark
+    if (world.preset.id === 'earth' && sty === 'land') v.npcs.push(Object.assign(makeNpc(61, 'banker', v.x - 3, v.z + 4, 'Mr Crowe', null, vy, v.id, sty), { hidden: !freed, wander: false, tag: 'pays for errands', onTalk: bankerTalk })); /* the man in the top hat, on the square */
     if (v.elder) v.npcs.push(v.elder);
     for (const n of v.npcs) { const gy = standY(n.x, vy, n.z); n.y = gy != null ? gy : vy; n.home = { x: n.x, z: n.z }; }
     v.wanderR = 6; makeTraveller(v); buildGuardEnts(v);
@@ -1726,6 +1740,7 @@ const Village = (() => {
     }
     v.npcs.push(v.elder);
     for (const n of v.npcs) { const gy = standY(n.x, vy, n.z); n.y = gy != null ? gy : vy; n.home = { x: n.x, z: n.z }; }
+    if (v.type === 'land' && world.preset.id === 'earth' && sty !== 'frontier') v.npcs.push(Object.assign(makeNpc(61, 'banker', v.x - 4, v.z + 5, 'Mr Crowe', null, vy, v.id, sty), { hidden: !freed, wander: false, tag: 'pays for errands', onTalk: bankerTalk }));
     if (v.type === 'land' || world.preset.id !== 'earth') { v.npcs.push(keeper(15, 'games', 3, -3)); [[-6, 6], [7, -6], [-7, -3], [3, 8]].forEach((h, i) => v.npcs.push(villager(40 + i, h[0], h[1]))); } // somebody to play against, and enough people about that the place is not empty
     v.wanderR = v.type === 'land' ? (st.expanded ? 12 : 7) : v.type === 'sea' ? 3 : v.style === 'atlantis' ? 9 : 5;
     makeTraveller(v); buildGuardEnts(v);
