@@ -7,18 +7,18 @@ const Ruins = (() => {
   const LINES = [
     'WE DID NOT TAME THEM. WE ASKED, AND SOME STAYED.',
     'THE WEAVERS OF THE HUSH KEPT THEIR LOOMS HERE. A QUIET KIN CHOOSES. REMEMBER THAT WHEN YOU ARE STRONG.',
-    'THREE ARCHES WE RAISED. ONE TO THE GREY MOON, ONE TO THE RING, ONE WE SEALED AND WILL NOT NAME.',
-    'THE CITY OF GLASS WENT UNDER IN A NIGHT. ITS LAMPS STILL BURN BELOW. THE SEA KEEPS WHAT IT IS GIVEN.',
-    'OUR ENGINES DREW ON THE CORE. THE CORE DREW BACK. BUILD NOTHING THAT CANNOT BE PUT DOWN.',
-    'HERE THE ROAD RAN TO THE WALLED VALLEY, WHERE THE OLD ONES STILL WALK. WE CLOSED IT. THEY WERE THERE FIRST.',
     'A KIN GROWS AS IT IS TREATED. WE LEARNED THIS LATE.',
     'TWO OF A KIND, AND A STONE OF THEIR ELEMENT, AND PATIENCE. THE TABLE ONLY FINISHES WHAT THE BOND BEGINS.',
-    'HE WHO PENS A KIN PENS HIMSELF. THE FIRST TYRANT IS BURIED UNDER THIS STONE. NOBODY CAME.',
     'WE COUNTED OUR WEALTH IN SHARDS OF THE FALLEN STAR. THE STAR IS STILL FALLING. LOOK UP.',
-    'WHEN THE WATER ROSE WE CARRIED THE YOUNG ONES TO THE HILLS. THE KIN CARRIED US.',
-    'THE DEEP FOLK WERE OUR COUSINS. THEY CHOSE THE SEA BEFORE IT CHOSE THEM.',
+    'THREE ARCHES WE RAISED. ONE TO THE GREY MOON, ONE TO THE RING, ONE WE SEALED AND WILL NOT NAME.',
+    'HERE THE ROAD RAN TO THE WALLED VALLEY, WHERE THE OLD ONES STILL WALK. WE CLOSED IT. THEY WERE THERE FIRST.',
+    'OUR ENGINES DREW ON THE CORE. THE CORE DREW BACK. BUILD NOTHING THAT CANNOT BE PUT DOWN.',
     'SOMETHING SLEEPS AT THE HEART OF THE WORLD. IT IS NOT ANGRY. DO NOT MAKE IT SO.',
-    'IF YOU CAN READ THIS YOU ARE ONE OF OURS, OR ONE OF THEIRS. EITHER WAY, WELCOME HOME.',
+    'HE WHO PENS A KIN PENS HIMSELF. THE FIRST TYRANT IS BURIED UNDER THIS STONE. NOBODY CAME.',
+    'THE DEEP FOLK WERE OUR COUSINS. THEY CHOSE THE SEA BEFORE IT CHOSE THEM.',
+    'THE CITY OF GLASS WENT UNDER IN A NIGHT. ITS LAMPS STILL BURN BELOW. THE SEA KEEPS WHAT IT IS GIVEN.',
+    'WHEN THE WATER ROSE WE CARRIED THE YOUNG ONES TO THE HILLS. THE KIN CARRIED US.',
+    'THE ROAD TO THE GLASS CITY RUNS OUT WHERE THE WATER GOES DARK. IF YOU CAN READ THIS YOU ARE ONE OF OURS. COME HOME.',
   ];
   function init(game) { G = game; tick = 0; }
   const store = () => (G.stats.ruins = G.stats.ruins || {});
@@ -51,8 +51,15 @@ const Ruins = (() => {
     for (let a = -1; a <= 1; a++) for (let b = -1; b <= 1; b++) { const cx = cx0 + a, cz = cz0 + b, key = cx + ',' + cz; if (st[key] !== undefined) continue; const pl = plan(cx, cz); if (!pl) { st[key] = 0; continue; } const d = Math.hypot(pl.x - p.x, pl.z - p.z); if (d > 58 || d < 22) continue; /* built while it is still out of sight in the trees, never under your nose */ st[key] = stamp(cx, cz, pl) || 0; } }
   function near(fn) { const st = store(), p = G.player, cx0 = Math.floor(p.x / CELL), cz0 = Math.floor(p.z / CELL); for (let a = -1; a <= 1; a++) for (let b = -1; b <= 1; b++) { const r = st[(cx0 + a) + ',' + (cz0 + b)]; if (r && fn(r, (cx0 + a) + ',' + (cz0 + b))) return r; } return null; }
   const stoneAt = (x, y, z) => !!(G && G.worldId === 'earth' && near(r => r.x === x && r.z === z && y >= r.y && y <= r.y + 2));
-  function read(x, y, z) { if (!stoneAt(x, y, z)) return false; const r = near(q => q.x === x && q.z === z), seen = (G.stats.stonesRead = G.stats.stonesRead || {}), fresh = !seen[r.l]; seen[r.l] = 1; const n = Object.keys(seen).length;
-    Dialogue.show('Engraved stone', ['The letters are worn nearly flat. You trace them with a finger.', LINES[r.l]], () => { UI.toast(fresh ? `A new engraving. You have read ${n} of ${LINES.length}.` : `You have read this one before. ${n} of ${LINES.length} found.`, fresh ? 'good' : undefined); if (fresh) { UI.sfx('gift'); G.addXp && G.addXp(8); } }); return true; }
+  /* the stones are read in the order of the telling, whichever ruin you come to first: your first is the first line, your fourteenth the last. Nobody else alive can read them, and you do not know why you can */
+  function read(x, y, z) { if (!stoneAt(x, y, z)) return false; const r = near(q => q.x === x && q.z === z), seen = (G.stats.stonesRead = G.stats.stonesRead || {}); let n = Object.keys(seen).length;
+    if (!r.rd) { r.rd = 1; if (n < LINES.length) { let nx = 0; while (seen[nx]) nx++; r.l = nx; } }
+    const fresh = !seen[r.l], first = n === 0; seen[r.l] = 1; n = Object.keys(seen).length; const last = fresh && n === LINES.length;
+    const pre = first ? ['The letters are worn nearly flat, in no script you have ever been taught.', 'You can read it. You do not know how.'] : ['The letters are worn nearly flat. You trace them with a finger.'];
+    const post = last ? ['Fourteen stones. Set end to end they are not sayings at all. They are a road, and it runs out under the sea.', 'Something cold and smooth has worked loose from the foot of the slab: a seal of woven silver, the knot the old weavers tied. It fits your palm as if it had been there before.'] : [];
+    Dialogue.show('Engraved stone', pre.concat([LINES[r.l]], post), () => {
+      if (last) { G.stats.stonesDone = true; G.player.add('seal', 1); UI.sfx('gift'); const a = Village.atlantis && Village.atlantis(); if (a) G.pin = { x: Math.round(a.x), z: Math.round(a.z) }; if (G.addXp) G.addXp(200); UI.toast(a ? 'The Weaver\'s Seal. And a pin on your map, out where the water goes dark.' : 'The Weaver\'s Seal.', 'good'); G.explain('The Weaver\'s Seal', 'You have read all fourteen stones. The seal is the old weavers\' own knot: with it in your pack a net you close holds a little longer. The sea people will know it when they see it, and so will Maren.'); }
+      else { UI.toast(fresh ? `A new engraving: ${n} of ${LINES.length} read.` : `You have read this one before. ${n} of ${LINES.length} found.`, fresh ? 'good' : undefined); if (fresh) { UI.sfx('gift'); if (G.addXp) G.addXp(8); } } }); return true; }
   function gems() { const out = []; if (!G || G.worldId !== 'earth') return out; near((r, key) => { if (r.g) { if (!r._gem) r._gem = { id: 'earth:ruin:' + key, kind: 'relic', x: r.g[0] + 0.5, z: r.g[1] + 0.5, hx: r.g[0] + 0.5, hz: r.g[1] + 0.5, y: null, ph: 1.3 }; out.push(r._gem); } return false; }); return out; }
   /* the stones themselves. The blocks under them are only there to be walked into: what you see is a worn pillar of rounded drums, mossed on top, each a little off true. The engraved one is a slab with lines cut across its face */
   const TINT = [[[0.56, 0.54, 0.5], [0.38, 0.5, 0.3]], [[0.78, 0.66, 0.46], [0.7, 0.56, 0.36]], [[0.6, 0.62, 0.66], [0.92, 0.95, 0.98]]];
