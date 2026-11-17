@@ -1,0 +1,11 @@
+const { open } = require('./harness');
+(async () => { const h = await open(); const { page, ev } = h; await h.newGame('look-3'); await h.calm();
+  for (const wid of (process.env.WORLDS || 'earth,moon,halo').split(',')) {
+    const r = await ev(async (wid) => { R.render = () => {}; G.repelUntil = performance.now() + 900000; if (wid !== 'earth') { G.travel(wid); await new Promise(r => setTimeout(r, 2500)); R.render = () => {}; } const w = G.world, p = G.player; const m = Lab.mapMarks(p), t = m.find(x => x.kind === 'tent'); if (!t) return { wid, noTent: true };
+      w.ensureAround(Math.floor(t.x / CH), Math.floor(t.z / CH), 4, 99999); p.x = t.x + 0.5; p.z = t.z + 4.5; p.y = w.groundY(Math.floor(p.x), Math.floor(p.z), 150) + 1.1; p.vy = 0; await new Promise(r => setTimeout(r, 1500));
+      const ap = Lab.talkable()[0]; if (!ap) return { wid, noApprentice: true }; Lab.talk(ap); const ask = document.getElementById('dialogue').textContent.slice(0, 60); for (let k = 0; k < 8 && Dialogue.active(); k++) { document.getElementById('dialogue').click(); await new Promise(r => setTimeout(r, 60)); }
+      const l = Lab.mapMarks(p).find(x => x.kind === 'lab'); if (!l) return { wid, ask, noLab: true, told: Lab.state.told }; w.ensureAround(Math.floor(l.x / CH), Math.floor(l.z / CH), 4, 99999); p.x = l.x + 4; p.z = l.z + 4; p.y = w.groundY(Math.floor(p.x), Math.floor(p.z), 150) + 1.1; await new Promise(r => setTimeout(r, 2000));
+      const boss = Wild.list.find(q => q.isLabBoss); if (!boss) return { wid, ask, noBoss: true }; const bn = KIN.name(boss.kin); p.x = boss.x + 2; p.z = boss.z + 1; p.y = boss.y + 0.1; p.vy = 0; Wild.remove(boss); Lab.onBossBeaten(); const s0 = G.shards; await new Promise(r => setTimeout(r, 7000)); const th = Dialogue.active() ? document.getElementById('dialogue').textContent.slice(0, 50) : null; for (let k = 0; k < 8 && Dialogue.active(); k++) { document.getElementById('dialogue').click(); await new Promise(r => setTimeout(r, 60)); }
+      return { wid, ask, boss: bn, thanks: th, paid: G.shards - s0, nets: p.count('snare2'), labDone: G.stats.labDone, canUse: Lab.canUse(), people: Lab.talkable().map(q => q.name), ents: Lab.entities().length }; }, wid);
+    console.log(JSON.stringify(r)); }
+  console.log('ERRORS:', h.errors.slice(0, 3).join(' | ') || 'none'); await h.close(); })();

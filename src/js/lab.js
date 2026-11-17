@@ -123,11 +123,13 @@ const Lab = (() => {
       } else if (L.rescued && !L.thanked) {
         // the maker comes over, then the incubator is explained
         const d = Math.hypot(p.x - sc.x, p.z - sc.z);
-        if (d > 2.2 && d < 30) { const sp = 2.2 * dt; const nx = sc.x + dx / d * sp, nz = sc.z + dz / d * sp; const gy = standY(nx, sc.y, nz); if (gy != null) { sc.x = nx; sc.z = nz; sc.y += (gy - sc.y) * 0.5; } sc.yaw = Math.atan2(dx, dz); sc.moving = true; }
-        else if (d <= 2.2 && !Dialogue.active() && !inBattle) { sc.moving = false; L.thanked = true; G.talkNpc = sc; Dialogue.show(story().who, story().thanks, () => { G.shards += 200; G.player.add('snare2', 2); UI.sfx('quest'); UI.toast('+200 Shards and two Void Nets. The incubator is yours.', 'good'); G.stats.labDone = (G.stats.labDone || 0) + 1; if (world.preset.id === 'earth' && !G.stats.lostMap) setTimeout(() => G.giveLostMap(story().who), 600); }); }
+        if (d > 2.2 && d < 30) { const sp = 2.2 * dt; /* straight for you, and if a tank or the table is in the way he slides along it one way or the other and carries on */ let moved = false; for (const [mx, mz] of [[dx / d, dz / d], [Math.sign(dx) || 1, 0], [0, Math.sign(dz) || 1], [0, -(Math.sign(dz) || 1)], [-(Math.sign(dx) || 1), 0]]) { if (sc.side && (mx !== sc.side[0] || mz !== sc.side[1]) && sc.sideT > 0 && !(mx === dx / d)) continue; const nx = sc.x + mx * sp, nz = sc.z + mz * sp, gy = standY(nx + mx * 0.35, sc.y, nz + mz * 0.35); if (gy != null && Math.abs(gy - sc.y) < 1.1) { sc.x = nx; sc.z = nz; sc.y += (gy - sc.y) * 0.5; if (mx !== dx / d) { sc.side = [mx, mz]; sc.sideT = 0.6; } moved = true; break; } } if (sc.sideT > 0) sc.sideT -= dt; else sc.side = null; sc.yaw = Math.atan2(dx, dz); sc.moving = moved; }
+        else if (d <= 2.2 && !Dialogue.active() && !inBattle) { sc.moving = false; thank(sc); }
       }
     } else { scientist = null; if (bossRef && dh > 90) { Wild.remove(bossRef); bossRef = null; } }
   }
+  /* the thanks and what comes with them, the same whether he reaches you or you go over and speak to him first. (Speaking to him first used to pay out but never count the quest as done) */
+  function thank(sc) { const L = S(); if (L.thanked) return; L.thanked = true; G.talkNpc = sc; Dialogue.show(story().who, story().thanks, () => { G.shards += 60; G.player.add('snare2', 2); UI.sfx('quest'); UI.toast('+60 Shards and two Void Nets. The incubator is yours.', 'good'); G.stats.labDone = (G.stats.labDone || 0) + 1; if (world.preset.id === 'earth' && !G.stats.lostMap) setTimeout(() => G.giveLostMap(story().who), 600); }); }
   function onBossBeaten() { const L = S(); L.rescued = true; bossRef = null; UI.toast(`${story().bossName} is down. ${story().who} crawls out from under the bench.`, 'good'); }
   function talk(n) {
     const L = S(); G.talkNpc = n;
@@ -137,7 +139,7 @@ const Lab = (() => {
       Dialogue.show(n.name, ['Thank you. I mean it. Go and use the incubator; it is the only thing down there that ever worked.']); return;
     }
     if (!L.rescued) { Dialogue.show(n.name, story().wait); return; }
-    if (!L.thanked) { L.thanked = true; Dialogue.show(n.name, story().thanks, () => { G.shards += 200; G.player.add('snare2', 2); UI.sfx('quest'); }); return; }
+    if (!L.thanked) { thank(n); return; }
     Dialogue.show(n.name, ['The incubator takes three eggs. Leave them and get on with your day; they hatch on their own.']);
   }
   // what floats in the tanks: half-made Kin, a head on its own, a pair of wings; and something strapped to the table
