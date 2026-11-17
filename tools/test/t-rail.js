@@ -10,4 +10,5 @@ const { open } = require('./harness');
       return { name: v.name, R: v.R, wr: Village.wallRadiusOf(v), row }; }, i)));
   }
   console.log(await ev(() => { const v = Village.townList()[0], w = G.world; let out = ''; for (let z = v.z - 150; z <= v.z + 150; z += 3) { let r = ''; for (let x = v.x - 180; x <= v.x + 180; x += 3) { let t = 0; for (let a = 0; a < 3; a++) for (let b = 0; b < 3; b++) if (w.trackAt(x + a, z + b)) t = 1; r += t ? '#' : (Math.hypot(x - v.x, z - v.z) < v.R ? 'o' : ' '); } out += r.replace(/ +$/, '') + '\n'; } return out; }));
+  console.log('errors', JSON.stringify(h.errors.slice(0, 4)));
   await h.close(); })();

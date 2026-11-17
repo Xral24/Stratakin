@@ -1,0 +1,15 @@
+const { open } = require('./harness');
+(async () => { const h = await open(); const { page, ev } = h; await h.newGame('look-1'); await h.calm();
+  await ev(() => { R.render = () => {}; G.repelUntil = performance.now() + 9e6; });
+  const cs = () => ev(() => ({ on: Cine.active(), beat: Cine.beat, title: (document.querySelector('#cine [data-k=title]') || {}).textContent, who: (document.querySelector('#cine [data-k=who]') || {}).textContent, text: ((document.querySelector('#cine [data-k=text]') || {}).textContent || '').slice(0, 50), memo: ((document.querySelector('#cine [data-k=memo]') || {}).textContent || '').slice(0, 50), dlg: Dialogue.active() }));
+  const tap = async (n = 1) => { for (let i = 0; i < n; i++) { await ev(() => document.getElementById('cine').dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }))); await page.waitForTimeout(1200); } };
+  // the Speaker's telling
+  console.log('speaker', await ev(() => { try { const p = G.player; G.stats.atl = { best: 25, rides: 3, tamed: true }; Village.talk({ atl: 'speaker', name: 'The Speaker', x: p.x + 2, y: p.y, z: p.z + 1 }); return 'ok'; } catch (e) { return 'ERR ' + e.message; } }));
+  await page.waitForTimeout(900); console.log(' say', JSON.stringify(await cs())); await tap(4); console.log(' sinking', JSON.stringify(await cs())); await tap(1); await tap(2); console.log(' bent', JSON.stringify(await cs())); await ev(() => Cine.stop(true));
+  // the stair captains and the call from the throne
+  console.log('citadel', JSON.stringify(await ev(() => { try { const s = Citadel.site(); Citadel.begin(); const p = G.player; p.x = s.x - 6; p.z = s.z - 30; G.world.ensureAround(Math.floor(p.x / CH), Math.floor(p.z / CH), 3, 9999); for (let i = 0; i < 3; i++) Citadel.update(1, p); const n1 = Combat.forHold('cit1').length; for (const f of Combat.forHold('cit1').concat(Combat.forHold('cit2'))) { f.hp = 0; f.state = 'down'; } const st = Combat.standingIn('cit1'); Citadel.update(1, p); return { n1, st, wave1: !!G.stats.citadel.wave1 }; } catch (e) { return 'ERR ' + e.message; } })));
+  await page.waitForTimeout(700); console.log(' stair', JSON.stringify(await cs())); await tap(3); await ev(() => { for (let i = 0; i < 3; i++) Citadel.update(1, G.player); }); await page.waitForTimeout(700); console.log(' throne', JSON.stringify(await cs()), await ev(() => !!G.stats.citadel.wave2)); await tap(1); console.log(' call', JSON.stringify(await cs())); await ev(() => Cine.stop(true));
+  // the end
+  console.log('final', await ev(() => { try { Keeps.onFinal('won'); return 'ok'; } catch (e) { return 'ERR ' + e.message; } }));
+  await page.waitForTimeout(2600); console.log(' light', JSON.stringify(await cs())); await ev(() => Cine.stop()); await page.waitForTimeout(500); console.log(' after', JSON.stringify(await ev(() => ({ panel: UI.panelOpen || null, light: !!G.stats.lightReturned, mood: G.filmMood || null, frozen: G.player.frozen }))));
+  console.log('errors', JSON.stringify(h.errors.slice(0, 5))); await h.close(); })();

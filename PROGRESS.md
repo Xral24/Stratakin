@@ -402,6 +402,8 @@ Scope (Alexander, 8 Nov evening): EVERYTHING visible goes to the same standard: 
 
 - 17 Nov, balance pass and a whole-game smoke run (his ask: make the levels doable, and test the whole thing from many angles in one go). **Ladder is now even: home 3, hamlets 6 and 9, towns 12 to 33 in threes, cities 38, 42, 46, 50; gang members +2 each, never past 50 in the last city. Wild Kin within 130 of a held place are 2 to 4 under its tyrant, so that is where you train. Tyrant wins give 2.5x XP. Simulated: about 80 wild wins for a lead Kin across the whole ladder, never more than 12 before any one place. tools/test/suite.sh runs 23 story tests in a row; 21 pass, t-atlplay needs more than the 115 s box and t-rail prints no verdict.**
 
+- 17 Nov, suite filled in (carried on). **New t-films3: the Speaker's telling in Atlantis, the stair captains and the call from the throne (queued one after the other), and the ending film. t-atlplay gets 300 s, t-rail prints a verdict. tools/test/suite.sh with no arguments runs all 24; all 24 pass.**
+
 ## Still to do
 UI polish as feedback comes in. Card battle screen still used for scripted encounters (raids at the walls, thief, citadel duel, holds) and the snare mini-game; converting those to live is the next big step if wanted. (Old list: train/ships, combat animation, eggs, avatar hair/paint, buddy WEAR cosmetics, Silas and Finch, UI polish (item icons), quality toggles in settings (state.shadows, state.grassQuality, state.dprCap).
 
