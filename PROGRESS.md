@@ -339,6 +339,8 @@ Scope (Alexander, 8 Nov evening): EVERYTHING visible goes to the same standard: 
 
 - 17 Nov, **brook has a sandy lip so no grass stands in the water; the net glows as it is drawn shut (the hush taking hold), with motes rising.**
 
+- 17 Nov, opening fixes from his play (story jumped about, could not find the Flame Kin, got chased, a stray wild Kin near the water confused him). **Maren's story now runs in order and the net only comes up after you choose; all three Kin sit on the sandy lip of the brook; no wild Kin within 46 blocks of the camp until you have one.**
+
 ## Still to do
 UI polish as feedback comes in. Card battle screen still used for scripted encounters (raids at the walls, thief, citadel duel, holds) and the snare mini-game; converting those to live is the next big step if wanted. (Old list: train/ships, combat animation, eggs, avatar hair/paint, buddy WEAR cosmetics, Silas and Finch, UI polish (item icons), quality toggles in settings (state.shadows, state.grassQuality, state.dprCap).
 
