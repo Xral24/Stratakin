@@ -193,9 +193,12 @@ const Lab = (() => {
     const left = Math.max(0.05, 1 - e.walked / e.need); // walking it first still counts
     E.push({ egg: e, start: G.stats.playT || 0, dur: INC_H[Math.min(4, r)] * 3600 * left }); return null;
   }
+  /* an egg wants company. Once a day you can warm one in your hands, and each time is worth a third of its whole hatching: tend it three days running and it is out, however rare. Leave it alone and it still hatches on its own slow clock */
+  function rubEgg(i) { const E = incEggs(), x = E[i]; if (!x) return 'Nothing there.'; const day = G.dayCount || 0; if (x.rubDay === day) return 'You have warmed this one today. Come back tomorrow.'; x.rubDay = day; x.rubs = (x.rubs || 0) + 1; x.start -= x.dur / 3; return null; }
+  const canRub = (i) => { const x = incEggs()[i]; return !!x && x.rubDay !== (G.dayCount || 0); };
   function takeEgg(i) { const E = incEggs(); const x = E[i]; if (!x) return 'Nothing there.'; if (G.partyFull()) return 'No room in your party for an egg.'; const done = Math.min(1, ((G.stats.playT || 0) - x.start) / x.dur); x.egg.walked = Math.max(x.egg.walked, x.egg.need * (1 - (1 - done) * (1 - x.egg.walked / x.egg.need))); E.splice(i, 1); G.eggs.push(x.egg); return null; }
   function tickEggs() { if (!G.labState) return; const now = G.stats.playT || 0; for (const id in G.labState) { const L = G.labState[id]; if (!L || !L.eggs) continue; for (const x of L.eggs.slice()) if (now - x.start >= x.dur) { L.eggs.splice(L.eggs.indexOf(x), 1); G.hatchEgg(x.egg, 'Hatched in the incubator. It came out warm and it is already looking for you.'); } } }
   function slots() { const now = G.stats.playT || 0; return incEggs().map(x => ({ egg: x.egg, left: Math.max(0, x.dur - (now - x.start)), pct: Math.min(1, (now - x.start) / x.dur) })); }
   function dawn() { return []; }
-  return { init, update, entities, talkable, talk, marks, mapMarks, onBossBeaten, canUse, putEgg, takeEgg, tickEggs, dawn, slots, get site() { return site; }, set site(v) { site = v; }, get boss() { return bossRef; }, get state() { return S(); } };
+  return { init, update, entities, talkable, talk, marks, mapMarks, onBossBeaten, canUse, putEgg, takeEgg, rubEgg, canRub, tickEggs, dawn, slots, get site() { return site; }, set site(v) { site = v; }, get boss() { return bossRef; }, get state() { return S(); } };
 })();

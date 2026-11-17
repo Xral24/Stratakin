@@ -1,0 +1,55 @@
+'use strict';
+// Fields round the towns. Outside every land town's wall the ground is worked: maize standing taller than you, sunflowers all facing one way,
+// wheat gone gold. Each field is tilled earth in the world and its crop is drawn standing on it, with a scarecrow in the maize.
+const Fields = (() => {
+  let G = null, tick = 0, live = []; const cache = new Map();
+  const KINDS = ['corn', 'sun', 'wheat', 'corn', 'wheat', 'sun', 'wheat'];
+  function init(game) { G = game; tick = 0; live = []; cache.clear(); }
+  const store = () => (G.stats.fields = G.stats.fields || {});
+  function ground(x, z, y0) { const w = G.world; let g = w.groundY(x, z, y0 + 14); while (g > 2 && (isLeaf(w.getBlock(x, g, z)) || isTrunk(w.getBlock(x, g, z)) || w.getBlock(x, g, z) === B.FROND || w.getBlock(x, g, z) === B.AIR)) g--; return g; }
+  /* seven plots in a ring outside the wall. Each is laid only where the land lets it: level, dry, clear of the road and the railway */
+  function lay(v) { const w = G.world, out = [], a0 = U.hash3(Math.round(v.x), 3, Math.round(v.z), w.seed + 411) * 6.283, R = v.R || 16;
+    for (let i = 0; i < 11 && out.length < 7; i++) for (const ring of [0, 1]) { const a = a0 + i * 0.5712 + ring * 0.28, dist = R + 14 + ring * 15 + U.hash3(i, 5, Math.round(v.x), w.seed) * 5, W = i % 2 ? 9 : 12, D = i % 2 ? 12 : 9, x0 = Math.round(v.x + Math.sin(a) * dist - W / 2), z0 = Math.round(v.z + Math.cos(a) * dist - D / 2);
+      const info = w.colInfo(U.mod(x0, WORLD_W), U.mod(z0, WORLD_W)); if ([BIOME.DESERT, BIOME.SNOW, BIOME.SWAMP].includes(info.biome) || info.h > 66 || info.h <= SEA + 1 || info.lost || info.lostRim) continue;
+      const gc = ground(x0 + (W >> 1), z0 + (D >> 1), info.h); let ok = true; for (let dx = 0; dx < W && ok; dx += 2) for (let dz = 0; dz < D && ok; dz += 2) { const X = x0 + dx, Z = z0 + dz, g = ground(X, Z, gc), t = w.getBlock(X, g, Z); if (Math.abs(g - gc) > 2 || (t !== B.GRASS && t !== B.DIRT && t !== B.STONE && t !== B.SAND) || w.getBlock(X, g + 1, Z) === B.WATER || (w.trailWear && w.trailWear(X, Z) > 0.4) || (w.trackAt && w.trackAt(X, Z))) ok = false;  } if (!ok) continue;
+      for (let dx = 0; dx < W; dx++) for (let dz = 0; dz < D; dz++) { const X = x0 + dx, Z = z0 + dz, g = ground(X, Z, gc); for (let y = gc + 1; y <= Math.max(g, gc) + 16; y++) { const b = w.getBlock(X, y, Z); if (b !== B.AIR) w.setBlock(X, y, Z, B.AIR); } for (let y = Math.min(g, gc - 2); y <= gc; y++) w.setBlock(X, y, Z, B.DIRT); } /* levelled as a field is: a step cut in on the high side, built up on the low */
+      if (out.some(o => Math.abs(o.x - x0) < 14 && Math.abs(o.z - z0) < 14)) continue; out.push({ x: x0, z: z0, w: W, d: D, y: gc, k: KINDS[out.length] }); }
+    return out; }
+  function update(dt, p) { if (!G || G.worldId !== 'earth') { live = []; return; } tick -= dt; if (tick > 0) return; tick = 1.1; const st = store(), list = Village.townList ? Village.townList() : []; live = [];
+    for (const v of list) { const d = Math.hypot(v.x - p.x, v.z - p.z), R = v.R || 16; if (d > R + 95) continue; const key = Math.round(v.x) + ',' + Math.round(v.z); if (st[key] === undefined || (st[key] && !st[key].length && !st[key + ':final'])) { if (d > R + 70) continue; /* laid when you are near enough that the land round the town is really there to look at. An empty answer from far off is not kept: it is asked again closer in */ const got = lay(v); if (got.length || d < R + 34) { st[key] = got; st[key + ':final'] = 1; if (got.length && G.meshPass) G.meshPass(99); } else st[key] = undefined; } if (st[key]) for (const f of st[key]) live.push(f); } }
+  const GRN = [0.36, 0.6, 0.26], GRN2 = [0.28, 0.5, 0.22], GOLD = [0.9, 0.74, 0.3], GOLD2 = [0.82, 0.64, 0.24], YEL = [1.0, 0.82, 0.16], BRN = [0.38, 0.24, 0.12];
+  /* one patch of crop, three steps square, nine plants or a carpet of wheat, each a little out of line */
+  function patch(kind, v) { return R.entityMesh('crop:' + kind + ':' + v, (mb) => { const j = (i, k) => (Math.sin(i * 12.9898 + k * 78.233 + v * 37.7) * 43758.5453 % 1) * 0.5;
+      if (kind === 'wheat') { for (let i = 0; i < 6; i++) for (let k = 0; k < 6; k++) { const x = -1.25 + i * 0.5 + j(i, k) * 0.3, z = -1.25 + k * 0.5 + j(k, i + 9) * 0.3, hgt = 0.75 + Math.abs(j(i + 3, k + 5)) * 0.5; mb.blob(x - 0.1, 0, z - 0.1, x + 0.1, hgt, z + 0.1, 0.5, (i + k) % 2 ? GOLD : GOLD2, { n: 2 }); mb.blob(x - 0.14, hgt - 0.08, z - 0.14 + 0.06, x + 0.14, hgt + 0.2, z + 0.2, 0.9, [0.96, 0.82, 0.4], { n: 2 }); } return; }
+      for (let i = 0; i < 3; i++) for (let k = 0; k < 3; k++) { const x = -1 + i + j(i, k) * 0.35, z = -1 + k + j(k, i + 4) * 0.35;
+        if (kind === 'corn') { const hgt = 2.0 + Math.abs(j(i + 2, k + 7)) * 0.7; mb.blob(x - 0.055, 0, z - 0.055, x + 0.055, hgt, z + 0.055, 0.5, GRN2, { n: 2 }); for (let q = 0; q < 4; q++) { const sx = q % 2 ? 1 : -1, yy = 0.5 + q * 0.38, alongX = q < 2; mb.blob(alongX ? Math.min(x, x + sx * 0.6) : x - 0.07, yy, alongX ? z - 0.07 : Math.min(z, z + sx * 0.6), alongX ? Math.max(x, x + sx * 0.6) : x + 0.07, yy + 0.09, alongX ? z + 0.07 : Math.max(z, z + sx * 0.6), 0.9, GRN, { n: 2 }); mb.blob(alongX ? x + sx * 0.5 - 0.09 : x - 0.06, yy - 0.2, alongX ? z - 0.06 : z + sx * 0.5 - 0.09, alongX ? x + sx * 0.5 + 0.09 : x + 0.06, yy + 0.06, alongX ? z + 0.06 : z + sx * 0.5 + 0.09, 0.9, GRN, { n: 2 }); }
+          mb.blob(x + 0.04, 1.0, z - 0.07, x + 0.2, 1.36, z + 0.07, 0.9, YEL, { n: 2 }); mb.blob(x - 0.07, hgt - 0.05, z - 0.07, x + 0.07, hgt + 0.3, z + 0.07, 0.8, [0.86, 0.78, 0.5], { n: 2 }); }
+        else { const hgt = 1.55 + Math.abs(j(i + 1, k + 3)) * 0.5; mb.blob(x - 0.05, 0, z - 0.05, x + 0.05, hgt, z + 0.05, 0.5, GRN2, { n: 2 }); for (const sx of [-1, 1]) mb.blob(Math.min(x, x + sx * 0.36), 0.7 + (sx > 0 ? 0.25 : 0), z - 0.13, Math.max(x, x + sx * 0.36), 0.78 + (sx > 0 ? 0.25 : 0), z + 0.13, 0.9, GRN, { n: 2 });
+          mb.blob(x - 0.33, hgt - 0.3, z + 0.02, x + 0.33, hgt + 0.36, z + 0.13, 1, YEL, { n: 3 }); mb.blob(x - 0.17, hgt - 0.14, z + 0.1, x + 0.17, hgt + 0.2, z + 0.18, 1, BRN, { n: 3 }); } } }); }
+  function scarecrow() { return R.entityMesh('crop:scare', (mb) => { mb.blob(-0.06, 0, -0.06, 0.06, 2.3, 0.06, 0.4, [0.45, 0.33, 0.22], { n: 2 }); mb.blob(-0.9, 1.55, -0.05, 0.9, 1.67, 0.05, 0.4, [0.45, 0.33, 0.22], { n: 2 }); mb.blob(-0.38, 0.85, -0.16, 0.38, 1.72, 0.16, 0.4, [0.5, 0.3, 0.26], { n: 2 }); for (const sx of [-1, 1]) { mb.blob(sx * 0.62 - 0.26, 1.48, -0.1, sx * 0.62 + 0.26, 1.74, 0.1, 0.5, [0.5, 0.3, 0.26], { n: 2 }); mb.blob(sx * 0.95 - 0.1, 1.42, -0.08, sx * 0.95 + 0.1, 1.72, 0.08, 0.9, [0.9, 0.78, 0.4], { n: 2 }); }
+      mb.blob(-0.22, 1.74, -0.2, 0.22, 2.18, 0.2, 0.9, [0.88, 0.8, 0.6], { n: 3 }); mb.blob(-0.4, 2.12, -0.4, 0.4, 2.2, 0.4, 0.9, [0.4, 0.28, 0.16], { n: 3 }); mb.blob(-0.2, 2.18, -0.2, 0.2, 2.5, 0.2, 0.7, [0.4, 0.28, 0.16], { n: 3 }); for (const sx of [-1, 1]) mb.blob(sx * 0.09 - 0.035, 1.98, 0.19, sx * 0.09 + 0.035, 2.05, 0.22, 1, [0.1, 0.08, 0.08], { n: 2 }); mb.blob(-0.3, 0.6, -0.14, 0.3, 0.9, 0.14, 0.8, [0.9, 0.78, 0.4], { n: 2 }); }); }
+  function entities() { const out = []; if (!live.length) return out; const p = G.player, w = G.world;
+    for (const f of live) { if (Math.hypot(f.x + f.w / 2 - p.x, f.z + f.d / 2 - p.z) > 78) continue; let P = cache.get(f.x + ',' + f.z); if (!P) { P = []; cache.set(f.x + ',' + f.z, P); for (let dx = 1; dx + 1 < f.w; dx += 3) for (let dz = 1; dz + 1 < f.d; dz += 3) { const X = f.x + dx, Z = f.z + dz; P.push([X + 0.5, ground(X, Z, f.y) + 1, Z + 0.5, Math.abs(X * 3 + Z * 7) % 3]); } }
+      for (const q of P) out.push({ x: q[0], y: q[1] - 0.04, z: q[2], yaw: 0, scale: 1, hover: 0, skyMul: 1, isStatue: true, mesh: patch(f.k, q[3]) });
+      if (f.k === 'corn') out.push({ x: f.x + f.w / 2, y: f.y + 1, z: f.z + f.d / 2, yaw: (f.x % 6), scale: 1, hover: 0, skyMul: 1, isStatue: true, mesh: scarecrow() }); }
+    return out; }
+  /* what the fields are for. Once the town is free its people let you pick: a little from each field, once a day, grown back by morning. Maize is a meal, sunflower seeds are a treat your Kin will love you for, wheat is what Mr Crowe and the scarecrow both want */
+  const CROP = { corn: ['corn', 2, 'Maize'], sun: ['sunseed', 3, 'Sunflowers'], wheat: ['wheat', 3, 'Wheat'] };
+  function townOf(f) { let best = null, bd = 1e9; for (const v of (Village.townList ? Village.townList() : [])) { const d = Math.hypot(v.x - f.x, v.z - f.z); if (d < bd) { bd = d; best = v; } } return best; }
+  const freed = (v) => !!(v && G.villageState && G.villageState[v.id] && G.villageState[v.id].freed);
+  const fst = (f) => { const S0 = (G.stats.fieldState = G.stats.fieldState || {}), k = f.x + ',' + f.z; return S0[k] || (S0[k] = {}); };
+  const tst = (v) => { const S0 = (G.stats.fieldState = G.stats.fieldState || {}), k = 'town:' + v.id; return S0[k] || (S0[k] = {}); };
+  function at(p) { for (const f of live) if (p.x > f.x - 1.2 && p.x < f.x + f.w + 1.2 && p.z > f.z - 1.2 && p.z < f.z + f.d + 1.2 && Math.abs(p.y - f.y - 1) < 3) return f; return null; }
+  const byScare = (p, f) => f && f.k === 'corn' && Math.hypot(p.x - (f.x + f.w / 2), p.z - (f.z + f.d / 2)) < 2.4;
+  function label(p) { const f = at(p); if (!f) return null; if (byScare(p, f)) return 'Scarecrow · tap'; return CROP[f.k][2] + ' · tap to pick'; }
+  function scare(p, f) { const v = townOf(f), T = tst(v), say = (l, d) => Dialogue.show('Scarecrow', l, d);
+    if (T.scare) return say(['It stands straight and keeps its own counsel. The crows have taken the hint.']);
+    if (!T.seen) { T.seen = 1; return say(['A scarecrow, or most of one. The stuffing has gone out of its chest and it leans like a man who has given up.', 'Six handfuls of wheat would fill it. There is a wheat field somewhere round this wall.']); }
+    if (G.player.count('wheat') >= 6) return say(['You pack the wheat in handful by handful and tie the coat shut over it. It comes upright.', 'On the wall a farmer has stopped to watch. She lifts her hat to you.'], () => { G.player.take('wheat', 6); T.scare = 1; UI.sfx('quest'); if (G.addXp) G.addXp(40); UI.toast('The scarecrow is mended. These fields will give you double from now on.', 'good'); });
+    say(['It wants stuffing. Six handfuls of wheat, and you have ' + G.player.count('wheat') + '.']); return true; }
+  function tap(p) { const f = at(p); if (!f) return false; if (byScare(p, f)) { scare(p, f); return true; } const v = townOf(f), S1 = fst(f), c = CROP[f.k];
+    if (!freed(v)) { UI.toast('These fields are worked for the tyrant. Free ' + ((v && v.name) || 'the town') + ' and its people will let you pick.'); return true; }
+    if (S1.day === (G.dayCount || 0)) { UI.toast('Picked over for today. It will have grown back by morning.'); return true; }
+    S1.day = G.dayCount || 0; const n = c[1] * (tst(v).scare ? 2 : 1); G.player.add(c[0], n); UI.sfx('place'); UI.renderHotbar(); UI.toast('You pick ' + n + ' ' + ITEMS[c[0]].name.toLowerCase() + '.', 'good'); return true; }
+  return { init, update, entities, tap, label, get live() { return live; } };
+})();

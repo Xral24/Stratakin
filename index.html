@@ -5074,6 +5074,9 @@ const ITEMS = {
   draught: { name: 'Sage\'s Draught', col: '#b07aff', use: 'tech', keep: false, desc: 'Cannot be made, only won. Give it to your lead Kin and it forgets its fourth move and learns any technique you choose, from any element.' },
   lariat: { name: 'Long Lariat', col: '#c9a56a', desc: 'Hattie Copper\'s last, left on a post for whoever read all eight boards. Tied onto any net it opens half as wide again. Made for the big ones.' },
   seal: { name: 'Weaver\'s Seal', col: '#cfd8ff', desc: 'A knot of woven silver from under the last of the fourteen stones. A net you close holds a little longer while you carry it. Some people will know it on sight.' },
+  corn: { name: 'Maize', col: '#f2c63a', use: 'player', desc: 'A cob from a town field, good raw and better roasted. Restores all your health.' },
+  sunseed: { name: 'Sunflower Seeds', col: '#5a4632', use: 'treat', desc: 'A handful from a town field. Give them to the Kin walking with you: it will think more of you.' },
+  wheat: { name: 'Wheat', col: '#e2c060', desc: 'Cut from a town field. Mr Crowe pays for it, and a scarecrow can be stuffed with it.' },
   bread: { name: 'Bread', col: '#d9a65b', use: 'player', desc: 'Restores all your health.' },
   smoothie: { name: 'Smoothie', col: '#ff8fb8', use: 'party', desc: 'Every Kin recovers half its health.' },
   tonic_heal: { name: 'Heal Tonic', col: '#ff5f7a', use: 'kin', desc: 'One Kin recovers 60% of its health. Does not wake a fainted Kin.' },
@@ -5107,7 +5110,7 @@ const ITEMS = {
 for (const e of ELEMENTS) ITEMS['ess_' + e] = { name: e + ' Essence', col: ELEM_COLOR[e], elem: e, desc: 'Left behind by ' + e + ' Kin. Three of them and an iron make a ' + e + ' Stone.' };
 for (const e of ELEMENTS) ITEMS['stone_' + e] = { name: e + ' Stone', col: ELEM_COLOR[e], crafted: true, desc: 'A fusion stone. A fusion recipe needs its two Kin and the right stone, together on the table.' };
 for (const e of ELEMENTS) ITEMS['lure_' + e] = { name: e + ' Lure', col: ELEM_COLOR[e], use: 'self', lure: e, crafted: true, desc: 'Drink it and ' + e + ' Kin come to you for four minutes, twice as often and far more of them.' };
-const HOTBAR_ORDER = ['torch', 'snare', 'snare2', 'snare_sky', 'bread', 'smoothie', 'tonic_revive', 'tonic_heal', 'tonic_vigor', 'tonic_might', 'tonic_swift', 'wood', 'planks', 'glass', 'door', 'ladder', 'chest', 'ironwall', 'voidwall', 'kit_house', 'kit_bakery', 'kit_juice', 'kit_trader', 'kit_voodoo', 'kit_post', 'kit_wall', 'kit_wall_stone', 'kit_wall_iron', 'kit_bridge', 'kit_portal', 'kit_dome', 'rod', 'rod_iron', 'rod_void', 'tonic_hush', 'moonlamp', 'selglass', 'stone', 'dirt', 'sand', 'gravel', 'snow', 'basalt', 'cloud', 'fusion', 'berry', 'glowworm', 'frond', 'copper', 'iron', 'ember', 'void', 'selenite', 'tycho', 'starsalt', 'amber', 'sulfur', 'ringshard', 'coral', 'pearl', 'gold', 'diamond', ...ELEMENTS.map(e => 'ess_' + e), 'bulb', 'glider', 'lavasuit'];
+const HOTBAR_ORDER = ['torch', 'snare', 'snare2', 'snare_sky', 'bread', 'corn', 'sunseed', 'smoothie', 'tonic_revive', 'tonic_heal', 'tonic_vigor', 'tonic_might', 'tonic_swift', 'wood', 'planks', 'glass', 'door', 'ladder', 'chest', 'ironwall', 'voidwall', 'kit_house', 'kit_bakery', 'kit_juice', 'kit_trader', 'kit_voodoo', 'kit_post', 'kit_wall', 'kit_wall_stone', 'kit_wall_iron', 'kit_bridge', 'kit_portal', 'kit_dome', 'rod', 'rod_iron', 'rod_void', 'tonic_hush', 'moonlamp', 'selglass', 'stone', 'dirt', 'sand', 'gravel', 'snow', 'basalt', 'cloud', 'fusion', 'berry', 'glowworm', 'frond', 'copper', 'iron', 'ember', 'void', 'selenite', 'tycho', 'starsalt', 'amber', 'sulfur', 'ringshard', 'coral', 'pearl', 'gold', 'diamond', ...ELEMENTS.map(e => 'ess_' + e), 'bulb', 'glider', 'lavasuit'];
 
 class Player {
   constructor(world) {
@@ -13106,7 +13109,7 @@ const Village = (() => {
     return { build, hairVar, hair: hairCol || undefined, shape: 'human', feat: { crest: false, ears: false, horns: false, spikes: false, tail: false, wings: false, bigEyes: style === 'alien' }, colors: { body, belly: skin, accent, dark: style === 'alien' ? '#05050f' : style === 'atlantis' ? '#1a3a4a' : '#3a2a20', eye: style === 'alien' ? '#ffffff' : '#222222' }, size: role === 'elder' ? 1.15 : role === 'voodoo' ? 1.1 : 1, gen: 0, names: ['villager'], neon: style === 'alien' };
   }
   /* Mr Crowe: holds the notes on half the town and pays, promptly, for small errands. One a morning, so he is pocket money and not a mine */
-  const ERRANDS = [{ item: 'wood', n: 8, pay: 10, say: 'logs' }, { item: 'berry', n: 6, pay: 10, say: 'berries' }, { item: 'planks', n: 6, pay: 12, say: 'planks' }, { item: 'glass', n: 2, pay: 14, say: 'panes of glass' }, { item: 'bread', n: 2, pay: 9, say: 'loaves' }];
+  const ERRANDS = [{ item: 'wood', n: 8, pay: 10, say: 'logs' }, { item: 'berry', n: 6, pay: 10, say: 'berries' }, { item: 'planks', n: 6, pay: 12, say: 'planks' }, { item: 'glass', n: 2, pay: 14, say: 'panes of glass' }, { item: 'bread', n: 2, pay: 9, say: 'loaves' }, { item: 'wheat', n: 6, pay: 11, say: 'handfuls of wheat' }, { item: 'corn', n: 4, pay: 11, say: 'cobs of maize' }, { item: 'sunseed', n: 6, pay: 10, say: 'handfuls of sunflower seed' }];
   function bankerTalk(n) { const st = (G.stats.crowe = G.stats.crowe || { met: 0, i: 0, next: 0 }), now = Date.now(), e = ERRANDS[st.i % ERRANDS.length], say = (lines, done) => Dialogue.show('Mr Crowe', lines, done);
     if (!st.met) { st.met = 1; return say(['Crowe. Pennington Crowe. I hold the notes on half this town and I mean to hold the rest.', 'I pay for errands. Fair coin, promptly, and no questions about where a thing came from.', `This morning I want ${e.n} ${e.say}. Bring them and there are ${e.pay} shards in it for you.`]); }
     if (now < st.next) return say(['Nothing more today. I do not pay twice for the same morning.', 'Come back when the sun has been round.']);
@@ -17279,11 +17282,14 @@ const Lab = (() => {
     const left = Math.max(0.05, 1 - e.walked / e.need); // walking it first still counts
     E.push({ egg: e, start: G.stats.playT || 0, dur: INC_H[Math.min(4, r)] * 3600 * left }); return null;
   }
+  /* an egg wants company. Once a day you can warm one in your hands, and each time is worth a third of its whole hatching: tend it three days running and it is out, however rare. Leave it alone and it still hatches on its own slow clock */
+  function rubEgg(i) { const E = incEggs(), x = E[i]; if (!x) return 'Nothing there.'; const day = G.dayCount || 0; if (x.rubDay === day) return 'You have warmed this one today. Come back tomorrow.'; x.rubDay = day; x.rubs = (x.rubs || 0) + 1; x.start -= x.dur / 3; return null; }
+  const canRub = (i) => { const x = incEggs()[i]; return !!x && x.rubDay !== (G.dayCount || 0); };
   function takeEgg(i) { const E = incEggs(); const x = E[i]; if (!x) return 'Nothing there.'; if (G.partyFull()) return 'No room in your party for an egg.'; const done = Math.min(1, ((G.stats.playT || 0) - x.start) / x.dur); x.egg.walked = Math.max(x.egg.walked, x.egg.need * (1 - (1 - done) * (1 - x.egg.walked / x.egg.need))); E.splice(i, 1); G.eggs.push(x.egg); return null; }
   function tickEggs() { if (!G.labState) return; const now = G.stats.playT || 0; for (const id in G.labState) { const L = G.labState[id]; if (!L || !L.eggs) continue; for (const x of L.eggs.slice()) if (now - x.start >= x.dur) { L.eggs.splice(L.eggs.indexOf(x), 1); G.hatchEgg(x.egg, 'Hatched in the incubator. It came out warm and it is already looking for you.'); } } }
   function slots() { const now = G.stats.playT || 0; return incEggs().map(x => ({ egg: x.egg, left: Math.max(0, x.dur - (now - x.start)), pct: Math.min(1, (now - x.start) / x.dur) })); }
   function dawn() { return []; }
-  return { init, update, entities, talkable, talk, marks, mapMarks, onBossBeaten, canUse, putEgg, takeEgg, tickEggs, dawn, slots, get site() { return site; }, set site(v) { site = v; }, get boss() { return bossRef; }, get state() { return S(); } };
+  return { init, update, entities, talkable, talk, marks, mapMarks, onBossBeaten, canUse, putEgg, takeEgg, rubEgg, canRub, tickEggs, dawn, slots, get site() { return site; }, set site(v) { site = v; }, get boss() { return bossRef; }, get state() { return S(); } };
 })();
 
 </script>
@@ -17791,12 +17797,13 @@ const UI = (() => {
     setTitle('Incubator');
     const slots = Lab.slots(); const fmt = (sec) => { const m = Math.ceil(sec / 60); return m >= 60 ? `${Math.floor(m / 60)}h ${m % 60}m` : `${m}m`; };
     const eggName = (e) => (e.label ? e.label.charAt(0).toUpperCase() + e.label.slice(1) : 'Egg') + (e.from ? ' from ' + e.from : '');
-    el['panel-body'].innerHTML = `<p class="note">Eggs only. Three at a time; they hatch on play time while you are anywhere, no walking needed. A common egg takes about 40 minutes, a rare one a couple of hours, the rarest five. Steps you already walked with an egg still count.</p>
-      <h4>Warming · ${slots.length}/3</h4>${slots.length ? slots.map((s, i) => `<div class="shop-row"><canvas class="eggpic" data-seed="${s.egg.seed}" width="56" height="56"></canvas><div class="rinfo"><b>${eggName(s.egg)}</b><div class="condbar"><i style="width:${Math.round(s.pct * 100)}%;background:#ffd27a"></i></div><span class="small">hatches in about ${fmt(s.left)}</span></div><button class="btn ghost" data-out="${i}">Take out</button></div>`).join('') : '<p class="small">Empty and warm.</p>'}
+    el['panel-body'].innerHTML = `<p class="note">Eggs only, three at a time. Left alone they hatch on their own slow clock: about 40 minutes for a common egg, five hours for the rarest. But an egg wants company. Once a day you can warm one in your hands, and each time is worth a third of its hatching: come back three days running and it is out, however rare. Steps you already walked with an egg still count.</p>
+      <h4>Warming · ${slots.length}/3</h4>${slots.length ? slots.map((s, i) => `<div class="shop-row"><canvas class="eggpic" data-seed="${s.egg.seed}" width="56" height="56"></canvas><div class="rinfo"><b>${eggName(s.egg)}</b><div class="condbar"><i style="width:${Math.round(s.pct * 100)}%;background:#ffd27a"></i></div><span class="small">${s.left <= 0 ? 'ready to hatch' : 'hatches in about ' + fmt(s.left)}${Lab.canRub(i) ? '' : ' · warmed today'}</span></div>${Lab.canRub(i) && s.left > 0 ? `<button class="btn" data-rub="${i}">Warm it</button>` : ''}<button class="btn ghost" data-out="${i}">Take out</button></div>`).join('') : '<p class="small">Empty and warm.</p>'}
       ${slots.length < 3 && G.eggs.length ? `<h4>Your eggs</h4>${G.eggs.map((e, i) => `<div class="shop-row"><canvas class="eggpic" data-seed="${e.seed}" width="56" height="56"></canvas><div class="rinfo"><b>${eggName(e)}</b> <span class="small">${Math.ceil(e.need - e.walked)} steps left on foot</span></div><button class="btn" data-in="${i}">Put in</button></div>`).join('')}` : (G.eggs.length ? '' : '<p class="small">You are not carrying any eggs.</p>')}
       <div class="row"><button class="btn ghost" id="inc-close">Close</button></div>`;
     drawPortraits(el['panel-body']);
     el['panel-body'].querySelectorAll('[data-in]').forEach(b => b.addEventListener('click', () => { const err = Lab.putEgg(G.eggs[+b.dataset.in]); if (err) toast(err, 'bad'); else { sfx('place'); renderIncubator(); } }));
+    el['panel-body'].querySelectorAll('[data-rub]').forEach(b => b.addEventListener('click', () => { const err = Lab.rubEgg(+b.dataset.rub); if (err) toast(err, 'bad'); else { sfx('gift'); toast('You hold it until it is warm right through. Something inside turns over.', 'good'); renderIncubator(); } }));
     el['panel-body'].querySelectorAll('[data-out]').forEach(b => b.addEventListener('click', () => { const err = Lab.takeEgg(+b.dataset.out); if (err) toast(err, 'bad'); else { sfx('caught'); renderIncubator(); } }));
     q('inc-close').addEventListener('click', closePanel);
   }
@@ -20364,6 +20371,64 @@ const Ruins = (() => {
 </script>
 <script>
 'use strict';
+// Fields round the towns. Outside every land town's wall the ground is worked: maize standing taller than you, sunflowers all facing one way,
+// wheat gone gold. Each field is tilled earth in the world and its crop is drawn standing on it, with a scarecrow in the maize.
+const Fields = (() => {
+  let G = null, tick = 0, live = []; const cache = new Map();
+  const KINDS = ['corn', 'sun', 'wheat', 'corn', 'wheat', 'sun', 'wheat'];
+  function init(game) { G = game; tick = 0; live = []; cache.clear(); }
+  const store = () => (G.stats.fields = G.stats.fields || {});
+  function ground(x, z, y0) { const w = G.world; let g = w.groundY(x, z, y0 + 14); while (g > 2 && (isLeaf(w.getBlock(x, g, z)) || isTrunk(w.getBlock(x, g, z)) || w.getBlock(x, g, z) === B.FROND || w.getBlock(x, g, z) === B.AIR)) g--; return g; }
+  /* seven plots in a ring outside the wall. Each is laid only where the land lets it: level, dry, clear of the road and the railway */
+  function lay(v) { const w = G.world, out = [], a0 = U.hash3(Math.round(v.x), 3, Math.round(v.z), w.seed + 411) * 6.283, R = v.R || 16;
+    for (let i = 0; i < 11 && out.length < 7; i++) for (const ring of [0, 1]) { const a = a0 + i * 0.5712 + ring * 0.28, dist = R + 14 + ring * 15 + U.hash3(i, 5, Math.round(v.x), w.seed) * 5, W = i % 2 ? 9 : 12, D = i % 2 ? 12 : 9, x0 = Math.round(v.x + Math.sin(a) * dist - W / 2), z0 = Math.round(v.z + Math.cos(a) * dist - D / 2);
+      const info = w.colInfo(U.mod(x0, WORLD_W), U.mod(z0, WORLD_W)); if ([BIOME.DESERT, BIOME.SNOW, BIOME.SWAMP].includes(info.biome) || info.h > 66 || info.h <= SEA + 1 || info.lost || info.lostRim) continue;
+      const gc = ground(x0 + (W >> 1), z0 + (D >> 1), info.h); let ok = true; for (let dx = 0; dx < W && ok; dx += 2) for (let dz = 0; dz < D && ok; dz += 2) { const X = x0 + dx, Z = z0 + dz, g = ground(X, Z, gc), t = w.getBlock(X, g, Z); if (Math.abs(g - gc) > 2 || (t !== B.GRASS && t !== B.DIRT && t !== B.STONE && t !== B.SAND) || w.getBlock(X, g + 1, Z) === B.WATER || (w.trailWear && w.trailWear(X, Z) > 0.4) || (w.trackAt && w.trackAt(X, Z))) ok = false;  } if (!ok) continue;
+      for (let dx = 0; dx < W; dx++) for (let dz = 0; dz < D; dz++) { const X = x0 + dx, Z = z0 + dz, g = ground(X, Z, gc); for (let y = gc + 1; y <= Math.max(g, gc) + 16; y++) { const b = w.getBlock(X, y, Z); if (b !== B.AIR) w.setBlock(X, y, Z, B.AIR); } for (let y = Math.min(g, gc - 2); y <= gc; y++) w.setBlock(X, y, Z, B.DIRT); } /* levelled as a field is: a step cut in on the high side, built up on the low */
+      if (out.some(o => Math.abs(o.x - x0) < 14 && Math.abs(o.z - z0) < 14)) continue; out.push({ x: x0, z: z0, w: W, d: D, y: gc, k: KINDS[out.length] }); }
+    return out; }
+  function update(dt, p) { if (!G || G.worldId !== 'earth') { live = []; return; } tick -= dt; if (tick > 0) return; tick = 1.1; const st = store(), list = Village.townList ? Village.townList() : []; live = [];
+    for (const v of list) { const d = Math.hypot(v.x - p.x, v.z - p.z), R = v.R || 16; if (d > R + 95) continue; const key = Math.round(v.x) + ',' + Math.round(v.z); if (st[key] === undefined || (st[key] && !st[key].length && !st[key + ':final'])) { if (d > R + 70) continue; /* laid when you are near enough that the land round the town is really there to look at. An empty answer from far off is not kept: it is asked again closer in */ const got = lay(v); if (got.length || d < R + 34) { st[key] = got; st[key + ':final'] = 1; if (got.length && G.meshPass) G.meshPass(99); } else st[key] = undefined; } if (st[key]) for (const f of st[key]) live.push(f); } }
+  const GRN = [0.36, 0.6, 0.26], GRN2 = [0.28, 0.5, 0.22], GOLD = [0.9, 0.74, 0.3], GOLD2 = [0.82, 0.64, 0.24], YEL = [1.0, 0.82, 0.16], BRN = [0.38, 0.24, 0.12];
+  /* one patch of crop, three steps square, nine plants or a carpet of wheat, each a little out of line */
+  function patch(kind, v) { return R.entityMesh('crop:' + kind + ':' + v, (mb) => { const j = (i, k) => (Math.sin(i * 12.9898 + k * 78.233 + v * 37.7) * 43758.5453 % 1) * 0.5;
+      if (kind === 'wheat') { for (let i = 0; i < 6; i++) for (let k = 0; k < 6; k++) { const x = -1.25 + i * 0.5 + j(i, k) * 0.3, z = -1.25 + k * 0.5 + j(k, i + 9) * 0.3, hgt = 0.75 + Math.abs(j(i + 3, k + 5)) * 0.5; mb.blob(x - 0.1, 0, z - 0.1, x + 0.1, hgt, z + 0.1, 0.5, (i + k) % 2 ? GOLD : GOLD2, { n: 2 }); mb.blob(x - 0.14, hgt - 0.08, z - 0.14 + 0.06, x + 0.14, hgt + 0.2, z + 0.2, 0.9, [0.96, 0.82, 0.4], { n: 2 }); } return; }
+      for (let i = 0; i < 3; i++) for (let k = 0; k < 3; k++) { const x = -1 + i + j(i, k) * 0.35, z = -1 + k + j(k, i + 4) * 0.35;
+        if (kind === 'corn') { const hgt = 2.0 + Math.abs(j(i + 2, k + 7)) * 0.7; mb.blob(x - 0.055, 0, z - 0.055, x + 0.055, hgt, z + 0.055, 0.5, GRN2, { n: 2 }); for (let q = 0; q < 4; q++) { const sx = q % 2 ? 1 : -1, yy = 0.5 + q * 0.38, alongX = q < 2; mb.blob(alongX ? Math.min(x, x + sx * 0.6) : x - 0.07, yy, alongX ? z - 0.07 : Math.min(z, z + sx * 0.6), alongX ? Math.max(x, x + sx * 0.6) : x + 0.07, yy + 0.09, alongX ? z + 0.07 : Math.max(z, z + sx * 0.6), 0.9, GRN, { n: 2 }); mb.blob(alongX ? x + sx * 0.5 - 0.09 : x - 0.06, yy - 0.2, alongX ? z - 0.06 : z + sx * 0.5 - 0.09, alongX ? x + sx * 0.5 + 0.09 : x + 0.06, yy + 0.06, alongX ? z + 0.06 : z + sx * 0.5 + 0.09, 0.9, GRN, { n: 2 }); }
+          mb.blob(x + 0.04, 1.0, z - 0.07, x + 0.2, 1.36, z + 0.07, 0.9, YEL, { n: 2 }); mb.blob(x - 0.07, hgt - 0.05, z - 0.07, x + 0.07, hgt + 0.3, z + 0.07, 0.8, [0.86, 0.78, 0.5], { n: 2 }); }
+        else { const hgt = 1.55 + Math.abs(j(i + 1, k + 3)) * 0.5; mb.blob(x - 0.05, 0, z - 0.05, x + 0.05, hgt, z + 0.05, 0.5, GRN2, { n: 2 }); for (const sx of [-1, 1]) mb.blob(Math.min(x, x + sx * 0.36), 0.7 + (sx > 0 ? 0.25 : 0), z - 0.13, Math.max(x, x + sx * 0.36), 0.78 + (sx > 0 ? 0.25 : 0), z + 0.13, 0.9, GRN, { n: 2 });
+          mb.blob(x - 0.33, hgt - 0.3, z + 0.02, x + 0.33, hgt + 0.36, z + 0.13, 1, YEL, { n: 3 }); mb.blob(x - 0.17, hgt - 0.14, z + 0.1, x + 0.17, hgt + 0.2, z + 0.18, 1, BRN, { n: 3 }); } } }); }
+  function scarecrow() { return R.entityMesh('crop:scare', (mb) => { mb.blob(-0.06, 0, -0.06, 0.06, 2.3, 0.06, 0.4, [0.45, 0.33, 0.22], { n: 2 }); mb.blob(-0.9, 1.55, -0.05, 0.9, 1.67, 0.05, 0.4, [0.45, 0.33, 0.22], { n: 2 }); mb.blob(-0.38, 0.85, -0.16, 0.38, 1.72, 0.16, 0.4, [0.5, 0.3, 0.26], { n: 2 }); for (const sx of [-1, 1]) { mb.blob(sx * 0.62 - 0.26, 1.48, -0.1, sx * 0.62 + 0.26, 1.74, 0.1, 0.5, [0.5, 0.3, 0.26], { n: 2 }); mb.blob(sx * 0.95 - 0.1, 1.42, -0.08, sx * 0.95 + 0.1, 1.72, 0.08, 0.9, [0.9, 0.78, 0.4], { n: 2 }); }
+      mb.blob(-0.22, 1.74, -0.2, 0.22, 2.18, 0.2, 0.9, [0.88, 0.8, 0.6], { n: 3 }); mb.blob(-0.4, 2.12, -0.4, 0.4, 2.2, 0.4, 0.9, [0.4, 0.28, 0.16], { n: 3 }); mb.blob(-0.2, 2.18, -0.2, 0.2, 2.5, 0.2, 0.7, [0.4, 0.28, 0.16], { n: 3 }); for (const sx of [-1, 1]) mb.blob(sx * 0.09 - 0.035, 1.98, 0.19, sx * 0.09 + 0.035, 2.05, 0.22, 1, [0.1, 0.08, 0.08], { n: 2 }); mb.blob(-0.3, 0.6, -0.14, 0.3, 0.9, 0.14, 0.8, [0.9, 0.78, 0.4], { n: 2 }); }); }
+  function entities() { const out = []; if (!live.length) return out; const p = G.player, w = G.world;
+    for (const f of live) { if (Math.hypot(f.x + f.w / 2 - p.x, f.z + f.d / 2 - p.z) > 78) continue; let P = cache.get(f.x + ',' + f.z); if (!P) { P = []; cache.set(f.x + ',' + f.z, P); for (let dx = 1; dx + 1 < f.w; dx += 3) for (let dz = 1; dz + 1 < f.d; dz += 3) { const X = f.x + dx, Z = f.z + dz; P.push([X + 0.5, ground(X, Z, f.y) + 1, Z + 0.5, Math.abs(X * 3 + Z * 7) % 3]); } }
+      for (const q of P) out.push({ x: q[0], y: q[1] - 0.04, z: q[2], yaw: 0, scale: 1, hover: 0, skyMul: 1, isStatue: true, mesh: patch(f.k, q[3]) });
+      if (f.k === 'corn') out.push({ x: f.x + f.w / 2, y: f.y + 1, z: f.z + f.d / 2, yaw: (f.x % 6), scale: 1, hover: 0, skyMul: 1, isStatue: true, mesh: scarecrow() }); }
+    return out; }
+  /* what the fields are for. Once the town is free its people let you pick: a little from each field, once a day, grown back by morning. Maize is a meal, sunflower seeds are a treat your Kin will love you for, wheat is what Mr Crowe and the scarecrow both want */
+  const CROP = { corn: ['corn', 2, 'Maize'], sun: ['sunseed', 3, 'Sunflowers'], wheat: ['wheat', 3, 'Wheat'] };
+  function townOf(f) { let best = null, bd = 1e9; for (const v of (Village.townList ? Village.townList() : [])) { const d = Math.hypot(v.x - f.x, v.z - f.z); if (d < bd) { bd = d; best = v; } } return best; }
+  const freed = (v) => !!(v && G.villageState && G.villageState[v.id] && G.villageState[v.id].freed);
+  const fst = (f) => { const S0 = (G.stats.fieldState = G.stats.fieldState || {}), k = f.x + ',' + f.z; return S0[k] || (S0[k] = {}); };
+  const tst = (v) => { const S0 = (G.stats.fieldState = G.stats.fieldState || {}), k = 'town:' + v.id; return S0[k] || (S0[k] = {}); };
+  function at(p) { for (const f of live) if (p.x > f.x - 1.2 && p.x < f.x + f.w + 1.2 && p.z > f.z - 1.2 && p.z < f.z + f.d + 1.2 && Math.abs(p.y - f.y - 1) < 3) return f; return null; }
+  const byScare = (p, f) => f && f.k === 'corn' && Math.hypot(p.x - (f.x + f.w / 2), p.z - (f.z + f.d / 2)) < 2.4;
+  function label(p) { const f = at(p); if (!f) return null; if (byScare(p, f)) return 'Scarecrow · tap'; return CROP[f.k][2] + ' · tap to pick'; }
+  function scare(p, f) { const v = townOf(f), T = tst(v), say = (l, d) => Dialogue.show('Scarecrow', l, d);
+    if (T.scare) return say(['It stands straight and keeps its own counsel. The crows have taken the hint.']);
+    if (!T.seen) { T.seen = 1; return say(['A scarecrow, or most of one. The stuffing has gone out of its chest and it leans like a man who has given up.', 'Six handfuls of wheat would fill it. There is a wheat field somewhere round this wall.']); }
+    if (G.player.count('wheat') >= 6) return say(['You pack the wheat in handful by handful and tie the coat shut over it. It comes upright.', 'On the wall a farmer has stopped to watch. She lifts her hat to you.'], () => { G.player.take('wheat', 6); T.scare = 1; UI.sfx('quest'); if (G.addXp) G.addXp(40); UI.toast('The scarecrow is mended. These fields will give you double from now on.', 'good'); });
+    say(['It wants stuffing. Six handfuls of wheat, and you have ' + G.player.count('wheat') + '.']); return true; }
+  function tap(p) { const f = at(p); if (!f) return false; if (byScare(p, f)) { scare(p, f); return true; } const v = townOf(f), S1 = fst(f), c = CROP[f.k];
+    if (!freed(v)) { UI.toast('These fields are worked for the tyrant. Free ' + ((v && v.name) || 'the town') + ' and its people will let you pick.'); return true; }
+    if (S1.day === (G.dayCount || 0)) { UI.toast('Picked over for today. It will have grown back by morning.'); return true; }
+    S1.day = G.dayCount || 0; const n = c[1] * (tst(v).scare ? 2 : 1); G.player.add(c[0], n); UI.sfx('place'); UI.renderHotbar(); UI.toast('You pick ' + n + ' ' + ITEMS[c[0]].name.toLowerCase() + '.', 'good'); return true; }
+  return { init, update, entities, tap, label, get live() { return live; } };
+})();
+
+</script>
+<script>
+'use strict';
 // Chopping a tree. Cut any trunk block and the whole tree above the cut comes down in one piece: it creaks over away from you,
 // hits the ground with a thump and a burst of leaves, and every log in it is wood in your bag. Cut low and you take the lot;
 // cut higher and a stump stays. Felled trees grow back in a few minutes like everything else that grows.
@@ -20539,7 +20604,7 @@ G.setupWorld = function (seed, presetId) {
   this.world.findSpawn();
   Wild.init(this.world, this.mobile);
   Weather.init(this.world.seed);
-  Village.init(this); Hazards.init(this); Campaign.init(this); Npcs.init(this); Camps.init(this); Mer.init(this); Lab.init(this); Avatar.init(this); Combat.init(this); Buddy.init(this); First.init(this); Breath.init(this); Ruins.init(this); Felling.init(this); Relics.init(this); Gems.init(this); Keeps.init(this); Citadel.init(this); Farms.init(this); Sky.init(this);
+  Village.init(this); Hazards.init(this); Campaign.init(this); Npcs.init(this); Camps.init(this); Mer.init(this); Lab.init(this); Avatar.init(this); Combat.init(this); Buddy.init(this); First.init(this); Breath.init(this); Ruins.init(this); Fields.init(this); Felling.init(this); Relics.init(this); Gems.init(this); Keeps.init(this); Citadel.init(this); Farms.init(this); Sky.init(this);
   Quests.init(this);
 };
 G.newWorld = function (seed, starterIdx, name) {
@@ -20971,6 +21036,7 @@ G.useItem = function (key) {
   if (key === 'bread' && this.stats.first && this.stats.first.stage === 1) { UI.toast('That bread is for the Kin. Walk up to one on the brook and tap it.'); return false; }
   const p = this.player; const info = key ? p.itemInfo(key) : null; if (!info || !info.use || !p.has(key)) return false;
   if (info.use === 'warm') { p.take(key, 1); this.warmUntil = performance.now() + 240000; UI.sfx('util'); UI.toast('Warm all the way through. Four minutes before the cold can bite.', 'good'); UI.renderHotbar(); return true; }
+  if (info.use === 'treat') { const k = this.kin[this.activeIdx] && this.kin[this.activeIdx].hp > 0 ? this.kin[this.activeIdx] : this.kin.find(q => q.hp > 0); if (!k) { UI.toast('No Kin with you to give them to.'); return false; } p.take(key, 1); k.bond = Math.min(1, (k.bond || 0) + 0.03); UI.sfx('util'); UI.toast(`${KIN.name(k)} eats them out of your hand, shells and all.`, 'good'); UI.renderHotbar(); return true; }
   if (info.use === 'player') { if (p.hp >= p.maxHp) { UI.toast('You are at full health.'); return false; } p.take(key, 1); p.hp = p.maxHp; UI.sfx('util'); UI.toast('You feel whole again.', 'good'); UI.renderHotbar(); return true; }
   if (info.use === 'party') { if (!this.kin.some(k => k.hp > 0 && k.hp < KIN.stats(k).hp)) { UI.toast('Nobody needs it right now (fainted Kin need a Revive Tonic).'); return false; } p.take(key, 1); for (const k of this.kin) if (k.hp > 0) k.hp = Math.min(KIN.stats(k).hp, k.hp + KIN.stats(k).hp * 0.5); UI.sfx('util'); UI.toast('Your Kin feel refreshed (fainted ones need a Revive Tonic).', 'good'); UI.renderHotbar(); return true; }
   if (info.use === 'tech') { const k = this.kin[this.activeIdx]; if (!k) return false; UI.openPanel('draught'); return false; }
@@ -21257,7 +21323,7 @@ G.loop = function (t) {
       }
       if (w.regrow && w.regrow.length && (this.frame & 31) === 0) { const now = performance.now(); w.regrow = w.regrow.filter(r => { if (now < r.t) return true; if ((r.id === B.LOG || r.id === B.BIRCHLOG || r.id === B.PALMLOG || r.id === B.LEAVES) && !Felling.natural(r.x, r.y, r.z, r.id)) return false; /* a block you built and took away stays gone */ const b = w.getBlock(r.x, r.y, r.z); if (r.id != null) { if (b === B.AIR && !(Math.abs(r.x + 0.5 - p.x) < 0.8 && Math.abs(r.z + 0.5 - p.z) < 0.8 && r.y >= Math.floor(p.y) - 1 && r.y <= Math.floor(p.y) + 2)) { if (r.id === B.GLOWWORM && !isSolid(w.getBlock(r.x, r.y - 1, r.z))) return false; w.setBlock(r.x, r.y, r.z, r.id); } else if (b === B.AIR) { r.t = now + 15000; return true; } } else if (r.leaf) { if (b === B.LEAVES) w.setBlock(r.x, r.y, r.z, B.BERRYLEAF); } else if (b === B.AIR) w.setBlock(r.x, r.y, r.z, B.BERRY); return false; }); }
       const trig = (Dialogue.active() || Village.walking) ? null : Wild.update(dt, p, performance.now() / 1000, false);
-      Buddy.update(dt, p); First.update(dt, p); Breath.update(dt, p); Ruins.update(dt, p); Gems.update(dt, p); Felling.update(dt); Keeps.update(dt, p); Citadel.update(dt, p); Farms.update(dt, p); Sky.update(dt, p); Combat.update(dt, p, input);
+      Buddy.update(dt, p); First.update(dt, p); Breath.update(dt, p); Ruins.update(dt, p); Fields.update(dt, p); Gems.update(dt, p); Felling.update(dt); Keeps.update(dt, p); Citadel.update(dt, p); Farms.update(dt, p); Sky.update(dt, p); Combat.update(dt, p, input);
       Wild.ensureHeart(p, this.trainerLevel, this.mythicCaught); Wild.ensureLegend(p); Wild.ensureApex(p);
       if (trig && !trig.e.cool && !Dialogue.active() && !Taming.active && !p.flying && !(this.fightGrace > performance.now()) && !((Keeps.inHold(p) || Citadel.inside(p) || Sky.inFort(p)) && !trig.e.keepBoss && !trig.e.skyBoss)) Wild.engage(trig.e, trig.ambush);
       for (const e of Wild.list) if (e.cool > 0) e.cool -= dt;
@@ -21348,7 +21414,7 @@ G.loop = function (t) {
   const showMe = !this.hideMe && !Battle.net && (inBattle || (this.thirdPerson && !(this.camNear && !p.mount)) || this.talkK > 0 || !!p.mount || this.grassCamOn); // hideMe: he has gone inside something (a railway carriage)
   if (showMe) { const me = Avatar.entity(p, Math.hypot(p.vx, p.vz) > 0.6); if (p.mount) { const mm = KIN.model(p.mount.sp, p.mount.stage); const st = seatOf(mm); const f = U.forwardVec(p.yaw, 0); const along = 0.5 + st.zc - 0.06; me.x = p.x + f[0] * along; me.z = p.z + f[2] * along; me.y = G.mountBase(p) + st.top - hipOf(me.model) * (me.scale || 1) + 0.1; me._an.cross = 1; /* sat cross-legged on top: fits a pony and a T-rex alike */ me.seatY = hipOf(me.model) * (me.scale || 1); } me.M = null; ents.push(me); this.meEnt = me; } else this.meEnt = null;
   if (p.mount) { const k = p.mount; const m = KIN.dress(KIN.model(k.sp, k.stage), k.wear); const fwd = U.forwardVec(p.yaw, 0); if (!k._an) k._an = { ph: 0, mv: 0, lx: p.x, lz: p.z, ly: p.y, lt: performance.now(), vy: 0, seed: 5, air: 0 }; k._an.swim = p.mountMode === 'water' ? 1 : 0; const mt = { x: p.x + fwd[0] * 0.5, y: G.mountBase(p), z: p.z + fwd[2] * 0.5, yaw: p.yaw + Math.PI, model: m, mesh: R.entityMesh(KIN.meshKey(k.sp, k.stage) + KIN.wearKey(k.wear), (mb) => KIN.buildMesh(mb, m)), scale: 1, hover: 0, skyMul: 1, isMount: true, flying: p.mountMode === 'air' && !p.onGround, _an: k._an }; ents.push(mt); if (Taming.active) Taming.pose(mt, this.meEnt, cam.yaw); /* it bucks, and you with it */ }
-  ents.push(...Battle.fxEntities()); ents.push(...Sky.puffEntities()); ents.push(...Wild.dropEntities()); ents.push(...Gems.entities()); ents.push(...Buddy.entities()); ents.push(...First.entities()); ents.push(...Ruins.entities()); ents.push(...Felling.entities()); ents.push(...Combat.entities()); ents.push(...Hazards.entities()); ents.push(...Npcs.entities());
+  ents.push(...Battle.fxEntities()); ents.push(...Sky.puffEntities()); ents.push(...Wild.dropEntities()); ents.push(...Gems.entities()); ents.push(...Buddy.entities()); ents.push(...First.entities()); ents.push(...Ruins.entities()); ents.push(...Fields.entities()); ents.push(...Felling.entities()); ents.push(...Combat.entities()); ents.push(...Hazards.entities()); ents.push(...Npcs.entities());
   for (const o of w.statues.values()) {
     if ((o.x - p.x) ** 2 + (o.z - p.z) ** 2 > 4000) continue;
     if (!o.model) { o.model = KIN.statueModel(o); o.mesh = R.entityMesh('statue:' + o.id, (mb) => KIN.buildMesh(mb, o.model)); }
@@ -21379,7 +21445,7 @@ G.loop = function (t) {
     if (p.mount && !Taming.active && p.mountMode === 'air' && (this.frame & 15) === 0 && this.noKinFlight()) { p.mount = null; UI.toast('No room down here for wings that size. You climb off.'); }
   }
   if ((this.frame & 7) === 0 && !inBattle) { const npc = Village.pick(p); const rn = npc ? null : Npcs.pick(p); const we = (npc || rn) ? null : Wild.pick(p); const hit = (!npc && !we && !rn) ? p.raycast(5.5) : null; const campHit = hit && hit.id === B.CAMPFIRE;
-    UI.lookLabel(rn ? Npcs.label(rn) + ' · tap' : Ruins.boardNear(p) ? 'Weathered board · tap to read' : (hit && Ruins.stoneAt(hit.x, hit.y, hit.z)) ? 'Engraved stone · tap to read' : npc ? `${npc.name}${npc.shop ? ' · ' + (npc.shopTitle || Village.SHOPS[npc.shop].title) : npc.role === 'voodoo' ? ' · healer' : npc.role === 'elder' ? ' · village ledger' : npc.tag ? ' · ' + npc.tag : npc.role === 'traveller' ? ' · has something to trade' : npc.role === 'hermit' ? ' · hermit, has a job for you' : ''} · tap to talk` : we ? `${KIN.name(we.kin)} · Lv ${we.kin.level}${(we.kin.sp.rarity || 0) > 0 ? ' · ' + KIN.RARITY[we.kin.sp.rarity].name : ''}${we.raider ? ' · RAIDER' : we.isBoss ? ' · tyrant' : we.lieutenant ? " · the tyrant's guard" : ''}` : campHit ? 'Camp fire · tap to rest' : (hit && hit.id === B.BOOKS) ? 'Bookshelf · tap to read' : (hit && hit.id === B.STARMETAL) ? (this.worldId === 'moon' ? 'Return pad · tap to fly home' : 'Starmetal') : (hit && hit.id === B.FUSION) ? 'Fusion Table · tap' : (hit && hit.id === B.PORTAL) ? 'Portal · tap to travel' : (hit && hit.id === B.CHEST) ? 'Chest · tap to open' : (hit && hit.id === B.INCUBATOR) ? 'Incubator · tap' : (hit && (hit.id === B.DOOR || hit.id === B.DOOR_OPEN)) ? 'Door · tap' : (hit && hit.id === B.SNOW) ? 'Snow · hold to take (Frost Cloak needs 8)' : (hit && (hit.id === B.IRON || hit.id === B.COPPER || hit.id === B.EMBER || hit.id === B.VOID)) ? BLOCKS[hit.id].name + ' · hold to mine' : ''); }
+    UI.lookLabel(rn ? Npcs.label(rn) + ' · tap' : Ruins.boardNear(p) ? 'Weathered board · tap to read' : Fields.label(p) ? Fields.label(p) : (hit && Ruins.stoneAt(hit.x, hit.y, hit.z)) ? 'Engraved stone · tap to read' : npc ? `${npc.name}${npc.shop ? ' · ' + (npc.shopTitle || Village.SHOPS[npc.shop].title) : npc.role === 'voodoo' ? ' · healer' : npc.role === 'elder' ? ' · village ledger' : npc.tag ? ' · ' + npc.tag : npc.role === 'traveller' ? ' · has something to trade' : npc.role === 'hermit' ? ' · hermit, has a job for you' : ''} · tap to talk` : we ? `${KIN.name(we.kin)} · Lv ${we.kin.level}${(we.kin.sp.rarity || 0) > 0 ? ' · ' + KIN.RARITY[we.kin.sp.rarity].name : ''}${we.raider ? ' · RAIDER' : we.isBoss ? ' · tyrant' : we.lieutenant ? " · the tyrant's guard" : ''}` : campHit ? 'Camp fire · tap to rest' : (hit && hit.id === B.BOOKS) ? 'Bookshelf · tap to read' : (hit && hit.id === B.STARMETAL) ? (this.worldId === 'moon' ? 'Return pad · tap to fly home' : 'Starmetal') : (hit && hit.id === B.FUSION) ? 'Fusion Table · tap' : (hit && hit.id === B.PORTAL) ? 'Portal · tap to travel' : (hit && hit.id === B.CHEST) ? 'Chest · tap to open' : (hit && hit.id === B.INCUBATOR) ? 'Incubator · tap' : (hit && (hit.id === B.DOOR || hit.id === B.DOOR_OPEN)) ? 'Door · tap' : (hit && hit.id === B.SNOW) ? 'Snow · hold to take (Frost Cloak needs 8)' : (hit && (hit.id === B.IRON || hit.id === B.COPPER || hit.id === B.EMBER || hit.id === B.VOID)) ? BLOCKS[hit.id].name + ' · hold to mine' : ''); }
 };
 // third person and the saddle orbit the camera round you; the air, the glider, a fight and a chat do not
 G.orbitMode = function (p) { return (this.thirdPerson || !!p.mount) && !Battle.active && !p.gliding && !p.flying && !p.wingsOn && !(this.talkK > 0); };
@@ -21395,6 +21461,7 @@ G.onTap = function () {
   if (First.tap(p)) return;
   { const h0 = p.raycast(5.5); if (h0 && Ruins.read(h0.x, h0.y, h0.z)) return; }
   if (Ruins.tapBoard(p)) return;
+  if (Fields.tap(p)) return;
   const rn = Npcs.pick(p);
   if (rn) { Npcs.talk(rn); return; }
   { const be = Buddy.entity; const h0 = p.raycast(5.5); const useBlock = h0 && [B.CAMPFIRE, B.FUSION, B.DARKTABLE, B.CHEST, B.BED, B.DOOR, B.DOOR_OPEN, B.PORTAL, B.INCUBATOR, B.BOOKS].includes(h0.id);
