@@ -1503,6 +1503,7 @@ const Village = (() => {
     if (now < st.next) return say(['Nothing more today. I do not pay twice for the same morning.', 'Come back when the sun has been round.']);
     if (G.player.count(e.item) >= e.n) return say([`${e.n} ${e.say}. Counted, and correct. I do like a person who delivers.`], () => { G.player.take(e.item, e.n); G.shards += e.pay; st.i++; st.next = Date.now() + 8 * 60000; UI.sfx('gift'); UI.toast(`Mr Crowe paid you ${e.pay} shards.`, 'good'); });
     say([`${e.n} ${e.say}. That is what I want, and ${e.pay} shards is what it is worth to me.`, 'You have not got them. Off you go.']); }
+  let holdArm = null;
   function makeNpc(i, role, x, z, name, shop, y, vid, style, kid) {
     style = style || (vid === 'shore' ? 'land' : (world.preset.people || 'land'));
     const sp = villagerSpecies(i, role, vid, style);
@@ -2562,6 +2563,12 @@ const Village = (() => {
   function talk(n) {
     G.talkNpc = n; // the camera turns to whoever is speaking
     if (n.onTalk) { n.onTalk(n); return; }
+    if (n.role === 'keeper' && n.shop && typeof Fields !== 'undefined' && world.preset.id === 'earth' && active) { /* a hold-up: only in a mask, only what is out on the counter (the rest is locked away the moment they see you), and the shop keeps its shutters down the day after. Whoever's mask it was answers for it, and every job done in it adds two more days to that */
+      const hk = active.id + ':' + n.shop, HU = (G.stats.heldUp = G.stats.heldUp || {}), day = G.dayCount || 0, mk = Fields.masked();
+      if ((HU[hk] || 0) > day) { Dialogue.show(n.name, ['Shutters are down. We were held up, and I am not opening again until tomorrow.']); return; }
+      if (mk) { if (!holdArm || holdArm.n !== n || performance.now() > holdArm.t) { holdArm = { n, t: performance.now() + 7000 }; UI.toast(`${n.name} has seen the mask and gone white. Speak again to hold the place up, or put the mask away.`, 'bad'); return; }
+        holdArm = null; const def = shopDef(n.shop, active), loot = (def.stock || []).filter(e => e.item && !e.barter && !e.service && ITEMS[e.item]).slice(0, 2), got = []; for (const e of loot) { G.player.add(e.item, 1); got.push(ITEMS[e.item].name); } HU[hk] = day + 2; const until = (cur) => Math.min(day + 8, Math.max(cur || 0, day) + 2); if (mk === 'ind') G.stats.shunInd = until(G.stats.shunInd); else G.stats.shunRail = until(G.stats.shunRail); UI.sfx('caught'); UI.renderHotbar();
+        Dialogue.show(n.name, ['Take it. Take what is on the counter. Everything else went under the floor the moment you came through that door.', got.length ? `(You sweep up ${got.join(' and ')}.)` : '(The counter is bare.)'], () => UI.toast(mk === 'ind' ? 'The town will blame the Indians. Their camps are closed to you for longer now.' : 'The town will blame the bandits. The trains are closed to you for longer now.', 'bad')); return; } }
     { const wn = typeof Fields !== 'undefined' && world.preset.id === 'earth' ? Fields.wanted() : null; if (wn && (n.role === 'keeper' || n.role === 'voodoo' || n.role === 'elder')) { Dialogue.show(n.name, [`Were you the one who emptied ${wn.owner}'s cart at ${wn.name}? Word came up the road ahead of you.`, n.role === 'elder' ? 'You are not welcome in this town until you have squared it with the farmer. Thirty shards, I hear, or wait it out.' : 'I am not serving you. Square it with the farmer, or come back in a couple of days when tempers have cooled.']); return; } }
     if (n.atl) { atlTalk(n); return; }
     if (n.shop && active && active.R && fixShop(n)) return;

@@ -384,6 +384,8 @@ Scope (Alexander, 8 Nov evening): EVERYTHING visible goes to the same standard: 
 
 - 17 Nov, two masks, three trade-offs (his design). **Bare-faced: the towns shun you two days. Indians' War Mask (found in a tent chest at an Indian camp): the towns blame the Indians, who know their own colours; for two days no cloak passes you in their camps and they will not lend or let you tame a horse. Bandit's Mask (Mr Crowe, under the counter, 30 shards after two errands): the towns blame the bandits, who go looking for you; no train will take you for two days. Neither mask gets you shunned by villagers.**
 
+- 17 Nov, shop hold-ups (his idea: in a mask you can hold up a shop, only a couple of things on the counter, the rest hidden; not possible without a mask; the cart stays the one bare-faced robbery). **Speak to a shopkeeper holding either mask: a warning, speak again and you take one each of the first two things on the counter. The shop stays shut the next day. The mask's owners answer for it as with the cart, and each job adds two days to that ban, up to eight.**
+
 ## Still to do
 UI polish as feedback comes in. Card battle screen still used for scripted encounters (raids at the walls, thief, citadel duel, holds) and the snare mini-game; converting those to live is the next big step if wanted. (Old list: train/ships, combat animation, eggs, avatar hair/paint, buddy WEAR cosmetics, Silas and Finch, UI polish (item icons), quality toggles in settings (state.shadows, state.grassQuality, state.dprCap).
 
