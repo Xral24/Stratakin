@@ -1,0 +1,4 @@
+const { open } = require('./harness');
+(async () => { const h = await open(); const { ev } = h; await h.newGame('look-3');
+  console.log(await ev(() => { const want = 'masker,froglet,hedgehog,snowyowl,heron,hornbill,minermole,bloompeacock,peafowl,puffer,flamecobra,hermit,meerkatpup'.split(','), out = [], seen = {}; for (const sp of KIN.dex('earth')) for (let st = 1; st <= 3; st++) { let f; try { f = KIN.formOf(sp, st); } catch (e) { continue; } if (f && want.includes(f.plan) && !seen[f.plan]) { seen[f.plan] = 1; const m = KIN.model(sp, st); out.push(f.plan + ' h' + m.height.toFixed(2) + ': ' + m.bones.map((b, i) => b ? i + b.kind + (b.side ? (b.side > 0 ? '+' : '-') : '') : '').filter(Boolean).join(' ')); } } return out.join('\n') + '\nmissing: ' + want.filter(w => !seen[w]).join(','); }));
+  await h.close(); })();

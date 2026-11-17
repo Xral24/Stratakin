@@ -463,10 +463,11 @@ const KIN = (() => {
     const s = {};
     for (const key of STAT_KEYS) s[key] = Math.max(1, Math.round(k.sp.base[key] * g * k.iv[key]));
     s.hp = Math.round(s.hp * 2.2);
+    if (k.shiny) for (const key of STAT_KEYS) s[key] = Math.round(s[key] * 1.18); /* a shining one: the same creature, a sixth better at everything */
     if (k.equip) for (const slot in k.equip) { const id = k.equip[slot], it = ITEMS[id]; if (it && it.boost) { const m = it.relic && typeof Relics !== 'undefined' ? Relics.mul(id) : 1; for (const key in it.boost) s[key] = Math.round(s[key] * (1 + it.boost[key] * m)); } }
     return s;
   }
-  function name(k) { return k.nick || k.sp.names[lookOf(k.sp, k.stage) - 1] || k.sp.names[0]; }
+  function name(k) { return k.nick || (k.shiny ? '✦ ' : '') + (k.sp.names[lookOf(k.sp, k.stage) - 1] || k.sp.names[0]); }
   // ---- moves. A Kin's moves come from what it is: its body decides how it strikes (a bird pecks and dives, a serpent bites and lashes),
   // its elements decide what it throws, and each species draws its own from those pools, so two Flame Kin rarely fight alike.
   // fx names the picture the battle plays (battle.js). Order is fixed: [strike, element move, helping move, grown move (stage 2+), technique].
@@ -643,6 +644,22 @@ const KIN = (() => {
   // ---- 3D model: a list of parts in local units, facing +Z, feet at y 0 ----
   // Parts are boxes {x,y,z,w,h,d} (kept for hats, tools and the like), blobs (box rounded toward its ellipsoid), tubes (rings along
   // a path) and plates (flat polygons). Each carries a colour, an emissive flag and a bone index; buildMesh turns them into geometry.
+  /* the twelve with a trick of their own (see Anim.pose). Keyed by body: every stage of a line that shares the trick is listed. t is in body heights; s grows a part about its joint; rz lifts a wing; osc drums or scans; all: the whole creature, from the feet */
+  const TRICKS = (() => { const T = {}, put = (names, ops, extra) => { for (const n of names) T[n] = Object.assign({ ops }, extra || {}); };
+    put(['masker'], [{ kind: 'tail', s: [3.2, 1.5, 3.2], rx: -0.5 }, { all: true, s: [0.9, 1.22, 0.84] }]); /* a cat: back up, tail a bottle brush */
+    put(['froglet', 'riverfrog', 'sumofrog'], [{ all: true, s: [1.55, 0.86, 1.55], pulse: 7 }]); /* a frog: blown up wide and squat, throbbing */
+    put(['hedgehog'], [{ kind: 'head', s: [0.3, 0.3, 0.3], t: [0, -0.1, -0.12] }, { kind: 'leg', s: [0.25, 0.25, 0.25] }, { kind: 'shin', s: [0.25, 0.25, 0.25] }, { all: true, s: [1.1, 1.2, 0.92] }]); /* shut into a ball of thorns */
+    put(['snowowlet', 'snowyowl', 'auroraowl'], [{ all: true, s: [0.66, 1.45, 0.66] }, { kind: 'head', osc: { ry: 0.5, f: 1.6 } }]); /* an owl: tall and thin as a post, head turning */
+    put(['heron'], [{ kind: 'wing', rx: 2.1, rz: -0.45, s: [1.35, 1.35, 1.35] }], { idle: 0.05 }); /* wings up and over into a parasol: it does this to shade the water it fishes, alarmed or not */
+    put(['hornbillchick', 'hornbill'], [{ kind: 'head', osc: { rx: 0.42, f: 24 } }], { idle: 0.07 }); /* drums with the casque on its beak */
+    put(['molekit', 'minermole', 'drillmole'], [{ all: true, t: [0, -0.78, 0] }]); /* goes into the ground */
+    put(['peachick', 'peafowl', 'bloompeacock'], [{ kind: 'tail', s: [2.4, 2.2, 1], rx: -0.95 }], { idle: 0.04 }); /* the fan goes up */
+    put(['puffer'], [{ all: true, s: [1.6, 1.6, 1.6], pulse: 5 }]); /* twice the size, all spines */
+    put(['flamecobra', 'goldencobra', 'suncobra'], [{ kind: 'head', s: [2.1, 1.3, 1] }, { all: true, s: [1, 1.18, 1] }]); /* the hood spreads and it rears */
+    put(['hermit'], [{ all: true, s: [1.2, 0.62, 1.2], t: [0, -0.12, 0] }]); /* clamps down flat: nothing showing but shell */
+    put(['pangolinpup', 'pangolinknight'], [{ kind: 'head', s: [0.3, 0.3, 0.3], t: [0, -0.15, -0.1] }, { kind: 'leg', s: [0.25, 0.25, 0.25] }, { kind: 'arm', s: [0.25, 0.25, 0.25] }, { kind: 'tail', rx: 1.6 }, { all: true, s: [1.15, 0.85, 0.95] }]); /* rolled up tight, tail over its face */
+    put(['meerkatpup', 'sunsentinel'], [{ all: true, s: [0.84, 1.32, 0.84] }, { kind: 'head', osc: { ry: 0.7, f: 2.4 } }], { idle: 0.06 }); /* up on its hind legs, scanning */
+    return T; })();
   function model(sp, stage) {
     const form = formOf(sp, stage); const shape = form.shape; stage = form.look; // the body this stage has, drawn as grown-up as it looks
     const s = (sp.size || 1) * (stage === 1 ? 0.78 : stage === 2 ? 1.05 : 1.4) * (1 + 0.04 * Math.min(6, sp.gen || 0));
@@ -4273,7 +4290,8 @@ const KIN = (() => {
     if (!bones[0]) bones[0] = { kind: 'body', piv: [0, 0, 0], runPitch: sp.shape === 'raptor' ? 0.08 : 0 };
     const height = Math.max(...parts.map(b => b.y + b.h));
     const radius = Math.max(...parts.map(b => Math.max(Math.abs(b.x), Math.abs(b.x + b.w), Math.abs(b.z), Math.abs(b.z + b.d))));
-    const M = { boxes: parts, scale: s, hover, height, radius, bones, temper: temperOf(sp), legLen: legLen * SY, kind, flyer, sway, shape, native: natDone, fitBody };
+    const trick = TRICKS[form.plan] || null;
+    const M = { trick, boxes: parts, scale: s, hover, height, radius, bones, temper: temperOf(sp), legLen: legLen * SY, kind, flyer, sway, shape, native: natDone, fitBody };
     return sp.neon && form.plan && !natDone ? alienize(M, sp) : M;
   }
   // A Kin turned into an object: material comes from the items, glow from anything burning. The Kin's level makes it bigger and brighter.
@@ -4602,7 +4620,7 @@ const KIN = (() => {
     if (!R.renderPortrait(cv, mesh, m, size)) { const ctx = cv.getContext('2d'); cv.width = cv.height = size; ctx.fillStyle = sp.colors.body; ctx.beginPath(); ctx.arc(size / 2, size / 2, size * 0.3, 0, Math.PI * 2); ctx.fill(); }
   }
 
-  function serialize(k) { return { id: k.id, sp: k.sp, level: k.level, xp: k.xp, iv: k.iv, stage: k.stage, hp: k.hp, nick: k.nick, equip: k.equip || null, tech: k.tech || null, wear: k.wear || null, trust: k.trust || 0, bond: k.bond || 0, tamed: k.tamed || false }; }
+  function serialize(k) { return { id: k.id, sp: k.sp, level: k.level, xp: k.xp, iv: k.iv, stage: k.stage, hp: k.hp, nick: k.nick, shiny: k.shiny || undefined, equip: k.equip || null, tech: k.tech || null, wear: k.wear || null, trust: k.trust || 0, bond: k.bond || 0, tamed: k.tamed || false }; }
   function deserialize(d) { return Object.assign({ status: null }, d); }
 
   return { NATIVE, NAT_STEM, nativeLine, nativeColors, nativeId, nativize, childify, formName, LINES, lineOf, maxStage, lookOf, formOf, partHelpers, dress, wearKey, E, EI, CHART, STAT_KEYS, STAT_NAMES, growth, xpToNext, dominant, species, speciesForContext, dex, bySeed, HABITATS, capOf, recipes, findRecipe, fuseRecipe, mythicSpecies, legendSpecies, apexSpecies, wardenSpecies, MAX_LEVEL, TECH, techFor, techByName, temperOf, starters, create, stats, name, moves, effectiveness, gainXp, fuse, fusionLevel, TRAITS, RARITY, roster, buildUniverse, decorate, makeStatue, statueModel, shardsFor, model, buildMesh, meshKey, portrait, serialize, deserialize, UTIL_DESC, eggModel, eggPortrait };

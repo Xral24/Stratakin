@@ -1,0 +1,4 @@
+const { open } = require('./harness');
+(async () => { const h = await open(); const { page, ev } = h; await h.newGame('look-3'); await h.calm();
+  console.log(JSON.stringify(await ev(() => { R.render = () => {}; const sp = KIN.dex('earth')[5], a = KIN.create(sp, 20), b = KIN.create(sp, 20); b.iv = a.iv; b.shiny = true; const sa = KIN.stats(a), sb = KIN.stats(b); let n = 0; const r0 = Math.random; let i = 0; for (let k = 0; k < 2000; k++) { const e = Wild.makeEntity(sp, 5, 99999, 60, 99999, {}); if (e.kin.shiny) n++; } const back = KIN.deserialize(JSON.parse(JSON.stringify(KIN.serialize(b)))); return { name: [KIN.name(a), KIN.name(b)], hp: [sa.hp, sb.hp], atk: [sa.atk, sb.atk], per2000: n, saved: !!back.shiny, layerUnderTree: 'n/a' }; })));
+  console.log('errors', JSON.stringify(h.errors.slice(0, 4))); await h.close(); })();

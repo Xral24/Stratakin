@@ -204,6 +204,7 @@ const Wild = (() => {
   const BARRIER = new Set([B.FENCE, B.PALISADE, B.IRONWALL, B.LAMP].filter(x => x != null));
   function makeEntity(sp, level, x, y, z, opts = {}) {
     const kin = KIN.create(sp, level);
+    if (!sp.boss && !sp.legend && !sp.mythic && !opts.elite && !opts.wear && !opts.plain && Math.random() < 0.02) { kin.shiny = true; if (G && G.player && Math.hypot(x - G.player.x, z - G.player.z) < 60 && typeof UI !== 'undefined') { UI.sfx('gift'); UI.toast('Something glints out there. A shining Kin is near.', 'good'); } } /* about one in fifty: the same Kin, but it shines, and it is a little better at everything */
     const st = KIN.stats(kin);
     const m = opts.wear ? KIN.dress(KIN.model(sp, kin.stage), opts.wear) : KIN.model(sp, kin.stage); // a Kin under the Binding wears its collar: the look is the entity's, not the Kin's own, so it is gone the day it is freed
     const e = {

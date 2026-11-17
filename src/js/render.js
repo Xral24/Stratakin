@@ -1809,7 +1809,14 @@ const R = (() => {
           for (const [a, b] of [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]]) { for (const dy of [0, 1, -1, 2, -2]) if (isT(get(lx + a, y + dy, lz + b))) { nb.push([a, b]); break; } if (nb.length === 2) break; }
           const c00 = CHt(lx, lz), c10 = CHt(lx + 1, lz), c01 = CHt(lx, lz + 1), c11 = CHt(lx + 1, lz + 1), ok = ST(lx, lz) === y - 1 && c00 >= 0 && c10 >= 0 && c01 >= 0 && c11 >= 0;
           const hAt = (u, v) => ok ? (c00 * (1 - u) + c10 * u) * (1 - v) + (c01 * (1 - u) + c11 * u) * v : y, P = (a, b) => { const u = 0.5 + a * 0.5, v = 0.5 + b * 0.5; return [lx + u, hAt(u, v), lz + v]; };
-          const ends = nb.length === 2 ? [P(nb[0][0], nb[0][1]), P(nb[1][0], nb[1][1])] : nb.length === 1 ? [P(nb[0][0], nb[0][1]), P(-nb[0][0], -nb[0][1])] : [P(-1, 0), P(1, 0)], mid = P(0, 0), sk = skyAt(lx, y, lz);
+          /* the line is drawn through the columns as one smooth run, not from the middle of each to the middle of the next: every column's point is the average of itself and the two it joins, so a line that climbs one in two no longer kinks at every step */
+          const TA = (x, z) => !!(world.trackAt && world.trackAt(x, z)), other = (x, z, fx, fz) => { for (const [a, b] of [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]]) { if (x + a === fx && z + b === fz) continue; if (TA(x + a, z + b)) return [a, b]; } return null; };
+          const S = (a0, b0, a1, b1) => [(a0 + (a1 == null ? -a0 : a1)) / 3, (b0 + (b1 == null ? -b0 : b1)) / 3]; /* a column's smoothed point, as an offset from its own middle, given the offsets of its two neighbours */
+          const wx0 = ox + lx, wz0 = oz + lz, Q = (a, b) => { const u = Math.min(1, Math.max(0, 0.5 + a)), v = Math.min(1, Math.max(0, 0.5 + b)); return [lx + 0.5 + a, hAt(u, v), lz + 0.5 + b]; };
+          let ends, mid;
+          if (nb.length === 2) { const sc = S(nb[0][0], nb[0][1], nb[1][0], nb[1][1]); mid = Q(sc[0], sc[1]); ends = nb.map(([a, b]) => { const o2 = other(wx0 + a, wz0 + b, wx0, wz0), sn = S(-a, -b, o2 ? o2[0] : null, o2 ? o2[1] : null); return Q((sc[0] + a + sn[0]) / 2, (sc[1] + b + sn[1]) / 2); }); }
+          else { ends = nb.length === 1 ? [P(nb[0][0], nb[0][1]), P(-nb[0][0], -nb[0][1])] : [P(-1, 0), P(1, 0)]; mid = P(0, 0); }
+          const sk = skyAt(lx, y, lz);
           for (const [A, Bp] of [[ends[0], mid], [mid, ends[1]]]) { const dx = Bp[0] - A[0], dz = Bp[2] - A[2], L = Math.hypot(dx, dz) || 1, px = -dz / L, pz = dx / L;
             for (const sd of [-0.3, 0.3]) op.tube([[A[0] + px * sd, A[1] + 0.13, A[2] + pz * sd], [Bp[0] + px * sd, Bp[1] + 0.13, Bp[2] + pz * sd]], [0.045, 0.045], [0.42, 0.42, 0.46], { sky: sk, segs: 4, cap0: 'none', cap1: 'none' });
             for (const t of [0.25, 0.75]) { const mx = A[0] + dx * t, my = A[1] + (Bp[1] - A[1]) * t + 0.05, mz = A[2] + dz * t; op.tube([[mx - px * 0.46, my, mz - pz * 0.46], [mx + px * 0.46, my, mz + pz * 0.46]], [0.075, 0.075], [0.36, 0.25, 0.15], { sky: sk, segs: 4, cap0: 'flat', cap1: 'flat' }); } }
@@ -2629,7 +2636,7 @@ const R = (() => {
       if (pose) { gl.uniformMatrix4fv(eloc.uBones, false, pose.mats); bonesId = false; gl.uniform4fv(eloc.uSway, pose.sway); }
       else { if (!bonesId) { gl.uniformMatrix4fv(eloc.uBones, false, IDENT_BONES); bonesId = true; } gl.uniform4f(eloc.uSway, 0, 0, 0, 0); }
       gl.uniform1f(eloc.uSkyMul, e.skyMul == null ? 1 : e.skyMul);
-      gl.uniform1f(eloc.uFlash, e.hitT > 0 ? Math.max(0, Math.min(0.7, e.hitT * 2.5)) : 0);
+      gl.uniform1f(eloc.uFlash, e.hitT > 0 ? Math.max(0, Math.min(0.7, e.hitT * 2.5)) : (e.kin && e.kin.shiny) ? 0.14 + 0.42 * Math.pow(Math.max(0, Math.sin(performance.now() / 420 + (e.kin.id % 97))), 8) : 0); /* a shining Kin carries a sheen and glints every couple of seconds */
       gl.uniform1f(eloc.uAlpha, e.alpha == null ? 1 : e.alpha);
       gl.uniform1f(eloc.uOutline, outline ? outlineW * (e.outlineMul || 1) : 0);
       drawEntityMesh(e.mesh);

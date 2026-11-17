@@ -774,7 +774,7 @@ class World {
     if (y < CORE_TOP) return 'Core';
     if (y >= SKY_SPLIT) return 'Sky';
     if (this.getBlock(x, y, z) === B.WATER) return 'Water';
-    const top = this.topAt(x, z);
+    let top = this.topAt(x, z); while (top > y && (isLeaf(this.getBlock(x, top, z)) || isTrunk(this.getBlock(x, top, z)) || this.getBlock(x, top, z) === B.FROND || this.getBlock(x, top, z) === B.AIR)) top--; /* a tree's crown overhead is not a roof of rock: standing under one used to count as being down a mine, and the light went with it */
     if (y < top - 3) return 'Mines';
     return 'Surface';
   }

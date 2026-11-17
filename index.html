@@ -1622,7 +1622,7 @@ class World {
     if (y < CORE_TOP) return 'Core';
     if (y >= SKY_SPLIT) return 'Sky';
     if (this.getBlock(x, y, z) === B.WATER) return 'Water';
-    const top = this.topAt(x, z);
+    let top = this.topAt(x, z); while (top > y && (isLeaf(this.getBlock(x, top, z)) || isTrunk(this.getBlock(x, top, z)) || this.getBlock(x, top, z) === B.FROND || this.getBlock(x, top, z) === B.AIR)) top--; /* a tree's crown overhead is not a roof of rock: standing under one used to count as being down a mine, and the light went with it */
     if (y < top - 3) return 'Mines';
     return 'Surface';
   }
@@ -3557,7 +3557,14 @@ const R = (() => {
           for (const [a, b] of [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]]) { for (const dy of [0, 1, -1, 2, -2]) if (isT(get(lx + a, y + dy, lz + b))) { nb.push([a, b]); break; } if (nb.length === 2) break; }
           const c00 = CHt(lx, lz), c10 = CHt(lx + 1, lz), c01 = CHt(lx, lz + 1), c11 = CHt(lx + 1, lz + 1), ok = ST(lx, lz) === y - 1 && c00 >= 0 && c10 >= 0 && c01 >= 0 && c11 >= 0;
           const hAt = (u, v) => ok ? (c00 * (1 - u) + c10 * u) * (1 - v) + (c01 * (1 - u) + c11 * u) * v : y, P = (a, b) => { const u = 0.5 + a * 0.5, v = 0.5 + b * 0.5; return [lx + u, hAt(u, v), lz + v]; };
-          const ends = nb.length === 2 ? [P(nb[0][0], nb[0][1]), P(nb[1][0], nb[1][1])] : nb.length === 1 ? [P(nb[0][0], nb[0][1]), P(-nb[0][0], -nb[0][1])] : [P(-1, 0), P(1, 0)], mid = P(0, 0), sk = skyAt(lx, y, lz);
+          /* the line is drawn through the columns as one smooth run, not from the middle of each to the middle of the next: every column's point is the average of itself and the two it joins, so a line that climbs one in two no longer kinks at every step */
+          const TA = (x, z) => !!(world.trackAt && world.trackAt(x, z)), other = (x, z, fx, fz) => { for (const [a, b] of [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]]) { if (x + a === fx && z + b === fz) continue; if (TA(x + a, z + b)) return [a, b]; } return null; };
+          const S = (a0, b0, a1, b1) => [(a0 + (a1 == null ? -a0 : a1)) / 3, (b0 + (b1 == null ? -b0 : b1)) / 3]; /* a column's smoothed point, as an offset from its own middle, given the offsets of its two neighbours */
+          const wx0 = ox + lx, wz0 = oz + lz, Q = (a, b) => { const u = Math.min(1, Math.max(0, 0.5 + a)), v = Math.min(1, Math.max(0, 0.5 + b)); return [lx + 0.5 + a, hAt(u, v), lz + 0.5 + b]; };
+          let ends, mid;
+          if (nb.length === 2) { const sc = S(nb[0][0], nb[0][1], nb[1][0], nb[1][1]); mid = Q(sc[0], sc[1]); ends = nb.map(([a, b]) => { const o2 = other(wx0 + a, wz0 + b, wx0, wz0), sn = S(-a, -b, o2 ? o2[0] : null, o2 ? o2[1] : null); return Q((sc[0] + a + sn[0]) / 2, (sc[1] + b + sn[1]) / 2); }); }
+          else { ends = nb.length === 1 ? [P(nb[0][0], nb[0][1]), P(-nb[0][0], -nb[0][1])] : [P(-1, 0), P(1, 0)]; mid = P(0, 0); }
+          const sk = skyAt(lx, y, lz);
           for (const [A, Bp] of [[ends[0], mid], [mid, ends[1]]]) { const dx = Bp[0] - A[0], dz = Bp[2] - A[2], L = Math.hypot(dx, dz) || 1, px = -dz / L, pz = dx / L;
             for (const sd of [-0.3, 0.3]) op.tube([[A[0] + px * sd, A[1] + 0.13, A[2] + pz * sd], [Bp[0] + px * sd, Bp[1] + 0.13, Bp[2] + pz * sd]], [0.045, 0.045], [0.42, 0.42, 0.46], { sky: sk, segs: 4, cap0: 'none', cap1: 'none' });
             for (const t of [0.25, 0.75]) { const mx = A[0] + dx * t, my = A[1] + (Bp[1] - A[1]) * t + 0.05, mz = A[2] + dz * t; op.tube([[mx - px * 0.46, my, mz - pz * 0.46], [mx + px * 0.46, my, mz + pz * 0.46]], [0.075, 0.075], [0.36, 0.25, 0.15], { sky: sk, segs: 4, cap0: 'flat', cap1: 'flat' }); } }
@@ -4377,7 +4384,7 @@ const R = (() => {
       if (pose) { gl.uniformMatrix4fv(eloc.uBones, false, pose.mats); bonesId = false; gl.uniform4fv(eloc.uSway, pose.sway); }
       else { if (!bonesId) { gl.uniformMatrix4fv(eloc.uBones, false, IDENT_BONES); bonesId = true; } gl.uniform4f(eloc.uSway, 0, 0, 0, 0); }
       gl.uniform1f(eloc.uSkyMul, e.skyMul == null ? 1 : e.skyMul);
-      gl.uniform1f(eloc.uFlash, e.hitT > 0 ? Math.max(0, Math.min(0.7, e.hitT * 2.5)) : 0);
+      gl.uniform1f(eloc.uFlash, e.hitT > 0 ? Math.max(0, Math.min(0.7, e.hitT * 2.5)) : (e.kin && e.kin.shiny) ? 0.14 + 0.42 * Math.pow(Math.max(0, Math.sin(performance.now() / 420 + (e.kin.id % 97))), 8) : 0); /* a shining Kin carries a sheen and glints every couple of seconds */
       gl.uniform1f(eloc.uAlpha, e.alpha == null ? 1 : e.alpha);
       gl.uniform1f(eloc.uOutline, outline ? outlineW * (e.outlineMul || 1) : 0);
       drawEntityMesh(e.mesh);
@@ -4991,6 +4998,20 @@ const R = (() => {
         for (let i = 0; i < 14; i++) { const o = i * 16; for (const k of [o, o + 4, o + 8]) { const y = mats[k + 1], z = mats[k + 2]; mats[k + 1] = c * y - sn * z; mats[k + 2] = sn * y + c * z; } const y = mats[o + 13] - hy, z = mats[o + 14]; mats[o + 13] = c * y - sn * z + hy; mats[o + 14] = sn * y + c * z; } }
       if (m.sway) { const S = m.sway; sway[0] = S.amp * (0.45 + 0.55 * Math.max(mv, swim, air)); sway[1] = S.freq; sway[2] = t * S.speed + seed; sway[3] = S.from; } // all in the model's own units: the shader sways aPos before uModel
       else { sway[0] = 0; sway[1] = 0; sway[2] = 0; sway[3] = 0; }
+      /* its trick: the one thing this kind of creature does that no other does. A cat's tail goes to a bottle brush, an owl stands up tall and thin, a hedgehog shuts into a ball, a mole goes into the ground. It shows when the creature has noticed you, is after you, is struck or strikes, and eases in and out. Each trick is a short list of changes laid over the pose: a part grows, turns, drums or sinks, about its own joint */
+      if (m.trick) { const T = m.trick, on = !e.sleep && ((e.alert || 0) > 0.3 || e.chase || (e.hitT || 0) > 0 || (e.trickT || 0) > now || (a.attack || 0) > 0.05 || (T.idle && ((t * T.idle + seed * 0.37) % 1) < 0.22));
+        a.tk = (a.tk || 0) + ((on ? 1 : 0) - (a.tk || 0)) * 0.11; const k = a.tk;
+        if (k > 0.004) for (const op of T.ops) { const pu = op.pulse ? 0.86 + 0.14 * Math.sin(t * op.pulse + seed) : 1, kk = k * pu;
+          const sx = 1 + ((op.s ? op.s[0] : 1) - 1) * kk, sy = 1 + ((op.s ? op.s[1] : 1) - 1) * kk, sz = 1 + ((op.s ? op.s[2] : 1) - 1) * kk;
+          for (let i = 0; i < 14; i++) { const b = bones[i]; if (!b && !op.all) continue; const face = !op.all && op.kind === 'head' && b.kind !== 'head' && (b.kind === 'lid' || b.kind === 'brow' || b.kind === 'jaw' || b.kind === 'ear') && bones[1] && bones[1].kind === 'head'; /* what sits on the head goes with the head */ if (!op.all && b.kind !== op.kind && !face) continue; const sd = b && b.side ? Math.sign(b.side) : (b && b.piv && b.piv[0] < 0 ? -1 : 1);
+            const pv = face ? bones[1].piv : b ? b.piv : null, px = op.all ? 0 : pv[0], py = op.all ? 0 : pv[1], pz = op.all ? 0 : pv[2];
+            const rx = (op.rx || 0) * k + (op.osc && op.osc.rx ? Math.sin(t * op.osc.f + seed) * op.osc.rx * k : 0), ry = op.osc && op.osc.ry ? Math.sin(t * op.osc.f + seed) * op.osc.ry * k : 0, rz = (op.rz || 0) * k * sd;
+            const cx = Math.cos(rx), sxx = Math.sin(rx), cy = Math.cos(ry), syy = Math.sin(ry), cz = Math.cos(rz), szz = Math.sin(rz);
+            /* X = move * turn * grow, about the joint */
+            const x0 = (cy * cz + syy * sxx * szz) * sx, x1 = (cx * szz) * sx, x2 = (-syy * cz + cy * sxx * szz) * sx, x4 = (-cy * szz + syy * sxx * cz) * sy, x5 = (cx * cz) * sy, x6 = (syy * szz + cy * sxx * cz) * sy, x8 = (syy * cx) * sz, x9 = (-sxx) * sz, x10 = (cy * cx) * sz;
+            const H = m.height || 1, tx = (op.t ? op.t[0] : 0) * k * H, ty = (op.t ? op.t[1] : 0) * k * H, tz = (op.t ? op.t[2] : 0) * k * H;
+            const x12 = px + tx - (x0 * px + x4 * py + x8 * pz), x13 = py + ty - (x1 * px + x5 * py + x9 * pz), x14 = pz + tz - (x2 * px + x6 * py + x10 * pz);
+            const o = i * 16; for (let c = 0; c < 4; c++) { const m0 = mats[o + c * 4], m1 = mats[o + c * 4 + 1], m2 = mats[o + c * 4 + 2], w = c === 3 ? 1 : 0; mats[o + c * 4] = x0 * m0 + x4 * m1 + x8 * m2 + x12 * w; mats[o + c * 4 + 1] = x1 * m0 + x5 * m1 + x9 * m2 + x13 * w; mats[o + c * 4 + 2] = x2 * m0 + x6 * m1 + x10 * m2 + x14 * w; } } } }
       return { mats, sway };
     }
     return { pose, fresh };
@@ -6441,10 +6462,11 @@ const KIN = (() => {
     const s = {};
     for (const key of STAT_KEYS) s[key] = Math.max(1, Math.round(k.sp.base[key] * g * k.iv[key]));
     s.hp = Math.round(s.hp * 2.2);
+    if (k.shiny) for (const key of STAT_KEYS) s[key] = Math.round(s[key] * 1.18); /* a shining one: the same creature, a sixth better at everything */
     if (k.equip) for (const slot in k.equip) { const id = k.equip[slot], it = ITEMS[id]; if (it && it.boost) { const m = it.relic && typeof Relics !== 'undefined' ? Relics.mul(id) : 1; for (const key in it.boost) s[key] = Math.round(s[key] * (1 + it.boost[key] * m)); } }
     return s;
   }
-  function name(k) { return k.nick || k.sp.names[lookOf(k.sp, k.stage) - 1] || k.sp.names[0]; }
+  function name(k) { return k.nick || (k.shiny ? '✦ ' : '') + (k.sp.names[lookOf(k.sp, k.stage) - 1] || k.sp.names[0]); }
   // ---- moves. A Kin's moves come from what it is: its body decides how it strikes (a bird pecks and dives, a serpent bites and lashes),
   // its elements decide what it throws, and each species draws its own from those pools, so two Flame Kin rarely fight alike.
   // fx names the picture the battle plays (battle.js). Order is fixed: [strike, element move, helping move, grown move (stage 2+), technique].
@@ -6621,6 +6643,22 @@ const KIN = (() => {
   // ---- 3D model: a list of parts in local units, facing +Z, feet at y 0 ----
   // Parts are boxes {x,y,z,w,h,d} (kept for hats, tools and the like), blobs (box rounded toward its ellipsoid), tubes (rings along
   // a path) and plates (flat polygons). Each carries a colour, an emissive flag and a bone index; buildMesh turns them into geometry.
+  /* the twelve with a trick of their own (see Anim.pose). Keyed by body: every stage of a line that shares the trick is listed. t is in body heights; s grows a part about its joint; rz lifts a wing; osc drums or scans; all: the whole creature, from the feet */
+  const TRICKS = (() => { const T = {}, put = (names, ops, extra) => { for (const n of names) T[n] = Object.assign({ ops }, extra || {}); };
+    put(['masker'], [{ kind: 'tail', s: [3.2, 1.5, 3.2], rx: -0.5 }, { all: true, s: [0.9, 1.22, 0.84] }]); /* a cat: back up, tail a bottle brush */
+    put(['froglet', 'riverfrog', 'sumofrog'], [{ all: true, s: [1.55, 0.86, 1.55], pulse: 7 }]); /* a frog: blown up wide and squat, throbbing */
+    put(['hedgehog'], [{ kind: 'head', s: [0.3, 0.3, 0.3], t: [0, -0.1, -0.12] }, { kind: 'leg', s: [0.25, 0.25, 0.25] }, { kind: 'shin', s: [0.25, 0.25, 0.25] }, { all: true, s: [1.1, 1.2, 0.92] }]); /* shut into a ball of thorns */
+    put(['snowowlet', 'snowyowl', 'auroraowl'], [{ all: true, s: [0.66, 1.45, 0.66] }, { kind: 'head', osc: { ry: 0.5, f: 1.6 } }]); /* an owl: tall and thin as a post, head turning */
+    put(['heron'], [{ kind: 'wing', rx: 2.1, rz: -0.45, s: [1.35, 1.35, 1.35] }], { idle: 0.05 }); /* wings up and over into a parasol: it does this to shade the water it fishes, alarmed or not */
+    put(['hornbillchick', 'hornbill'], [{ kind: 'head', osc: { rx: 0.42, f: 24 } }], { idle: 0.07 }); /* drums with the casque on its beak */
+    put(['molekit', 'minermole', 'drillmole'], [{ all: true, t: [0, -0.78, 0] }]); /* goes into the ground */
+    put(['peachick', 'peafowl', 'bloompeacock'], [{ kind: 'tail', s: [2.4, 2.2, 1], rx: -0.95 }], { idle: 0.04 }); /* the fan goes up */
+    put(['puffer'], [{ all: true, s: [1.6, 1.6, 1.6], pulse: 5 }]); /* twice the size, all spines */
+    put(['flamecobra', 'goldencobra', 'suncobra'], [{ kind: 'head', s: [2.1, 1.3, 1] }, { all: true, s: [1, 1.18, 1] }]); /* the hood spreads and it rears */
+    put(['hermit'], [{ all: true, s: [1.2, 0.62, 1.2], t: [0, -0.12, 0] }]); /* clamps down flat: nothing showing but shell */
+    put(['pangolinpup', 'pangolinknight'], [{ kind: 'head', s: [0.3, 0.3, 0.3], t: [0, -0.15, -0.1] }, { kind: 'leg', s: [0.25, 0.25, 0.25] }, { kind: 'arm', s: [0.25, 0.25, 0.25] }, { kind: 'tail', rx: 1.6 }, { all: true, s: [1.15, 0.85, 0.95] }]); /* rolled up tight, tail over its face */
+    put(['meerkatpup', 'sunsentinel'], [{ all: true, s: [0.84, 1.32, 0.84] }, { kind: 'head', osc: { ry: 0.7, f: 2.4 } }], { idle: 0.06 }); /* up on its hind legs, scanning */
+    return T; })();
   function model(sp, stage) {
     const form = formOf(sp, stage); const shape = form.shape; stage = form.look; // the body this stage has, drawn as grown-up as it looks
     const s = (sp.size || 1) * (stage === 1 ? 0.78 : stage === 2 ? 1.05 : 1.4) * (1 + 0.04 * Math.min(6, sp.gen || 0));
@@ -10251,7 +10289,8 @@ const KIN = (() => {
     if (!bones[0]) bones[0] = { kind: 'body', piv: [0, 0, 0], runPitch: sp.shape === 'raptor' ? 0.08 : 0 };
     const height = Math.max(...parts.map(b => b.y + b.h));
     const radius = Math.max(...parts.map(b => Math.max(Math.abs(b.x), Math.abs(b.x + b.w), Math.abs(b.z), Math.abs(b.z + b.d))));
-    const M = { boxes: parts, scale: s, hover, height, radius, bones, temper: temperOf(sp), legLen: legLen * SY, kind, flyer, sway, shape, native: natDone, fitBody };
+    const trick = TRICKS[form.plan] || null;
+    const M = { trick, boxes: parts, scale: s, hover, height, radius, bones, temper: temperOf(sp), legLen: legLen * SY, kind, flyer, sway, shape, native: natDone, fitBody };
     return sp.neon && form.plan && !natDone ? alienize(M, sp) : M;
   }
   // A Kin turned into an object: material comes from the items, glow from anything burning. The Kin's level makes it bigger and brighter.
@@ -10580,7 +10619,7 @@ const KIN = (() => {
     if (!R.renderPortrait(cv, mesh, m, size)) { const ctx = cv.getContext('2d'); cv.width = cv.height = size; ctx.fillStyle = sp.colors.body; ctx.beginPath(); ctx.arc(size / 2, size / 2, size * 0.3, 0, Math.PI * 2); ctx.fill(); }
   }
 
-  function serialize(k) { return { id: k.id, sp: k.sp, level: k.level, xp: k.xp, iv: k.iv, stage: k.stage, hp: k.hp, nick: k.nick, equip: k.equip || null, tech: k.tech || null, wear: k.wear || null, trust: k.trust || 0, bond: k.bond || 0, tamed: k.tamed || false }; }
+  function serialize(k) { return { id: k.id, sp: k.sp, level: k.level, xp: k.xp, iv: k.iv, stage: k.stage, hp: k.hp, nick: k.nick, shiny: k.shiny || undefined, equip: k.equip || null, tech: k.tech || null, wear: k.wear || null, trust: k.trust || 0, bond: k.bond || 0, tamed: k.tamed || false }; }
   function deserialize(d) { return Object.assign({ status: null }, d); }
 
   return { NATIVE, NAT_STEM, nativeLine, nativeColors, nativeId, nativize, childify, formName, LINES, lineOf, maxStage, lookOf, formOf, partHelpers, dress, wearKey, E, EI, CHART, STAT_KEYS, STAT_NAMES, growth, xpToNext, dominant, species, speciesForContext, dex, bySeed, HABITATS, capOf, recipes, findRecipe, fuseRecipe, mythicSpecies, legendSpecies, apexSpecies, wardenSpecies, MAX_LEVEL, TECH, techFor, techByName, temperOf, starters, create, stats, name, moves, effectiveness, gainXp, fuse, fusionLevel, TRAITS, RARITY, roster, buildUniverse, decorate, makeStatue, statueModel, shardsFor, model, buildMesh, meshKey, portrait, serialize, deserialize, UTIL_DESC, eggModel, eggPortrait };
@@ -10867,6 +10906,7 @@ const Wild = (() => {
   const BARRIER = new Set([B.FENCE, B.PALISADE, B.IRONWALL, B.LAMP].filter(x => x != null));
   function makeEntity(sp, level, x, y, z, opts = {}) {
     const kin = KIN.create(sp, level);
+    if (!sp.boss && !sp.legend && !sp.mythic && !opts.elite && !opts.wear && !opts.plain && Math.random() < 0.02) { kin.shiny = true; if (G && G.player && Math.hypot(x - G.player.x, z - G.player.z) < 60 && typeof UI !== 'undefined') { UI.sfx('gift'); UI.toast('Something glints out there. A shining Kin is near.', 'good'); } } /* about one in fifty: the same Kin, but it shines, and it is a little better at everything */
     const st = KIN.stats(kin);
     const m = opts.wear ? KIN.dress(KIN.model(sp, kin.stage), opts.wear) : KIN.model(sp, kin.stage); // a Kin under the Binding wears its collar: the look is the entity's, not the Kin's own, so it is gone the day it is freed
     const e = {
@@ -11965,8 +12005,9 @@ const Village = (() => {
       while (stack.length) { const [i0, i1] = stack.pop(); const p = line[i0], q = line[i1], L = Math.hypot(q[0] - p[0], q[1] - p[1]) || 1; let far = 0, at = -1; for (let i = i0 + 1; i < i1; i++) { const d = Math.abs((line[i][0] - p[0]) * (q[1] - p[1]) - (line[i][1] - p[1]) * (q[0] - p[0])) / L; if (d > far) { far = d; at = i; } } if (far > 9 && at > 0) { keep[at] = 1; stack.push([i0, at], [at, i1]); } }
       const o = line.filter((_, i) => keep[i]); line = [o[0]]; for (let i = 0; i + 1 < o.length; i++) { const p = o[i], q = o[i + 1], n = Math.max(1, Math.round(Math.hypot(q[0] - p[0], q[1] - p[1]) / 24)); for (let t = 1; t <= n; t++) line.push([p[0] + (q[0] - p[0]) * t / n, p[1] + (q[1] - p[1]) * t / n]); } }
     for (let r = 0; r < 3; r++) { const o = [line[0]]; for (let i = 0; i + 1 < line.length; i++) { const p = line[i], q = line[i + 1]; o.push([p[0] * 0.75 + q[0] * 0.25, p[1] * 0.75 + q[1] * 0.25], [p[0] * 0.25 + q[0] * 0.75, p[1] * 0.25 + q[1] * 0.75]); } o.push(line[line.length - 1]); line = o; } // rounded off: a trail has no corners
-    if (rail) { const cells = []; for (let i = 0; i + 1 < line.length; i++) { const p = line[i], q = line[i + 1], d = Math.hypot(q[0] - p[0], q[1] - p[1]), n = Math.max(1, Math.ceil(d / 0.5)); for (let t = 0; t <= n; t++) { const x = Math.round(p[0] + (q[0] - p[0]) * t / n), z = Math.round(p[1] + (q[1] - p[1]) * t / n), l = cells[cells.length - 1]; if (!l || l[0] !== x || l[1] !== z) cells.push([x, z]); } }
+    if (rail) { const cells = []; for (let i = 0; i + 1 < line.length; i++) { const p = line[i], q = line[i + 1], d = Math.hypot(q[0] - p[0], q[1] - p[1]), n = Math.max(1, Math.ceil(d / 0.5)); for (let t = 0; t <= n; t++) { const x = Math.round(p[0] + (q[0] - p[0]) * t / n + 0.137), z = Math.round(p[1] + (q[1] - p[1]) * t / n + 0.137), l = cells[cells.length - 1]; /* the little offset keeps a line that runs along a half-block from flicking between two columns */ if (!l || l[0] !== x || l[1] !== z) cells.push([x, z]); } }
       for (let pass = 0; pass < 2; pass++) for (let i = 1; i + 1 < cells.length; i++) { const a = cells[i - 1], c = cells[i + 1]; if (Math.max(Math.abs(a[0] - c[0]), Math.abs(a[1] - c[1])) <= 1) cells.splice(i, 1); } // one column wide, each touching only the one before and the one after, so the rails can run through them as a curve
+      for (let pass = 0; pass < 3; pass++) for (let i = 1; i + 1 < cells.length; i++) { const a = cells[i - 1], b = cells[i], c = cells[i + 1]; if (a[0] === c[0] && b[0] !== a[0] && Math.abs(a[1] - c[1]) === 2) b[0] = a[0]; else if (a[1] === c[1] && b[1] !== a[1] && Math.abs(a[0] - c[0]) === 2) b[1] = a[1]; } /* a single column stepping out of line and back is pulled straight: that was the zigzag */
       for (const [x, z] of cells) T.track.set(U.mod(x, WORLD_W) * 65536 + U.mod(z, WORLD_W), 1); return; }
     const NCL = WORLD_W / 8; const put = (x, z) => { const xm = U.mod(x, WORLD_W), zm = U.mod(z, WORLD_W), k = Math.floor(xm / 8) * 4096 + Math.floor(zm / 8); let arr = T.cells.get(k); if (!arr) { arr = []; T.cells.set(k, arr); } arr.push(xm, zm); T.n++; };
     for (let i = 0; i + 1 < line.length; i++) { const p = line[i], q = line[i + 1], d = Math.hypot(q[0] - p[0], q[1] - p[1]), n = Math.max(1, Math.ceil(d / 0.9)); for (let t = 0; t < n; t++) { const x = p[0] + (q[0] - p[0]) * t / n, z = p[1] + (q[1] - p[1]) * t / n; const wob = (U.vnoise2(x, z, 23, WORLD_W, world.seed + 975) - 0.5) * 7; const ux = (q[1] - p[1]) / (d || 1), uz = -(q[0] - p[0]) / (d || 1); put(x + ux * wob, z + uz * wob); } } // and it wanders a little either side of its line
@@ -14676,7 +14717,7 @@ const Battle = (() => {
   let camPick = null, preSpot = null;
   /* where the lens goes for a given pair, side and height, and whether it sees both of them whole from there */
   function camAt(mx, my, mz, mh, wh, sg, lift) { const dx = wildE.x - mx, dz = wildE.z - mz, d = Math.hypot(dx, dz) || 1, bx = -dx / d, bz = -dz / d, sx = -bz, sz = bx, big = Math.max(mh, wh), back = 2.1 + big * 0.65 + d * 0.18, out = 2.5 + big * 0.42 + d * 0.1, up = Math.max(1.5, mh * 0.8) + 0.9 + big * 0.3; return [mx + bx * back + sx * out * sg, my + up * lift, mz + bz * back + sz * out * sg]; }
-  function camSees(c, mx, my, mz, mh, wh) { const w = G.world; if (isSolid(w.getBlock(Math.floor(c[0]), Math.floor(c[1]), Math.floor(c[2])))) return false; if (w.groundY(Math.floor(c[0]), Math.floor(c[2]), Math.floor(c[1])) > my + 1.2) return false; /* not perched over a roof or a bank that stands higher than the fighters: the near edge of it would hide them */
+  function camSees(c, mx, my, mz, mh, wh) { const w = G.world; if (isSolid(w.getBlock(Math.floor(c[0]), Math.floor(c[1]), Math.floor(c[2])))) return false; for (let a = -1; a <= 1; a++) for (let b = -1; b <= 1; b++) for (let d = -1; d <= 0; d++) if (isLeaf(w.getBlock(Math.floor(c[0]) + a, Math.floor(c[1]) + d, Math.floor(c[2]) + b))) return false; /* never in or against a bush or a crown: the whole view went green */ if (w.groundY(Math.floor(c[0]), Math.floor(c[2]), Math.floor(c[1])) > my + 1.2) return false; /* not perched over a roof or a bank that stands higher than the fighters: the near edge of it would hide them */
     return sight(c[0], c[1], c[2], mx, my + 0.35, mz) && sight(c[0], c[1], c[2], mx, my + mh * 0.9, mz) && sight(c[0], c[1], c[2], wildE.x, wildE.y + wh * 0.25, wildE.z) && sight(c[0], c[1], c[2], wildE.x, wildE.y + wh * 0.9, wildE.z); }
   function placeMine() {
     const m = KIN.model(mine.sp, mine.stage);
@@ -20331,8 +20372,8 @@ const First = (() => {
     if (armed && (armed.t -= dt) <= 0) armed = null; }
   // the two you did not take: once the village is free they live in the square
   let pals = null;
-  function friends(dt, p) { const v = G.village; if (Math.hypot(p.x - v.x, p.z - v.z) > 60) { pals = null; return; } if (!pals) { const sts = KIN.starters(G.baseSeed); pals = S().held.map((i, n) => { const e = ent(sts[i], v.x + 3 - n * 6, v.z + 3); e.y = gy(e.x, e.z, v.y || p.y); e.pal = true; return e; }); }
-    for (const e of pals) { e.t += dt; e.bob += dt; if (!go(e, dt, 1.4) && (e.wait = (e.wait || 2) - dt) <= 0) { e.wait = 2 + Math.random() * 4; e.tx = e.hx + (Math.random() - 0.5) * 7; e.tz = e.hz + (Math.random() - 0.5) * 7; } const g = gy(e.x, e.z, e.y); if (Math.abs(g - e.y) < 1.6) e.y += (g - e.y) * Math.min(1, dt * 10); else { e.tx = e.hx; e.tz = e.hz; } } }
+  function friends(dt, p) { const v = G.village; if (Math.hypot(p.x - v.x, p.z - v.z) > 60) { pals = null; return; } if (!pals) { const sts = KIN.starters(G.baseSeed); pals = S().held.map((i, n) => { const e = ent(sts[i], v.x + 5 - n * 10, v.z + 6); e.hx = e.x; e.hz = e.z; e.y = Math.min(gy(e.x, e.z, v.y || p.y), (v.y || p.y) + 0.6); e.pal = true; return e; }); }
+    for (const e of pals) { e.t += dt; e.bob += dt; if (!go(e, dt, 1.4) && (e.wait = (e.wait || 2) - dt) <= 0) { e.wait = 2 + Math.random() * 4; e.tx = e.hx + (Math.random() - 0.5) * 7; e.tz = e.hz + (Math.random() - 0.5) * 7; } const g = gy(e.x, e.z, e.y); if (Math.abs(g - e.y) < 1.1 && g <= (v.y || e.y) + 0.6) e.y += (g - e.y) * Math.min(1, dt * 10); else { e.x = e.px != null ? e.px : e.x; e.z = e.pz != null ? e.pz : e.z; e.tx = e.hx; e.tz = e.hz; } e.px = e.x; e.pz = e.z; if (e.y > (v.y || e.y) + 0.8) { e.x = e.hx; e.z = e.hz; e.y = v.y; } } } /* they stay on the ground of the square: the well, the stalls and the low thatch are not steps */
   function near(p, list) { const f = U.forwardVec(p.yaw, 0); let best = null, bd = 3.6; for (const e of list) { const dx = e.x - p.x, dz = e.z - p.z, d = Math.hypot(dx, dz); if (d < bd && (d < 1.2 || (dx * f[0] + dz * f[2]) / d > -0.25)) { bd = d; best = e; } } return best; }
   const HINT = ['', 'It bolts if you walk up on it. Creep: hold sneak and come slowly.', 'It will not be marched at. Stand near it, keep still, and let it come to you.', '', ''];
   function tap(p) { const s = S(); if (!s) return false; if (s.stage === 3 && pals) { const e = near(p, pals); if (e) { UI.toast(`${KIN.name(e.kin)} knows you from the brook, and comes to have its head scratched.`); emote(e, '♥', '#ff9ab8'); return true; } return false; }
@@ -20419,7 +20460,7 @@ const Cine = (() => {
   /* a camera spot that is never inside a wall: walk from what is being looked at toward the wished spot and stop short of anything solid */
   function clear(lx, ly, lz, tx, ty, tz) { const w = G.world; let k = 1; for (let i = 2; i <= 14; i++) { const u = i / 14, b = w.getBlock(Math.floor(lx + (tx - lx) * u), Math.floor(ly + (ty - ly) * u), Math.floor(lz + (tz - lz) * u)); if (b !== B.AIR && typeof isSolid === 'function' && isSolid(b)) { k = Math.max(0.2, (i - 1.5) / 14); break; } } return [lx + (tx - lx) * k, ly + (ty - ly) * k, lz + (tz - lz) * k]; }
   /* somebody in the film who is not really there: a creature walking through a memory. at(t) says where it is, t in seconds */
-  function mkActor(a) { try { const p = a.at(0), e = Wild.makeEntity(a.sp, a.lvl || 40, p.x, p.y, p.z, {}); e.cineAt = a.at; e.yaw = p.yaw || 0; e.sleep = false; e.alert = 0; if (a.scale) e.scale = a.scale; return e; } catch (err) { console.warn('cine actor:', err.message); return null; } }
+  function mkActor(a) { try { const p = a.at(0), e = Wild.makeEntity(a.sp, a.lvl || 40, p.x, p.y, p.z, { plain: true }); e.cineAt = a.at; e.yaw = p.yaw || 0; e.sleep = false; e.alert = 0; if (a.scale) e.scale = a.scale; return e; } catch (err) { console.warn('cine actor:', err.message); return null; } }
   function entities() { if (!cur || !cur.actors) return []; for (const e of cur.actors) { const p = e.cineAt(cur.t); e.moving = Math.hypot(p.x - e.x, p.z - e.z) > 0.002; e.x = p.x; e.y = p.y; e.z = p.z; if (p.yaw != null) e.yaw = p.yaw; } return cur.actors; }
   /* a telling: somebody speaks line by line with the view on them, and between two lines the film shows what they are talking about. inserts: { 2: [beat, beat] } plays those after line 2 */
   function tell(who, at, inserts, lines, done) { if (!G) return; const a = { x: at.x, y: at.y, z: at.z, h: at.faceY || 1.5, d: at.faceD || 3.6 }, beats = []; lines.forEach((l, i) => { beats.push({ say: [who, l], at: a, secs: 30, mood: i === 0 ? null : undefined }); for (const b of (inserts[i] || [])) beats.push(b); }); if (!play(beats, done)) { if (typeof Dialogue !== 'undefined') Dialogue.show(who, lines, done); } }
