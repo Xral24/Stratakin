@@ -1,0 +1,6 @@
+const { open } = require('./harness');
+(async () => { const h = await open(); const { page, ev } = h; await h.newGame('look-3'); await h.calm();
+  console.log(JSON.stringify(await ev(async () => { R.render = () => {}; window.__iv = setInterval(() => { const v = Village.active; if (v && v.boss) v.boss.fought = true; }, 20); const w = G.world, p = G.player, t = Village.townList()[0]; w.ensureAround(Math.floor(t.x / CH), Math.floor(t.z / CH), 6, 99999); p.x = t.x + t.R + 45; p.z = t.z; p.y = w.groundY(Math.floor(p.x), Math.floor(p.z), 150) + 1.2; window.__rej = []; for (let i = 0; i < 3; i++) Fields.update(2, p);
+    const nm = (b) => Object.keys(B).find(k => B[k] === b); const hist = {}; const R0 = t.R; for (let i = 0; i < 40; i++) { const a = i * 0.157, x = Math.round(t.x + Math.sin(a) * (R0 + 20)), z = Math.round(t.z + Math.cos(a) * (R0 + 20)); const g = w.groundY(x, z, 150); for (const y of [g, g + 1]) { const k = (y === g ? 'top:' : 'above:') + nm(w.getBlock(x, y, z)); hist[k] = (hist[k] || 0) + 1; } }
+    const nmb = {}; for (const k in B) nmb[B[k]] = k; const S = Campaign.sites(), sk = {}; for (const k in S) if (S[k] && typeof S[k].x === "number") sk[k] = Math.round(Math.hypot(S[k].x - t.x, S[k].z - t.z)); return { sk, R: t.R, n: Fields.live.length, rej: window.__rej.map(r => r.replace(/\d+/, d => nmb[d])) }; })));
+  await h.close(); })();

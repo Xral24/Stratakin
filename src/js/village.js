@@ -318,6 +318,10 @@ const Village = (() => {
         const c = g[k] + Math.hypot(a, b) * G * mul[nk] + Math.abs(hs[nk] - hs[k]) * 5; if (c < g[nk]) { g[nk] = c; from[nk] = k; push(c + Math.hypot(ti - ni, tj - nj) * G, nk); } } }
     if (from[goal] < 0 && goal !== s0) return;
     let line = []; for (let k = goal; k >= 0; k = from[k]) { line.push([A.x + ((k % W) + i0) * G, A.z + (Math.floor(k / W) + j0) * G]); if (k === s0) break; } line.reverse(); line[0] = [A.x, A.z]; line[line.length - 1] = [B.x, B.z];
+    if (rail && line.length > 2) { /* a railway is surveyed, not wandered: the stepped path the search hands back is pulled into long straights first, so the line bends where the land makes it and nowhere else. It used to wriggle left and right every dozen blocks */
+      const keep = new Uint8Array(line.length); keep[0] = keep[line.length - 1] = 1; const stack = [[0, line.length - 1]];
+      while (stack.length) { const [i0, i1] = stack.pop(); const p = line[i0], q = line[i1], L = Math.hypot(q[0] - p[0], q[1] - p[1]) || 1; let far = 0, at = -1; for (let i = i0 + 1; i < i1; i++) { const d = Math.abs((line[i][0] - p[0]) * (q[1] - p[1]) - (line[i][1] - p[1]) * (q[0] - p[0])) / L; if (d > far) { far = d; at = i; } } if (far > 9 && at > 0) { keep[at] = 1; stack.push([i0, at], [at, i1]); } }
+      const o = line.filter((_, i) => keep[i]); line = [o[0]]; for (let i = 0; i + 1 < o.length; i++) { const p = o[i], q = o[i + 1], n = Math.max(1, Math.round(Math.hypot(q[0] - p[0], q[1] - p[1]) / 24)); for (let t = 1; t <= n; t++) line.push([p[0] + (q[0] - p[0]) * t / n, p[1] + (q[1] - p[1]) * t / n]); } }
     for (let r = 0; r < 3; r++) { const o = [line[0]]; for (let i = 0; i + 1 < line.length; i++) { const p = line[i], q = line[i + 1]; o.push([p[0] * 0.75 + q[0] * 0.25, p[1] * 0.75 + q[1] * 0.25], [p[0] * 0.25 + q[0] * 0.75, p[1] * 0.25 + q[1] * 0.75]); } o.push(line[line.length - 1]); line = o; } // rounded off: a trail has no corners
     if (rail) { const cells = []; for (let i = 0; i + 1 < line.length; i++) { const p = line[i], q = line[i + 1], d = Math.hypot(q[0] - p[0], q[1] - p[1]), n = Math.max(1, Math.ceil(d / 0.5)); for (let t = 0; t <= n; t++) { const x = Math.round(p[0] + (q[0] - p[0]) * t / n), z = Math.round(p[1] + (q[1] - p[1]) * t / n), l = cells[cells.length - 1]; if (!l || l[0] !== x || l[1] !== z) cells.push([x, z]); } }
       for (let pass = 0; pass < 2; pass++) for (let i = 1; i + 1 < cells.length; i++) { const a = cells[i - 1], c = cells[i + 1]; if (Math.max(Math.abs(a[0] - c[0]), Math.abs(a[1] - c[1])) <= 1) cells.splice(i, 1); } // one column wide, each touching only the one before and the one after, so the rails can run through them as a curve
@@ -1138,6 +1142,7 @@ const Village = (() => {
   function stampRail(v, st) {
     if (v.type !== 'land' || !v.R) return; const rl = layout(v).rail; if (!rl) return; const wr = wallRadius(st); st.railLevel = true;
     const base = rl.ax ? v.x : v.z, ty = v.y, set = (x, y, z, id) => world.setBlock(x, y, z, id);
+    { const a0 = base + rl.sgn * wr, x0 = rl.ax ? a0 : rl.line, z0 = rl.ax ? rl.line : a0; set(x0, ty - 1, z0, B.GRAVEL); set(x0, ty, z0, B.RAIL); set(x0, ty + 1, z0, B.AIR); set(x0, ty + 2, z0, B.AIR); } /* the one block under the wall's own opening: it used to be left bare, a gap in the line right at the gate */
     for (let d = wr + 1; d <= wr + 8; d++) { // a short level run out of the station; from there the line lies on the land (see buildTrails)
       const a = base + rl.sgn * d; const col = (k) => rl.ax ? [a, rl.line + k] : [rl.line + k, a]; const [x, z] = col(0);
       for (let y = ty - 14; y <= ty + 14; y++) if (y !== ty && world.getBlock(x, y, z) === B.RAIL) set(x, y, z, B.AIR); // a line laid before this stepped with the land: lift it
@@ -1184,7 +1189,8 @@ const Village = (() => {
   function setGates(v, st, closed) {
     if (v.type !== 'land' || v.founded) return;
     const blk = wallSet(v)[st.wall || 0].block, vy = v.y;
-    for (const [x, z, gate] of ringCols(v, st)) if (gate) for (let y = vy; y <= vy + 1; y++) world.setBlock(x, y, z, closed ? blk : B.AIR);
+    const rl = v.R ? layout(v).rail : null, onLine = (x, z) => !!rl && (rl.ax ? z === rl.line : x === rl.line) && ((rl.ax ? x - v.x : z - v.z) * rl.sgn > 0); /* the block of track in its own opening stays down when the gates open or shut: they used to wipe it, which left one sleeper missing at the wall */
+    for (const [x, z, gate] of ringCols(v, st)) if (gate) for (let y = vy; y <= vy + 1; y++) world.setBlock(x, y, z, closed ? (y === vy && onLine(x, z) ? B.RAIL : blk) : (y === vy && onLine(x, z) ? B.RAIL : B.AIR));
     v.gatesClosed = closed;
   }
   // level the ground in the band between the old wall and the new one

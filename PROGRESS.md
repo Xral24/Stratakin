@@ -388,6 +388,8 @@ Scope (Alexander, 8 Nov evening): EVERYTHING visible goes to the same standard: 
 
 - 17 Nov, the road farms redrawn (they were plank and log boxes with fern blocks for crops). **Each is now a thatched timber cottage with lit windows and a chimney, a post and rail fence with a gate gap, a field of wheat, maize or sunflowers that follows the seasons, and a scarecrow. The walls are still solid; the night pest and the farmer's job are untouched.** Seen in one photo. Noticed in it: steep mountain rock in the distance still draws as dark cubes.
 
+- 17 Nov, three fixes from play (his ask: tyrant's eyes stayed put when he laughed, rails zigzagged and one piece was missing at the station, a field sat half on the mine). **Face bones (jaw, lids, brows) now ride a steady head when it nods or turns; rail route is straightened before rounding and the block in the wall opening survives the gates; fields wait for loaded land, keep 36 clear of every campaign site and never touch built blocks.**
+
 ## Still to do
 UI polish as feedback comes in. Card battle screen still used for scripted encounters (raids at the walls, thief, citadel duel, holds) and the snare mini-game; converting those to live is the next big step if wanted. (Old list: train/ships, combat animation, eggs, avatar hair/paint, buddy WEAR cosmetics, Silas and Finch, UI polish (item icons), quality toggles in settings (state.shadows, state.grassQuality, state.dprCap).
 

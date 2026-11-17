@@ -191,6 +191,7 @@
       jab: { main: [[0, 0, 0, 0], [0.25, 0.4, 0, 0.2], [0.5, -1.5, 0.2, 0], [1, 0, 0, 0]], off: [[0, 0, 0, 0], [0.5, -0.5, 0, 0.3], [1, 0, 0, 0]] },
     };
     const TMPM = new Float32Array(16);
+    const HF = (m, a) => { const hb = m.bones[1]; return !!(hb && hb.kind === 'head' && hb.still && (Math.abs(a.nod || 0) > 0.0005 || Math.abs(a.look || 0) > 0.0005)); };
     function under(i, par) { const a = par * 16, b = i * 16; for (let c = 0; c < 4; c++) for (let r = 0; r < 4; r++) TMPM[c * 4 + r] = mats[a + r] * mats[b + c * 4] + mats[a + 4 + r] * mats[b + c * 4 + 1] + mats[a + 8 + r] * mats[b + c * 4 + 2] + mats[a + 12 + r] * mats[b + c * 4 + 3]; for (let k = 0; k < 16; k++) mats[b + k] = TMPM[k]; }
     // what a creature's face is doing when nobody has told it: every kind has a temper of its own, and on top of that it shows what is happening to it. Curious when it has noticed you, hard when it is after you, shut when asleep, worried when hurt
     const TEMPER = [{ b: 0, t: 0, lid: 0.08 }, { b: 0.35, t: -0.45, lid: 0.0 }, { b: -0.55, t: 0.6, lid: 0.3 }, { b: 0.45, t: -0.1, lid: 0.16 }, { b: -0.1, t: -0.1, lid: 0.5 }]; // steady, shy, cross, bright, drowsy
@@ -261,10 +262,10 @@
           case 'tailfin': { const sw = Math.sin(t * (5 + 3 * mv) + seed) * (0.3 + 0.2 * mv); set(i, b.piv, 0, sw, 0, 0, bob, 0); break; }
           case 'wing': { const side = b.side || 1; const flap = air > 0.05 ? Math.sin(t * 9.5 + seed) * 0.55 * air + 0.12 * air : 0; const fold = (1 - air) * (b.fold || 0); set(i, b.piv, 0, 0, side * (flap + fold) + side * (1 - air) * Math.sin(t * 2.3 + seed) * 0.03, 0, bob, 0); break; }
           case 'spin': { set(i, b.piv, 0, t * (b.speed || 1.5), 0, 0, bob, 0); break; }
-          case 'jaw': { set(i, b.piv, (a.jaw || e.jawOpen || 0) * 0.45, 0, 0, 0, bob, 0); break; }
+          case 'jaw': { const hf = HF(m, a); set(i, b.piv, (a.jaw || e.jawOpen || 0) * 0.45, 0, 0, 0, hf ? 0 : bob, 0); if (hf) under(i, 1); break; } /* when a steady head is thrown back (a laugh) or turned, everything on the face goes with it: jaw, lids, brows and the eyes drawn on them */
           // a face that moves. e.face says where everything is: bl, br how far each brow is lifted (-1 pulled down, 1 up), tl, tr how each is tilted (1: the inner end down, a scowl; -1: the inner end up, worry), lid how far the eyes are shut. Everybody with lids blinks
-          case 'brow': { const f = e.face || autoFace(e, m, a, t, seed), L = (b.side || 1) < 0, on = b.on != null; set(i, b.piv, 0, 0, (b.side || 1) * ((L ? f.tl : f.tr) || 0) * 0.55, 0, (on ? 0 : bob) + ((L ? f.bl : f.br) || 0) * (b.amp || 0.03) * sc, 0); if (on) under(i, b.on); break; }
-          case 'lid': { const f = e.face || autoFace(e, m, a, t, seed), bl = ((t * 0.21 + seed * 0.37) % 1) < 0.028 ? 1 : 0, c = Math.max(f.lid || 0, bl); if (b.squash) { set(i, b.piv, 0, 0, 0, 0, 0, 0, 1, 0.04 + 0.96 * c, 1); if (b.on != null) under(i, b.on); } else set(i, b.piv, 0, 0, 0, 0, bob - c * (b.amp || 0.05) * sc, 0); break; } /* squash: a lid that is drawn shut and pressed flat against the top of the eye when it is open */
+          case 'brow': { const f = e.face || autoFace(e, m, a, t, seed), L = (b.side || 1) < 0, on = b.on != null; const hf = !on && HF(m, a); set(i, b.piv, 0, 0, (b.side || 1) * ((L ? f.tl : f.tr) || 0) * 0.55, 0, (on || hf ? 0 : bob) + ((L ? f.bl : f.br) || 0) * (b.amp || 0.03) * sc, 0); if (on) under(i, b.on); else if (hf) under(i, 1); break; }
+          case 'lid': { const f = e.face || autoFace(e, m, a, t, seed), bl = ((t * 0.21 + seed * 0.37) % 1) < 0.028 ? 1 : 0, c = Math.max(f.lid || 0, bl); if (b.squash) { set(i, b.piv, 0, 0, 0, 0, 0, 0, 1, 0.04 + 0.96 * c, 1); if (b.on != null) under(i, b.on); } else { const hf = HF(m, a); set(i, b.piv, 0, 0, 0, 0, (hf ? 0 : bob) - c * (b.amp || 0.05) * sc, 0); if (hf) under(i, 1); } break; } /* squash: a lid that is drawn shut and pressed flat against the top of the eye when it is open */
           case 'ear': { set(i, b.piv, 0, 0, (b.side || 1) * (Math.sin(t * 2.7 + seed + phs) * 0.06 + mv * 0.15), 0, bob, 0); break; }
           case 'body': default: {
             if (m.kind === 'blob') { const sq = 1 + Math.sin(ph) * 0.09 * mv + Math.sin(t * 2.2 + seed) * 0.025; set(i, b.piv || [0, 0, 0], 0, 0, 0, 0, Math.abs(Math.sin(ph)) * 0.12 * mv * sc, 0, 1 / Math.sqrt(sq), sq, 1 / Math.sqrt(sq)); }
