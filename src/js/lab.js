@@ -7,7 +7,7 @@ const Lab = (() => {
   const wd = (d) => U.mod(d + WORLD_W / 2, WORLD_W) - WORLD_W / 2;
   const STORY = {
     earth: { who: 'Dr Vexley', kid: 'Pim Vexley', place: 'the lab', bossName: 'Chimera Nine', elems: ['Void', 'Spark', 'Flame'], shape: 'quadruped',
-      ask: ['My father splices Kin. Eight of them went wrong and he fed them to the ninth, and the ninth is not wrong at all. It is very, very right.', 'It has him in the lab under the hill. The hatch will not open from inside. I have marked it for you: ⚗ on your compass. Beat it or cage it; please.'],
+      ask: ['My father splices Kin. Eight of them went wrong and he fed them to the ninth, and the ninth is not wrong at all. It is very, very right.', 'It has him in the lab under the hill. The hatch will not open from inside. I have marked it for you: ⚗ on your compass. Beat it or net it. Please.'],
       wait: ['Not now! It is right behind you!'], thanks: ['You… it is done? It is done. I have been under the bench for two days.', 'The incubator at the back: it hatches eggs, three at a time, and much faster than carrying them about. It keeps them warm while you are off doing whatever you do. It is yours; I am going outside to look at the sky.'] },
     moon: { who: 'Archivist Oon', kid: 'Probe Vel-9', place: 'the vault', bossName: 'Splice-Null', elems: ['Light', 'Void', 'Frost'], shape: 'floater',
       ask: ['The Archivist kept the old Kin in the vault and tried to make a new one from all of them. It made itself instead.', 'It has sealed the vault with the Archivist inside. The way down is marked: ⚗. End it, earth-walker, or cage it.'],
@@ -38,14 +38,14 @@ const Lab = (() => {
   function stampTent(t) {
     const set = (x, y, z, id) => world.setBlock(x, y, z, id); const y0 = t.y;
     for (let dx = -2; dx <= 2; dx++) for (let dz = -2; dz <= 2; dz++) { const g = world.groundY(t.x + dx, t.z + dz, y0 + 4); for (let y = g + 1; y <= y0 + 3; y++) { const b = world.getBlock(t.x + dx, y, t.z + dz); if (b !== B.AIR) set(t.x + dx, y, t.z + dz, B.AIR); } if (g < y0 - 1) for (let y = g + 1; y <= y0 - 1; y++) set(t.x + dx, y, t.z + dz, B.DIRT); }
-    for (let dx = -1; dx <= 1; dx++) { set(t.x + dx, y0, t.z - 2, B.PLANKS); set(t.x + dx, y0 + 1, t.z - 2, B.PLANKS); set(t.x + dx, y0 + 2, t.z - 2, B.LOG); }
-    set(t.x + 2, y0, t.z, B.TORCH); set(t.x - 2, y0, t.z, B.CHEST);
+    for (let dx = -1; dx <= 1; dx++) for (let y = y0; y <= y0 + 2; y++) { const b0 = world.getBlock(t.x + dx, y, t.z - 2); if (b0 === B.PLANKS || b0 === B.LOG) set(t.x + dx, y, t.z - 2, B.AIR); } /* the old plank wall goes: the tent is drawn now, as canvas */
+    if (world.getBlock(t.x + 2, y0, t.z) === B.TORCH) set(t.x + 2, y0, t.z, B.AIR); set(t.x + 2, y0, t.z + 1, B.CAMPFIRE); set(t.x - 2, y0, t.z, B.CHEST);
   }
   // the lab: a hatch in a stone frame, a shaft down, a riveted room with tanks, benches, the incubator at the back
   function stampLab(s) {
     const set = (x, y, z, id) => world.setBlock(x, y, z, id); const hx = s.hatch.x, hz = s.hatch.z, hy = s.hatch.y; const ry = s.roomY;
     for (let dx = -1; dx <= 1; dx++) for (let dz = -1; dz <= 1; dz++) { set(hx + dx, hy - 1, hz + dz, B.STONE); for (let y = hy; y <= hy + 2; y++) if (world.getBlock(hx + dx, y, hz + dz) !== B.AIR) set(hx + dx, y, hz + dz, B.AIR); }
-    set(hx - 1, hy, hz - 1, B.IRONWALL); set(hx + 1, hy, hz - 1, B.IRONWALL); set(hx - 1, hy + 1, hz - 1, B.TORCH); set(hx + 1, hy + 1, hz - 1, B.TORCH);
+    for (const dx of [-1, 1]) for (const dy of [0, 1]) { const b0 = world.getBlock(hx + dx, hy + dy, hz - 1); if (b0 === B.IRONWALL || b0 === B.TORCH) set(hx + dx, hy + dy, hz - 1, B.AIR); } /* above ground the hatch is drawn whole: a riveted collar, a lid thrown back, two lamps. Nothing square stands on the grass */
     // the hatch: a 2 x 2 opening in an iron frame, a ladder down the north wall of the shaft, torches in the walls
     for (let dx = 0; dx <= 1; dx++) for (let dz = 0; dz <= 1; dz++) set(hx + dx, hy - 1, hz + dz, B.AIR);
     for (let y = ry; y < hy; y++) {
@@ -82,9 +82,9 @@ const Lab = (() => {
   }
   function person(kind, x, y, z, name) {
     const neon = world.preset.id === 'moon';
-    const sp = { shape: 'biped', feat: { crest: false, ears: false, horns: false, spikes: false, tail: false, wings: false, bigEyes: neon }, colors: neon ? { body: '#1a1030', belly: '#00f5ff', accent: '#ff2bd6', dark: '#05050f', eye: '#ffffff' } : kind === 'scientist' ? { body: '#2c3e50', belly: '#e8c39e', accent: '#7ad7ff', dark: '#3a2a20', eye: '#222222' } : { body: '#4c7bc9', belly: '#f1d3b3', accent: '#c94c4c', dark: '#3a2a20', eye: '#222222' }, size: kind === 'scientist' ? 1.05 : 0.95, gen: 0, names: [kind], neon };
+    const sp = { shape: 'human', build: kind === 'scientist' ? 'man' : 'slim', hairVar: kind === 'scientist' ? 1 : 3, hair: neon ? undefined : kind === 'scientist' ? '#d8d8dc' : '#8a3a1a', names: [kind], feat: { crest: false, ears: false, horns: false, spikes: false, tail: false, wings: false, bigEyes: neon }, colors: neon ? { body: '#1a1030', belly: '#00f5ff', accent: '#ff2bd6', dark: '#05050f', eye: '#ffffff' } : kind === 'scientist' ? { body: '#2c3e50', belly: '#e8c39e', accent: '#7ad7ff', dark: '#3a2a20', eye: '#222222' } : { body: '#4c7bc9', belly: '#f1d3b3', accent: '#c94c4c', dark: '#3a2a20', eye: '#222222' }, size: kind === 'scientist' ? 1.05 : 0.95, gen: 0, names: [kind], neon };
     const m = KIN.model(sp, 2); KIN.decorate(m, kind === 'scientist' ? 'scientist' : 'wanderer'); if (neon) KIN.decorate(m, 'alien'); if (world.preset.id === 'halo') KIN.decorate(m, 'veil');
-    return { role: kind === 'scientist' ? 'scientist' : 'apprentice', name, x, y, z, yaw: 0, model: m, mesh: R.entityMesh('lab:' + kind + ':' + world.preset.id, (mb) => KIN.buildMesh(mb, m)), bob: 0 };
+    return { role: kind === 'scientist' ? 'scientist' : 'apprentice', name, x, y, z, yaw: 0, model: m, mesh: R.entityMesh('lab2:' + kind + ':' + world.preset.id, (mb) => KIN.buildMesh(mb, m)), bob: 0 };
   }
   function standY(x, y, z) { const bx = Math.floor(x), bz = Math.floor(z); for (const dy of [0, 1, -1, 2, -2, 3]) { const yy = Math.floor(y) + dy; const b0 = world.getBlock(bx, yy, bz), b1 = world.getBlock(bx, yy + 1, bz), below = world.getBlock(bx, yy - 1, bz); if ((b0 === B.AIR || BLOCKS[b0].partial) && b1 === B.AIR && isSolid(below) && !isLeaf(below)) return yy; } return null; }
   function bossSpecies() {
@@ -101,14 +101,14 @@ const Lab = (() => {
     frame(s.tent, p.x, p.z); frame(s.hatch, p.x, p.z); if (s.room) { frame(s.room, p.x, p.z); frame(s.incubator, p.x, p.z); }
     const dt0 = Math.hypot(p.x - s.tent.x, p.z - s.tent.z), dh = Math.hypot(p.x - s.hatch.x, p.z - s.hatch.z);
     if (dt0 < 70) {
-      const tk = U.mod(s.tent.x, WORLD_W) + ',' + U.mod(s.tent.z, WORLD_W);
+      const tk = 'v2:' + U.mod(s.tent.x, WORLD_W) + ',' + U.mod(s.tent.z, WORLD_W);
       if (L.tentStamped !== tk) { world.ensureAround(Math.floor(s.tent.x / CH), Math.floor(s.tent.z / CH), 1, 99); stampTent(s.tent); L.tentStamped = tk; G.meshPass(99); }
       if (!apprentice) { const gy = standY(s.tent.x + 0.5, s.tent.y, s.tent.z + 0.5) ?? s.tent.y; apprentice = person('apprentice', s.tent.x + 0.5, gy, s.tent.z + 0.5, story().kid); }
       const a = apprentice; a.bob += dt; const dx = p.x - a.x, dz = p.z - a.z; if (Math.hypot(dx, dz) < 8) a.yaw = Math.atan2(dx, dz);
       if (!L.seen && dt0 < 24) { L.seen = true; UI.toast(`${story().kid} waves you over. Something is wrong.`, 'good'); }
     } else apprentice = null;
     if (dh < 70 && L.told) {
-      const hk = 'v3:' + U.mod(s.hatch.x, WORLD_W) + ',' + U.mod(s.hatch.z, WORLD_W);
+      const hk = 'v4:' + U.mod(s.hatch.x, WORLD_W) + ',' + U.mod(s.hatch.z, WORLD_W);
       if (L.stamped !== hk) { world.ensureAround(Math.floor(s.hatch.x / CH), Math.floor(s.hatch.z / CH), 2, 999); stampLab(s); L.stamped = hk; G.meshPass(99); UI.toast(`The hatch to ${story().place}. It is open. Something is breathing down there.`, 'bad'); }
       if (!s.room) stampLab(s);
       if (!scientist) { const gy = standY(s.room.x + 6.5, s.room.y, s.room.z - 4.5) ?? s.room.y; scientist = person('scientist', s.room.x + 6.5, gy, s.room.z - 4.5, story().who); }
@@ -156,7 +156,20 @@ const Lab = (() => {
     if (s.room) { const sp = Object.assign({}, ros[0]); sp.size = 0.8; const m = KIN.model(sp, 2); out.push({ t: { x: s.room.x + 3.5, y: s.room.y + 1, z: s.room.z }, mesh: R.entityMesh('spec:table:' + world.preset.id, (mb) => KIN.buildMesh(mb, m)), model: m, yaw: Math.PI / 2, spin: 0, ph: 0, scale: 0.45, lie: true }); }
     return out;
   }
-  function entities() { const out = []; const put = (n) => out.push({ x: n.x, y: n.y, z: n.z, yaw: n.yaw, model: n.model, mesh: n.mesh, scale: 1, hover: 0, skyMul: 1, src: n }); if (apprentice) put(apprentice); if (scientist) put(scientist);
+  /* what stands on the surface: the apprentice's tent and the hatch, both drawn as things and not built from blocks */
+  const CANVAS = [0.86, 0.8, 0.66], CANV2 = [0.74, 0.68, 0.54], POLE = [0.42, 0.3, 0.2], IRON = [0.34, 0.36, 0.4], IRON2 = [0.24, 0.26, 0.3], BRASS = [0.78, 0.62, 0.3];
+  function tentMesh() { return R.entityMesh('lab:tent2', (mb) => { /* a ridge tent, open at the front: two slopes of canvas stepping up to the pole, a bedroll, a crate with a lantern on it */
+      for (let i = 0; i < 7; i++) { const u = i / 7, x0 = 1.5 - u * 1.5, x1 = 1.5 - (u + 1 / 7) * 1.5, y = u * 1.9; for (const sg of [-1, 1]) mb.blob(Math.min(sg * x0, sg * x1) - 0.03, y - 0.03, -1.55, Math.max(sg * x0, sg * x1) + 0.03, y + 0.34, 1.45, 0.25, i % 2 ? CANVAS : CANV2, { n: 2 }); }
+      mb.blob(-0.07, 0, -1.6, 0.07, 2.1, -1.46, 0.5, POLE, { n: 2 }); mb.blob(-0.07, 0, 1.36, 0.07, 2.1, 1.5, 0.5, POLE, { n: 2 }); mb.blob(-0.06, 1.98, -1.62, 0.06, 2.1, 1.52, 0.5, POLE, { n: 2 }); mb.blob(-1.4, 0, -1.6, 1.4, 1.5, -1.5, 0.2, CANV2, { n: 2 });
+      mb.blob(-0.95, 0.0, -1.2, -0.35, 0.16, 0.6, 0.6, [0.5, 0.26, 0.24], { n: 3 }); mb.blob(-0.92, 0.1, -1.25, -0.38, 0.3, -0.85, 0.9, [0.9, 0.86, 0.78], { n: 3 });
+      mb.blob(0.4, 0, -0.9, 1.0, 0.5, -0.3, 0.2, POLE, { n: 2 }); mb.blob(0.6, 0.5, -0.7, 0.8, 0.62, -0.5, 0.6, IRON2, { n: 2 }); mb.blob(0.63, 0.6, -0.67, 0.77, 0.82, -0.53, 0.8, [1.0, 0.85, 0.45], { n: 3, emis: true }); mb.blob(0.62, 0.82, -0.68, 0.78, 0.88, -0.52, 0.7, IRON2, { n: 2 });
+      for (const [x, z] of [[1.9, 1.8], [-1.9, 1.8], [1.9, -1.9], [-1.9, -1.9]]) mb.blob(x - 0.04, 0, z - 0.04, x + 0.04, 0.3, z + 0.04, 0.5, POLE, { n: 2 }); }); }
+  function hatchMesh() { return R.entityMesh('lab:hatch2', (mb) => { /* centred on the 2 by 2 opening: a low iron collar round it, the lid standing open on its hinge at the back with a wheel on it, a lamp either side */
+      for (let i = 0; i < 16; i++) { const a = i * 0.3927, x = Math.cos(a) * 1.5, z = Math.sin(a) * 1.5; mb.blob(x - 0.36, -0.05, z - 0.36, x + 0.36, 0.34, z + 0.36, 0.7, i % 2 ? IRON : IRON2, { n: 2 }); if (i % 2) mb.blob(x * 1.02 - 0.06, 0.3, z * 1.02 - 0.06, x * 1.02 + 0.06, 0.42, z * 1.02 + 0.06, 1, BRASS, { n: 2 }); }
+      mb.blob(-1.25, 0.3, -1.95, 1.25, 2.7, -1.7, 0.35, IRON, { n: 3 }); mb.blob(-1.05, 0.5, -1.72, 1.05, 2.5, -1.62, 0.3, IRON2, { n: 2 }); mb.blob(-0.5, 1.0, -1.66, 0.5, 2.0, -1.56, 1, BRASS, { n: 3 }); mb.blob(-0.3, 1.2, -1.62, 0.3, 1.8, -1.5, 1, IRON2, { n: 3 }); mb.blob(-0.6, 1.44, -1.6, 0.6, 1.56, -1.52, 0.5, BRASS, { n: 2 }); mb.blob(-0.06, 0.9, -1.6, 0.06, 2.1, -1.52, 0.5, BRASS, { n: 2 });
+      for (const sg of [-1, 1]) { mb.blob(sg * 2.1 - 0.07, 0, -0.07, sg * 2.1 + 0.07, 1.7, 0.07, 0.5, IRON2, { n: 2 }); mb.blob(sg * 2.1 - 0.17, 1.65, -0.17, sg * 2.1 + 0.17, 2.0, 0.17, 0.8, [0.55, 0.95, 1.0], { n: 3, emis: true }); mb.blob(sg * 2.1 - 0.2, 1.98, -0.2, sg * 2.1 + 0.2, 2.08, 0.2, 0.7, IRON2, { n: 2 }); } }); }
+  function entities() { const out = []; if (site && world.preset.villages) { const t = site.tent, hh = site.hatch, L0 = S(); if (L0.tentStamped) out.push({ x: t.x + 0.5, y: t.y, z: t.z - 1.6, yaw: 0, scale: 1, hover: 0, skyMul: 1, isStatue: true, mesh: tentMesh() }); if (L0.stamped) out.push({ x: hh.x + 1, y: hh.y, z: hh.z + 1, yaw: 0, scale: 1, hover: 0, skyMul: 1, isStatue: true, mesh: hatchMesh() }); }
+    const put = (n) => out.push({ x: n.x, y: n.y, z: n.z, yaw: n.yaw, model: n.model, mesh: n.mesh, scale: 1, hover: 0, skyMul: 1, src: n }); if (apprentice) put(apprentice); if (scientist) put(scientist);
     if (site && site.incubator) { const sl = slots(); const now = performance.now() / 1000; for (let i = 0; i < sl.length; i++) { const x = sl[i]; const sp = KIN.bySeed(x.egg.seed); if (!sp) continue; const a = i / 3 * 6.283 + 1.57; const wob = x.pct > 0.85 ? Math.sin(now * 14 + i) * 0.06 * (x.pct - 0.85) / 0.15 : 0; const crack = x.pct > 0.9 ? Math.min(1, (x.pct - 0.9) / 0.1) : 0; const key = 'egg:' + sp.seed + ':' + (sp.rarity || 0) + ':' + Math.round(crack * 4);
       if (!x._m || x._key !== key) { x._key = key; x._m = KIN.eggModel(sp, { crack }); x._mesh = R.entityMesh('inc' + key, (mb) => KIN.buildMesh(mb, x._m)); }
       out.push({ x: site.incubator.x + 0.5 + Math.cos(a) * 0.2, y: site.incubator.y + 0.5, z: site.incubator.z + 0.5 + Math.sin(a) * 0.2, yaw: a + wob, model: x._m, mesh: x._mesh, scale: 0.42, hover: 0, skyMul: 1, isFx: true, noOutline: true }); } }

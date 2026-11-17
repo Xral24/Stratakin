@@ -1,0 +1,9 @@
+const { open } = require('./harness');
+(async () => { const h = await open(); const { page, ev } = h; await h.newGame('look-3'); await h.calm();
+  const shot = async (name) => { await page.waitForTimeout(13000); await page.screenshot({ path: `/home/claude/scratch/lab-${name}.png`, timeout: 150000 }); };
+  const only = (process.env.ONLY || 'tent,hatch,room').split(',');
+  console.log(JSON.stringify(await ev(async () => { window.__r = R.render; R.render = () => {}; G.thirdPerson = false; G.world.time = 0.4; G.repelUntil = performance.now() + 900000; const w = G.world, p = G.player, m = Lab.mapMarks(p), t = m.find(x => x.kind === 'tent'); w.ensureAround(Math.floor(t.x / CH), Math.floor(t.z / CH), 4, 99999); p.x = t.x + 0.5; p.z = t.z + 5.5; p.y = w.groundY(Math.floor(p.x), Math.floor(p.z), 120) + 1.1; p.vy = 0; p.yaw = Math.atan2(-(t.x + 0.5 - p.x), -(t.z - 1 - p.z)); p.pitch = -0.08; await new Promise(r => setTimeout(r, 2000)); R.render = window.__r; return { tent: [t.x, t.z], st: Lab.state.tentStamped, ents: Lab.entities().length }; })));
+  if (only.includes('tent')) await shot('tent');
+  console.log(JSON.stringify(await ev(async () => { R.render = () => {}; const w = G.world, p = G.player; Lab.state.told = true; const m = Lab.mapMarks(p), l = m.find(x => x.kind === 'lab'); if (!l) return 'no lab mark'; w.ensureAround(Math.floor(l.x / CH), Math.floor(l.z / CH), 4, 99999); p.x = l.x + 1; p.z = l.z + 6.5; p.y = Math.max(w.groundY(Math.floor(p.x), Math.floor(p.z), 120), l.y || 0) + 2.6; p.flying = true; p.vy = 0; p.yaw = Math.atan2(-(l.x + 1 - p.x), -(l.z + 1 - p.z)); p.pitch = -0.42; await new Promise(r => setTimeout(r, 2500)); R.render = window.__r; return { lab: [l.x, l.z], st: Lab.state.stamped, ents: Lab.entities().length }; })));
+  if (only.includes('hatch')) await shot('hatch');
+  console.log('ERRORS:', h.errors.slice(0, 3).join(' | ') || 'none'); await h.close(); })();
