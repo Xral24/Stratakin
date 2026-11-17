@@ -536,3 +536,6 @@ select { font-family: var(--font); font-size: 14px; padding: 9px 11px; border-ra
 .kcard .temper{margin-left:auto;font-style:italic;opacity:.7}
 
 #btn-deploy.spent{background:rgba(70,40,40,.82);color:#ffb7a8;border-color:#a8574a;font-size:13px}
+
+/* a film is playing: the whole HUD steps out of the picture */
+body.cine-on #hud, body.cine-on #crosshair, body.cine-on #compass, body.cine-on #quest-hint, body.cine-on #touch-ui, body.cine-on #hotbar, body.cine-on #bagbar, body.cine-on #controls, body.cine-on #look, body.cine-on #target, body.cine-on #tutorial, body.cine-on .toast { opacity: 0 !important; pointer-events: none !important; }
