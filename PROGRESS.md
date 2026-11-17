@@ -349,6 +349,8 @@ Scope (Alexander, 8 Nov evening): EVERYTHING visible goes to the same standard: 
 
 - 17 Nov, from his play. **Maren asks you back after your first catch and teaches healing (camp fire, heal tonics, gives 2), new quest Mending. Every game opens in third person in a cleared camp. Bread arrives with a jingle, is put in your hand, the bar pulses and a pop-up explains the bar. Speech bubbles keep one shape. Fights: your Kin squares up a set distance from the other on clear ground, the camera pulls back to whichever side has a clear view of both, and you step out of the middle.**
 
+- 17 Nov, fight view again (his screenshots: lens up on a roof, own Kin hidden; after the fight the view was under a hut eave; elder seemed to walk on the spot). **The fight spot and the view are chosen together at a low height; a lens over a roof is refused; in a crowded place both fighters move to the nearest open patch; you are put back where you stood if the fight left you under a roof; third-person camera no longer passes through thatch and switches to your own eyes when there is no room behind you.**
+
 ## Still to do
 UI polish as feedback comes in. Card battle screen still used for scripted encounters (raids at the walls, thief, citadel duel, holds) and the snare mini-game; converting those to live is the next big step if wanted. (Old list: train/ships, combat animation, eggs, avatar hair/paint, buddy WEAR cosmetics, Silas and Finch, UI polish (item icons), quality toggles in settings (state.shadows, state.grassQuality, state.dprCap).
 

@@ -810,7 +810,7 @@ G.loop = function (t) {
     const mm = KIN.model(p.mount.sp, p.mount.stage); const size = Math.max(mm.height, mm.radius * 1.4);
     const tk = Taming.active ? Math.min(1, Taming.state.t / 0.9) : 0, te = tk * tk * (3 - 2 * tk); // breaking it in: the camera comes in close behind you, so the animal fills the middle of the view behind the gauge
     cam = Avatar.thirdCam(cam, p, w, (4.5 + size * 1.6) * (1 - 0.26 * te), (0.6 + mm.height * 0.45) * (1 - 0.1 * te));
-  } else if (this.thirdPerson && !inBattle) cam = Avatar.thirdCam(cam, p, w);
+  } else if (this.thirdPerson && !inBattle) { cam = Avatar.thirdCam(cam, p, w); this.camNear = !!cam.tooNear; }
   if (this.cutCam && !inBattle) cam = Object.assign({}, cam, this.cutCam); // a little film is playing: the camera stands where the film put it
   // tall grass: the camera eases up and back over your shoulder (more when you crouch) so you see over the blades
   { const want = (!inBattle && !p.mount && !p.flying && Wild.inTallGrass()) ? (p.sneak ? 1 : 0.65) : 0; this.grassCamK = U.lerp(this.grassCamK || 0, want, Math.min(1, dt * 3));
@@ -858,7 +858,7 @@ G.loop = function (t) {
     }), scale: 1, hover: Math.sin(performance.now() / 300) * 0.05, skyMul: 1, isMount: true });
     const sp = Math.hypot(p.vx, p.vz, p.vy || 0); if (sp > 1.5 && Math.random() < Math.min(0.9, sp * 0.08)) { const b = U.forwardVec(p.yaw, 0); Hazards.sparks(p.x - b[0] * 1.7, p.y - 0.4, p.z - b[2] * 1.7, 2, [0.5, 0.9, 1.0], 1.2); }
   }
-  const showMe = !this.hideMe && !Battle.net && (inBattle || this.thirdPerson || this.talkK > 0 || !!p.mount || this.grassCamOn); // hideMe: he has gone inside something (a railway carriage)
+  const showMe = !this.hideMe && !Battle.net && (inBattle || (this.thirdPerson && !(this.camNear && !p.mount)) || this.talkK > 0 || !!p.mount || this.grassCamOn); // hideMe: he has gone inside something (a railway carriage)
   if (showMe) { const me = Avatar.entity(p, Math.hypot(p.vx, p.vz) > 0.6); if (p.mount) { const mm = KIN.model(p.mount.sp, p.mount.stage); const st = seatOf(mm); const f = U.forwardVec(p.yaw, 0); const along = 0.5 + st.zc - 0.06; me.x = p.x + f[0] * along; me.z = p.z + f[2] * along; me.y = G.mountBase(p) + st.top - hipOf(me.model) * (me.scale || 1) + 0.1; me._an.cross = 1; /* sat cross-legged on top: fits a pony and a T-rex alike */ me.seatY = hipOf(me.model) * (me.scale || 1); } me.M = null; ents.push(me); this.meEnt = me; } else this.meEnt = null;
   if (p.mount) { const k = p.mount; const m = KIN.dress(KIN.model(k.sp, k.stage), k.wear); const fwd = U.forwardVec(p.yaw, 0); if (!k._an) k._an = { ph: 0, mv: 0, lx: p.x, lz: p.z, ly: p.y, lt: performance.now(), vy: 0, seed: 5, air: 0 }; k._an.swim = p.mountMode === 'water' ? 1 : 0; const mt = { x: p.x + fwd[0] * 0.5, y: G.mountBase(p), z: p.z + fwd[2] * 0.5, yaw: p.yaw + Math.PI, model: m, mesh: R.entityMesh(KIN.meshKey(k.sp, k.stage) + KIN.wearKey(k.wear), (mb) => KIN.buildMesh(mb, m)), scale: 1, hover: 0, skyMul: 1, isMount: true, flying: p.mountMode === 'air' && !p.onGround, _an: k._an }; ents.push(mt); if (Taming.active) Taming.pose(mt, this.meEnt, cam.yaw); /* it bucks, and you with it */ }
   ents.push(...Battle.fxEntities()); ents.push(...Sky.puffEntities()); ents.push(...Wild.dropEntities()); ents.push(...Gems.entities()); ents.push(...Buddy.entities()); ents.push(...First.entities()); ents.push(...Felling.entities()); ents.push(...Combat.entities()); ents.push(...Hazards.entities()); ents.push(...Npcs.entities());

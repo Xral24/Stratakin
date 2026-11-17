@@ -14482,13 +14482,27 @@ const Battle = (() => {
   }
   /* is the way from one point to another open: no block of any kind in it, leaves included */
   function sight(x0, y0, z0, x1, y1, z1) { const dx = x1 - x0, dy = y1 - y0, dz = z1 - z0, L = Math.hypot(dx, dy, dz), n = Math.ceil(L / 0.45); for (let i = 1; i < n; i++) { const u = i / n, b = G.world.getBlock(Math.floor(x0 + dx * u), Math.floor(y0 + dy * u), Math.floor(z0 + dz * u)); if (b !== B.AIR && b !== B.WATER && (isSolid(b) || isLeaf(b) || b === B.LOG)) return false; } return true; } /* flowers and grass tufts are not in the way */
+  let camPick = null, preSpot = null;
+  /* where the lens goes for a given pair, side and height, and whether it sees both of them whole from there */
+  function camAt(mx, my, mz, mh, wh, sg, lift) { const dx = wildE.x - mx, dz = wildE.z - mz, d = Math.hypot(dx, dz) || 1, bx = -dx / d, bz = -dz / d, sx = -bz, sz = bx, big = Math.max(mh, wh), back = 2.1 + big * 0.65 + d * 0.18, out = 2.5 + big * 0.42 + d * 0.1, up = Math.max(1.5, mh * 0.8) + 0.9 + big * 0.3; return [mx + bx * back + sx * out * sg, my + up * lift, mz + bz * back + sz * out * sg]; }
+  function camSees(c, mx, my, mz, mh, wh) { const w = G.world; if (isSolid(w.getBlock(Math.floor(c[0]), Math.floor(c[1]), Math.floor(c[2])))) return false; if (w.groundY(Math.floor(c[0]), Math.floor(c[2]), Math.floor(c[1])) > my + 1.2) return false; /* not perched over a roof or a bank that stands higher than the fighters: the near edge of it would hide them */
+    return sight(c[0], c[1], c[2], mx, my + 0.35, mz) && sight(c[0], c[1], c[2], mx, my + mh * 0.9, mz) && sight(c[0], c[1], c[2], wildE.x, wildE.y + wh * 0.25, wildE.z) && sight(c[0], c[1], c[2], wildE.x, wildE.y + wh * 0.9, wildE.z); }
   function placeMine() {
     const m = KIN.model(mine.sp, mine.stage);
     const p = G.player;
     const dx = wildE.x - p.x, dz = wildE.z - p.z, d = Math.hypot(dx, dz) || 1;
     /* your Kin squares up a set distance from the other one, on open ground, wherever the two of you happened to be: far enough apart that both are seen whole. Of the places tried round it, the one nearest you with clear ground and a clear line wins */
-    const wm = wildE.model, S = U.clamp(3.2 + 0.9 * ((m.height || 1) + (wm.height || 1) * (wildE.scale || 1)), 4.5, 10), a0 = Math.atan2(-dx, -dz); let px = wildE.x - dx / d * S, pz = wildE.z - dz / d * S, found = false;
-    for (const da of [0, 0.45, -0.45, 0.9, -0.9, 1.4, -1.4, 2.0, -2.0, 3.14]) { const x = wildE.x + Math.sin(a0 + da) * S, z = wildE.z + Math.cos(a0 + da) * S, g0 = G.world.groundY(Math.floor(x), Math.floor(z), Math.floor(wildE.y) + 4); if (Math.abs(g0 + 1 - wildE.y) > 2.5) continue; const b1 = G.world.getBlock(Math.floor(x), g0 + 1, Math.floor(z)), b2 = G.world.getBlock(Math.floor(x), g0 + 2, Math.floor(z)); if (b1 !== B.AIR || b2 !== B.AIR) continue; if (!sight(x, g0 + 1.6, z, wildE.x, wildE.y + 0.8, wildE.z)) continue; px = x; pz = z; found = true; break; }
+    const wm = wildE.model, S = U.clamp(3.2 + 0.9 * ((m.height || 1) + (wm.height || 1) * (wildE.scale || 1)), 4.5, 10), a0 = Math.atan2(-dx, -dz); let px = wildE.x - dx / d * S, pz = wildE.z - dz / d * S, found = false; const spots = [];
+    for (const da of [0, 0.45, -0.45, 0.9, -0.9, 1.4, -1.4, 2.0, -2.0, 3.14]) { const x = wildE.x + Math.sin(a0 + da) * S, z = wildE.z + Math.cos(a0 + da) * S, g0 = G.world.groundY(Math.floor(x), Math.floor(z), Math.floor(wildE.y) + 4); if (Math.abs(g0 + 1 - wildE.y) > 2.5) continue; const b1 = G.world.getBlock(Math.floor(x), g0 + 1, Math.floor(z)), b2 = G.world.getBlock(Math.floor(x), g0 + 2, Math.floor(z)); if (b1 !== B.AIR || b2 !== B.AIR) continue; if (!sight(x, g0 + 1.6, z, wildE.x, wildE.y + 0.8, wildE.z)) continue; spots.push([x, g0 + 1, z]); }
+    { const mh0 = (m.height || 1), wh0 = (wm.height || 1) * (wildE.scale || 1); camPick = null; /* the spot and the view are chosen together: the first place to stand from which a low lens sees both fighters whole. Only if no place has that does the lens climb */
+      for (const lifts of [[1, 1.35], [1.8, 2.4]]) { for (const sp of spots) { for (const lift of lifts) { for (const sg of [1, -1]) { if (camSees(camAt(sp[0], sp[1], sp[2], mh0, wh0, sg, lift), sp[0], sp[1], sp[2], mh0, wh0)) { camPick = { w: wildE, sg, lift, fixed: true }; px = sp[0]; pz = sp[2]; found = true; break; } } if (camPick) break; } if (camPick) break; } if (camPick) break; }
+      if (!camPick || camPick.lift > 1.4) { /* nowhere round it gives a clean low view (a crowded square, thick wood): the two of them move to the nearest open patch and face off there */
+        const w = G.world, flat = (x, z, g) => { const h = w.groundY(Math.floor(x), Math.floor(z), g + 4); if (Math.abs(h - g) > 1) return false; for (let y = h + 1; y <= h + 5; y++) { const b = w.getBlock(Math.floor(x), y, Math.floor(z)); if (b !== B.AIR && (isSolid(b) || isLeaf(b) || b === B.LOG)) return false; } return true; };
+        let done = false; for (const r of [0, 3, 6, 9, 12, 15]) { if (done) break; for (let k = 0; k < (r ? 8 : 1); k++) { const a = k / 8 * 6.283 + r * 0.2, cx0 = wildE.x + Math.sin(a) * r, cz0 = wildE.z + Math.cos(a) * r, g = w.groundY(Math.floor(cx0), Math.floor(cz0), Math.floor(wildE.y) + 5); if (Math.abs(g + 1 - wildE.y) > 3 || w.getBlock(Math.floor(cx0), g + 1, Math.floor(cz0)) === B.WATER) continue; let ok = flat(cx0, cz0, g); for (let q = 0; q < 10 && ok; q++) ok = flat(cx0 + Math.sin(q * 0.6283) * (S * 0.5 + 1), cz0 + Math.cos(q * 0.6283) * (S * 0.5 + 1), g); if (!ok) continue;
+            for (const ua of [a0, a0 + 1.57, a0 + 0.78, a0 - 0.78]) { const ux = Math.sin(ua), uz = Math.cos(ua), wx = cx0 - ux * S * 0.5, wz = cz0 - uz * S * 0.5, mx = cx0 + ux * S * 0.5, mz = cz0 + uz * S * 0.5, ox = wildE.x, oy = wildE.y, oz = wildE.z; wildE.x = wx; wildE.z = wz; wildE.y = g + 1; let hit = null; for (const lift of [1, 1.35]) { for (const sg of [1, -1]) if (camSees(camAt(mx, g + 1, mz, mh0, wh0, sg, lift), mx, g + 1, mz, mh0, wh0)) { hit = { sg, lift }; break; } if (hit) break; }
+              if (hit) { camPick = { w: wildE, sg: hit.sg, lift: hit.lift, fixed: true }; px = mx; pz = mz; found = true; done = true; if (wildE.home) { wildE.home.x = wx; wildE.home.z = wz; } break; } wildE.x = ox; wildE.y = oy; wildE.z = oz; }
+            if (done) break; } } }
+      if (!camPick && spots.length) { px = spots[0][0]; pz = spots[0][2]; found = true; } }
     const gy = G.world.groundY(Math.floor(px), Math.floor(pz), Math.floor(Math.max(wildE.y, p.y)) + 3);
     mineE = { x: px, y: Math.max(gy + 1, wildE.y - 2), z: pz, yaw: Math.atan2(wildE.x - px, wildE.z - pz), model: m, scale: 1, hover: m.hover, mesh: R.entityMesh(KIN.meshKey(mine.sp, mine.stage) + KIN.wearKey(mine.wear), (mb) => KIN.buildMesh(mb, KIN.dress(m, mine.wear))), skyMul: wildE.skyMul };
     wildE.yaw = Math.atan2(px - wildE.x, pz - wildE.z);
@@ -14870,6 +14884,7 @@ const Battle = (() => {
     if (mine && mine.equip && mine.equip.charm && ITEMS[mine.equip.charm] && ITEMS[mine.equip.charm].relic) Relics.wear(mine.equip.charm, 0.01);
     if (result === 'won' && wildE && wildE.high) { G.player.add('feather', 2); UI.toast('Two Sky Feathers drift down.', 'good'); }
     G.onBattleEnd(result, wildE, wild, mine, ambush);
+    if (preSpot) { const P = G.player, w = G.world; let open = true; for (let y = Math.floor(P.y) + 2; y <= Math.floor(P.y) + 6; y++) if (w.getBlock(Math.floor(P.x), y, Math.floor(P.z)) !== B.AIR) open = false; if (!open) { P.x = preSpot.x; P.y = preSpot.y; P.z = preSpot.z; P.yaw = preSpot.yaw; P.vx = P.vy = P.vz = 0; } preSpot = null; } camPick = null; /* if the fight left you under a roof you are put back where you stood */
     wildE = null; mineE = null;
   }
   // ---- attacks you can watch. Every element throws something of its own, a physical move is a lunge and a slash,
@@ -14978,7 +14993,9 @@ const Battle = (() => {
     return out;
   }
   // ---- camera: behind your Kin, looking across at the wild one ----
-  let camPick = null;
+  /* you step out of the picture's middle: behind your Kin, on the side away from the lens, under open sky. Where you stood is remembered and you are put back there when it is over */
+  function stepAside(me, bx, bz, side) { if (!mineE) return; const P = G.player, w = G.world; if (!preSpot) preSpot = { x: P.x, y: P.y, z: P.z, yaw: P.yaw };
+    for (const [bk, sd] of [[2.0, 1.7], [2.8, 1.2], [1.4, 2.4], [3.4, 0.4], [4.2, 1.6]]) { const x = me.x + bx * bk - side[0] * sd * camPick.sg, z = me.z + bz * bk - side[1] * sd * camPick.sg, g0 = w.groundY(Math.floor(x), Math.floor(z), Math.floor(me.y) + 3); if (Math.abs(g0 + 1 - me.y) > 2) continue; let open = true; for (let y = g0 + 1; y <= g0 + 7; y++) if (w.getBlock(Math.floor(x), y, Math.floor(z)) !== B.AIR) { open = false; break; } if (!open) continue; P.x = x; P.z = z; P.y = g0 + 1.02; P.vx = P.vy = P.vz = 0; P.yaw = Math.atan2(-(wildE.x - x), -(wildE.z - z)); return; } }
   function camera(dt, mobile) {
     if (!wildE) return null;
     const me = mineE || { x: G.player.x, y: G.player.y, z: G.player.z, model: { height: 1.8, scale: 1 } };
@@ -14989,15 +15006,15 @@ const Battle = (() => {
     let cx = me.x + bx * 1.4 + side[0] * 2.8, cz = me.z + bz * 1.4 + side[1] * 2.8, cy = me.y + Math.max(1.2, mh * 0.7) + 0.6;
     { /* pulled back and up so both of them are in the picture whole, on whichever side has nothing in the way: no trunk, no leaves between the lens and either one. The choice is made once and kept, so the view does not hop about */
       const big = Math.max(mh, wh), back = 2.1 + big * 0.65 + d * 0.18, out = 2.5 + big * 0.42 + d * 0.1, up = Math.max(1.5, mh * 0.8) + 0.9 + big * 0.3;
+      if (camPick && camPick.w === wildE && camPick.fixed && !camPick.placed) { camPick.placed = true; stepAside(me, bx, bz, side); }
       if (!camPick || camPick.w !== wildE) { let best = null; for (const lift of [1, 1.35, 1.8, 2.4]) { for (const sg of [1, -1]) { const x = me.x + bx * back + side[0] * out * sg, z = me.z + bz * back + side[1] * out * sg, y = me.y + up * lift; if (isSolid(G.world.getBlock(Math.floor(x), Math.floor(y), Math.floor(z)))) continue; if (sight(x, y, z, me.x, me.y + mh * 0.6, me.z) && sight(x, y, z, wildE.x, wildE.y + wh * 0.6, wildE.z)) { best = { sg, lift }; break; } } if (best) break; } camPick = Object.assign({ w: wildE }, best || { sg: 1, lift: 2.4 });
-        /* and you step out of the picture's middle: behind your Kin, on the side away from the lens, so you are never standing between the two of them or in front of the view */
-        if (mineE) { const P = G.player; for (const [bk, sd] of [[2.0, 1.7], [2.8, 1.2], [1.4, 2.4], [3.4, 0.4]]) { const x = me.x + bx * bk - side[0] * sd * camPick.sg, z = me.z + bz * bk - side[1] * sd * camPick.sg, g0 = G.world.groundY(Math.floor(x), Math.floor(z), Math.floor(me.y) + 3); if (Math.abs(g0 + 1 - me.y) > 2 || G.world.getBlock(Math.floor(x), g0 + 1, Math.floor(z)) !== B.AIR || G.world.getBlock(Math.floor(x), g0 + 2, Math.floor(z)) !== B.AIR) continue; P.x = x; P.z = z; P.y = g0 + 1.02; P.vx = P.vy = P.vz = 0; P.yaw = Math.atan2(-(wildE.x - x), -(wildE.z - z)); break; } } }
-      cx = me.x + bx * back + side[0] * out * camPick.sg; cz = me.z + bz * back + side[1] * out * camPick.sg; cy = me.y + up * camPick.lift; }
+        stepAside(me, bx, bz, side); }
+      { const c = camAt(me.x, me.y, me.z, (me.model.height || 1) * (me.scale || 1), (wildE.model.height || 1) * (wildE.scale || 1), camPick.sg, camPick.lift); cx = c[0]; cy = c[1]; cz = c[2]; } } /* the very spot that was checked when the place was chosen */
     // keep the camera out of blocks
     for (let i = 0; i < 6 && isSolid(G.world.getBlock(Math.floor(cx), Math.floor(cy), Math.floor(cz))); i++) { cx -= bx * 0.4; cz -= bz * 0.4; cy += 0.3; }
     const lx = (me.x + wildE.x) / 2, lz = (me.z + wildE.z) / 2, ly = (me.y + mh * 0.5 + wildE.y + wh * 0.5) / 2;
     const ddx = lx - cx, ddz = lz - cz, ddy = ly - cy;
-    let yaw = Math.atan2(-ddx, -ddz), pitch = Math.atan2(ddy, Math.hypot(ddx, ddz)) - (mobile ? 0.26 : 0.06);
+    let yaw = Math.atan2(-ddx, -ddz), pitch = Math.atan2(ddy, Math.hypot(ddx, ddz)) - (mobile ? 0.37 : 0.08); /* on a phone the lower half is the move panel: look further down so your own Kin clears it */
     // throwing the net, you stand square in front of it and it fills the upper part of the view: your own eyes, a few paces back, looking a little down
     if (snareState && snareState.net && snareState.net.base) { const b = snareState.net.base, cd = snareState.camDir || [1, 0], ex = cd[0], ez = cd[1], el2 = 1, D = 3.6 + wh * 1.9; cx = b.x - ex / el2 * D; cz = b.z - ez / el2 * D; cy = wildE.y + wh * 0.55 + 1.1; const hd0 = netHead(wildE); if (hd0) { const Dh = 5.5 + wh * 0.55; cx = b.x - ex * Dh; cz = b.z - ez * Dh; cy = hd0.y - wh * 0.22; } /* a big one: stand closer and look up at the head */
       for (let i = 0; i < 6 && isSolid(G.world.getBlock(Math.floor(cx), Math.floor(cy), Math.floor(cz))); i++) cy += 0.4;
@@ -17320,9 +17337,10 @@ const Avatar = (() => {
   // a camera behind and a little above you, pulled in when something is in the way
   function thirdCam(cam, p, world, back = 4.2, lift = 0) {
     const f = U.forwardVec(cam.yaw, cam.pitch); cam = Object.assign({}, cam, { y: cam.y + lift });
-    const free = (x, y, z) => { const b = world.getBlock(Math.floor(x), Math.floor(y), Math.floor(z)); return (!isSolid(b) || BLOCKS[b].partial) && !R.under(world, x, y, z, 0.35); }; // clear of the blocks and of the smooth ground drawn over them: the camera never sits inside a bank looking out through it
+    const free = (x, y, z) => { const b = world.getBlock(Math.floor(x), Math.floor(y), Math.floor(z)); return !isSolid(b) && !R.under(world, x, y, z, 0.35); }; // clear of the blocks and of the smooth ground drawn over them: the camera never sits inside a bank looking out through it
     let d = back;
     for (let t = 0.3; t <= back; t += 0.25) { const x = cam.x - f[0] * t, y = cam.y - f[1] * t + 0.45 * (t / back), z = cam.z - f[2] * t; if (!free(x, y, z)) { d = Math.max(0.3, t - 0.3); break; } }
+    if (d < 1.3 && back > 2) return Object.assign({}, cam, { y: cam.y - lift, tooNear: true }); /* no room behind him (under an eave, back to a wall): look through his own eyes for now, not at the inside of his collar */
     return Object.assign({}, cam, { x: cam.x - f[0] * d, y: cam.y - f[1] * d + 0.6 * (d / back), z: cam.z - f[2] * d });
   }
   function portrait(cv, s, size) { KIN.portrait(cv, species(s), 2, size, model(s)); }
@@ -21059,7 +21077,7 @@ G.loop = function (t) {
     const mm = KIN.model(p.mount.sp, p.mount.stage); const size = Math.max(mm.height, mm.radius * 1.4);
     const tk = Taming.active ? Math.min(1, Taming.state.t / 0.9) : 0, te = tk * tk * (3 - 2 * tk); // breaking it in: the camera comes in close behind you, so the animal fills the middle of the view behind the gauge
     cam = Avatar.thirdCam(cam, p, w, (4.5 + size * 1.6) * (1 - 0.26 * te), (0.6 + mm.height * 0.45) * (1 - 0.1 * te));
-  } else if (this.thirdPerson && !inBattle) cam = Avatar.thirdCam(cam, p, w);
+  } else if (this.thirdPerson && !inBattle) { cam = Avatar.thirdCam(cam, p, w); this.camNear = !!cam.tooNear; }
   if (this.cutCam && !inBattle) cam = Object.assign({}, cam, this.cutCam); // a little film is playing: the camera stands where the film put it
   // tall grass: the camera eases up and back over your shoulder (more when you crouch) so you see over the blades
   { const want = (!inBattle && !p.mount && !p.flying && Wild.inTallGrass()) ? (p.sneak ? 1 : 0.65) : 0; this.grassCamK = U.lerp(this.grassCamK || 0, want, Math.min(1, dt * 3));
@@ -21107,7 +21125,7 @@ G.loop = function (t) {
     }), scale: 1, hover: Math.sin(performance.now() / 300) * 0.05, skyMul: 1, isMount: true });
     const sp = Math.hypot(p.vx, p.vz, p.vy || 0); if (sp > 1.5 && Math.random() < Math.min(0.9, sp * 0.08)) { const b = U.forwardVec(p.yaw, 0); Hazards.sparks(p.x - b[0] * 1.7, p.y - 0.4, p.z - b[2] * 1.7, 2, [0.5, 0.9, 1.0], 1.2); }
   }
-  const showMe = !this.hideMe && !Battle.net && (inBattle || this.thirdPerson || this.talkK > 0 || !!p.mount || this.grassCamOn); // hideMe: he has gone inside something (a railway carriage)
+  const showMe = !this.hideMe && !Battle.net && (inBattle || (this.thirdPerson && !(this.camNear && !p.mount)) || this.talkK > 0 || !!p.mount || this.grassCamOn); // hideMe: he has gone inside something (a railway carriage)
   if (showMe) { const me = Avatar.entity(p, Math.hypot(p.vx, p.vz) > 0.6); if (p.mount) { const mm = KIN.model(p.mount.sp, p.mount.stage); const st = seatOf(mm); const f = U.forwardVec(p.yaw, 0); const along = 0.5 + st.zc - 0.06; me.x = p.x + f[0] * along; me.z = p.z + f[2] * along; me.y = G.mountBase(p) + st.top - hipOf(me.model) * (me.scale || 1) + 0.1; me._an.cross = 1; /* sat cross-legged on top: fits a pony and a T-rex alike */ me.seatY = hipOf(me.model) * (me.scale || 1); } me.M = null; ents.push(me); this.meEnt = me; } else this.meEnt = null;
   if (p.mount) { const k = p.mount; const m = KIN.dress(KIN.model(k.sp, k.stage), k.wear); const fwd = U.forwardVec(p.yaw, 0); if (!k._an) k._an = { ph: 0, mv: 0, lx: p.x, lz: p.z, ly: p.y, lt: performance.now(), vy: 0, seed: 5, air: 0 }; k._an.swim = p.mountMode === 'water' ? 1 : 0; const mt = { x: p.x + fwd[0] * 0.5, y: G.mountBase(p), z: p.z + fwd[2] * 0.5, yaw: p.yaw + Math.PI, model: m, mesh: R.entityMesh(KIN.meshKey(k.sp, k.stage) + KIN.wearKey(k.wear), (mb) => KIN.buildMesh(mb, m)), scale: 1, hover: 0, skyMul: 1, isMount: true, flying: p.mountMode === 'air' && !p.onGround, _an: k._an }; ents.push(mt); if (Taming.active) Taming.pose(mt, this.meEnt, cam.yaw); /* it bucks, and you with it */ }
   ents.push(...Battle.fxEntities()); ents.push(...Sky.puffEntities()); ents.push(...Wild.dropEntities()); ents.push(...Gems.entities()); ents.push(...Buddy.entities()); ents.push(...First.entities()); ents.push(...Felling.entities()); ents.push(...Combat.entities()); ents.push(...Hazards.entities()); ents.push(...Npcs.entities());
