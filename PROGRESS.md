@@ -343,6 +343,8 @@ Scope (Alexander, 8 Nov evening): EVERYTHING visible goes to the same standard: 
 
 - 17 Nov, visible breath (his ask). **Puffs from your mouth in the snow and on high mountains, a fainter pant after about six seconds of running, and a two-nostril snort from whatever you ride when it is working or cold.** Next ask logged: dress folk RuneScape-medieval, tone the elder down but keep the necklace, a Moneybags-style rich man in a top hat who gives money quests, Atlantis very different, Indiana Jones look round the Lost World, Indians unchanged.
 
+- 17 Nov, from his play: **closing swirl bug fixed (it measured the circle round the net's centre, so circling anywhere else read as too slow; now reads how the stroke bends, one full turn, longer window). Net lands half as wide, a bit wider on the very first catch. Breath now shows wherever snow lies on the ground, with a cool shadow so it reads against white.**
+
 ## Still to do
 UI polish as feedback comes in. Card battle screen still used for scripted encounters (raids at the walls, thief, citadel duel, holds) and the snare mini-game; converting those to live is the next big step if wanted. (Old list: train/ships, combat animation, eggs, avatar hair/paint, buddy WEAR cosmetics, Silas and Finch, UI polish (item icons), quality toggles in settings (state.shadows, state.grassQuality, state.dprCap).
 
