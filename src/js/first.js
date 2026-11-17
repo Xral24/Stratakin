@@ -19,7 +19,8 @@ const First = (() => {
     if (!best || best.sc > 7.5) return null; const L = best.lo - 1; /* the water stands one below the lowest bank */
     for (const [x, z] of best.cols) for (let dx = -2; dx <= 2; dx++) for (let dz = -2; dz <= 2; dz++) { const r = Math.max(Math.abs(dx), Math.abs(dz)), X = x + dx, Z = z + dz; if (Math.abs(X - c.x) < 2 && Math.abs(Z - c.z) < 2) continue; const g = w.groundY(X, Z, c.y + 8); if (isLeaf(w.getBlock(X, g, Z)) || w.getBlock(X, g, Z) === B.LOG) continue;
         if (r <= 1) { for (let y = L + 1; y <= g + 2; y++) if (w.getBlock(X, y, Z) !== B.AIR) w.setBlock(X, y, Z, B.AIR); w.setBlock(X, L, Z, B.WATER); w.setBlock(X, L - 1, Z, B.GRAVEL); }
-        else if (g > L + 1) { for (let y = L + 2; y <= g + 2; y++) if (w.getBlock(X, y, Z) !== B.AIR && w.getBlock(X, y, Z) !== B.WATER) w.setBlock(X, y, Z, B.AIR); if (w.getBlock(X, L + 1, Z) !== B.WATER) w.setBlock(X, L + 1, Z, B.GRASS); } }
+        else if (g > L + 1) { for (let y = L + 2; y <= g + 2; y++) if (w.getBlock(X, y, Z) !== B.AIR && w.getBlock(X, y, Z) !== B.WATER) w.setBlock(X, y, Z, B.AIR); if (w.getBlock(X, L + 1, Z) !== B.WATER) w.setBlock(X, L + 1, Z, B.SAND); }
+        else if (r === 2 && (w.getBlock(X, g, Z) === B.GRASS || w.getBlock(X, g, Z) === B.DIRT)) w.setBlock(X, g, Z, B.SAND); /* a sandy lip all along the water, so no grass stands in the stream */ }
     return { x: best.ox, z: best.oz, a: best.a }; }
 
   function ent(sp, x, z) { const kin = KIN.create(sp, 5), m = KIN.model(sp, kin.stage), y = gy(x, z, G.camp.y);

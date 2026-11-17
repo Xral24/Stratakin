@@ -337,6 +337,8 @@ Scope (Alexander, 8 Nov evening): EVERYTHING visible goes to the same standard: 
 
 - 17 Nov, opening tidy-up. **Camp now about 78 blocks out from the village; brook found on every seed tried; Maren stands in front of you on waking; the three Kin no longer land on treetops; Flame starter is Sootkit the cinder kitten instead of Coalby the coal lump (a cube, and not an animal).**
 
+- 17 Nov, **brook has a sandy lip so no grass stands in the water; the net glows as it is drawn shut (the hush taking hold), with motes rising.**
+
 ## Still to do
 UI polish as feedback comes in. Card battle screen still used for scripted encounters (raids at the walls, thief, citadel duel, holds) and the snare mini-game; converting those to live is the next big step if wanted. (Old list: train/ships, combat animation, eggs, avatar hair/paint, buddy WEAR cosmetics, Silas and Finch, UI polish (item icons), quality toggles in settings (state.shadows, state.grassQuality, state.dprCap).
 
