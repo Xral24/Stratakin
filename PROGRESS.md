@@ -406,6 +406,8 @@ Scope (Alexander, 8 Nov evening): EVERYTHING visible goes to the same standard: 
 
 - 17 Nov, liberation film second half (carried on: I had flagged its camera as weak). **The elder now sets out only when the view comes down, so you watch his whole walk. The low camera is picked from nine spots round the two of you: first one with a clear line to both heads and not on a market awning; if the street is too tight it stays over the roofs. A film's camera is no longer pulled away by the talk camera.** The low shot itself is still unphotographed: the harness runs game time too slowly to catch it.
 
+- 17 Nov, the land turns with the seasons (his ask from the seasons talk: trees, leaves, colours). **In the shader, on Earth outside the Lost World: spring a fresher green; autumn each tree its own gold, orange or red and the grass golden; winter crowns thinned to nearly bare and brown, grass grey. Needles and palm fronds keep their green. Turf, grass blades and leaf crowns all follow.** Not done: snow lying on the ground in winter, blossom in spring.
+
 ## Still to do
 UI polish as feedback comes in. Card battle screen still used for scripted encounters (raids at the walls, thief, citadel duel, holds) and the snare mini-game; converting those to live is the next big step if wanted. (Old list: train/ships, combat animation, eggs, avatar hair/paint, buddy WEAR cosmetics, Silas and Finch, UI polish (item icons), quality toggles in settings (state.shadows, state.grassQuality, state.dprCap).
 
