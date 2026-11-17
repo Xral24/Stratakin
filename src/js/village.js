@@ -1991,11 +1991,18 @@ const Village = (() => {
     if (filmEl) { filmEl.children[0].style.opacity = String(u < 0.5 ? u * 1.3 : Math.max(0, 0.65 - (u - 0.5) * 0.24)); filmEl.children[3].style.opacity = String(u < 0.8 ? 0 : u < 4.6 ? Math.min(1, (u - 0.8) * 2) : Math.max(0, 1 - (u - 4.6) * 2)); }
     const look = (cx, cy, cz, lx, ly, lz) => { G.cutCam = { x: cx, y: cy, z: cz, yaw: Math.atan2(-(lx - cx), -(lz - cz)), pitch: Math.atan2(ly - cy, Math.hypot(lx - cx, lz - cz)) }; };
     if (u < 5) { if (!Dialogue.active()) { G.talkNpc = null; G.sceneHold = 0; } const k = U.smooth(Math.min(1, u / 5)), tight = v.type !== 'land' ? 0.55 : 1, a = f.a0 + 0.5 - k * 0.9, r = (15 + k * 9) * tight, h = (7 + k * 9) * tight; /* under a dome or on a deck the view keeps closer in */ look(v.x + Math.sin(a) * r, v.y + h, v.z + Math.cos(a) * r, v.x, v.y + 1.5, v.z); /* up and round over the square */
-      if (u > 3.2 && f.ws && !walkState) walkState = f.ws; return; } /* the elder sets out while the view is still up there */
+      return; }
+    if (f.ws && !walkState && !f.sent) { f.sent = true; walkState = f.ws; } /* the elder sets out as the view comes down, so you watch the whole of his walk */
     const e = v.elder && f.ws ? v.elder : null; if (!e) { if (u > 6.5) filmEnd(); return; }
-    const dx = e.x - p.x, dz = e.z - p.z, d = Math.hypot(dx, dz) || 1, sx = -dz / d, sz = dx / d; { const hx = p.x, hy = p.y + 1.7, hz = p.z, tx = p.x - dx / d * 4.6 + sx * 1.1, ty = p.y + 3.4, tz = p.z - dz / d * 4.6 + sz * 1.1; let q = 1; for (let i = 1; i <= 12; i++) { const k = i / 12, bx = hx + (tx - hx) * k, by = hy + (ty - hy) * k, bz = hz + (tz - hz) * k; if (world.getBlock(Math.floor(bx), Math.floor(by), Math.floor(bz)) !== B.AIR) { q = Math.max(0.15, (i - 1.5) / 12); break; } } /* never inside a wall or under an eave: it stops short of whatever is in the way */
-      look(hx + (tx - hx) * q, hy + (ty - hy) * q, hz + (tz - hz) * q, p.x + dx * 0.55, p.y + 1.1, p.z + dz * 0.55); } p.yaw = Math.atan2(-dx, -dz); /* down beside you, over your shoulder, watching him come */
-    if (u > 10.5 || d < 3 || Dialogue.active() || !walkState) filmEnd(); }
+    const dx = e.x - p.x, dz = e.z - p.z, d = Math.hypot(dx, dz) || 1, sx = -dz / d, sz = dx / d; p.yaw = Math.atan2(-dx, -dz);
+    /* down among the houses for the second half: a spot off to one side that can see both of you, him walking up and you waiting. It is chosen once, from a ring of places round the two of you, and the first with a clear line to both heads wins. If the street is too tight for any of them the view stays up over the roofs */
+    if (!f.spot) { const see = (ax, ay, az, bx, by, bz) => { const n = Math.ceil(Math.hypot(bx - ax, by - ay, bz - az) * 2); for (let i = 1; i < n; i++) { const k = i / n, b = world.getBlock(Math.floor(ax + (bx - ax) * k), Math.floor(ay + (by - ay) * k), Math.floor(az + (bz - az) * k)); if (b !== B.AIR && isSolid(b)) return false; } return true; };
+      const mx = p.x + dx * 0.45, mz = p.z + dz * 0.45; f.spot = 'high';
+      let stalls = []; try { stalls = (v.R ? layout(v).stalls : null) || []; } catch (er) { stalls = []; }
+      for (const [side, back, up] of [[5.5, -2.5, 3.4], [-5.5, -2.5, 3.4], [4, -4.5, 3.8], [-4, -4.5, 3.8], [7, 0, 4], [-7, 0, 4], [3, -6, 4.8], [-3, -6, 4.8], [0, -6.5, 5.5]]) { const cx = p.x + sx * side + dx / d * back, cz = p.z + sz * side + dz / d * back, cy = p.y + up; if (world.getBlock(Math.floor(cx), Math.floor(cy), Math.floor(cz)) !== B.AIR) continue; if (stalls.some(t => Math.hypot(t.x - cx, t.z - cz) < 3.5)) continue; /* not sat on a market awning */ if (see(cx, cy, cz, p.x, p.y + 1.6, p.z) && see(cx, cy, cz, e.x, e.y + 1.6, e.z) && see(cx, cy, cz, mx, p.y + 1.4, mz)) { f.spot = [cx, cy, cz]; break; } } }
+    if (f.spot === 'high') { const a = f.a0 - 0.4 + (u - 5) * 0.05; look(v.x + Math.sin(a) * 20, v.y + 13, v.z + Math.cos(a) * 20, p.x + dx * 0.5, p.y + 1, p.z + dz * 0.5); }
+    else look(f.spot[0], f.spot[1], f.spot[2], p.x + dx * 0.45, p.y + 1.3, p.z + dz * 0.45);
+    if (u > 12.5 || d < 2.6 || Dialogue.active() || !walkState) filmEnd(); }
   function freed(id, tyr0) {
     const v = villages.get(id); if (!v) return;
     const st = state(id); if (st.freed) return;

@@ -1,11 +1,11 @@
 const { open } = require('./harness');
 (async () => { const h = await open(); const { page, ev } = h; await h.newGame('look-3'); await h.calm();
-  await ev(() => { window.__r = R.render; R.render = () => {}; G.repelUntil = performance.now() + 9e6; const v = Village.townList()[0], p = G.player, w = G.world; p.x = v.x + 0.5; p.z = v.z + 16.5; w.ensureAround(Math.floor(p.x / CH), Math.floor(p.z / CH), 3, 99999); p.y = v.y + 0.05; window.__v = v; G.world.time = 0.35; setInterval(() => { if (v.boss) v.boss.fought = true; }, 20); });
+  await ev(() => { window.__r = R.render; R.render = () => {}; G.repelUntil = performance.now() + 9e6; const v = Village.townList()[0], p = G.player, w = G.world; p.x = v.x + 0.5; p.z = v.z + 15.5; w.ensureAround(Math.floor(p.x / CH), Math.floor(p.z / CH), 3, 99999); p.y = v.y + 0.05; window.__v = v; G.world.time = 0.35; setInterval(() => { if (v.boss) v.boss.fought = true; }, 20); });
   await page.waitForTimeout(2500);
   console.log(JSON.stringify(await ev(() => { const v = window.__v, b = v.boss; b.fought = true; const lvl = b.kin.level; Wild.remove(b); Village.bossBeaten(b); return { lvl, freed: G.stats.villagesFreed }; })));
   const shot = async (name) => { await ev(() => { G.setPaused && G.setPaused(true); R.render = window.__r; }); await page.waitForTimeout(9500); await page.screenshot({ path: '/home/claude/scratch/' + name, timeout: 150000 }); await ev(() => { R.render = () => {}; G.setPaused && G.setPaused(false); }); };
   const samp = () => ev(() => ({ cut: G.cutCam && [G.cutCam.x, G.cutCam.y, G.cutCam.z].map(Math.round), frozen: G.player.frozen, dlg: Dialogue.active(), boss: !!window.__v.boss, act: Village.active === window.__v, actBoss: !!(Village.active && Village.active.boss), tk: G.talkNpc && (G.talkNpc.name || 'ent'), ft: 0, elderD: window.__v.elder && Math.round(Math.hypot(window.__v.elder.x - G.player.x, window.__v.elder.z - G.player.z)) }));
   await page.waitForTimeout(4600); console.log('wide', JSON.stringify(await samp())); if (process.env.SHOT === '1') await shot('film-wide.png');
-  await page.waitForTimeout(3600); console.log('near', JSON.stringify(await samp())); if (process.env.SHOT) await shot('film-near.png');
+  await page.waitForTimeout(3300); console.log('near', JSON.stringify(await samp())); if (process.env.SHOT) await shot('film-near.png');
   await page.waitForTimeout(5000); console.log('after', JSON.stringify(await samp()), JSON.stringify(await ev(() => ({ third: G.thirdPerson, bars: !!document.querySelector('div[style*="z-index:45"]'), next: Village.townList().slice(1, 9).map(v => v.size[0] + Village.villageInfo ? 0 : 0) }))));
   console.log('errors', JSON.stringify(h.errors.slice(0, 4))); await h.close(); })();

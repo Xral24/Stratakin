@@ -823,7 +823,7 @@ G.loop = function (t) {
   const talking = !inBattle && this.talkNpc && (Dialogue.active() || UI.panelOpen === 'shop' || UI.panelOpen === 'village' || (this.sceneHold || 0) > performance.now());
   this.talkK = U.clamp((this.talkK || 0) + (talking ? dt * 2.5 : -dt * 2.5), 0, 1);
   if (!talking && this.talkK <= 0) this.talkNpc = null;
-  if (this.talkK > 0 && this.talkNpc) cam = this.talkCamera(cam, this.talkNpc, U.smooth(this.talkK));
+  if (this.talkK > 0 && this.talkNpc && !this.cutCam) cam = this.talkCamera(cam, this.talkNpc, U.smooth(this.talkK)); /* a film's camera is never pulled off its shot by somebody talking */
   if (this.shake > 0) { const sh = this.shake * 0.12, tt = performance.now() / 1000; cam = Object.assign({}, cam, { x: cam.x + Math.sin(tt * 43) * sh, y: cam.y + Math.sin(tt * 57) * sh * 0.7, z: cam.z + Math.cos(tt * 39) * sh }); }
   const lights = [];
   if (p.holdingTorch()) lights.push([eye.x, eye.y - 0.2, eye.z, 9]);

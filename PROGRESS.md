@@ -404,6 +404,8 @@ Scope (Alexander, 8 Nov evening): EVERYTHING visible goes to the same standard: 
 
 - 17 Nov, suite filled in (carried on). **New t-films3: the Speaker's telling in Atlantis, the stair captains and the call from the throne (queued one after the other), and the ending film. t-atlplay gets 300 s, t-rail prints a verdict. tools/test/suite.sh with no arguments runs all 24; all 24 pass.**
 
+- 17 Nov, liberation film second half (carried on: I had flagged its camera as weak). **The elder now sets out only when the view comes down, so you watch his whole walk. The low camera is picked from nine spots round the two of you: first one with a clear line to both heads and not on a market awning; if the street is too tight it stays over the roofs. A film's camera is no longer pulled away by the talk camera.** The low shot itself is still unphotographed: the harness runs game time too slowly to catch it.
+
 ## Still to do
 UI polish as feedback comes in. Card battle screen still used for scripted encounters (raids at the walls, thief, citadel duel, holds) and the snare mini-game; converting those to live is the next big step if wanted. (Old list: train/ships, combat animation, eggs, avatar hair/paint, buddy WEAR cosmetics, Silas and Finch, UI polish (item icons), quality toggles in settings (state.shadows, state.grassQuality, state.dprCap).
 
