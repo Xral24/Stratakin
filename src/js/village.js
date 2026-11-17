@@ -1497,6 +1497,8 @@ const Village = (() => {
   /* Mr Crowe: holds the notes on half the town and pays, promptly, for small errands. One a morning, so he is pocket money and not a mine */
   const ERRANDS = [{ item: 'wood', n: 8, pay: 10, say: 'logs' }, { item: 'berry', n: 6, pay: 10, say: 'berries' }, { item: 'planks', n: 6, pay: 12, say: 'planks' }, { item: 'glass', n: 2, pay: 14, say: 'panes of glass' }, { item: 'bread', n: 2, pay: 9, say: 'loaves' }, { item: 'wheat', n: 6, pay: 11, say: 'handfuls of wheat' }, { item: 'corn', n: 4, pay: 11, say: 'cobs of maize' }, { item: 'sunseed', n: 6, pay: 10, say: 'handfuls of sunflower seed' }];
   function bankerTalk(n) { const st = (G.stats.crowe = G.stats.crowe || { met: 0, i: 0, next: 0 }), now = Date.now(), e = ERRANDS[st.i % ERRANDS.length], say = (lines, done) => Dialogue.show('Mr Crowe', lines, done);
+    if (typeof Fields !== 'undefined' && Fields.wanted()) return say(['I hear things. I heard about a cart. I do not do business with people who are being talked about. Settle it.']);
+    if (st.met && st.i >= 2 && !G.player.has('warmask') && !st.maskShown) { st.maskShown = 1; return say(['You deliver. So I will mention a thing that is not on any shelf.', 'A war mask, off the plains. A man in one of those has no face, and whatever he does, somebody else answers for it. Thirty shards, and I never had it. Take it or leave it.'], () => UI.openPanel('shop', { title: 'Under the counter', keeper: 'Mr Crowe', greet: 'I never had it. You never bought it.', stock: [{ item: 'warmask', price: 30, n: 1 }] })); }
     if (!st.met) { st.met = 1; return say(['Crowe. Pennington Crowe. I hold the notes on half this town and I mean to hold the rest.', 'I pay for errands. Fair coin, promptly, and no questions about where a thing came from.', `This morning I want ${e.n} ${e.say}. Bring them and there are ${e.pay} shards in it for you.`]); }
     if (now < st.next) return say(['Nothing more today. I do not pay twice for the same morning.', 'Come back when the sun has been round.']);
     if (G.player.count(e.item) >= e.n) return say([`${e.n} ${e.say}. Counted, and correct. I do like a person who delivers.`], () => { G.player.take(e.item, e.n); G.shards += e.pay; st.i++; st.next = Date.now() + 8 * 60000; UI.sfx('gift'); UI.toast(`Mr Crowe paid you ${e.pay} shards.`, 'good'); });
@@ -2560,6 +2562,7 @@ const Village = (() => {
   function talk(n) {
     G.talkNpc = n; // the camera turns to whoever is speaking
     if (n.onTalk) { n.onTalk(n); return; }
+    { const wn = typeof Fields !== 'undefined' && world.preset.id === 'earth' ? Fields.wanted() : null; if (wn && (n.role === 'keeper' || n.role === 'voodoo' || n.role === 'elder')) { Dialogue.show(n.name, [`Were you the one who emptied ${wn.owner}'s cart at ${wn.name}? Word came up the road ahead of you.`, n.role === 'elder' ? 'You are not welcome in this town until you have squared it with the farmer. Thirty shards, I hear, or wait it out.' : 'I am not serving you. Square it with the farmer, or come back in a couple of days when tempers have cooled.']); return; } }
     if (n.atl) { atlTalk(n); return; }
     if (n.shop && active && active.R && fixShop(n)) return;
     if (n.shop === 'station') { UI.openPanel('train', {}); return; }
