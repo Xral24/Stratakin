@@ -7920,7 +7920,7 @@ const KIN = (() => {
               onTail(() => cone(tl, [0, 0.4, -1], (0.24 + 0.08 * t) * kk, 0.07 * kk, glw, { emis: true }));
             } else if (el === 'Spark') {
               alongBack(1 + t, (z) => plate([[0, by - 0.02, z + 0.1], [0.02, by + 0.2 * kk, z], [0, by + 0.12 * kk, z - 0.02], [0.02, by + 0.32 * kk, z - 0.12]], 0.03, C.accent, { emis: true })); // bolts on the back
-              if (jw) onHead(() => { for (const sd of [-1, 1]) ball(jw[0] + sd * 0.16 * hs, jw[1] + 0.06, jw[2] - 0.08, 0.045 * hs, '#ff7a5a', { emis: true, n: 2 }); }); // cheek sparks
+              /* (no round red cheeks: on a yellow coat they made it somebody else's creature) */
               onTail(() => tube([tl, [tl[0], tl[1] + 0.16 * kk, tl[2] - 0.12 * kk], [tl[0], tl[1] + 0.1 * kk, tl[2] - 0.2 * kk], [tl[0], tl[1] + 0.34 * kk, tl[2] - 0.34 * kk]], [0.05, 0.05, 0.05, 0.015], C.accent, { cap0: 'none', cap1: 'round', segs: 5, emis: t === 2 }));
             } else if (el === 'Void') {
               onHead(() => { if (t === 2) for (const sd of [-1, 1]) curl([hx + sd * 0.1 * hs, hy - 0.02, hz - 0.02], [sd * 0.4, 1, -0.4], 0.32 * hs, 0.05 * hs, C.accent, [sd * 0.3, -0.2, -0.6]); else ball(hx, hy + 0.04, hz - 0.04, 0.05 * hs, C.accent, { emis: true, n: 2 }); });
@@ -8454,7 +8454,9 @@ const KIN = (() => {
             if (t === 2) for (const sd of [-1, 1]) plate([[sd * 0.12, leg + 0.48, 0.3 * L], [sd * 0.4, leg + 0.3, -0.1], [sd * 0.36, leg - 0.02, -0.5 * L], [sd * 0.2, leg + 0.3, -0.56 * L], [sd * 0.06, leg + 0.44, -0.2]], 0.02, hexMix(C.accent, C.dark, 0.35), { edge: C.accent }); // the cape
             B(1, 'head', ht); const hy = ht[1], hz = ht[2]; const hs = [1.3, 1, 0.92][t];
             blob(-0.22 * hs, hy - 0.06, hz - 0.12, 0.22 * hs, hy + 0.3 * hs, hz + 0.18, 1, C.body);
-            for (const sd of [-1, 1]) plate([[sd * 0.08 * hs, hy + 0.24 * hs, hz], [sd * 0.26 * hs, hy + 0.26 * hs, hz - 0.06], [sd * (0.24 + 0.04 * t) * hs, hy + (0.5 + 0.14 * t) * hs, hz - 0.08 - 0.04 * t]], 0.03, C.body, { edge: C.accent }); // ears, longer each stage
+            if (t === 0) for (const sd of [-1, 1]) { ball(sd * 0.21 * hs, hy + 0.27 * hs, hz - 0.03, 0.085 * hs, C.body, { n: 2 }); ball(sd * 0.21 * hs, hy + 0.27 * hs, hz + 0.02, 0.05 * hs, maskC, { n: 1 }); /* the kitten: small round ears set low and wide, like a sand cat's */
+              plate([[sd * 0.2 * hs, hy + 0.12 * hs, hz + 0.06], [sd * 0.4 * hs, hy + 0.04 * hs, hz + 0.0], [sd * 0.33 * hs, hy - 0.06, hz + 0.02], [sd * 0.2 * hs, hy - 0.05, hz + 0.06]], 0.03, C.belly, { edge: C.body }); } /* and a ruff out to each side of the face */
+            else for (const sd of [-1, 1]) plate([[sd * 0.08 * hs, hy + 0.24 * hs, hz], [sd * 0.26 * hs, hy + 0.26 * hs, hz - 0.06], [sd * (0.24 + 0.04 * t) * hs, hy + (0.5 + 0.14 * t) * hs, hz - 0.08 - 0.04 * t]], 0.03, C.body, { edge: C.accent }); // ears, longer each stage
             if (t === 0) { blob(-0.24 * hs, hy + 0.06 * hs, hz + 0.0, 0.24 * hs, hy + 0.25 * hs, hz + 0.17, 1, maskC); LOOK(0.11 * hs, hy + 0.15 * hs, hz + 0.1, 0.07 * hs, { col: glw }); /* a bandit's mask with bright eyes in it */ blob(-0.07, hy - 0.02, hz + 0.16, 0.07, hy + 0.08, hz + 0.24, 0.9, C.belly); } // a kitten's half-mask
             else { blob(-0.2, hy - 0.12, hz + 0.14, 0.2, hy + 0.28, hz + 0.26, 0.95, maskC, { tap: [1, 0.7] });
               for (const sd of [-1, 1]) plate([[sd * 0.035, hy + 0.12, hz + 0.27], [sd * 0.16, hy + 0.17, hz + 0.25], [sd * 0.14, hy + 0.1, hz + 0.26]], 0.014, glw, { emis: true });
@@ -8626,11 +8628,14 @@ const KIN = (() => {
             B(6, 'tail', pts[0]); for (let i = 0; i < 10; i++) tube([pts[i], pts[i + 1]], [0.09 + 0.02 * Math.sin(i / 10 * Math.PI), 0.09 + 0.02 * Math.sin((i + 1) / 10 * Math.PI)], i % 2 ? '#8a3a1a' : rust, { cap0: 'none', cap1: i === 9 ? 'round' : 'none' });
             flame(pts[10][0], pts[10][1] + 0.04, pts[10][2], 0.2, 0.05); bone = 0;
           // ======== TIDE ========
-          } else if (P === 'froglet') { // a froglet that still has a bit of tadpole tail: round, all eyes, webbed feet
-            legs(0.14, 0.13, 0.05, bd, 'web', { fc: ac }); blob(-0.28, 0.12, -0.24, 0.28, 0.66, 0.24, 1, bd, { under: bl });
-            arms(0.4, 0.24, 0.16, 0.04, bd, 'paw');
-            H(0.5); for (const sd of [-1, 1]) ball(sd * 0.14, 0.66, 0.1, 0.11, bd, { n: 2 }); look(0.14, 0.7, 0.16, 0.075); mouth(0.46, 0.24, 0.14); bone = 0;
-            tail([[0, 0.24, -0.22], [0, 0.22, -0.4]], [0.07, 0.01], bd, { tip: () => plate([[0, 0.24, -0.22], [0, 0.34, -0.42], [0, 0.12, -0.42]], 0.02, ac) });
+          } else if (P === 'froglet') { // a little tree frog, sat the way they sit: low and wide, knees up beside it, eyes out at the sides of a flat head, a stripe from the nose down each flank
+            legs(0.14, 0.13, 0.05, bd, 'web', { fc: ac }); blob(-0.3, 0.1, -0.28, 0.3, 0.48, 0.24, 1, bd, { under: bl });
+            for (const sd of [-1, 1]) { blob(sd * 0.2, 0.1, -0.32, sd * 0.44, 0.44, 0.0, 1, bd, { n: 2 }); ball(sd * 0.4, 0.06, 0.06, 0.06, ac, { n: 1 }); } /* the folded hind legs, and a round pad on each foot */
+            arms(0.32, 0.26, 0.16, 0.04, bd, 'paw');
+            H(0.42, 0.14); blob(-0.3, 0.34, -0.02, 0.3, 0.58, 0.36, 1, bd, { under: bl });
+            for (const sd of [-1, 1]) { ball(sd * 0.27, 0.56, 0.2, 0.095, bd, { n: 2 }); tube([[sd * 0.05, 0.5, 0.36], [sd * 0.3, 0.5, 0.2], [sd * 0.33, 0.4, -0.18]], [0.02, 0.03, 0.015], ac, { cap0: 'round', cap1: 'round' }); }
+            look(0.27, 0.58, 0.26, 0.065); mouth(0.4, 0.34, 0.2); bone = 0;
+            tail([[0, 0.2, -0.26], [0, 0.18, -0.33]], [0.04, 0.008], bd, {});
           } else if (P === 'riverfrog') { // a lean river frog on long folded legs, a seaweed band round its head, a throat that puffs
             legs(0.42, 0.13, 0.065, bd, 'web', { digi: true, thigh: true, fc: ac }); blob(-0.22, 0.4, -0.2, 0.22, 1.0, 0.2, 1, bd, { under: bl, tap: [0.8, 1] });
             for (let i = 0; i < 3; i++) for (const sd of [-1, 1]) blob(sd * 0.2 - 0.03, 0.6 + i * 0.12, -0.08, sd * 0.2 + 0.03, 0.66 + i * 0.12, 0.08, 0.6, dk, { n: 1 });
