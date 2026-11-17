@@ -109,5 +109,5 @@ const Fields = (() => {
     if (S1.day === (G.dayCount || 0)) { UI.toast(sn === 0 ? 'This field is sown for today. There will be more rows tomorrow.' : sn === 2 ? 'You have done your share of this field today.' : 'Picked over for today. It will have grown back by morning.'); return true; }
     if (sn === 0) { S1.day = G.dayCount || 0; G.shards += PAY; UI.sfx('place'); UI.toast('You take a row and sow it, a seed to every hand span. ' + PAY + ' shards for the work.', 'good'); return true; }
     S1.day = G.dayCount || 0; const n = c[1] * (tst(v).scare ? 2 : 1); if (sn === 2) G.shards += PAY; G.player.add(c[0], n); UI.sfx('place'); UI.renderHotbar(); UI.toast(sn === 2 ? 'You cut and carry until the cart is full. ' + PAY + ' shards for the work, and ' + n + ' ' + ITEMS[c[0]].name.toLowerCase() + ' pressed into your hand as thanks.' : 'You pick ' + n + ' ' + ITEMS[c[0]].name.toLowerCase() + '.', 'good'); return true; }
-  return { init, update, entities, tap, label, season, SEASONS, marketDay, wanted, masked, shunInd, shunRail, get carts() { return carts; }, get live() { return live; }, get farmers() { return farmers; } };
+  return { init, update, entities, tap, label, patch, scarecrow, season, SEASONS, marketDay, wanted, masked, shunInd, shunRail, get carts() { return carts; }, get live() { return live; }, get farmers() { return farmers; } };
 })();

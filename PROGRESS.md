@@ -386,6 +386,8 @@ Scope (Alexander, 8 Nov evening): EVERYTHING visible goes to the same standard: 
 
 - 17 Nov, shop hold-ups (his idea: in a mask you can hold up a shop, only a couple of things on the counter, the rest hidden; not possible without a mask; the cart stays the one bare-faced robbery). **Speak to a shopkeeper holding either mask: a warning, speak again and you take one each of the first two things on the counter. The shop stays shut the next day. The mask's owners answer for it as with the cart, and each job adds two days to that ban, up to eight.**
 
+- 17 Nov, the road farms redrawn (they were plank and log boxes with fern blocks for crops). **Each is now a thatched timber cottage with lit windows and a chimney, a post and rail fence with a gate gap, a field of wheat, maize or sunflowers that follows the seasons, and a scarecrow. The walls are still solid; the night pest and the farmer's job are untouched.** Seen in one photo. Noticed in it: steep mountain rock in the distance still draws as dark cubes.
+
 ## Still to do
 UI polish as feedback comes in. Card battle screen still used for scripted encounters (raids at the walls, thief, citadel duel, holds) and the snare mini-game; converting those to live is the next big step if wanted. (Old list: train/ships, combat animation, eggs, avatar hair/paint, buddy WEAR cosmetics, Silas and Finch, UI polish (item icons), quality toggles in settings (state.shadows, state.grassQuality, state.dprCap).
 

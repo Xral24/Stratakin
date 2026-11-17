@@ -1,0 +1,5 @@
+const { open } = require('./harness');
+(async () => { const h = await open(); const { page, ev } = h; await h.newGame('look-3'); await h.calm();
+  console.log(JSON.stringify(await ev(async () => { window.__r = R.render; R.render = () => {}; G.thirdPerson = false; G.world.time = 0.4; G.repelUntil = performance.now() + 900000; const w = G.world, p = G.player, fs = Farms.sites(); if (!fs.length) return 'no farms'; const f = fs[0]; w.ensureAround(Math.floor(f.x / CH), Math.floor(f.z / CH), 5, 99999); p.x = f.x - 16; p.z = f.z + 14; p.y = f.y + 11; p.flying = true; p.vy = 0; await new Promise(r => setTimeout(r, 2500)); p.x = f.x - 16; p.z = f.z + 14; p.y = f.y + 11; p.vy = 0; p.yaw = Math.atan2(-(f.x + 2 - p.x), -(f.z - p.z)); p.pitch = -0.45; R.render = window.__r; return { n: fs.length, name: f.name, ents: Farms.entities().length, st: !!G.stats.farms['stamped2_' + f.id] }; })));
+  await page.waitForTimeout(14000); await page.screenshot({ path: '/home/claude/scratch/farm.png', timeout: 150000 });
+  console.log('ERRORS:', h.errors.slice(0, 3).join(' | ') || 'none'); await h.close(); })();
