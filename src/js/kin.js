@@ -430,12 +430,13 @@ const KIN = (() => {
     if (sp.steed || sp.fast || sp.tame) return (sp.evolveAt && sp.evolveAt[0] >= 999) || sp.fast || sp.tame || (sp.rarity || 0) >= 4 ? 'steedFull' : 'steed'; // horses you ride: camp horses, Thunderhoof and the legendary steeds are full-grown
     if ((sp.rarity || 0) >= 4) return LAND_LINE.has(sp.shape) ? 'legend' : FAM_OF[sp.shape] ? 'legend:' + FAM_OF[sp.shape] : null;
     if (LAND_LINE.has(sp.shape)) return 'land'; if (sp.shape === 'biped') return 'biped'; if (sp.shape === 'bird') return 'bird'; if (sp.shape === 'serpent') return 'serpent'; if (sp.shape === 'floater') return 'floater'; if (sp.shape === 'fish') return 'water'; return null; }
+  const STARTLINE = {}; STARTLINE[U.combine(SPECIES_SEED.earth, 1)] = 1; /* Flame: the cinder kitten, not the lump of coal */
   function lineOf(sp) {
     if (sp._line !== undefined) return sp._line; { const nid = nativeId(sp); if (nid) { const full = nativeLine(nid, sp.shape), pick = (sp.rarity || 0) >= 4 || sp.natId !== undefined ? (NATL[nid + '|' + sp.shape + '|1'] || (NATL[nid + '|' + sp.shape + '|1'] = [full[2]])) : full; Object.defineProperty(sp, '_line', { value: pick, enumerable: false, writable: true }); return pick; } } const cls = lineClass(sp); if (!cls) return (sp._line = null);
     const el = dominant(sp.elem || [], 1)[0];
     if (cls.startsWith('legend:')) { const T2 = LINES[cls.slice(7)], o2 = T2 && (T2[el] || T2._); const first = o2 && o2[0]; const one = first ? [first[first.length - 1]] : null; Object.defineProperty(sp, '_line', { value: one, enumerable: false, writable: true }); return one; } // a legendary bird, fish or serpent is the grandest form of its element's first line
     const T = LINES[cls]; const opts = T[el] || T._ || null; if (!opts) return (sp._line = null);
-    const pick = opts[((sp.seed >>> 0) % 1009) % opts.length];
+    const fl = STARTLINE[sp.seed]; const pick = opts[fl != null && fl < opts.length ? fl : ((sp.seed >>> 0) % 1009) % opts.length]; /* the first three you meet are chosen by hand, not by the dice */
     Object.defineProperty(sp, '_line', { value: pick, enumerable: false, writable: true }); return pick; // not saved: worked out again from the species every time
   }
   /* Every form's own name, in the order of LINES. A name is made from what the Kin is, and it grows with the Kin the way the body does. */

@@ -7,8 +7,9 @@ const First = (() => {
   const S = () => G && G.stats && G.stats.first;
   function init(game) { G = game; maren = null; three = []; gone = []; told = 0; auto = 1.6; armed = null; }
   function begin() { G.stats.first = { stage: 0 }; }
-  const gy = (x, z, y) => G.world.groundY(Math.floor(x), Math.floor(z), Math.floor(y) + 6) + 1;
-  const dry = (x, z, y) => { const g = gy(x, z, y); const b = G.world.getBlock(Math.floor(x), g, Math.floor(z)); return b === B.AIR ? g : null; };
+  /* the ground, not the top of a tree: leaves and trunks are looked through */
+  const gy = (x, z, y) => { const w = G.world, X = Math.floor(x), Z = Math.floor(z); let g = w.groundY(X, Z, Math.floor(y) + 6); while (g > 2 && (isLeaf(w.getBlock(X, g, Z)) || w.getBlock(X, g, Z) === B.LOG)) g--; return g + 1; };
+  const dry = (x, z, y) => { const g = gy(x, z, y), w = G.world, X = Math.floor(x), Z = Math.floor(z), b = w.getBlock(X, g, Z), b2 = w.getBlock(X, g + 1, Z); return b === B.AIR && (b2 === B.AIR || isLeaf(b2)) ? g : null; };
 
   // a brook past the camp, on the side away from the village: a shallow winding cut with gravel under it. Of the lines tried, the flattest wins
   function brook() { const w = G.world, c = G.camp, v = G.village; if (!c || !v) return null; const ax = Math.atan2(c.x - v.x, c.z - v.z); let best = null;
