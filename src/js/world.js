@@ -614,6 +614,11 @@ class World {
       blocks[base + h + 1] = (dense && kind < 0.03) ? B.PEARLCORAL : kind < 0.36 ? B.CORAL_R : kind < 0.7 ? B.CORAL_B : B.CORAL_Y;
     }
     // the Lost World: ferns under the canopy, and the tunnel through the rim
+    /* bushes: a round shrub at knee height here and there in the woods, the meadows and the fens. The trees carry their leaves well out of reach now, so this is where you pick fronds: hold your finger on one */
+    if (this.preset.id === 'earth') for (let lx = 0; lx < CH; lx++) for (let lz = 0; lz < CH; lz++) {
+      const info = infos[(lx + 2) * 20 + (lz + 2)]; if (info.lost) continue; const pr = info.biome === BIOME.FOREST ? 0.024 : info.biome === BIOME.PLAINS ? 0.009 : info.biome === BIOME.SWAMP ? 0.016 : 0; if (!pr) continue;
+      const x = ox + lx, z = oz + lz, h = info.h, base = (lx * CH + lz) * WH; if (U.hash3(x, 31, z, s + 613) >= pr || blocks[base + h] !== B.GRASS || blocks[base + h + 1] !== B.AIR) continue;
+      if (this.treeAt(x, z, info) || (this.trailWear && this.trailWear(x, z) > 0.1) || (this.trackAt && this.trackAt(x, z))) continue; blocks[base + h + 1] = B.LEAVES; }
     if (this.lost) {
       for (let lx = 0; lx < CH; lx++) for (let lz = 0; lz < CH; lz++) {
         const info = infos[(lx + 2) * 20 + (lz + 2)]; if (!info.lost) continue;

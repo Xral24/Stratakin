@@ -47,8 +47,8 @@ const Felling = (() => {
     const parts = []; for (const b of t.blocks) { if (b.x === x && b.y === y && b.z === z) continue; const id = w.getBlock(b.x, b.y, b.z); if (TRUNK(id) ? b.y >= y : CROWN(id)) parts.push({ x: b.x, y: b.y, z: b.z, id }); }
     if (!parts.length) return false;
     // what it is worth: a wood for every log, a berry or two off a berry tree
-    let wood = 0, berries = 0; for (const b of parts) { if (TRUNK(b.id)) wood++; else if (b.id === B.BERRYLEAF && Math.random() < 0.5) berries++; else if (b.id === B.BERRY) berries += 2; }
-    if (wood) player.add('wood', wood); if (berries) player.add('berry', Math.min(12, berries));
+    let wood = 0, berries = 0, leaves = 0; for (const b of parts) { if (b.id === B.LEAVES || b.id === B.NEEDLES || b.id === B.FROND) leaves++; if (TRUNK(b.id)) wood++; else if (b.id === B.BERRYLEAF && Math.random() < 0.5) berries++; else if (b.id === B.BERRY) berries += 2; }
+    if (wood) player.add('wood', wood); if (berries) player.add('berry', Math.min(12, berries)); if (leaves) player.add('frond', Math.min(6, 2 + Math.floor(leaves / 10))); /* the crown comes down with it: a handful of fronds off every felled tree */
     const now = performance.now(); w.regrow = w.regrow || [];
     for (const b of parts) { w.setBlock(b.x, b.y, b.z, B.AIR); w.regrow.push({ x: b.x, y: b.y, z: b.z, t: now + 240000 + Math.random() * 30000, id: b.id === B.BERRY ? B.BERRY : b.id }); }
     // the fall: hinged at the foot of the cut, toppling away from whoever swung the axe

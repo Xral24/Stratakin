@@ -1462,6 +1462,11 @@ class World {
       blocks[base + h + 1] = (dense && kind < 0.03) ? B.PEARLCORAL : kind < 0.36 ? B.CORAL_R : kind < 0.7 ? B.CORAL_B : B.CORAL_Y;
     }
     // the Lost World: ferns under the canopy, and the tunnel through the rim
+    /* bushes: a round shrub at knee height here and there in the woods, the meadows and the fens. The trees carry their leaves well out of reach now, so this is where you pick fronds: hold your finger on one */
+    if (this.preset.id === 'earth') for (let lx = 0; lx < CH; lx++) for (let lz = 0; lz < CH; lz++) {
+      const info = infos[(lx + 2) * 20 + (lz + 2)]; if (info.lost) continue; const pr = info.biome === BIOME.FOREST ? 0.024 : info.biome === BIOME.PLAINS ? 0.009 : info.biome === BIOME.SWAMP ? 0.016 : 0; if (!pr) continue;
+      const x = ox + lx, z = oz + lz, h = info.h, base = (lx * CH + lz) * WH; if (U.hash3(x, 31, z, s + 613) >= pr || blocks[base + h] !== B.GRASS || blocks[base + h + 1] !== B.AIR) continue;
+      if (this.treeAt(x, z, info) || (this.trailWear && this.trailWear(x, z) > 0.1) || (this.trackAt && this.trackAt(x, z))) continue; blocks[base + h + 1] = B.LEAVES; }
     if (this.lost) {
       for (let lx = 0; lx < CH; lx++) for (let lz = 0; lz < CH; lz++) {
         const info = infos[(lx + 2) * 20 + (lz + 2)]; if (!info.lost) continue;
@@ -20759,8 +20764,8 @@ const Felling = (() => {
     const parts = []; for (const b of t.blocks) { if (b.x === x && b.y === y && b.z === z) continue; const id = w.getBlock(b.x, b.y, b.z); if (TRUNK(id) ? b.y >= y : CROWN(id)) parts.push({ x: b.x, y: b.y, z: b.z, id }); }
     if (!parts.length) return false;
     // what it is worth: a wood for every log, a berry or two off a berry tree
-    let wood = 0, berries = 0; for (const b of parts) { if (TRUNK(b.id)) wood++; else if (b.id === B.BERRYLEAF && Math.random() < 0.5) berries++; else if (b.id === B.BERRY) berries += 2; }
-    if (wood) player.add('wood', wood); if (berries) player.add('berry', Math.min(12, berries));
+    let wood = 0, berries = 0, leaves = 0; for (const b of parts) { if (b.id === B.LEAVES || b.id === B.NEEDLES || b.id === B.FROND) leaves++; if (TRUNK(b.id)) wood++; else if (b.id === B.BERRYLEAF && Math.random() < 0.5) berries++; else if (b.id === B.BERRY) berries += 2; }
+    if (wood) player.add('wood', wood); if (berries) player.add('berry', Math.min(12, berries)); if (leaves) player.add('frond', Math.min(6, 2 + Math.floor(leaves / 10))); /* the crown comes down with it: a handful of fronds off every felled tree */
     const now = performance.now(); w.regrow = w.regrow || [];
     for (const b of parts) { w.setBlock(b.x, b.y, b.z, B.AIR); w.regrow.push({ x: b.x, y: b.y, z: b.z, t: now + 240000 + Math.random() * 30000, id: b.id === B.BERRY ? B.BERRY : b.id }); }
     // the fall: hinged at the foot of the cut, toppling away from whoever swung the axe
