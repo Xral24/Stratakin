@@ -1514,10 +1514,11 @@ const Village = (() => {
       else if ((style === 'land') && (role === 'villager' || role === 'keeper') && !child) KIN.decorate(m, role === 'keeper' ? (hh % 2 ? 'garb1' : 'garb4') : sp.build === 'woman' ? ['garb5', 'garb1', 'garb3', 'garb0'][hh % 4] : ['garb0', 'garb2', 'garb3', 'garb4', 'garb2', 'garb0'][hh % 6], tint);
       else if (style === 'land' && child && hh % 2) KIN.decorate(m, 'garb0', tint);
       else if (style === 'frontier' && (role === 'villager' || role === 'keeper')) KIN.decorate(m, 'west' + (hh % 3), CLOTH_STYLE.frontier[(hh >> 3) % 6]);
-      else if (role === 'traveller' && style === 'land' && hh % 2) KIN.decorate(m, 'explorer'); }
+      else if (style === 'atlantis' && (role === 'villager' || role === 'keeper' || role === 'elder')) KIN.decorate(m, 'atl' + (role === 'elder' ? 0 : hh % 3));
+      else if (role === 'explorer' || (role === 'traveller' && style === 'land' && hh % 2)) KIN.decorate(m, 'explorer'); }
     if (child) KIN.childify(m, 1.32);
     const v = vid ? villages.get(vid) : null;
-    return { id: i, role, name, shop, shopTitle: shop ? shopDef(shop, v).title : null, x: x + 0.5, y, z: z + 0.5, yaw: Math.random() * 6.28, tx: x + 0.5, tz: z + 0.5, wait: 2 + Math.random() * 4, model: m, child, scale: child ? 0.64 : role === 'elder' ? 1 : 0.93 + (U.strHash((vid || 's') + ':' + i) % 100) / 100 * 0.14, hover: 0, mesh: R.entityMesh('npc2:' + (vid || '') + ':' + i + ':' + role + ':' + style + (child ? ':k' : ''), (mb) => KIN.buildMesh(mb, m)), skyMul: 1, hidden: false, home: { x: x + 0.5, z: z + 0.5 } };
+    return { id: i, role, name, shop, shopTitle: shop ? shopDef(shop, v).title : null, x: x + 0.5, y, z: z + 0.5, yaw: Math.random() * 6.28, tx: x + 0.5, tz: z + 0.5, wait: 2 + Math.random() * 4, model: m, child, scale: child ? 0.64 : role === 'elder' ? 1 : 0.93 + (U.strHash((vid || 's') + ':' + i) % 100) / 100 * 0.14, hover: 0, mesh: R.entityMesh('npc3:' + (vid || '') + ':' + i + ':' + role + ':' + style + (child ? ':k' : ''), (mb) => KIN.buildMesh(mb, m)), skyMul: 1, hidden: false, home: { x: x + 0.5, z: z + 0.5 } };
   }
   // ---- inside a town: shops with their own troubles. Freeing the town opens the gates; some of the shops still need you ----
   const PROBLEMS = {

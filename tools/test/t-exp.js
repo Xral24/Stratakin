@@ -1,0 +1,4 @@
+const { open } = require('./harness');
+(async () => { const h = await open(); const { page, ev } = h; await h.newGame('look-3'); await h.calm();
+  console.log(JSON.stringify(await ev(async () => { R.render = () => {}; G.repelUntil = performance.now() + 900000; const w = G.world, p = G.player, T = w.lostTunnel(); if (!T) return 'no tunnel'; const x = Math.floor(T.ax + T.ix * 3), z = Math.floor(T.az + T.iz * 3); w.ensureAround(Math.floor(x / CH), Math.floor(z / CH), 4, 99999); p.x = x + 0.5; p.z = z + 0.5; p.y = w.groundY(x, z, 140) + 1.2; p.vy = 0; await new Promise(r => setTimeout(r, 2500)); const c = Ruins.camp; if (!c || !c.length) return { camp: c }; c[0].onTalk(); const t = document.getElementById('dialogue').textContent.slice(0, 70); return { n: c.length, names: c.map(q => q.name), d: c.map(q => +Math.hypot(q.x - p.x, q.z - p.z).toFixed(0)), t, boxes: c[0].model.boxes.length }; })), h.errors.slice(0, 2).join('|'));
+  await h.close(); })();
