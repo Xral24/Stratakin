@@ -896,6 +896,7 @@ const UI = (() => {
   let btnState = { snare: false, ride: false, riding: false, ship: false, flying: false, deploy: false };
   function setButtons(st) {
     const b1 = document.getElementById('btn-snare'), b2 = document.getElementById('btn-ride');
+    if (st.deployLabel !== undefined && st.deployLabel !== btnState.deployLabel) { const bd = document.getElementById('btn-deploy'); bd.textContent = st.deployLabel; bd.classList.toggle('spent', st.deployLabel !== 'Deploy Kin'); btnState.deployLabel = st.deployLabel; }
     if (st.deploy !== undefined && st.deploy !== btnState.deploy) { const bd = document.getElementById('btn-deploy'); bd.classList.toggle('hidden', !st.deploy); btnState.deploy = st.deploy; if (st.deploy) { bd.classList.add('fresh'); clearTimeout(bd._freshT); bd._freshT = setTimeout(() => bd.classList.remove('fresh'), 2600); } } // it flashes for a couple of seconds when it comes up, then settles to see-through
     if (st.snare !== undefined && st.snare !== btnState.snare) { b1.classList.toggle('hidden', !st.snare); btnState.snare = st.snare; }
     if (st.ride !== undefined && (st.ride !== btnState.ride || st.riding !== btnState.riding || st.rideLabel !== btnState.rideLabel)) { b2.classList.toggle('hidden', !st.ride); b2.textContent = st.riding ? 'Off' : (st.rideLabel || 'Ride'); b2.classList.toggle('on', !!st.riding); btnState.ride = st.ride; btnState.riding = !!st.riding; btnState.rideLabel = st.rideLabel; }

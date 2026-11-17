@@ -393,7 +393,7 @@ class World {
       if (size === 'giant') for (let a = -6; a <= 6; a++) for (let b = -6; b <= 6; b++) { if (!a && !b) continue; const h2 = U.hash3(x + a, 97, z + b, this.seed); if (h2 > hr && U.hash3(x + a, 98, z + b, this.seed) >= 0.4 && U.hash3(x + a, 99, z + b, this.seed + 303) < 0.05) return null; } /* two giants never stand shoulder to shoulder */
       const height = Math.min(WH - 12 - info.h, size === 'fern' ? 3 + Math.floor(hr * 5) : size === 'banana' ? 3 + Math.floor(hr * 3) : size === 'giant' ? 24 + Math.floor((hr - 0.86) / 0.14 * 6) : size === 'big' ? 16 + Math.floor((hr - 0.5) / 0.36 * 6) : 11 + Math.floor(hr * 10));
       return { type, size, height, berries: false, big: size === 'giant', lean: Math.floor(U.hash3(x, 95, z, this.seed) * 4) }; }
-    const height = fir ? 11 + Math.floor(hr * 4) : grand ? 7 + Math.floor(hr * 3) : type === 'pine' ? 7 + Math.floor(hr * 5) : type === 'cactus' ? 1 + Math.floor(hr * 3) : type === 'jungle' ? 8 + Math.floor(hr * 5) : type === 'palm' ? 5 + Math.floor(hr * 3) : type === 'birch' ? 5 + Math.floor(hr * 3) : 4 + Math.floor(hr * 3);
+    const height = fir ? 14 + Math.floor(hr * 4) : grand ? 10 + Math.floor(hr * 3) : type === 'pine' ? 10 + Math.floor(hr * 5) : type === 'cactus' ? 1 + Math.floor(hr * 3) : type === 'jungle' ? 8 + Math.floor(hr * 5) : type === 'palm' ? 6 + Math.floor(hr * 3) : type === 'birch' ? 9 + Math.floor(hr * 3) : type === 'swamp' ? 8 + Math.floor(hr * 2) : 8 + Math.floor(hr * 3); /* tall boles: the lowest leaves hang well over your head, so you walk under a wood and the view over your shoulder stays clear */
     const berries = (type === 'oak' || type === 'swamp' || type === 'jungle') && U.hash3(x, 96, z, this.seed + 17) < 0.45; // nearly half the broadleaf trees carry berries
     return { type, height, berries, grand, big: type === 'jungle' && hr > 0.6, lean: Math.floor(U.hash3(x, 95, z, this.seed) * 4) };
   }
@@ -422,7 +422,7 @@ class World {
     };
     if (type === 'pine') { // a tall trunk and tiers of needles that narrow to a point
       for (let y = 1; y <= th; y++) put(x, h + y, z, B.LOG, false);
-      for (let ly = 3; ly <= th + 2; ly++) { const t = (ly - 3) / (th - 1); const r = Math.max(0, Math.round((1 - t) * 2.6 + ((ly % 2) ? 0.4 : -0.3))); for (let ax = -r; ax <= r; ax++) for (let az = -r; az <= r; az++) { if (Math.hypot(ax, az) > r + 0.3) continue; put(x + ax, h + ly, z + az, B.NEEDLES, true); } }
+      for (let ly = 6; ly <= th + 2; ly++) { const t = (ly - 6) / (th - 4); const r = Math.max(0, Math.round((1 - t) * 2.6 + ((ly % 2) ? 0.4 : -0.3))); for (let ax = -r; ax <= r; ax++) for (let az = -r; az <= r; az++) { if (Math.hypot(ax, az) > r + 0.3) continue; put(x + ax, h + ly, z + az, B.NEEDLES, true); } }
       put(x, h + th + 2, z, B.NEEDLES, true); return;
     }
     if (type === 'palm') { // a trunk that leans two blocks over as it rises (each step one to the side, so the mesher can follow it), the crown block on top

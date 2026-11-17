@@ -11,6 +11,7 @@ const Gems = (() => {
     rose: { v: 8, col: [1.0, 0.42, 0.66], s: 0.26, back: 15 * 60e3 },
     heart: { v: 40, col: [1.0, 0.18, 0.24], s: 0.4, once: true }, // red: the one worth going out of your way for
     box: { v: 0, col: [0.55, 0.38, 0.2], s: 0.36, once: true },
+    relic: { v: 6, col: [0.72, 0.5, 1.0], s: 0.27, once: true }, // violet: left in a ruin by whoever built it. Found once
   };
   function init(g) { G = g; cells = new Map(); curWorld = null; live = []; gone.clear(); }
   const taken = () => (G.stats.gemsTaken = G.stats.gemsTaken || {});
@@ -45,7 +46,7 @@ const Gems = (() => {
     const cx0 = Math.floor(p.x / CELL), cz0 = Math.floor(p.z / CELL), now = performance.now(); live = [];
     for (let a = -3; a <= 3; a++) for (let b = -3; b <= 3; b++) {
       const k = (cx0 + a) + ',' + (cz0 + b); let arr = cells.get(k); if (!arr) { if (cells.size > 700) cells = new Map(); arr = make(w, cx0 + a, cz0 + b); cells.set(k, arr); }
-      for (const g of arr) { const K = KINDS[g.kind]; if (K.once ? taken()[g.id] : (gone.get(g.id) || 0) > now) continue;
+      for (const g of (a === 0 && b === 0 && typeof Ruins !== 'undefined' ? arr.concat(Ruins.gems()) : arr)) { const K = KINDS[g.kind]; if (K.once ? taken()[g.id] : (gone.get(g.id) || 0) > now) continue;
         if (g.y == null) { const bx = Math.floor(g.x), bz = Math.floor(g.z), h = w.colInfo(bx, bz).h, over = w.getBlock(bx, h + 1, bz); if (!isSolid(w.getBlock(bx, h, bz)) || isSolid(over) || over === B.WATER || over === B.BRINE || over === B.LAVA) continue; g.y = R.standY(w, g.x, g.z, h + 1, 0.2); } // it lies on the land as the land was made: not in a tree, a wall or a hole
         const dx = p.x - g.x, dz = p.z - g.z, d2 = dx * dx + dz * dz, near = Math.abs(p.y - g.y) < 1.9;
         if (near && d2 < 0.8) { take(g, K); continue; }

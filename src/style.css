@@ -534,3 +534,5 @@ select { font-family: var(--font); font-size: 14px; padding: 9px 11px; border-ra
 #battle.snaring #snare-cancel { position: fixed; left: 50%; bottom: calc(10px + env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 41; font-size: 13px; padding: 8px 14px; opacity: .92; }
 
 .kcard .temper{margin-left:auto;font-style:italic;opacity:.7}
+
+#btn-deploy.spent{background:rgba(70,40,40,.82);color:#ffb7a8;border-color:#a8574a;font-size:13px}
