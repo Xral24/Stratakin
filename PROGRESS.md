@@ -400,6 +400,8 @@ Scope (Alexander, 8 Nov evening): EVERYTHING visible goes to the same standard: 
 
 - 17 Nov, each tyrant holds his own thing (carried on from his gang ask). **In a town or city: Keychain out opens the shops and brings the keepers back, Stonewall out unbars the gates and clears the station, Bigmouth out lets people out of their houses; the last one out frees the place and plays the film. Brannock now tells you the level of the next tyrant. Smoke-tested: hold film, Thornhold film, Citadel throne flashback, city gang of three.**
 
+- 17 Nov, balance pass and a whole-game smoke run (his ask: make the levels doable, and test the whole thing from many angles in one go). **Ladder is now even: home 3, hamlets 6 and 9, towns 12 to 33 in threes, cities 38, 42, 46, 50; gang members +2 each, never past 50 in the last city. Wild Kin within 130 of a held place are 2 to 4 under its tyrant, so that is where you train. Tyrant wins give 2.5x XP. Simulated: about 80 wild wins for a lead Kin across the whole ladder, never more than 12 before any one place. tools/test/suite.sh runs 23 story tests in a row; 21 pass, t-atlplay needs more than the 115 s box and t-rail prints no verdict.**
+
 ## Still to do
 UI polish as feedback comes in. Card battle screen still used for scripted encounters (raids at the walls, thief, citadel duel, holds) and the snare mini-game; converting those to live is the next big step if wanted. (Old list: train/ships, combat animation, eggs, avatar hair/paint, buddy WEAR cosmetics, Silas and Finch, UI polish (item icons), quality toggles in settings (state.shadows, state.grassQuality, state.dprCap).
 

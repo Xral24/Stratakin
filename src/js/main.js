@@ -528,7 +528,7 @@ G.onBattleEnd = function (result, wildE, wild, mine, ambush) {
   document.getElementById('hud').classList.remove('in-battle');
   if (mine) mine.buffs = null;
   const st = wild.sp.mythic;
-  const baseXp = Math.floor(9 * wild.level * (1 + 0.4 * (wild.stage - 1)) * KIN.RARITY[wild.sp.rarity || 0].xp * (st ? 6 : 1));
+  const baseXp = Math.floor(9 * wild.level * (1 + 0.4 * (wild.stage - 1)) * KIN.RARITY[wild.sp.rarity || 0].xp * (st ? 6 : 1) * (wildE && wildE.isBoss ? 2.5 : 1)); /* throwing a tyrant out teaches a Kin a great deal */
   if (result === 'won' || result === 'caught') {
     const xp = result === 'won' ? baseXp : Math.floor(baseXp * 0.6);
     if (mine && mine.hp > 0) {
