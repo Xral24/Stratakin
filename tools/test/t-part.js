@@ -1,0 +1,9 @@
+const { open } = require('./harness');
+(async () => { const h = await open(); const { page, ev } = h; await h.newGame('look-3'); await h.calm();
+  const list = await ev(() => { R.render = () => {}; G.repelUntil = performance.now() + 9e6; G.world.time = 0.35; return Village.townList().map(v => v.size); });
+  const idx = list.findIndex(s => s === (process.env.SIZE || 'city'));
+  await ev((i) => { const v = Village.townList()[i], p = G.player, w = G.world; p.x = v.x + 0.5; p.z = v.z + 19.5; w.ensureAround(Math.floor(p.x / CH), Math.floor(p.z / CH), 4, 99999); p.y = v.y + 0.05; window.__v = v; setInterval(() => { if (v.boss) v.boss.fought = true; }, 20);
+    window.__scan = () => { const v = window.__v, w = G.world, st = G.villageState[v.id], doors = (st.doors || []).concat(Village.layout(v).doors || []); const cnt = (f) => v.npcs.filter(f).length; return { out: st.gangOut, doors: doors.length, shut: doors.filter(d => w.getBlock(d[0], d[1], d[2]) === B.DOOR).length, keepersShown: cnt(n => (n.role === 'keeper' || n.role === 'banker') && !n.hidden), keepers: cnt(n => n.role === 'keeper' || n.role === 'banker'), folkShown: cnt(n => n.role === 'villager' && !n.hidden), folk: cnt(n => n.role === 'villager'), gatesClosed: v.gatesClosed, freed: !!st.freed, lvl: v.boss && v.boss.kin.level }; }; }, idx);
+  await page.waitForTimeout(3500); console.log('held', JSON.stringify(await ev(() => window.__scan())));
+  for (let i = 0; i < 3; i++) { const r = await ev(() => { const b = window.__v.boss; if (!b) return null; const nm = KIN.name(b.kin); Wild.remove(b); Village.bossBeaten(b); return nm; }); if (!r) break; await page.waitForTimeout(1800); console.log('beat ' + r, JSON.stringify(await ev(() => window.__scan())), JSON.stringify(await ev(() => [...document.querySelectorAll('.toast')].map(t => t.textContent).slice(-1)))); }
+  console.log('errors', JSON.stringify(h.errors.slice(0, 4))); await h.close(); })();

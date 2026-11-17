@@ -398,6 +398,8 @@ Scope (Alexander, 8 Nov evening): EVERYTHING visible goes to the same standard: 
 
 - 17 Nov, films (his ask: music for the liberation film, films when a fortress falls, more of them through the final showdown with people talking and a flashback, and tellings shown as film in Atlantis and at the Lost World). **New js/cine.js: bars, HUD hidden, camera turns, speakers, brown memories with captions, actors that walk through a memory, own music moods (free, memory, dread), Skip. Hooked: village film music; a hold taken; Thornhold; Citadel (captains on the stair, the Kinmaster from the throne, the Isla flashback before the fight, the ship escaping, the light coming back); the Speaker's telling in Atlantis; Finch's telling with long-necks walking and the Abyssaurus breaching.** Only the Finch film and the engine were run in the harness; the rest is syntax-checked.
 
+- 17 Nov, each tyrant holds his own thing (carried on from his gang ask). **In a town or city: Keychain out opens the shops and brings the keepers back, Stonewall out unbars the gates and clears the station, Bigmouth out lets people out of their houses; the last one out frees the place and plays the film. Brannock now tells you the level of the next tyrant. Smoke-tested: hold film, Thornhold film, Citadel throne flashback, city gang of three.**
+
 ## Still to do
 UI polish as feedback comes in. Card battle screen still used for scripted encounters (raids at the walls, thief, citadel duel, holds) and the snare mini-game; converting those to live is the next big step if wanted. (Old list: train/ships, combat animation, eggs, avatar hair/paint, buddy WEAR cosmetics, Silas and Finch, UI polish (item icons), quality toggles in settings (state.shadows, state.grassQuality, state.dprCap).
 

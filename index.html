@@ -12812,6 +12812,13 @@ const Village = (() => {
     const vy = v.y; const M = MATS[v.style] || MATS.land;
     for (const [x, z] of ringCols(v, st)) for (let y = vy - 1; y <= vy + 7; y++) { const b = world.getBlock(x, y, z); if (WALL_BLOCKS.has(b)) world.setBlock(x, y, z, y === vy - 1 ? M.ground : B.AIR); }
   }
+  /* in a town or a city each of them holds his own thing, and it comes back the moment he is out: Keychain has the shop keys, Stonewall the gates and the station, Bigmouth has everyone shut indoors cooking for him */
+  const PARTSAY = { Keychain: 'His keys went with him. The shops are open again.', Stonewall: 'The bars are off the gates and the station is clear.', Bigmouth: 'The kitchens are their own again. People are coming out of their houses.' };
+  function partOf(st) { const out = st.gangOut || [], on = !st.freed && out.length > 0 && (st.gangNames || []).length > 1; return { on, shops: on && out.includes('Keychain'), gates: on && out.includes('Stonewall'), homes: on && out.includes('Bigmouth') }; }
+  function applyPart(v, st) { const P = partOf(st); if (!P.on) return; let L = null; try { L = v.R ? layout(v) : null; } catch (e) { L = null; }
+    for (const n of v.npcs) { if (n.role === 'voodoo' || n === v.elder || n.asleep) continue; const trade = n.role === 'keeper' || n.role === 'banker' || !!n.shop; n.hidden = trade ? !(n.shop === 'station' ? P.gates : P.shops) : !P.homes; }
+    for (const [x, y, z] of doorsOf(v)) { const shop = !!(L && L.shops.some(sh => Math.abs(x - (sh.x + (sh.dirX || 0) * 3)) <= 1 && Math.abs(z - (sh.z + (sh.dirZ || 0) * 3)) <= 1)); if ((shop ? P.shops : P.homes) && world.getBlock(x, y, z) === B.DOOR) world.setBlock(x, y, z, B.AIR); }
+    if (P.gates && !v.partGates) { v.partGates = true; setGates(v, st, false); if (G.meshPass) G.meshPass(99); } }
   function doorsOf(v) { const st = state(v.id); let out = st.doors || []; if (v.R) { try { out = out.concat(layout(v).doors || []); } catch (e) { /* no plan */ } } return out; }
   function setDoors(v, shut) { for (const [x, y, z] of doorsOf(v)) { const b = world.getBlock(x, y, z); if (shut ? b === B.AIR : (b === B.DOOR || b === B.DOOR_OPEN)) world.setBlock(x, y, z, shut ? B.DOOR : B.AIR); } v.doorsShut = shut; }
   function doorLocked(x, y, z) { const v = active; if (!v || state(v.id).freed || !v.doorsShut) return null; return doorsOf(v).some(d => d[0] === x && d[2] === z && Math.abs(d[1] - y) <= 1) ? (v.boss && v.boss.kin ? KIN.name(v.boss.kin) : 'the tyrant') : null; }
@@ -12820,7 +12827,7 @@ const Village = (() => {
     const blk = wallSet(v)[st.wall || 0].block, vy = v.y;
     const rl = v.R ? layout(v).rail : null, onLine = (x, z) => !!rl && (rl.ax ? z === rl.line : x === rl.line) && ((rl.ax ? x - v.x : z - v.z) * rl.sgn > 0); /* the block of track in its own opening stays down when the gates open or shut: they used to wipe it, which left one sleeper missing at the wall */
     /* while a tyrant holds the place only one gate stands open, the one on the side you come from. The rest are barred, and so is every front door */
-    const held = !st.freed && world.preset.id === 'earth', wr = wallRadius(st), tg = v.starter && G.camp ? G.camp : world.spawn || { x: v.x, z: v.z + 1 }, tx = wd(tg.x - v.x), tz = wd(tg.z - v.z), side = Math.abs(tx) > Math.abs(tz) ? (tx > 0 ? 0 : 1) : (tz > 0 ? 2 : 3);
+    const held = !st.freed && world.preset.id === 'earth' && !partOf(st).gates, wr = wallRadius(st), tg = v.starter && G.camp ? G.camp : world.spawn || { x: v.x, z: v.z + 1 }, tx = wd(tg.x - v.x), tz = wd(tg.z - v.z), side = Math.abs(tx) > Math.abs(tz) ? (tx > 0 ? 0 : 1) : (tz > 0 ? 2 : 3);
     const sideOf = (x, z) => { const dx = x - v.x, dz = z - v.z; return dx === wr ? 0 : dx === -wr ? 1 : dz === wr ? 2 : 3; };
     for (const [x, z, gate] of ringCols(v, st)) if (gate) { const shut = closed || (held && sideOf(x, z) !== side); for (let y = vy; y <= vy + 1; y++) world.setBlock(x, y, z, shut ? (y === vy && onLine(x, z) ? B.RAIL : blk) : (y === vy && onLine(x, z) ? B.RAIL : B.AIR)); }
     v.gatesClosed = closed;
@@ -13575,8 +13582,8 @@ const Village = (() => {
     if (b.persona && b.persona.beaten) { say(b.x, b.y + (b.sayH || 3.2), b.z, b.persona.beaten, 6, b); const el = bubbles[bubbles.length - 1].el; el.style.font = '700 15px/1.3 system-ui,sans-serif'; el.style.maxWidth = '78vw'; el.style.background = '#2a1f33'; el.style.color = '#f6eaff'; el.style.border = '2px solid #b070ff'; UI.toast(`${nm}: "${b.persona.beaten}"`); }
     if (cst) { G.stats.tyrantMet = G.stats.tyrantMet || {}; G.stats.tyrantMet[cst.name] = (G.stats.tyrantMet[cst.name] || 0) + 1; st.gangOut = (st.gangOut || []).concat([cst.name]); }
     const next = (v.gang || []).shift(); onBossGone(v.id, 2.4);
-    if (next) { remember(v, st); next.turn = true; next.persona = tyrantVoice(v, next.kin.sp.tyrMood || 0, next.vh, next.cast0); v.boss = next; Wild.list.push(next); next.fought = false; next.hailed = false; UI.toast(`${nm} is out. ${KIN.name(next.kin)} is still standing.`, 'bad'); return; }
-    freed(v.id, nm); UI.toast('The village is free.', 'good'); }
+    if (next) { remember(v, st); next.turn = true; next.persona = tyrantVoice(v, next.kin.sp.tyrMood || 0, next.vh, next.cast0); v.boss = next; Wild.list.push(next); next.fought = false; next.hailed = false; applyPart(v, st); if (G.meshPass) G.meshPass(99); UI.toast(`${nm} is out. ${cst && PARTSAY[cst.name] ? PARTSAY[cst.name] + ' ' : ''}${KIN.name(next.kin)} is still standing.`, 'good'); return; }
+    freed(v.id, nm); UI.toast(`${v.name} is free.`, 'good'); }
   function onBossGone(id, hold) { const v = villages.get(id); if (!v) return; const b = v.boss; v.boss = null; if (!b || !b.model) return; b.runHold = hold || 0;
     const p = G.player; let dx = b.x - p.x, dz = b.z - p.z; const d = Math.hypot(dx, dz) || 1; dx /= d; dz /= d;
     const shape = b.kin && b.kin.sp ? b.kin.sp.shape : ''; b.sleep = false; b.sus = 0;
@@ -13635,7 +13642,7 @@ const Village = (() => {
   }
   // the tyrant takes the village back: doors shut, no pay, the boss waits in the square again
   function retaken(v, st) {
-    st.freed = false; st.bank = 0; st.lieuDown = {}; st.gangOut = []; st.retakenOnce = true; st.lastVisit = null; v.doorsShut = null; v.gatesClosed = null; st.report = { night: curNight(), text: 'Nobody had seen you in a long while. They walked back in through the open gate.' };
+    st.freed = false; st.bank = 0; st.lieuDown = {}; st.gangOut = []; v.partGates = false; st.retakenOnce = true; st.lastVisit = null; v.doorsShut = null; v.gatesClosed = null; st.report = { night: curNight(), text: 'Nobody had seen you in a long while. They walked back in through the open gate.' };
     for (const k of st.guards) k.hp = 0;
     for (const n of v.npcs) if (n.role !== 'voodoo') n.hidden = true;
     v.boss = null; v.guardEnts = [];
@@ -14111,6 +14118,7 @@ const Village = (() => {
     if (v.gatesClosed !== false && !isNight() && !(v.raid && v.raid.state === 'active')) setGates(v, st, false);
     if (st.freed) { st.lastVisit = G.dayCount || 0; st.awayWarned = 0; }
     if (!st.freed && st.stamped && v.doorsShut == null && v.type === 'land' && world.preset.id === 'earth' && !v.founded) setDoors(v, true); /* shut in their own homes: that is what he has done to them */
+    if (!st.freed && (st.gangOut || []).length && (v.partT = (v.partT || 0) - dt) <= 0) { v.partT = 1; applyPart(v, st); }
     // guards off duty: stand at their posts and watch you
     if (!(v.raid && v.raid.state === 'active')) for (const g of v.guardEnts) { g.bob += dt; const dx = player.x - g.x, dz = player.z - g.z; if (Math.hypot(dx, dz) < 7) g.yaw = Math.atan2(dx, dz); g.moving = false; g.leap = 0; if (((g.bob * 2) | 0) !== (((g.bob - dt) * 2) | 0)) unstick(g); }
     const life = lifeTown(v) ? lifeTick(v, dt, player) : null;
@@ -14291,7 +14299,7 @@ const Village = (() => {
       const dx = wd(target.x - p.x), dz = wd(target.z - p.z), d = Math.round(Math.hypot(dx, dz));
       const kind = target.type === 'sea' ? 'out on the water, a village on stilts' : target.type === 'deep' ? 'under the sea, a glass dome on the sea floor' : 'inland';
       Dialogue.show(n.name, [
-        `Caught anything? Only trouble, lately. There is a village ${kind}, about ${d} blocks to the ${dirWord(dx, dz)}: ${target.name}. A tyrant holds it, like Keychain held yours.`,
+        `Caught anything? Only trouble, lately. There is a village ${kind}, about ${d} blocks to the ${dirWord(dx, dz)}: ${target.name}. A tyrant holds it, like Keychain held yours. Level ${bossLevelFor(target)} or near it, they say, so train for that.`,
         `See the strip at the bottom of your view? That is your compass. The flag ⚑ on it now points at ${target.name}. The star ★ is your own quest, the little house ⌂ is the last village you stood in, and ✦ is your camp fire.`,
         target.type === 'deep' ? 'For the dome you will want a Breathing Bulb, or a fish to ride. Swim down the shaft in its roof. Free them and the village pays you a share, like this one.' : target.type === 'sea' ? 'A long swim. Ride a fish if you have one. Free them and the village pays you a share, like this one.' : 'Free them and the village pays you a share, like this one. The tyrants get stronger the further you go.',
         target.type === 'land' ? `${lieuCount(target) > 1 ? 'His guards hold the road in, ' + lieuCount(target) + ' of them, one checkpoint after another' : 'A guard of his holds the road in'}. Fight through with a bag of tonics, or slip round through the trees to another gate.` : `${lieuCount(target) > 1 ? 'His guards, ' + lieuCount(target) + ' of them, hang in the water on the way in' : 'A guard of his hangs in the water on the way in'}. Fight through with a bag of tonics, or swim wide around them.`,
