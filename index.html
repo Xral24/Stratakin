@@ -13440,9 +13440,22 @@ const Village = (() => {
     alien: [['You followed me. Across all that silence. Why would you do that?', 'Again the loud one. I am beginning to hear you in my sleep.'], 'There is always somewhere quieter. I will find it. You will find me.'],
     halo: [['You. I ran half the ring to be rid of you.', 'Round and round. We keep meeting because the ring has no end. I checked.'], 'Hff. Further round, then. I will see you when the ring brings you.'],
     atlantis: [['Back again? Nothing ever leaves this bowl.'], 'Open the gate, then. I have outgrown the place anyway.'] };
-  function tyrantVoice(v, mood, h) { const cast = castOf(v, h), met = cast ? metCount(cast.name) : 0; if (cast && !cast.full && met >= LAST_AT) { const key = ['sly', 'grim', 'glee'][mood % 3], V = VOICE[key], f = (t) => t.replace(/\{t\}/g, v.name || 'this place'); return { hail: LAST[key][0], taunts: V.taunts.map(f), fight: 'No running this time.', beaten: LAST[key][1], cast, last: true }; }
+  /* what each says as he goes, the first time you throw him out of somewhere. It points on: at the others, at the Kinmaster, at the shard he wears */
+  const PART = { sly: ['Keep it. The Kinmaster cut these keys, not me. He has the pattern for every lock there is, and he knows your face now.', 'One ring gone. Morrug has the walls and Obrin has the larder, and neither of them gives things back.', 'You think this shard on my chest is a medal. It is a leash. Pull hard enough on mine and somebody feels it at the other end.'],
+    grim: ['Hm. The wall was good. You were better. I will tell him so, and he will not like hearing it.', 'I hold what I am told to hold. The one who tells me has not lost yet. Remember that when you meet him.', 'Go on. Grakor will lie about this and Obrin will sing about it. I will just remember it.'],
+    glee: ['Oh, well played! I shall put it in the song. The Kinmaster hates the song. That is how I know it is good.', 'Off I go! Tell Grakor I lost first, he will be so pleased. Tell Morrug nothing, he sulks.', 'Take the lot! It was never mine. Nothing is, we are all on the same string. Mind who is holding the other end.'] };
+  /* a town is held by two of them and a city by all three. What the first says about the company he has brought, and what the next says when it is his turn */
+  const GANGSAY = { sly: (o) => o.length > 1 ? `And look who I brought. ${o[0]} and ${o[1]}. Three of us, one of you. I have done the sum twice.` : `There are two of us this time. ${o[0]} is right there. What are you going to do about that?`,
+    grim: (o) => o.length > 1 ? `Three of us. ${o[0]}. ${o[1]}. Me. Count them.` : `Two of us now. ${o[0]} and me. You will not move two.`,
+    glee: (o) => o.length > 1 ? `Everybody came! ${o[0]}, ${o[1]} and me! We have never all lost on the same day. Shall we find out?` : `I brought a friend! ${o[0]}! Two of us! Is that not cheating? I do hope so.` };
+  const TURN = { sly: ['Useless. I plan for a week and they send muscle first. Fine. My turn, and I brought keys.', 'You again, and already past the first of us. I had new keys cut after the last time.'], grim: ['He talks. I do not. My turn.', 'You moved me once. You have just moved him. That is enough moving for one day.'], glee: ['My go! My go! I have been waiting so nicely!', 'Oh, it IS you! I told them you would get past the first one. Now me, now me!'] };
+  /* every time you meet one of them again he has a plan. It is never a good plan */
+  const PLANS = { sly: [['I have dug a pit, right under where you are standing. Straw over the top. Step forward, would you?', 'He steps forward to point at it. The straw gives way under him.'], ['A cage. On a rope. Over your head. Do not look up.', 'The other end of the rope was tied to his own tail.'], ['I swapped your net for a bag with a hole in it while you slept. Check. Go on.', 'He has been carrying the bag himself all morning. His keys are gone through the hole.']],
+    grim: [['I built a wall between us. You cannot reach me.', 'He built it behind himself. He turns to check, and walks into it.'], ['I have lifted the millstone every morning. For you.', 'He lifts it. It comes down on his foot.'], ['I stood here all night so you could not slip past.', 'He is half asleep on his feet when it starts.']],
+    glee: [['I baked you a pie! It is full of bees. Surprise! Oh. I said it out loud.', 'He has eaten half of it already. He is humming, and not on purpose.'], ['Fireworks! All pointed at you! Somebody light them. No, the OTHER end.', 'They go off the wrong way. He claps anyway, a bit singed.'], ['I hired a band to play so loud you cannot think!', 'They play his song about losing to you. All nine verses. It puts him right off.']] };
+  function tyrantVoice(v, mood, h, force) { const cast = force || castOf(v, h), met = cast ? metCount(cast.name) : 0; if (cast && !cast.full && met >= LAST_AT) { const key = ['sly', 'grim', 'glee'][mood % 3], V = VOICE[key], f = (t) => t.replace(/\{t\}/g, v.name || 'this place'); return { hail: LAST[key][0], taunts: V.taunts.map(f), fight: 'No running this time.', beaten: LAST[key][1], cast, last: true }; }
     if (cast && met > 0) { const key = v.style === 'alien' ? 'alien' : v.style === 'halo' ? 'halo' : v.style === 'atlantis' ? 'atlantis' : ['sly', 'grim', 'glee'][mood % 3], A = AGAIN[key], V = VOICE[key], f = (t) => t.replace(/\{t\}/g, v.name || 'this place'); return { hail: A[0][Math.min(met - 1, A[0].length - 1)], taunts: V.taunts.map(f), fight: f(V.fight), beaten: A[1], cast }; }
-    const out = tyrantVoice0(v, mood, h); out.cast = cast; if (cast && !v.starter) out.beaten = AGAIN[v.style === 'alien' ? 'alien' : v.style === 'halo' ? 'halo' : v.style === 'atlantis' ? 'atlantis' : ['sly', 'grim', 'glee'][mood % 3]][1]; if (v.starter) out.beaten = 'Take them, take them! This is one village. There are others, and I have keys for those too.'; return out; }
+    const out = tyrantVoice0(v, mood, h); out.cast = cast; if (cast && !v.starter) out.beaten = PART[['sly', 'grim', 'glee'][mood % 3]] && !styleOf(v) ? PART[['sly', 'grim', 'glee'][mood % 3]][h % 3] : AGAIN[v.style === 'alien' ? 'alien' : v.style === 'halo' ? 'halo' : v.style === 'atlantis' ? 'atlantis' : ['sly', 'grim', 'glee'][mood % 3]][1]; if (v.starter) out.beaten = 'Take them, take them! This is one village. There are others, and I have keys for those too.'; return out; }
   function tyrantVoice0(v, mood, h) { const key = v.style === 'alien' ? 'alien' : v.style === 'halo' ? 'halo' : v.style === 'atlantis' ? 'atlantis' : ['sly', 'grim', 'glee'][mood % 3], V = VOICE[key], f = (t) => t.replace(/\{t\}/g, v.name || 'this place');
     if (v.starter) return { hail: 'Ah. The one from the camp. Every key in this village is on this ring, and not one of them is for you.', taunts: V.taunts.map(f), fight: f(V.fight), beaten: 'Take them, take them! And tell the Kinmaster nothing. He will hear of it anyway. He always does.' };
     return { hail: f(V.hail[(h >>> 5) % V.hail.length]), taunts: V.taunts.map(f), fight: f(V.fight), beaten: f(V.beaten) }; }
@@ -13462,26 +13475,40 @@ const Village = (() => {
     if (d > 13) { if (d > 30) b.fought = false; return; } // get right away from him and he will have his say again before he comes for you
     if (b.fought || b.lurk || Dialogue.active() || UI.panelOpen || player.flying || player.mount) return;
     /* you have walked into his reach, and that is that. You stop. The view goes to him. He turns, looks straight at you, says his piece with his whole face, throws his head back and laughs, and then it is the fight. There is no walking off in the middle */
-    if (!b.hailed) b.persona = tyrantVoice(v, b.kin.sp.tyrMood || 0, b.vh); /* he may have met you somewhere else since he was put here */
+    if (!b.hailed) b.persona = tyrantVoice(v, b.kin.sp.tyrMood || 0, b.vh, b.cast0); /* he may have met you somewhere else since he was put here */
     const line = !b.hailed ? b.persona.hail : b.persona.taunts[(b.tauntI = ((b.tauntI || 0) + 1)) % b.persona.taunts.length];
     b.hailed = true; b.fought = true; b.patrol = null; b.spotT = 0.6; b.scene = { stage: 'talk', x: b.x, z: b.z, t: 0 }; player.frozen = true; player.vx = player.vz = 0;
-    const hgt = b.model ? b.model.height : 2; b.faceY = hgt * 0.8; b.faceD = 2.2 + hgt * 0.75; G.talkNpc = b; G.sceneHold = performance.now() + 60000; if (typeof UI !== 'undefined') UI.sfx('whistle');
-    const lines = b.tauntI ? [line] : [line, b.persona.taunts[0]]; /* the first time he has more to say */
+    const hgt = b.model ? b.model.height : 2; b.faceY = hgt * 0.8; b.faceD = 2.2 + hgt * 0.75 + ((v.gang || []).length ? 3.2 + (v.gang.length - 1) * 1.6 : 0); /* with company the view stands further back, so you see who he has brought */ G.talkNpc = b; G.sceneHold = performance.now() + 60000; if (typeof UI !== 'undefined') UI.sfx('whistle');
+    const key = ['sly', 'grim', 'glee'][(b.kin.sp.tyrMood || 0) % 3], cst = b.persona.cast, met = cst ? metCount(cst.name) : 0, others = (v.gang || []).map(g => g.persona && g.persona.cast ? g.persona.cast.name : 'the other one');
+    let lines = b.tauntI ? [line] : [line, b.persona.taunts[0]]; /* the first time he has more to say */
+    if (!b.tauntI && b.turn && cst && !cst.full) lines = [TURN[key][met > 0 ? 1 : 0]]; /* the second or third of a gang, stepping up */
+    if (!b.tauntI && others.length && GANGSAY[key] && !b.turn) lines.push(GANGSAY[key](others));
+    if (!b.tauntI && cst && !cst.full && met > 0 && !b.persona.last && PLANS[key]) { const pl = PLANS[key][(met - 1 + (b.vh >>> 7)) % PLANS[key].length]; lines.push(pl[0]); b.plan = pl[1]; } /* and this time he has a plan */
     Dialogue.show(b.kin.sp.names ? KIN.name(b.kin) : 'The tyrant', lines, () => { if (!b.scene) return; b.scene.stage = 'laugh'; b.scene.t = 0; UI.sfx('laugh'); say(b.x, b.y + hgt + 0.5, b.z, b.persona.laugh || 'Ha! Ha! Haaa!', 1.7, b); const el = bubbles[bubbles.length - 1].el; el.style.font = '900 19px/1.2 system-ui,sans-serif'; el.style.background = '#2a1f33'; el.style.color = '#ffd9a0'; el.style.border = '2px solid #b070ff'; }); }
   function sceneTick(v, b, player, dt) { const sc = b.scene, now = performance.now(); if (!b._an && typeof Anim !== 'undefined') b._an = Anim.fresh(b, now); sc.t += dt; b.x = sc.x; b.z = sc.z; b.yaw = Math.atan2(player.x - b.x, player.z - b.z); b.alert = 0; b.sus = 0; player.frozen = true; player.vx = player.vz = 0; G.talkNpc = b;
     if (sc.stage === 'talk') { b.speakUntil = now + 220; if (!Dialogue.active() && sc.t > 0.5) { sc.stage = 'laugh'; sc.t = 0; } /* however the box was closed, he still gets his laugh */ if (b._an) b._an.nod = Math.sin(now / 520) * 0.06; return; }
     /* the laugh: head right back, jaw wide, shoulders going */
     const u = Math.min(1, sc.t / 0.25), out = Math.max(0, (sc.t - 1.35) / 0.3); b.jawOpen = (0.75 + 0.25 * Math.abs(Math.sin(now / 70))) * (1 - out); if (b.face) { b.face.jaw = b.jawOpen; b.face.lid = 0.75; b.face.bl = -0.25; b.face.br = -0.25; }
     if (b._an) { b._an.nod = (-0.62 * u + Math.sin(now / 62) * 0.07) * (1 - out); b._an.lean = -0.12 * u * (1 - out); } b.hover = (b.model.hover || 0) + Math.abs(Math.sin(now / 62)) * 0.05 * (1 - out);
-    if (sc.t > 1.7) { b.scene = null; b.hover = b.model.hover || 0; if (b._an) { b._an.nod = 0; b._an.lean = 0; } player.frozen = false; G.sceneHold = 0; b.alert = 1; b.cool = 0; Battle.start(b, false); } }
+    if (sc.t > 1.7) { b.scene = null; b.hover = b.model.hover || 0; if (b._an) { b._an.nod = 0; b._an.lean = 0; } player.frozen = false; G.sceneHold = 0; b.alert = 1; b.cool = 0;
+      if (b.plan) { UI.sfx('hurt'); UI.toast(b.plan, 'good'); const k = b.kin; if (k && k.hp > 1) k.hp = Math.max(1, Math.round(k.hp * 0.85)); b.plan = null; } /* the plan goes off, on him: he starts the fight a little the worse for it */
+      Battle.start(b, false); } }
+  /* who holds this place. A village has one of the three, a town two, a city all three. Kept once it is settled, so the same faces are there when you come back */
+  function gangOf(v, lead) { const st = state(v.id); if (!lead || lead.full || v.starter || v.type !== 'land' || world.preset.id !== 'earth') return lead ? [lead] : [];
+    const n = v.size === 'city' ? 3 : v.size === 'town' ? 2 : 1; if (!st.gangNames) { st.gangNames = [lead.name].concat(CAST.earth.filter(c => c.name !== lead.name && metCount(c.name) <= LAST_AT).slice(0, n - 1).map(c => c.name)); remember(v, st); }
+    return st.gangNames.map(nm => CAST.earth.find(c => c.name === nm)).filter(Boolean); }
   function ensureBoss(v, trainerLevel) {
-    if (state(v.id).freed || v.boss) return;
+    if (state(v.id).freed || v.boss) return; const st = state(v.id), h0 = U.combine(0x9001, U.strHash(v.id)), lead = castOf(v, h0);
+    const roster = gangOf(v, lead).filter(c => !(st.gangOut || []).includes(c.name));
+    if (roster.length <= 1 && (!roster[0] || roster[0] === lead) && !(st.gangOut || []).length) { v.boss = buildBoss(v, null, 0); v.gang = []; Wild.list.push(v.boss); return; }
+    if (!roster.length) return; v.boss = buildBoss(v, roster[0], 0); v.boss.turn = (st.gangOut || []).length > 0; v.gang = roster.slice(1).map((c, i) => buildBoss(v, c, i + 1)); Wild.list.push(v.boss); }
+  function buildBoss(v, force, slot) {
     const prim = v.style === 'alien' ? 'Light' : v.style === 'halo' ? 'Flame' : v.style === 'atlantis' ? 'Tide' : v.type === 'land' ? 'Stone' : v.type === 'sea' ? 'Tide' : 'Void';
     const shape = v.style === 'alien' ? 'floater' : v.style === 'halo' ? 'quadruped' : v.style === 'atlantis' ? 'serpent' : 'biped';
     const h = U.combine(0x9001, U.strHash(v.id));
-    const sp = KIN.species(h, [prim], 1 + v.tier, { primary: prim, shape, total: 285 + v.tier * 40, neon: world.preset.id !== 'earth' });
+    const sp = KIN.species(force ? U.combine(h, 77 + U.strHash(force.name)) : h, [prim], 1 + v.tier, { primary: prim, shape, total: 285 + v.tier * 40, neon: world.preset.id !== 'earth' });
     const tn = styleOf(v) ? STYLE_NAMES[v.style].tyrant : null;
-    const cast = castOf(v, h), nm = v.starter ? 'Grakor the Tyrant' : cast ? (cast.full ? cast.name : cast.name + ' the Tyrant') : tn ? tn[h % tn.length] : TYRANT[h % TYRANT.length] + ' the Tyrant';
+    const cast = force || castOf(v, h), nm = v.starter ? 'Grakor the Tyrant' : cast ? (cast.full ? cast.name : cast.name + ' the Tyrant') : tn ? tn[h % tn.length] : TYRANT[h % TYRANT.length] + ' the Tyrant';
     const md = cast ? cast.mood : (h >>> 3) % 3;
     if (shape === 'biped' && v.type === 'land' && md !== 1) { const c = md === 0 ? [['#3f8a6a', '#e6dc9a', '#17392e'], ['#5a7fa0', '#e8e2b4', '#1c2f44'], ['#8a8a3a', '#f0e6a8', '#35360f']] : [['#9a7438', '#efdfae', '#3f2a12'], ['#6f8a3c', '#eee8b0', '#28340f'], ['#a05a4a', '#f2d6b8', '#40201a']], q = c[(cast ? 0 : h) % 3];
       sp.colors = { body: q[0], belly: q[1], dark: q[2], accent: '#b070ff', eye: md === 0 ? '#ffd24a' : '#c58bff' }; sp.natId = md === 0 ? 'x_tyr_liz' : 'x_tyr_toad'; KIN.nativize(sp); } // each of them is a creature of his own: the sly one a lizard up on his hind legs, the merry one a toad, the grim one the ape of rock
@@ -13491,16 +13518,16 @@ const Village = (() => {
       sp.colors = { body: c[0], belly: c[1], dark: c[2], accent: c[3], eye: '#c58bff' }; sp.natId = PL[0]; KIN.nativize(sp); } // and so are the Moon's, the Halo's and the one under the sea
     sp.tyrMood = cast ? cast.mood : (h >>> 3) % 3; // the sly one, the grim one or the merry one. Grakor is sly
     sp.names = [nm, nm, nm]; sp.feat.horns = true; sp.feat.spikes = true; sp.feat.crest = true; sp.size = 1.5 + v.tier * 0.08; sp.boss = true; sp.colors = Object.assign({}, sp.colors, { eye: '#c58bff' }); // the eyes of the Bound are the colour of the crystal
-    const lastStand = cast && !cast.full && metCount(cast.name) >= LAST_AT; if (cast) state(v.id).tyrant = cast.name; if (lastStand) { sp.size *= 1.12; sp.names = sp.names.map(() => cast.name + ', at the last'); }
+    const lastStand = cast && !cast.full && metCount(cast.name) >= LAST_AT; if (cast && !force) state(v.id).tyrant = cast.name; if (lastStand) { sp.size *= 1.12; sp.names = sp.names.map(() => cast.name + ', at the last'); }
     const kin = KIN.create(sp, bossLevelFor(v) + (lastStand ? 4 : 0));
     const m0 = KIN.model(sp, 2); if (sp.natId === 'x_tyr_liz' || sp.natId === 'x_tyr_toad') m0.noCrown = true; // those two wear crowns of their own
     const m = sp.natId === 'x_tyr_toad' ? m0 : KIN.dress(m0, { item: 'tyrant' }); // the toad has no neck to strap anything to: his shard is pinned on with the medals // crowned in iron, the shard of the Binding on its chest
-    const bx = v.type === 'deep' ? v.x - 0.5 : v.x + 0.5, bz = v.z + 2.5;
+    const bx = (v.type === 'deep' ? v.x - 0.5 : v.x + 0.5) + (slot === 1 ? 2.7 : slot === 2 ? -2.7 : 0), bz = v.z + 2.5 - (slot ? 1.5 : 0);
     // at sea the tyrant lurks under the deck and comes up when you reach the platform, however you got there
     const lurk = v.type === 'sea'; const by = lurk ? SEA - 3 : v.y;
-    v.boss = { kin, x: bx, y: by, z: bz, yaw: Math.PI, tx: bx, tz: bz, wait: 99, speed: 0, senseR: lurk ? 0 : 5.5, alert: 0, model: m, scale: 1, hover: 0, bob: 0, mesh: R.entityMesh(KIN.meshKey(sp, 2) + ':tyrant:' + v.id, (mb) => KIN.buildMesh(mb, m)), skyMul: 1, isBoss: true, villageId: v.id, sleep: lurk, aquatic: lurk, lurk, patrol: { ax: bx - 3, az: bz, bx: bx + 3, bz: bz, period: lurk ? 12 : 8, phase: 0 }, skyT: 0, elite: true };
-    v.boss.persona = tyrantVoice(v, sp.tyrMood || 0, h); v.boss.vh = h; v.boss.sayH = (m.height || 2.4) + 0.35;
-    Wild.list.push(v.boss);
+    const e = { kin, x: bx, y: by, z: bz, yaw: Math.PI, tx: bx, tz: bz, wait: 99, speed: 0, senseR: lurk ? 0 : 5.5, alert: 0, model: m, scale: 1, hover: 0, bob: 0, mesh: R.entityMesh(KIN.meshKey(sp, 2) + ':tyrant:' + v.id + (force ? ':' + force.name : ''), (mb) => KIN.buildMesh(mb, m)), skyMul: 1, isBoss: true, villageId: v.id, sleep: lurk, aquatic: lurk, lurk, patrol: { ax: bx - 3, az: bz, bx: bx + 3, bz: bz, period: lurk ? 12 : 8, phase: 0 }, skyT: 0, elite: true };
+    e.persona = tyrantVoice(v, sp.tyrMood || 0, h, force); e.vh = h; e.cast0 = force || null; e.sayH = (m.height || 2.4) + 0.35;
+    return e;
   }
   // touching the table in a village the tyrant still holds brings him down on you
   function tableChallenge() {
@@ -13524,11 +13551,18 @@ const Village = (() => {
   function bossLevelFor(v) { return Math.max(3, (G.trainerLevel || 1) - 1 + (v.size === 'city' ? 6 : v.size === 'town' ? 2 : 0) + v.tier * 2, (v.zoneBase || 0) + v.tier * 3); }
   /* a beaten tyrant is not dead and not caught: he legs it. He turns, bolts away from you, and is gone in dust past the wall. The Moon one lifts off, the sea one dives */
   const runners = [];
-  function onBossGone(id) { const v = villages.get(id); if (!v) return; const b = v.boss; v.boss = null; if (!b || !b.model) return;
+  /* one of them is beaten. He says his piece and goes. If he brought company the next one steps up, and the place is only free when the last is out */
+  function bossBeaten(b) { const v = villages.get(b.villageId); if (!v) return; const st = state(v.id), cst = b.persona && b.persona.cast, nm = b.kin ? KIN.name(b.kin) : 'The tyrant';
+    if (b.persona && b.persona.beaten) { say(b.x, b.y + (b.sayH || 3.2), b.z, b.persona.beaten, 6, b); const el = bubbles[bubbles.length - 1].el; el.style.font = '700 15px/1.3 system-ui,sans-serif'; el.style.maxWidth = '78vw'; el.style.background = '#2a1f33'; el.style.color = '#f6eaff'; el.style.border = '2px solid #b070ff'; UI.toast(`${nm}: "${b.persona.beaten}"`); }
+    if (cst) { G.stats.tyrantMet = G.stats.tyrantMet || {}; G.stats.tyrantMet[cst.name] = (G.stats.tyrantMet[cst.name] || 0) + 1; st.gangOut = (st.gangOut || []).concat([cst.name]); }
+    const next = (v.gang || []).shift(); onBossGone(v.id, 2.4);
+    if (next) { remember(v, st); next.turn = true; next.persona = tyrantVoice(v, next.kin.sp.tyrMood || 0, next.vh, next.cast0); v.boss = next; Wild.list.push(next); next.fought = false; next.hailed = false; UI.toast(`${nm} is out. ${KIN.name(next.kin)} is still standing.`, 'bad'); return; }
+    freed(v.id, nm); UI.toast('The village is free.', 'good'); }
+  function onBossGone(id, hold) { const v = villages.get(id); if (!v) return; const b = v.boss; v.boss = null; if (!b || !b.model) return; b.runHold = hold || 0;
     const p = G.player; let dx = b.x - p.x, dz = b.z - p.z; const d = Math.hypot(dx, dz) || 1; dx /= d; dz /= d;
     const shape = b.kin && b.kin.sp ? b.kin.sp.shape : ''; b.sleep = false; b.sus = 0;
     runners.push({ e: b, dx, dz, t: 0, up: shape === 'floater' ? 1 : shape === 'serpent' ? -1 : 0, y0: Math.floor(b.y), s0: b.scale || 1, wob: Math.random() * 6 }); }
-  function runTick(dt) { for (let i = runners.length - 1; i >= 0; i--) { const r = runners[i], e = r.e; r.t += dt;
+  function runTick(dt) { for (let i = runners.length - 1; i >= 0; i--) { const r = runners[i], e = r.e; r.t += dt; if (e.runHold > 0) { e.runHold -= dt; r.t = 0; e.yaw = Math.atan2(G.player.x - e.x, G.player.z - e.z); continue; } /* he stands there and says it to your face first */
       const go = r.t < 0.45 ? 0 : Math.min(1, (r.t - 0.45) * 2.2), sp = (r.up ? 4.5 : 7.5) * go, sw = Math.sin(r.t * 5 + r.wob) * 0.35 * go; /* a beat of standing there first, then off, weaving a bit */
       /* he keeps to open ground: every fifth of a second he looks a few steps ahead and takes the clear way nearest the one he is on, never back at you. Houses, walls, carts, you and your Kin all get gone round */
       if (!r.up) { r.look = (r.look || 0) - dt; if (r.look <= 0) { r.look = 0.18; const p = G.player, h0 = Math.atan2(r.dx, r.dz), fy = Math.floor(e.y); let best = null, bs = 1e9;
@@ -13542,14 +13576,14 @@ const Village = (() => {
       const out = Math.max(0, (r.t - (r.up ? 2.3 : 3.2)) / 0.6); e.scale = r.s0 * (1 - out * out);
       if (!r.up && go > 0 && (G.frame & 3) === 0 && typeof Hazards !== 'undefined') Hazards.puff(e.x, e.y + 0.2, e.z, 1, [0.72, 0.66, 0.52]);
       if (out >= 1) { if (typeof Hazards !== 'undefined') Hazards.puff(e.x, e.y + 1, e.z, 12, r.up > 0 ? [0.8, 0.9, 1.0] : [0.72, 0.66, 0.52]); runners.splice(i, 1); } } }
-  function freed(id) {
+  function freed(id, tyr0) {
     const v = villages.get(id); if (!v) return;
     const st = state(id); if (st.freed) return;
     st.freed = true; st.income = incomeFor(v, st); st.freedDay = curNight(); st.report = null; clearLieutenants(v); remember(v, st);
     for (const n of v.npcs) n.hidden = false;
     G.stats.villagesFreed = (G.stats.villagesFreed || 0) + 1;
     if (v.starter) G.stats.villageFreed = true;
-    const tyrant = v.boss ? (v.boss.title || v.boss.name || (v.boss.kin ? KIN.name(v.boss.kin) : null)) : null;
+    const tyrant = tyr0 || (v.boss ? (v.boss.title || v.boss.name || (v.boss.kin ? KIN.name(v.boss.kin) : null)) : null);
     if (v.boss && v.boss.persona && v.boss.persona.cast) { const nm0 = v.boss.persona.cast.name; G.stats.tyrantMet = G.stats.tyrantMet || {}; G.stats.tyrantMet[nm0] = (G.stats.tyrantMet[nm0] || 0) + 1; }
     if (v.boss && v.boss.persona) { say(v.boss.x, v.boss.y + 3.2, v.boss.z, v.boss.persona.beaten, 7); const el = bubbles[bubbles.length - 1].el; el.style.font = '700 14px/1.3 system-ui,sans-serif'; el.style.maxWidth = '74vw'; el.style.background = '#2a1f33'; el.style.color = '#f6eaff'; el.style.border = '2px solid #b070ff'; if (typeof UI !== 'undefined' && UI.toast) UI.toast(`${tyrant}: "${v.boss.persona.beaten}"`); }
     if (v.elder) { v.elder.wander = false; walkState = { v, tyrant, stage: (v.starter && !G.stats.elderDone) ? 'approach' : 'approach-headman' }; }
@@ -14382,6 +14416,7 @@ const Village = (() => {
     if (active) out.push(...trainPieces(active), ...ferryPieces(active));
     if (active) {
       for (const n of active.npcs) if (!n.hidden) out.push({ x: n.x, y: n.y, z: n.z, yaw: n.yaw, model: n.model, mesh: n.mesh, scale: n.scale || 1, hover: 0, skyMul: 1, src: n });
+      if (active.gang && !state(active.id).freed) for (const g of active.gang) { g.yaw = Math.atan2(G.player.x - g.x, G.player.z - g.z); g.y = standY(g.x, g.y, g.z) ?? g.y; out.push(g); } /* the ones waiting their turn stand behind the first and watch you */
       for (const g of active.guardEnts) if (g.kin.hp > 0) out.push({ x: g.x, y: g.y, z: g.z, yaw: g.yaw, model: g.model, mesh: g.mesh, scale: 1, hover: (g.model.hover || 0) + (g.leap || 0) + (g.hitT > 0 ? Math.sin(g.hitT * 60) * 0.08 : 0), skyMul: 1, isMount: true, src: g });
       for (const g of active.guardEnts) if (g.hitT > 0) g.hitT -= 0.016;
     }
@@ -14474,7 +14509,7 @@ const Village = (() => {
   }
   // which quarter of a city a spot is in (null in the square, on the castle hill, or outside a city)
   function quarterAt(v, x, z) { if (!v || !v.R || v.size !== 'city' || (MATS[v.style] || MATS.land) !== MATS.land) return null; const dx = x - v.x, dz = z - v.z, m = Math.max(Math.abs(dx), Math.abs(dz)); if (m > v.R - 4 || m <= 7 || (Math.abs(dx) <= 14 && dz <= -v.R + 28)) return null; return QUARTERS[quarterOf(dx, dz)].name; }
-  return { makeNpc, addLoose: (n) => { if (!loose.includes(n)) loose.push(n); }, designerWall, wallRadiusOf: (v) => wallRadius(state(v.id)), atlantis: () => { if (world && world.preset.id === 'earth') plan(); return ATL; }, railAt, quarterAt, plotsOf, plotPrice, ownsPlotAt, buyPlot, enterShow, thiefCaught, layout, townList, init, stamp, restoreStart, update, pick, talk, entities, buy, boardTrain, trainArrive, trainFilm, trainOf, sell, sellValue, raiseDome, shopDef, freed, onBossGone, lieutenantDown, tableChallenge, placeKit, portalList, portalHere, markers, wakeDialogue, questTarget, dawn, pendingIncome, foundingInfo, foundVillage, summaryHtml, ledger, station, recall, upgradeWall, repairWall, expand, build, postShop, levelOf, SHOPS, WALLS,
+  return { bossBeaten, makeNpc, addLoose: (n) => { if (!loose.includes(n)) loose.push(n); }, designerWall, wallRadiusOf: (v) => wallRadius(state(v.id)), atlantis: () => { if (world && world.preset.id === 'earth') plan(); return ATL; }, railAt, quarterAt, plotsOf, plotPrice, ownsPlotAt, buyPlot, enterShow, thiefCaught, layout, townList, init, stamp, restoreStart, update, pick, talk, entities, buy, boardTrain, trainArrive, trainFilm, trainOf, sell, sellValue, raiseDome, shopDef, freed, onBossGone, lieutenantDown, tableChallenge, placeKit, portalList, portalHere, markers, wakeDialogue, questTarget, dawn, pendingIncome, foundingInfo, foundVillage, summaryHtml, ledger, station, recall, upgradeWall, repairWall, expand, build, postShop, levelOf, SHOPS, WALLS,
     get def() { return active ? { x: active.x, y: active.y, z: active.z } : null; }, set def(v) { restoreStart(v); }, get active() { return active; }, get boss() { return active ? active.boss : null; }, get elder() { return active ? active.elder : null; }, get walking() { return !!walkState; }, get fisher() { return fisher; } };
 })();
 
@@ -21213,7 +21248,7 @@ G.onBattleEnd = function (result, wildE, wild, mine, ambush) {
       if (st) { this.stats.mythicDone = true; this.mythicCaught = true; UI.toast('You hold the Mythic of the Core. The Starmetal hums: the sky beyond opens in the next version.', 'good'); }
     }
     Wild.remove(wildE);
-    if (wildE.isBoss) { Village.onBossGone(wildE.villageId); Village.freed(wildE.villageId); UI.toast('The village is free.', 'good'); }
+    if (wildE.isBoss) Village.bossBeaten(wildE);
     if (wildE.isLegend && !this.stats.lostMap) setTimeout(() => this.giveLostMap('A voice on the wind'), 4000);
     if (wildE.isApex === 'mosa' && !this.stats.atlTooth) { this.stats.atlTooth = true; this.player.add('abysstooth', 1); setTimeout(() => UI.toast('It left a tooth behind, as long as your forearm. Somebody will want that.', 'good'), 2500); }
     if (wildE.isApex) { if (!this.stats.apex) this.stats.apex = {}; this.stats.apex[wildE.isApex] = result === 'caught' ? true : { back: (this.dayCount || 0) + 10 }; UI.sfx('quest'); UI.toast(result === 'caught' ? `${KIN.name(wild)} is yours. Nobody is going to believe this.` : `${KIN.name(wild)} is beaten, not caught. It will be back in about ten days.`, 'good'); this.addTrainerXp(5000); }

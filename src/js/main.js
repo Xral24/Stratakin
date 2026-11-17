@@ -560,7 +560,7 @@ G.onBattleEnd = function (result, wildE, wild, mine, ambush) {
       if (st) { this.stats.mythicDone = true; this.mythicCaught = true; UI.toast('You hold the Mythic of the Core. The Starmetal hums: the sky beyond opens in the next version.', 'good'); }
     }
     Wild.remove(wildE);
-    if (wildE.isBoss) { Village.onBossGone(wildE.villageId); Village.freed(wildE.villageId); UI.toast('The village is free.', 'good'); }
+    if (wildE.isBoss) Village.bossBeaten(wildE);
     if (wildE.isLegend && !this.stats.lostMap) setTimeout(() => this.giveLostMap('A voice on the wind'), 4000);
     if (wildE.isApex === 'mosa' && !this.stats.atlTooth) { this.stats.atlTooth = true; this.player.add('abysstooth', 1); setTimeout(() => UI.toast('It left a tooth behind, as long as your forearm. Somebody will want that.', 'good'), 2500); }
     if (wildE.isApex) { if (!this.stats.apex) this.stats.apex = {}; this.stats.apex[wildE.isApex] = result === 'caught' ? true : { back: (this.dayCount || 0) + 10 }; UI.sfx('quest'); UI.toast(result === 'caught' ? `${KIN.name(wild)} is yours. Nobody is going to believe this.` : `${KIN.name(wild)} is beaten, not caught. It will be back in about ten days.`, 'good'); this.addTrainerXp(5000); }

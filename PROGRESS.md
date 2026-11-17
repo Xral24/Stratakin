@@ -390,6 +390,8 @@ Scope (Alexander, 8 Nov evening): EVERYTHING visible goes to the same standard: 
 
 - 17 Nov, three fixes from play (his ask: tyrant's eyes stayed put when he laughed, rails zigzagged and one piece was missing at the station, a field sat half on the mine). **Face bones (jaw, lids, brows) now ride a steady head when it nods or turns; rail route is straightened before rounding and the block in the wall opening survives the gates; fields wait for loaded land, keep 36 clear of every campaign site and never touch built blocks.**
 
+- 17 Nov, tyrant gangs (his ask: one tyrant per village, two per town, three per city, they remember you, a daft plan each time, a proper parting line). **Towns are held by two of Grakor, Morrug and Obrin and cities by all three: they stand together, the first says who he brought, each steps up in turn, the place is free when the last is out. On a rematch each has a plan that backfires (he starts 15% down). Parting lines point at the Kinmaster and the shards. Fixed: wins were never counted, so nobody ever remembered you, and the parting line never showed.** Not done: each one locking a different service until he is beaten.
+
 ## Still to do
 UI polish as feedback comes in. Card battle screen still used for scripted encounters (raids at the walls, thief, citadel duel, holds) and the snare mini-game; converting those to live is the next big step if wanted. (Old list: train/ships, combat animation, eggs, avatar hair/paint, buddy WEAR cosmetics, Silas and Finch, UI polish (item icons), quality toggles in settings (state.shadows, state.grassQuality, state.dprCap).
 
