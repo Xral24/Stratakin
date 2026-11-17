@@ -213,7 +213,7 @@ const Village = (() => {
     atlantis: { a: ['Nereid', 'Abyss', 'Pearl', 'Coral', 'Triton', 'Tide', 'Kelp', 'Siren', 'Deep', 'Brine'], b: ['hold', 'deep', 'court', 'reach', 'spire', 'well', 'gate', 'vault'], people: ['Nerissa', 'Thal', 'Meridia', 'Orm', 'Calyx', 'Sura', 'Pelagos', 'Isolde', 'Brann', 'Ione', 'Delphin', 'Marrow'], tyrant: ['Vorthal the Drowned', 'Ulmara the Drowned', 'Keth the Drowned', 'Morvane the Drowned'], headman: 'Tide-Warden', elder: 'Tide-Warden' },
   };
   const PEOPLE = ['Tam', 'Lio', 'Wren', 'Sable', 'Juno', 'Bram', 'Odile', 'Pim', 'Rusk', 'Nell', 'Corin', 'Vesna', 'Ilo', 'Marit'];
-  const TYRANT = ['Grakor', 'Vashek', 'Morrug', 'Ulnath', 'Skarn', 'Drelk', 'Thozz', 'Vexmar', 'Krull', 'Obrin', 'Zaghul', 'Nerrok'];
+  const TYRANT = ['Keychain', 'Vashek', 'Stonewall', 'Ulnath', 'Skarn', 'Drelk', 'Thozz', 'Vexmar', 'Krull', 'Bigmouth', 'Zaghul', 'Nerrok'];
   const styleOf = (v) => (v && STYLE_NAMES[v.style]) ? v.style : null;
   const peopleOf = (v) => styleOf(v) ? STYLE_NAMES[v.style].people : PEOPLE;
   const headmanTitle = (v) => styleOf(v) ? STYLE_NAMES[v.style].headman : 'Headman';
@@ -222,7 +222,7 @@ const Village = (() => {
   const FULL = { bakery: true, juice: true, trader: true, voodoo: true };
 
   function init(game) {
-    G = game; world = game.world; villages.clear(); hermits.clear(); active = null; activeHermit = null; walkState = null; fisher = null; loose.length = 0;
+    G = game; world = game.world; villages.clear(); hermits.clear(); active = null; activeHermit = null; walkState = null; if (filmEl) { filmEl.remove(); filmEl = null; } film = null; fisher = null; loose.length = 0;
     const vd = world.preset.villages || { nc: 64, prefix: '', style: 'land' }; NC = vd.nc; CELL = WORLD_W / NC; PREFIX = vd.prefix || ''; STYLE = vd.style || 'land';
     PLAN = null; PLANNED = null; TRAILS = null; ATL = null; world.atlantis = null; SPECIAL.clear(); LOOK.clear(); towns.clear(); LIFE.clear(); world.overlay = (c) => overlay(c); world.trailWear = (x, z) => trailWear(x, z); world.trackAt = (x, z) => trackAt(x, z);
   }
@@ -1453,7 +1453,7 @@ const Village = (() => {
   }
   // the siege: inside the perimeter of a held village the guards come for you one after another, then the tyrant
   function siege(v, st, player, dt, nd) {
-    if (st.freed || nd > 60 || v.starter) { v.siege = null; return; } // Grakor waits in the square: the first fight is yours to pick
+    if (st.freed || nd > 60 || v.starter) { v.siege = null; return; } // Keychain waits in the square: the first fight is yours to pick
     if (!v.siege) {
       v.siege = { t: 0, cleared: false };
       // the perimeter is theirs alone: ordinary wild Kin move off
@@ -1809,7 +1809,7 @@ const Village = (() => {
       taunts: ['Closer. I see badly.', 'Everything in here tastes of pearl.'], fight: 'At last, something that came in from outside.', beaten: 'Open the gate, then. I have outgrown the place anyway.' },
   };
   // the tyrants are few and you keep meeting them. Each world has its handful; a village is held by one of them, and when you throw him out of one he turns up in another, remembering you. pal: which of his kind's colours he always wears
-  const CAST = { earth: [{ name: 'Grakor', mood: 0, pal: 0 }, { name: 'Morrug', mood: 1, pal: 1 }, { name: 'Obrin', mood: 2, pal: 2 }] };
+  const CAST = { earth: [{ name: 'Keychain', mood: 0, pal: 0 }, { name: 'Stonewall', mood: 1, pal: 1 }, { name: 'Bigmouth', mood: 2, pal: 2 }] };
   function castOf(v, h) { const tn = styleOf(v) && STYLE_NAMES[v.style] && STYLE_NAMES[v.style].tyrant; if (v.style === 'atlantis') return { name: tn[0], mood: 1, pal: 0, full: true };
     if (tn && (v.style === 'alien' || v.style === 'halo')) { const i = h % 2; return { name: tn[i], mood: i, pal: i, full: true }; } if (tn) return null; // the other peoples keep their own
     if (v.type !== 'land') return null; if (v.starter) return CAST.earth[0]; for (let k = 0; k < 3; k++) { const c = CAST.earth[(h + k) % 3]; if (metCount(c.name) <= LAST_AT || state(v.id).tyrant === c.name) return c; } return null; } // one who has made his last stand holds nowhere else; when all three have, the villages left are held by lesser names
@@ -1824,9 +1824,9 @@ const Village = (() => {
     halo: [['You. I ran half the ring to be rid of you.', 'Round and round. We keep meeting because the ring has no end. I checked.'], 'Hff. Further round, then. I will see you when the ring brings you.'],
     atlantis: [['Back again? Nothing ever leaves this bowl.'], 'Open the gate, then. I have outgrown the place anyway.'] };
   /* what each says as he goes, the first time you throw him out of somewhere. It points on: at the others, at the Kinmaster, at the shard he wears */
-  const PART = { sly: ['Keep it. The Kinmaster cut these keys, not me. He has the pattern for every lock there is, and he knows your face now.', 'One ring gone. Morrug has the walls and Obrin has the larder, and neither of them gives things back.', 'You think this shard on my chest is a medal. It is a leash. Pull hard enough on mine and somebody feels it at the other end.'],
-    grim: ['Hm. The wall was good. You were better. I will tell him so, and he will not like hearing it.', 'I hold what I am told to hold. The one who tells me has not lost yet. Remember that when you meet him.', 'Go on. Grakor will lie about this and Obrin will sing about it. I will just remember it.'],
-    glee: ['Oh, well played! I shall put it in the song. The Kinmaster hates the song. That is how I know it is good.', 'Off I go! Tell Grakor I lost first, he will be so pleased. Tell Morrug nothing, he sulks.', 'Take the lot! It was never mine. Nothing is, we are all on the same string. Mind who is holding the other end.'] };
+  const PART = { sly: ['Keep it. The Kinmaster cut these keys, not me. He has the pattern for every lock there is, and he knows your face now.', 'One ring gone. Stonewall has the walls and Bigmouth has the larder, and neither of them gives things back.', 'You think this shard on my chest is a medal. It is a leash. Pull hard enough on mine and somebody feels it at the other end.'],
+    grim: ['Hm. The wall was good. You were better. I will tell him so, and he will not like hearing it.', 'I hold what I am told to hold. The one who tells me has not lost yet. Remember that when you meet him.', 'Go on. Keychain will lie about this and Bigmouth will sing about it. I will just remember it.'],
+    glee: ['Oh, well played! I shall put it in the song. The Kinmaster hates the song. That is how I know it is good.', 'Off I go! Tell Keychain I lost first, he will be so pleased. Tell Stonewall nothing, he sulks.', 'Take the lot! It was never mine. Nothing is, we are all on the same string. Mind who is holding the other end.'] };
   /* a town is held by two of them and a city by all three. What the first says about the company he has brought, and what the next says when it is his turn */
   const GANGSAY = { sly: (o) => o.length > 1 ? `And look who I brought. ${o[0]} and ${o[1]}. Three of us, one of you. I have done the sum twice.` : `There are two of us this time. ${o[0]} is right there. What are you going to do about that?`,
     grim: (o) => o.length > 1 ? `Three of us. ${o[0]}. ${o[1]}. Me. Count them.` : `Two of us now. ${o[0]} and me. You will not move two.`,
@@ -1855,7 +1855,7 @@ const Village = (() => {
     // once he has had his say there is no walking away from it: step inside the reach of his voice and when he has finished speaking he comes for you. Every tyrant, the first one included
     if (b.fightAt && performance.now() > b.fightAt && d < 22 && !b.lurk) { b.fightAt = 0; b.patrol = null; b.alert = 1; b.cool = 0; const p = player; if (d > 5) { b.x = p.x + (b.x - p.x) * (4.5 / d); b.z = p.z + (b.z - p.z) * (4.5 / d); b.y = standY(b.x, b.y, b.z) ?? b.y; } b.yaw = Math.atan2(p.x - b.x, p.z - b.z); Battle.start(b, false); return; }
     if (b.scene) return sceneTick(v, b, player, dt);
-    if (d > 13) { if (d > 30) b.fought = false; return; } // get right away from him and he will have his say again before he comes for you
+    if (d > 13) { if (d > 30) b.fought = false; if (d < 42 && !b.warned && !b.fought && G.kin && G.kin.length) { b.warned = true; const best = Math.max(...G.kin.map(k => k.level || 1)); if (best + 5 < b.kin.level) UI.toast(`${KIN.name(b.kin)} is level ${b.kin.level}. Your best Kin is level ${best}. Once you step into the square there is no walking away.`, 'bad'); } return; } // get right away from him and he will have his say again before he comes for you
     if (b.fought || b.lurk || Dialogue.active() || UI.panelOpen || player.flying || player.mount) return;
     /* you have walked into his reach, and that is that. You stop. The view goes to him. He turns, looks straight at you, says his piece with his whole face, throws his head back and laughs, and then it is the fight. There is no walking off in the middle */
     if (!b.hailed) b.persona = tyrantVoice(v, b.kin.sp.tyrMood || 0, b.vh, b.cast0); /* he may have met you somewhere else since he was put here */
@@ -1891,7 +1891,7 @@ const Village = (() => {
     const h = U.combine(0x9001, U.strHash(v.id));
     const sp = KIN.species(force ? U.combine(h, 77 + U.strHash(force.name)) : h, [prim], 1 + v.tier, { primary: prim, shape, total: 285 + v.tier * 40, neon: world.preset.id !== 'earth' });
     const tn = styleOf(v) ? STYLE_NAMES[v.style].tyrant : null;
-    const cast = force || castOf(v, h), nm = v.starter ? 'Grakor the Tyrant' : cast ? (cast.full ? cast.name : cast.name + ' the Tyrant') : tn ? tn[h % tn.length] : TYRANT[h % TYRANT.length] + ' the Tyrant';
+    const cast = force || castOf(v, h), nm = v.starter ? 'Keychain' : cast ? cast.name : tn ? tn[h % tn.length] : TYRANT[h % TYRANT.length] + ' the Tyrant';
     const md = cast ? cast.mood : (h >>> 3) % 3;
     if (shape === 'biped' && v.type === 'land' && md !== 1) { const c = md === 0 ? [['#3f8a6a', '#e6dc9a', '#17392e'], ['#5a7fa0', '#e8e2b4', '#1c2f44'], ['#8a8a3a', '#f0e6a8', '#35360f']] : [['#9a7438', '#efdfae', '#3f2a12'], ['#6f8a3c', '#eee8b0', '#28340f'], ['#a05a4a', '#f2d6b8', '#40201a']], q = c[(cast ? 0 : h) % 3];
       sp.colors = { body: q[0], belly: q[1], dark: q[2], accent: '#b070ff', eye: md === 0 ? '#ffd24a' : '#c58bff' }; sp.natId = md === 0 ? 'x_tyr_liz' : 'x_tyr_toad'; KIN.nativize(sp); } // each of them is a creature of his own: the sly one a lizard up on his hind legs, the merry one a toad, the grim one the ape of rock
@@ -1899,10 +1899,10 @@ const Village = (() => {
       sp.colors = { body: c[0], belly: c[1], dark: c[2], accent: '#b070ff', eye: '#c58bff' }; sp.natId = 'x_tyrant'; KIN.nativize(sp); } // a tyrant who walks on two legs is a shape of his own, not one of the wild Kin grown large
     else { const PL = shape === 'floater' ? ['x_tyr_moon', [['#9fb6d8', '#e8f0ff', '#2a3350', '#7df0ff'], ['#b8a8dc', '#f0eaff', '#33284f', '#ffd27a'], ['#8fcfc4', '#e6fff8', '#1f3d40', '#ff9ad8']]] : shape === 'quadruped' ? ['x_tyr_halo', [['#5a3526', '#d08a4a', '#241410', '#ff7a1e'], ['#4a3030', '#c9785a', '#1e1212', '#ffb020'], ['#3f3a36', '#b89070', '#191614', '#ff5a2a']]] : ['x_tyr_sea', [['#2f6a5c', '#d8e6b8', '#12302a', '#ffd84a'], ['#3a5f86', '#dfe8d0', '#152a40', '#5affd0'], ['#6a4a7a', '#ead8e0', '#2a1a36', '#ff8ab0']]], c = PL[1][(cast ? cast.pal : h) % PL[1].length];
       sp.colors = { body: c[0], belly: c[1], dark: c[2], accent: c[3], eye: '#c58bff' }; sp.natId = PL[0]; KIN.nativize(sp); } // and so are the Moon's, the Halo's and the one under the sea
-    sp.tyrMood = cast ? cast.mood : (h >>> 3) % 3; // the sly one, the grim one or the merry one. Grakor is sly
+    sp.tyrMood = cast ? cast.mood : (h >>> 3) % 3; // the sly one, the grim one or the merry one. Keychain is sly
     sp.names = [nm, nm, nm]; sp.feat.horns = true; sp.feat.spikes = true; sp.feat.crest = true; sp.size = 1.5 + v.tier * 0.08; sp.boss = true; sp.colors = Object.assign({}, sp.colors, { eye: '#c58bff' }); // the eyes of the Bound are the colour of the crystal
     const lastStand = cast && !cast.full && metCount(cast.name) >= LAST_AT; if (cast && !force) state(v.id).tyrant = cast.name; if (lastStand) { sp.size *= 1.12; sp.names = sp.names.map(() => cast.name + ', at the last'); }
-    const kin = KIN.create(sp, bossLevelFor(v) + (lastStand ? 4 : 0));
+    const kin = KIN.create(sp, bossLevelFor(v) + (lastStand ? 4 : 0) + (slot || 0) * 2); /* in a gang each is a little stronger than the one before */
     const m0 = KIN.model(sp, 2); if (sp.natId === 'x_tyr_liz' || sp.natId === 'x_tyr_toad') m0.noCrown = true; // those two wear crowns of their own
     const m = sp.natId === 'x_tyr_toad' ? m0 : KIN.dress(m0, { item: 'tyrant' }); // the toad has no neck to strap anything to: his shard is pinned on with the medals // crowned in iron, the shard of the Binding on its chest
     const bx = (v.type === 'deep' ? v.x - 0.5 : v.x + 0.5) + (slot === 1 ? 2.7 : slot === 2 ? -2.7 : 0), bz = v.z + 2.5 - (slot ? 1.5 : 0);
@@ -1931,7 +1931,11 @@ const Village = (() => {
     UI.sfx('hurt'); UI.toast(`The water heaves. ${KIN.name(b.kin)} hauls itself onto the deck!`, 'bad');
     Battle.start(b, false);
   }
-  function bossLevelFor(v) { return Math.max(3, (G.trainerLevel || 1) - 1 + (v.size === 'city' ? 6 : v.size === 'town' ? 2 : 0) + v.tier * 2, (v.zoneBase || 0) + v.tier * 3); }
+  /* how strong the one who holds a place is. On Earth it climbs with what you have already freed, the way gyms do: the first village is 3, the next 5, and three more each time after. Towns sit above the villages, and the cities are the top of the world: 42, then 46, then 50. Settled the first time it is asked, so a place does not get harder behind your back */
+  function bossLevelFor(v) { if (world.preset.id === 'earth' && v.type === 'land' && !v.founded) { const st = state(v.id); if (st.bossLvl) return st.bossLvl; const n = G.stats.villagesFreed || 0, vil = v.starter ? 3 : Math.min(26, n <= 1 ? 3 + n * 2 : 5 + (n - 1) * 3); let cities = 0, towns = 0; for (const o of townList()) if (state(o.id).freed) { if (o.size === 'city') cities++; else if (o.size === 'town') towns++; }
+      const lvl = v.size === 'city' ? Math.min(50, 42 + cities * 4) : v.size === 'town' ? Math.min(38, Math.max(18, vil + 4) + towns * 3) : vil; if (st.stamped) st.bossLvl = lvl; return lvl; }
+    return bossLevelFor0(v); }
+  function bossLevelFor0(v) { return Math.max(3, (G.trainerLevel || 1) - 1 + (v.size === 'city' ? 6 : v.size === 'town' ? 2 : 0) + v.tier * 2, (v.zoneBase || 0) + v.tier * 3); }
   /* a beaten tyrant is not dead and not caught: he legs it. He turns, bolts away from you, and is gone in dust past the wall. The Moon one lifts off, the sea one dives */
   const runners = [];
   /* one of them is beaten. He says his piece and goes. If he brought company the next one steps up, and the place is only free when the last is out */
@@ -1959,6 +1963,21 @@ const Village = (() => {
       const out = Math.max(0, (r.t - (r.up ? 2.3 : 3.2)) / 0.6); e.scale = r.s0 * (1 - out * out);
       if (!r.up && go > 0 && (G.frame & 3) === 0 && typeof Hazards !== 'undefined') Hazards.puff(e.x, e.y + 0.2, e.z, 1, [0.72, 0.66, 0.52]);
       if (out >= 1) { if (typeof Hazards !== 'undefined') Hazards.puff(e.x, e.y + 1, e.z, 12, r.up > 0 ? [0.8, 0.9, 1.0] : [0.72, 0.66, 0.52]); runners.splice(i, 1); } } }
+  /* the little film when a place is freed. He says his last and runs; then the view lifts over the roofs, the light comes up gold, the gates swing open and the people come out of their houses. It comes down again beside you in time to watch the elder walk up. About ten seconds, and you cannot be hurt while it plays */
+  let film = null, filmEl = null;
+  function filmEnd() { if (!film) return; const p = G.player; p.frozen = false; G.cutCam = null; if (film.third != null) G.thirdPerson = film.third; if (filmEl) { filmEl.remove(); filmEl = null; } if (film.ws && !walkState) walkState = film.ws; film = null; }
+  function filmTick(dt) { const f = film, v = f.v, p = G.player; f.t += dt; if (f.t < 0) return; const u = f.t;
+    if (!f.on) { f.on = true; f.third = G.thirdPerson; G.thirdPerson = true; p.vx = p.vz = 0; UI.sfx('quest'); try { setGates(v, state(v.id), false); } catch (e) { /* no gates here */ }
+      filmEl = document.createElement('div'); filmEl.style.cssText = 'position:fixed;inset:0;z-index:45;pointer-events:none'; filmEl.innerHTML = '<div style="position:absolute;inset:0;background:radial-gradient(circle at 50% 38%,rgba(255,236,170,.95),rgba(255,200,90,.55) 45%,rgba(255,170,60,0) 80%);opacity:0"></div><div style="position:absolute;left:0;right:0;top:0;height:11vh;background:#000"></div><div style="position:absolute;left:0;right:0;bottom:0;height:11vh;background:#000"></div><div style="position:absolute;left:0;right:0;bottom:13vh;text-align:center;font:800 22px/1.2 system-ui,sans-serif;color:#fff3c8;text-shadow:0 2px 8px #000;opacity:0"></div>'; document.body.appendChild(filmEl); filmEl.children[3].textContent = v.name + ' is free'; }
+    p.frozen = true; p.vx = p.vz = 0; G.repelUntil = Math.max(G.repelUntil || 0, performance.now() + 4000);
+    if (filmEl) { filmEl.children[0].style.opacity = String(u < 0.5 ? u * 1.3 : Math.max(0, 0.65 - (u - 0.5) * 0.24)); filmEl.children[3].style.opacity = String(u < 0.8 ? 0 : u < 4.6 ? Math.min(1, (u - 0.8) * 2) : Math.max(0, 1 - (u - 4.6) * 2)); }
+    const look = (cx, cy, cz, lx, ly, lz) => { G.cutCam = { x: cx, y: cy, z: cz, yaw: Math.atan2(-(lx - cx), -(lz - cz)), pitch: Math.atan2(ly - cy, Math.hypot(lx - cx, lz - cz)) }; };
+    if (u < 5) { if (!Dialogue.active()) { G.talkNpc = null; G.sceneHold = 0; } const k = U.smooth(Math.min(1, u / 5)), a = f.a0 + 0.5 - k * 0.9, r = 15 + k * 9, h = 7 + k * 9; look(v.x + Math.sin(a) * r, v.y + h, v.z + Math.cos(a) * r, v.x, v.y + 1.5, v.z); /* up and round over the square */
+      if (u > 3.2 && f.ws && !walkState) walkState = f.ws; return; } /* the elder sets out while the view is still up there */
+    const e = v.elder && f.ws ? v.elder : null; if (!e) { if (u > 6.5) filmEnd(); return; }
+    const dx = e.x - p.x, dz = e.z - p.z, d = Math.hypot(dx, dz) || 1, sx = -dz / d, sz = dx / d; { const hx = p.x, hy = p.y + 1.7, hz = p.z, tx = p.x - dx / d * 4.6 + sx * 1.1, ty = p.y + 3.4, tz = p.z - dz / d * 4.6 + sz * 1.1; let q = 1; for (let i = 1; i <= 12; i++) { const k = i / 12, bx = hx + (tx - hx) * k, by = hy + (ty - hy) * k, bz = hz + (tz - hz) * k; if (world.getBlock(Math.floor(bx), Math.floor(by), Math.floor(bz)) !== B.AIR) { q = Math.max(0.15, (i - 1.5) / 12); break; } } /* never inside a wall or under an eave: it stops short of whatever is in the way */
+      look(hx + (tx - hx) * q, hy + (ty - hy) * q, hz + (tz - hz) * q, p.x + dx * 0.55, p.y + 1.1, p.z + dz * 0.55); } p.yaw = Math.atan2(-dx, -dz); /* down beside you, over your shoulder, watching him come */
+    if (u > 10.5 || d < 3 || Dialogue.active() || !walkState) filmEnd(); }
   function freed(id, tyr0) {
     const v = villages.get(id); if (!v) return;
     const st = state(id); if (st.freed) return;
@@ -1969,7 +1988,10 @@ const Village = (() => {
     const tyrant = tyr0 || (v.boss ? (v.boss.title || v.boss.name || (v.boss.kin ? KIN.name(v.boss.kin) : null)) : null);
     if (v.boss && v.boss.persona && v.boss.persona.cast) { const nm0 = v.boss.persona.cast.name; G.stats.tyrantMet = G.stats.tyrantMet || {}; G.stats.tyrantMet[nm0] = (G.stats.tyrantMet[nm0] || 0) + 1; }
     if (v.boss && v.boss.persona) { say(v.boss.x, v.boss.y + 3.2, v.boss.z, v.boss.persona.beaten, 7); const el = bubbles[bubbles.length - 1].el; el.style.font = '700 14px/1.3 system-ui,sans-serif'; el.style.maxWidth = '74vw'; el.style.background = '#2a1f33'; el.style.color = '#f6eaff'; el.style.border = '2px solid #b070ff'; if (typeof UI !== 'undefined' && UI.toast) UI.toast(`${tyrant}: "${v.boss.persona.beaten}"`); }
-    if (v.elder) { v.elder.wander = false; walkState = { v, tyrant, stage: (v.starter && !G.stats.elderDone) ? 'approach' : 'approach-headman' }; }
+    const p0 = G.player, canFilm = v.type === 'land' && world.preset.id === 'earth' && !p0.flying && !p0.mount && Math.hypot(p0.x - v.x, p0.z - v.z) < 45;
+    if (v.elder) { v.elder.wander = false; const ws = { v, tyrant, stage: (v.starter && !G.stats.elderDone) ? 'approach' : 'approach-headman' }; if (canFilm) film = { v, t: -2.3, ws, a0: Math.atan2(p0.x - v.x, p0.z - v.z) }; else walkState = ws; }
+    else if (canFilm) film = { v, t: -2.3, ws: null, a0: Math.atan2(p0.x - v.x, p0.z - v.z) };
+    if (v.elder) { /* the thanks are his to give */ }
     else { // no headman here: whoever is nearest says thank you, straight away
       const n = v.npcs.filter(n => !n.hidden).sort((a, b) => Math.hypot(a.x - G.player.x, a.z - G.player.z) - Math.hypot(b.x - G.player.x, b.z - G.player.z))[0];
       setTimeout(() => Dialogue.show(n ? n.name : v.name, [`You did it! ${tyrant ? tyrant + ' had' : 'That tyrant had'} us under his boot for so long. ${v.name} is free, and the doors are open again. Thank you.`]), 900);
@@ -2415,7 +2437,7 @@ const Village = (() => {
     L.night = night; return L;
   }
   function update(dt, player, inBattle) {
-    if (runners.length) runTick(dt);
+    if (runners.length) runTick(dt); if (film) { if (inBattle) filmEnd(); else filmTick(dt); }
     if (!world.preset.villages) { active = null; activeHermit = null; return; }
     ensureFisher(); updateHermits(player, dt);
     let near = null, nd = Infinity;
@@ -2529,7 +2551,7 @@ const Village = (() => {
         else {
           e.yaw = Math.atan2(dx, dz); walkState.stage = 'talk1'; G.talkNpc = e;
           Dialogue.show(e.name, [
-            'Thank you, stranger. Grakor held this village for a whole season and kept us in our homes. You have freed us.',
+            'Thank you, stranger. Keychain held this village for a whole season and kept us in our homes. You have freed us.',
             'Welcome to Stratakin. The world is layered: sky islands above, these lands, the Mines below, and the Core at the heart of everything.',
             'Kin live in every layer, and the wild ones will come at you. Meet them with your own blade and shield if you like, or send a Kin of yours in. A Kin always hits harder than steel, and the great ones only fall to Kin.',
             'Catch them, raise them, and the right pairs can be fused into new ones. Come, I will show you the table.',
@@ -2548,7 +2570,7 @@ const Village = (() => {
             'This is a Fusion Table. Tap it. A fusion is a recipe: two particular Kin and an element stone, and out of them comes a third, better than either. The table lists the recipes you know. Quest folk teach more, and so do the tyrants when they fall.',
             'Materials craft gear on the same table, swords, shields and bows among them, and anything it makes can be taken apart again. It also keeps your spare Kin: eight walk with you, the rest wait in the table.',
             `Take these Shards for what you did. From today ${v.name} is under your protection: we set aside ${income} Shards for you every dawn. Come to me to collect them, and for the village ledger.`,
-            'Raiders come at night for the walls, and Grakor will try to come back. Leave a Kin or two with us as guards; the ledger shows what we need. Pell bakes, Mira\'s smoothies mend tired Kin, Oskar trades. Old Brannock on the shore knows where the other tyrants sit.',
+            'Raiders come at night for the walls, and Keychain will try to come back. Leave a Kin or two with us as guards; the ledger shows what we need. Pell bakes, Mira\'s smoothies mend tired Kin, Oskar trades. Old Brannock on the shore knows where the other tyrants sit.',
           ], () => { G.player.frozen = false; G.shards += 60; UI.toast('+60 Shards from the village.', 'good'); G.stats.elderDone = true; walkState = null; e.wander = true; e.home = { x: v.x + 2.5, z: v.z + 3.5 }; });
         }
         break;
@@ -2632,7 +2654,7 @@ const Village = (() => {
       const dx = wd(target.x - p.x), dz = wd(target.z - p.z), d = Math.round(Math.hypot(dx, dz));
       const kind = target.type === 'sea' ? 'out on the water, a village on stilts' : target.type === 'deep' ? 'under the sea, a glass dome on the sea floor' : 'inland';
       Dialogue.show(n.name, [
-        `Caught anything? Only trouble, lately. There is a village ${kind}, about ${d} blocks to the ${dirWord(dx, dz)}: ${target.name}. A tyrant holds it, like Grakor held yours.`,
+        `Caught anything? Only trouble, lately. There is a village ${kind}, about ${d} blocks to the ${dirWord(dx, dz)}: ${target.name}. A tyrant holds it, like Keychain held yours.`,
         `See the strip at the bottom of your view? That is your compass. The flag ⚑ on it now points at ${target.name}. The star ★ is your own quest, the little house ⌂ is the last village you stood in, and ✦ is your camp fire.`,
         target.type === 'deep' ? 'For the dome you will want a Breathing Bulb, or a fish to ride. Swim down the shaft in its roof. Free them and the village pays you a share, like this one.' : target.type === 'sea' ? 'A long swim. Ride a fish if you have one. Free them and the village pays you a share, like this one.' : 'Free them and the village pays you a share, like this one. The tyrants get stronger the further you go.',
         target.type === 'land' ? `${lieuCount(target) > 1 ? 'His guards hold the road in, ' + lieuCount(target) + ' of them, one checkpoint after another' : 'A guard of his holds the road in'}. Fight through with a bag of tonics, or slip round through the trees to another gate.` : `${lieuCount(target) > 1 ? 'His guards, ' + lieuCount(target) + ' of them, hang in the water on the way in' : 'A guard of his hangs in the water on the way in'}. Fight through with a bag of tonics, or swim wide around them.`,

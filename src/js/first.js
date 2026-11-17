@@ -1,5 +1,5 @@
 // The opening. You come round at a camp fire by a brook with no memory and no Kin. Maren, the net-maker who got out of the village
-// the night Grakor took it, fished you out of the water. Three young Kin she let out of the pens are hiding close by. You meet them,
+// the night Keychain took it, fished you out of the water. Three young Kin she let out of the pens are hiding close by. You meet them,
 // each behaves as its temper makes it, and the one you share your bread with is yours. The other two go back for the village and are penned.
 const First = (() => {
   let G = null, maren = null, three = [], gone = [], told = 0, auto = 0, armed = null, brookDone = false;
@@ -42,7 +42,7 @@ const First = (() => {
       'I am Maren. I pulled you out of this brook at first light. No pack, no boots, and you had hold of a log like it owed you money.',
       'Do you know your name? ... No. I thought not. It comes back, mostly. Do not chase it.',
       `Then I will tell you where you are instead. This is the forest below ${tn}. That is its smoke, over the trees. I am its net-maker. Or I was, until three nights ago.`,
-      'A brute called Grakor walked in with a pack of beasts at his heel and shut everyone indoors. I got out. Nobody else did.',
+      'A brute called Keychain walked in with a pack of beasts at his heel and shut everyone indoors. I got out. Nobody else did.',
       'His beasts are Kin. So is every creature in this country. Each has an element and a temper of its own, and one that takes to you will walk with you and fight beside you. That is how he took the village, and it is the only way anyone takes it back.',
       'I cannot do it. They know my face in there. You they have never seen. But you would not last a minute against him alone. You need a Kin of your own first.',
       'So. The night he came I cut the pens open, and three young ones followed me out. They are right here along the brook, keeping their distance from me. I smell of the pens.',
@@ -53,7 +53,7 @@ const First = (() => {
   function pulseBar() { const hb = document.getElementById('hotbar'); if (!hb) return; hb.style.transition = 'box-shadow .35s, transform .35s'; let n = 0; const iv = setInterval(() => { const on = n % 2 === 0; hb.style.boxShadow = on ? '0 0 0 3px #ffd45a, 0 0 22px 6px rgba(255,212,90,.8)' : ''; hb.style.transform = (hb.style.transform || '').replace(/ ?scale\([^)]*\)/, '') + (on ? ' scale(1.08)' : ''); if (++n > 9) { clearInterval(iv); hb.style.boxShadow = ''; hb.style.transform = (hb.style.transform || '').replace(/ ?scale\([^)]*\)/, ''); } }, 380); }
   function sendOff() { const k = G.kin[0], nm = k ? KIN.name(k) : 'That one';
     say([`Well. ${nm}. I would have bet on one of the others.`,
-      'The other two have run for the village, looking for their own. Grakor\'s lot will have them penned by dark. So now there are three reasons to go.',
+      'The other two have run for the village, looking for their own. Keychain\'s lot will have them penned by dark. So now there are three reasons to go.',
       'But one young Kin against his pack is thin. You want a second before you face him, and for that you need one of these. A net. Hushweave, my own make.',
       'It does not hold a Kin by force, nothing would hold the big ones. It quiets them, like a cloth over a horse\'s eyes, and a quiet Kin makes up its own mind to stay.',
       `It only works on one that is worn out. So walk out into the forest until a wild one comes at you, and let ${nm} deal with it. When it goes down it lies dazed for a few breaths. Tap it then.`,

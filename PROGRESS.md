@@ -392,6 +392,8 @@ Scope (Alexander, 8 Nov evening): EVERYTHING visible goes to the same standard: 
 
 - 17 Nov, tyrant gangs (his ask: one tyrant per village, two per town, three per city, they remember you, a daft plan each time, a proper parting line). **Towns are held by two of Grakor, Morrug and Obrin and cities by all three: they stand together, the first says who he brought, each steps up in turn, the place is free when the last is out. On a rematch each has a plan that backfires (he starts 15% down). Parting lines point at the Kinmaster and the shards. Fixed: wins were never counted, so nobody ever remembered you, and the parting line never showed.** Not done: each one locking a different service until he is beaten.
 
+- 17 Nov, liberation film, tyrant names and levels (his ask: a ten second film when a place is freed, name them by what they are like Moneybags, levels that climb to 50 in the cities). **Film: view lifts over the square in gold light with the gates opening, then comes down behind you to watch the elder walk up. Grakor, Morrug and Obrin are now Keychain, Stonewall and Bigmouth. Earth levels: villages 3, 5, 8, 11 up to 26; towns from 18 up to 38; cities 42, 46, 50; each later member of a gang +2. A warning shows if your best Kin is more than 5 under.** Atlantis already had no tyrant.
+
 ## Still to do
 UI polish as feedback comes in. Card battle screen still used for scripted encounters (raids at the walls, thief, citadel duel, holds) and the snare mini-game; converting those to live is the next big step if wanted. (Old list: train/ships, combat animation, eggs, avatar hair/paint, buddy WEAR cosmetics, Silas and Finch, UI polish (item icons), quality toggles in settings (state.shadows, state.grassQuality, state.dprCap).
 

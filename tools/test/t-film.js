@@ -1,15 +1,11 @@
-// the train's films: fix the start station, watch the first train come in, then ride and watch the boarding
 const { open } = require('./harness');
-(async () => { const h = await open(); const { page, ev } = h; await h.newGame(process.env.SEED || 'look-3'); await h.calm();
-  await ev(() => { G.repelUntil = performance.now() + 9e7; G.stats.buddyOff = true; G.explain = () => {}; G.world.time = 0.42; for (const id of ['hud', 'controls', 'hotbar']) { const e = document.getElementById(id); if (e) e.style.display = 'none'; } });
-  const a = await ev(() => { const v = Village.active, L = Village.layout(v), rl = L.rail, p = G.player, w = G.world; if (!rl) return 'no rail'; const W = (al, pp) => rl.ax ? [al, rl.line + 0.5 + pp] : [rl.line + 0.5 + pp, al]; const [x, z] = W(rl.along0 + 0.5, 3); p.x = x; p.z = z; p.y = rl.y + 0.05; w.ensureAround(Math.floor(p.x / CH), Math.floor(p.z / CH), 3, 9999); G.meshPass(999);
-    G.addRoost({ id: v.id, name: v.name, x: p.x, y: v.y, z: p.z, world: w.preset.id }); return { ok: Village.trainFilm(v), along0: rl.along0, y: rl.y }; });
-  console.log('arrive film', JSON.stringify(a));
-  const tick = async (secs) => await ev((n) => { for (let i = 0; i < n; i++) Village.update(0.05, G.player, false); return { frozen: G.player.frozen, cut: !!G.cutCam, went: !!window.__went, bubbles: document.querySelectorAll('body > div[style*="fffdf4"]').length }; }, Math.round(secs / 0.05));
-  console.log('arrive 3.0s', JSON.stringify(await tick(3.0))); await page.waitForTimeout(4500); await page.screenshot({ path: '/home/claude/film-0.png' });
-  console.log('arrive 7.0s', JSON.stringify(await tick(4.0)));
-  console.log('board', JSON.stringify(await ev(() => ({ ok: Village.boardTrain(Village.active, () => { window.__went = true; }) }))));
-  console.log('board 1.0s', JSON.stringify(await tick(1.0))); await page.waitForTimeout(4500); await page.screenshot({ path: '/home/claude/film-1.png' });
-  console.log('board 3.6s', JSON.stringify(await tick(2.6))); await page.waitForTimeout(4500); await page.screenshot({ path: '/home/claude/film-2.png' });
-  console.log('board 6.0s', JSON.stringify(await tick(2.4)));
-  console.log('ERRORS:', h.errors.length ? h.errors.slice(0, 3).join('\n') : 'none'); await h.close(); })();
+(async () => { const h = await open(); const { page, ev } = h; await h.newGame('look-3'); await h.calm();
+  await ev(() => { window.__r = R.render; R.render = () => {}; G.repelUntil = performance.now() + 9e6; const v = Village.townList()[0], p = G.player, w = G.world; p.x = v.x + 0.5; p.z = v.z + 16.5; w.ensureAround(Math.floor(p.x / CH), Math.floor(p.z / CH), 3, 99999); p.y = v.y + 0.05; window.__v = v; G.world.time = 0.35; setInterval(() => { if (v.boss) v.boss.fought = true; }, 20); });
+  await page.waitForTimeout(2500);
+  console.log(JSON.stringify(await ev(() => { const v = window.__v, b = v.boss; b.fought = true; const lvl = b.kin.level; Wild.remove(b); Village.bossBeaten(b); return { lvl, freed: G.stats.villagesFreed }; })));
+  const shot = async (name) => { await ev(() => { G.setPaused && G.setPaused(true); R.render = window.__r; }); await page.waitForTimeout(9500); await page.screenshot({ path: '/home/claude/scratch/' + name, timeout: 150000 }); await ev(() => { R.render = () => {}; G.setPaused && G.setPaused(false); }); };
+  const samp = () => ev(() => ({ cut: G.cutCam && [G.cutCam.x, G.cutCam.y, G.cutCam.z].map(Math.round), frozen: G.player.frozen, dlg: Dialogue.active(), boss: !!window.__v.boss, act: Village.active === window.__v, actBoss: !!(Village.active && Village.active.boss), tk: G.talkNpc && (G.talkNpc.name || 'ent'), ft: 0, elderD: window.__v.elder && Math.round(Math.hypot(window.__v.elder.x - G.player.x, window.__v.elder.z - G.player.z)) }));
+  await page.waitForTimeout(4600); console.log('wide', JSON.stringify(await samp())); if (process.env.SHOT === '1') await shot('film-wide.png');
+  await page.waitForTimeout(3600); console.log('near', JSON.stringify(await samp())); if (process.env.SHOT) await shot('film-near.png');
+  await page.waitForTimeout(5000); console.log('after', JSON.stringify(await samp()), JSON.stringify(await ev(() => ({ third: G.thirdPerson, bars: !!document.querySelector('div[style*="z-index:45"]'), next: Village.townList().slice(1, 9).map(v => v.size[0] + Village.villageInfo ? 0 : 0) }))));
+  console.log('errors', JSON.stringify(h.errors.slice(0, 4))); await h.close(); })();
