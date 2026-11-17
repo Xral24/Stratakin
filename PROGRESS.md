@@ -356,6 +356,8 @@ Scope (Alexander, 8 Nov evening): EVERYTHING visible goes to the same standard: 
 
 - 17 Nov, the fourteen stones in the story (his ask: what happens when you find all 14, maybe Atlantis; every area its own set with its own reward). **Stones are read in the order of the telling whichever ruin you reach first. Only you can read them (ties to the lost memory); Maren reacts after your first. The fourteenth gives the Weaver's Seal (nets hold 20% longer while closing) and pins Atlantis on the map; Maren recognises the knot.** To come with the western build: the desert's own set and reward, then one per area.
 
+- 17 Nov, tyrant meeting is a scene (his ask: you stop, the view goes to him, he looks at you, talks with his mouth, head back and laughs, then the fight, no escape). **Built for every tyrant: frozen on entering his reach, close view of his face, line in a dialogue box with the jaw going, then head thrown back, jaw wide, 'Ha! Ha! Haaa!' and five barks of sound, then the fight.** Decision left to me: Atlantis still needs the diving gear after the seal (the seal shows the way and is your welcome; the gear is how you get down).
+
 ## Still to do
 UI polish as feedback comes in. Card battle screen still used for scripted encounters (raids at the walls, thief, citadel duel, holds) and the snare mini-game; converting those to live is the next big step if wanted. (Old list: train/ships, combat animation, eggs, avatar hair/paint, buddy WEAR cosmetics, Silas and Finch, UI polish (item icons), quality toggles in settings (state.shadows, state.grassQuality, state.dprCap).
 

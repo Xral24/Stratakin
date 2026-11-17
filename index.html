@@ -11088,7 +11088,7 @@ const Wild = (() => {
         const touch = 1.0 + Math.min(2, (e.model.radius || 0.6) * 0.6);
         if (dist < touch && !trigger) trigger = { e, ambush: e.alert < 0.6 };
       } else { e.alert = Math.max(0, e.alert - dt * 0.8); e.ringT = 0; e.sus = false; e.lookT = 0; }
-      if (e._an) { e._an.look = (e._an.look || 0) + ((e.lookT || 0) - (e._an.look || 0)) * Math.min(1, dt * 7); e.susT = Math.max(0, (e.susT || 0) - dt); e._an.nod = -0.38 * Math.sin(Math.min(1, (e.susT || 0) / 0.4) * Math.PI); }
+      if (e._an && !e.scene) { e._an.look = (e._an.look || 0) + ((e.lookT || 0) - (e._an.look || 0)) * Math.min(1, dt * 7); e.susT = Math.max(0, (e.susT || 0) - dt); e._an.nod = -0.38 * Math.sin(Math.min(1, (e.susT || 0) / 0.4) * Math.PI); }
     }
     updateDrops(dt, player);
     highTimer -= dt;
@@ -13404,9 +13404,21 @@ const Village = (() => {
   function tyrantTalk(v, player, dt) { const b = v.boss; if (!b || !b.persona) return; tyrantFace(b, dt); if (b.sleep || state(v.id).freed || Battle.active) return; const d = Math.hypot(b.x - player.x, b.z - player.z);
     // once he has had his say there is no walking away from it: step inside the reach of his voice and when he has finished speaking he comes for you. Every tyrant, the first one included
     if (b.fightAt && performance.now() > b.fightAt && d < 22 && !b.lurk) { b.fightAt = 0; b.patrol = null; b.alert = 1; b.cool = 0; const p = player; if (d > 5) { b.x = p.x + (b.x - p.x) * (4.5 / d); b.z = p.z + (b.z - p.z) * (4.5 / d); b.y = standY(b.x, b.y, b.z) ?? b.y; } b.yaw = Math.atan2(p.x - b.x, p.z - b.z); Battle.start(b, false); return; }
-    if (d > 13) { b.talkT = Math.min(b.talkT || 0, 2); if (d > 30) b.fought = false; return; } // get right away from him and he will have to say something before he comes for you again
-    b.talkT = (b.talkT == null ? 0.6 : b.talkT) - dt; if (b.talkT > 0) return; if (!b.hailed) b.persona = tyrantVoice(v, b.kin.sp.tyrMood || 0, b.vh); /* he may have met you somewhere else since he was put here */ const line = !b.hailed ? b.persona.hail : b.persona.taunts[(b.tauntI = ((b.tauntI || 0) + 1)) % b.persona.taunts.length]; if (!b.hailed) b.spotT = 0.55; b.hailed = true; b.talkT = 11 + Math.random() * 7; b.speakUntil = performance.now() + 550 + Math.min(4200, line.length * 55); if (!b.fought) { b.fought = true; b.fightAt = b.speakUntil + 500; }
-    say(b.x, b.y + (b.model ? b.model.height : 2) + 0.5, b.z, line, line.length > 60 ? 7.5 : 4.5, b); const el = bubbles[bubbles.length - 1].el; el.style.font = '700 14px/1.3 system-ui,sans-serif'; el.style.padding = '8px 13px'; el.style.maxWidth = '74vw'; el.style.background = '#2a1f33'; el.style.color = '#f6eaff'; el.style.border = '2px solid #b070ff'; el.style.opacity = '1'; }
+    if (b.scene) return sceneTick(v, b, player, dt);
+    if (d > 13) { if (d > 30) b.fought = false; return; } // get right away from him and he will have his say again before he comes for you
+    if (b.fought || b.lurk || Dialogue.active() || UI.panelOpen || player.flying || player.mount) return;
+    /* you have walked into his reach, and that is that. You stop. The view goes to him. He turns, looks straight at you, says his piece with his whole face, throws his head back and laughs, and then it is the fight. There is no walking off in the middle */
+    if (!b.hailed) b.persona = tyrantVoice(v, b.kin.sp.tyrMood || 0, b.vh); /* he may have met you somewhere else since he was put here */
+    const line = !b.hailed ? b.persona.hail : b.persona.taunts[(b.tauntI = ((b.tauntI || 0) + 1)) % b.persona.taunts.length];
+    b.hailed = true; b.fought = true; b.patrol = null; b.spotT = 0.6; b.scene = { stage: 'talk', x: b.x, z: b.z, t: 0 }; player.frozen = true; player.vx = player.vz = 0;
+    const hgt = b.model ? b.model.height : 2; b.faceY = hgt * 0.8; b.faceD = 2.2 + hgt * 0.75; G.talkNpc = b; G.sceneHold = performance.now() + 60000; if (typeof UI !== 'undefined') UI.sfx('whistle');
+    Dialogue.show(b.kin.sp.names ? KIN.name(b.kin) : 'The tyrant', [line], () => { if (!b.scene) return; b.scene.stage = 'laugh'; b.scene.t = 0; UI.sfx('laugh'); say(b.x, b.y + hgt + 0.5, b.z, b.persona.laugh || 'Ha! Ha! Haaa!', 1.7, b); const el = bubbles[bubbles.length - 1].el; el.style.font = '900 19px/1.2 system-ui,sans-serif'; el.style.background = '#2a1f33'; el.style.color = '#ffd9a0'; el.style.border = '2px solid #b070ff'; }); }
+  function sceneTick(v, b, player, dt) { const sc = b.scene, now = performance.now(); if (!b._an && typeof Anim !== 'undefined') b._an = Anim.fresh(b, now); sc.t += dt; b.x = sc.x; b.z = sc.z; b.yaw = Math.atan2(player.x - b.x, player.z - b.z); b.alert = 0; b.sus = 0; player.frozen = true; player.vx = player.vz = 0; G.talkNpc = b;
+    if (sc.stage === 'talk') { b.speakUntil = now + 220; if (!Dialogue.active() && sc.t > 0.5) { sc.stage = 'laugh'; sc.t = 0; } /* however the box was closed, he still gets his laugh */ if (b._an) b._an.nod = Math.sin(now / 520) * 0.06; return; }
+    /* the laugh: head right back, jaw wide, shoulders going */
+    const u = Math.min(1, sc.t / 0.25), out = Math.max(0, (sc.t - 1.35) / 0.3); b.jawOpen = (0.75 + 0.25 * Math.abs(Math.sin(now / 70))) * (1 - out); if (b.face) { b.face.jaw = b.jawOpen; b.face.lid = 0.75; b.face.bl = -0.25; b.face.br = -0.25; }
+    if (b._an) { b._an.nod = (-0.62 * u + Math.sin(now / 62) * 0.07) * (1 - out); b._an.lean = -0.12 * u * (1 - out); } b.hover = (b.model.hover || 0) + Math.abs(Math.sin(now / 62)) * 0.05 * (1 - out);
+    if (sc.t > 1.7) { b.scene = null; b.hover = b.model.hover || 0; if (b._an) { b._an.nod = 0; b._an.lean = 0; } player.frozen = false; G.sceneHold = 0; b.alert = 1; b.cool = 0; Battle.start(b, false); } }
   function ensureBoss(v, trainerLevel) {
     if (state(v.id).freed || v.boss) return;
     const prim = v.style === 'alien' ? 'Light' : v.style === 'halo' ? 'Flame' : v.style === 'atlantis' ? 'Tide' : v.type === 'land' ? 'Stone' : v.type === 'sea' ? 'Tide' : 'Void';
@@ -17558,6 +17570,7 @@ const UI = (() => {
       };
       switch (name) {
         case 'mine': tone(180, 120, 0.06, 'square', 0.05); break;
+        case 'laugh': for (let i = 0; i < 5; i++) { tone(330 - i * 26, 250 - i * 24, 0.13, 'sawtooth', 0.06, i * 0.19); tone(165 - i * 13, 125 - i * 12, 0.13, 'square', 0.035, i * 0.19); } break; /* ha, ha, ha, ha, haaa: five barks going down */
         case 'gift': tone(784, 784, 0.1, 'triangle', 0.08); tone(988, 988, 0.1, 'triangle', 0.08, 0.1); tone(1175, 1175, 0.1, 'triangle', 0.08, 0.2); tone(1568, 1568, 0.3, 'triangle', 0.09, 0.3); tone(784, 1568, 0.3, 'sine', 0.04, 0.3); break; /* something put in your hands: four notes going up */
         case 'whistle': tone(880, 868, 0.32, 'sine', 0.09); tone(1108, 1094, 0.32, 'sine', 0.07); tone(880, 868, 0.55, 'sine', 0.09, 0.42); tone(1108, 1094, 0.55, 'sine', 0.07, 0.42); break;
         case 'gem': tone(1320, 1760, 0.08, 'sine', 0.06); tone(1980, 2640, 0.11, 'sine', 0.04, 0.05); break;
@@ -21166,7 +21179,7 @@ G.loop = function (t) {
     if (this.grassCamK > 0.02 && !this.thirdPerson) { const k = this.grassCamK; const tc = Avatar.thirdCam(cam, p, w, 4.2 * k, 1.35 * k); cam = Object.assign({}, cam, { x: tc.x, y: tc.y, z: tc.z, pitch: cam.pitch - 0.12 * k }); this.grassCamOn = k > 0.25; } else this.grassCamOn = false; }
   if (inBattle && Battle.camera) { const bc = Battle.camera(dt, this.mobile); if (bc) cam = Object.assign(cam, bc); }
   // talking to someone: the camera slides round to their face, a little to one side
-  const talking = !inBattle && this.talkNpc && (Dialogue.active() || UI.panelOpen === 'shop' || UI.panelOpen === 'village');
+  const talking = !inBattle && this.talkNpc && (Dialogue.active() || UI.panelOpen === 'shop' || UI.panelOpen === 'village' || (this.sceneHold || 0) > performance.now());
   this.talkK = U.clamp((this.talkK || 0) + (talking ? dt * 2.5 : -dt * 2.5), 0, 1);
   if (!talking && this.talkK <= 0) this.talkNpc = null;
   if (this.talkK > 0 && this.talkNpc) cam = this.talkCamera(cam, this.talkNpc, U.smooth(this.talkK));
@@ -21523,14 +21536,14 @@ G.onChestBroken = function (x, y, z) {
 // ---------- the talk camera ----------
 G.talkCamera = function (cam, npc, k) {
   const p = this.player;
-  const fx = npc.x, fy = npc.y + 1.5 * (npc.model.scale || 1), fz = npc.z; // eye level of a villager, hats and feathers ignored
+  const fx = npc.x, fy = npc.y + (npc.faceY || 1.5 * (npc.model.scale || 1)), fz = npc.z, FD = npc.faceD || 2.6; // eye level of a villager, hats and feathers ignored; a tyrant says how tall he is
   let dx = p.x - npc.x, dz = p.z - npc.z; const d = Math.hypot(dx, dz) || 1; dx /= d; dz /= d;
   const sx = -dz, sz = dx; // to the side
   const w = this.world; const free = (x, y, z) => { const b = w.getBlock(Math.floor(x), Math.floor(y), Math.floor(z)); return !isSolid(b) || BLOCKS[b].partial; };
   let cx = fx, cy = fy + 0.15, cz = fz;
   const clear = (x, y, z) => { for (let u = 0.15; u <= 1; u += 0.17) if (!free(fx + (x - fx) * u, fy + (y - fy) * u, fz + (z - fz) * u)) return false; return true; };
-  for (let t = 1; t >= 0.25; t -= 0.1) { const x = fx + (dx * 2.6 + sx * 1.0) * t, z = fz + (dz * 2.6 + sz * 1.0) * t; if (free(x, cy, z) && free(x, cy - 0.5, z) && clear(x, cy, z)) { cx = x; cz = z; break; } } // back off until nothing stands between the camera and the face
-  if (cx === fx && cz === fz) { for (let t = 1; t >= 0.25; t -= 0.1) { const x = fx + dx * 2.2 * t, z = fz + dz * 2.2 * t; if (free(x, cy, z) && clear(x, cy, z)) { cx = x; cz = z; break; } } } // straight on, if the side is blocked
+  for (let t = 1; t >= 0.25; t -= 0.1) { const x = fx + (dx * FD + sx * FD * 0.38) * t, z = fz + (dz * FD + sz * FD * 0.38) * t; if (free(x, cy, z) && free(x, cy - 0.5, z) && clear(x, cy, z)) { cx = x; cz = z; break; } } // back off until nothing stands between the camera and the face
+  if (cx === fx && cz === fz) { for (let t = 1; t >= 0.25; t -= 0.1) { const x = fx + dx * FD * 0.85 * t, z = fz + dz * FD * 0.85 * t; if (free(x, cy, z) && clear(x, cy, z)) { cx = x; cz = z; break; } } } // straight on, if the side is blocked
   const lx = fx - cx, ly = fy - cy, lz = fz - cz; const hd = Math.hypot(lx, lz) || 1;
   const yaw = Math.atan2(-lx, -lz), pitch = Math.atan2(ly, hd);
   let dy = yaw - cam.yaw; while (dy > Math.PI) dy -= Math.PI * 2; while (dy < -Math.PI) dy += Math.PI * 2;

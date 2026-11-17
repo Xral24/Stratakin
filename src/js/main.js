@@ -818,7 +818,7 @@ G.loop = function (t) {
     if (this.grassCamK > 0.02 && !this.thirdPerson) { const k = this.grassCamK; const tc = Avatar.thirdCam(cam, p, w, 4.2 * k, 1.35 * k); cam = Object.assign({}, cam, { x: tc.x, y: tc.y, z: tc.z, pitch: cam.pitch - 0.12 * k }); this.grassCamOn = k > 0.25; } else this.grassCamOn = false; }
   if (inBattle && Battle.camera) { const bc = Battle.camera(dt, this.mobile); if (bc) cam = Object.assign(cam, bc); }
   // talking to someone: the camera slides round to their face, a little to one side
-  const talking = !inBattle && this.talkNpc && (Dialogue.active() || UI.panelOpen === 'shop' || UI.panelOpen === 'village');
+  const talking = !inBattle && this.talkNpc && (Dialogue.active() || UI.panelOpen === 'shop' || UI.panelOpen === 'village' || (this.sceneHold || 0) > performance.now());
   this.talkK = U.clamp((this.talkK || 0) + (talking ? dt * 2.5 : -dt * 2.5), 0, 1);
   if (!talking && this.talkK <= 0) this.talkNpc = null;
   if (this.talkK > 0 && this.talkNpc) cam = this.talkCamera(cam, this.talkNpc, U.smooth(this.talkK));
@@ -1175,14 +1175,14 @@ G.onChestBroken = function (x, y, z) {
 // ---------- the talk camera ----------
 G.talkCamera = function (cam, npc, k) {
   const p = this.player;
-  const fx = npc.x, fy = npc.y + 1.5 * (npc.model.scale || 1), fz = npc.z; // eye level of a villager, hats and feathers ignored
+  const fx = npc.x, fy = npc.y + (npc.faceY || 1.5 * (npc.model.scale || 1)), fz = npc.z, FD = npc.faceD || 2.6; // eye level of a villager, hats and feathers ignored; a tyrant says how tall he is
   let dx = p.x - npc.x, dz = p.z - npc.z; const d = Math.hypot(dx, dz) || 1; dx /= d; dz /= d;
   const sx = -dz, sz = dx; // to the side
   const w = this.world; const free = (x, y, z) => { const b = w.getBlock(Math.floor(x), Math.floor(y), Math.floor(z)); return !isSolid(b) || BLOCKS[b].partial; };
   let cx = fx, cy = fy + 0.15, cz = fz;
   const clear = (x, y, z) => { for (let u = 0.15; u <= 1; u += 0.17) if (!free(fx + (x - fx) * u, fy + (y - fy) * u, fz + (z - fz) * u)) return false; return true; };
-  for (let t = 1; t >= 0.25; t -= 0.1) { const x = fx + (dx * 2.6 + sx * 1.0) * t, z = fz + (dz * 2.6 + sz * 1.0) * t; if (free(x, cy, z) && free(x, cy - 0.5, z) && clear(x, cy, z)) { cx = x; cz = z; break; } } // back off until nothing stands between the camera and the face
-  if (cx === fx && cz === fz) { for (let t = 1; t >= 0.25; t -= 0.1) { const x = fx + dx * 2.2 * t, z = fz + dz * 2.2 * t; if (free(x, cy, z) && clear(x, cy, z)) { cx = x; cz = z; break; } } } // straight on, if the side is blocked
+  for (let t = 1; t >= 0.25; t -= 0.1) { const x = fx + (dx * FD + sx * FD * 0.38) * t, z = fz + (dz * FD + sz * FD * 0.38) * t; if (free(x, cy, z) && free(x, cy - 0.5, z) && clear(x, cy, z)) { cx = x; cz = z; break; } } // back off until nothing stands between the camera and the face
+  if (cx === fx && cz === fz) { for (let t = 1; t >= 0.25; t -= 0.1) { const x = fx + dx * FD * 0.85 * t, z = fz + dz * FD * 0.85 * t; if (free(x, cy, z) && clear(x, cy, z)) { cx = x; cz = z; break; } } } // straight on, if the side is blocked
   const lx = fx - cx, ly = fy - cy, lz = fz - cz; const hd = Math.hypot(lx, lz) || 1;
   const yaw = Math.atan2(-lx, -lz), pitch = Math.atan2(ly, hd);
   let dy = yaw - cam.yaw; while (dy > Math.PI) dy -= Math.PI * 2; while (dy < -Math.PI) dy += Math.PI * 2;
