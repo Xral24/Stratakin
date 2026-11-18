@@ -283,7 +283,8 @@ const Battle = (() => {
     if ((stunned || (stunUsed && wild.hp <= strongestHit())) && !bossKin()) c *= 1.8; // stunned: much easier to hold (a boss's Kin does not give you that)
     // the level gap: a little above you is fair, 20% above is a long shot, twice your level and nothing holds it
     const grip = 2 * Math.max(1, G.trainerLevel || 1); // net strength: twice your trainer level, not your Kin's level
-    const gap = wild.level / grip;
+    if (wildE && wildE.woodKin) c *= 1.4;
+    const gap = wildE && wildE.woodKin ? Math.min(1, wild.level / grip) : wild.level / grip; /* the wood's creatures are never too strong to hold: getting close enough is the whole difficulty */
     if (gap >= 2) return { chance: 0, item, gap, grip, hopeless: true };
     if (gap > 1.2) c *= 0.55 * Math.pow((2 - gap) / 0.8, 3);
     else if (gap > 1) c *= 1 - (gap - 1) * 2.25;

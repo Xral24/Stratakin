@@ -1,0 +1,4 @@
+const { open } = require('./harness');
+(async () => { const h = await open(); const { page, ev } = h; await h.newGame('look-3', -1); await page.waitForTimeout(2500);
+  console.log('maren', JSON.stringify(await ev(() => { R.render = () => {}; Cine.stop(true); const d = document.getElementById('dialogue'); for (let i = 0; i < 12; i++) if (Dialogue.active()) d.click(); G.stats.villageFreed = true; Object.assign(G.stats.first, { stage: 3, healed: true, toldStones: true, toldSeal: true }); const m = First.maren; if (!m) return 'no maren'; try { if (m.onTalk) m.onTalk(); else Village.talk(m); } catch (e) { return 'ERR ' + e.message; } return { dlg: d.textContent.slice(0, 170), known: !!G.stats.woodKnown }; })));
+  console.log('errors', JSON.stringify(h.errors.slice(0, 5))); await h.close(); })();
