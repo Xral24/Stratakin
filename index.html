@@ -14790,7 +14790,7 @@ const Village = (() => {
   }
   // which quarter of a city a spot is in (null in the square, on the castle hill, or outside a city)
   function quarterAt(v, x, z) { if (!v || !v.R || v.size !== 'city' || (MATS[v.style] || MATS.land) !== MATS.land) return null; const dx = x - v.x, dz = z - v.z, m = Math.max(Math.abs(dx), Math.abs(dz)); if (m > v.R - 4 || m <= 7 || (Math.abs(dx) <= 14 && dz <= -v.R + 28)) return null; return QUARTERS[quarterOf(dx, dz)].name; }
-  return { bossLevel: (v) => bossLevelFor(v), doorLocked, bossBeaten, makeNpc, addLoose: (n) => { if (!loose.includes(n)) loose.push(n); }, designerWall, wallRadiusOf: (v) => wallRadius(state(v.id)), atlantis: () => { if (world && world.preset.id === 'earth') plan(); return ATL; }, railAt, quarterAt, plotsOf, plotPrice, ownsPlotAt, buyPlot, enterShow, thiefCaught, layout, townList, init, stamp, restoreStart, update, pick, talk, entities, buy, boardTrain, trainArrive, trainFilm, trainOf, sell, sellValue, raiseDome, shopDef, freed, onBossGone, lieutenantDown, tableChallenge, placeKit, portalList, portalHere, markers, wakeDialogue, questTarget, dawn, pendingIncome, foundingInfo, foundVillage, summaryHtml, ledger, station, recall, upgradeWall, repairWall, expand, build, postShop, levelOf, SHOPS, WALLS,
+  return { bossLevel: (v) => bossLevelFor(v), doorLocked, bossBeaten, makeNpc, addLoose: (n) => { if (!loose.includes(n)) loose.push(n); }, dropLoose: (n) => { const i = loose.indexOf(n); if (i >= 0) loose.splice(i, 1); }, designerWall, wallRadiusOf: (v) => wallRadius(state(v.id)), atlantis: () => { if (world && world.preset.id === 'earth') plan(); return ATL; }, railAt, quarterAt, plotsOf, plotPrice, ownsPlotAt, buyPlot, enterShow, thiefCaught, layout, townList, init, stamp, restoreStart, update, pick, talk, entities, buy, boardTrain, trainArrive, trainFilm, trainOf, sell, sellValue, raiseDome, shopDef, freed, onBossGone, lieutenantDown, tableChallenge, placeKit, portalList, portalHere, markers, wakeDialogue, questTarget, dawn, pendingIncome, foundingInfo, foundVillage, summaryHtml, ledger, station, recall, upgradeWall, repairWall, expand, build, postShop, levelOf, SHOPS, WALLS,
     get def() { return active ? { x: active.x, y: active.y, z: active.z } : null; }, set def(v) { restoreStart(v); }, get active() { return active; }, get boss() { return active ? active.boss : null; }, get elder() { return active ? active.elder : null; }, get walking() { return !!walkState; }, get fisher() { return fisher; } };
 })();
 
@@ -20689,6 +20689,38 @@ const Wood = (() => {
 
 </script>
 <script>
+'use strict';
+// Life on the roads. A pedlar walks the worn tracks between the towns with a pack on his back: you meet him coming the other way,
+// he stops if you stop, and he sells what is hard to come by out here. He also carries news, because that is what pedlars are for.
+const Roads = (() => {
+  let G = null, ped = null, t = 0, next = 70;
+  const NAMES = ['Tam Oddment', 'Old Hask', 'Brindle Fenn', 'Coll the Tinker'];
+  function init(game) { G = game; if (ped) Village.dropLoose && Village.dropLoose(ped); ped = null; t = 0; next = 70; }
+  const wear = (x, z) => (G.world.trailWear ? G.world.trailWear(Math.floor(x), Math.floor(z)) : 0);
+  function gy(x, z, y) { const w = G.world; let g = w.groundY(Math.floor(x), Math.floor(z), Math.floor(y) + 6); while (g > 2 && (isLeaf(w.getBlock(Math.floor(x), g, Math.floor(z))) || isTrunk(w.getBlock(Math.floor(x), g, Math.floor(z))))) g--; return g + 1; }
+  function news() { const out = []; try { const p = G.player, held = Village.townList().filter(v => !v.starter && !(G.villageState[v.id] && G.villageState[v.id].freed)).sort((a, b) => Math.hypot(a.x - p.x, a.z - p.z) - Math.hypot(b.x - p.x, b.z - p.z))[0]; if (held) out.push(`${held.name} is still shut up tight. Whoever holds it is level ${Village.bossLevel(held)}, the carters say.`); } catch (e) { /* no news from there */ }
+    if (typeof Fields !== 'undefined') out.push(Fields.marketDay() ? 'Market day today. The farmers are in the squares with their carts.' : `Market is in ${(3 - ((G.dayCount || 0) % 4) + 4) % 4 || 4} days. Buy your seed then, it is half my price.`);
+    if (typeof Wood !== 'undefined' && Wood.site() && !(G.stats && (G.stats.woodKnown || G.stats.woodSeen))) out.push('There is an old wood out past the hills where I do not sleep. Something in there carries a lamp. I have seen it twice and I was sober both times.');
+    return out; }
+  function talk() { const n = ped; G.talkNpc = n; n.stop = 8; const lines = [n.met ? 'You again. The road is long but it is not wide.' : `${n.name}. I walk the tracks between the towns, so the towns do not have to.`].concat(news().slice(0, 2)); n.met = true;
+    Dialogue.show(n.name, lines, () => UI.openPanel('shop', { title: 'Pedlar\'s pack', keeper: n.name, greet: 'Dearer than a shop. The shop is a day\'s walk that way.', stock: [{ item: 'snare', price: 26 }, { item: 'tonic_heal', price: 18 }, { item: 'torch', price: 12, n: 4 }, { item: 'bread', price: 14 }, { item: 'sunseed', price: 18, n: 3 }] })); }
+  function spawn(p) { let best = null; for (const r of [30, 34, 26]) for (let k = 0; k < 96; k++) { const a = k * 0.06545, x = p.x + Math.sin(a) * r, z = p.z + Math.cos(a) * r, wv = wear(x, z); if (wv > 0.45 && !(G.world.trackAt && G.world.trackAt(Math.floor(x), Math.floor(z))) && (!best || wv > best.w)) best = { x, z, w: wv }; } if (!best) return false;
+    if (Village.active && Math.hypot(Village.active.x - best.x, Village.active.z - best.z) < (Village.active.R || 16) + 10) return false; const y = gy(best.x, best.z, p.y); if (Math.abs(y - p.y) > 10 || G.world.getBlock(Math.floor(best.x), y - 1, Math.floor(best.z)) === B.WATER) return false;
+    const n = Village.makeNpc(950, 'explorer', best.x, best.z, NAMES[Math.floor(Math.random() * NAMES.length)], null, y, 'pedlar', 'land', false); n.wander = false; n.tag = 'pedlar'; n.onTalk = talk; n.hd = Math.atan2(p.x - best.x, p.z - best.z); n.life = 150; Village.addLoose(n); ped = n; return true; }
+  function update(dt, p) { if (G.worldId !== 'earth') { if (ped) { Village.dropLoose && Village.dropLoose(ped); ped = null; } return; }
+    if (!ped) { t += dt; if (t >= next && !(typeof Battle !== 'undefined' && Battle.active) && wear(p.x, p.z) > 0.2) { if (spawn(p)) { t = 0; next = 200 + Math.random() * 120; } else t = next - 10; } return; }
+    const n = ped, d = Math.hypot(n.x - p.x, n.z - p.z); n.life -= dt; if (d > 85 || n.life <= 0 && d > 30) { Village.dropLoose && Village.dropLoose(n); ped = null; return; }
+    if (n.stop > 0) n.stop -= dt; if (Dialogue.active() || UI.panelOpen || n.stop > 0 || d < 2.4) { n.moving = false; if (d < 6) n.yaw = Math.atan2(p.x - n.x, p.z - n.z); return; }
+    /* he keeps to the worn ground: of the ways roughly ahead, the most trodden */
+    let bh = n.hd, bw = -1; for (const o of [0, 0.35, -0.35, 0.7, -0.7, 1.1, -1.1]) { const h = n.hd + o, wv = wear(n.x + Math.sin(h) * 3, n.z + Math.cos(h) * 3) - Math.abs(o) * 0.08; if (wv > bw) { bw = wv; bh = h; } }
+    if (bw < 0.05) { n.hd += Math.PI; n.stop = 2; return; } /* the track gave out: he turns back */
+    n.hd = bh; const sp = 1.7 * dt, nx = n.x + Math.sin(bh) * sp, nz = n.z + Math.cos(bh) * sp, y = gy(nx, nz, n.y); if (Math.abs(y - n.y) > 1.6) { n.hd += Math.PI; n.stop = 1; return; }
+    n.x = nx; n.z = nz; n.y += (y - n.y) * Math.min(1, dt * 10); n.yaw = bh; n.moving = true; }
+  return { init, update, get pedlar() { return ped; } };
+})();
+
+</script>
+<script>
 // Ruins. Somebody was here before the villages: broken walls, lone columns, a roofless hall now and then, all in mossed stone, scattered
 // across the Earth. Each has one standing stone with a line cut into it that you can read, and some hide a relic gem. They are stamped
 // into the world the first time you come near, and remembered.
@@ -20891,10 +20923,20 @@ const Fields = (() => {
   /* two masks, two different people to answer for it. In the Indians' war mask the towns blame the Indians, and the Indians, who know their own colours, will not have you near their camps for two days. In a bandit's mask the towns blame the bandits, and the bandits go looking for whoever is working their patch: no train is safe for you for two days. Bare-faced, it is the towns that shut you out */
   const masked = () => { const pl = G.player, hb = pl.hotbar ? pl.hotbar() : [], k = hb[pl.sel]; return k === 'warmask' ? 'ind' : k === 'bandana' ? 'ban' : null; };
   const shunInd = () => (G.stats.shunInd || 0) > ((G && G.dayCount) || 0), shunRail = () => (G.stats.shunRail || 0) > ((G && G.dayCount) || 0);
+  /* the way in: out from where the cart stands to a line just clear of the wall, along it and round the corners to the middle of the nearest side, through the gate, up the street to the middle of town and across to its pitch in the square */
+  function routeIn(v, c) { const wr = Village.wallRadiusOf(v), R1 = wr + 5, dx = c.x - v.x, dz = c.z - v.z, ax = Math.abs(dx) >= Math.abs(dz), sx = Math.sign(dx) || 1, sz = Math.sign(dz) || 1, out = [];
+    if (ax) { out.push([v.x + sx * Math.max(R1, Math.abs(dx)), c.z]); out.push([v.x + sx * R1, U.clamp(c.z, v.z - R1, v.z + R1)]); out.push([v.x + sx * R1, v.z]); out.push([v.x + sx * (wr - 3), v.z]); out.push([v.x + sx * 7, v.z]); }
+    else { out.push([c.x, v.z + sz * Math.max(R1, Math.abs(dz))]); out.push([U.clamp(c.x, v.x - R1, v.x + R1), v.z + sz * R1]); out.push([v.x, v.z + sz * R1]); out.push([v.x, v.z + sz * (wr - 3)]); out.push([v.x, v.z + sz * 7]); }
+    out.push([v.x + 4.6, v.z + 5.5]); return out; }
   function cartTick(dt, p) { const sn = season(), mk = marketDay(); const towns = new Map(); for (const f of live) { const v = townOf(f); if (!v) continue; if (!towns.has(v.id)) towns.set(v.id, { v, fs: [] }); towns.get(v.id).fs.push(f); }
     for (const [id, T] of towns) { let c = carts.get(id); const v = T.v; if (!c) { const pts = T.fs.map(f => { const cx = f.x + f.w / 2, cz = f.z + f.d / 2, dx = v.x - cx, dz = v.z - cz, d = Math.hypot(dx, dz) || 1, r = Math.max(f.w, f.d) / 2 + 2.2; return [cx + dx / d * r, cz + dz / d * r, Math.atan2(cx - v.x, cz - v.z)]; }).sort((a, b) => a[2] - b[2]); c = { v, pts, i: 0, x: pts[0][0], z: pts[0][1], y: T.fs[0].y + 1, yaw: 0, wait: 3, day: -1, loaded: true, owner: null }; carts.set(id, c); }
       const fm = farmers.get(id); c.owner = fm ? fm.name : 'the farmer'; if (c.day !== (G.dayCount || 0)) { c.day = G.dayCount || 0; c.loaded = true; }
-      if (mk) { c.x = v.x + 4.6; c.z = v.z + 5.5; c.y = ground(Math.floor(c.x), Math.floor(c.z), Math.floor(v.y || c.y)) + 1; c.yaw = 1.57; c.moving = false; continue; }
+      /* market day: the cart does not just turn up in the square. In the morning it leaves the fields, goes round the wall to the nearest gate and drives in up the street; next morning it drives home the same way. If the town is still held it stays out with the fields */
+      const free = !!(G.villageState && G.villageState[v.id] && G.villageState[v.id].freed), want = mk && free ? 'in' : 'out';
+      if (c.at == null) c.at = 'out'; if (c.at !== want && !c.route) { c.route = want === 'in' ? routeIn(v, c) : routeIn(v, { x: c.pts[0][0], z: c.pts[0][1] }).reverse().slice(1).concat([[c.pts[0][0], c.pts[0][1]]]); c.ri = 0; if (Math.hypot(c.x - p.x, c.z - p.z) > 90) { const e = c.route[c.route.length - 1]; c.x = e[0]; c.z = e[1]; c.y = ground(Math.floor(c.x), Math.floor(c.z), Math.floor(v.y || c.y)) + 1; c.route = null; c.at = want; } /* nobody near to see it: it is simply there */ else if (want === 'in' && Math.hypot(c.x - p.x, c.z - p.z) < 60) UI.toast(`Market day. ${c.owner} is driving the cart in to ${v.name}.`); }
+      if (c.route) { const t = c.route[c.ri], dx = t[0] - c.x, dz = t[1] - c.z, d = Math.hypot(dx, dz); if (d < 0.5) { if (++c.ri >= c.route.length) { c.route = null; c.at = want; c.moving = false; if (want === 'in') c.yaw = 1.57; else c.i = 0; } }
+        else if (Math.hypot(c.x - p.x, c.z - p.z) < 2.6) c.moving = false; else { const st = Math.min(d, 3.1 * dt); c.x += dx / d * st; c.z += dz / d * st; let dy = Math.atan2(dx, dz) - c.yaw; while (dy > Math.PI) dy -= 6.283; while (dy < -Math.PI) dy += 6.283; c.yaw += dy * Math.min(1, dt * 3.5); let g0 = ground(Math.floor(c.x), Math.floor(c.z), Math.floor(c.y) + 2); while (g0 > 2 && isLeaf(G.world.getBlock(Math.floor(c.x), g0, Math.floor(c.z)))) g0--; const g = g0 + 1; /* a bush in the way is driven through, not over */ if (Math.abs(g - c.y) < 2.5) c.y += (g - c.y) * Math.min(1, dt * 8); c.moving = true; c.ph = (c.ph || 0) + dt * 9; } continue; }
+      if (c.at === 'in') { c.moving = false; continue; }
       if (sn === 3) { c.moving = false; continue; }
       const t = c.pts[c.i], dx = t[0] - c.x, dz = t[1] - c.z, d = Math.hypot(dx, dz); if (d < 0.4) { c.moving = false; c.wait -= dt; if (c.wait <= 0) { c.wait = 5 + Math.random() * 4; c.i = (c.i + 1) % c.pts.length; } }
       else if (Math.hypot(c.x - p.x, c.z - p.z) < 2.6) c.moving = false; /* it stops for anyone standing in the road */
@@ -21144,7 +21186,7 @@ G.setupWorld = function (seed, presetId) {
   this.world.findSpawn();
   Wild.init(this.world, this.mobile);
   Weather.init(this.world.seed);
-  Village.init(this); Hazards.init(this); Campaign.init(this); Npcs.init(this); Camps.init(this); Mer.init(this); Lab.init(this); Avatar.init(this); Combat.init(this); Buddy.init(this); Cine.init(this); Wood.init(this); First.init(this); Breath.init(this); Ruins.init(this); Fields.init(this); Felling.init(this); Relics.init(this); Gems.init(this); Keeps.init(this); Citadel.init(this); Farms.init(this); Sky.init(this);
+  Village.init(this); Hazards.init(this); Campaign.init(this); Npcs.init(this); Camps.init(this); Mer.init(this); Lab.init(this); Avatar.init(this); Combat.init(this); Buddy.init(this); Cine.init(this); Wood.init(this); Roads.init(this); First.init(this); Breath.init(this); Ruins.init(this); Fields.init(this); Felling.init(this); Relics.init(this); Gems.init(this); Keeps.init(this); Citadel.init(this); Farms.init(this); Sky.init(this);
   Quests.init(this);
 };
 G.newWorld = function (seed, starterIdx, name) {
@@ -21865,7 +21907,7 @@ G.loop = function (t) {
       }
       if (w.regrow && w.regrow.length && (this.frame & 31) === 0) { const now = performance.now(); w.regrow = w.regrow.filter(r => { if (now < r.t) return true; if ((r.id === B.LOG || r.id === B.BIRCHLOG || r.id === B.PALMLOG || r.id === B.LEAVES) && !Felling.natural(r.x, r.y, r.z, r.id)) return false; /* a block you built and took away stays gone */ const b = w.getBlock(r.x, r.y, r.z); if (r.id != null) { if (b === B.AIR && !(Math.abs(r.x + 0.5 - p.x) < 0.8 && Math.abs(r.z + 0.5 - p.z) < 0.8 && r.y >= Math.floor(p.y) - 1 && r.y <= Math.floor(p.y) + 2)) { if (r.id === B.GLOWWORM && !isSolid(w.getBlock(r.x, r.y - 1, r.z))) return false; w.setBlock(r.x, r.y, r.z, r.id); } else if (b === B.AIR) { r.t = now + 15000; return true; } } else if (r.leaf) { if (b === B.LEAVES) w.setBlock(r.x, r.y, r.z, B.BERRYLEAF); } else if (b === B.AIR) w.setBlock(r.x, r.y, r.z, B.BERRY); return false; }); }
       const trig = (Dialogue.active() || Village.walking) ? null : Wild.update(dt, p, performance.now() / 1000, false);
-      R.setSeason(this.worldId === 'earth' && !(this.world.colInfo(Math.floor(p.x), Math.floor(p.z)).lost) ? Fields.season() : 1); Cine.update(dt); Wood.update(dt, p); Buddy.update(dt, p); First.update(dt, p); Breath.update(dt, p); Ruins.update(dt, p); Fields.update(dt, p); Gems.update(dt, p); Felling.update(dt); Keeps.update(dt, p); Citadel.update(dt, p); Farms.update(dt, p); Sky.update(dt, p); Combat.update(dt, p, input);
+      R.setSeason(this.worldId === 'earth' && !(this.world.colInfo(Math.floor(p.x), Math.floor(p.z)).lost) ? Fields.season() : 1); Cine.update(dt); Wood.update(dt, p); Roads.update(dt, p); Buddy.update(dt, p); First.update(dt, p); Breath.update(dt, p); Ruins.update(dt, p); Fields.update(dt, p); Gems.update(dt, p); Felling.update(dt); Keeps.update(dt, p); Citadel.update(dt, p); Farms.update(dt, p); Sky.update(dt, p); Combat.update(dt, p, input);
       Wild.ensureHeart(p, this.trainerLevel, this.mythicCaught); Wild.ensureLegend(p); Wild.ensureApex(p);
       if (trig && !trig.e.cool && !Dialogue.active() && !Taming.active && !p.flying && !(this.fightGrace > performance.now()) && !((Keeps.inHold(p) || Citadel.inside(p) || Sky.inFort(p)) && !trig.e.keepBoss && !trig.e.skyBoss)) Wild.engage(trig.e, trig.ambush);
       for (const e of Wild.list) if (e.cool > 0) e.cool -= dt;
