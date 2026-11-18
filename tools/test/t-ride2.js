@@ -1,0 +1,4 @@
+const { open } = require('./harness');
+(async () => { const h = await open(); const { ev } = h; await h.newGame('look-3', 0); await h.calm(); await ev(() => { R.render = () => {}; });
+  for (const wid of ['halo', 'moon']) console.log(wid, JSON.stringify(await ev((wid) => { G.travel(wid); const w = G.world; const T = Village.planned().filter(v => v.type === 'land'); const out = []; for (const v of T.slice(0, 14)) { const rl = Village.layout(v).rail; let n = 0, tr = 0; for (let dx = -110; dx <= 110; dx += 2) for (let dz = -110; dz <= 110; dz += 2) { if (w.trackAt(v.x + dx, v.z + dz)) n++; if (w.trailWear(v.x + dx, v.z + dz) > 0) tr++; } out.push([v.name, v.size, !!rl, n, tr]); } return out; }, wid)));
+  console.log('ERRORS:', h.errors.slice(0, 5).join(' | ') || 'none'); await h.close(); })();

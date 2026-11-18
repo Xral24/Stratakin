@@ -1848,13 +1848,16 @@ const R = (() => {
           else { ends = nb.length === 1 ? [P(nb[0][0], nb[0][1]), P(-nb[0][0], -nb[0][1])] : [P(-1, 0), P(1, 0)]; mid = P(0, 0); }
           const sk = skyAt(lx, y, lz);
           for (const [A, Bp] of [[ends[0], mid], [mid, ends[1]]]) { const dx = Bp[0] - A[0], dz = Bp[2] - A[2], L = Math.hypot(dx, dz) || 1, px = -dz / L, pz = dx / L;
-            for (const sd of [-0.3, 0.3]) op.tube([[A[0] + px * sd, A[1] + 0.13, A[2] + pz * sd], [Bp[0] + px * sd, Bp[1] + 0.13, Bp[2] + pz * sd]], [0.045, 0.045], [0.42, 0.42, 0.46], { sky: sk, segs: 4, cap0: 'none', cap1: 'none' });
-            for (const t of [0.25, 0.75]) { const mx = A[0] + dx * t, my = A[1] + (Bp[1] - A[1]) * t + 0.05, mz = A[2] + dz * t; op.tube([[mx - px * 0.46, my, mz - pz * 0.46], [mx + px * 0.46, my, mz + pz * 0.46]], [0.075, 0.075], [0.36, 0.25, 0.15], { sky: sk, segs: 4, cap0: 'flat', cap1: 'flat' }); } }
+            const wr_ = world.preset.id; /* the line is what suits its world: iron on Earth, rusted scrap on Halo, and on the Moon one bright beam held off the dust on stubs, for a thing that floats */
+            if (wr_ === 'moon') { op.tube([[A[0], A[1] + 0.3, A[2]], [Bp[0], Bp[1] + 0.3, Bp[2]]], [0.08, 0.08], [0.5, 0.98, 1.0], { sky: 1, segs: 5, cap0: 'none', cap1: 'none', emis: true }); const mx = A[0] + dx * 0.5, my = A[1] + (Bp[1] - A[1]) * 0.5, mz = A[2] + dz * 0.5; op.tube([[mx, my - 0.05, mz], [mx, my + 0.26, mz]], [0.16, 0.1], [0.2, 0.22, 0.28], { sky: sk, segs: 5, cap0: 'flat', cap1: 'flat' }); continue; }
+            for (const sd of [-0.3, 0.3]) op.tube([[A[0] + px * sd, A[1] + 0.13, A[2] + pz * sd], [Bp[0] + px * sd, Bp[1] + 0.13, Bp[2] + pz * sd]], [0.045, 0.045], wr_ === 'halo' ? [0.46, 0.25, 0.15] : [0.42, 0.42, 0.46], { sky: sk, segs: 4, cap0: 'none', cap1: 'none' });
+            for (const t of [0.25, 0.75]) { const mx = A[0] + dx * t, my = A[1] + (Bp[1] - A[1]) * t + 0.05, mz = A[2] + dz * t; op.tube([[mx - px * 0.46, my, mz - pz * 0.46], [mx + px * 0.46, my, mz + pz * 0.46]], [0.075, 0.075], wr_ === 'halo' ? [0.3, 0.3, 0.33] : [0.36, 0.25, 0.15], { sky: sk, segs: 4, cap0: 'flat', cap1: 'flat' }); } }
           continue;
         }
         if (id === B.RAIL) { // mine rails: two iron rails on plank sleepers, running the way the line goes
-          const sk = skyAt(lx, y + 1, lz); const iron = [0.42, 0.42, 0.46], sleeper = [0.4, 0.28, 0.14]; const gy = gnd(lx, y, lz);
+          const sk = skyAt(lx, y + 1, lz); const wr_ = world.preset.id, iron = wr_ === 'halo' ? [0.46, 0.25, 0.15] : [0.42, 0.42, 0.46], sleeper = wr_ === 'halo' ? [0.3, 0.3, 0.33] : [0.4, 0.28, 0.14]; const gy = gnd(lx, y, lz);
           const alongX = get(lx + 1, y, lz) === B.RAIL || get(lx - 1, y, lz) === B.RAIL || get(lx + 1, y, lz) === B.CART || get(lx - 1, y, lz) === B.CART;
+          if (wr_ === 'moon') { if (alongX) { op.box(lx, gy + 0.24, lz + 0.42, lx + 1, gy + 0.38, lz + 0.58, [0.5, 0.98, 1.0], 1, true); op.box(lx + 0.4, gy, lz + 0.36, lx + 0.6, gy + 0.24, lz + 0.64, [0.2, 0.22, 0.28], sk, false); } else { op.box(lx + 0.42, gy + 0.24, lz, lx + 0.58, gy + 0.38, lz + 1, [0.5, 0.98, 1.0], 1, true); op.box(lx + 0.36, gy, lz + 0.4, lx + 0.64, gy + 0.24, lz + 0.6, [0.2, 0.22, 0.28], sk, false); } continue; }
           for (const t of [0.2, 0.55, 0.9]) { if (alongX) op.box(lx + t - 0.08, gy, lz + 0.1, lx + t + 0.08, gy + 0.07, lz + 0.9, sleeper, sk, false); else op.box(lx + 0.1, gy, lz + t - 0.08, lx + 0.9, gy + 0.07, lz + t + 0.08, sleeper, sk, false); }
           for (const r of [0.3, 0.7]) { if (alongX) op.box(lx, gy + 0.06, lz + r - 0.035, lx + 1, gy + 0.15, lz + r + 0.035, iron, sk, false); else op.box(lx + r - 0.035, gy + 0.06, lz, lx + r + 0.035, gy + 0.15, lz + 1, iron, sk, false); }
           continue;

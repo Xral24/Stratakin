@@ -586,7 +586,7 @@ class World {
       }
       if (this.preset.water && h < SEA) for (let y = h + 1; y <= SEA; y++) blocks[base + y] = B.WATER;
       if (info.lost && h < LOST_WATER) for (let y = h + 1; y <= LOST_WATER; y++) blocks[base + y] = B.WATER;
-      if (this.trackAt && this.trackAt(x, z)) { if (h >= SEA) { blocks[base + h] = B.GRAVEL; blocks[base + h + 1] = B.TRACK; for (let y = h + 2; y <= h + 4 && y < WH; y++) blocks[base + y] = B.AIR; } else if (SEA + 2 < WH) { blocks[base + SEA + 1] = B.PLANKS; blocks[base + SEA + 2] = B.TRACK; } } /* the railway: ballast under it on land, a plank deck where it crosses water */
+      if (this.trackAt && this.trackAt(x, z)) { const wl = this.preset.water ? SEA : this.preset.brine ? this.preset.brineLevel : -1, earth = this.preset.id === 'earth'; /* dry worlds have no sea to bridge: the line lies on the land wherever it goes. Halo decks its brine crossings in scrap plate */ if (h >= wl) { if (earth) blocks[base + h] = B.GRAVEL; blocks[base + h + 1] = B.TRACK; for (let y = h + 2; y <= h + 4 && y < WH; y++) blocks[base + y] = B.AIR; } else if (wl + 2 < WH) { blocks[base + wl + 1] = earth ? B.PLANKS : B.IRONWALL; blocks[base + wl + 2] = B.TRACK; } } /* the railway: ballast under it on land, a plank deck where it crosses water */
       if (this.preset.brine && h < this.preset.brineLevel) for (let y = h + 1; y <= this.preset.brineLevel; y++) blocks[base + y] = B.BRINE;
       if (this.preset.ringfall && h >= this.preset.brineLevel && h < WH - 2 && biome !== BIOME.MESA && U.hash3(x, 13, z, s + 931) < 0.0012) blocks[base + h + 1] = B.RINGSHARD;
       // sky islands

@@ -123,6 +123,10 @@ const Village = (() => {
       post: { title: 'Wreck Market', keeper: 'Calyx', greet: 'What the wrecks give up. New stock every two days.', stock: [] },
     },
   };
+  /* how you ride between places is the world's own: a steam train on Earth, the Glide on the Moon (a pod on a beam of light), the Rig on Halo (an armoured scrap hauler) */
+  SHOP_STYLE.alien.station = { title: 'Glide Dock', keeper: 'Dockmind Ssa', greet: 'The Glide makes no sound. Stand behind the light until it stops.', stock: [] };
+  SHOP_STYLE.halo.station = { title: 'Rig Yard', keeper: 'Rigmaster Dhak', greet: 'The Rig leaves when the stacks are hot. Hold on to something that is bolted down.', stock: [] };
+  const RIDE = () => world && world.preset.id === 'moon' ? 'Glide' : world && world.preset.id === 'halo' ? 'Rig' : 'train';
   // the sale yard: today's ring, new every game day; every seventh day is the parade, with the rarer ones
   function saleStock(v) {
     const day = G.dayCount || 0; const parade = day % 7 === 6; const r = U.rng(U.combine(U.strHash(v.id), day * 31 + 7));
@@ -296,7 +300,7 @@ const Village = (() => {
   // browner along them and a little mud shows through. Each trail finds its own way over the land: round water, up the easy side of a hill.
   let TRAILS = null, PLANNED = null, trailBusy = false;
   function buildTrails() {
-    const T = { cells: new Map(), n: 0, track: new Map() }; TRAILS = T; if (world.preset.id !== 'earth') return T;
+    const T = { cells: new Map(), n: 0, track: new Map() }; TRAILS = T; if (!world.preset.villages) return T;
     plan(); const st = villages.get('start') || pickStartSite(world.spawn); const pts = (PLANNED || []).filter(v => v.type === 'land').map(v => ({ x: v.x, z: v.z, R: v.R || TOWN_R[PLAN.get(v.id)] || 12 })); if (st) pts.unshift({ x: st.x, z: st.z, R: st.R || TOWN_R.start });
     if (pts.length < 2) return T;
     const D = (a, b) => Math.hypot(wd(a.x - b.x), wd(a.z - b.z)); const edges = new Map(); const add = (i, j) => { if (i !== j) edges.set(Math.min(i, j) + ':' + Math.max(i, j), [Math.min(i, j), Math.max(i, j)]); };
@@ -511,12 +515,12 @@ const Village = (() => {
     // the railway: the track runs past the station's door, out through the wall and away across the land; a raised platform lies between the door and the track
     let rail = null;
     { const sh = shops.find(x => x.kind === 'station');
-      if (sh && sh.lot && (sh.dirX || sh.dirZ) && !M.pod) {
+      if (sh && sh.lot && (sh.dirX || sh.dirZ)) {
         const dX = sh.dirX, dZ = sh.dirZ, c = sh.lot; const ax = dZ !== 0; // the door faces along z: the track runs along x
         const line = ax ? c.z + dZ * 4 : c.x + dX * 4, along0 = ax ? c.x : c.z, sgn = ax ? (Math.sign(c.x - vx) || 1) : (Math.sign(c.z - vz) || 1);
         const at = (a, l) => ax ? [a, l] : [l, a]; const base = ax ? vx : vz;
         rail = { ax, line, along0, sgn, plat: ax ? c.z + dZ * 3 : c.x + dX * 3, plat2: ax ? c.z + dZ * 2 : c.x + dX * 2, y: vy, sh: { x: sh.x, z: sh.z } };
-        for (let a = along0 - 3 * sgn; (a - base) * sgn <= R + 3; a += sgn) { const [x, z] = at(a, line); push(x, vy - 1, z, B.GRAVEL); push(x, vy, z, B.RAIL); push(x, vy + 1, z, B.AIR); push(x, vy + 2, z, B.AIR); }
+        for (let a = along0 - 3 * sgn; (a - base) * sgn <= R + 3; a += sgn) { const [x, z] = at(a, line); push(x, vy - 1, z, M === MATS.land || !M.plazaEdge ? B.GRAVEL : M.plazaEdge); push(x, vy, z, B.RAIL); push(x, vy + 1, z, B.AIR); push(x, vy + 2, z, B.AIR); }
         { const [x, z] = at(along0 - 4 * sgn, line); push(x, vy, z, B.BEAM); } // the buffer stop at the dead end, under the station's own eave
         for (let dx = -4; dx <= 4; dx++) for (let dz = -4; dz <= 4; dz++) if (Math.abs(dx) === 4 || Math.abs(dz) === 4) push(sh.x + dx, vy, sh.z + dz, M.plazaEdge); // the plinth the station stands on
         for (let k = -3; k <= 7; k++) { const a = along0 + sgn * k; const [x1, z1] = at(a, rail.plat), [x2, z2] = at(a, rail.plat2); push(x1, vy, z1, M.plazaEdge); push(x2, vy, z2, M.plaza); } // the platform runs from the station front out toward the gate
@@ -1077,7 +1081,7 @@ const Village = (() => {
   function portalBlock(v) { return v.type === 'land' ? { x: v.x + 5, y: v.y, z: v.z - 5 } : v.type === 'sea' ? { x: v.x - 3, y: v.y, z: v.z - 2 } : { x: v.x + 4, y: v.y, z: v.z - 4 }; }
   // an Earth town built before the trains may still have its old portal standing: take it down
   function clearPortal(v) { if (world.preset.id !== 'earth') return; for (let dx = -8; dx <= 8; dx++) for (let dz = -8; dz <= 8; dz++) for (let dy = -2; dy <= 3; dy++) if (world.getBlock(v.x + dx, v.y + dy, v.z + dz) === B.PORTAL) world.setBlock(v.x + dx, v.y + dy, v.z + dz, B.AIR); }
-  function ensurePortal(v) { if (v.founded || world.preset.id === 'earth' || (v.R && !(MATS[v.style] || MATS.land).pod)) { clearPortal(v); return; } const s = portalBlock(v); const x = s.x, z = s.z; if (world.getBlock(x, s.y, z) !== B.PORTAL) { world.setBlock(x, s.y, z, B.PORTAL); if (!isSolid(world.getBlock(x, s.y - 1, z))) world.setBlock(x, s.y - 1, z, B.STONE); for (let y = s.y + 1; y <= s.y + 2; y++) if (world.getBlock(x, y, z) !== B.AIR) world.setBlock(x, y, z, B.AIR); } }
+  function ensurePortal(v) { if (v.founded || v.R || world.preset.id === 'earth') { clearPortal(v); return; } const s = portalBlock(v); const x = s.x, z = s.z; if (world.getBlock(x, s.y, z) !== B.PORTAL) { world.setBlock(x, s.y, z, B.PORTAL); if (!isSolid(world.getBlock(x, s.y - 1, z))) world.setBlock(x, s.y - 1, z, B.STONE); for (let y = s.y + 1; y <= s.y + 2; y++) if (world.getBlock(x, y, z) !== B.AIR) world.setBlock(x, y, z, B.AIR); } }
   function portalSpot(v) { return v.type === 'land' ? { x: v.x + 5.5, y: v.y, z: v.z - 3.5 } : v.type === 'sea' ? { x: v.x - 2.5, y: v.y, z: v.z - 0.5 } : { x: v.x + 4.5, y: v.y, z: v.z - 2.5 }; }
   function portalList(fromId) {
     const out = [];
@@ -1592,7 +1596,7 @@ const Village = (() => {
     armourer: { need: { iron: 8, frond: 10 }, say: ['Plate needs iron and padding. Eight iron, ten fronds for the lining.'] },
     alchemist: { need: { glowworm: 5 }, say: ['My lamps went out and my brews with them. Five glowworms, please. They light the stills.'] },
     post: { need: { planks: 20, iron: 2 }, say: ['The traders stopped coming when the tyrant came. Fix my stalls: twenty planks, two iron for the hinges.'] },
-    station: { need: { iron: 16, planks: 24 }, say: ['The line has not run since the tyrant came. The rails here are rusted through.', 'Sixteen iron and twenty-four planks to relay our stretch of track. Then this town joins the line, and the train runs between every station that is open.'] },
+    station: { need: { iron: 16, planks: 24 }, get say() { const r = RIDE(); return r === 'Glide' ? ['The Glide has not run since the Overseer came. The beam here is dark.', 'Sixteen iron and twenty-four planks to relight our stretch. Then this place joins the line, and the Glide runs between every dock that is open.'] : r === 'Rig' ? ['The Rig has not hauled since the warlord came. The sand has the rails.', 'Sixteen iron and twenty-four planks to dig out our stretch. Then this place joins the line, and the Rig runs between every yard that is open.'] : ['The line has not run since the tyrant came. The rails here are rusted through.', 'Sixteen iron and twenty-four planks to relay our stretch of track. Then this town joins the line, and the train runs between every station that is open.']; } },
     sanctuary: { need: { berry: 10, glowworm: 3 }, say: ['The sanctuary garden died while we hid. Ten berries to replant, three glowworms to light the paths, and the Kin will come back to learn.'] },
     stables: { need: { berry: 20 }, say: ['The horses-of-a-sort ran off when the tyrant came. Twenty berries and I can coax enough back to teach again.'] },
     aerie: { need: { feather: 4 }, say: ['My training gliders are in rags. Four Sky Feathers to re-skin them.'] },
@@ -2436,7 +2440,7 @@ const Village = (() => {
   }
   // what people say in passing. Short, and never the same pair twice running
   const SAY_HAIL = { dawn: ['Morning.', 'You are up early.', 'Morning. Mind the cart.'], day: ['Afternoon.', 'You again.', 'Nice Kin.', 'Mind how you go.', 'Lost? The square is that way.', 'You are the one who beat him. Good.'], dusk: ['Evening.', 'Gates shut at dark.', 'Long day?', 'Evening. The tavern is open.'] };
-  const SAY_CHAT = [['Bread was late again.', 'It always is.'], ['Seen the champion play?', 'Lost ten shards finding out.'], ['Rain by night.', 'My knees say the same.'], ['Was the train on time?', 'It was not.'], ['That is the one who beat the tyrant.', 'Looks shorter up close.'], ['Your boy was on my roof.', 'He says it was your roof first.'], ['Prices at the trader.', 'Do not start.'], ['Any news off the road?', 'Mud. Mostly mud.'], ['I heard a Kin talk once.', 'You heard the tavern.'], ['Wall wants mending.', 'It has wanted mending since my father.']];
+  const SAY_CHAT = [['Bread was late again.', 'It always is.'], ['Seen the champion play?', 'Lost ten shards finding out.'], ['Rain by night.', 'My knees say the same.'], ['Was it on time today?', 'It was not.'], ['That is the one who beat the tyrant.', 'Looks shorter up close.'], ['Your boy was on my roof.', 'He says it was your roof first.'], ['Prices at the trader.', 'Do not start.'], ['Any news off the road?', 'Mud. Mostly mud.'], ['I heard a Kin talk once.', 'You heard the tavern.'], ['Wall wants mending.', 'It has wanted mending since my father.']];
   const SAY_ATL = [['Tide is late.', 'The clock is late. The tide is the tide.'], ['The canal is cold today.', 'It is cold every day.'], ['A land-walker. In the market.', 'Do not stare.'], ['Six foals this spring.', 'I counted seven.'], ['Oan took forty off my husband.', 'Oan takes forty off everybody.'], ['Is it night up there?', 'Who would know.'], ['The kelp wants thinning.', 'Tell a gardener, not me.'], ['Skerry looked at me.', 'She looks at everyone. She is deciding.']];
   const SAY_WATCH = ['All quiet.', 'Gates are shut. Mind yourself.', 'You should be abed.', 'Nothing stirring. I like it that way.'];
   const SAY_KID = ['Tag!', 'Not it!', 'You are the tyrant.', 'I am always the tyrant.', 'Race you to the well.', 'No fair!', 'Again!', 'Wait for me!'], SAY_KID_ATL = ['Tag!', 'Not it!', 'You be the sea.', 'I am Skerry!', 'Race you to the falls.', 'No fair!', 'Again!', 'Wait for me!'];
@@ -2755,6 +2759,33 @@ const Village = (() => {
   }
   // ---- the train: a little tank engine and two coaches waiting at the platform of every open station, steam idling; it pulls out when you buy a fare ----
   function trainMesh(kind) {
+    const wid = world.preset.id;
+    if (wid === 'moon') return R.entityMesh('glide:' + kind, (mb) => { /* the Glide: three white pods with no wheels, a band of lit glass, a cold light underneath where it rides the beam. Forward is +z */
+      const hull = [0.92, 0.94, 0.97], trimc = [0.62, 0.68, 0.78], glow = [0.5, 0.98, 1.0], glass = [0.1, 0.16, 0.24], lit = [0.75, 1.0, 1.0], nose = kind === 'loco', tail = kind === 'brown';
+      mb.blob(-0.46, 0.5, -1.22, 0.46, 1.5, 1.22, 0.5, hull, { n: 3, tap: nose ? [1, 1] : [1, 1] });
+      if (nose) { mb.blob(-0.4, 0.55, 1.0, 0.4, 1.3, 1.85, 0.5, hull, { n: 3 }); mb.blob(-0.3, 0.95, 1.25, 0.3, 1.32, 1.8, 0.5, glass, { n: 2 }); mb.ball(0, 0.72, 1.82, 0.07, lit, { emis: true }); }
+      if (tail) { mb.blob(-0.4, 0.55, -1.8, 0.4, 1.3, -1.0, 0.5, hull, { n: 3 }); mb.plate([[0, 1.45, -1.0], [0, 1.45, -1.7], [0, 1.95, -1.75], [0, 1.6, -1.1]], 0.04, trimc); }
+      for (const sx of [-1, 1]) { mb.box(Math.min(sx * 0.44, sx * 0.475), 0.98, -0.95, Math.max(sx * 0.44, sx * 0.475), 1.22, 0.95, lit, 1, true); mb.box(Math.min(sx * 0.44, sx * 0.47), 0.72, -1.1, Math.max(sx * 0.44, sx * 0.47), 0.78, 1.1, trimc); }
+      mb.box(-0.3, 0.36, -1.05, 0.3, 0.44, 1.05, glow, 1, true); mb.box(-0.36, 0.44, -1.1, 0.36, 0.52, 1.1, trimc); });
+    if (wid === 'halo') return R.entityMesh('rig:' + kind, (mb) => { /* the Rig: a hauler welded out of whatever would hold, a plough and tusks in front, two stacks behind, a caged wagon and a flatbed under sail. Forward is +z */
+      const iron = [0.17, 0.17, 0.2], rust = [0.5, 0.26, 0.15], rust2 = [0.62, 0.34, 0.16], steel = [0.4, 0.41, 0.44], dark = [0.1, 0.1, 0.12], bone = [0.9, 0.86, 0.74], fire = [1.0, 0.55, 0.15], cloth = [0.72, 0.24, 0.18];
+      const wheels = (zs, r) => { for (const z of zs) for (const sx of [-1, 1]) { mb.tube([[sx * 0.2, r, z], [sx * 0.36, r, z]], [r, r], dark, { segs: 10, cap0: 'flat', cap1: 'flat' }); mb.tube([[sx * 0.36, r, z], [sx * 0.52, r, z]], [0.07, 0.01], steel, { segs: 6, cap0: 'flat', cap1: 'round' }); } }; /* spiked hubs */
+      mb.box(-0.42, 0.34, -1.2, 0.42, 0.5, 1.2, iron);
+      if (kind === 'loco') { mb.tube([[0, 0.98, -0.2], [0, 0.98, 1.1]], [0.4, 0.36], rust, { segs: 10, cap0: 'flat', cap1: 'flat' }); for (const z of [0.1, 0.6]) mb.tube([[0, 0.98, z - 0.03], [0, 0.98, z + 0.03]], [0.42, 0.42], steel, { segs: 10 });
+        mb.box(-0.46, 0.5, -1.15, 0.46, 1.55, -0.2, rust2); mb.box(-0.3, 1.12, -0.21, 0.3, 1.24, -0.17, [1, 0.8, 0.4], 1, true); mb.box(-0.5, 1.55, -1.2, 0.5, 1.62, -0.15, steel); /* the cab: a slit to see through */
+        for (const sx of [-1, 1]) { mb.tube([[sx * 0.3, 1.5, -0.9], [sx * 0.34, 2.35, -0.95]], [0.09, 0.07], dark, { segs: 8, cap0: 'none', cap1: 'none' }); mb.ball(sx * 0.34, 2.38, -0.95, 0.07, fire, { emis: true }); mb.box(Math.min(sx * 0.47, sx * 0.5), 0.7, -1.0, Math.max(sx * 0.47, sx * 0.5), 1.2, -0.45, steel); }
+        mb.plate([[-0.62, 0.95, 1.2], [0.62, 0.95, 1.2], [0.36, 0.1, 1.75], [-0.36, 0.1, 1.75]], 0.05, steel); /* the plough */
+        for (const sx of [-1, 1]) mb.tube([[sx * 0.3, 0.75, 1.15], [sx * 0.55, 0.95, 1.6], [sx * 0.42, 1.35, 1.95]], [0.09, 0.07, 0.01], bone, { segs: 6, cap0: 'none', cap1: 'round' }); /* tusks */
+        for (const x of [-0.4, -0.13, 0.13, 0.4]) mb.tube([[x, 0.2, 1.7], [x, 0.14, 1.95]], [0.04, 0.005], steel, { segs: 5, cap0: 'flat', cap1: 'round' });
+        wheels([-0.75, -0.05, 0.7], 0.3); }
+      else if (kind === 'green') { mb.box(-0.45, 0.5, -1.15, 0.45, 1.4, 1.15, rust); for (const [z0, c] of [[-1.0, steel], [-0.3, rust2], [0.45, [0.22, 0.5, 0.5]]]) for (const sx of [-1, 1]) mb.box(Math.min(sx * 0.45, sx * 0.49), 0.6 + (z0 + 1) * 0.1, z0, Math.max(sx * 0.45, sx * 0.49), 1.25, z0 + 0.6, c); /* plate over plate */
+        for (const z of [-0.7, 0, 0.7]) for (const sx of [-1, 1]) mb.box(Math.min(sx * 0.49, sx * 0.5), 0.95, z - 0.13, Math.max(sx * 0.49, sx * 0.5), 1.08, z + 0.13, [1, 0.8, 0.4], 1, true);
+        mb.plate([[-0.6, 1.5, -1.2], [0.6, 1.5, -1.2], [0.5, 1.72, 1.2], [-0.5, 1.72, 1.2]], 0.03, cloth); for (const z of [-1.1, 1.1]) for (const sx of [-1, 1]) mb.tube([[sx * 0.44, 1.4, z], [sx * 0.5, 1.62, z]], [0.03, 0.03], steel, { segs: 5 });
+        wheels([-0.75, 0.75], 0.27); }
+      else { for (const sx of [-1, 1]) mb.box(Math.min(sx * 0.42, sx * 0.47), 0.5, -1.15, Math.max(sx * 0.42, sx * 0.47), 0.85, 1.15, rust2); mb.box(-0.42, 0.5, -1.2, 0.42, 0.85, -1.12, steel);
+        for (const [x, z] of [[-0.18, 0.6], [0.2, 0.2], [-0.1, -0.2]]) mb.tube([[x, 0.5, z], [x, 1.0, z]], [0.17, 0.17], [0.36, 0.24, 0.14], { segs: 8, cap0: 'flat', cap1: 'flat' }); /* barrels */
+        mb.tube([[0, 0.5, -0.75], [0, 2.5, -0.75]], [0.05, 0.035], steel, { segs: 6, cap0: 'none', cap1: 'round' }); mb.plate([[0, 2.4, -0.72], [0, 1.1, -0.72], [0, 1.25, 0.75], [0, 1.9, 0.2]], 0.02, [0.84, 0.72, 0.5]); /* a patched sail, for when the stacks are cold */
+        wheels([-0.75, 0.75], 0.27); } });
     return R.entityMesh('train:' + kind, (mb) => {
       const iron = [0.16, 0.17, 0.2], red = [0.6, 0.13, 0.12], brass = [0.85, 0.68, 0.3], dark = [0.1, 0.1, 0.12], glass = [0.62, 0.8, 0.9], gold = [1.0, 0.86, 0.45], lit = [1.0, 0.9, 0.62];
       const wheels = (zs, r) => { for (const z of zs) for (const sx of [-1, 1]) { mb.tube([[sx * 0.16, r, z], [sx * 0.24, r, z]], [r, r], dark, { segs: 10, cap0: 'flat', cap1: 'flat' }); mb.tube([[sx * 0.2, r, z], [sx * 0.26, r, z]], [r * 0.5, r * 0.5], brass, { segs: 8, cap0: 'flat', cap1: 'flat' }); } };
@@ -2805,15 +2836,15 @@ const Village = (() => {
     const run = trains.get(v.id); const pieces = trainPieces(v); const loco = pieces[0];
     const chim = { x: loco.x + Math.sin(loco.yaw) * 0.8, y: loco.y + 1.9, z: loco.z + Math.cos(loco.yaw) * 0.8 };
     if (!run) { // idling: a wisp now and then, if anyone is near enough to see it
-      if (Math.hypot(player.x - loco.x, player.z - loco.z) < 45) { v.puffT = (v.puffT || 0) - dt; if (v.puffT <= 0) { v.puffT = 1.4 + Math.random() * 1.2; Hazards.smoke(chim.x, chim.y, chim.z, 1, [0.8, 0.8, 0.84], 0.22); } }
+      if (world.preset.id !== 'moon' && Math.hypot(player.x - loco.x, player.z - loco.z) < 45) { v.puffT = (v.puffT || 0) - dt; if (v.puffT <= 0) { v.puffT = 1.4 + Math.random() * 1.2; Hazards.smoke(chim.x, chim.y, chim.z, 1, [0.8, 0.8, 0.84], 0.22); } }
       return;
     }
     run.t += dt;
     if (run.arrive) { const k = Math.min(1, run.t / (run.dur - 0.8)), e = 1 - Math.pow(1 - k, 2.4); run.off = run.from * (1 - e); } // it comes in from down the line and slows to a stand at the platform
     else { const mt = Math.max(0, run.t - (run.wait || 0)); run.off += Math.min(6.5, mt * 3.2) * dt; } // it stands while you board, then gathers way
     const moving = run.arrive ? run.t < run.dur - 0.8 : run.t > (run.wait || 0);
-    run.puffT -= dt; if (run.puffT <= 0) { run.puffT = moving ? Math.max(0.08, 0.3 - Math.max(0, run.t - (run.wait || 0)) * 0.06) : 0.9; Hazards.smoke(chim.x, chim.y, chim.z, moving ? 2 : 1, [0.78, 0.78, 0.8], moving ? 0.4 : 0.25); if (moving && ((run.t * 4) | 0) !== (((run.t - dt) * 4) | 0)) UI.sfx('place'); }
-    if (run.whistle != null && run.t >= run.whistle) { run.whistle = null; UI.sfx('whistle'); }
+    run.puffT -= dt; if (run.puffT <= 0) { run.puffT = moving ? Math.max(0.08, 0.3 - Math.max(0, run.t - (run.wait || 0)) * 0.06) : 0.9; const wd_ = world.preset.id; if (wd_ !== 'moon') Hazards.smoke(chim.x, chim.y + (wd_ === 'halo' ? 0.5 : 0), chim.z - 0, moving ? 2 : 1, wd_ === 'halo' ? [0.2, 0.19, 0.2] : [0.78, 0.78, 0.8], moving ? 0.4 : 0.25); if (moving && wd_ !== 'moon' && ((run.t * 4) | 0) !== (((run.t - dt) * 4) | 0)) UI.sfx('place'); }
+    if (run.whistle != null && run.t >= run.whistle) { run.whistle = null; UI.sfx(world.preset.id === 'moon' ? 'glide' : world.preset.id === 'halo' ? 'righorn' : 'whistle'); }
     for (const ln of run.lines || []) if (!ln.said && run.t >= ln.t) { ln.said = true; const q = ln.at(); say(q[0], q[1], q[2], ln.text, ln.secs || 2.4); }
     const car = pieces[1], p = G.player;
     if (run.rider) { // the little film of getting aboard: he walks to the carriage, steps up, sits down; then it takes him away
@@ -2857,7 +2888,7 @@ const Village = (() => {
     const folk = (v.npcs || []).filter(n => !n.hidden && n.y != null && Math.hypot(n.x - cam.lx, n.z - cam.lz) < 9).sort((a, b) => Math.hypot(a.x - cam.x, a.z - cam.z) - Math.hypot(b.x - cam.x, b.z - cam.z)).slice(0, 3), W = (al, pp) => rl.ax ? [al, rl.line + 0.5 + pp] : [rl.line + 0.5 + pp, al];
     const spot = (i) => () => { const n = folk[i]; if (n) return [n.x, n.y + 2.4, n.z]; const [x, z] = W(rl.along0 + 0.5 + rl.sgn * (i * 2 - 1), cam.side * 2.4); return [x, rl.y + 2.4, z]; };
     p.frozen = true; p.wasThird = G.thirdPerson; G.thirdPerson = true;
-    trains.set(v.id, { t: 0, off: 30, from: 30, dur: 6.2, puffT: 0, arrive: true, cam, whistle: 0.5, lines: [{ t: 0.9, at: spot(0), text: 'Listen. That is her whistle!' }, { t: 2.6, at: spot(1), text: 'The line is open again.' }, { t: 4.3, at: spot(2), text: `First train into ${v.name} in years.` }],
+    trains.set(v.id, { t: 0, off: 30, from: 30, dur: 6.2, puffT: 0, arrive: true, cam, whistle: 0.5, lines: [{ t: 0.9, at: spot(0), text: RIDE() === 'Glide' ? 'Look. The beam is lit!' : RIDE() === 'Rig' ? 'Hear that? That is her horn!' : 'Listen. That is her whistle!' }, { t: 2.6, at: spot(1), text: 'The line is open again.' }, { t: 4.3, at: spot(2), text: `First ${RIDE()} into ${v.name} in years.` }],
       done: () => { p.frozen = false; if (p.wasThird != null) { G.thirdPerson = p.wasThird; p.wasThird = null; } G.cutCam = null; UI.toast(`${v.name} station is open. Talk to the stationmaster to ride.`, 'good'); } });
     return true;
   }

@@ -55,6 +55,8 @@ const UI = (() => {
         case 'mine': tone(180, 120, 0.06, 'square', 0.05); break;
         case 'laugh': for (let i = 0; i < 5; i++) { tone(330 - i * 26, 250 - i * 24, 0.13, 'sawtooth', 0.06, i * 0.19); tone(165 - i * 13, 125 - i * 12, 0.13, 'square', 0.035, i * 0.19); } break; /* ha, ha, ha, ha, haaa: five barks going down */
         case 'gift': tone(784, 784, 0.1, 'triangle', 0.08); tone(988, 988, 0.1, 'triangle', 0.08, 0.1); tone(1175, 1175, 0.1, 'triangle', 0.08, 0.2); tone(1568, 1568, 0.3, 'triangle', 0.09, 0.3); tone(784, 1568, 0.3, 'sine', 0.04, 0.3); break; /* something put in your hands: four notes going up */
+        case 'glide': tone(180, 520, 0.9, 'sine', 0.07); tone(360, 1040, 0.9, 'sine', 0.03, 0.05); break; /* the Moon's Glide winding up: no whistle, a rising hum */
+        case 'righorn': tone(98, 92, 0.5, 'sawtooth', 0.11); tone(147, 139, 0.5, 'sawtooth', 0.07); tone(98, 90, 0.8, 'sawtooth', 0.11, 0.6); tone(147, 136, 0.8, 'sawtooth', 0.07, 0.6); break; /* Halo's Rig: two blasts on a horn made from something large */
         case 'whistle': tone(880, 868, 0.32, 'sine', 0.09); tone(1108, 1094, 0.32, 'sine', 0.07); tone(880, 868, 0.55, 'sine', 0.09, 0.42); tone(1108, 1094, 0.55, 'sine', 0.07, 0.42); break;
         case 'gem': tone(1320, 1760, 0.08, 'sine', 0.06); tone(1980, 2640, 0.11, 'sine', 0.04, 0.05); break;
         case 'gemBig': tone(880, 1320, 0.12, 'triangle', 0.08); tone(1320, 1760, 0.14, 'sine', 0.07, 0.09); tone(1760, 2640, 0.22, 'sine', 0.06, 0.18); break;
