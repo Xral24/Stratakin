@@ -667,6 +667,16 @@ const KIN = (() => {
     put(['molekit', 'minermole', 'drillmole'], [{ all: true, t: [0, -0.78, 0] }]); /* goes into the ground */
     put(['peachick', 'peafowl', 'bloompeacock'], [{ kind: 'tail', s: [2.4, 2.2, 1], rx: -0.95 }], { idle: 0.04 }); /* the fan goes up */
     put(['puffer'], [{ all: true, s: [1.6, 1.6, 1.6], pulse: 5 }]);
+    /* the second dozen: moves taken from what the real animal does */
+    put(['hare'], [{ all: true, rx: -0.6, t: [0, 0.08, 0] }, { i: 2, osc: { rx: 0.8, f: 13 } }, { i: 3, osc: { rx: -0.8, f: 13 } }]); /* up on its hind legs, boxing */
+    put(['redpanda'], [{ all: true, s: [0.86, 1.3, 0.86] }, { kind: 'arm', rz: 2.5 }, { kind: 'tail', s: [1.5, 1.5, 1.5] }]); /* stands and throws both arms up to look big, which is exactly what they do */
+    put(['gullchick', 'seagull', 'albatross'], [{ kind: 'wing', s: [2.0, 1.15, 1.3], rz: -0.3 }], { idle: 0.05 }); /* the full span */
+    put(['nightjar', 'potoo'], [{ all: true, s: [0.62, 1.5, 0.62] }, { kind: 'head', rx: -0.8 }, { kind: 'wing', s: [0.5, 1, 0.5] }], { idle: 0.18 }); /* bill to the sky, thin as a broken branch, and still */
+    put(['squab', 'dove', 'sundove'], [{ all: true, s: [1.25, 1.05, 1.25], pulse: 4 }, { kind: 'head', osc: { rx: 0.5, f: 5 } }], { idle: 0.06 }); /* chest out, bowing and bowing */
+    put(['voltjoey', 'thunderboxer'], [{ kind: 'arm', osc: { rx: 1.0, f: 15 } }, { all: true, rx: -0.25 }, { kind: 'tail', rx: 0.5 }]); /* back on its tail, fists going */
+    put(['embermonkey', 'torchmandrill', 'magmagorilla'], [{ all: true, s: [1.1, 1.12, 1.1] }, { i: 2, rx: -1.0, osc: { rx: 0.6, f: 16 } }, { i: 3, rx: -1.0, osc: { rx: -0.6, f: 16 } }]); /* drums on its chest */
+    put(['windfox', 'skyfox'], [{ kind: 'head', osc: { rz: 0.45, f: 2.2 } }, { kind: 'tail', s: [1.6, 1.6, 1.6], rx: -0.5 }], { idle: 0.06 }); /* head tipped one way then the other, listening for something under the grass */
+    put(['walrus'], [{ all: true, rx: -0.35, t: [0, 0.05, 0] }, { kind: 'head', osc: { rx: 0.25, f: 3 } }]); /* rears and bellows */
     put(['w_toad'], [{ i: 13, s0: [0.8, 0.8, 0.8], s: [1.12, 1.12, 1.12], pulse: 6 }], { idle: 0.1 }); /* the flame swells in the glass */
     put(['w_moth'], [{ kind: 'wing', s: [1.3, 1.3, 1.3] }], { idle: 0.08 }); /* wings wide, keyholes to the light */
     put(['w_cock'], [{ all: true, not: [4], osc: { ry: 1.5, f: 3.2 } }], { idle: 0.1 }); /* swings round like a vane in a gust */
@@ -708,6 +718,21 @@ const KIN = (() => {
     put(['pangolinpup', 'pangolinknight'], (c) => { const b = c.bb, cy = (b.y0 + b.y1) / 2, cz = (b.z0 + b.z1) / 2, r = Math.max(b.x1 - b.x0, b.y1 - b.y0) * 0.5, sc = c.C.body, ed = c.C.dark || '#3a2a20'; c.B(13, 'part', [0, cy, cz]); /* the ball it becomes: a whole sphere of overlapping scales that closes round it while everything else goes inside */
       c.ball(0, cy, cz, r * 0.92, sc, { n: 4 }); for (let i = 0; i < 26; i++) { const u = 1 - 2 * (i + 0.5) / 26, ph = i * 2.399, rr = Math.sqrt(1 - u * u), d = [Math.cos(ph) * rr, u, Math.sin(ph) * rr]; c.cone([d[0] * r * 0.74, cy + d[1] * r * 0.74, cz + d[2] * r * 0.74], [d[0] + 0.0, d[1] - 0.55, d[2] - 0.35], r * 0.5, r * 0.2, i % 2 ? sc : ed, { segs: 4 }); }
       return { ops: [{ all: true, not: [13], s: [0.35, 0.35, 0.35], t: [0, 0.0, 0] }, { i: 13, s0: [0.02, 0.02, 0.02], s: [1.45, 1.45, 1.45], osc: { rx: 0.12, f: 5 } }] }; });
+    put(['narwhal'], (c) => { const h = c.hp, iv = '#f4efe2'; c.B(13, 'part', [0, h[1], h[2] + 0.15]); /* the lance: a second length of spiral tusk that runs out of the first like a drawn sword */
+      c.tube([[0, h[1], h[2] + 0.15], [0, h[1] + 0.06, h[2] + 1.5]], [0.045, 0.008], iv, { cap0: 'round', cap1: 'round', segs: 8 }); for (let i = 0; i < 9; i++) { const z = h[2] + 0.25 + i * 0.13, r = 0.047 - i * 0.0042; c.tube([[0, h[1] + (z - h[2]) * 0.044, z], [0.012, h[1] + (z - h[2]) * 0.044, z + 0.03]], [r, r], '#cfc6b0', { cap0: 'flat', cap1: 'flat', segs: 3 }); }
+      return { ops: [{ i: 13, s0: [0.6, 0.6, 0.04], s: [1, 1, 1] }] }; });
+    put(['coilsnake', 'teslaserpent'], (c) => { const b = c.bb, y = b.y0 + (b.y1 - b.y0) * 0.5, z = b.z0 - 0.02; c.B(13, 'part', [0, y, z]); /* a rattle on the end of it: five dry beads standing up, and they blur */
+      for (let i = 0; i < 5; i++) c.ball(0, y + 0.06 + i * 0.085, z - i * 0.012, 0.07 - i * 0.008, i % 2 ? '#d8c48a' : '#a8905a', { n: 2 });
+      return { ops: [{ i: 13, s0: [0.25, 0.25, 0.25], s: [1.9, 1.9, 1.9], osc: { rz: 0.6, f: 30 } }, { all: true, not: [13], s: [1, 1.15, 1] }] }; });
+    put(['ravenlet', 'raven', 'ravenking'], (c) => { const h = c.hp, y = h[1] - 0.06, z = h[2] + 0.1, col = c.C.accent || '#3a3e58'; c.B(13, 'part', [0, y, z]); /* throat hackles: a beard of long feathers that stands out when it has something to say */
+      for (let i = 0; i < 9; i++) { const a = -1.2 + i * 0.3; c.cone([Math.sin(a) * 0.1, y, z + Math.cos(a) * 0.06], [Math.sin(a) * 0.7, -0.75, Math.cos(a) * 0.55], 0.26, 0.035, i % 2 ? col : (c.C.dark || '#1a1a22'), { segs: 4 }); }
+      return { ops: [{ i: 13, s0: [0.12, 0.12, 0.12], s: [1, 1, 1], pulse: 6 }, { kind: 'head', osc: { rx: 0.22, f: 3 } }], idle: 0.06 }; });
+    put(['hummingbird'], (c) => { const h = c.hp; c.B(13, 'part', [0, h[1] - 0.02, h[2] + 0.2]); /* a tongue twice the length of the bird, forked at the tip, out of the end of the bill */
+      c.tube([[0, h[1] - 0.02, h[2] + 0.2], [0, h[1] - 0.05, h[2] + 0.95]], [0.012, 0.008], '#f08aa8', { cap0: 'round', cap1: 'round', segs: 5 }); for (const sd of [-1, 1]) c.tube([[0, h[1] - 0.05, h[2] + 0.95], [sd * 0.035, h[1] - 0.05, h[2] + 1.05]], [0.008, 0.004], '#f08aa8', { cap0: 'round', cap1: 'round', segs: 4 });
+      return { ops: [{ i: 13, s0: [1, 1, 0.03], s: [1, 1, 1], pulse: 9 }, { kind: 'wing', osc: { rz: 0.8, f: 42 } }], idle: 0.1 }; });
+    put(['lanternstag', 'hart'], (c) => { const h = c.hp, y = h[1] + 0.2, z = h[2] - 0.02, bone0 = '#e8dcc0'; c.B(13, 'part', [0, y, z]); /* the full rack: it carries a modest set, and a great branching one comes up through it for the rut */
+      for (const sd of [-1, 1]) { c.tube([[sd * 0.08, y, z], [sd * 0.3, y + 0.4, z - 0.1], [sd * 0.5, y + 0.82, z - 0.04]], [0.04, 0.032, 0.012], bone0, { cap0: 'round', cap1: 'round', segs: 6 }); for (const [u, dx, dy, dz, l] of [[0.3, 0.18, 0.2, 0.2, 0.26], [0.55, 0.2, 0.22, 0.12, 0.28], [0.8, -0.12, 0.26, 0.1, 0.22]]) { const px = sd * (0.08 + 0.42 * u), py = y + 0.82 * u, pz = z - 0.07; c.cone([px, py, pz], [sd * dx, dy, dz], l, 0.028, bone0, { segs: 5 }); } }
+      return { ops: [{ i: 13, s0: [0.08, 0.08, 0.08], s: [1, 1, 1] }, { all: true, not: [13], s: [1.04, 1.06, 1.04] }] }; });
     put(['masker'], (c) => { const b = c.bb, top = b.y1 - 0.03; c.B(13, 'part', [0, top, (b.z0 + b.z1) / 2]); /* a ridge of fur down the spine that lies flat until its back goes up */
       for (let i = 0; i < 9; i++) { const z = b.z0 + 0.04 + (b.z1 - b.z0 - 0.08) * i / 8; c.cone([0, top - 0.04, z], [0, 1, -0.2], 0.42 + 0.1 * Math.sin(i * 1.3), 0.075, i % 2 ? (c.C.accent || c.C.dark) : c.C.dark); }
       return { ops: [{ i: 13, s0: [1, 0.04, 1], s: [1.3, 1, 1] }, { kind: 'tail', s: [3.6, 1.6, 3.6], rx: -0.7 }, { all: true, s: [0.88, 1.3, 0.8] }] }; });
