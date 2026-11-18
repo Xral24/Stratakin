@@ -1,0 +1,7 @@
+const { open } = require('./harness');
+(async () => { const h = await open(); const { page, ev } = h; await h.newGame('look-3', 0); await h.calm(); await ev(() => { R.render = () => {}; G.player.add('spacesuit', 1); G.player.add('lavasuit', 1); });
+  for (const wid of ['earth', 'moon', 'halo']) { const r = await ev((wid) => { if (G.worldId !== wid) G.travel(wid); const p = G.player, w = G.world; G.repelUntil = performance.now() + 9e7; const c0x = Math.floor(p.x / 14), c0z = Math.floor(p.z / 14), kinds = {}; let first = null;
+      for (let dx = -20; dx <= 20; dx++) for (let dz = -20; dz <= 20; dz++) for (const g of Gems._make(w, c0x + dx, c0z + dz)) { kinds[g.kind] = (kinds[g.kind] || 0) + 1; if (!first && g.kind === 'glint') first = g; }
+      let got = null; if (first) { p.x = first.x + 1.5; p.z = first.z; w.ensureAround(Math.floor(p.x / CH), Math.floor(p.z / CH), 2, 99999); p.y = w.groundY(Math.floor(p.x), Math.floor(p.z), 100) + 1.05; for (let i = 0; i < 6; i++) Gems.update(0.05, p); const e0 = Gems.entities().length, s0 = G.shards; p.x = first.x; p.z = first.z; p.y = w.groundY(Math.floor(p.x), Math.floor(p.z), 100) + 1.05; for (let i = 0; i < 30; i++) Gems.update(0.05, p); got = { ents: e0, shards: [s0, G.shards], taken: Object.keys(G.stats.gemsTaken || {}).length }; }
+      return { world: G.worldId, kinds, got }; }, wid); console.log(JSON.stringify(r)); await page.waitForTimeout(800); }
+  console.log('ERRORS:', h.errors.slice(0, 3).join(' | ') || 'none'); await h.close(); })();
