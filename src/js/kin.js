@@ -285,6 +285,11 @@ const KIN = (() => {
   /* the creatures of the dark wood. They are not like the rest: each is one odd idea on legs, there are few of them, they live nowhere else, they cannot be fused, and each is worth having for one thing it does */
   const WOODKIN = { toad: { nat: 'w_toad', name: 'Lampwart', el: 'Light', col: { body: '#4f6a3a', belly: '#c9c08a', accent: '#ffe9a0', dark: '#26301c', eye: '#f6f0d8' }, size: 0.55 },
     hare: { nat: 'w_hare', name: 'Snipscut', el: 'Gale', col: { body: '#8a6f55', belly: '#eadfc8', accent: '#c8ccd4', dark: '#3a2a20', eye: '#f6f0d8' }, size: 0.5 },
+    moth: { nat: 'w_moth', name: 'Latchwing', el: 'Void', col: { body: '#6a5a4a', belly: '#efe6d0', accent: '#c9a03a', dark: '#2a2018', eye: '#1a1410' }, size: 0.6 },
+    cock: { nat: 'w_cock', name: 'Weathercock', el: 'Gale', col: { body: '#b86a36', belly: '#d89a5a', accent: '#5aa88a', dark: '#3a2a20', eye: '#f6f0d8' }, size: 0.6 },
+    spider: { nat: 'w_spider', name: 'Bobbinlegs', el: 'Bloom', col: { body: '#5a4a6a', belly: '#8a7a9a', accent: '#f2ead2', dark: '#241c2c', eye: '#f6f0d8' }, size: 0.7 },
+    fox: { nat: 'w_fox', name: 'Padfoot', el: 'Flame', col: { body: '#c8703a', belly: '#f4e6d0', accent: '#b03a4a', dark: '#3a2418', eye: '#f6f0d8' }, size: 0.6 },
+    tort: { nat: 'w_tort', name: 'Brewback', el: 'Tide', col: { body: '#6a7a4a', belly: '#c9c08a', accent: '#c8743a', dark: '#2a3020', eye: '#f6f0d8' }, size: 0.6 },
     stork: { nat: 'w_stork', name: 'Stoolbill', el: 'Tide', col: { body: '#f4f2ea', belly: '#ffffff', accent: '#d8452a', dark: '#22242a', eye: '#1a1410' }, size: 0.6 } };
   const woodCache = {};
   function woodSpecies(id) { if (woodCache[id]) return woodCache[id]; const W = WOODKIN[id]; if (!W) return null; const sp = species(U.combine(0xDA2C, U.strHash(id)), [W.el], 2, { primary: W.el, shape: 'quadruped', total: 430, evolveAt: [9999, 9999], size: W.size });
@@ -417,7 +422,7 @@ const KIN = (() => {
   NATIVE.lost = { horned: ['d_trike', 'd_anky', 'd_stego'], longneck: ['d_bronto', 'd_brachio', 'd_para'], raptor: ['d_raptor', 'd_pachy'], serpent: ['d_titano'] }; /* the Lost World's dinosaurs: lines of their own, like the other worlds' natives */
   NAT_COL.lost = { Bloom: ['#5f9a4a', '#d4ff7a'], Stone: ['#a08a66', '#ffd88a'], Flame: ['#b8553a', '#ffb04a'], Gale: ['#5fa8a0', '#d8fff0'], Tide: ['#3f7fb0', '#8fe0ff'], Frost: ['#7ab0c8', '#d8fbff'], Spark: ['#b89a3a', '#fff06a'], Void: ['#5a4070', '#d08aff'], Light: ['#d8c070', '#fff6c0'] };
   const LEGEND = { 'earth|Core': 'l_core', 'earth|Sky': 'l_sky', 'earth|Lost World': 'l_amber', 'moon|Crater': 'lm_crater', 'moon|Core': 'lm_core', 'moon|Sky': 'lm_sky', 'halo|Core': 'lh_core', 'halo|Sky': 'lh_sky' }; /* habitat legendaries by where they live: 'body|layer or biome' -> a body of their own */
-  const NATP = new Set(Object.keys(NAT_STEM).concat(['d_trike', 'd_anky', 'd_stego', 'd_bronto', 'd_brachio', 'd_para', 'd_raptor', 'd_pachy', 'd_titano', 'x_rex', 'x_mosa', 'x_tyrant', 'x_tyr_liz', 'x_tyr_toad', 'w_toad', 'w_hare', 'w_stork', 'x_tyr_moon', 'x_tyr_halo', 'x_tyr_sea', 'x_mantle', 'x_warden', 'l_core', 'l_sky', 'l_amber', 'lm_crater', 'lm_core', 'lm_sky', 'lh_core', 'lh_sky', 'lw_selenaut', 'lw_ring'])); const NATL = {};
+  const NATP = new Set(Object.keys(NAT_STEM).concat(['d_trike', 'd_anky', 'd_stego', 'd_bronto', 'd_brachio', 'd_para', 'd_raptor', 'd_pachy', 'd_titano', 'x_rex', 'x_mosa', 'x_tyrant', 'x_tyr_liz', 'x_tyr_toad', 'w_toad', 'w_hare', 'w_stork', 'w_moth', 'w_cock', 'w_spider', 'w_fox', 'w_tort', 'x_tyr_moon', 'x_tyr_halo', 'x_tyr_sea', 'x_mantle', 'x_warden', 'l_core', 'l_sky', 'l_amber', 'lm_crater', 'lm_core', 'lm_sky', 'lh_core', 'lh_sky', 'lw_selenaut', 'lw_ring'])); const NATL = {};
   function nativeLine(id, shape) { const k = id + '|' + shape; return NATL[k] || (NATL[k] = [[shape, id, ''], [shape, id, ''], [shape, id, '']]); }
   function nativeBody(sp) { return (sp.home && sp.home.body) || (sp.recipe && sp.recipe.body) || null; }
   function nativeId(sp) { if (!sp) return null; if (sp.natId !== undefined) return sp.natId;
@@ -663,6 +668,11 @@ const KIN = (() => {
     put(['peachick', 'peafowl', 'bloompeacock'], [{ kind: 'tail', s: [2.4, 2.2, 1], rx: -0.95 }], { idle: 0.04 }); /* the fan goes up */
     put(['puffer'], [{ all: true, s: [1.6, 1.6, 1.6], pulse: 5 }]);
     put(['w_toad'], [{ i: 13, s0: [0.8, 0.8, 0.8], s: [1.12, 1.12, 1.12], pulse: 6 }], { idle: 0.1 }); /* the flame swells in the glass */
+    put(['w_moth'], [{ kind: 'wing', s: [1.3, 1.3, 1.3] }], { idle: 0.08 }); /* wings wide, keyholes to the light */
+    put(['w_cock'], [{ all: true, osc: { ry: 1.3, f: 3.2 } }], { idle: 0.1 }); /* swings round like a vane in a gust */
+    put(['w_spider'], [{ i: 13, osc: { rz: 1.5, f: 10 } }], { idle: 0.12 }); /* the spool runs */
+    put(['w_fox'], [{ all: true, s: [0.94, 1.1, 0.94] }, { kind: 'tail', rx: -0.7, s: [1.3, 1.3, 1.3] }], { idle: 0.05 }); /* up on tiptoe in its slippers */
+    put(['w_tort'], [{ i: 13, ta: [0, 0.07, 0], osc: { rx: 0.2, f: 22 } }, { i: 9, s0: [0.05, 0.05, 0.05], s: [1.2, 1.2, 1.2], pulse: 7 }], { idle: 0.12 }); /* the lid rattles and it steams */
     put(['w_hare'], [{ i: 13, osc: { rz: 0.34, f: 15 } }, { i: 9, osc: { rz: -0.34, f: 15 } }], { idle: 0.09 }); /* snip, snip */
     put(['w_stork'], [{ kind: 'leg', rz: -0.9 }, { all: true, t: [0, -0.2, 0] }, { i: 13, s0: [0.05, 1, 0.05], s: [1, 1, 1] }], { idle: 0.14 }); /* legs across, seat out, and down it goes */ /* twice the size, all spines */
     put(['flamecobra', 'goldencobra', 'suncobra'], [{ kind: 'head', s: [2.1, 1.3, 1] }, { all: true, s: [1, 1.18, 1] }]); /* the hood spreads and it rears */
@@ -1660,6 +1670,62 @@ const KIN = (() => {
         B(9, 'jaw', [0, hy - 0.0, hz + 0.0]); blob(-0.078, hy - 0.085, hz + 0.02, 0.078, hy - 0.012, hz + 0.41, 1, bl, { n: 4 }); ball(0, hy - 0.085, hz + 0.34, 0.04, bl, { n: 2 }); ball(0, hy - 0.11, hz + 0.1, 0.06, hexMix(bl, ac, 0.25), { n: 3 }); // a point of a chin, and the loose skin of the throat behind it
         tube([[0, hy - 0.03, hz + 0.3], [0, hy - 0.035, hz + 0.47], [0.012, hy - 0.05, hz + 0.54]], [0.016, 0.012, 0.004], '#d0506a', { segs: 4, cap0: 'round', cap1: 'round' }); tube([[0, hy - 0.035, hz + 0.47], [-0.014, hy - 0.05, hz + 0.535]], [0.01, 0.004], '#d0506a', { segs: 4, cap0: 'round', cap1: 'round' });
         bone = 0;
+      } else if (P === 'w_moth') { // the latch moth: a fat furry moth with a keyhole cut clean through each wing. Hold it to a lock and the light through the keyhole does the rest
+        const fur = bd, pale = bl, kh = '#14100c'; flyer = true; hover = 0.55; legLen = 0.2; kind = 'bird';
+        bone = 0; core(-0.14, 0.2, -0.16, 0.14, 0.7, 0.14); tube([[0, 0.22, -0.06], [0, 0.45, 0], [0, 0.66, 0.04]], [0.09, 0.15, 0.12], fur, { cap0: 'round', cap1: 'round', segs: 7 });
+        for (let i = 0; i < 4; i++) tube([[0, 0.27 + i * 0.07, -0.05 + i * 0.012], [0, 0.29 + i * 0.07, -0.05 + i * 0.012]], [0.1 + i * 0.012, 0.1 + i * 0.012], hexMix(fur, dk, 0.45), { cap0: 'flat', cap1: 'flat', segs: 4 }); /* bands down the tail */
+        for (const sd of [-1, 1]) { B(sd < 0 ? 7 : 8, 'wing', [sd * 0.1, 0.56, -0.02], { side: sd, fold: -0.25 });
+          plate([[sd * 0.08, 0.66, -0.02], [sd * 0.5, 0.98, -0.06], [sd * 0.82, 0.8, -0.06], [sd * 0.74, 0.42, -0.06], [sd * 0.4, 0.3, -0.04], [sd * 0.08, 0.44, -0.02]], 0.02, pale, { edge: hexMix(pale, dk, 0.5) });
+          ball(sd * 0.5, 0.7, -0.035, 0.085, kh, { n: 2 }); plate([[sd * 0.46, 0.68, -0.03], [sd * 0.54, 0.68, -0.03], [sd * 0.58, 0.48, -0.03], [sd * 0.42, 0.48, -0.03]], 0.03, kh); /* the keyhole: a round hole and the slot under it */
+          ball(sd * 0.7, 0.88, -0.05, 0.035, ac, { n: 1 }); ball(sd * 0.68, 0.5, -0.05, 0.03, ac, { n: 1 }); }
+        bone = 0; B(1, 'head', [0, 0.68, 0.06], { still: true }); const hy = 0.76, hz = 0.08; ball(0, hy, hz, 0.13, fur, { n: 3 });
+        for (const sd of [-1, 1]) { ball(sd * 0.075, hy + 0.02, hz + 0.09, 0.05, '#1a1410', { n: 2 }); ball(sd * 0.085, hy + 0.035, hz + 0.125, 0.015, '#ffffff', { n: 1 }); tube([[sd * 0.05, hy + 0.1, hz + 0.02], [sd * 0.16, hy + 0.3, hz + 0.06], [sd * 0.24, hy + 0.34, hz + 0.02]], [0.014, [0.045, 0.012], [0.02, 0.008]], hexMix(fur, pale, 0.5), { segs: 6, cap0: 'round', cap1: 'round' }); } /* big dark eyes, feathered antennae */
+        B(6, 'lid', [0, hy + 0.06, hz + 0.09], { amp: 0.05 * s }); for (const sd of [-1, 1]) blob(sd * 0.075 - 0.055, hy + 0.05, hz + 0.05, sd * 0.075 + 0.055, hy + 0.11, hz + 0.14, 1, hexMix(fur, dk, 0.25), { n: 1 });
+      } else if (P === 'w_cock') { // the weathercock: a copper cockerel gone green at the edges, with an arrow for a tail. It cannot help pointing at things
+        const hip = 0.32, cu = bd, verd = ac, red = '#c8342a';
+        for (const sd of [-1, 1]) { B(sd < 0 ? 4 : 5, 'leg', [sd * 0.09, hip, 0], { phase: sd < 0 ? 0 : Math.PI, len: hip, amp: 0.5 }); tube([[sd * 0.09, hip, 0], [sd * 0.09, 0.04, 0.02]], [0.028, 0.022], dk, { cap0: 'round', cap1: 'round' }); for (const a of [-0.5, 0, 0.5]) tube([[sd * 0.09, 0.03, 0.02], [sd * 0.09 + Math.sin(a) * 0.1, 0.015, 0.02 + Math.cos(a) * 0.1]], [0.016, 0.01], dk, { cap0: 'round', cap1: 'round', segs: 4 }); }
+        bone = 0; legLen = hip; core(-0.17, hip, -0.22, 0.17, hip + 0.36, 0.2);
+        blob(-0.19, hip - 0.03, -0.24, 0.19, hip + 0.36, 0.22, 1, cu, { n: 4 }); blob(-0.14, hip, 0.02, 0.14, hip + 0.3, 0.25, 1, hexMix(cu, verd, 0.45), { n: 3 });
+        for (const sd of [-1, 1]) plate([[sd * 0.19, hip + 0.3, 0.1], [sd * 0.21, hip + 0.12, -0.2], [sd * 0.2, hip + 0.04, 0.0]], 0.025, hexMix(cu, verd, 0.3), { edge: verd }); /* a wing pressed flat each side, like sheet metal */
+        B(6, 'tail', [0, hip + 0.26, -0.2]); tube([[0, hip + 0.26, -0.2], [0, hip + 0.5, -0.5], [0, hip + 0.78, -0.72]], [0.03, 0.026, 0.022], dk, { cap0: 'round', cap1: 'round', segs: 6 }); plate([[0, hip + 0.98, -0.88], [0, hip + 0.86, -0.56], [0, hip + 0.62, -0.84]], 0.03, verd, { edge: cu }); /* the tail is an arrow: shaft and broad head */
+        for (const dz of [-0.3, -0.38]) plate([[0, hip + 0.42 + (dz + 0.3) * -1.2, dz - 0.06], [0, hip + 0.34 + (dz + 0.3) * -1.2, dz - 0.18], [0, hip + 0.28 + (dz + 0.3) * -1.2, dz - 0.02]], 0.02, cu); /* fletching */
+        bone = 0; tube([[0, hip + 0.3, 0.14], [0, hip + 0.5, 0.2]], [0.09, 0.07], cu, { cap0: 'round', cap1: 'round' });
+        B(1, 'head', [0, hip + 0.5, 0.2], { still: true }); const hy = hip + 0.56, hz = 0.22; ball(0, hy, hz, 0.1, cu, { n: 3 });
+        cone([0, hy - 0.01, hz + 0.08], [0, -0.15, 1], 0.12, 0.04, '#e0b040'); for (let i = 0; i < 3; i++) ball(0, hy + 0.11 + (i === 1 ? 0.025 : 0), hz - 0.05 + i * 0.05, 0.04, red, { n: 2 }); ball(0, hy - 0.1, hz + 0.07, 0.035, red, { n: 1 }); /* beak, comb, wattle */
+        for (const sd of [-1, 1]) { ball(sd * 0.07, hy + 0.02, hz + 0.06, 0.028, '#f6f0d8', { n: 1 }); ball(sd * 0.078, hy + 0.02, hz + 0.075, 0.015, '#1a1410', { n: 1 }); }
+        B(10, 'lid', [0, hy + 0.05, hz + 0.06], { amp: 0.04 * s }); for (const sd of [-1, 1]) blob(sd * 0.07 - 0.035, hy + 0.04, hz + 0.035, sd * 0.07 + 0.035, hy + 0.08, hz + 0.1, 1, hexMix(cu, dk, 0.3), { n: 1 });
+      } else if (P === 'w_spider') { // the bobbin spider: its back end is a wooden spool wound full of thread, and it pays out line as it walks
+        const wood = '#9a6a3a', thread = '#f2ead2', hip = 0.2;
+        for (const sd of [-1, 1]) for (const fz of [0, 1]) { B((sd < 0 ? 2 : 3) + fz * 2, 'leg', [sd * 0.1, hip + 0.06, fz ? -0.02 : 0.12], { phase: (sd < 0 ? 0 : Math.PI) + fz * Math.PI, len: hip, amp: 0.45 }); for (const dz of [0, 0.09]) tube([[sd * 0.1, hip + 0.06, (fz ? -0.06 : 0.1) + dz], [sd * 0.3, hip + 0.3, (fz ? -0.12 : 0.16) + dz * 1.6], [sd * 0.42, 0.02, (fz ? -0.18 : 0.24) + dz * 2]], [0.022, 0.018, 0.012], dk, { segs: 6, cap0: 'round', cap1: 'round' }); } /* eight legs, two to a joint, knees up high */
+        bone = 0; legLen = hip; core(-0.14, hip, -0.1, 0.14, hip + 0.26, 0.26); ball(0, hip + 0.13, 0.12, 0.14, bd, { n: 3 });
+        B(13, 'part', [0, hip + 0.2, -0.26]); tube([[0, hip + 0.2, -0.08], [0, hip + 0.2, -0.44]], [0.15, 0.15], thread, { cap0: 'flat', cap1: 'flat', segs: 4 }); for (const z of [-0.08, -0.44]) tube([[0, hip + 0.2, z - 0.015], [0, hip + 0.2, z + 0.015]], [0.21, 0.21], wood, { cap0: 'flat', cap1: 'flat', segs: 3 });
+        for (let i = 0; i < 5; i++) tube([[0, hip + 0.2, -0.12 - i * 0.07], [0, hip + 0.2, -0.13 - i * 0.07]], [0.156, 0.156], hexMix(thread, '#b8a888', 0.6), { cap0: 'flat', cap1: 'flat', segs: 3 }); /* the turns of thread */
+        bone = 0; tube([[0.13, hip + 0.28, -0.3], [0.2, hip + 0.1, -0.46], [0.12, 0.02, -0.62]], [0.012, 0.012, 0.01], thread, { segs: 5, cap0: 'round', cap1: 'round' }); /* the loose end trailing */
+        B(1, 'head', [0, hip + 0.14, 0.2], { still: true }); const hy = hip + 0.16, hz = 0.24; ball(0, hy, hz, 0.1, hexMix(bd, dk, 0.2), { n: 3 });
+        for (const [x, yy, r] of [[-0.05, 0.03, 0.03], [0.05, 0.03, 0.03], [-0.085, 0.0, 0.018], [0.085, 0.0, 0.018]]) { ball(x, hy + yy, hz + 0.085, r, '#f6f0d8', { n: 1 }); ball(x, hy + yy, hz + 0.085 + r * 0.6, r * 0.55, '#1a1410', { n: 1 }); }
+        B(6, 'lid', [0, hy + 0.06, hz + 0.08], { amp: 0.035 * s }); blob(-0.085, hy + 0.045, hz + 0.05, 0.085, hy + 0.085, hz + 0.12, 1, hexMix(bd, dk, 0.3), { n: 1 });
+      } else if (P === 'w_fox') { // the slipper fox: a small fox in four enormous quilted slippers, a bobble on each. Nothing in the wood hears it coming, itself included
+        const hip = 0.3, slip = ac, bob = '#f4efe2';
+        for (const sd of [-1, 1]) for (const fz of [0, 1]) { const z = fz ? -0.2 : 0.2; B((sd < 0 ? 2 : 3) + fz * 2, 'leg', [sd * 0.12, hip, z], { phase: (sd < 0 ? 0 : Math.PI) + fz * Math.PI, len: hip, amp: 0.55 }); tube([[sd * 0.12, hip, z], [sd * 0.12, 0.1, z]], [0.05, 0.04], bd, { cap0: 'round', cap1: 'round' }); blob(sd * 0.12 - 0.1, 0, z - 0.1, sd * 0.12 + 0.1, 0.13, z + 0.2, 1, slip, { n: 3 }); ball(sd * 0.12, 0.15, z + 0.14, 0.045, bob, { n: 2 }); tube([[sd * 0.12 - 0.08, 0.1, z - 0.02], [sd * 0.12, 0.135, z - 0.02], [sd * 0.12 + 0.08, 0.1, z - 0.02]], [0.012, 0.012, 0.012], hexMix(slip, '#ffffff', 0.5), { segs: 4, cap0: 'round', cap1: 'round' }); }
+        bone = 0; legLen = hip; core(-0.16, hip, -0.3, 0.16, hip + 0.28, 0.3); blob(-0.17, hip - 0.04, -0.32, 0.17, hip + 0.28, 0.3, 1, bd, { n: 4 }); blob(-0.11, hip - 0.04, 0.06, 0.11, hip + 0.14, 0.32, 1, bl, { n: 3 });
+        B(6, 'tail', [0, hip + 0.18, -0.3]); tube([[0, hip + 0.18, -0.3], [0, hip + 0.36, -0.56], [0, hip + 0.32, -0.8]], [0.07, 0.14, 0.05], bd, { cap0: 'round', cap1: 'round', segs: 7 }); ball(0, hip + 0.32, -0.8, 0.07, bob, { n: 2 });
+        bone = 0; B(1, 'head', [0, hip + 0.26, 0.28], { still: true }); const hy = hip + 0.34, hz = 0.34;
+        blob(-0.15, hy - 0.1, hz - 0.12, 0.15, hy + 0.13, hz + 0.12, 1, bd, { n: 4 }); cone([0, hy - 0.03, hz + 0.08], [0, -0.1, 1], 0.2, 0.08, bl); ball(0, hy - 0.05, hz + 0.28, 0.028, '#1a1410', { n: 1 });
+        for (const sd of [-1, 1]) { plate([[sd * 0.05, hy + 0.1, hz - 0.04], [sd * 0.17, hy + 0.1, hz - 0.08], [sd * 0.16, hy + 0.4, hz - 0.1]], 0.03, bd, { edge: dk }); ball(sd * 0.08, hy + 0.03, hz + 0.1, 0.035, '#f6f0d8', { n: 1 }); ball(sd * 0.085, hy + 0.03, hz + 0.125, 0.02, '#1a1410', { n: 1 }); }
+        B(10, 'lid', [0, hy + 0.07, hz + 0.1], { amp: 0.05 * s }); for (const sd of [-1, 1]) blob(sd * 0.08 - 0.04, hy + 0.055, hz + 0.07, sd * 0.08 + 0.04, hy + 0.1, hz + 0.14, 1, hexMix(bd, dk, 0.25), { n: 1 });
+      } else if (P === 'w_tort') { // the kettle tortoise: its shell is a copper kettle, spout, handle, lid and all, and it is always nearly on the boil
+        const hip = 0.12, cu = '#c8743a', cuD = '#8a4a22', brass = '#d8b04a';
+        for (const sd of [-1, 1]) for (const fz of [0, 1]) { const z = fz ? -0.2 : 0.2; B((sd < 0 ? 2 : 3) + fz * 2, 'leg', [sd * 0.24, hip, z], { phase: (sd < 0 ? 0 : Math.PI) + fz * Math.PI, len: hip, amp: 0.35 }); blob(sd * 0.24 - 0.08, 0, z - 0.08, sd * 0.24 + 0.08, hip + 0.06, z + 0.1, 1, bd, { n: 2 }); }
+        bone = 0; legLen = hip; core(-0.3, hip, -0.3, 0.3, hip + 0.5, 0.3);
+        blob(-0.3, hip - 0.02, -0.3, 0.3, hip + 0.12, 0.3, 1, bl, { n: 3 }); blob(-0.34, hip + 0.04, -0.34, 0.34, hip + 0.56, 0.34, 1, cu, { n: 5 }); /* the belly plate and the kettle on top of it */
+        for (const yy of [0.14, 0.3]) for (let i = 0; i < 10; i++) { const a = i / 10 * 6.283, a2 = (i + 1) / 10 * 6.283, r = yy < 0.2 ? 0.345 : 0.33; tube([[Math.cos(a) * r, hip + yy, Math.sin(a) * r], [Math.cos(a2) * r, hip + yy, Math.sin(a2) * r]], [0.014, 0.014], cuD, { segs: 3, cap0: 'round', cap1: 'round' }); } /* two beaten seams round it */
+        tube([[0.26, hip + 0.3, 0.16], [0.44, hip + 0.42, 0.28], [0.5, hip + 0.62, 0.32]], [0.07, 0.05, 0.035], cu, { segs: 7, cap0: 'round', cap1: 'flat' }); /* the spout */
+        tube([[0, hip + 0.52, -0.24], [0, hip + 0.86, -0.12], [0, hip + 0.9, 0.1], [0, hip + 0.56, 0.22]], [0.025, 0.03, 0.03, 0.025], '#3a2a20', { segs: 8, cap0: 'round', cap1: 'round' }); /* the handle over the top */
+        B(13, 'part', [0, hip + 0.56, 0]); for (let i = 0; i < 8; i++) { const a = i / 8 * 6.283, a2 = (i + 1) / 8 * 6.283; tube([[Math.cos(a) * 0.14, hip + 0.57, Math.sin(a) * 0.14], [Math.cos(a2) * 0.14, hip + 0.57, Math.sin(a2) * 0.14]], [0.03, 0.03], cuD, { segs: 3, cap0: 'round', cap1: 'round' }); } blob(-0.13, hip + 0.55, -0.13, 0.13, hip + 0.63, 0.13, 1, cu, { n: 2 }); ball(0, hip + 0.66, 0, 0.04, brass, { n: 2 }); /* the lid and its knob */
+        B(9, 'part', [0.5, hip + 0.64, 0.32]); for (const [x, yy, z, r] of [[0.52, 0.74, 0.34, 0.06], [0.56, 0.86, 0.36, 0.08], [0.5, 0.99, 0.38, 0.065]]) ball(x, hip + yy, z, r, '#ffffff', { n: 2 }); /* steam at the spout */
+        bone = 0; B(1, 'head', [0, hip + 0.16, 0.3], { still: true }); const hy = hip + 0.2, hz = 0.42; tube([[0, hip + 0.14, 0.28], [0, hy, hz]], [0.08, 0.075], bd, { cap0: 'round', cap1: 'round' }); ball(0, hy + 0.02, hz + 0.04, 0.1, bd, { n: 3 });
+        for (const sd of [-1, 1]) { ball(sd * 0.06, hy + 0.06, hz + 0.1, 0.03, '#f6f0d8', { n: 1 }); ball(sd * 0.065, hy + 0.06, hz + 0.12, 0.016, '#1a1410', { n: 1 }); } tube([[-0.06, hy - 0.03, hz + 0.11], [0, hy - 0.045, hz + 0.135], [0.06, hy - 0.03, hz + 0.11]], [0.008, 0.012, 0.008], dk, { segs: 4, cap0: 'round', cap1: 'round' });
+        B(6, 'lid', [0, hy + 0.09, hz + 0.1], { amp: 0.04 * s }); for (const sd of [-1, 1]) blob(sd * 0.06 - 0.035, hy + 0.075, hz + 0.07, sd * 0.06 + 0.035, hy + 0.115, hz + 0.135, 1, hexMix(bd, dk, 0.25), { n: 1 });
       } else if (P === 'w_toad') { // the lantern toad of the dark wood: a squat mossy toad that carries an iron lantern on its back, glass and all. It does not know it is useful
         const hip = 0.1, iron = '#2a2a30', glass = '#ffe9a0', y = hip + 0.38, zc = -0.04;
         for (const sd of [-1, 1]) { B(sd < 0 ? 4 : 5, 'leg', [sd * 0.24, hip, -0.05], { phase: sd < 0 ? 0 : Math.PI, len: hip, amp: 0.5 }); blob(sd * 0.24 - 0.13, 0, -0.12, sd * 0.24 + 0.13, 0.1, 0.22, 1, hexMix(bd, dk, 0.3), { n: 3 }); }

@@ -452,7 +452,7 @@ const Wild = (() => {
       if (G.repelUntil > performance.now() && !e.isBoss && !e.lieutenant && !e.raider) { e.alert = 0; e.hunt = 0; continue; } // hushed: they do not notice you
       /* every wild Kin meets you as the creature it is. A shy one hears you from further off, is only fooled by the slowest creep, and bolts sooner than fight. A cross one is on you the moment it sees you and does not give up. A bright one comes to look and takes its time deciding. A drowsy one barely stirs. A steady one is as it always was */
       const tq = (e.isBoss || e.lieutenant || e.raider || !e.model) ? 0 : (e.model.temper || 0) % 5, pvs = Math.hypot(player.vx, player.vz);
-      const senseR = (tq === 1 ? 1.35 : tq === 2 ? 1.15 : tq === 4 ? 0.7 : 1) * e.senseR * (sneaking ? (inTallGrass() ? 0.38 : 0.7) : 1) * (player.senseMul || 1) * (player.wingsOn && player.y - e.y > 2.5 ? 0.15 : 1); // silent wings overhead
+      const senseR = (tq === 1 ? 1.35 : tq === 2 ? 1.15 : tq === 4 ? 0.7 : 1) * e.senseR * (sneaking ? (inTallGrass() ? 0.38 : 0.7) : 1) * (player.senseMul || 1) * (typeof Wood !== 'undefined' && Wood.has('fox') ? 0.5 : 1) * (player.wingsOn && player.y - e.y > 2.5 ? 0.15 : 1); // silent wings overhead
       if (dist < senseR + 0.5) {
         const fx = Math.sin(e.yaw), fz = Math.cos(e.yaw);
         const dl = Math.hypot(dx, dz) || 1;

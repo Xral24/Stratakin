@@ -5,9 +5,9 @@
 // one thing it does, and you can manage without any of them, only with more trouble.
 const Wood = (() => {
   let G = null, t = 0, next = 45, told = false, still = 0, gloom = 0;
-  const KINDS = ['toad', 'hare', 'stork'];
-  const HEAR = { toad: 'A small warm light is moving between the trunks.', hare: 'Snip. Snip. Somewhere close, something is cutting.', stork: 'Something tall and white just sat down in the ferns.' };
-  const USE = { toad: 'Lampwart lights your way. With it along you need no torch in your hand.', hare: 'Snipscut cuts for you. Bushes and leaves give three fronds, not one.', stork: 'Stoolbill is a seat. Stand still a moment and your Kin rest and mend.' };
+  const KINDS = ['toad', 'hare', 'stork', 'moth', 'cock', 'spider', 'fox', 'tort'];
+  const HEAR = { toad: 'A small warm light is moving between the trunks.', hare: 'Snip. Snip. Somewhere close, something is cutting.', stork: 'Something tall and white just sat down in the ferns.', moth: 'Two small keyholes of light drift past, about head height.', cock: 'A creak, like a gate in the wind. Something up ahead is turning round and round.', spider: 'A thread has been strung across the path at knee height. It is still moving.', fox: 'Nothing. No sound at all. That is how you know something is walking there.', tort: 'A thin whistle, like a kettle a long way off, and a smell of warm copper.' };
+  const USE = { toad: 'Lampwart lights your way. With it along you need no torch in your hand.', hare: 'Snipscut cuts for you. Bushes and leaves give three fronds, not one.', stork: 'Stoolbill is a seat. Stand still a moment and your Kin rest and mend.', moth: 'Latchwing opens locks. A barred door in a held village is no longer barred to you.', cock: 'Weathercock points. Every so often it swings toward the nearest ruin you have not walked up to.', spider: 'Bobbinlegs spins your net wider. A third wider, every cast.', fox: 'Padfoot goes quietly and so do you. Wild Kin notice you from half as far.', tort: 'Brewback is always on the boil. Every morning it has a healing tonic ready for you.' };
   function init(game) { G = game; t = 0; next = 45; told = false; still = 0; gloom = 0; }
   const site = () => (G.worldId === 'earth' && G.world.woodC ? G.world.woodC() : null);
   const depth = (p) => (G.worldId === 'earth' && G.world.woodK ? G.world.woodK(p.x, p.z) : 0);
@@ -22,8 +22,15 @@ const Wood = (() => {
     if (k > 0.2 && !(typeof Battle !== 'undefined' && Battle.active)) { if (!told) { told = true; UI.toast('The trees close over. This is the dark wood, and things live here that live nowhere else.', 'good'); if (G.stats) G.stats.woodSeen = true; }
       t += dt; if (t >= next && !out().length) { if (spawn(p)) { t = 0; next = 95 + Math.random() * 60; } else t = next - 8; } }
     else if (k <= 0) told = false;
+    extras(dt, p);
     /* the stool: stand still with a Stoolbill along and your Kin mend, a little every second */
     if (has('stork') && !(typeof Battle !== 'undefined' && Battle.active)) { const mv = Math.hypot(p.vx || 0, p.vz || 0) > 0.2; still = mv ? 0 : still + dt; if (still > 4) { still = 3; let any = false; for (const kn of G.kin) { const mx = KIN.stats(kn).hp; if (kn.hp > 0 && kn.hp < mx) { kn.hp = Math.min(mx, kn.hp + Math.max(1, Math.round(mx * 0.03))); any = true; } } if (any && !update.said) { update.said = true; UI.toast('You sit. Your Kin rest.', 'good'); } } } }
+  /* the vane: every so often it swings toward the nearest ruin you have not been up to. The kettle: one tonic each morning */
+  let vaneT = 20;
+  function extras(dt, p) { if (typeof Battle !== 'undefined' && Battle.active) return; const st = G.stats; if (!st) return;
+    if (has('tort') && st.brewDay !== (G.dayCount || 0)) { st.brewDay = G.dayCount || 0; p.add('tonic_heal', 1); UI.sfx('gift'); UI.toast('Brewback whistles. There is a healing tonic ready.', 'good'); }
+    if (has('cock') && typeof Ruins !== 'undefined' && Ruins.plan) { const seen = (st.vaneSeen = st.vaneSeen || {}), cx0 = Math.floor(p.x / 80), cz0 = Math.floor(p.z / 80); let best = null; for (let a = -4; a <= 4; a++) for (let b = -4; b <= 4; b++) { const q = Ruins.plan(cx0 + a, cz0 + b); if (!q) continue; const k = (cx0 + a) + ',' + (cz0 + b), d = Math.hypot(q.x - p.x, q.z - p.z); if (d < 14) seen[k] = 1; if (seen[k]) continue; if (!best || d < best.d) best = { d, x: q.x, z: q.z }; }
+      vaneT -= dt; if (vaneT <= 0 && best) { vaneT = 45; const ang = Math.atan2(best.x - p.x, -(best.z - p.z)), names = ['north', 'north-east', 'east', 'south-east', 'south', 'south-west', 'west', 'north-west']; UI.toast(`Weathercock swings ${names[((Math.round(ang / (Math.PI / 4)) % 8) + 8) % 8]}. Something old, about ${Math.round(best.d / 10) * 10} paces.`); } } }
   /* the lantern: light at your shoulder whenever a Lampwart is with you */
   function light(eye) { return has('toad') ? [eye.x, eye.y - 0.2, eye.z, 13] : null; }
   /* the shears: how many fronds a leaf gives */

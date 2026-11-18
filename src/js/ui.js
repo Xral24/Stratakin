@@ -661,6 +661,7 @@ const UI = (() => {
     const ft = G.world.preset.fisher ? Village.questTarget() : null; if (ft) marks.push({ t: '⚑', x: ft.x, z: ft.z });
     if (G.pin) marks.push({ t: '◎', x: G.pin.x, z: G.pin.z });
     if (G.camp && G.worldId === 'earth') marks.push({ t: '✦', x: G.camp.x, z: G.camp.z });
+    if (G.worldId === 'earth' && G.stats && (G.stats.woodKnown || G.stats.woodSeen) && typeof Wood !== 'undefined' && Wood.site()) { const wc = Wood.site(); marks.push({ t: '♣', x: wc.x, z: wc.z, title: 'the dark wood' }); }
     if (G.world.pad) marks.push({ t: '▲', x: G.world.pad.x, z: G.world.pad.z });
     const qt = Quests.target(); if (qt) marks.push({ t: '★', x: qt.x, z: qt.z });
     for (const m of Npcs.marks(p)) marks.push({ t: m.t, x: m.x, z: m.z, col: m.col });
