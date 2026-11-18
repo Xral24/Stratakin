@@ -199,10 +199,12 @@ const R = (() => {
   float vn(vec2 p){ vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f); return mix(mix(h21(i), h21(i + vec2(1.0, 0.0)), f.x), mix(h21(i + vec2(0.0, 1.0)), h21(i + vec2(1.0, 1.0)), f.x), f.y); }
   /* the turn of the year: what a leaf or a blade of grass looks like this season. The light on it is kept and only its colour moves. Spring is a fresher green, summer is as it was drawn, autumn turns each tree its own gold, orange or red, winter greys the grass and leaves the branches nearly bare */
   vec3 seasonCol(vec3 c, float sn, float leaf, vec2 wxz) { float L = dot(c, vec3(0.3, 0.6, 0.1)); vec3 t; float a;
-    if (sn < 0.5) { t = leaf > 0.5 ? vec3(0.62, 0.92, 0.36) : vec3(0.56, 0.9, 0.34); a = 0.34; }
+    if (sn < 0.5) { t = leaf > 0.5 ? vec3(0.62, 0.92, 0.36) : vec3(0.56, 0.9, 0.34); a = 0.34;
+      if (leaf > 0.5) { float h = fract(sin(dot(floor(wxz / 7.0), vec2(12.9898, 78.233))) * 43758.5453); if (h < 0.4 && fract(sin(dot(floor(wxz * 3.0), vec2(41.3, 17.9))) * 9731.7) > 0.5) return mix(c, (h < 0.2 ? vec3(1.0, 0.8, 0.88) : vec3(1.0, 0.97, 0.94)) * (L * 1.15 + 0.25), 0.9); } } /* blossom: two trees in five are in flower, pink or white, speckled through the crown */
     else if (sn < 1.5) return c;
     else if (sn < 2.5) { if (leaf > 0.5) { float h = fract(sin(dot(floor(wxz / 7.0), vec2(12.9898, 78.233))) * 43758.5453); t = h < 0.34 ? vec3(1.0, 0.78, 0.2) : h < 0.7 ? vec3(1.0, 0.5, 0.14) : vec3(0.86, 0.26, 0.14); a = 0.86; } else { t = vec3(0.86, 0.74, 0.3); a = 0.55; } }
-    else { t = leaf > 0.5 ? vec3(0.5, 0.42, 0.34) : vec3(0.8, 0.82, 0.76); a = leaf > 0.5 ? 0.8 : 0.66; }
+    else { t = leaf > 0.5 ? vec3(0.5, 0.42, 0.34) : vec3(0.8, 0.82, 0.76); a = leaf > 0.5 ? 0.8 : 0.66;
+      if (leaf < 0.5) { float sp = sin(wxz.x * 0.31 + sin(wxz.y * 0.23) * 1.7) * sin(wxz.y * 0.29 + sin(wxz.x * 0.19) * 1.9); float k = smoothstep(-0.35, -0.05, sp); return mix(mix(c, t * (L / 0.81), a), vec3(0.93, 0.95, 1.0) * (0.55 + L * 0.75), k * 0.92); } } /* snow lying: most of the ground white, the grey grass showing through in patches */
     float tl = dot(t, vec3(0.3, 0.6, 0.1)); return mix(c, t * (L / max(tl, 0.01)), a); }
   float hash3(vec3 p){ p = fract(p * vec3(0.1031, 0.1030, 0.0973)); p += dot(p, p.yxz + 33.33); return fract((p.x + p.y) * p.z); }
   
@@ -667,7 +669,7 @@ const R = (() => {
     vec3 light = vec3(0.78, 0.86, 1.05) * (0.42 + 0.26 * uDay) * (0.7 + 0.3 * vH) * (0.85 + 0.15 * sh) + uSunCol * uSunAmt * uDay * (0.4 + 0.45 * vH) * sh;
     float back = pow(max(dot(-V, uSun), 0.0), 3.0) * uSunAmt * vH * sh; // sun through the blades
     float sheen = pow(max(dot(-V, uSun), 0.0), 14.0) * uSunAmt * vH * vH * sh; // the field shines toward the sun
-    vec3 vS = uSeason < 0.5 ? mix(vC, vec3(0.56, 0.9, 0.34) * dot(vC, vec3(0.3, 0.6, 0.1)) / 0.72, 0.34) : uSeason < 1.5 ? vC : uSeason < 2.5 ? mix(vC, vec3(0.86, 0.74, 0.3) * dot(vC, vec3(0.3, 0.6, 0.1)) / 0.73, 0.55) : mix(vC, vec3(0.8, 0.82, 0.76) * dot(vC, vec3(0.3, 0.6, 0.1)) / 0.81, 0.66); /* the blades turn with the year as the turf under them does */
+    vec3 vS = uSeason < 0.5 ? mix(vC, vec3(0.56, 0.9, 0.34) * dot(vC, vec3(0.3, 0.6, 0.1)) / 0.72, 0.34) : uSeason < 1.5 ? vC : uSeason < 2.5 ? mix(vC, vec3(0.86, 0.74, 0.3) * dot(vC, vec3(0.3, 0.6, 0.1)) / 0.73, 0.55) : mix(mix(vC, vec3(0.8, 0.82, 0.76) * dot(vC, vec3(0.3, 0.6, 0.1)) / 0.81, 0.66), vec3(0.93, 0.95, 1.0) * (0.55 + dot(vC, vec3(0.3, 0.6, 0.1)) * 0.75), 0.85 * smoothstep(-0.35, -0.05, sin(vW.x * 0.31 + sin(vW.z * 0.23) * 1.7) * sin(vW.z * 0.29 + sin(vW.x * 0.19) * 1.9))); /* the blades turn with the year as the turf under them does */
     vec3 col = vS * light + vS * uSunCol * back * 0.5 + uSunCol * sheen * 0.35;
     if (uMist.y > 0.001) { float mg = 1.0 - vH * 0.22; col = mix(col, vec3(0.8, 0.89, 0.85) * uMist.w, mg * mg * smoothstep(3.0, 30.0, dist) * 0.8 * uMist.y); } // a blade stands on the ground: it is in the mist to its tip
     float f = clamp((dist - uFogNear) / (uFogFar - uFogNear), 0.0, 1.0); f = f * f * (3.0 - 2.0 * f);
