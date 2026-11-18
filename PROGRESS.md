@@ -431,6 +431,8 @@ Scope (Alexander, 8 Nov evening): EVERYTHING visible goes to the same standard: 
 
 - 18 Nov, snow in winter and blossom in spring (the two things left over from the seasons work). **Winter: most of the ground lies white with grey grass showing through in patches, turf and blades alike. Spring: two leafy trees in five are in flower, pink or white, speckled through the crown.** Also looked for the old 'steep mountain rock draws as dark cubes' item: within 1400 blocks of home on look-3 nothing is steeper than 5 in 4 and that slope draws smooth, so it could not be reproduced; needs a screenshot from play.
 
+- 18 Nov, people's mouths move when they talk (from the older queue). **Every person has an open mouth with a tongue on a bone of its own under the head, shut to a sliver at rest; whoever G.talkNpc is opens and shuts it while their dialogue is up. Applies to all folk, since they share one body.** Not covered: speakers inside the story films, who are not tied to a figure.
+
 ## Still to do
 UI polish as feedback comes in. Card battle screen still used for scripted encounters (raids at the walls, thief, citadel duel, holds) and the snare mini-game; converting those to live is the next big step if wanted. (Old list: train/ships, combat animation, eggs, avatar hair/paint, buddy WEAR cosmetics, Silas and Finch, UI polish (item icons), quality toggles in settings (state.shadows, state.grassQuality, state.dprCap).
 
