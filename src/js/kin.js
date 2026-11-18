@@ -290,6 +290,7 @@ const KIN = (() => {
     spider: { nat: 'w_spider', name: 'Bobbinlegs', el: 'Bloom', col: { body: '#5a4a6a', belly: '#8a7a9a', accent: '#f2ead2', dark: '#241c2c', eye: '#f6f0d8' }, size: 0.7 },
     fox: { nat: 'w_fox', name: 'Padfoot', el: 'Flame', col: { body: '#c8703a', belly: '#f4e6d0', accent: '#b03a4a', dark: '#3a2418', eye: '#f6f0d8' }, size: 0.6 },
     tort: { nat: 'w_tort', name: 'Brewback', el: 'Tide', col: { body: '#6a7a4a', belly: '#c9c08a', accent: '#c8743a', dark: '#2a3020', eye: '#f6f0d8' }, size: 0.6 },
+    queen: { nat: 'w_spider', name: 'The Spinner', el: 'Void', col: { body: '#1c1622', belly: '#3a2a3a', accent: '#b01c2c', dark: '#0c0a10', eye: '#ff3a3a' }, size: 2.6 },
     stork: { nat: 'w_stork', name: 'Stoolbill', el: 'Tide', col: { body: '#f4f2ea', belly: '#ffffff', accent: '#d8452a', dark: '#22242a', eye: '#1a1410' }, size: 0.6 } };
   const woodCache = {};
   function woodSpecies(id) { if (woodCache[id]) return woodCache[id]; const W = WOODKIN[id]; if (!W) return null; const sp = species(U.combine(0xDA2C, U.strHash(id)), [W.el], 2, { primary: W.el, shape: 'quadruped', total: 430, evolveAt: [9999, 9999], size: W.size });

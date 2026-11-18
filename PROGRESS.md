@@ -445,6 +445,8 @@ Scope (Alexander, 8 Nov evening): EVERYTHING visible goes to the same standard: 
 
 - 18 Nov, four weak tricks strengthened (carried on). **Wolf and jackal now sit back and throw the head right up to howl; the crane's wings go up over its back; the axolotl's gill plumes are twice as long and paler at the tips; the swan's wings arch higher.** The swan is still the least clear of the four.
 
+- 18 Nov, the Spinner and her webs (his ask: a big spider in the dark wood you cannot capture, webs that hold you, she comes and you die). **About a dozen webs strung between the trunks, fixed per world. Walk into one and you are held; the Spinner (the bobbin spider's body at 2.6 size, black and red) comes from 13 blocks off and reaches you in about 5 s; then you die and wake at your respawn point. She cannot be fought or caught. With a Snipscut in the party you are cut free after 2 s and that web is gone for good; with a Lampwart the webs show up brighter. Maren warns you.** The web is drawn as squared rings and reads more like a frame than silk; needs a rounder redraw.
+
 ## Still to do
 UI polish as feedback comes in. Card battle screen still used for scripted encounters (raids at the walls, thief, citadel duel, holds) and the snare mini-game; converting those to live is the next big step if wanted. (Old list: train/ships, combat animation, eggs, avatar hair/paint, buddy WEAR cosmetics, Silas and Finch, UI polish (item icons), quality toggles in settings (state.shadows, state.grassQuality, state.dprCap).
 
