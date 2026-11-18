@@ -1695,7 +1695,7 @@ const R = (() => {
       if (!lod && U.hash3(wx, 67, wz, 977) < 0.2) { const fx = px + Math.cos(a0 + 3.3) * R * 0.5, fz = pz + Math.sin(a0 + 3.3) * R * 0.5, pink = U.hash3(wx, 68, wz, 977) < 0.5; // a flower: a cup of petals, a gold heart
         for (let q = 0; q < 7; q++) { const a = q / 7 * 6.283, ux = Math.cos(a), uz = Math.sin(a), c = (tt) => [fx + ux * 0.3 * tt, py + 0.03 + 0.26 * (1.3 * tt - 0.8 * tt * tt), fz + uz * 0.3 * tt]; op.ribbon([c(0.05), c(0.55), c(1)], [0.06, 0.1, 0.01], pink ? [0.98, 0.72, 0.84] : [0.98, 0.97, 0.94], { sky: sk, droop: 0.3, tip: pink ? [0.95, 0.45, 0.68] : [1, 0.9, 0.95] }); }
         op.blob(fx - 0.08, py + 0.04, fz - 0.08, fx + 0.08, py + 0.2, fz + 0.08, 1, [1.0, 0.8, 0.2], { sky: sk, n: 2 }); } }
-    const blocks = chunk.blocks;
+    const blocks = chunk.blocks; const skyHide = (typeof Sky !== 'undefined' && Sky.hideFor) ? Sky.hideFor(ox, oz) : null;
     const col0 = [0, 0, 0];
     for (let lx = 0; lx < CH; lx++) for (let lz = 0; lz < CH; lz++) {
       const base = (lx * CH + lz) * WH;
@@ -1704,7 +1704,7 @@ const R = (() => {
         const id = blocks[base + y];
         if (id === B.AIR) continue;
         const info = BLOCKS[id];
-        const wx = ox + lx, wz = oz + lz;
+        const wx = ox + lx, wz = oz + lz; if (skyHide && skyHide(wx, y, wz, id)) continue;
         const vr = SOIL.has(id) ? 0.98 + U.hash3(wx, y, wz, 5) * 0.03 : 0.92 + U.hash3(wx, y, wz, 5) * 0.12; // per-block variation (the ground keeps almost none: its shader paints it smoothly)
         if (id === B.STATUE) continue; // drawn as an entity
         if (id === B.ATLAN || id === B.AGLASS || id === B.ALIGHT || id === B.JLOG || id === B.BOOKS || id === B.MEGA || id === B.CACTUS) continue; // Atlantis is never blocks, nor is a trunk in the Lost World: drawn whole, above
@@ -2051,7 +2051,8 @@ const R = (() => {
           }
           // the block itself still draws as a block below (falls through)
         }
-        if (id === B.ROPEBRIDGE) { // a rickety rope bridge: plank slats across the top of the block, a few missing, rope rails sagging between posts, two ropes under
+        if (id === B.ROPEBRIDGE) continue; /* drawn whole by Sky.entities now, as one sagging run and not a block at a time */
+        if (false) { // (the old per-block rope bridge: plank slats across the top of the block, a few missing, rope rails sagging between posts, two ropes under
           const sk = skyAt(lx, y + 1, lz); const isB = (b) => b === B.ROPEBRIDGE; const alongX = isB(get(lx + 1, y, lz)) || isB(get(lx - 1, y, lz)) || isB(get(lx + 1, y + 1, lz)) || isB(get(lx - 1, y + 1, lz)) || isB(get(lx + 1, y - 1, lz)) || isB(get(lx - 1, y - 1, lz));
           const wood = [0.6, 0.46, 0.26], rope = [0.72, 0.62, 0.42]; const hp = (k) => U.hash3(wx, y, wz, 230 + k);
           const top = y + 1.0; const S = (u, v) => alongX ? [lx + u, lz + v] : [lx + v, lz + u]; // u along the bridge, v across
@@ -2229,6 +2230,7 @@ const R = (() => {
           }
           continue;
         }
+        if (id === B.LOG && typeof Sky !== 'undefined' && Sky.skyrootLog && Sky.skyrootLog(wx, y, wz)) continue; /* the Skyroot's own bark mesh draws these */
         if (id === B.LOG || id === B.BIRCHLOG) { // a free-standing log is round (a trunk, a post, a beam); one built into a wall stays square
           const isLog = (b) => b === B.LOG || b === B.BIRCHLOG; const free = (b) => !isOpaque(b) || isLog(b);
           const up = get(lx, y + 1, lz), dn = get(lx, y - 1, lz), xp = get(lx + 1, y, lz), xm = get(lx - 1, y, lz), zp = get(lx, y, lz + 1), zm = get(lx, y, lz - 1);

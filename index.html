@@ -3449,7 +3449,7 @@ const R = (() => {
       if (!lod && U.hash3(wx, 67, wz, 977) < 0.2) { const fx = px + Math.cos(a0 + 3.3) * R * 0.5, fz = pz + Math.sin(a0 + 3.3) * R * 0.5, pink = U.hash3(wx, 68, wz, 977) < 0.5; // a flower: a cup of petals, a gold heart
         for (let q = 0; q < 7; q++) { const a = q / 7 * 6.283, ux = Math.cos(a), uz = Math.sin(a), c = (tt) => [fx + ux * 0.3 * tt, py + 0.03 + 0.26 * (1.3 * tt - 0.8 * tt * tt), fz + uz * 0.3 * tt]; op.ribbon([c(0.05), c(0.55), c(1)], [0.06, 0.1, 0.01], pink ? [0.98, 0.72, 0.84] : [0.98, 0.97, 0.94], { sky: sk, droop: 0.3, tip: pink ? [0.95, 0.45, 0.68] : [1, 0.9, 0.95] }); }
         op.blob(fx - 0.08, py + 0.04, fz - 0.08, fx + 0.08, py + 0.2, fz + 0.08, 1, [1.0, 0.8, 0.2], { sky: sk, n: 2 }); } }
-    const blocks = chunk.blocks;
+    const blocks = chunk.blocks; const skyHide = (typeof Sky !== 'undefined' && Sky.hideFor) ? Sky.hideFor(ox, oz) : null;
     const col0 = [0, 0, 0];
     for (let lx = 0; lx < CH; lx++) for (let lz = 0; lz < CH; lz++) {
       const base = (lx * CH + lz) * WH;
@@ -3458,7 +3458,7 @@ const R = (() => {
         const id = blocks[base + y];
         if (id === B.AIR) continue;
         const info = BLOCKS[id];
-        const wx = ox + lx, wz = oz + lz;
+        const wx = ox + lx, wz = oz + lz; if (skyHide && skyHide(wx, y, wz, id)) continue;
         const vr = SOIL.has(id) ? 0.98 + U.hash3(wx, y, wz, 5) * 0.03 : 0.92 + U.hash3(wx, y, wz, 5) * 0.12; // per-block variation (the ground keeps almost none: its shader paints it smoothly)
         if (id === B.STATUE) continue; // drawn as an entity
         if (id === B.ATLAN || id === B.AGLASS || id === B.ALIGHT || id === B.JLOG || id === B.BOOKS || id === B.MEGA || id === B.CACTUS) continue; // Atlantis is never blocks, nor is a trunk in the Lost World: drawn whole, above
@@ -3805,7 +3805,8 @@ const R = (() => {
           }
           // the block itself still draws as a block below (falls through)
         }
-        if (id === B.ROPEBRIDGE) { // a rickety rope bridge: plank slats across the top of the block, a few missing, rope rails sagging between posts, two ropes under
+        if (id === B.ROPEBRIDGE) continue; /* drawn whole by Sky.entities now, as one sagging run and not a block at a time */
+        if (false) { // (the old per-block rope bridge: plank slats across the top of the block, a few missing, rope rails sagging between posts, two ropes under
           const sk = skyAt(lx, y + 1, lz); const isB = (b) => b === B.ROPEBRIDGE; const alongX = isB(get(lx + 1, y, lz)) || isB(get(lx - 1, y, lz)) || isB(get(lx + 1, y + 1, lz)) || isB(get(lx - 1, y + 1, lz)) || isB(get(lx + 1, y - 1, lz)) || isB(get(lx - 1, y - 1, lz));
           const wood = [0.6, 0.46, 0.26], rope = [0.72, 0.62, 0.42]; const hp = (k) => U.hash3(wx, y, wz, 230 + k);
           const top = y + 1.0; const S = (u, v) => alongX ? [lx + u, lz + v] : [lx + v, lz + u]; // u along the bridge, v across
@@ -3983,6 +3984,7 @@ const R = (() => {
           }
           continue;
         }
+        if (id === B.LOG && typeof Sky !== 'undefined' && Sky.skyrootLog && Sky.skyrootLog(wx, y, wz)) continue; /* the Skyroot's own bark mesh draws these */
         if (id === B.LOG || id === B.BIRCHLOG) { // a free-standing log is round (a trunk, a post, a beam); one built into a wall stays square
           const isLog = (b) => b === B.LOG || b === B.BIRCHLOG; const free = (b) => !isOpaque(b) || isLog(b);
           const up = get(lx, y + 1, lz), dn = get(lx, y - 1, lz), xp = get(lx + 1, y, lz), xm = get(lx - 1, y, lz), zp = get(lx, y, lz + 1), zm = get(lx, y, lz - 1);
@@ -20223,12 +20225,12 @@ const Sky = (() => {
       for (let dx = -5; dx <= 5; dx++) for (let dz = -5; dz <= 5; dz++) { const d = Math.hypot(dx, dz); if (d > 5.2) continue; if (dx === 0 && dz === 3) continue; put(X + dx, T + 1, Z + dz, d > 4.4 ? B.FENCE : B.PLANKS); for (let y = T + 2; y <= T + 4; y++) put(X + dx, y, Z + dz, B.AIR); }
       put(X, T + 1, Z + 3, B.LADDER); put(X, T + 2, Z + 3, B.LADDER); put(X - 2, T + 2, Z - 2, B.LAMP); put(X + 2, T + 2, Z + 2, B.LAMP);
       // the Tangle: scraps of cloud strung out from the crown on rickety bridges, up and down, doubling back, with dead ends
-      const P = tangle(k); const slab = (c) => { const rr = c.r; for (let dx = -Math.ceil(rr); dx <= Math.ceil(rr); dx++) for (let dz = -Math.ceil(rr); dz <= Math.ceil(rr); dz++) { const d = Math.hypot(dx, dz) + (U.hash3(c.x + dx, 409, c.z + dz, 2) - 0.5) * 0.8; if (d > rr) continue; put(c.x + dx, c.y, c.z + dz, B.CLOUD); put(c.x + dx, c.y - 1, c.z + dz, B.CLOUD); if (d < rr - 1.2) put(c.x + dx, c.y - 2, c.z + dz, B.CLOUD); for (let y = c.y + 1; y <= c.y + 4; y++) put(c.x + dx, y, c.z + dz, B.AIR); } };
+      k._bridges = []; const P = tangle(k); const slab = (c) => { const rr = c.r; for (let dx = -Math.ceil(rr); dx <= Math.ceil(rr); dx++) for (let dz = -Math.ceil(rr); dz <= Math.ceil(rr); dz++) { const d = Math.hypot(dx, dz) + (U.hash3(c.x + dx, 409, c.z + dz, 2) - 0.5) * 0.8; if (d > rr) continue; put(c.x + dx, c.y, c.z + dz, B.CLOUD); put(c.x + dx, c.y - 1, c.z + dz, B.CLOUD); if (d < rr - 1.2) put(c.x + dx, c.y - 2, c.z + dz, B.CLOUD); for (let y = c.y + 1; y <= c.y + 4; y++) put(c.x + dx, y, c.z + dz, B.AIR); } };
       for (const c of P.pieces) slab(c);
       const bridge = (A, Bp) => { // a four-connected run of bridge blocks from inside A's edge to inside B's, the height stepping one block at a time
         const dx = Bp.x - A.x, dz = Bp.z - A.z, L = Math.hypot(dx, dz) || 1; const ux = dx / L, uz = dz / L; const t0 = A.r - 1.3, t1 = L - Bp.r + 1.3; const n = Math.ceil((t1 - t0) * 2);
         const cells = []; for (let i = 0; i <= n; i++) { const t = t0 + (t1 - t0) * i / n; const x = Math.round(A.x + ux * t), z = Math.round(A.z + uz * t); const last = cells[cells.length - 1]; if (last && last[0] === x && last[1] === z) continue; if (last && last[0] !== x && last[1] !== z) cells.push([x, last[1]]); cells.push([x, z]); }
-        for (let i = 0; i < cells.length; i++) { const [x, z] = cells[i]; const y = Math.round(A.y + (Bp.y - A.y) * i / (cells.length - 1)); put(x, y, z, B.ROPEBRIDGE); for (let yy = y + 1; yy <= y + 3; yy++) put(x, yy, z, B.AIR); } };
+        for (let i = 0; i < cells.length; i++) { const [x, z] = cells[i]; const y = Math.round(A.y + (Bp.y - A.y) * i / (cells.length - 1)); put(x, y, z, B.ROPEBRIDGE); for (let yy = y + 1; yy <= y + 3; yy++) put(x, yy, z, B.AIR); cells[i][2] = y; } (k._bridges = k._bridges || []).push(cells.map(c => [c[0], c[2], c[1]])); };
       for (const [a, b] of P.links) bridge(P.pieces[a], P.pieces[b]);
       // the gate in the crown's rail where the first bridge leaves, the far cloud's chest, lamp and flowers
       const first = P.pieces[0]; const ga = Math.atan2(first.z - Z, first.x - X); put(X + Math.round(Math.cos(ga) * 4.7), T + 1, Z + Math.round(Math.sin(ga) * 4.7), B.PLANKS); put(X + Math.round(Math.cos(ga) * 5), T + 1, Z + Math.round(Math.sin(ga) * 5), B.PLANKS);
@@ -20354,6 +20356,90 @@ const Sky = (() => {
   }
   function puffEntities() { if (!puffs.length) return []; const mesh = R.entityMesh('cloudpuff', (mb) => mb.blob(-0.5, -0.35, -0.5, 0.5, 0.35, 0.5, 1, [0.97, 0.98, 1.0], { n: 3, soft: 0.8, under: [0.86, 0.9, 0.98] })); return puffs.map(f => { const u = f.t / f.dur; return { x: f.x, y: f.y, z: f.z, yaw: 0, scale: f.s * (0.25 + u * 0.55), hover: 0, skyMul: 1, isFx: true, noOutline: true, alpha: (1 - u) * 0.85, mesh }; }); }
   // ---------- the loop ----------
+  /* the bridges of the Tangle, drawn as what they are: one long sagging run of slats on two ropes, with hand ropes strung between leaning posts. The blocks underneath only hold you up */
+  function bridgeMesh(k, i) { const cells = k._bridges[i], o = cells[0]; return R.entityMesh('skybr2:' + k.id + ':' + i + ':' + cells.length, (mb) => { const wood = [0.62, 0.45, 0.25], wood2 = [0.5, 0.36, 0.2], rope = [0.78, 0.68, 0.46], post = [0.36, 0.26, 0.16];
+      let pts = cells.map(c => [c[0] - o[0], c[1] - o[1] + 1.03, c[2] - o[2]]); for (let pass = 0; pass < 3; pass++) pts = pts.map((q, j) => j === 0 || j === pts.length - 1 ? q : [(pts[j - 1][0] + q[0] * 2 + pts[j + 1][0]) / 4, (pts[j - 1][1] + q[1] * 2 + pts[j + 1][1]) / 4, (pts[j - 1][2] + q[2] * 2 + pts[j + 1][2]) / 4]);
+      const n = pts.length; pts = pts.map((q, j) => [q[0], q[1] - Math.sin(Math.PI * j / Math.max(1, n - 1)) * 0.14, q[2]]);
+      const seg = (a, b, th, col) => { const dx = b[0] - a[0], dy = b[1] - a[1], dz = b[2] - a[2], h = Math.hypot(dx, dz), L = Math.hypot(h, dy); if (L < 0.01) return; mb.push(); mb.translate(a[0], a[1], a[2]); mb.rotate(-Math.atan2(dy, h), Math.atan2(dx, dz), 0); mb.box(-th, -th, 0, th, th, L, col); mb.pop(); };
+      const side = (j, s, up) => { const a = pts[Math.max(0, j - 1)], b = pts[Math.min(n - 1, j + 1)], dx = b[0] - a[0], dz = b[2] - a[2], h = Math.hypot(dx, dz) || 1; return [pts[j][0] - dz / h * s, pts[j][1] + up, pts[j][2] + dx / h * s]; };
+      for (let j = 0; j + 1 < n; j++) { const a = pts[j], b = pts[j + 1], dx = b[0] - a[0], dy = b[1] - a[1], dz = b[2] - a[2], h = Math.hypot(dx, dz), L = Math.hypot(h, dy), m = Math.max(1, Math.round(L / 0.3));
+        for (let t = 0; t < m; t++) { const u = (t + 0.5) / m, hh = U.hash3(o[0] + j, i * 7 + t, o[2], 5), w = 0.56 + hh * 0.1; mb.push(); mb.translate(a[0] + dx * u, a[1] + dy * u, a[2] + dz * u); mb.rotate(-Math.atan2(dy, h), Math.atan2(dx, dz) + (hh - 0.5) * 0.16, (hh - 0.5) * 0.08); mb.box(-w, -0.035, -0.115, w, 0.035, 0.115, hh > 0.5 ? wood : wood2); mb.pop(); }
+        for (const s of [-0.5, 0.5]) seg(side(j, s, -0.06), side(j + 1, s, -0.06), 0.035, rope); } /* the two ropes the slats are tied to */
+      let last = null; for (let j = 0; j < n; j += 2) { const jj = Math.min(n - 1, j), cur = [-1, 1].map(sg => { const foot = side(jj, sg * 0.62, -0.05), lean = (U.hash3(o[0] + jj, 3 + sg, o[2], 8) - 0.5) * 0.16, top = side(jj, sg * (0.66 + lean), 1.02); seg(foot, top, 0.045, post); return top; });
+        if (last) for (const q of [0, 1]) { const a = last[q], b = cur[q], mid = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2 - 0.2, (a[2] + b[2]) / 2]; seg(a, mid, 0.022, rope); seg(mid, b, 0.022, rope); const lo = [mid[0], mid[1] - 0.4, mid[2]], la = [a[0], a[1] - 0.5, a[2]], lb = [b[0], b[1] - 0.5, b[2]]; seg(la, lo, 0.016, rope); seg(lo, lb, 0.016, rope); } last = cur; } }); }
+  /* the Skyroot's trunk and limbs, drawn round. Under it is a five-wide stack of logs that holds the ladder and stops you walking through; over it, bark: sixteen faces, furrowed, swelling into buttress roots at the foot */
+  function trunkMesh(k) { const hgt = k.y - (k.h - 2); return R.entityMesh('skytrunk3:' + k.id + ':' + hgt, (mb) => { const N = 16, base = [0.4, 0.29, 0.19], rad = (y) => 2.96 + Math.max(0, 1 - y / 7) * 0.0, sk = [1, 1, 1, 1];
+      const ring = (y) => { const out = []; for (let i = 0; i < N; i++) { const a = i / N * 6.2832, r = rad(y) + (i % 2 ? 0.1 : 0); out.push([Math.cos(a) * r, y, Math.sin(a) * r, Math.cos(a), Math.sin(a)]); } return out; };
+      const step = 3; for (let y = 0; y < hgt; y += step) { const y1 = Math.min(hgt, y + step), A = ring(y), Bq = ring(y1); for (let i = 0; i < N; i++) { const j = (i + 1) % N, sh = 0.82 + 0.3 * U.hash3(i, Math.floor(y / step), 3, 77) * (i % 2 ? 1 : 0.7), c = [base[0] * sh, base[1] * sh, base[2] * sh]; mb.quad([[A[j][0], y, A[j][2]], [A[i][0], y, A[i][2]], [Bq[i][0], y1, Bq[i][2]], [Bq[j][0], y1, Bq[j][2]]], [c, c, c, c], sk, false, [[A[j][3], 0, A[j][4]], [A[i][3], 0, A[i][4]], [A[i][3], 0, A[i][4]], [A[j][3], 0, A[j][4]]]); } }
+      const seg = (a, b, th, col) => { const dx = b[0] - a[0], dy = b[1] - a[1], dz = b[2] - a[2], h = Math.hypot(dx, dz), L = Math.hypot(h, dy); for (const rz of [0, 0.785]) { mb.push(); mb.translate(a[0], a[1], a[2]); mb.rotate(-Math.atan2(dy, h), Math.atan2(dx, dz), rz); mb.box(-th, -th, 0, th, th, L, col); mb.pop(); } };
+      for (let i = 0; i < 8; i++) { const a = i * 0.785 + 0.39; if (Math.abs(Math.sin(a) - 1) < 0.35) continue; /* not across the ladder */ const cx = Math.cos(a), sz = Math.sin(a), w = 0.78 + (i % 2) * 0.16, rc = [base[0] * 0.9, base[1] * 0.9, base[2] * 0.9], top = 5 + (i % 3) * 1.4; seg([cx * 2.2, top, sz * 2.2], [cx * 3.3, top * 0.38, sz * 3.3], w, rc); seg([cx * 3.1, top * 0.42, sz * 3.1], [cx * 4.4, 0.5, sz * 4.4], w * 0.8, rc); seg([cx * 4.2, 0.7, sz * 4.2], [cx * 6.2, -0.5, sz * 6.2], w * 0.58, rc); } /* buttress roots */
+      const T = hgt; for (let i = 0; i < 6; i++) { const a = i * 1.05 + 0.6, by = T - 16 + i * 2.6, L = 6 + (i % 3), ux = Math.cos(a), uz = Math.sin(a); seg([ux * 1.5, by + 0.9, uz * 1.5], [ux * (L + 0.6), by + L * 0.25 + 0.6, uz * (L + 0.6)], 0.74, [base[0] * 1.05, base[1] * 1.05, base[2] * 1.05]); } /* the six great limbs */
+      for (let i = 0; i < 7; i++) { const a = i * 2.1 + 0.5, y = 4 + i * (hgt - 8) / 7; if (Math.abs(Math.sin(a) - 1) < 0.4) continue; mb.box(Math.cos(a) * 3.0 - 0.3, y - 0.3, Math.sin(a) * 3.0 - 0.3, Math.cos(a) * 3.0 + 0.3, y + 0.3, Math.sin(a) * 3.0 + 0.3, [base[0] * 0.7, base[1] * 0.7, base[2] * 0.7]); } }); } /* and a few knots */
+  /* ---- the sky's stonework, drawn whole. The blocks stay underneath to stand on and bump into; these meshes are what you see: round towers,
+     battered walls, witch-hat roofs. kit() is the handful of shapes they are all made from ---- */
+  function kit(mb) { const sk = [1, 1, 1, 1], sh = (c, m) => [c[0] * m, c[1] * m, c[2] * m];
+    const q = (p, c, em, n) => mb.quad(p, [c, c, c, c], sk, !!em, n);
+    const circ = (cx, cz, r, N, rot) => { const out = []; for (let i = 0; i < N; i++) { const a = i / N * 6.2832 + (rot || 0); out.push([cx + Math.cos(a) * r, cz + Math.sin(a) * r]); } return out; };
+    const rrect = (x0, z0, x1, z1, rad, seg) => { const out = [], cs = [[x1 - rad, z1 - rad, 0], [x0 + rad, z1 - rad, 1], [x0 + rad, z0 + rad, 2], [x1 - rad, z0 + rad, 3]];
+      for (let c = 0; c < 4; c++) { const [cx, cz, qd] = cs[c]; for (let i = 0; i <= 2; i++) { const a = (qd + i / 2) * 1.5708; out.push([cx + Math.cos(a) * rad, cz + Math.sin(a) * rad]); }
+        const a = out[out.length - 1], nx = cs[(c + 1) % 4], a1 = (nx[2]) * 1.5708, b = [nx[0] + Math.cos(a1) * rad, nx[1] + Math.sin(a1) * rad], L = Math.hypot(b[0] - a[0], b[1] - a[1]), m = Math.max(1, Math.round(L / (seg || 1.3)));
+        for (let i = 1; i < m; i++) out.push([a[0] + (b[0] - a[0]) * i / m, a[1] + (b[1] - a[1]) * i / m]); } return out; };
+    const prism = (path, y0, y1, o0, o1, col, o) => { o = o || {}; const n = path.length, rows = Math.max(1, Math.round((y1 - y0) / (o.course || 0.8))), s = o.inside ? -1 : 1;
+      const nrm = path.map((p, i) => { const a = path[(i + n - 1) % n], b = path[(i + 1) % n], tx = b[0] - a[0], tz = b[1] - a[1], l = Math.hypot(tx, tz) || 1; return [tz / l, -tx / l]; });
+      const P = (k, off, y) => [path[k][0] + nrm[k][0] * off, y, path[k][1] + nrm[k][1] * off], Nv = (k) => [nrm[k][0] * s, 0, nrm[k][1] * s];
+      for (let r = 0; r < rows; r++) { const f0 = r / rows, f1 = (r + 1) / rows, ya = y0 + (y1 - y0) * f0, yb = y0 + (y1 - y0) * f1, oa = o0 + (o1 - o0) * f0, ob = o0 + (o1 - o0) * f1;
+        for (let i = 0; i < n; i++) { const j = (i + 1) % n; if (o.skip && o.skip(i, (ya + yb) / 2, path[i], path[j])) continue;
+          q([P(j, oa, ya), P(i, oa, ya), P(i, ob, yb), P(j, ob, yb)], o.flat ? col : sh(col, 0.86 + 0.26 * U.hash3(i + (r % 2) * 31, r, o.seed || 1, 91)), o.em, [Nv(j), Nv(i), Nv(i), Nv(j)]); } } };
+    const cap = (path, y, col, up) => { let cx = 0, cz = 0; for (const p of path) { cx += p[0]; cz += p[1]; } cx /= path.length; cz /= path.length; const nn = [0, up ? 1 : -1, 0]; for (let i = 0; i < path.length; i++) { const a = path[i], b = path[(i + 1) % path.length]; q([[a[0], y, a[1]], [b[0], y, b[1]], [cx, y, cz], [cx, y, cz]], col, false, [nn, nn, nn, nn]); } };
+    const drum = (cx, cz, y0, y1, r0, r1, col, o) => { o = o || {}; prism(circ(cx, cz, r0, o.N || 14, o.rot), y0, y1, 0, r1 - r0, col, o); };
+    const hat = (cx, cz, y0, re, h, col, N) => { drum(cx, cz, y0, y0 + h * 0.28, re, re * 0.5, col, { N, course: h * 0.14, seed: 7 }); drum(cx, cz, y0 + h * 0.28, y0 + h, re * 0.5, 0.03, col, { N, course: h * 0.18, seed: 9 }); cap(circ(cx, cz, re, N || 14), y0, sh(col, 0.55), false); };
+    const slit = (x, y0, z, nx, nz, w, h, col) => { const tx = -nz * w, tz = nx * w, nn = [nx, 0, nz], N4 = [nn, nn, nn, nn]; q([[x - tx, y0, z - tz], [x + tx, y0, z + tz], [x + tx, y0 + h, z + tz], [x - tx, y0 + h, z - tz]], col, true, N4); q([[x - tx, y0 + h, z - tz], [x + tx, y0 + h, z + tz], [x, y0 + h + w * 1.7, z], [x, y0 + h + w * 1.7, z]], col, true, N4); };
+    const gem = (cx, cy, cz, r, h, col) => { drum(cx, cz, cy - h, cy, 0.02, r, col, { N: 6, course: 9, flat: true, em: true }); drum(cx, cz, cy, cy + h, r, 0.02, col, { N: 6, course: 9, flat: true, em: true }); };
+    const merlon = (x, y, z, hx, hz, h, col) => { mb.box(x - hx, y, z - hz, x + hx, y + h, z + hz, col); const up = [0, 1, 0], N4 = [up, up, up, up], c = sh(col, 1.08), A = [x, y + h + 0.28, z], C = [[x - hx, y + h, z - hz], [x + hx, y + h, z - hz], [x + hx, y + h, z + hz], [x - hx, y + h, z + hz]]; for (let i = 0; i < 4; i++) q([C[i], C[(i + 1) % 4], A, A], c, false, N4); };
+    return { q, sh, circ, rrect, prism, cap, drum, hat, slit, gem, merlon }; }
+  /* Stormspire: curtain walls with a battered foot, round corner towers under hats, a twin-turret gate with a raised portcullis, and on the keep
+     the spire itself in three stages up to the storm light. Its glow turns from ember to lamplight once the fort is yours */
+  function fortMesh(k) { const taken = !!st().fortTaken; return R.entityMesh('skyfort1:' + (taken ? 1 : 0), (mb) => { const K = kit(mb), st1 = [0.36, 0.34, 0.45], dk = [0.23, 0.22, 0.3], roof = [0.27, 0.22, 0.42], iron = [0.15, 0.15, 0.18], glow = taken ? [1, 0.86, 0.5] : [1, 0.5, 0.14], storm = taken ? [1, 0.95, 0.7] : [0.78, 0.5, 1];
+      const wallRun = (x0, z0, x1, z1, seed) => { const P = K.rrect(x0, z0, x1, z1, 0.12, 1.4); K.prism(P, 0, 1.3, 0.32, 0, dk, { course: 0.65, seed }); K.prism(P, 1.3, 6, 0, 0, st1, { course: 0.78, seed: seed + 5 }); K.cap(P, 6, K.sh(st1, 0.8), true);
+        if (Math.abs(x1 - x0) > Math.abs(z1 - z0)) { for (let x = Math.ceil(x0) + 0.5; x < x1 - 0.4; x += 2) K.merlon(x, 6, (z0 + z1) / 2, 0.45, 0.5, 0.75, st1); } else for (let z = Math.ceil(z0) + 0.5; z < z1 - 0.4; z += 2) K.merlon((x0 + x1) / 2, 6, z, 0.5, 0.45, 0.75, st1); };
+      wallRun(-9.3, 10.5, 9.3, 11.5, 1); wallRun(-11.5, -9.3, -10.5, 9.3, 2); wallRun(10.5, -9.3, 11.5, 9.3, 3); wallRun(-9.3, -11.5, -3.6, -10.5, 4); wallRun(3.6, -11.5, 9.3, -10.5, 5);
+      for (let d = -9; d <= 9; d += 3) { K.slit(d, 3, 11.53, 0, 1, 0.14, 0.9, glow); K.slit(d, 3, 10.47, 0, -1, 0.14, 0.9, glow); K.slit(-11.53, 3, d, -1, 0, 0.14, 0.9, glow); K.slit(-10.47, 3, d, 1, 0, 0.14, 0.9, glow); K.slit(11.53, 3, d, 1, 0, 0.14, 0.9, glow); K.slit(10.47, 3, d, -1, 0, 0.14, 0.9, glow); if (Math.abs(d) > 3) { K.slit(d, 3, -11.53, 0, -1, 0.14, 0.9, glow); K.slit(d, 3, -10.47, 0, 1, 0.14, 0.9, glow); } }
+      for (const sx of [-1, 1]) for (const sz of [-1, 1]) { const cx = sx * 11, cz = sz * 11, sd = 20 + sx * 3 + sz; /* the corner towers */
+        K.drum(cx, cz, 0, 1.3, 2.5, 2.2, dk, { seed: sd, course: 0.65 }); K.drum(cx, cz, 1.3, 7.4, 2.2, 2.05, st1, { seed: sd + 1 }); K.drum(cx, cz, 7.4, 7.9, 2.05, 2.5, dk, { course: 0.5 }); K.cap(K.circ(cx, cz, 2.5, 14), 7.9, K.sh(st1, 0.75), true);
+        K.drum(cx, cz, 7.9, 8.7, 2.5, 2.5, st1, { skip: (i) => i % 2 === 1, course: 0.8 }); K.drum(cx, cz, 7.9, 9.6, 1.7, 1.6, st1, { seed: sd + 2 }); K.hat(cx, cz, 9.6, 2.3, 4.6, roof); K.gem(cx, 14.75, cz, 0.3, 0.55, storm);
+        K.slit(cx, 5, cz + sz * 2.14, 0, sz, 0.15, 0.9, glow); K.slit(cx + sx * 2.14, 5, cz, sx, 0, 0.15, 0.9, glow); }
+      for (const sx of [-1, 1]) { const cx = sx * 2.7, cz = -12; /* the gate turrets */ K.drum(cx, cz, 0, 1.3, 1.6, 1.36, dk, { N: 12, course: 0.65 }); K.drum(cx, cz, 1.3, 8.0, 1.36, 1.3, st1, { N: 12, seed: 30 + sx }); K.drum(cx, cz, 8.0, 8.4, 1.3, 1.62, dk, { N: 12, course: 0.5 }); K.hat(cx, cz, 8.4, 1.78, 3.6, roof, 12); K.gem(cx, 12.5, cz, 0.24, 0.45, storm); K.slit(cx, 3.1, cz - 1.38, 0, -1, 0.13, 0.8, glow); }
+      { const yb = (x) => 3.0 + 1.25 * Math.pow(Math.max(0, 1 - Math.abs(x) / 1.5), 0.7), zf = -13, zb = -11, S = 8, nf = [0, 0, -1], nb = [0, 0, 1], dn = [0, -1, 0]; /* the arch between them, pointed, and the portcullis drawn up into it */
+        for (let i = 0; i < S; i++) { const xa = -1.5 + 3 * i / S, xb = -1.5 + 3 * (i + 1) / S, c = K.sh(st1, 0.9 + 0.16 * U.hash3(i, 2, 5, 91)); K.q([[xb, yb(xb), zf], [xa, yb(xa), zf], [xa, 7, zf], [xb, 7, zf]], c, false, [nf, nf, nf, nf]); K.q([[xa, yb(xa), zb], [xb, yb(xb), zb], [xb, 7, zb], [xa, 7, zb]], c, false, [nb, nb, nb, nb]); K.q([[xa, yb(xa), zf], [xb, yb(xb), zf], [xb, yb(xb), zb], [xa, yb(xa), zb]], dk, false, [dn, dn, dn, dn]); }
+        const up = [0, 1, 0]; K.q([[-1.5, 7, zf], [1.5, 7, zf], [1.5, 7, zb], [-1.5, 7, zb]], K.sh(st1, 0.8), false, [up, up, up, up]); K.merlon(-1, 7, -12.6, 0.4, 0.4, 0.7, st1); K.merlon(1, 7, -12.6, 0.4, 0.4, 0.7, st1); K.slit(0, 5, zf - 0.03, 0, -1, 0.15, 0.8, glow);
+        for (let x = -1.2; x <= 1.21; x += 0.4) mb.box(x - 0.05, 3.02, -12.06, x + 0.05, yb(x) + 0.1, -11.94, iron); mb.box(-1.4, 3.3, -12.05, 1.4, 3.4, -11.95, iron); }
+      { const P = K.rrect(-4.5, 4.5, 4.5, 10.5, 1.3, 1.3); /* the keep */ K.prism(P, 0, 1.3, 0.36, 0, dk, { course: 0.65, seed: 40 }); K.prism(P, 1.3, 4.2, 0, 0, st1, { seed: 41 }); K.prism(P, 4.2, 4.7, 0, 0.55, dk, { course: 0.5 }); K.prism(P, 4.7, 5.5, 0.55, 0.55, st1, { course: 0.8, seed: 42 }); K.prism(P, 5.5, 6.1, 0.55, 0.55, st1, { course: 0.6, skip: (i) => i % 2 === 1 }); K.prism(P, 5.0, 5.5, 0.1, 0.1, K.sh(st1, 0.8), { inside: true, course: 0.5 }); K.cap(P, 5, K.sh(st1, 0.72), true);
+        mb.box(-0.75, 0, 4.05, 0.75, 2.5, 4.6, dk); K.slit(0, 0.3, 4.02, 0, -1, 0.34, 1.5, glow); for (const a of [-3, 3]) K.slit(a, 3, 4.47, 0, -1, 0.15, 0.9, glow);
+        const cx = 0, cz = 7.5; K.drum(cx, cz, 5, 8.7, 2.6, 2.35, st1, { seed: 50 }); K.drum(cx, cz, 8.7, 9.2, 2.35, 2.78, dk, { course: 0.5 }); K.cap(K.circ(cx, cz, 2.78, 14), 9.2, K.sh(st1, 0.75), true);
+        K.drum(cx, cz, 9.2, 13.8, 2.0, 1.8, st1, { seed: 51 }); K.drum(cx, cz, 13.8, 14.3, 1.8, 2.2, dk, { course: 0.5 }); K.cap(K.circ(cx, cz, 2.2, 14), 14.3, K.sh(st1, 0.75), true);
+        K.drum(cx, cz, 14.3, 18, 1.5, 1.35, st1, { seed: 52, N: 12 }); K.drum(cx, cz, 18, 18.4, 1.35, 1.78, dk, { course: 0.5, N: 12 }); K.cap(K.circ(cx, cz, 1.78, 12), 18.4, K.sh(st1, 0.75), true);
+        for (let i = 0; i < 6; i++) { const a = i * 1.0472; mb.box(cx + Math.cos(a) * 1.3 - 0.11, 18.4, cz + Math.sin(a) * 1.3 - 0.11, cx + Math.cos(a) * 1.3 + 0.11, 19.95, cz + Math.sin(a) * 1.3 + 0.11, dk); } K.gem(cx, 19.2, cz, 0.62, 0.7, storm); /* the storm light in its lantern */
+        K.hat(cx, cz, 19.9, 2.05, 5.2, roof); K.gem(cx, 25.4, cz, 0.22, 0.45, storm);
+        for (const a of [-1, 1]) K.slit(a, 6, cz - 2.47, 0, -1, 0.14, 0.8, glow); for (let i = 0; i < 4; i++) { const a = i * 1.5708 + 0.785, ux = Math.cos(a), uz = Math.sin(a); K.slit(cx + ux * 1.95, 10.8, cz + uz * 1.95, ux, uz, 0.14, 1.0, glow); K.slit(cx + ux * 1.47, 15.4, cz + uz * 1.47, ux, uz, 0.12, 0.9, glow); } }
+      K.drum(0, 4, 0, 1, 2.05, 1.9, dk, { course: 0.5, seed: 60 }); K.cap(K.circ(0, 4, 1.9, 14), 1, K.sh(st1, 0.8), true); }); } /* and the dais */
+  /* Highmere's spire: a round tower of pale dressed stone, lit windows, a timber door, a slate hat with the lamp on its tip. Hollow, the ladder inside */
+  function spireMesh(k) { return R.entityMesh('skyspire1', (mb) => { const K = kit(mb), stn = [0.76, 0.74, 0.7], foot = [0.56, 0.55, 0.53], slate = [0.3, 0.37, 0.52], wood = [0.42, 0.3, 0.18], warm = [1, 0.86, 0.5];
+      const rot = Math.PI / 2 - 3.5 * 6.2832 / 16, door = (i, y) => i === 3 && y < 2.7;
+      K.drum(0, 0, 0, 1.2, 3.15, 2.95, foot, { N: 16, rot, skip: door, course: 0.6, seed: 3 }); K.drum(0, 0, 1.2, 10.1, 2.95, 2.8, stn, { N: 16, rot, skip: door, course: 0.742, seed: 4 });
+      const In = K.rrect(-1.5, -1.5, 1.5, 1.5, 0.3, 0.8); K.prism(In, 0, 10, 0, 0, K.sh(stn, 0.8), { inside: true, course: 0.9, seed: 5, skip: (i, y, p, q2) => y < 2.7 && p[1] > 1.45 && q2[1] > 1.45 && Math.abs(p[0] + q2[0]) < 0.3 }); K.cap(In, 10, K.sh(wood, 0.8), false);
+      const up = [0, 1, 0]; for (const s of [-1, 1]) K.q([[s * 0.4, 0, 1.5], [s * 0.62, 0, 2.96], [s * 0.62, 2.68, 2.93], [s * 0.4, 2.68, 1.5]], wood, false); K.q([[-0.4, 2.68, 1.5], [0.4, 2.68, 1.5], [0.62, 2.68, 2.93], [-0.62, 2.68, 2.93]], K.sh(wood, 0.8), false, [up, up, up, up]);
+      for (const s of [-1, 1]) mb.box(s * 0.7 - 0.11, 0, 2.86, s * 0.7 + 0.11, 2.8, 3.1, wood); mb.box(-0.86, 2.7, 2.84, 0.86, 2.98, 3.12, wood);
+      for (const [ux, uz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) for (const y of [3.1, 7.1]) { if (uz === 1 && y < 3.5) { K.slit(0, 3.4, 2.97, 0, 1, 0.26, 0.5, warm); continue; } K.slit(ux * 2.97, y, uz * 2.97, ux, uz, 0.28, 0.75, warm); K.slit(ux * 1.48, y, uz * 1.48, -ux, -uz, 0.28, 0.75, warm); }
+      K.drum(0, 0, 9.6, 10.1, 2.82, 3.25, foot, { N: 16, rot, course: 0.5 }); K.hat(0, 0, 10.1, 3.8, 4.0, slate, 16); }); }
+  const dW = (a, b) => { const W = NCH * CH; return U.mod(a - b + W / 2, W) - W / 2; };
+  /* which blocks the renderer leaves undrawn because one of the meshes above stands in for them; null for a chunk nowhere near */
+  function hideFor(ox, oz) { if (!world || !onEarth()) return null; let k = null; for (const s of sites()) if ((s.kind === 'city' || s.kind === 'fort') && Math.abs(dW(ox + CH / 2, s.x)) < 18 + CH / 2 && Math.abs(dW(oz + CH / 2, s.z)) < 18 + CH / 2) k = s; if (!k) return null;
+    if (k.kind === 'city') return (x, y, z, id) => (id === B.MASONRY || id === B.GLASS || id === B.SLATE) && y > k.y && y <= k.y + 14 && Math.abs(dW(x, k.x)) <= 3 && Math.abs(dW(z, k.z - 10)) <= 3;
+    const F = B.FORTSTONE; return (x, y, z, id) => { if (y <= k.y || y > k.y + 10) return false; if (!(id === F || id === B.SLIT || id === B.EMBERLIGHT || id === B.IRONWALL || id === B.EMBER || id === B.BASALT || (id === B.VOID && y >= k.y + 9))) return false; const dz = dW(z, k.z); return Math.abs(dW(x, k.x)) <= 14 && dz >= -15 && dz <= 13; }; }
+  /* is this log part of the Skyroot? the renderer leaves those undrawn, the bark mesh stands in for them */
+  let _rk = null, _rw = null; function skyrootLog(wx, y, wz) { if (!world) return false; if (_rw !== world) { _rw = world; _rk = sites().find(x => x.kind === 'tree') || null; } const k = _rk; if (!k || y < k.h - 3 || y > k.y + 1) return false; const dx = Math.abs(wx - k.x), dz = Math.abs(wz - k.z); return y >= k.y - 18 ? dx <= 10 && dz <= 10 : dx <= 4 && dz <= 4; }
+  function entities() { const out = []; if (!onEarth() || !G) return out; for (const b of sites()) { if ((b.kind !== 'city' && b.kind !== 'fort') || dist(b, G.player) > 230) continue; if (b.kind === 'fort') out.push({ x: b.x + 0.5, y: b.y + 1, z: b.z + 0.5, yaw: 0, scale: 1, hover: 0, skyMul: 1, isStatue: true, noOutline: true, mesh: fortMesh(b) }); else out.push({ x: b.x + 0.5, y: b.y + 1, z: b.z - 9.5, yaw: 0, scale: 1, hover: 0, skyMul: 1, isStatue: true, noOutline: true, mesh: spireMesh(b) }); }
+    const k = sites().find(x => x.kind === 'tree'); if (!k || dist(k, G.player) > 260) return out; if (!k._bridges) layout(k); out.push({ x: k.x + 0.5, y: k.h - 2, z: k.z + 0.5, yaw: 0, scale: 1, hover: 0, skyMul: 1, isStatue: true, mesh: trunkMesh(k) }); if (dist(k, G.player) > 150) return out; /*B*/ (k._bridges || []).forEach((c, i) => { if (c.length < 2) return; out.push({ x: c[0][0] + 0.5, y: c[0][1], z: c[0][2] + 0.5, yaw: 0, scale: 1, hover: 0, skyMul: 1, isStatue: true, mesh: bridgeMesh(k, i) }); }); return out; }
   function update(dt, p) {
     if (!onEarth()) return; stepPuffs(dt, p); tick += dt; if (tick < 0.5) return; tick = 0;
     for (const k of sites()) {
@@ -20366,7 +20452,7 @@ const Sky = (() => {
     }
   }
   function mapMarks() { if (!onEarth()) return []; return sites().filter(k => (k.kind === 'tree' && (st().rootTold || st().seen_skyroot)) || (k.kind === 'city' && G.questState && Quests.isDone && (Quests.isDone('glider'))) || st()['seen_' + k.id] || (k.kind === 'fort' && st().fortSeen)).map(k => ({ x: k.x, z: k.z, t: k.kind === 'tree' ? '🌳' : k.kind === 'city' ? '☁' : k.kind === 'fort' ? (st().fortTaken ? '♜' : '⛈') : '☁', name: k.name + (k.kind === 'fort' && !st().fortTaken ? ' (the Storm Warden)' : '') })); }
-  return { init, sites, overlay, update, talk, onBattle, inFort, gloom, mapMarks, layout, tangle, rootHint, puffEntities };
+  return { init, sites, overlay, update, talk, onBattle, inFort, gloom, mapMarks, layout, tangle, rootHint, puffEntities, entities, skyrootLog, hideFor };
 })();
 
 </script>
@@ -22178,7 +22264,7 @@ G.loop = function (t) {
   const showMe = !this.hideMe && !Battle.net && (inBattle || (this.thirdPerson && !(this.camNear && !p.mount)) || this.talkK > 0 || !!p.mount || this.grassCamOn); // hideMe: he has gone inside something (a railway carriage)
   if (showMe) { const me = Avatar.entity(p, Math.hypot(p.vx, p.vz) > 0.6); if (p.mount) { const mm = KIN.model(p.mount.sp, p.mount.stage); const st = seatOf(mm); const f = U.forwardVec(p.yaw, 0); const along = 0.5 + st.zc - 0.06; me.x = p.x + f[0] * along; me.z = p.z + f[2] * along; me.y = G.mountBase(p) + st.top - hipOf(me.model) * (me.scale || 1) + 0.1; me._an.cross = 1; /* sat cross-legged on top: fits a pony and a T-rex alike */ me.seatY = hipOf(me.model) * (me.scale || 1); } me.M = null; ents.push(me); this.meEnt = me; } else this.meEnt = null;
   if (p.mount) { const k = p.mount; const m = KIN.dress(KIN.model(k.sp, k.stage), k.wear); const fwd = U.forwardVec(p.yaw, 0); if (!k._an) k._an = { ph: 0, mv: 0, lx: p.x, lz: p.z, ly: p.y, lt: performance.now(), vy: 0, seed: 5, air: 0 }; k._an.swim = p.mountMode === 'water' ? 1 : 0; const mt = { x: p.x + fwd[0] * 0.5, y: G.mountBase(p), z: p.z + fwd[2] * 0.5, yaw: p.yaw + Math.PI, model: m, mesh: R.entityMesh(KIN.meshKey(k.sp, k.stage) + KIN.wearKey(k.wear), (mb) => KIN.buildMesh(mb, m)), scale: 1, hover: 0, skyMul: 1, isMount: true, flying: p.mountMode === 'air' && !p.onGround, _an: k._an }; ents.push(mt); if (Taming.active) Taming.pose(mt, this.meEnt, cam.yaw); /* it bucks, and you with it */ }
-  ents.push(...Battle.fxEntities()); ents.push(...Sky.puffEntities()); ents.push(...Wild.dropEntities()); ents.push(...Gems.entities()); ents.push(...Buddy.entities()); ents.push(...First.entities()); ents.push(...Cine.entities()); ents.push(...Wood.entities()); ents.push(...Ruins.entities()); ents.push(...Fields.entities()); ents.push(...Farms.entities()); ents.push(...Felling.entities()); ents.push(...Combat.entities()); ents.push(...Hazards.entities()); ents.push(...Npcs.entities());
+  ents.push(...Battle.fxEntities()); ents.push(...Sky.puffEntities()); ents.push(...Wild.dropEntities()); ents.push(...Gems.entities()); ents.push(...Buddy.entities()); ents.push(...First.entities()); ents.push(...Cine.entities()); ents.push(...Wood.entities()); ents.push(...Sky.entities()); ents.push(...Ruins.entities()); ents.push(...Fields.entities()); ents.push(...Farms.entities()); ents.push(...Felling.entities()); ents.push(...Combat.entities()); ents.push(...Hazards.entities()); ents.push(...Npcs.entities());
   for (const o of w.statues.values()) {
     if ((o.x - p.x) ** 2 + (o.z - p.z) ** 2 > 4000) continue;
     if (!o.model) { o.model = KIN.statueModel(o); o.mesh = R.entityMesh('statue:' + o.id, (mb) => KIN.buildMesh(mb, o.model)); }
