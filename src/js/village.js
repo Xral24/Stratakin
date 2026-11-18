@@ -565,7 +565,7 @@ const Village = (() => {
     // draw the buildings into the overlay by borrowing the house builder
     const sb = world.setBlock, gb = world.getBlock; world.setBlock = (x, y, z, id) => push(x, y, z, id); world.getBlock = () => B.AIR; DOORCOL = [];
     try {
-      const build = M.pod ? pod : house;
+      const build = (M.pod || M.hut) ? pod : house;
       const qs = (x, z) => { QSTYLE = quartered ? QUARTERS[quarterOf(x - vx, z - vz)].house : null; };
       for (const sh of shops) if (!sh.castle) { qs(sh.x, sh.z); build(sh.x, sh.z, vy + (sh.raised && rail ? 1 : 0), sh.dirX, sh.dirZ, sh.kind === 'elder' ? B.GOLD : (SHOP_BUILD[sh.kind] || {}).marker || B.LOG, FURNISH[sh.kind] || null); }
       const r = U.rng(U.combine(world.seed, U.strHash(v.id)));
@@ -931,7 +931,7 @@ const Village = (() => {
     frontier: { ground: B.SAND, under: B.SAND, plaza: B.SAND, plazaEdge: B.PLANKS, post: B.LOG, light: B.TORCH, lamp: B.LAMP, floor: B.PLANKS, wall: B.PLANKS, window: B.GLASS, roof: B.THATCH, eave: B.LOG, counter: B.PLANKS, bush: B.CACTUS, boardwalk: true, saloon: true,
       houses: [{ wall: B.PLANKS, base: B.PLANKS, beam: B.LOG, roofs: [B.THATCH, B.THATCH, B.PLANKS] }] },
     alien: { ground: B.REGOLITH, under: B.DIRT, plaza: B.STARSALT, plazaEdge: B.BASALT, post: B.BASALT, light: B.MOONGLOW, floor: B.REGOLITH, wall: B.SELGLASS, window: B.SELGLASS, roof: B.SELGLASS, eave: B.SELGLASS, counter: B.BASALT, bush: null, pod: true },
-    halo: { ground: B.DUNE, under: B.DIRT, plaza: B.SALTCRUST, plazaEdge: B.STONE, post: B.HALOWALL, light: B.RINGSHARD, floor: B.STONE, wall: B.HALOWALL, window: B.GLASS, roof: B.SALTROOF, eave: B.HALOWALL, counter: B.HALOWALL, bush: B.SULFUR },
+    halo: { ground: B.DUNE, under: B.DIRT, plaza: B.SALTCRUST, plazaEdge: B.STONE, post: B.HALOWALL, light: B.RINGSHARD, floor: B.STONE, wall: B.HALOWALL, window: B.GLASS, roof: B.SALTROOF, eave: B.HALOWALL, counter: B.HALOWALL, bush: B.SULFUR, hut: true },
   };
   let MAT = MATS.land;
   // A city is four quarters, split by the two great streets through the square. Each has its own houses, its own ground and a landmark.
@@ -964,7 +964,7 @@ const Village = (() => {
     if (M === MATS.alien || M === MATS.halo) { const L = M === MATS.alien ? B.GLOWLINE : B.BUNTING; for (let d = -3; d <= 3; d++) { set(vx + d, vy + 2, vz - 4, L); set(vx + d, vy + 2, vz + 4, L); set(vx - 4, vy + 2, vz + d, L); set(vx + 4, vy + 2, vz + d, L); } } // lamps strung round the square on the Moon, pennants on Halo
     const lamp = (x, z) => { if (M.lamp) set(x, vy, z, M.lamp); else { set(x, vy, z, M.post); set(x, vy + 1, z, M.light); } };
     for (const [dx, dz] of [[-3, -3], [3, -3], [-3, 3], [3, 3]]) lamp(vx + dx, vz + dz);
-    const build = M.pod ? pod : house;
+    const build = (M.pod || M.hut) ? pod : house;
     ROOF_OVR = 'thatch'; VST = M === MATS.land ? villageStyle(vx, vz, false) : null;
     DOORCOL = [];
     build(vx - 9, vz - 9, vy, 1, 0, B.EMBER, furnishBakery);
@@ -1056,6 +1056,7 @@ const Village = (() => {
       }
     }
     set(hx, vy + 3, hz, M.light);
+    if (M.hut) { set(hx, vy + 4, hz, B.IRONWALL); set(hx, vy + 5, hz, M.light); } /* a Halo hut: a scrap cap on the crown with the shard light on it; the renderer finds the hut by this and draws it whole */
     if (M === MATS.alien) { set(hx, vy + 4, hz, B.BASALT); set(hx, vy + 5, hz, B.MOONGLOW); const px = dirZ, pz = dirX; for (const sd of [-1, 1]) { set(hx + dirX * 4 + px * sd * 2, vy, hz + dirZ * 4 + pz * sd * 2, B.BASALT); set(hx + dirX * 4 + px * sd * 2, vy + 1, hz + dirZ * 4 + pz * sd * 2, B.MOONGLOW); } } // a bulb on the crown and one each side of the door
     set(hx + dirX * 3, vy, hz + dirZ * 3, B.AIR); set(hx + dirX * 3, vy + 1, hz + dirZ * 3, B.AIR); set(hx + dirX * 3, vy + 2, hz + dirZ * 3, marker);
     set(hx + dirX * 4, vy, hz + dirZ * 4, B.AIR); set(hx + dirX * 4, vy + 1, hz + dirZ * 4, B.AIR);
@@ -1243,7 +1244,7 @@ const Village = (() => {
   function slotDir(dx, dz) { return Math.abs(dx) >= Math.abs(dz) ? [-Math.sign(dx), 0] : [0, -Math.sign(dz)]; }
   function stampShop(v, slot, kind) {
     const [dx, dz] = SLOTS[slot]; const [dirX, dirZ] = slotDir(dx, dz); MAT = MATS[v.style] || MATS.land;
-    (MAT.pod ? pod : house)(v.x + dx, v.z + dz, v.y, dirX, dirZ, SHOP_BUILD[kind].marker, FURNISH[kind]);
+    ((MAT.pod || MAT.hut) ? pod : house)(v.x + dx, v.z + dz, v.y, dirX, dirZ, SHOP_BUILD[kind].marker, FURNISH[kind]);
   }
 
   // stilt village: plank platforms above the water joined by walkways, four thatched huts around a square with the table
@@ -1420,7 +1421,7 @@ const Village = (() => {
       st.shops = st.shops || []; kinds.forEach((k, i) => { if (k !== 'house') st.shops.push({ slot: i, kind: k }); });
       st.homes = kinds.map((k, i) => k === 'house' ? i : -1).filter(i => i >= 0);
     }
-    if (v.type === 'land') { stampLand(v); if (st.expanded) { stampExpansion(v); MAT = MATS[v.style] || MATS.land; for (const sh of (st.shops || [])) stampShop(v, sh.slot, sh.kind); for (const i of (st.homes || [])) { const [dx, dz] = SLOTS[i]; const [dirX, dirZ] = slotDir(dx, dz); (MAT.pod ? pod : house)(v.x + dx, v.z + dz, v.y, dirX, dirZ, B.LOG, null); } } stampWall(v, st); stampRoad(v, st); if (st.dome) stampDome(v, st); } else if (v.type === 'sea') { stampSea(v); stampPier(v); st.reef1 = true; } else if (v.style === 'atlantis') stampAtlantis(v); else stampDeep(v);
+    if (v.type === 'land') { stampLand(v); if (st.expanded) { stampExpansion(v); MAT = MATS[v.style] || MATS.land; for (const sh of (st.shops || [])) stampShop(v, sh.slot, sh.kind); for (const i of (st.homes || [])) { const [dx, dz] = SLOTS[i]; const [dirX, dirZ] = slotDir(dx, dz); ((MAT.pod || MAT.hut) ? pod : house)(v.x + dx, v.z + dz, v.y, dirX, dirZ, B.LOG, null); } } stampWall(v, st); stampRoad(v, st); if (st.dome) stampDome(v, st); } else if (v.type === 'sea') { stampSea(v); stampPier(v); st.reef1 = true; } else if (v.style === 'atlantis') stampAtlantis(v); else stampDeep(v);
     st.stamped = true; remember(v, st);
   }
   // ---- the tyrant's guards: a road in, with a checkpoint and a lieutenant every dozen blocks ----

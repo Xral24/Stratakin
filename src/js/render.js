@@ -1083,6 +1083,33 @@ const R = (() => {
       if (door != null) { const pd = Math.asin(2.35 / R); for (const sd of [-1, 1]) rib(door + sd * 0.31, 0, pd, 0.1); const pts = []; for (let k = 0; k <= 6; k++) pts.push(P(door - 0.31 + 0.62 * k / 6, pd, R + 0.02)); op.tube(pts, pts.map(() => 0.1), bs, { sky: sk, segs: 5, cap0: 'round', cap1: 'round' }); }
       op.blob(X - 0.5, cy - 0.25, Z - 0.5, X + 0.5, cy + 0.75, Z + 0.5, 0.85, bs, { sky: sk, n: 3 }); // the crown the lamp stands on
     };
+    /* ---- Halo huts: a half-buried dome of sun-baked clay patched with scrap plate, sand banked up round it, a hooped doorway under a rag awning,
+       tusks welded round the crown. Found by its crown (a scrap cap with a shard light on it) and drawn whole, the way a Moon pod is ---- */
+    const haloHuts = world.preset.id === 'halo'; let _hcrowns = null;
+    const hutCrowns = () => { if (_hcrowns) return _hcrowns; _hcrowns = []; for (let x = -5; x <= 20; x++) for (let z = -5; z <= 20; z++) for (let y = 3; y < WH - 2; y++) if (get(x, y, z) === B.IRONWALL && get(x, y + 1, z) === B.RINGSHARD && get(x + 1, y - 1, z) === B.HALOWALL && get(x - 1, y - 1, z) === B.HALOWALL) _hcrowns.push([x, y, z]); return _hcrowns; };
+    const drawHut = (lx, cy, lz) => { const vy = cy - 4, X = lx + 0.5, Z = lz + 0.5, R = 3.85, SEG = 18, RING = 6, TAU = Math.PI * 2, sk = skyAt(lx, cy + 1, lz), sks = [sk, sk, sk, sk], wx = ox + lx, wz = oz + lz, hh = (n) => U.hash3(wx, n, wz, 733);
+      let door = null; for (const [a, b] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) if (get(lx + a * 3, vy, lz + b * 3) === B.AIR && get(lx + a * 3, vy + 1, lz + b * 3) === B.AIR && get(lx + a * 4, vy, lz + b * 4) === B.AIR) { door = Math.atan2(b, a); break; }
+      const inDoor = (ang, w) => { if (door == null) return false; const d = ang - door; return Math.abs(Math.atan2(Math.sin(d), Math.cos(d))) < w; };
+      const clay = [[0.82, 0.63, 0.42], [0.78, 0.56, 0.38], [0.86, 0.7, 0.5]][Math.floor(hh(1) * 3)], rust = [0.5, 0.26, 0.15], steel = [0.4, 0.41, 0.44], bone = [0.9, 0.86, 0.74], sand = BLOCKS[B.DUNE].top, mul = (c, m) => [c[0] * m, c[1] * m, c[2] * m];
+      const N = (th, ph) => [Math.cos(th) * Math.cos(ph), Math.sin(ph), Math.sin(th) * Math.cos(ph)], SQ = 0.9, P = (th, ph, r) => { const n = N(th, ph); return [X + n[0] * r, vy + n[1] * r * SQ, Z + n[2] * r]; }, neg = (n) => [-n[0], -n[1], -n[2]];
+      for (let i = 0; i < SEG; i++) for (let j = 0; j < RING; j++) { const t0 = i / SEG * TAU, t1 = (i + 1) / SEG * TAU, p0 = j / RING * Math.PI / 2, p1 = (j + 1) / RING * Math.PI / 2;
+        if (inDoor((t0 + t1) / 2, 0.3) && Math.sin((p0 + p1) / 2) * R * SQ < 2.3) continue; /* the doorway */
+        const vo = [P(t1, p0, R), P(t0, p0, R), P(t0, p1, R), P(t1, p1, R)], no = [N(t1, p0), N(t0, p0), N(t0, p1), N(t1, p1)], vi = [vo[1], vo[0], vo[3], vo[2]], ni = [neg(no[1]), neg(no[0]), neg(no[3]), neg(no[2])];
+        const c = mul(clay, 0.9 + 0.18 * U.hash3(wx + i, j, wz, 734)), ci = mul(clay, 0.62); op.curMat = MAT_OF[B.PLASTER] || 0; op.quad(vo, [c, c, c, c], sks, false, no); op.quad(vi, [ci, ci, ci, ci], sks, false, ni); op.curMat = 0;
+        const k = U.hash3(wx + i * 3, j * 7, wz, 735); if (k < 0.2 && j >= 1 && j <= 4) { const pc = mul(k < 0.11 ? rust : steel, 0.85 + 0.3 * U.hash3(i, j, wx, 736)), sh = 0.08, m = (a, b, f) => a + (b - a) * f, q = [P(m(t1, t0, sh), m(p0, p1, sh), R + 0.05), P(m(t0, t1, sh), m(p0, p1, sh), R + 0.05), P(m(t0, t1, sh), m(p1, p0, sh), R + 0.05), P(m(t1, t0, sh), m(p1, p0, sh), R + 0.05)]; op.quad(q, [pc, pc, pc, pc], sks, false, no); } } /* a welded patch of plate */
+      for (let i = 0; i < SEG; i++) { const t0 = i / SEG * TAU, t1 = (i + 1) / SEG * TAU; if (inDoor((t0 + t1) / 2, 0.42)) continue; const r1 = 5.1 + 0.5 * U.hash3(wx + i, 9, wz, 737), r2 = 5.1 + 0.5 * U.hash3(wx + (i + 1) % SEG, 9, wz, 737), h1 = 1.0 + 0.5 * U.hash3(wx + i, 8, wz, 738), h2 = 1.0 + 0.5 * U.hash3(wx + (i + 1) % SEG, 8, wz, 738), up = [0, 1, 0], c = mul(sand, 0.96);
+        op.curMat = MAT_OF[B.SAND] || 0; op.quad([[X + Math.cos(t1) * r2, vy - 0.05, Z + Math.sin(t1) * r2], [X + Math.cos(t0) * r1, vy - 0.05, Z + Math.sin(t0) * r1], [X + Math.cos(t0) * 3.55, vy + h1, Z + Math.sin(t0) * 3.55], [X + Math.cos(t1) * 3.55, vy + h2, Z + Math.sin(t1) * 3.55]], [c, c, c, c], sks, false, [up, up, [Math.cos(t0) * 0.6, 0.8, Math.sin(t0) * 0.6], [Math.cos(t1) * 0.6, 0.8, Math.sin(t1) * 0.6]]); op.curMat = 0; } /* the sand drifted up against it */
+      const arc = (th, ph0, ph1, rad, col, out) => { const pts = []; for (let k = 0; k <= 6; k++) pts.push(P(th, ph0 + (ph1 - ph0) * k / 6, R + (out || 0.03))); op.tube(pts, pts.map(() => rad), col, { sky: sk, segs: 5, cap0: 'round', cap1: 'round' }); };
+      if (door != null) { const pd = Math.asin(2.3 / (R * SQ)); for (const sd of [-1, 1]) arc(door + sd * 0.32, 0, pd, 0.14, rust); const pts = []; for (let k = 0; k <= 6; k++) pts.push(P(door - 0.32 + 0.64 * k / 6, pd, R + 0.03)); op.tube(pts, pts.map(() => 0.14), rust, { sky: sk, segs: 5, cap0: 'round', cap1: 'round' });
+        const dx = Math.cos(door), dz = Math.sin(door), px = -dz, pz = dx, cl = [[0.72, 0.24, 0.18], [0.86, 0.62, 0.22], [0.2, 0.5, 0.52], [0.8, 0.76, 0.66]][Math.floor(hh(2) * 4)], y0 = vy + 2.75, y1 = vy + 2.25, a0 = 3.3, a1 = 5.5, w = 1.5, dn = [0, -1, 0]; /* the awning: a rag of sailcloth out over the door on two poles */
+        const A = [X + dx * a0 - px * w, y0, Z + dz * a0 - pz * w], Bq = [X + dx * a0 + px * w, y0, Z + dz * a0 + pz * w], C = [X + dx * a1 + px * w, y1, Z + dz * a1 + pz * w], D = [X + dx * a1 - px * w, y1, Z + dz * a1 - pz * w], M2 = [(C[0] + D[0]) / 2, y1 - 0.22, (C[2] + D[2]) / 2], c2 = mul(cl, 0.8);
+        op.quad([A, Bq, C, D], [cl, cl, c2, c2], sks, false); op.quad([D, C, Bq, A], [c2, c2, c2, c2], sks, false, [dn, dn, dn, dn]); op.quad([D, C, M2, M2], [c2, c2, c2, c2], sks, false);
+        for (const q of [C, D]) op.tube([[q[0], vy - 0.1, q[2]], [q[0], y1 + 0.25, q[2]]], [0.07, 0.06], steel, { sky: sk, segs: 5, cap0: 'none', cap1: 'round' }); }
+      for (let k = 0; k < 5; k++) { const th = (k + 0.5) / 5 * TAU + hh(3) * 2; if (inDoor(th, 0.5)) continue; const a = P(th, 1.02, R - 0.1), n = N(th, 0.75), L = 1.25 + 0.5 * U.hash3(wx + k, 4, wz, 739); op.tube([a, [a[0] + n[0] * L * 0.55, a[1] + n[1] * L * 0.5 + 0.1, a[2] + n[2] * L * 0.55], [a[0] + n[0] * L * 0.8, a[1] + L, a[2] + n[2] * L * 0.8]], [0.17, 0.11, 0.02], bone, { sky: sk, segs: 6, cap0: 'none', cap1: 'round' }); } /* tusks round the crown */
+      op.tube([[X, cy - 0.7, Z], [X, cy + 0.55, Z]], [0.62, 0.5], rust, { sky: sk, segs: 8, cap0: 'none', cap1: 'round' }); op.tube([[X, cy + 0.4, Z], [X, cy + 0.6, Z]], [0.7, 0.7], steel, { sky: sk, segs: 8, cap0: 'round', cap1: 'round' }); /* the vent stack the light stands on */
+      if (hh(5) < 0.55) { const th = (door == null ? 0 : door) + 2.4 + hh(6), bx = X + Math.cos(th) * 3.2, bz = Z + Math.sin(th) * 3.2, top = vy + 6.6 + hh(7), fc = [[0.75, 0.2, 0.16], [0.9, 0.7, 0.2], [0.15, 0.15, 0.17]][Math.floor(hh(8) * 3)]; op.tube([[bx, vy + 1.6, bz], [bx + 0.1, top, bz]], [0.07, 0.04], steel, { sky: sk, segs: 5, cap0: 'none', cap1: 'round' });
+        const fx = Math.cos(th + 1.57), fz = Math.sin(th + 1.57), f0 = [bx + 0.1, top - 0.05, bz], f1 = [bx + 0.1, top - 0.85, bz], f2 = [bx + 0.1 + fx * 1.5, top - 0.55, bz + fz * 1.5]; op.quad([f0, f1, f2, f2], [fc, fc, mul(fc, 0.8), mul(fc, 0.8)], sks, false); op.quad([f1, f0, f2, f2], [fc, fc, mul(fc, 0.8), mul(fc, 0.8)], sks, false); } /* a mast with a rag pennant on about half of them */
+    };
     // ---- reef villages: nothing of theirs is drawn as blocks. A sail tent is found by its peak; the chunk that holds the peak draws the whole roof as one swept shell
     // of sail on bent ribs, and under a house roof the woven wall as one round basket with an arched door, standing on a round deck with a rope rim ----
     let _tents = null, _reefHere = null;
@@ -2427,6 +2454,12 @@ const R = (() => {
             op.plate(pts, 0.012, k % 2 ? g : g2, { sky: sk, edge: g }); }
           continue;
         }
+        if (id === B.RINGSHARD && !isOpaque(get(lx, y + 1, lz))) { /* a ring shard standing in the open (a town's light, an outcrop) is a cluster of pointed crystals, not a cube. Buried in rock it stays a block */
+          const h0 = U.hash3(wx, y, wz, 78), cA = [1.0, 0.94, 0.72], cB = [1.0, 0.84, 0.5];
+          op.blob(lx + 0.3, y - 0.05, lz + 0.3, lx + 0.7, y + 1.05, lz + 0.7, 1, cA, { emis: true, n: 2, sky: 1, tap: [1, 0.12] });
+          for (let k = 0; k < 3; k++) { const a2 = k * 2.1 + h0 * 6, r2 = 0.26, hh2 = 0.5 + 0.25 * U.hash3(wx + k, y, wz, 79), cx2 = lx + 0.5 + Math.cos(a2) * r2, cz2 = lz + 0.5 + Math.sin(a2) * r2; op.blob(cx2 - 0.14, y - 0.05, cz2 - 0.14, cx2 + 0.14, y + hh2, cz2 + 0.14, 1, cB, { emis: true, n: 2, sky: 1, tap: [1, 0.12] }); }
+          continue;
+        }
         if (id === B.MOONGLOW) {
           const sk = skyAt(lx, y, lz); const pulse = 0.3 + U.hash3(wx, y, wz, 77) * 0.08;
           op.box(lx + 0.44, y, lz + 0.44, lx + 0.56, y + 0.3, lz + 0.56, [0.12, 0.14, 0.2], sk, false);
@@ -2453,6 +2486,12 @@ const R = (() => {
           op.pop();
           for (let k = 0; k < 3; k++) { const a = k / 3 * 6.283 + 0.4; op.push(); op.rotate(0.5, a, 0.3, [lx + 0.5 + Math.cos(a) * 0.3, y + 1.3, lz + 0.5 + Math.sin(a) * 0.3]); op.blob(lx + 0.5 + Math.cos(a) * 0.3 - 0.05, y + 1.18, lz + 0.5 + Math.sin(a) * 0.3 - 0.05, lx + 0.5 + Math.cos(a) * 0.3 + 0.05, y + 1.44, lz + 0.5 + Math.sin(a) * 0.3 + 0.05, 0.2, glow, { emis: true, n: 1, tap: [0.4, 0.2], bulge: 1.0 }); op.pop(); }
           continue;
+        }
+        if (haloHuts && (id === B.HALOWALL || id === B.IRONWALL)) { const cr = hutCrowns(); let skip = false; /* a hut's own blocks are passed over; the hut is drawn once, from its crown */
+          for (const c of cr) { const dx = lx - c[0], dz = lz - c[2]; if (Math.abs(dx) > 4 || Math.abs(dz) > 4) continue;
+            if (id === B.IRONWALL) { if (dx === 0 && dz === 0 && y === c[1]) { drawHut(lx, y, lz); skip = true; break; } continue; }
+            const dy = y - (c[1] - 4), d = Math.hypot(dx, dy + 0.5, dz); if (dy >= 0 && dy <= 3 && d >= 3.05 && d <= 4.15) { skip = true; break; } }
+          if (skip) continue;
         }
         if (moonPods && (id === B.SELGLASS || id === B.BASALT)) { // a Moon pod is one smooth dome of glass on a dark footing, not a heap of cubes: its blocks are passed over and the dome is drawn once, from its crown
           const cr = podCrowns(); let skip = false;
