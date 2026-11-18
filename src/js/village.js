@@ -682,6 +682,7 @@ const Village = (() => {
     }
     if (ATL) stampAtl(chunk);
     if (typeof Sky !== 'undefined') Sky.overlay(chunk);
+    if (typeof Arena !== 'undefined') Arena.overlay(chunk);
   }
   function patchLoaded(v) {
     if (v.patched) return; v.patched = true; const L = layout(v);
@@ -2052,7 +2053,7 @@ const Village = (() => {
     const st = state(id); if (st.freed) return;
     st.freed = true; st.income = incomeFor(v, st); st.freedDay = curNight(); st.report = null; clearLieutenants(v); remember(v, st);
     for (const n of v.npcs) n.hidden = false;
-    G.stats.villagesFreed = (G.stats.villagesFreed || 0) + 1;
+    G.stats.villagesFreed = (G.stats.villagesFreed || 0) + 1; { const fw = (G.stats.freedW = G.stats.freedW || {}), wk = world.preset.id, sz = v.size || 'village'; fw[wk] = fw[wk] || {}; fw[wk][sz] = (fw[wk][sz] || 0) + 1; } /* how many places of each size are free on each world, for the Moon's and Halo's own chapters */
     if (v.starter) G.stats.villageFreed = true;
     const tyrant = tyr0 || (v.boss ? (v.boss.title || v.boss.name || (v.boss.kin ? KIN.name(v.boss.kin) : null)) : null);
     if (v.boss && v.boss.persona && v.boss.persona.cast) { const nm0 = v.boss.persona.cast.name; G.stats.tyrantMet = G.stats.tyrantMet || {}; G.stats.tyrantMet[nm0 + WK()] = (G.stats.tyrantMet[nm0 + WK()] || 0) + 1; }
