@@ -282,6 +282,13 @@ const KIN = (() => {
     return sp;
   }
   // the Lost World's two giants: the tyrant in the middle of the jungle and the sea-lizard in the water around it
+  /* the creatures of the dark wood. They are not like the rest: each is one odd idea on legs, there are few of them, they live nowhere else, they cannot be fused, and each is worth having for one thing it does */
+  const WOODKIN = { toad: { nat: 'w_toad', name: 'Lampwart', el: 'Light', col: { body: '#4f6a3a', belly: '#c9c08a', accent: '#ffe9a0', dark: '#26301c', eye: '#f6f0d8' }, size: 0.55 },
+    hare: { nat: 'w_hare', name: 'Snipscut', el: 'Gale', col: { body: '#8a6f55', belly: '#eadfc8', accent: '#c8ccd4', dark: '#3a2a20', eye: '#f6f0d8' }, size: 0.5 },
+    stork: { nat: 'w_stork', name: 'Stoolbill', el: 'Tide', col: { body: '#f4f2ea', belly: '#ffffff', accent: '#d8452a', dark: '#22242a', eye: '#1a1410' }, size: 0.6 } };
+  const woodCache = {};
+  function woodSpecies(id) { if (woodCache[id]) return woodCache[id]; const W = WOODKIN[id]; if (!W) return null; const sp = species(U.combine(0xDA2C, U.strHash(id)), [W.el], 2, { primary: W.el, shape: 'quadruped', total: 430, evolveAt: [9999, 9999], size: W.size });
+    sp.names = [W.name, W.name, W.name]; sp.colors = Object.assign({}, W.col); sp.natId = W.nat; sp.wood = id; sp.noFuse = true; sp.rarity = 4; nativize(sp); return (woodCache[id] = sp); }
   function apexSpecies(kind) {
     const rex = kind === 'rex';
     const sp = species(U.combine(SPECIES_SEED.earth, rex ? 1001 : 1002), [rex ? 'Flame' : 'Tide'], 9, { primary: rex ? 'Flame' : 'Tide', shape: rex ? 'raptor' : 'serpent', total: rex ? 1500 : 1350, evolveAt: [9999, 9999], size: rex ? 5.2 : 5.8 });
@@ -410,7 +417,7 @@ const KIN = (() => {
   NATIVE.lost = { horned: ['d_trike', 'd_anky', 'd_stego'], longneck: ['d_bronto', 'd_brachio', 'd_para'], raptor: ['d_raptor', 'd_pachy'], serpent: ['d_titano'] }; /* the Lost World's dinosaurs: lines of their own, like the other worlds' natives */
   NAT_COL.lost = { Bloom: ['#5f9a4a', '#d4ff7a'], Stone: ['#a08a66', '#ffd88a'], Flame: ['#b8553a', '#ffb04a'], Gale: ['#5fa8a0', '#d8fff0'], Tide: ['#3f7fb0', '#8fe0ff'], Frost: ['#7ab0c8', '#d8fbff'], Spark: ['#b89a3a', '#fff06a'], Void: ['#5a4070', '#d08aff'], Light: ['#d8c070', '#fff6c0'] };
   const LEGEND = { 'earth|Core': 'l_core', 'earth|Sky': 'l_sky', 'earth|Lost World': 'l_amber', 'moon|Crater': 'lm_crater', 'moon|Core': 'lm_core', 'moon|Sky': 'lm_sky', 'halo|Core': 'lh_core', 'halo|Sky': 'lh_sky' }; /* habitat legendaries by where they live: 'body|layer or biome' -> a body of their own */
-  const NATP = new Set(Object.keys(NAT_STEM).concat(['d_trike', 'd_anky', 'd_stego', 'd_bronto', 'd_brachio', 'd_para', 'd_raptor', 'd_pachy', 'd_titano', 'x_rex', 'x_mosa', 'x_tyrant', 'x_tyr_liz', 'x_tyr_toad', 'x_tyr_moon', 'x_tyr_halo', 'x_tyr_sea', 'x_mantle', 'x_warden', 'l_core', 'l_sky', 'l_amber', 'lm_crater', 'lm_core', 'lm_sky', 'lh_core', 'lh_sky', 'lw_selenaut', 'lw_ring'])); const NATL = {};
+  const NATP = new Set(Object.keys(NAT_STEM).concat(['d_trike', 'd_anky', 'd_stego', 'd_bronto', 'd_brachio', 'd_para', 'd_raptor', 'd_pachy', 'd_titano', 'x_rex', 'x_mosa', 'x_tyrant', 'x_tyr_liz', 'x_tyr_toad', 'w_toad', 'w_hare', 'w_stork', 'x_tyr_moon', 'x_tyr_halo', 'x_tyr_sea', 'x_mantle', 'x_warden', 'l_core', 'l_sky', 'l_amber', 'lm_crater', 'lm_core', 'lm_sky', 'lh_core', 'lh_sky', 'lw_selenaut', 'lw_ring'])); const NATL = {};
   function nativeLine(id, shape) { const k = id + '|' + shape; return NATL[k] || (NATL[k] = [[shape, id, ''], [shape, id, ''], [shape, id, '']]); }
   function nativeBody(sp) { return (sp.home && sp.home.body) || (sp.recipe && sp.recipe.body) || null; }
   function nativeId(sp) { if (!sp) return null; if (sp.natId !== undefined) return sp.natId;
@@ -654,7 +661,10 @@ const KIN = (() => {
     put(['hornbillchick', 'hornbill'], [{ kind: 'head', osc: { rx: 0.42, f: 24 } }], { idle: 0.07 }); /* drums with the casque on its beak */
     put(['molekit', 'minermole', 'drillmole'], [{ all: true, t: [0, -0.78, 0] }]); /* goes into the ground */
     put(['peachick', 'peafowl', 'bloompeacock'], [{ kind: 'tail', s: [2.4, 2.2, 1], rx: -0.95 }], { idle: 0.04 }); /* the fan goes up */
-    put(['puffer'], [{ all: true, s: [1.6, 1.6, 1.6], pulse: 5 }]); /* twice the size, all spines */
+    put(['puffer'], [{ all: true, s: [1.6, 1.6, 1.6], pulse: 5 }]);
+    put(['w_toad'], [{ i: 13, s0: [0.8, 0.8, 0.8], s: [1.12, 1.12, 1.12], pulse: 6 }], { idle: 0.1 }); /* the flame swells in the glass */
+    put(['w_hare'], [{ i: 13, osc: { rz: 0.34, f: 15 } }, { i: 9, osc: { rz: -0.34, f: 15 } }], { idle: 0.09 }); /* snip, snip */
+    put(['w_stork'], [{ kind: 'leg', rz: -0.9 }, { all: true, t: [0, -0.2, 0] }, { i: 13, s0: [0.05, 1, 0.05], s: [1, 1, 1] }], { idle: 0.14 }); /* legs across, seat out, and down it goes */ /* twice the size, all spines */
     put(['flamecobra', 'goldencobra', 'suncobra'], [{ kind: 'head', s: [2.1, 1.3, 1] }, { all: true, s: [1, 1.18, 1] }]); /* the hood spreads and it rears */
     put(['hermit'], [{ all: true, s: [1.2, 0.62, 1.2], t: [0, -0.12, 0] }]); /* clamps down flat: nothing showing but shell */
     put(['pangolinpup', 'pangolinknight'], [{ kind: 'head', s: [0.15, 0.15, 0.15], t: [0, -0.22, -0.12] }, { kind: 'leg', s: [0.1, 0.1, 0.1] }, { kind: 'arm', s: [0.1, 0.1, 0.1] }, { kind: 'tail', rx: 2.4, s: [1.2, 1.2, 1.2] }, { all: true, s: [1.25, 0.72, 1.0], t: [0, -0.05, 0] }]); /* rolled up tight, tail over its face */
@@ -1650,6 +1660,46 @@ const KIN = (() => {
         B(9, 'jaw', [0, hy - 0.0, hz + 0.0]); blob(-0.078, hy - 0.085, hz + 0.02, 0.078, hy - 0.012, hz + 0.41, 1, bl, { n: 4 }); ball(0, hy - 0.085, hz + 0.34, 0.04, bl, { n: 2 }); ball(0, hy - 0.11, hz + 0.1, 0.06, hexMix(bl, ac, 0.25), { n: 3 }); // a point of a chin, and the loose skin of the throat behind it
         tube([[0, hy - 0.03, hz + 0.3], [0, hy - 0.035, hz + 0.47], [0.012, hy - 0.05, hz + 0.54]], [0.016, 0.012, 0.004], '#d0506a', { segs: 4, cap0: 'round', cap1: 'round' }); tube([[0, hy - 0.035, hz + 0.47], [-0.014, hy - 0.05, hz + 0.535]], [0.01, 0.004], '#d0506a', { segs: 4, cap0: 'round', cap1: 'round' });
         bone = 0;
+      } else if (P === 'w_toad') { // the lantern toad of the dark wood: a squat mossy toad that carries an iron lantern on its back, glass and all. It does not know it is useful
+        const hip = 0.1, iron = '#2a2a30', glass = '#ffe9a0', y = hip + 0.38, zc = -0.04;
+        for (const sd of [-1, 1]) { B(sd < 0 ? 4 : 5, 'leg', [sd * 0.24, hip, -0.05], { phase: sd < 0 ? 0 : Math.PI, len: hip, amp: 0.5 }); blob(sd * 0.24 - 0.13, 0, -0.12, sd * 0.24 + 0.13, 0.1, 0.22, 1, hexMix(bd, dk, 0.3), { n: 3 }); }
+        for (const sd of [-1, 1]) { B(sd < 0 ? 2 : 3, 'arm', [sd * 0.3, hip + 0.12, 0.2], { side: sd, amp: 0.3 }); tube([[sd * 0.3, hip + 0.14, 0.2], [sd * 0.38, 0.05, 0.3]], [0.07, 0.06], bd, { cap0: 'round', cap1: 'round' }); }
+        bone = 0; legLen = hip; core(-0.36, hip, -0.3, 0.36, hip + 0.4, 0.34);
+        blob(-0.4, hip - 0.04, -0.34, 0.4, hip + 0.4, 0.36, 1, bd, { n: 5 }); blob(-0.3, hip - 0.02, 0.1, 0.3, hip + 0.26, 0.4, 1, bl, { n: 3 });
+        for (const [x, yy, z, r] of [[-0.3, 0.3, -0.2, 0.05], [0.31, 0.28, -0.16, 0.06], [-0.34, 0.2, 0.05, 0.045], [0.33, 0.18, 0.1, 0.05]]) ball(x, hip + yy, z, r, hexMix(bd, bl, 0.3), { n: 2 }); /* warts */
+        for (let i = 0; i < 8; i++) { const a = i / 8 * 6.283, a2 = (i + 1) / 8 * 6.283; tube([[Math.cos(a) * 0.27, y, zc + Math.sin(a) * 0.27], [Math.cos(a2) * 0.27, y, zc + Math.sin(a2) * 0.27]], [0.026, 0.026], iron, { cap0: 'round', cap1: 'round', segs: 4 }); } /* the foot of the cage */
+        for (let i = 0; i < 4; i++) { const a = i * 1.5708 + 0.785; tube([[Math.cos(a) * 0.27, y, zc + Math.sin(a) * 0.27], [Math.cos(a) * 0.3, y + 0.3, zc + Math.sin(a) * 0.3], [0, y + 0.56, zc]], [0.022, 0.022, 0.022], iron, { segs: 6, cap0: 'round', cap1: 'round' }); } /* four bars up to the cap */
+        cone([0, y + 0.52, zc], [0, 1, 0], 0.13, 0.11, iron); tube([[-0.06, y + 0.64, zc], [0, y + 0.75, zc], [0.06, y + 0.64, zc]], [0.016, 0.016, 0.016], iron, { segs: 5, cap0: 'round', cap1: 'round' }); /* the cap and the ring you would carry it by */
+        B(13, 'part', [0, y + 0.26, zc]); ball(0, y + 0.26, zc, 0.24, glass, { emis: true, n: 4 }); ball(0, y + 0.2, zc, 0.1, '#fffbe0', { emis: true, n: 2 }); bone = 0; /* the glass and the flame in it */
+        B(1, 'head', [0, hip + 0.26, 0.26], { still: true }); const hy = hip + 0.26, hz = 0.3;
+        blob(-0.3, hy - 0.1, hz - 0.12, 0.3, hy + 0.16, hz + 0.2, 1, bd, { n: 4 });
+        for (const sd of [-1, 1]) { ball(sd * 0.17, hy + 0.15, hz + 0.08, 0.085, bd, { n: 2 }); ball(sd * 0.17, hy + 0.16, hz + 0.14, 0.05, '#f6f0d8', { n: 2 }); ball(sd * 0.17, hy + 0.16, hz + 0.178, 0.026, '#1a1410', { n: 1 }); }
+        tube([[-0.26, hy, hz + 0.12], [0, hy - 0.04, hz + 0.2], [0.26, hy, hz + 0.12]], [0.012, 0.02, 0.012], dk, { segs: 5, cap0: 'round', cap1: 'round' });
+        B(6, 'lid', [0, hy + 0.2, hz + 0.1], { amp: 0.09 * s }); for (const sd of [-1, 1]) blob(sd * 0.17 - 0.07, hy + 0.2, hz + 0.04, sd * 0.17 + 0.07, hy + 0.29, hz + 0.17, 1, hexMix(bd, dk, 0.2), { n: 2 });
+      } else if (P === 'w_hare') { // the shear hare: a lean hare sat bolt upright whose ears are the two blades of a pair of shears, riveted over its head. You hear the snip before you see it
+        const hip = 0.3, steel = '#c8ccd4', brass = '#c9a03a';
+        for (const sd of [-1, 1]) { B(sd < 0 ? 4 : 5, 'leg', [sd * 0.16, hip, -0.06], { phase: sd < 0 ? 0 : Math.PI, len: hip, amp: 0.6 }); blob(sd * 0.16 - 0.1, 0.03, -0.2, sd * 0.16 + 0.1, hip + 0.16, 0.08, 1, bd, { n: 3 }); blob(sd * 0.17 - 0.06, 0, -0.1, sd * 0.17 + 0.06, 0.07, 0.32, 1, hexMix(bd, bl, 0.3), { n: 2 }); }
+        bone = 0; legLen = hip; core(-0.2, hip, -0.2, 0.2, hip + 0.5, 0.16);
+        blob(-0.22, hip - 0.04, -0.24, 0.22, hip + 0.5, 0.16, 1, bd, { n: 4 }); blob(-0.14, hip + 0.02, 0.02, 0.14, hip + 0.42, 0.2, 1, bl, { n: 3 }); ball(0, hip + 0.06, -0.26, 0.09, '#f4efe2', { n: 2 });
+        for (const sd of [-1, 1]) { B(sd < 0 ? 2 : 3, 'arm', [sd * 0.18, hip + 0.38, 0.1], { side: sd, amp: 0.3 }); tube([[sd * 0.18, hip + 0.38, 0.1], [sd * 0.16, hip + 0.26, 0.24]], [0.05, 0.04], bd, { cap0: 'round', cap1: 'round' }); }
+        bone = 0; B(1, 'head', [0, hip + 0.52, 0.04], { still: true }); const hy = hip + 0.62, hz = 0.08;
+        blob(-0.17, hy - 0.12, hz - 0.16, 0.17, hy + 0.16, hz + 0.14, 1, bd, { n: 4 }); blob(-0.1, hy - 0.12, hz + 0.06, 0.1, hy + 0.02, hz + 0.26, 1, bl, { n: 3 }); ball(0, hy - 0.02, hz + 0.27, 0.03, '#3a2420', { n: 1 });
+        for (const sd of [-1, 1]) { blob(sd * 0.025 - 0.02, hy - 0.17, hz + 0.2, sd * 0.025 + 0.02, hy - 0.1, hz + 0.24, 0.6, '#f8f4e8', { n: 1 }); ball(sd * 0.13, hy + 0.04, hz + 0.08, 0.045, '#f6f0d8', { n: 2 }); ball(sd * 0.145, hy + 0.04, hz + 0.1, 0.025, '#1a1410', { n: 1 }); }
+        const ry = hy + 0.2, rz0 = hz - 0.04; ball(0, ry, rz0 + 0.035, 0.04, brass, { n: 2 }); /* the rivet */
+        B(6, 'lid', [0, hy + 0.08, hz + 0.08], { amp: 0.06 * s }); for (const sd of [-1, 1]) blob(sd * 0.13 - 0.05, hy + 0.07, hz + 0.03, sd * 0.13 + 0.05, hy + 0.13, hz + 0.13, 1, hexMix(bd, dk, 0.25), { n: 2 });
+        B(13, 'part', [0, ry, rz0]); plate([[-0.04, ry - 0.05, rz0], [0.05, ry - 0.03, rz0], [0.2, ry + 0.66, rz0], [0.13, ry + 0.7, rz0]], 0.022, steel, { edge: '#8a8e98' }); /* one blade */
+        B(9, 'part', [0, ry, rz0 + 0.024]); plate([[0.04, ry - 0.05, rz0 + 0.024], [-0.05, ry - 0.03, rz0 + 0.024], [-0.2, ry + 0.66, rz0 + 0.024], [-0.13, ry + 0.7, rz0 + 0.024]], 0.022, steel, { edge: '#8a8e98' }); bone = 0; /* and the other, crossing it */
+      } else if (P === 'w_stork') { // the stool stork: a tall white stork whose long red legs fold across each other like a camp stool, with the canvas seat slung under it. It sits down wherever it stops
+        const hip = 0.9, red = '#d8452a', wh = '#f4f2ea';
+        for (const sd of [-1, 1]) { B(sd < 0 ? 4 : 5, 'leg', [sd * 0.1, hip, 0], { phase: sd < 0 ? 0 : Math.PI, len: hip, amp: 0.35, side: sd }); tube([[sd * 0.1, hip, 0], [sd * 0.1, 0.04, 0]], [0.03, 0.025], red, { cap0: 'round', cap1: 'round' }); blob(sd * 0.1 - 0.06, 0, -0.04, sd * 0.1 + 0.06, 0.04, 0.14, 1, red, { n: 1 }); }
+        bone = 0; legLen = hip; core(-0.2, hip, -0.3, 0.2, hip + 0.4, 0.24);
+        blob(-0.22, hip - 0.04, -0.34, 0.22, hip + 0.4, 0.24, 1, wh, { n: 4 }); blob(-0.2, hip + 0.02, -0.42, 0.2, hip + 0.3, -0.12, 1, '#22242a', { n: 3 });
+        tube([[0, hip + 0.3, 0.16], [0, hip + 0.6, 0.26], [0, hip + 0.86, 0.18]], [0.07, 0.05, 0.05], wh, { cap0: 'round', cap1: 'round', segs: 6 });
+        B(13, 'part', [0, hip - 0.03, -0.04]); plate([[-0.26, hip - 0.03, -0.22], [0.26, hip - 0.03, -0.22], [0.26, hip - 0.03, 0.14], [-0.26, hip - 0.03, 0.14]], 0.03, '#b8894a', { edge: '#7a5a2e' }); bone = 0; /* the seat */
+        B(1, 'head', [0, hip + 0.86, 0.18], { still: true }); const hy = hip + 0.9, hz = 0.2;
+        ball(0, hy, hz, 0.1, wh, { n: 3 }); tube([[0, hy - 0.02, hz + 0.06], [0, hy - 0.12, hz + 0.5]], [0.045, 0.012], red, { cap0: 'round', cap1: 'round' });
+        for (const sd of [-1, 1]) ball(sd * 0.07, hy + 0.03, hz + 0.06, 0.028, '#1a1410', { n: 1 });
+        B(6, 'lid', [0, hy + 0.06, hz + 0.06], { amp: 0.04 * s }); for (const sd of [-1, 1]) blob(sd * 0.07 - 0.035, hy + 0.05, hz + 0.03, sd * 0.07 + 0.035, hy + 0.09, hz + 0.1, 1, '#d8d4c8', { n: 1 });
       } else if (P === 'x_tyr_toad') { // Bigmouth's kind: a toad the size of a hay cart, nearly all mouth, laughing. Eyes up on top like two more heads, a throat that swells when he sings, a belly with medals pinned straight into it
         const hip = 0.22, gold = '#e0b040', lipc = hexMix(dk, '#4a2a1a', 0.4), tusk = '#f4efdf', BDc = rgb(bd), DKc = rgb(hexMix(bd, dk, 0.5)), PLc = rgb(hexMix(bd, bl, 0.4));
         const warty = (q, nx, ny, nz) => { if (nz > 0.5 && ny < 0.5) return rgb(bl); const k = U.hash3(Math.floor(q[0] * 13 + 60), Math.floor(q[1] * 13 + 60), Math.floor(q[2] * 13 + 60), 97); return k > 0.84 ? PLc : k < 0.2 ? DKc : BDc; };
@@ -4327,7 +4377,7 @@ const KIN = (() => {
     if (!bones[0]) bones[0] = { kind: 'body', piv: [0, 0, 0], runPitch: sp.shape === 'raptor' ? 0.08 : 0 };
     const height = Math.max(...parts.map(b => b.y + b.h));
     const radius = Math.max(...parts.map(b => Math.max(Math.abs(b.x), Math.abs(b.x + b.w), Math.abs(b.z), Math.abs(b.z + b.d))));
-    const trick = trickBuilt || TRICKS[form.plan] || null;
+    const trick = trickBuilt || TRICKS[form.plan] || (sp.natId && TRICKS[sp.natId]) || null;
     const M = { trick, boxes: parts, scale: s, hover, height, radius, bones, temper: temperOf(sp), legLen: legLen * SY, kind, flyer, sway, shape, native: natDone, fitBody };
     return sp.neon && form.plan && !natDone ? alienize(M, sp) : M;
   }
@@ -4660,5 +4710,5 @@ const KIN = (() => {
   function serialize(k) { return { id: k.id, sp: k.sp, level: k.level, xp: k.xp, iv: k.iv, stage: k.stage, hp: k.hp, nick: k.nick, shiny: k.shiny || undefined, equip: k.equip || null, tech: k.tech || null, wear: k.wear || null, trust: k.trust || 0, bond: k.bond || 0, tamed: k.tamed || false }; }
   function deserialize(d) { return Object.assign({ status: null }, d); }
 
-  return { NATIVE, NAT_STEM, nativeLine, nativeColors, nativeId, nativize, childify, formName, LINES, lineOf, maxStage, lookOf, formOf, partHelpers, dress, wearKey, E, EI, CHART, STAT_KEYS, STAT_NAMES, growth, xpToNext, dominant, species, speciesForContext, dex, bySeed, HABITATS, capOf, recipes, findRecipe, fuseRecipe, mythicSpecies, legendSpecies, apexSpecies, wardenSpecies, MAX_LEVEL, TECH, techFor, techByName, temperOf, starters, create, stats, name, moves, effectiveness, gainXp, fuse, fusionLevel, TRAITS, RARITY, roster, buildUniverse, decorate, makeStatue, statueModel, shardsFor, model, buildMesh, meshKey, portrait, serialize, deserialize, UTIL_DESC, eggModel, eggPortrait };
+  return { NATIVE, NAT_STEM, nativeLine, nativeColors, nativeId, nativize, childify, formName, LINES, lineOf, maxStage, lookOf, formOf, partHelpers, dress, wearKey, E, EI, CHART, STAT_KEYS, STAT_NAMES, growth, xpToNext, dominant, species, speciesForContext, dex, bySeed, HABITATS, capOf, recipes, findRecipe, fuseRecipe, mythicSpecies, legendSpecies, apexSpecies, woodSpecies, WOODKIN, wardenSpecies, MAX_LEVEL, TECH, techFor, techByName, temperOf, starters, create, stats, name, moves, effectiveness, gainXp, fuse, fusionLevel, TRAITS, RARITY, roster, buildUniverse, decorate, makeStatue, statueModel, shardsFor, model, buildMesh, meshKey, portrait, serialize, deserialize, UTIL_DESC, eggModel, eggPortrait };
 })();

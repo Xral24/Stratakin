@@ -53,7 +53,7 @@ G.setupWorld = function (seed, presetId) {
   this.world.findSpawn();
   Wild.init(this.world, this.mobile);
   Weather.init(this.world.seed);
-  Village.init(this); Hazards.init(this); Campaign.init(this); Npcs.init(this); Camps.init(this); Mer.init(this); Lab.init(this); Avatar.init(this); Combat.init(this); Buddy.init(this); Cine.init(this); First.init(this); Breath.init(this); Ruins.init(this); Fields.init(this); Felling.init(this); Relics.init(this); Gems.init(this); Keeps.init(this); Citadel.init(this); Farms.init(this); Sky.init(this);
+  Village.init(this); Hazards.init(this); Campaign.init(this); Npcs.init(this); Camps.init(this); Mer.init(this); Lab.init(this); Avatar.init(this); Combat.init(this); Buddy.init(this); Cine.init(this); Wood.init(this); First.init(this); Breath.init(this); Ruins.init(this); Fields.init(this); Felling.init(this); Relics.init(this); Gems.init(this); Keeps.init(this); Citadel.init(this); Farms.init(this); Sky.init(this);
   Quests.init(this);
 };
 G.newWorld = function (seed, starterIdx, name) {
@@ -556,6 +556,7 @@ G.onBattleEnd = function (result, wildE, wild, mine, ambush) {
     } else {
       wild.buffs = null; wild.hp = Math.max(1, wild.hp);
       this.stats.caught++; this.seenDex(wild.sp, "caught");
+      if (wild.sp && wild.sp.wood) Wood.caught(wild);
       if (this.addKin(wild) === 'party') UI.toast(`${KIN.name(wild)} joined you (${this.kin.length + this.eggs.length}/${this.MAX_KIN}).`, 'good');
       if (st) { this.stats.mythicDone = true; this.mythicCaught = true; UI.toast('You hold the Mythic of the Core. The Starmetal hums: the sky beyond opens in the next version.', 'good'); }
     }
@@ -773,7 +774,7 @@ G.loop = function (t) {
       }
       if (w.regrow && w.regrow.length && (this.frame & 31) === 0) { const now = performance.now(); w.regrow = w.regrow.filter(r => { if (now < r.t) return true; if ((r.id === B.LOG || r.id === B.BIRCHLOG || r.id === B.PALMLOG || r.id === B.LEAVES) && !Felling.natural(r.x, r.y, r.z, r.id)) return false; /* a block you built and took away stays gone */ const b = w.getBlock(r.x, r.y, r.z); if (r.id != null) { if (b === B.AIR && !(Math.abs(r.x + 0.5 - p.x) < 0.8 && Math.abs(r.z + 0.5 - p.z) < 0.8 && r.y >= Math.floor(p.y) - 1 && r.y <= Math.floor(p.y) + 2)) { if (r.id === B.GLOWWORM && !isSolid(w.getBlock(r.x, r.y - 1, r.z))) return false; w.setBlock(r.x, r.y, r.z, r.id); } else if (b === B.AIR) { r.t = now + 15000; return true; } } else if (r.leaf) { if (b === B.LEAVES) w.setBlock(r.x, r.y, r.z, B.BERRYLEAF); } else if (b === B.AIR) w.setBlock(r.x, r.y, r.z, B.BERRY); return false; }); }
       const trig = (Dialogue.active() || Village.walking) ? null : Wild.update(dt, p, performance.now() / 1000, false);
-      R.setSeason(this.worldId === 'earth' && !(this.world.colInfo(Math.floor(p.x), Math.floor(p.z)).lost) ? Fields.season() : 1); Cine.update(dt); Buddy.update(dt, p); First.update(dt, p); Breath.update(dt, p); Ruins.update(dt, p); Fields.update(dt, p); Gems.update(dt, p); Felling.update(dt); Keeps.update(dt, p); Citadel.update(dt, p); Farms.update(dt, p); Sky.update(dt, p); Combat.update(dt, p, input);
+      R.setSeason(this.worldId === 'earth' && !(this.world.colInfo(Math.floor(p.x), Math.floor(p.z)).lost) ? Fields.season() : 1); Cine.update(dt); Wood.update(dt, p); Buddy.update(dt, p); First.update(dt, p); Breath.update(dt, p); Ruins.update(dt, p); Fields.update(dt, p); Gems.update(dt, p); Felling.update(dt); Keeps.update(dt, p); Citadel.update(dt, p); Farms.update(dt, p); Sky.update(dt, p); Combat.update(dt, p, input);
       Wild.ensureHeart(p, this.trainerLevel, this.mythicCaught); Wild.ensureLegend(p); Wild.ensureApex(p);
       if (trig && !trig.e.cool && !Dialogue.active() && !Taming.active && !p.flying && !(this.fightGrace > performance.now()) && !((Keeps.inHold(p) || Citadel.inside(p) || Sky.inFort(p)) && !trig.e.keepBoss && !trig.e.skyBoss)) Wild.engage(trig.e, trig.ambush);
       for (const e of Wild.list) if (e.cool > 0) e.cool -= dt;
@@ -828,6 +829,7 @@ G.loop = function (t) {
   const lights = [];
   if (p.holdingTorch()) lights.push([eye.x, eye.y - 0.2, eye.z, 9]);
   else if (this.traits().includes('Lantern')) lights.push([eye.x, eye.y - 0.2, eye.z, 11]);
+  else { const wl = Wood.light(eye); if (wl) lights.push(wl); } /* a Lampwart along: no torch needed */
   const torches = [...w.torches.values()].map(tp => [tp[0], tp[1], tp[2], (tp[0] - p.x) ** 2 + (tp[2] - p.z) ** 2, tp[3]]).sort((a, b) => a[3] - b[3]);
   if (w.heart && p.y < 20 && Math.hypot(w.heart.x - p.x, w.heart.z - p.z) < 48) lights.push([w.heart.x + 0.5, 7, w.heart.z + 0.5, 18]);
   for (let i = 0; i < torches.length && lights.length < 8; i++) lights.push([torches[i][0], torches[i][1], torches[i][2], torches[i][4] || 10]);

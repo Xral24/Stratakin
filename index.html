@@ -1213,6 +1213,11 @@ class World {
     }
   }
   treeAt(x, z, info) { const t = this.treeAt0(x, z, info); if (!t) return null; if (this.trailWear && this.trailWear(x, z) > 0.1) return null; if (this.trackAt) for (let a = -2; a <= 2; a++) for (let b = -2; b <= 2; b++) if (this.trackAt(x + a, z + b)) return null; return t; } // no tree grows in a footpath or beside the railway
+  /* the dark wood: one old forest a good walk from home. Where it is depends on the world; how deep in you are is 0 outside, 1 at its heart */
+  woodC() { if (this._wood !== undefined) return this._wood; if (this.preset.id !== 'earth' || !this.spawn) return null; const a0 = U.hash3(7, 7, 7, this.seed + 4242) * 6.283; let best = null; /* it wants rolling wooded country: not a mountain top, not the sea, not the desert. The first bearing that offers that, working round from where the world would have put it */
+    for (let i = 0; i < 48 && !best; i++) { const a = a0 + (i % 24) * 0.2618, d = i < 24 ? 430 : 560, cx = Math.round(this.spawn.x + Math.sin(a) * d), cz = Math.round(this.spawn.z + Math.cos(a) * d); let ok = true; for (const [ox, oz] of [[0, 0], [55, 0], [-55, 0], [0, 55], [0, -55], [38, 38], [-38, -38]]) { const q = this.colInfo(U.mod(cx + ox, WORLD_W), U.mod(cz + oz, WORLD_W)); if (q.h <= SEA + 1 || q.h > 66 || q.beach || q.lost || q.lostRim || q.biome === BIOME.DESERT || q.biome === BIOME.SNOW) { ok = false; break; } } if (ok) best = { x: cx, z: cz, r: 100 }; }
+    return (this._wood = best || { x: Math.round(this.spawn.x + Math.sin(a0) * 430), z: Math.round(this.spawn.z + Math.cos(a0) * 430), r: 100 }); }
+  woodK(x, z) { const c = this.woodC(); if (!c) return 0; const d = Math.hypot(x - c.x, z - c.z); return d >= c.r ? 0 : Math.min(1, (c.r - d) / 30); }
   treeAt0(x, z, info) {
     if (!this.preset.trees) return null;
     if (info.h <= SEA || info.h > 72) return null;
@@ -1221,8 +1226,9 @@ class World {
     if (info.lostRim) return null; // nor on the dome itself
     if (info.lost && this.lost) { const T = this.lostTunnel(); if (T && Math.hypot(x - T.bx - T.ix * 4, z - T.bz - T.iz * 4) < 10) return null; } // and the way in comes out into open ground
     const r = U.hash3(x, 99, z, this.seed + 303); const kind = U.hash3(x, 98, z, this.seed);
-    let p = 0, type = 'oak';
-    if (info.beach) { if (info.h < SEA + 2 || info.h > SEA + 6) return null; p = 0.014; type = 'palm'; }
+    let p = 0, type = 'oak'; const wk = !info.beach && !info.lost && !info.lostRim && info.biome !== BIOME.DESERT ? this.woodK(x, z) : 0;
+    if (wk > 0.25) { p = 0.016 + 0.03 * wk; type = 'oak'; } /* the dark wood: old giants shoulder to shoulder, whatever the country was meant to be */
+    else if (info.beach) { if (info.h < SEA + 2 || info.h > SEA + 6) return null; p = 0.014; type = 'palm'; }
     else switch (info.biome) {
       case BIOME.FOREST: p = 0.006 + 0.022 * U.vnoise2(x, z, 48, WORLD_W, this.seed + 371); type = kind < 0.18 ? 'pine' : kind < 0.3 ? 'birch' : 'oak'; break; // thick in patches, open glades between
       case BIOME.PLAINS: p = 0.004; type = kind < 0.4 ? 'birch' : 'oak'; break;
@@ -1235,7 +1241,7 @@ class World {
     }
     if (r >= p) return null;
     const hr = U.hash3(x, 97, z, this.seed);
-    const fir = type === 'pine' && kind > 0.66 && (info.biome === BIOME.SNOW || info.biome === BIOME.MOUNTAIN), grand = type === 'oak' && U.hash3(x, 94, z, this.seed + 19) < 0.1; // here and there an old giant among the oaks
+    const fir = type === 'pine' && kind > 0.66 && (info.biome === BIOME.SNOW || info.biome === BIOME.MOUNTAIN), grand = type === 'oak' && (wk > 0.25 ? U.hash3(x, 94, z, this.seed + 19) < 0.75 : U.hash3(x, 94, z, this.seed + 19) < 0.1); // here and there an old giant among the oaks
     if (type === 'jungle') { // four storeys: big-leaved plants and tree ferns underneath, the canopy over them, and here and there a giant standing clear of everything
       const size = kind < 0.22 ? 'fern' : kind < 0.4 ? 'banana' : hr > 0.86 && !(info.edge < 10) ? 'giant' : hr > 0.5 ? 'big' : 'tree'; // a giant keeps its crown clear of the wall
       if (size === 'giant') for (let a = -6; a <= 6; a++) for (let b = -6; b <= 6; b++) { if (!a && !b) continue; const h2 = U.hash3(x + a, 97, z + b, this.seed); if (h2 > hr && U.hash3(x + a, 98, z + b, this.seed) >= 0.4 && U.hash3(x + a, 99, z + b, this.seed + 303) < 0.05) return null; } /* two giants never stand shoulder to shoulder */
@@ -1881,6 +1887,7 @@ PATTERNS[B.DIAMOND] = { all: SPECK([0.6, 1.0, 1.0], true) };
 PATTERNS[B.SELGLASS] = { all: { rects: strips(0.05, 0.8, [0.85, 0.95, 1.0]).concat([{ u0: 0.05, v0: 0.05, u1: 0.95, v1: 0.95, mul: 1, glass: true }]) } };
 
 const R = (() => {
+  let gloomK = 0; /* how deep under the dark wood's canopy the player is: the light goes green and low */
   let seasonK = 1; /* 0 spring, 1 summer, 2 autumn, 3 winter: set by the game each frame, summer wherever the year does not turn */
   let gl, canvas, prog, lineProg, loc = {}, lloc = {};
   const meshes = new Map(); // chunk key -> gpu mesh
@@ -4534,6 +4541,7 @@ const R = (() => {
     gl.uniform4fv(loc.uMist, state.mist || MIST0); bindHM(loc, state.mist && state.mist[1] > 0); gl.uniform3fv(loc.uFog, state.fogColor); gl.uniform1f(loc.uFogSky, state.fogSky ? (state.rangeKind || 1) : 0); gl.uniform1f(loc.uCoreGlow, world.preset.id === 'earth' ? 1 : 0);
     gl.uniform1f(loc.uFogNear, state.fogNear); gl.uniform1f(loc.uFogFar, state.fogFar);
     gl.uniform1f(loc.uAmbient, state.ambient);
+    if (gloomK > 0.01) state.tint = [state.tint[0] * (1 - 0.52 * gloomK), state.tint[1] * (1 - 0.36 * gloomK), state.tint[2] * (1 - 0.42 * gloomK)];
     gl.uniform3fv(loc.uTint, state.tint); gl.uniform1f(loc.uSeason, seasonK);
     gl.uniform1f(loc.uSkyMul, 1);
     gl.uniform3fv(loc.uSun, state.sun || [0, 1, 0]); gl.uniform3fv(loc.uSunCol, state.sunCol || [1, 1, 1]); gl.uniform3fv(loc.uZenith, state.zenith || state.fogColor); gl.uniform1f(loc.uSunAmt, state.skyPass ? state.sunAmt : 0); gl.uniform1f(loc.uQuality, isMobile ? 0.6 : 1); gl.uniform1f(loc.uGrid, 1); gl.uniform3f(loc.uPlayer, player.x, player.y, player.z); gl.uniform1f(loc.uBladeShade, grassProg ? 1 : 0);
@@ -4705,7 +4713,7 @@ const R = (() => {
     return out;
   }
 
-  return { setSeason: (k) => { seasonK = k; }, grassZone, init, resize, buildChunk, freeChunk, entityMesh, dropEntityMesh, renderPortrait, render, project, surfaceAt, standY, under, isSoil, boxLines, targetLines, ringLines, state, setQuality, QUALITY, get gl() { return gl; }, get scratch() { return scratchOpaque; } }; // scratch: the last chunk's solid mesh as it was built, for the tests to measure
+  return { setGloom: (k) => { gloomK = k; }, setSeason: (k) => { seasonK = k; }, grassZone, init, resize, buildChunk, freeChunk, entityMesh, dropEntityMesh, renderPortrait, render, project, surfaceAt, standY, under, isSoil, boxLines, targetLines, ringLines, state, setQuality, QUALITY, get gl() { return gl; }, get scratch() { return scratchOpaque; } }; // scratch: the last chunk's solid mesh as it was built, for the tests to measure
 })();
 
 </script>
@@ -5008,7 +5016,7 @@ const R = (() => {
             const face = op.i == null && !op.all && op.kind === 'head' && b.kind !== 'head' && (b.kind === 'lid' || b.kind === 'brow' || b.kind === 'jaw' || b.kind === 'ear') && bones[1] && bones[1].kind === 'head'; /* what sits on the head goes with the head */
             if (op.i == null && !op.all && b.kind !== op.kind && !face) continue; const sd = b && b.side ? Math.sign(b.side) : (b && b.piv && b.piv[0] < 0 ? -1 : 1);
             const pv = face ? bones[1].piv : b ? b.piv : [0, 0, 0], px = op.all ? 0 : pv[0], py = op.all ? 0 : pv[1], pz = op.all ? 0 : pv[2];
-            const r0 = op.rx0 || 0, rx = r0 + ((op.rx || 0) - r0) * k + (op.osc && op.osc.rx ? Math.sin(t * op.osc.f + seed) * op.osc.rx * k : 0), ry = op.osc && op.osc.ry ? Math.sin(t * op.osc.f + seed) * op.osc.ry * k : 0, rz = (op.rz || 0) * k * sd;
+            const r0 = op.rx0 || 0, rx = r0 + ((op.rx || 0) - r0) * k + (op.osc && op.osc.rx ? Math.sin(t * op.osc.f + seed) * op.osc.rx * k : 0), ry = op.osc && op.osc.ry ? Math.sin(t * op.osc.f + seed) * op.osc.ry * k : 0, rz = (op.rz || 0) * k * sd + (op.osc && op.osc.rz ? Math.sin(t * op.osc.f + seed) * op.osc.rz * k : 0);
             const cx = Math.cos(rx), sxx = Math.sin(rx), cy = Math.cos(ry), syy = Math.sin(ry), cz = Math.cos(rz), szz = Math.sin(rz);
             /* X = move * turn * grow, about the joint */
             const x0 = (cy * cz + syy * sxx * szz) * sx, x1 = (cx * szz) * sx, x2 = (-syy * cz + cy * sxx * szz) * sx, x4 = (-cy * szz + syy * sxx * cz) * sy, x5 = (cx * cz) * sy, x6 = (syy * szz + cy * sxx * cz) * sy, x8 = (syy * cx) * sz, x9 = (-sxx) * sz, x10 = (cy * cx) * sz;
@@ -5531,7 +5539,7 @@ class Player {
       this.wearTool(hit.id);
       if (R.isSoil(hit.id)) this.world.markCut(hit.x, hit.z); /* dug ground is square from here on */
       this.world.setBlock(hit.x, hit.y, hit.z, B.AIR);
-      if (drop) this.add(drop, 1);
+      if (drop) this.add(drop, drop === 'frond' && typeof Wood !== 'undefined' ? Wood.fronds() : 1); /* a Snipscut along: its shears take three where your hand takes one */
       // everything that grows, grows back: logs, leaves, cactus, glowworms
       const regrowAfter = { [B.LOG]: 240000, [B.BIRCHLOG]: 240000, [B.PALMLOG]: 240000, [B.LEAVES]: 180000, [B.CACTUS]: 240000, [B.GLOWWORM]: 300000 }[hit.id];
       if (regrowAfter && ((hit.id !== B.LOG && hit.id !== B.BIRCHLOG && hit.id !== B.PALMLOG && hit.id !== B.LEAVES) || typeof Felling === 'undefined' || Felling.natural(hit.x, hit.y, hit.z, hit.id))) (this.world.regrow = this.world.regrow || []).push({ x: hit.x, y: hit.y, z: hit.z, t: performance.now() + regrowAfter, id: hit.id });
@@ -6284,6 +6292,13 @@ const KIN = (() => {
     return sp;
   }
   // the Lost World's two giants: the tyrant in the middle of the jungle and the sea-lizard in the water around it
+  /* the creatures of the dark wood. They are not like the rest: each is one odd idea on legs, there are few of them, they live nowhere else, they cannot be fused, and each is worth having for one thing it does */
+  const WOODKIN = { toad: { nat: 'w_toad', name: 'Lampwart', el: 'Light', col: { body: '#4f6a3a', belly: '#c9c08a', accent: '#ffe9a0', dark: '#26301c', eye: '#f6f0d8' }, size: 0.55 },
+    hare: { nat: 'w_hare', name: 'Snipscut', el: 'Gale', col: { body: '#8a6f55', belly: '#eadfc8', accent: '#c8ccd4', dark: '#3a2a20', eye: '#f6f0d8' }, size: 0.5 },
+    stork: { nat: 'w_stork', name: 'Stoolbill', el: 'Tide', col: { body: '#f4f2ea', belly: '#ffffff', accent: '#d8452a', dark: '#22242a', eye: '#1a1410' }, size: 0.6 } };
+  const woodCache = {};
+  function woodSpecies(id) { if (woodCache[id]) return woodCache[id]; const W = WOODKIN[id]; if (!W) return null; const sp = species(U.combine(0xDA2C, U.strHash(id)), [W.el], 2, { primary: W.el, shape: 'quadruped', total: 430, evolveAt: [9999, 9999], size: W.size });
+    sp.names = [W.name, W.name, W.name]; sp.colors = Object.assign({}, W.col); sp.natId = W.nat; sp.wood = id; sp.noFuse = true; sp.rarity = 4; nativize(sp); return (woodCache[id] = sp); }
   function apexSpecies(kind) {
     const rex = kind === 'rex';
     const sp = species(U.combine(SPECIES_SEED.earth, rex ? 1001 : 1002), [rex ? 'Flame' : 'Tide'], 9, { primary: rex ? 'Flame' : 'Tide', shape: rex ? 'raptor' : 'serpent', total: rex ? 1500 : 1350, evolveAt: [9999, 9999], size: rex ? 5.2 : 5.8 });
@@ -6412,7 +6427,7 @@ const KIN = (() => {
   NATIVE.lost = { horned: ['d_trike', 'd_anky', 'd_stego'], longneck: ['d_bronto', 'd_brachio', 'd_para'], raptor: ['d_raptor', 'd_pachy'], serpent: ['d_titano'] }; /* the Lost World's dinosaurs: lines of their own, like the other worlds' natives */
   NAT_COL.lost = { Bloom: ['#5f9a4a', '#d4ff7a'], Stone: ['#a08a66', '#ffd88a'], Flame: ['#b8553a', '#ffb04a'], Gale: ['#5fa8a0', '#d8fff0'], Tide: ['#3f7fb0', '#8fe0ff'], Frost: ['#7ab0c8', '#d8fbff'], Spark: ['#b89a3a', '#fff06a'], Void: ['#5a4070', '#d08aff'], Light: ['#d8c070', '#fff6c0'] };
   const LEGEND = { 'earth|Core': 'l_core', 'earth|Sky': 'l_sky', 'earth|Lost World': 'l_amber', 'moon|Crater': 'lm_crater', 'moon|Core': 'lm_core', 'moon|Sky': 'lm_sky', 'halo|Core': 'lh_core', 'halo|Sky': 'lh_sky' }; /* habitat legendaries by where they live: 'body|layer or biome' -> a body of their own */
-  const NATP = new Set(Object.keys(NAT_STEM).concat(['d_trike', 'd_anky', 'd_stego', 'd_bronto', 'd_brachio', 'd_para', 'd_raptor', 'd_pachy', 'd_titano', 'x_rex', 'x_mosa', 'x_tyrant', 'x_tyr_liz', 'x_tyr_toad', 'x_tyr_moon', 'x_tyr_halo', 'x_tyr_sea', 'x_mantle', 'x_warden', 'l_core', 'l_sky', 'l_amber', 'lm_crater', 'lm_core', 'lm_sky', 'lh_core', 'lh_sky', 'lw_selenaut', 'lw_ring'])); const NATL = {};
+  const NATP = new Set(Object.keys(NAT_STEM).concat(['d_trike', 'd_anky', 'd_stego', 'd_bronto', 'd_brachio', 'd_para', 'd_raptor', 'd_pachy', 'd_titano', 'x_rex', 'x_mosa', 'x_tyrant', 'x_tyr_liz', 'x_tyr_toad', 'w_toad', 'w_hare', 'w_stork', 'x_tyr_moon', 'x_tyr_halo', 'x_tyr_sea', 'x_mantle', 'x_warden', 'l_core', 'l_sky', 'l_amber', 'lm_crater', 'lm_core', 'lm_sky', 'lh_core', 'lh_sky', 'lw_selenaut', 'lw_ring'])); const NATL = {};
   function nativeLine(id, shape) { const k = id + '|' + shape; return NATL[k] || (NATL[k] = [[shape, id, ''], [shape, id, ''], [shape, id, '']]); }
   function nativeBody(sp) { return (sp.home && sp.home.body) || (sp.recipe && sp.recipe.body) || null; }
   function nativeId(sp) { if (!sp) return null; if (sp.natId !== undefined) return sp.natId;
@@ -6656,7 +6671,10 @@ const KIN = (() => {
     put(['hornbillchick', 'hornbill'], [{ kind: 'head', osc: { rx: 0.42, f: 24 } }], { idle: 0.07 }); /* drums with the casque on its beak */
     put(['molekit', 'minermole', 'drillmole'], [{ all: true, t: [0, -0.78, 0] }]); /* goes into the ground */
     put(['peachick', 'peafowl', 'bloompeacock'], [{ kind: 'tail', s: [2.4, 2.2, 1], rx: -0.95 }], { idle: 0.04 }); /* the fan goes up */
-    put(['puffer'], [{ all: true, s: [1.6, 1.6, 1.6], pulse: 5 }]); /* twice the size, all spines */
+    put(['puffer'], [{ all: true, s: [1.6, 1.6, 1.6], pulse: 5 }]);
+    put(['w_toad'], [{ i: 13, s0: [0.8, 0.8, 0.8], s: [1.12, 1.12, 1.12], pulse: 6 }], { idle: 0.1 }); /* the flame swells in the glass */
+    put(['w_hare'], [{ i: 13, osc: { rz: 0.34, f: 15 } }, { i: 9, osc: { rz: -0.34, f: 15 } }], { idle: 0.09 }); /* snip, snip */
+    put(['w_stork'], [{ kind: 'leg', rz: -0.9 }, { all: true, t: [0, -0.2, 0] }, { i: 13, s0: [0.05, 1, 0.05], s: [1, 1, 1] }], { idle: 0.14 }); /* legs across, seat out, and down it goes */ /* twice the size, all spines */
     put(['flamecobra', 'goldencobra', 'suncobra'], [{ kind: 'head', s: [2.1, 1.3, 1] }, { all: true, s: [1, 1.18, 1] }]); /* the hood spreads and it rears */
     put(['hermit'], [{ all: true, s: [1.2, 0.62, 1.2], t: [0, -0.12, 0] }]); /* clamps down flat: nothing showing but shell */
     put(['pangolinpup', 'pangolinknight'], [{ kind: 'head', s: [0.15, 0.15, 0.15], t: [0, -0.22, -0.12] }, { kind: 'leg', s: [0.1, 0.1, 0.1] }, { kind: 'arm', s: [0.1, 0.1, 0.1] }, { kind: 'tail', rx: 2.4, s: [1.2, 1.2, 1.2] }, { all: true, s: [1.25, 0.72, 1.0], t: [0, -0.05, 0] }]); /* rolled up tight, tail over its face */
@@ -7652,6 +7670,46 @@ const KIN = (() => {
         B(9, 'jaw', [0, hy - 0.0, hz + 0.0]); blob(-0.078, hy - 0.085, hz + 0.02, 0.078, hy - 0.012, hz + 0.41, 1, bl, { n: 4 }); ball(0, hy - 0.085, hz + 0.34, 0.04, bl, { n: 2 }); ball(0, hy - 0.11, hz + 0.1, 0.06, hexMix(bl, ac, 0.25), { n: 3 }); // a point of a chin, and the loose skin of the throat behind it
         tube([[0, hy - 0.03, hz + 0.3], [0, hy - 0.035, hz + 0.47], [0.012, hy - 0.05, hz + 0.54]], [0.016, 0.012, 0.004], '#d0506a', { segs: 4, cap0: 'round', cap1: 'round' }); tube([[0, hy - 0.035, hz + 0.47], [-0.014, hy - 0.05, hz + 0.535]], [0.01, 0.004], '#d0506a', { segs: 4, cap0: 'round', cap1: 'round' });
         bone = 0;
+      } else if (P === 'w_toad') { // the lantern toad of the dark wood: a squat mossy toad that carries an iron lantern on its back, glass and all. It does not know it is useful
+        const hip = 0.1, iron = '#2a2a30', glass = '#ffe9a0', y = hip + 0.38, zc = -0.04;
+        for (const sd of [-1, 1]) { B(sd < 0 ? 4 : 5, 'leg', [sd * 0.24, hip, -0.05], { phase: sd < 0 ? 0 : Math.PI, len: hip, amp: 0.5 }); blob(sd * 0.24 - 0.13, 0, -0.12, sd * 0.24 + 0.13, 0.1, 0.22, 1, hexMix(bd, dk, 0.3), { n: 3 }); }
+        for (const sd of [-1, 1]) { B(sd < 0 ? 2 : 3, 'arm', [sd * 0.3, hip + 0.12, 0.2], { side: sd, amp: 0.3 }); tube([[sd * 0.3, hip + 0.14, 0.2], [sd * 0.38, 0.05, 0.3]], [0.07, 0.06], bd, { cap0: 'round', cap1: 'round' }); }
+        bone = 0; legLen = hip; core(-0.36, hip, -0.3, 0.36, hip + 0.4, 0.34);
+        blob(-0.4, hip - 0.04, -0.34, 0.4, hip + 0.4, 0.36, 1, bd, { n: 5 }); blob(-0.3, hip - 0.02, 0.1, 0.3, hip + 0.26, 0.4, 1, bl, { n: 3 });
+        for (const [x, yy, z, r] of [[-0.3, 0.3, -0.2, 0.05], [0.31, 0.28, -0.16, 0.06], [-0.34, 0.2, 0.05, 0.045], [0.33, 0.18, 0.1, 0.05]]) ball(x, hip + yy, z, r, hexMix(bd, bl, 0.3), { n: 2 }); /* warts */
+        for (let i = 0; i < 8; i++) { const a = i / 8 * 6.283, a2 = (i + 1) / 8 * 6.283; tube([[Math.cos(a) * 0.27, y, zc + Math.sin(a) * 0.27], [Math.cos(a2) * 0.27, y, zc + Math.sin(a2) * 0.27]], [0.026, 0.026], iron, { cap0: 'round', cap1: 'round', segs: 4 }); } /* the foot of the cage */
+        for (let i = 0; i < 4; i++) { const a = i * 1.5708 + 0.785; tube([[Math.cos(a) * 0.27, y, zc + Math.sin(a) * 0.27], [Math.cos(a) * 0.3, y + 0.3, zc + Math.sin(a) * 0.3], [0, y + 0.56, zc]], [0.022, 0.022, 0.022], iron, { segs: 6, cap0: 'round', cap1: 'round' }); } /* four bars up to the cap */
+        cone([0, y + 0.52, zc], [0, 1, 0], 0.13, 0.11, iron); tube([[-0.06, y + 0.64, zc], [0, y + 0.75, zc], [0.06, y + 0.64, zc]], [0.016, 0.016, 0.016], iron, { segs: 5, cap0: 'round', cap1: 'round' }); /* the cap and the ring you would carry it by */
+        B(13, 'part', [0, y + 0.26, zc]); ball(0, y + 0.26, zc, 0.24, glass, { emis: true, n: 4 }); ball(0, y + 0.2, zc, 0.1, '#fffbe0', { emis: true, n: 2 }); bone = 0; /* the glass and the flame in it */
+        B(1, 'head', [0, hip + 0.26, 0.26], { still: true }); const hy = hip + 0.26, hz = 0.3;
+        blob(-0.3, hy - 0.1, hz - 0.12, 0.3, hy + 0.16, hz + 0.2, 1, bd, { n: 4 });
+        for (const sd of [-1, 1]) { ball(sd * 0.17, hy + 0.15, hz + 0.08, 0.085, bd, { n: 2 }); ball(sd * 0.17, hy + 0.16, hz + 0.14, 0.05, '#f6f0d8', { n: 2 }); ball(sd * 0.17, hy + 0.16, hz + 0.178, 0.026, '#1a1410', { n: 1 }); }
+        tube([[-0.26, hy, hz + 0.12], [0, hy - 0.04, hz + 0.2], [0.26, hy, hz + 0.12]], [0.012, 0.02, 0.012], dk, { segs: 5, cap0: 'round', cap1: 'round' });
+        B(6, 'lid', [0, hy + 0.2, hz + 0.1], { amp: 0.09 * s }); for (const sd of [-1, 1]) blob(sd * 0.17 - 0.07, hy + 0.2, hz + 0.04, sd * 0.17 + 0.07, hy + 0.29, hz + 0.17, 1, hexMix(bd, dk, 0.2), { n: 2 });
+      } else if (P === 'w_hare') { // the shear hare: a lean hare sat bolt upright whose ears are the two blades of a pair of shears, riveted over its head. You hear the snip before you see it
+        const hip = 0.3, steel = '#c8ccd4', brass = '#c9a03a';
+        for (const sd of [-1, 1]) { B(sd < 0 ? 4 : 5, 'leg', [sd * 0.16, hip, -0.06], { phase: sd < 0 ? 0 : Math.PI, len: hip, amp: 0.6 }); blob(sd * 0.16 - 0.1, 0.03, -0.2, sd * 0.16 + 0.1, hip + 0.16, 0.08, 1, bd, { n: 3 }); blob(sd * 0.17 - 0.06, 0, -0.1, sd * 0.17 + 0.06, 0.07, 0.32, 1, hexMix(bd, bl, 0.3), { n: 2 }); }
+        bone = 0; legLen = hip; core(-0.2, hip, -0.2, 0.2, hip + 0.5, 0.16);
+        blob(-0.22, hip - 0.04, -0.24, 0.22, hip + 0.5, 0.16, 1, bd, { n: 4 }); blob(-0.14, hip + 0.02, 0.02, 0.14, hip + 0.42, 0.2, 1, bl, { n: 3 }); ball(0, hip + 0.06, -0.26, 0.09, '#f4efe2', { n: 2 });
+        for (const sd of [-1, 1]) { B(sd < 0 ? 2 : 3, 'arm', [sd * 0.18, hip + 0.38, 0.1], { side: sd, amp: 0.3 }); tube([[sd * 0.18, hip + 0.38, 0.1], [sd * 0.16, hip + 0.26, 0.24]], [0.05, 0.04], bd, { cap0: 'round', cap1: 'round' }); }
+        bone = 0; B(1, 'head', [0, hip + 0.52, 0.04], { still: true }); const hy = hip + 0.62, hz = 0.08;
+        blob(-0.17, hy - 0.12, hz - 0.16, 0.17, hy + 0.16, hz + 0.14, 1, bd, { n: 4 }); blob(-0.1, hy - 0.12, hz + 0.06, 0.1, hy + 0.02, hz + 0.26, 1, bl, { n: 3 }); ball(0, hy - 0.02, hz + 0.27, 0.03, '#3a2420', { n: 1 });
+        for (const sd of [-1, 1]) { blob(sd * 0.025 - 0.02, hy - 0.17, hz + 0.2, sd * 0.025 + 0.02, hy - 0.1, hz + 0.24, 0.6, '#f8f4e8', { n: 1 }); ball(sd * 0.13, hy + 0.04, hz + 0.08, 0.045, '#f6f0d8', { n: 2 }); ball(sd * 0.145, hy + 0.04, hz + 0.1, 0.025, '#1a1410', { n: 1 }); }
+        const ry = hy + 0.2, rz0 = hz - 0.04; ball(0, ry, rz0 + 0.035, 0.04, brass, { n: 2 }); /* the rivet */
+        B(6, 'lid', [0, hy + 0.08, hz + 0.08], { amp: 0.06 * s }); for (const sd of [-1, 1]) blob(sd * 0.13 - 0.05, hy + 0.07, hz + 0.03, sd * 0.13 + 0.05, hy + 0.13, hz + 0.13, 1, hexMix(bd, dk, 0.25), { n: 2 });
+        B(13, 'part', [0, ry, rz0]); plate([[-0.04, ry - 0.05, rz0], [0.05, ry - 0.03, rz0], [0.2, ry + 0.66, rz0], [0.13, ry + 0.7, rz0]], 0.022, steel, { edge: '#8a8e98' }); /* one blade */
+        B(9, 'part', [0, ry, rz0 + 0.024]); plate([[0.04, ry - 0.05, rz0 + 0.024], [-0.05, ry - 0.03, rz0 + 0.024], [-0.2, ry + 0.66, rz0 + 0.024], [-0.13, ry + 0.7, rz0 + 0.024]], 0.022, steel, { edge: '#8a8e98' }); bone = 0; /* and the other, crossing it */
+      } else if (P === 'w_stork') { // the stool stork: a tall white stork whose long red legs fold across each other like a camp stool, with the canvas seat slung under it. It sits down wherever it stops
+        const hip = 0.9, red = '#d8452a', wh = '#f4f2ea';
+        for (const sd of [-1, 1]) { B(sd < 0 ? 4 : 5, 'leg', [sd * 0.1, hip, 0], { phase: sd < 0 ? 0 : Math.PI, len: hip, amp: 0.35, side: sd }); tube([[sd * 0.1, hip, 0], [sd * 0.1, 0.04, 0]], [0.03, 0.025], red, { cap0: 'round', cap1: 'round' }); blob(sd * 0.1 - 0.06, 0, -0.04, sd * 0.1 + 0.06, 0.04, 0.14, 1, red, { n: 1 }); }
+        bone = 0; legLen = hip; core(-0.2, hip, -0.3, 0.2, hip + 0.4, 0.24);
+        blob(-0.22, hip - 0.04, -0.34, 0.22, hip + 0.4, 0.24, 1, wh, { n: 4 }); blob(-0.2, hip + 0.02, -0.42, 0.2, hip + 0.3, -0.12, 1, '#22242a', { n: 3 });
+        tube([[0, hip + 0.3, 0.16], [0, hip + 0.6, 0.26], [0, hip + 0.86, 0.18]], [0.07, 0.05, 0.05], wh, { cap0: 'round', cap1: 'round', segs: 6 });
+        B(13, 'part', [0, hip - 0.03, -0.04]); plate([[-0.26, hip - 0.03, -0.22], [0.26, hip - 0.03, -0.22], [0.26, hip - 0.03, 0.14], [-0.26, hip - 0.03, 0.14]], 0.03, '#b8894a', { edge: '#7a5a2e' }); bone = 0; /* the seat */
+        B(1, 'head', [0, hip + 0.86, 0.18], { still: true }); const hy = hip + 0.9, hz = 0.2;
+        ball(0, hy, hz, 0.1, wh, { n: 3 }); tube([[0, hy - 0.02, hz + 0.06], [0, hy - 0.12, hz + 0.5]], [0.045, 0.012], red, { cap0: 'round', cap1: 'round' });
+        for (const sd of [-1, 1]) ball(sd * 0.07, hy + 0.03, hz + 0.06, 0.028, '#1a1410', { n: 1 });
+        B(6, 'lid', [0, hy + 0.06, hz + 0.06], { amp: 0.04 * s }); for (const sd of [-1, 1]) blob(sd * 0.07 - 0.035, hy + 0.05, hz + 0.03, sd * 0.07 + 0.035, hy + 0.09, hz + 0.1, 1, '#d8d4c8', { n: 1 });
       } else if (P === 'x_tyr_toad') { // Bigmouth's kind: a toad the size of a hay cart, nearly all mouth, laughing. Eyes up on top like two more heads, a throat that swells when he sings, a belly with medals pinned straight into it
         const hip = 0.22, gold = '#e0b040', lipc = hexMix(dk, '#4a2a1a', 0.4), tusk = '#f4efdf', BDc = rgb(bd), DKc = rgb(hexMix(bd, dk, 0.5)), PLc = rgb(hexMix(bd, bl, 0.4));
         const warty = (q, nx, ny, nz) => { if (nz > 0.5 && ny < 0.5) return rgb(bl); const k = U.hash3(Math.floor(q[0] * 13 + 60), Math.floor(q[1] * 13 + 60), Math.floor(q[2] * 13 + 60), 97); return k > 0.84 ? PLc : k < 0.2 ? DKc : BDc; };
@@ -10329,7 +10387,7 @@ const KIN = (() => {
     if (!bones[0]) bones[0] = { kind: 'body', piv: [0, 0, 0], runPitch: sp.shape === 'raptor' ? 0.08 : 0 };
     const height = Math.max(...parts.map(b => b.y + b.h));
     const radius = Math.max(...parts.map(b => Math.max(Math.abs(b.x), Math.abs(b.x + b.w), Math.abs(b.z), Math.abs(b.z + b.d))));
-    const trick = trickBuilt || TRICKS[form.plan] || null;
+    const trick = trickBuilt || TRICKS[form.plan] || (sp.natId && TRICKS[sp.natId]) || null;
     const M = { trick, boxes: parts, scale: s, hover, height, radius, bones, temper: temperOf(sp), legLen: legLen * SY, kind, flyer, sway, shape, native: natDone, fitBody };
     return sp.neon && form.plan && !natDone ? alienize(M, sp) : M;
   }
@@ -10662,7 +10720,7 @@ const KIN = (() => {
   function serialize(k) { return { id: k.id, sp: k.sp, level: k.level, xp: k.xp, iv: k.iv, stage: k.stage, hp: k.hp, nick: k.nick, shiny: k.shiny || undefined, equip: k.equip || null, tech: k.tech || null, wear: k.wear || null, trust: k.trust || 0, bond: k.bond || 0, tamed: k.tamed || false }; }
   function deserialize(d) { return Object.assign({ status: null }, d); }
 
-  return { NATIVE, NAT_STEM, nativeLine, nativeColors, nativeId, nativize, childify, formName, LINES, lineOf, maxStage, lookOf, formOf, partHelpers, dress, wearKey, E, EI, CHART, STAT_KEYS, STAT_NAMES, growth, xpToNext, dominant, species, speciesForContext, dex, bySeed, HABITATS, capOf, recipes, findRecipe, fuseRecipe, mythicSpecies, legendSpecies, apexSpecies, wardenSpecies, MAX_LEVEL, TECH, techFor, techByName, temperOf, starters, create, stats, name, moves, effectiveness, gainXp, fuse, fusionLevel, TRAITS, RARITY, roster, buildUniverse, decorate, makeStatue, statueModel, shardsFor, model, buildMesh, meshKey, portrait, serialize, deserialize, UTIL_DESC, eggModel, eggPortrait };
+  return { NATIVE, NAT_STEM, nativeLine, nativeColors, nativeId, nativize, childify, formName, LINES, lineOf, maxStage, lookOf, formOf, partHelpers, dress, wearKey, E, EI, CHART, STAT_KEYS, STAT_NAMES, growth, xpToNext, dominant, species, speciesForContext, dex, bySeed, HABITATS, capOf, recipes, findRecipe, fuseRecipe, mythicSpecies, legendSpecies, apexSpecies, woodSpecies, WOODKIN, wardenSpecies, MAX_LEVEL, TECH, techFor, techByName, temperOf, starters, create, stats, name, moves, effectiveness, gainXp, fuse, fusionLevel, TRAITS, RARITY, roster, buildUniverse, decorate, makeStatue, statueModel, shardsFor, model, buildMesh, meshKey, portrait, serialize, deserialize, UTIL_DESC, eggModel, eggPortrait };
 })();
 
 </script>
@@ -14726,6 +14784,7 @@ const Battle = (() => {
     if (e.dazed > 0) { e.dazed = 0; e.hover = e.model.hover; e.jawOpen = 0; }
     e.stunT = 0; e.flee = 0;
     active = true; busy = true; wildE = e; wild = e.kin; ambush = isAmbush; turn = 0;
+    if (e.woodKin) wild.hp = 1; /* a creature of the dark wood does not fight: one touch and it staggers, and then it is the net or nothing */
     wild.buffs = buffs(); wild.hp = Math.min(wild.hp, KIN.stats(wild).hp); if (G.seenDex) G.seenDex(wild.sp, "seen");
     mine = G.activeKin() || party[0]; mine.buffs = buffs();
     focusOn = typeof Npcs !== 'undefined' && Npcs.active('focus') && Npcs.useCharge('focus');
@@ -20517,6 +20576,42 @@ const Cine = (() => {
 
 </script>
 <script>
+'use strict';
+// The dark wood. One old forest on Earth, a good walk from home: giants shoulder to shoulder, the light green and low under them.
+// Its creatures live nowhere else. You do not find them, they happen to you: every couple of minutes one is somewhere near, and you
+// hear about it before you see it. They are shy, they do not fight, and a rush sends them off. Each one caught is worth having for
+// one thing it does, and you can manage without any of them, only with more trouble.
+const Wood = (() => {
+  let G = null, t = 0, next = 45, told = false, still = 0, gloom = 0;
+  const KINDS = ['toad', 'hare', 'stork'];
+  const HEAR = { toad: 'A small warm light is moving between the trunks.', hare: 'Snip. Snip. Somewhere close, something is cutting.', stork: 'Something tall and white just sat down in the ferns.' };
+  const USE = { toad: 'Lampwart lights your way. With it along you need no torch in your hand.', hare: 'Snipscut cuts for you. Bushes and leaves give three fronds, not one.', stork: 'Stoolbill is a seat. Stand still a moment and your Kin rest and mend.' };
+  function init(game) { G = game; t = 0; next = 45; told = false; still = 0; gloom = 0; }
+  const site = () => (G.worldId === 'earth' && G.world.woodC ? G.world.woodC() : null);
+  const depth = (p) => (G.worldId === 'earth' && G.world.woodK ? G.world.woodK(p.x, p.z) : 0);
+  const has = (id) => !!(G.kin && G.kin.some(k => k.sp && k.sp.wood === id && k.hp > 0));
+  const out = () => (typeof Wild !== 'undefined' ? Wild.list.filter(e => e.woodKin) : []);
+  function spawn(p) { const w = G.world, mine = (G.kin || []).filter(k => k.sp && k.sp.wood).map(k => k.sp.wood), pool = KINDS.filter(k => !mine.includes(k)), id = (pool.length ? pool : KINDS)[Math.floor(Math.random() * (pool.length || KINDS.length))];
+    for (let tries = 0; tries < 14; tries++) { const a = Math.random() * 6.283, d = 19 + Math.random() * 8, x = Math.floor(p.x + Math.sin(a) * d), z = Math.floor(p.z + Math.cos(a) * d); if (w.woodK(x, z) < 0.2) continue; let y = w.groundY(x, z, Math.floor(p.y) + 8); while (y > 2 && (isLeaf(w.getBlock(x, y, z)) || isTrunk(w.getBlock(x, y, z)) || w.getBlock(x, y, z) === B.AIR)) y--; if (w.getBlock(x, y, z) === B.WATER || Math.abs(y - p.y) > 7) continue;
+      const lvl = Math.max(3, Math.min((G.trainerLevel || 1) + 1, 40)), e = Wild.makeEntity(KIN.woodSpecies(id), lvl, x + 0.5, y + 1, z + 0.5, { plain: true }); e.woodKin = id; e.temper = 'shy'; e.kin.temper = 'shy'; e.woodLife = 75; Wild.list.push(e); UI.sfx('gift'); UI.toast(HEAR[id]); return true; }
+    return false; }
+  function update(dt, p) { const k = depth(p); gloom += (k - gloom) * Math.min(1, dt * 0.8); if (typeof R !== 'undefined' && R.setGloom) R.setGloom(Math.min(1, gloom * 1.15));
+    for (const e of out()) { e.woodLife -= dt; if (e.woodLife <= 0 || Math.hypot(e.x - p.x, e.z - p.z) > 70) Wild.remove(e); }
+    if (k > 0.2 && !(typeof Battle !== 'undefined' && Battle.active)) { if (!told) { told = true; UI.toast('The trees close over. This is the dark wood, and things live here that live nowhere else.', 'good'); if (G.stats) G.stats.woodSeen = true; }
+      t += dt; if (t >= next && !out().length) { if (spawn(p)) { t = 0; next = 95 + Math.random() * 60; } else t = next - 8; } }
+    else if (k <= 0) told = false;
+    /* the stool: stand still with a Stoolbill along and your Kin mend, a little every second */
+    if (has('stork') && !(typeof Battle !== 'undefined' && Battle.active)) { const mv = Math.hypot(p.vx || 0, p.vz || 0) > 0.2; still = mv ? 0 : still + dt; if (still > 4) { still = 3; let any = false; for (const kn of G.kin) { const mx = KIN.stats(kn).hp; if (kn.hp > 0 && kn.hp < mx) { kn.hp = Math.min(mx, kn.hp + Math.max(1, Math.round(mx * 0.03))); any = true; } } if (any && !update.said) { update.said = true; UI.toast('You sit. Your Kin rest.', 'good'); } } } }
+  /* the lantern: light at your shoulder whenever a Lampwart is with you */
+  function light(eye) { return has('toad') ? [eye.x, eye.y - 0.2, eye.z, 13] : null; }
+  /* the shears: how many fronds a leaf gives */
+  const fronds = () => (has('hare') ? 3 : 1);
+  function caught(kin) { const id = kin && kin.sp && kin.sp.wood; if (!id) return; UI.toast(USE[id], 'good'); if (G.stats) { G.stats.woodCaught = G.stats.woodCaught || {}; G.stats.woodCaught[id] = true; } }
+  return { init, update, light, fronds, caught, site, depth, has, KINDS };
+})();
+
+</script>
+<script>
 // Ruins. Somebody was here before the villages: broken walls, lone columns, a roofless hall now and then, all in mossed stone, scattered
 // across the Earth. Each has one standing stone with a line cut into it that you can read, and some hide a relic gem. They are stamped
 // into the world the first time you come near, and remembered.
@@ -20972,7 +21067,7 @@ G.setupWorld = function (seed, presetId) {
   this.world.findSpawn();
   Wild.init(this.world, this.mobile);
   Weather.init(this.world.seed);
-  Village.init(this); Hazards.init(this); Campaign.init(this); Npcs.init(this); Camps.init(this); Mer.init(this); Lab.init(this); Avatar.init(this); Combat.init(this); Buddy.init(this); Cine.init(this); First.init(this); Breath.init(this); Ruins.init(this); Fields.init(this); Felling.init(this); Relics.init(this); Gems.init(this); Keeps.init(this); Citadel.init(this); Farms.init(this); Sky.init(this);
+  Village.init(this); Hazards.init(this); Campaign.init(this); Npcs.init(this); Camps.init(this); Mer.init(this); Lab.init(this); Avatar.init(this); Combat.init(this); Buddy.init(this); Cine.init(this); Wood.init(this); First.init(this); Breath.init(this); Ruins.init(this); Fields.init(this); Felling.init(this); Relics.init(this); Gems.init(this); Keeps.init(this); Citadel.init(this); Farms.init(this); Sky.init(this);
   Quests.init(this);
 };
 G.newWorld = function (seed, starterIdx, name) {
@@ -21475,6 +21570,7 @@ G.onBattleEnd = function (result, wildE, wild, mine, ambush) {
     } else {
       wild.buffs = null; wild.hp = Math.max(1, wild.hp);
       this.stats.caught++; this.seenDex(wild.sp, "caught");
+      if (wild.sp && wild.sp.wood) Wood.caught(wild);
       if (this.addKin(wild) === 'party') UI.toast(`${KIN.name(wild)} joined you (${this.kin.length + this.eggs.length}/${this.MAX_KIN}).`, 'good');
       if (st) { this.stats.mythicDone = true; this.mythicCaught = true; UI.toast('You hold the Mythic of the Core. The Starmetal hums: the sky beyond opens in the next version.', 'good'); }
     }
@@ -21692,7 +21788,7 @@ G.loop = function (t) {
       }
       if (w.regrow && w.regrow.length && (this.frame & 31) === 0) { const now = performance.now(); w.regrow = w.regrow.filter(r => { if (now < r.t) return true; if ((r.id === B.LOG || r.id === B.BIRCHLOG || r.id === B.PALMLOG || r.id === B.LEAVES) && !Felling.natural(r.x, r.y, r.z, r.id)) return false; /* a block you built and took away stays gone */ const b = w.getBlock(r.x, r.y, r.z); if (r.id != null) { if (b === B.AIR && !(Math.abs(r.x + 0.5 - p.x) < 0.8 && Math.abs(r.z + 0.5 - p.z) < 0.8 && r.y >= Math.floor(p.y) - 1 && r.y <= Math.floor(p.y) + 2)) { if (r.id === B.GLOWWORM && !isSolid(w.getBlock(r.x, r.y - 1, r.z))) return false; w.setBlock(r.x, r.y, r.z, r.id); } else if (b === B.AIR) { r.t = now + 15000; return true; } } else if (r.leaf) { if (b === B.LEAVES) w.setBlock(r.x, r.y, r.z, B.BERRYLEAF); } else if (b === B.AIR) w.setBlock(r.x, r.y, r.z, B.BERRY); return false; }); }
       const trig = (Dialogue.active() || Village.walking) ? null : Wild.update(dt, p, performance.now() / 1000, false);
-      R.setSeason(this.worldId === 'earth' && !(this.world.colInfo(Math.floor(p.x), Math.floor(p.z)).lost) ? Fields.season() : 1); Cine.update(dt); Buddy.update(dt, p); First.update(dt, p); Breath.update(dt, p); Ruins.update(dt, p); Fields.update(dt, p); Gems.update(dt, p); Felling.update(dt); Keeps.update(dt, p); Citadel.update(dt, p); Farms.update(dt, p); Sky.update(dt, p); Combat.update(dt, p, input);
+      R.setSeason(this.worldId === 'earth' && !(this.world.colInfo(Math.floor(p.x), Math.floor(p.z)).lost) ? Fields.season() : 1); Cine.update(dt); Wood.update(dt, p); Buddy.update(dt, p); First.update(dt, p); Breath.update(dt, p); Ruins.update(dt, p); Fields.update(dt, p); Gems.update(dt, p); Felling.update(dt); Keeps.update(dt, p); Citadel.update(dt, p); Farms.update(dt, p); Sky.update(dt, p); Combat.update(dt, p, input);
       Wild.ensureHeart(p, this.trainerLevel, this.mythicCaught); Wild.ensureLegend(p); Wild.ensureApex(p);
       if (trig && !trig.e.cool && !Dialogue.active() && !Taming.active && !p.flying && !(this.fightGrace > performance.now()) && !((Keeps.inHold(p) || Citadel.inside(p) || Sky.inFort(p)) && !trig.e.keepBoss && !trig.e.skyBoss)) Wild.engage(trig.e, trig.ambush);
       for (const e of Wild.list) if (e.cool > 0) e.cool -= dt;
@@ -21747,6 +21843,7 @@ G.loop = function (t) {
   const lights = [];
   if (p.holdingTorch()) lights.push([eye.x, eye.y - 0.2, eye.z, 9]);
   else if (this.traits().includes('Lantern')) lights.push([eye.x, eye.y - 0.2, eye.z, 11]);
+  else { const wl = Wood.light(eye); if (wl) lights.push(wl); } /* a Lampwart along: no torch needed */
   const torches = [...w.torches.values()].map(tp => [tp[0], tp[1], tp[2], (tp[0] - p.x) ** 2 + (tp[2] - p.z) ** 2, tp[3]]).sort((a, b) => a[3] - b[3]);
   if (w.heart && p.y < 20 && Math.hypot(w.heart.x - p.x, w.heart.z - p.z) < 48) lights.push([w.heart.x + 0.5, 7, w.heart.z + 0.5, 18]);
   for (let i = 0; i < torches.length && lights.length < 8; i++) lights.push([torches[i][0], torches[i][1], torches[i][2], torches[i][4] || 10]);

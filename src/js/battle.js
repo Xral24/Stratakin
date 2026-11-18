@@ -25,6 +25,7 @@ const Battle = (() => {
     if (e.dazed > 0) { e.dazed = 0; e.hover = e.model.hover; e.jawOpen = 0; }
     e.stunT = 0; e.flee = 0;
     active = true; busy = true; wildE = e; wild = e.kin; ambush = isAmbush; turn = 0;
+    if (e.woodKin) wild.hp = 1; /* a creature of the dark wood does not fight: one touch and it staggers, and then it is the net or nothing */
     wild.buffs = buffs(); wild.hp = Math.min(wild.hp, KIN.stats(wild).hp); if (G.seenDex) G.seenDex(wild.sp, "seen");
     mine = G.activeKin() || party[0]; mine.buffs = buffs();
     focusOn = typeof Npcs !== 'undefined' && Npcs.active('focus') && Npcs.useCharge('focus');

@@ -296,7 +296,7 @@
             const face = op.i == null && !op.all && op.kind === 'head' && b.kind !== 'head' && (b.kind === 'lid' || b.kind === 'brow' || b.kind === 'jaw' || b.kind === 'ear') && bones[1] && bones[1].kind === 'head'; /* what sits on the head goes with the head */
             if (op.i == null && !op.all && b.kind !== op.kind && !face) continue; const sd = b && b.side ? Math.sign(b.side) : (b && b.piv && b.piv[0] < 0 ? -1 : 1);
             const pv = face ? bones[1].piv : b ? b.piv : [0, 0, 0], px = op.all ? 0 : pv[0], py = op.all ? 0 : pv[1], pz = op.all ? 0 : pv[2];
-            const r0 = op.rx0 || 0, rx = r0 + ((op.rx || 0) - r0) * k + (op.osc && op.osc.rx ? Math.sin(t * op.osc.f + seed) * op.osc.rx * k : 0), ry = op.osc && op.osc.ry ? Math.sin(t * op.osc.f + seed) * op.osc.ry * k : 0, rz = (op.rz || 0) * k * sd;
+            const r0 = op.rx0 || 0, rx = r0 + ((op.rx || 0) - r0) * k + (op.osc && op.osc.rx ? Math.sin(t * op.osc.f + seed) * op.osc.rx * k : 0), ry = op.osc && op.osc.ry ? Math.sin(t * op.osc.f + seed) * op.osc.ry * k : 0, rz = (op.rz || 0) * k * sd + (op.osc && op.osc.rz ? Math.sin(t * op.osc.f + seed) * op.osc.rz * k : 0);
             const cx = Math.cos(rx), sxx = Math.sin(rx), cy = Math.cos(ry), syy = Math.sin(ry), cz = Math.cos(rz), szz = Math.sin(rz);
             /* X = move * turn * grow, about the joint */
             const x0 = (cy * cz + syy * sxx * szz) * sx, x1 = (cx * szz) * sx, x2 = (-syy * cz + cy * sxx * szz) * sx, x4 = (-cy * szz + syy * sxx * cz) * sy, x5 = (cx * cz) * sy, x6 = (syy * szz + cy * sxx * cz) * sy, x8 = (syy * cx) * sz, x9 = (-sxx) * sz, x10 = (cy * cx) * sz;

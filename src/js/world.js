@@ -365,6 +365,11 @@ class World {
     }
   }
   treeAt(x, z, info) { const t = this.treeAt0(x, z, info); if (!t) return null; if (this.trailWear && this.trailWear(x, z) > 0.1) return null; if (this.trackAt) for (let a = -2; a <= 2; a++) for (let b = -2; b <= 2; b++) if (this.trackAt(x + a, z + b)) return null; return t; } // no tree grows in a footpath or beside the railway
+  /* the dark wood: one old forest a good walk from home. Where it is depends on the world; how deep in you are is 0 outside, 1 at its heart */
+  woodC() { if (this._wood !== undefined) return this._wood; if (this.preset.id !== 'earth' || !this.spawn) return null; const a0 = U.hash3(7, 7, 7, this.seed + 4242) * 6.283; let best = null; /* it wants rolling wooded country: not a mountain top, not the sea, not the desert. The first bearing that offers that, working round from where the world would have put it */
+    for (let i = 0; i < 48 && !best; i++) { const a = a0 + (i % 24) * 0.2618, d = i < 24 ? 430 : 560, cx = Math.round(this.spawn.x + Math.sin(a) * d), cz = Math.round(this.spawn.z + Math.cos(a) * d); let ok = true; for (const [ox, oz] of [[0, 0], [55, 0], [-55, 0], [0, 55], [0, -55], [38, 38], [-38, -38]]) { const q = this.colInfo(U.mod(cx + ox, WORLD_W), U.mod(cz + oz, WORLD_W)); if (q.h <= SEA + 1 || q.h > 66 || q.beach || q.lost || q.lostRim || q.biome === BIOME.DESERT || q.biome === BIOME.SNOW) { ok = false; break; } } if (ok) best = { x: cx, z: cz, r: 100 }; }
+    return (this._wood = best || { x: Math.round(this.spawn.x + Math.sin(a0) * 430), z: Math.round(this.spawn.z + Math.cos(a0) * 430), r: 100 }); }
+  woodK(x, z) { const c = this.woodC(); if (!c) return 0; const d = Math.hypot(x - c.x, z - c.z); return d >= c.r ? 0 : Math.min(1, (c.r - d) / 30); }
   treeAt0(x, z, info) {
     if (!this.preset.trees) return null;
     if (info.h <= SEA || info.h > 72) return null;
@@ -373,8 +378,9 @@ class World {
     if (info.lostRim) return null; // nor on the dome itself
     if (info.lost && this.lost) { const T = this.lostTunnel(); if (T && Math.hypot(x - T.bx - T.ix * 4, z - T.bz - T.iz * 4) < 10) return null; } // and the way in comes out into open ground
     const r = U.hash3(x, 99, z, this.seed + 303); const kind = U.hash3(x, 98, z, this.seed);
-    let p = 0, type = 'oak';
-    if (info.beach) { if (info.h < SEA + 2 || info.h > SEA + 6) return null; p = 0.014; type = 'palm'; }
+    let p = 0, type = 'oak'; const wk = !info.beach && !info.lost && !info.lostRim && info.biome !== BIOME.DESERT ? this.woodK(x, z) : 0;
+    if (wk > 0.25) { p = 0.016 + 0.03 * wk; type = 'oak'; } /* the dark wood: old giants shoulder to shoulder, whatever the country was meant to be */
+    else if (info.beach) { if (info.h < SEA + 2 || info.h > SEA + 6) return null; p = 0.014; type = 'palm'; }
     else switch (info.biome) {
       case BIOME.FOREST: p = 0.006 + 0.022 * U.vnoise2(x, z, 48, WORLD_W, this.seed + 371); type = kind < 0.18 ? 'pine' : kind < 0.3 ? 'birch' : 'oak'; break; // thick in patches, open glades between
       case BIOME.PLAINS: p = 0.004; type = kind < 0.4 ? 'birch' : 'oak'; break;
@@ -387,7 +393,7 @@ class World {
     }
     if (r >= p) return null;
     const hr = U.hash3(x, 97, z, this.seed);
-    const fir = type === 'pine' && kind > 0.66 && (info.biome === BIOME.SNOW || info.biome === BIOME.MOUNTAIN), grand = type === 'oak' && U.hash3(x, 94, z, this.seed + 19) < 0.1; // here and there an old giant among the oaks
+    const fir = type === 'pine' && kind > 0.66 && (info.biome === BIOME.SNOW || info.biome === BIOME.MOUNTAIN), grand = type === 'oak' && (wk > 0.25 ? U.hash3(x, 94, z, this.seed + 19) < 0.75 : U.hash3(x, 94, z, this.seed + 19) < 0.1); // here and there an old giant among the oaks
     if (type === 'jungle') { // four storeys: big-leaved plants and tree ferns underneath, the canopy over them, and here and there a giant standing clear of everything
       const size = kind < 0.22 ? 'fern' : kind < 0.4 ? 'banana' : hr > 0.86 && !(info.edge < 10) ? 'giant' : hr > 0.5 ? 'big' : 'tree'; // a giant keeps its crown clear of the wall
       if (size === 'giant') for (let a = -6; a <= 6; a++) for (let b = -6; b <= 6; b++) { if (!a && !b) continue; const h2 = U.hash3(x + a, 97, z + b, this.seed); if (h2 > hr && U.hash3(x + a, 98, z + b, this.seed) >= 0.4 && U.hash3(x + a, 99, z + b, this.seed + 303) < 0.05) return null; } /* two giants never stand shoulder to shoulder */

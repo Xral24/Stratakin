@@ -133,6 +133,7 @@ PATTERNS[B.DIAMOND] = { all: SPECK([0.6, 1.0, 1.0], true) };
 PATTERNS[B.SELGLASS] = { all: { rects: strips(0.05, 0.8, [0.85, 0.95, 1.0]).concat([{ u0: 0.05, v0: 0.05, u1: 0.95, v1: 0.95, mul: 1, glass: true }]) } };
 
 const R = (() => {
+  let gloomK = 0; /* how deep under the dark wood's canopy the player is: the light goes green and low */
   let seasonK = 1; /* 0 spring, 1 summer, 2 autumn, 3 winter: set by the game each frame, summer wherever the year does not turn */
   let gl, canvas, prog, lineProg, loc = {}, lloc = {};
   const meshes = new Map(); // chunk key -> gpu mesh
@@ -2786,6 +2787,7 @@ const R = (() => {
     gl.uniform4fv(loc.uMist, state.mist || MIST0); bindHM(loc, state.mist && state.mist[1] > 0); gl.uniform3fv(loc.uFog, state.fogColor); gl.uniform1f(loc.uFogSky, state.fogSky ? (state.rangeKind || 1) : 0); gl.uniform1f(loc.uCoreGlow, world.preset.id === 'earth' ? 1 : 0);
     gl.uniform1f(loc.uFogNear, state.fogNear); gl.uniform1f(loc.uFogFar, state.fogFar);
     gl.uniform1f(loc.uAmbient, state.ambient);
+    if (gloomK > 0.01) state.tint = [state.tint[0] * (1 - 0.52 * gloomK), state.tint[1] * (1 - 0.36 * gloomK), state.tint[2] * (1 - 0.42 * gloomK)];
     gl.uniform3fv(loc.uTint, state.tint); gl.uniform1f(loc.uSeason, seasonK);
     gl.uniform1f(loc.uSkyMul, 1);
     gl.uniform3fv(loc.uSun, state.sun || [0, 1, 0]); gl.uniform3fv(loc.uSunCol, state.sunCol || [1, 1, 1]); gl.uniform3fv(loc.uZenith, state.zenith || state.fogColor); gl.uniform1f(loc.uSunAmt, state.skyPass ? state.sunAmt : 0); gl.uniform1f(loc.uQuality, isMobile ? 0.6 : 1); gl.uniform1f(loc.uGrid, 1); gl.uniform3f(loc.uPlayer, player.x, player.y, player.z); gl.uniform1f(loc.uBladeShade, grassProg ? 1 : 0);
@@ -2957,5 +2959,5 @@ const R = (() => {
     return out;
   }
 
-  return { setSeason: (k) => { seasonK = k; }, grassZone, init, resize, buildChunk, freeChunk, entityMesh, dropEntityMesh, renderPortrait, render, project, surfaceAt, standY, under, isSoil, boxLines, targetLines, ringLines, state, setQuality, QUALITY, get gl() { return gl; }, get scratch() { return scratchOpaque; } }; // scratch: the last chunk's solid mesh as it was built, for the tests to measure
+  return { setGloom: (k) => { gloomK = k; }, setSeason: (k) => { seasonK = k; }, grassZone, init, resize, buildChunk, freeChunk, entityMesh, dropEntityMesh, renderPortrait, render, project, surfaceAt, standY, under, isSoil, boxLines, targetLines, ringLines, state, setQuality, QUALITY, get gl() { return gl; }, get scratch() { return scratchOpaque; } }; // scratch: the last chunk's solid mesh as it was built, for the tests to measure
 })();
