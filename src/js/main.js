@@ -528,6 +528,7 @@ G.onBattleEnd = function (result, wildE, wild, mine, ambush) {
   document.getElementById('hud').classList.remove('in-battle');
   if (mine) mine.buffs = null;
   const st = wild.sp.mythic;
+  if (wildE && wildE.bandit) Roads.holdupEnd(result);
   const baseXp = Math.floor(9 * wild.level * (1 + 0.4 * (wild.stage - 1)) * KIN.RARITY[wild.sp.rarity || 0].xp * (st ? 6 : 1) * (wildE && wildE.isBoss ? 2.5 : 1)); /* throwing a tyrant out teaches a Kin a great deal */
   if (result === 'won' || result === 'caught') {
     const xp = result === 'won' ? baseXp : Math.floor(baseXp * 0.6);
@@ -569,7 +570,7 @@ G.onBattleEnd = function (result, wildE, wild, mine, ambush) {
     if (wildE.lieutenant) Village.lieutenantDown(wildE.lieutenant);
   } else if (result === 'ran') {
     wildE.alert = 0; wildE.cool = 7;
-  } else if (result === 'lost') {
+  } else if (result === 'lost' && !wildE.bandit) {
     // the winner comes after you: run, or it knocks you out
     UI.toast('Your Kin are down. RUN!', 'bad');
     Wild.engage(wildE, false, { rage: true, quiet: true }); wildE.cool = 0;
@@ -994,12 +995,14 @@ G.flyTo = function (id) {
   this.shards -= cost; UI.closePanel();
   const go = () => {
     const f = document.getElementById('fade'); f.style.opacity = 1; this.paused = true; Controls.setEnabled(false);
-    setTimeout(() => {
+    const arrive = () => {
+      f.style.opacity = 1; this.paused = true; Controls.setEnabled(false);
       const p = this.player, w = this.world; w.ensureAround(Math.floor(r.x / CH), Math.floor(r.z / CH), 3, 9999);
       p.x = r.x; p.z = r.z; const gy = w.groundY(Math.floor(r.x), Math.floor(r.z)); p.y = Math.max(Number.isFinite(gy) ? gy + 1 : -1, Number.isFinite(r.y) ? r.y : -1, SEA + 1) + 0.05; p.vx = p.vy = p.vz = 0; p.fallStart = null; p.gliding = false; p.frozen = false;
       Village.trainArrive(Village.active); this.meshPass(999); this.paused = false; Controls.setEnabled(true);
       setTimeout(() => { f.style.opacity = 0; UI.toast(r.tide ? `The Current sets you down in ${r.name}, under the glass.` : r.ferry || (Village.active && Village.active.type === 'sea') ? `The ferry ties up at ${r.name}.` : `The train pulls into ${r.name}.`, 'good'); }, 300);
-    }, 1100);
+    };
+    setTimeout(() => { const byTrain = !r.tide && !r.ferry && this.worldId === 'earth' && r.type !== 'sea' && r.type !== 'deep' && !!Village.trainOf(here); if (byTrain && Roads.holdup(r, f, arrive)) return; arrive(); }, 1100); /* now and then the train does not get there in one go */
   };
   // where a train stands at the platform you ride out on it first; elsewhere (the old stations) the fade alone
   if (!Village.boardTrain(Village.active, go)) { UI.sfx('quest'); go(); }

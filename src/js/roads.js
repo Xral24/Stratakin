@@ -25,5 +25,22 @@ const Roads = (() => {
     if (bw < 0.05) { n.hd += Math.PI; n.stop = 2; return; } /* the track gave out: he turns back */
     n.hd = bh; const sp = 1.7 * dt, nx = n.x + Math.sin(bh) * sp, nz = n.z + Math.cos(bh) * sp, y = gy(nx, nz, n.y); if (Math.abs(y - n.y) > 1.6) { n.hd += Math.PI; n.stop = 1; return; }
     n.x = nx; n.z = nz; n.y += (y - n.y) * Math.min(1, dt * 10); n.yaw = bh; n.moving = true; }
-  return { init, update, get pedlar() { return ped; } };
+  /* the hold-up. Now and then, a mile short of the station, men in black neckerchiefs flag the train down. In their own neckerchief you are waved through. Otherwise it is their Kin against yours: win and they run, leaving a purse and maybe a neckerchief; lose and they go through your pockets. Either way the train gets in */
+  let hold = null;
+  function holdup(r, fade, arrive) { const st = G.stats; st.rides = (st.rides || 0) + 1; if (st.rides < 3 || (st.lastHoldRide || 0) > st.rides - 3 || Math.random() > (holdup.force ? 2 : 0.22)) return false; st.lastHoldRide = st.rides;
+    if (typeof Fields !== 'undefined' && Fields.masked() === 'ban') { setTimeout(() => UI.toast('Riders in black neckerchiefs flagged the train down, saw yours, and waved it on.', 'good'), 1800); return false; }
+    const tv = Village.townList().find(v => v.id === r.id); let rl = null; try { rl = tv && tv.R ? Village.layout(tv).rail : null; } catch (e) { rl = null; } if (!rl || !G.kin.some(k => k.hp > 0)) return false; r = tv;
+    const p = G.player, w = G.world, wr = Village.wallRadiusOf(r), al = (rl.ax ? r.x : r.z) + rl.sgn * (wr + 24), x = rl.ax ? al : rl.line + 3, z = rl.ax ? rl.line + 3 : al; w.ensureAround(Math.floor(x / CH), Math.floor(z / CH), 3, 9999); const y = gy(x, z, r.y || 60);
+    p.x = x + 0.5; p.z = z + 0.5; p.y = y + 0.05; p.vx = p.vy = p.vz = 0; p.fallStart = null; p.frozen = true; G.meshPass(999);
+    const best = Math.max(...G.kin.map(k => k.level || 1)), dex = KIN.dex('earth'), sp = dex[Math.floor(Math.random() * dex.length)], bx = x + (rl.ax ? 0 : 5), bz = z + (rl.ax ? 5 : 0), by = gy(bx, bz, y);
+    const e = Wild.makeEntity(sp, Math.max(3, best - 1), bx + 0.5, by, bz + 0.5, { plain: true }); e.bandit = true; e.fought = true; Wild.list.push(e);
+    const man = Village.makeNpc(961, 'explorer', bx + 1.6, bz + 1.2, 'Black Neckerchief', null, gy(bx + 1.6, bz + 1.2, y), 'bandit', 'land', false); man.wander = false; man.tag = 'bandit'; man.yaw = Math.atan2(p.x - man.x, p.z - man.z); Village.addLoose(man);
+    hold = { e, man, fade, arrive }; G.paused = false; Controls.setEnabled(true); fade.style.opacity = 0; UI.sfx('hurt');
+    setTimeout(() => Dialogue.show('Black Neckerchief', [`The train jolts and stops, a mile short of ${r.name}. Riders either side of the line.`, 'Everybody off. Purses out. You, with the Kin: you look like you have something worth carrying.', 'Or you can make this difficult. I do like it when they make it difficult.'], () => { if (hold) Battle.start(e, false); }), 500);
+    return true; }
+  function holdupEnd(result) { if (!hold) return; const H = hold; hold = null; const p = G.player, won = result === 'won' || result === 'caught';
+    if (won) { G.shards += 45; let extra = ''; if (!p.has('bandana')) { p.add('bandana', 1); extra = ' One of them dropped his neckerchief.'; UI.renderHotbar && UI.renderHotbar(); } UI.sfx('quest'); UI.toast(`They scatter. A purse is left on the sleepers: 45 Shards.${extra}`, 'good'); }
+    else { const take = Math.min(60, Math.floor(G.shards * 0.3)); G.shards -= take; UI.toast(take ? `They go through your pockets and ride off with ${take} Shards.` : 'They go through your pockets, find nothing, and ride off laughing.', 'bad'); }
+    try { Wild.remove(H.e); } catch (e) { /* already gone */ } Village.dropLoose(H.man); setTimeout(() => { UI.toast('The guard blows his whistle. Everybody back on.'); H.arrive(); }, 2200); }
+  return { init, update, holdup, holdupEnd, get hold() { return hold; }, get pedlar() { return ped; } };
 })();

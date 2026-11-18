@@ -8,7 +8,7 @@ const Fields = (() => {
   const SEASONS = ['Spring', 'Summer', 'Autumn', 'Winter'];
   const season = () => Math.floor((((G && G.dayCount) || 0) + 3) / 3) % 4;
   let lastSeason = -1, farmers = new Map(), lastMarket = -1, carts = new Map(), robArm = null;
-  function init(game) { G = game; tick = 0; live = []; cache.clear(); lastSeason = -1; farmers = new Map(); carts = new Map(); robArm = null; }
+  function init(game) { G = game; tick = 0; live = []; cache.clear(); lastSeason = -1; farmers = new Map(); carts = new Map(); robArm = null; guard = null; guardSaid = 0; }
   const store = () => (G.stats.fields = G.stats.fields || {});
   function ground(x, z, y0) { const w = G.world; let g = w.groundY(x, z, y0 + 14); while (g > 2 && (isLeaf(w.getBlock(x, g, z)) || isTrunk(w.getBlock(x, g, z)) || w.getBlock(x, g, z) === B.FROND || w.getBlock(x, g, z) === B.AIR)) g--; return g; }
   /* seven plots in a ring outside the wall. Each is laid only where the land lets it: level, dry, clear of the road and the railway */
@@ -53,6 +53,18 @@ const Fields = (() => {
     if (ax) { out.push([v.x + sx * Math.max(R1, Math.abs(dx)), c.z]); out.push([v.x + sx * R1, U.clamp(c.z, v.z - R1, v.z + R1)]); out.push([v.x + sx * R1, v.z]); out.push([v.x + sx * (wr - 3), v.z]); out.push([v.x + sx * 7, v.z]); }
     else { out.push([c.x, v.z + sz * Math.max(R1, Math.abs(dz))]); out.push([U.clamp(c.x, v.x - R1, v.x + R1), v.z + sz * R1]); out.push([v.x, v.z + sz * R1]); out.push([v.x, v.z + sz * (wr - 3)]); out.push([v.x, v.z + sz * 7]); }
     out.push([v.x + 4.6, v.z + 5.5]); return out; }
+  /* while a town has your name for a robbed cart, a watchman stands in whichever gate you come to and will not have you through. Pay him what is owed and he passes it on; or come back in two days; or come in a mask, which he has no orders about */
+  let guard = null, guardSaid = 0;
+  function guardTalk() { const n = guard, w = wanted(); G.talkNpc = n; if (!w) return Dialogue.show(n.name, ['On you go. It is settled, I hear.']);
+    if (G.shards >= w.owe) Dialogue.show(n.name, [`You are the one who emptied ${w.owner}'s cart. Nobody with that on them comes through this gate.`, `Put ${w.owe} Shards in my hand and I will see ${w.owner} gets them. Then you are just another traveller.`], () => { G.shards -= w.owe; G.stats.wanted = null; UI.sfx('gift'); UI.toast('Settled at the gate. The towns will have you again.', 'good'); });
+    else Dialogue.show(n.name, [`You are the one who emptied ${w.owner}'s cart. Not through this gate.`, `It is ${w.owe} Shards to put right and you have not got it. Come back with it, or come back in ${Math.max(1, w.until - (G.dayCount || 0))} days when tempers have cooled.`]); }
+  function guardTick(dt, p) { const w = G.worldId === 'earth' ? wanted() : null; let v = null, bd = 1e9; if (w) for (const t of Village.townList()) { if (!(G.villageState[t.id] && G.villageState[t.id].freed)) continue; const d = Math.hypot(t.x - p.x, t.z - p.z); if (d < bd) { bd = d; v = t; } }
+    const wr = v ? Village.wallRadiusOf(v) : 0; if (!v || bd > wr + 30) { if (guard) { Village.dropLoose(guard); guard = null; } return; }
+    const dx = p.x - v.x, dz = p.z - v.z, ax = Math.abs(dx) >= Math.abs(dz), sg = ax ? (Math.sign(dx) || 1) : (Math.sign(dz) || 1), gx = ax ? v.x + sg * (wr + 1.2) + 0.5 : v.x + 0.5, gz = ax ? v.z + 0.5 : v.z + sg * (wr + 1.2) + 0.5, inside = Math.max(Math.abs(dx), Math.abs(dz)) < wr - 0.3;
+    if (!guard) { guard = Village.makeNpc(960, 'villager', gx, gz, 'Gate watchman', null, ground(Math.floor(gx), Math.floor(gz), Math.floor(v.y)) + 1, 'watchman', 'land', false); guard.wander = false; guard.tag = 'watchman'; guard.onTalk = guardTalk; Village.addLoose(guard); }
+    if (Math.hypot(guard.x - gx, guard.z - gz) > 0.3) { guard.x = gx; guard.z = gz; guard.y = ground(Math.floor(gx), Math.floor(gz), Math.floor(v.y)) + 1; } guard.yaw = Math.atan2(p.x - guard.x, p.z - guard.z); guardSaid -= dt;
+    if (inside || masked()) return; const out = (ax ? dx : dz) * sg, side = ax ? dz : dx; /* already in, or he cannot put a name to a mask */
+    if (Math.abs(side) < 4.5 && out < wr + 2.4 && out > wr - 1.5) { if (ax) { p.x = v.x + sg * (wr + 2.4); p.vx = 0; } else { p.z = v.z + sg * (wr + 2.4); p.vz = 0; } if (guardSaid <= 0) { guardSaid = 5; UI.sfx('hurt'); UI.toast(`The watchman steps across. "Not you. Not after ${w.owner}'s cart." Talk to him to settle it.`, 'bad'); } } }
   function cartTick(dt, p) { const sn = season(), mk = marketDay(); const towns = new Map(); for (const f of live) { const v = townOf(f); if (!v) continue; if (!towns.has(v.id)) towns.set(v.id, { v, fs: [] }); towns.get(v.id).fs.push(f); }
     for (const [id, T] of towns) { let c = carts.get(id); const v = T.v; if (!c) { const pts = T.fs.map(f => { const cx = f.x + f.w / 2, cz = f.z + f.d / 2, dx = v.x - cx, dz = v.z - cz, d = Math.hypot(dx, dz) || 1, r = Math.max(f.w, f.d) / 2 + 2.2; return [cx + dx / d * r, cz + dz / d * r, Math.atan2(cx - v.x, cz - v.z)]; }).sort((a, b) => a[2] - b[2]); c = { v, pts, i: 0, x: pts[0][0], z: pts[0][1], y: T.fs[0].y + 1, yaw: 0, wait: 3, day: -1, loaded: true, owner: null }; carts.set(id, c); }
       const fm = farmers.get(id); c.owner = fm ? fm.name : 'the farmer'; if (c.day !== (G.dayCount || 0)) { c.day = G.dayCount || 0; c.loaded = true; }
@@ -66,7 +78,7 @@ const Fields = (() => {
       const t = c.pts[c.i], dx = t[0] - c.x, dz = t[1] - c.z, d = Math.hypot(dx, dz); if (d < 0.4) { c.moving = false; c.wait -= dt; if (c.wait <= 0) { c.wait = 5 + Math.random() * 4; c.i = (c.i + 1) % c.pts.length; } }
       else if (Math.hypot(c.x - p.x, c.z - p.z) < 2.6) c.moving = false; /* it stops for anyone standing in the road */
       else { const st = Math.min(d, 2.3 * dt); c.x += dx / d * st; c.z += dz / d * st; let dy = Math.atan2(dx, dz) - c.yaw; while (dy > Math.PI) dy -= 6.283; while (dy < -Math.PI) dy += 6.283; c.yaw += dy * Math.min(1, dt * 3); const g = ground(Math.floor(c.x), Math.floor(c.z), Math.floor(c.y)) + 1; c.y += (g - c.y) * Math.min(1, dt * 8); c.moving = true; c.ph = (c.ph || 0) + dt * 9; } }
-    if (robArm && (robArm.t -= dt) <= 0) robArm = null; }
+    if (robArm && (robArm.t -= dt) <= 0) robArm = null; guardTick(dt, p); }
   function cartNear(p) { for (const c of carts.values()) if (Math.hypot(c.x - p.x, c.z - p.z) < 3.2 && Math.abs(c.y - p.y) < 3) return c; return null; }
   function rob(p) { const c = cartNear(p); if (!c) return false; if (!c.loaded) { UI.toast('The cart is empty. Somebody has been at it already today.'); return true; }
     if (!robArm || robArm.c !== c) { robArm = { c, t: 6 }; UI.toast(masked() === 'ind' ? 'The cart is loaded. In that mask the Indians will take the blame, and they will know it was not them. Tap again to take the lot.' : masked() === 'ban' ? 'The cart is loaded. In that mask the bandits will take the blame, and they will come looking. Tap again to take the lot.' : 'The cart is loaded. Take it and ' + c.owner + ' will know it was you. Tap again to rob it.', 'bad'); return true; }
@@ -130,5 +142,5 @@ const Fields = (() => {
     if (S1.day === (G.dayCount || 0)) { UI.toast(sn === 0 ? 'This field is sown for today. There will be more rows tomorrow.' : sn === 2 ? 'You have done your share of this field today.' : 'Picked over for today. It will have grown back by morning.'); return true; }
     if (sn === 0) { S1.day = G.dayCount || 0; G.shards += PAY; UI.sfx('place'); UI.toast('You take a row and sow it, a seed to every hand span. ' + PAY + ' shards for the work.', 'good'); return true; }
     S1.day = G.dayCount || 0; const n = c[1] * (tst(v).scare ? 2 : 1); if (sn === 2) G.shards += PAY; G.player.add(c[0], n); UI.sfx('place'); UI.renderHotbar(); UI.toast(sn === 2 ? 'You cut and carry until the cart is full. ' + PAY + ' shards for the work, and ' + n + ' ' + ITEMS[c[0]].name.toLowerCase() + ' pressed into your hand as thanks.' : 'You pick ' + n + ' ' + ITEMS[c[0]].name.toLowerCase() + '.', 'good'); return true; }
-  return { init, update, entities, tap, label, patch, scarecrow, season, SEASONS, marketDay, wanted, masked, shunInd, shunRail, get carts() { return carts; }, get live() { return live; }, get farmers() { return farmers; } };
+  return { init, update, entities, tap, label, patch, scarecrow, season, SEASONS, marketDay, wanted, masked, shunInd, shunRail, get carts() { return carts; }, get guard() { return guard; }, get live() { return live; }, get farmers() { return farmers; } };
 })();

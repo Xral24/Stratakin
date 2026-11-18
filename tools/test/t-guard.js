@@ -1,0 +1,8 @@
+const { open } = require('./harness');
+(async () => { const h = await open(); const { page, ev } = h; await h.newGame('look-3', 0); await h.calm();
+  console.log(JSON.stringify(await ev(() => { R.render = () => {}; G.repelUntil = performance.now() + 9e6; const v = Village.townList()[0], p = G.player, w = G.world; G.villageState[v.id].freed = true; w.ensureAround(Math.floor(v.x / CH), Math.floor(v.z / CH), 5, 99999); const wr = Village.wallRadiusOf(v); G.dayCount = 1; for (let i = 0; i < 4; i++) Fields.update(1, p);
+    G.stats.wanted = { town: v.id, name: v.name, owner: 'Farmer Sorrel', until: 3, owe: 30 }; const walk = () => { p.x = v.x + 0.5; p.z = v.z + wr + 8; let minOut = 99; for (let i = 0; i < 120; i++) { p.z -= 0.12; Fields.update(0.05, p); minOut = Math.min(minOut, p.z - v.z); } return +(minOut - wr).toFixed(1); };
+    const out = {}; out.barred = walk(); out.guard = Fields.guard && [Math.round(Fields.guard.x - v.x), Math.round(Fields.guard.z - v.z - wr)]; out.toast = [...document.querySelectorAll('.toast')].map(t => t.textContent).slice(-1);
+    G.shards = 5; Fields.guard.onTalk(); out.poor = document.getElementById('dialogue').textContent.slice(0, 70); const d = document.getElementById('dialogue'); for (let i = 0; i < 4; i++) if (Dialogue.active()) d.click();
+    G.shards = 50; Fields.guard.onTalk(); for (let i = 0; i < 4; i++) if (Dialogue.active()) d.click(); out.paid = [G.shards, G.stats.wanted]; out.after = walk(); Fields.update(0.05, { x: v.x + 500, z: v.z, y: p.y, has: () => false }); return out; })));
+  console.log('errors', JSON.stringify(h.errors.slice(0, 4))); await h.close(); })();
