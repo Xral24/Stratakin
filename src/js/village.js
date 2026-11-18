@@ -2935,7 +2935,7 @@ const Village = (() => {
     if (t) { const dx = wd(t.x - p.x), dz = wd(t.z - p.z); s += `<b>Free ${t.name}</b> · ${Math.round(Math.hypot(dx, dz))}m ${dirWord(dx, dz)}${t.type === 'sea' ? ' · on stilts at sea' : t.type === 'deep' ? ' · a dome on the sea floor' : ''} · follow ⚑<br>`; }
     else if (G.stats.villageFreed) s += 'Ask Old Brannock on the shore where the next tyrant sits.<br>';
     s += `Freed ${freedN} · founded ${foundedN} · ◆ ${pendingIncome()} waiting with the headmen${G.lastVillage ? ' · last visited: ' + G.lastVillage.name : ''}.<br>`;
-    s += 'Villages pay at dawn and level up on what they earn. Raiders hit the walls at night and the tyrant returns every seventh night: station guards and raise the walls from the headman\'s ledger.<br>';
+    s += 'A village is held by one tyrant, a town by two, a city by all three. A place you free thanks you once and stays free while you look in on it: stay away twelve days and they walk back in. Raiders still hit the walls at night; station guards from the headman\'s ledger. Only a village you founded yourself pays you by the day.<br>';
     s += 'Found your own: a Fusion Table far from any village, 40 planks or logs built around it, Ember Ore over a doorway (bakery), a Berry bush over another (juice bar), and a wall around the square. Void Crystal adds a healer, Copper a trader, Iron Ore a trading post; each raises the daily pay.';
     return s;
   }

@@ -14865,7 +14865,7 @@ const Village = (() => {
     if (t) { const dx = wd(t.x - p.x), dz = wd(t.z - p.z); s += `<b>Free ${t.name}</b> · ${Math.round(Math.hypot(dx, dz))}m ${dirWord(dx, dz)}${t.type === 'sea' ? ' · on stilts at sea' : t.type === 'deep' ? ' · a dome on the sea floor' : ''} · follow ⚑<br>`; }
     else if (G.stats.villageFreed) s += 'Ask Old Brannock on the shore where the next tyrant sits.<br>';
     s += `Freed ${freedN} · founded ${foundedN} · ◆ ${pendingIncome()} waiting with the headmen${G.lastVillage ? ' · last visited: ' + G.lastVillage.name : ''}.<br>`;
-    s += 'Villages pay at dawn and level up on what they earn. Raiders hit the walls at night and the tyrant returns every seventh night: station guards and raise the walls from the headman\'s ledger.<br>';
+    s += 'A village is held by one tyrant, a town by two, a city by all three. A place you free thanks you once and stays free while you look in on it: stay away twelve days and they walk back in. Raiders still hit the walls at night; station guards from the headman\'s ledger. Only a village you founded yourself pays you by the day.<br>';
     s += 'Found your own: a Fusion Table far from any village, 40 planks or logs built around it, Ember Ore over a doorway (bakery), a Berry bush over another (juice bar), and a wall around the square. Void Crystal adds a healer, Copper a trader, Iron Ore a trading post; each raises the daily pay.';
     return s;
   }
@@ -15535,6 +15535,8 @@ const Battle = (() => {
 </script>
 <script>
 'use strict';
+const countOf = (size) => { try { return Village.townList().filter(v => v.size === size && !v.starter).length; } catch (e) { return 0; } };
+const freedOf = (G, size) => { try { const S = G.villageState; return S ? Village.townList().filter(v => v.size === size && !v.starter && S[v.id] && S[v.id].freed).length : 0; } catch (e) { return 0; } };
 // Quest chain down to the Heart, plus a repeatable bounty. Crafting recipes live here too.
 const RECIPES = [
   { id: 'torch', out: 'torch', n: 4, needs: { wood: 1, glowworm: 1 } },
@@ -15651,15 +15653,27 @@ const QUESTS = [
   { id: 'halojobs', title: 'Caravan Work', desc: 'The caravan people on Halo pay well and talk even better. Three jobs for them and someone will mention the Ringwarden on the high mesa.', hint: 'Do 3 jobs for people on Halo', check: G => ((G.stats.jobsBy || {}).halo || 0) / 3, reward: { xp: 900, items: { snare2: 3, wings: 1 } } },
   { id: 'legend', title: 'Legend', desc: 'With the Tyrannorex in your bag, the old ones notice. Every world beyond Earth has one creature at a level even it does not reach: the Selenaut over the Moon, the Ringwarden on Halo. ✶ on the map. Beat or net one, and you will hear what still sleeps under Earth.', hint: 'Beat or net a world\'s legendary (✶ on the map)', check: G => Object.keys(G.stats.legends || {}).length ? 1 : 0, reward: { xp: 2000 } },
   { id: 'heart', title: 'The Heart', desc: 'The Deep Chart marks a chamber far out in the Core with a pedestal of Starmetal, on an island in a lava sea nobody can cross on foot or on a Kin. Halo Wings would do it. Inside, two Wardens patrol in step: find the gap.', hint: 'Find the Heart chamber', check: G => G.stats.heartFound ? 1 : 0, reward: { xp: 100 } },
+  /* the Free Land: the three who hold Earth's towns and cities */
+  /* the Dark Wood */
+  /* the old stones, and the country */
+  { id: 'town', title: 'Two of Them', desc: 'Keychain did not go far. The towns are bigger than your village and each is held by two of the three: Keychain with his keys, Stonewall with his walls, Bigmouth with his pies. Beat one and his part of the town opens; beat both and it is free. The wild Kin round a held town are theirs and nearly as strong, so train there first. Old Brannock and the pedlars know how strong each one is.', hint: 'Free a town: two tyrants hold it', check: G => freedOf(G, 'town') >= 1 ? 1 : 0, reward: { items: { snare2: 2, tonic_heal: 3 }, xp: 300 } },
+  { id: 'city', title: 'All Three', desc: 'The cities are the top of the world and all three of them hold each one together, level 38 and up. They will tell you they remember you. They will have a plan. Take your best six and plenty of tonics.', hint: 'Free a city: all three tyrants hold it', check: G => freedOf(G, 'city') >= 1 ? 1 : 0, reward: { items: { snare2: 4, tonic_revive: 2 }, xp: 1500 } },
+  { id: 'towns', title: 'The Open Road', desc: 'Every town you free stays free as long as you look in on it: stay away twelve days and they walk back in. Free every town and the roads between them are yours.', hint: 'Free every town', check: G => Math.min(1, freedOf(G, 'town') / Math.max(1, countOf('town'))), reward: { items: { tonic_revive: 2 }, xp: 800 } },
+  { id: 'cities', title: 'The Free Land', desc: 'Each city you free makes the next one harder, up to level 50. When every one is free there is nowhere left on Earth for the three to stand.', hint: 'Free every city', check: G => Math.min(1, freedOf(G, 'city') / Math.max(1, countOf('city'))), reward: { xp: 4000 } },
+  { id: 'woodfind', title: 'The Dark Wood', desc: 'Maren spoke of an old wood where the trees shut over your head and the light goes green. Things live in it that live nowhere else. It is marked ♣ on your map once somebody has told you where it is.', hint: 'Find the dark wood (ask Maren)', check: G => G.stats.woodSeen ? 1 : 0, reward: { items: { snare: 3 }, xp: 150 } },
+  { id: 'woodone', title: 'Something With a Lamp', desc: 'Every couple of minutes one of the wood\'s creatures is somewhere near, and you are told before you see it. They do not fight and they do not wait. Go slowly, let your Kin touch it once, and throw. Each one caught is good for one thing, for as long as it is in your party.', hint: 'Catch a creature of the dark wood', check: G => Object.keys(G.stats.woodCaught || {}).length >= 1 ? 1 : 0, reward: { items: { snare2: 2 }, xp: 300 } },
+  { id: 'harvest', title: 'A Year on the Land', desc: 'The fields round the towns turn with the seasons. Help a farmer sow in spring or pick in autumn and he pays you; every fourth day is market day, when the cart drives in and the farmers sell from the square. Wheat bakes into bread at a fire.', hint: 'Help a farmer in the fields round a town', check: G => (G.stats.fieldJobs || 0) >= 1 ? 1 : 0, reward: { items: { bread: 2 }, xp: 120 } },
+  { id: 'stones', title: 'What the Stones Say', desc: 'Standing stones are scattered across Earth and each has a line cut into it. There are fourteen lines and they are read in order, whichever stone you come to. Read them all and you will know where the city went.', hint: 'Read the standing stones', check: G => Math.min(1, Object.keys(G.stats.stonesRead || {}).length / 14), reward: { xp: 600 } },
+  { id: 'woodall', title: 'The Eight', desc: 'Lampwart, Snipscut, Stoolbill, Latchwing, Weathercock, Bobbinlegs, Padfoot, Brewback. Nobody has seen all eight. The wood shows you the ones you have not caught before the ones you have.', hint: 'Catch all eight creatures of the dark wood', check: G => Math.min(1, Object.keys(G.stats.woodCaught || {}).length / 8), reward: { xp: 2500 } },
   { id: 'mythic', title: 'Mantlewyrm', desc: 'The Mythic sleeps on the Starmetal in the Heart. The hardest thing on Earth: catch it (bring Void Nets and a strong, evolved team) or defeat it.', hint: 'Catch or defeat the Mantlewyrm', check: G => G.stats.mythicDone ? 1 : 0, reward: { xp: 500 } },
 ];
 
 const Quests = (() => {
   let G = null;
   // three arcs that run side by side: the journey (your tools, the people, the worlds), the Dark Arc (the Kinmaster), and the Old Ones (the great Kin)
-  const ARC_OF = { kinmaster: 'dark', holds: 'dark', storm: 'dark', citadel: 'dark', scientist: 'dark', ship: 'dark', heart: 'old', mythic: 'old', lost: 'old', abyss: 'old', rex: 'old', legend: 'old', atlantis: 'deep', skerry: 'deep', calder: 'deep', trident: 'deep' };
-  const AFTER = { storm: 'sky', kinmaster: 'glider', heart: 'legend', moon: 'ship', legend: 'ship', atlantis: 'diver' };
-  const ARCS = { main: { name: 'The Journey', col: '#4fb0ff' }, dark: { name: 'The Dark Arc', col: '#b07aff' }, old: { name: 'The Old Ones', col: '#ffc94a' }, deep: { name: 'The Deep', col: '#3fd4ff' } };
+  const ARC_OF = { kinmaster: 'dark', holds: 'dark', storm: 'dark', citadel: 'dark', scientist: 'dark', ship: 'dark', heart: 'old', mythic: 'old', lost: 'old', abyss: 'old', rex: 'old', legend: 'old', atlantis: 'deep', skerry: 'deep', calder: 'deep', trident: 'deep', town: 'land', towns: 'land', city: 'land', cities: 'land', woodfind: 'wood', woodone: 'wood', woodall: 'wood', stones: 'wood', harvest: 'wood' };
+  const AFTER = { town: 'village', woodfind: 'village', storm: 'sky', kinmaster: 'glider', heart: 'legend', moon: 'ship', legend: 'ship', atlantis: 'diver' };
+  const ARCS = { main: { name: 'The Journey', col: '#4fb0ff' }, dark: { name: 'The Dark Arc', col: '#b07aff' }, old: { name: 'The Old Ones', col: '#ffc94a' }, deep: { name: 'The Deep', col: '#3fd4ff' }, land: { name: 'The Free Land', col: '#7bd66a' }, wood: { name: 'The Country', col: '#c9a03a' } };
   const arcList = (a) => QUESTS.filter(q => (ARC_OF[q.id] || 'main') === a);
   function init(game) { G = game; if (!G.questState) G.questState = { index: 0, bounty: { need: 3, done: 0, round: 1 } }; }
   function doneIds() { const out = new Set(); const A = G.questState.arcs || {}; for (const a in ARCS) arcList(a).slice(0, A[a] || 0).forEach(q => out.add(q.id)); return out; }
@@ -15674,7 +15688,7 @@ const Quests = (() => {
   function gated(q) { if (!q) return null; if (AFTER[q.id] && !isDone(AFTER[q.id])) return AFTER[q.id]; const ni = NEEDS_ITEM[q.id]; if (ni && G && G.player && !G.player.has(ni[0])) return ni[1]; return null; }
   function current() {
     if (!G.questState.arcs) migrate(); const f = G.questState.focus || 'main';
-    for (const a of [f, 'main', 'dark', 'old', 'deep']) { const q = arcCurrent(a); if (q && !gated(q)) return q; }
+    for (const a of [f, 'main', 'dark', 'old', 'deep', 'land', 'wood']) { const q = arcCurrent(a); if (q && !gated(q)) return q; }
     return null;
   }
   function isActive(id) { for (const a in ARCS) { const q = arcCurrent(a); if (q && q.id === id && !gated(q)) return true; } return false; }
@@ -15684,7 +15698,7 @@ const Quests = (() => {
     for (const a in ARCS) {
       const q = arcCurrent(a); if (!q || gated(q)) continue;
       let p = 0; try { p = q.check(G); } catch (e) { p = 0; }
-      if (p >= 1) { G.questState.arcs[a]++; G.questState.index = (G.questState.index || 0) + 1; giveReward(q.reward); events.push({ type: 'quest', q, arc: a }); }
+      if (p >= 1) { G.questState.arcs[a] = (G.questState.arcs[a] || 0) + 1; G.questState.index = (G.questState.index || 0) + 1; giveReward(q.reward); events.push({ type: 'quest', q, arc: a }); }
     }
     const b = G.questState.bounty;
     if (G.stats.battlesWon - (b.base || 0) >= b.need) {
@@ -15761,6 +15775,8 @@ const Quests = (() => {
     if (q.id === 'fisher' && G.fisherSpot) return { x: G.fisherSpot.x, z: G.fisherSpot.z, note: 'Old Brannock' };
     if (q.id === 'village' && (Village.def || G.village)) { const v = Village.def || G.village; return { x: v.x, z: v.z }; }
     if (q.id === 'timber') { const b = G.world.findNearest(B.LOG, p.x, p.z, 64); return b ? { x: b.x, z: b.z } : null; }
+    if (q.id === 'town' || q.id === 'towns' || q.id === 'city' || q.id === 'cities') { const sz = q.id.startsWith('town') ? 'town' : 'city'; let best = null, bd = Infinity; for (const v of Village.townList()) { if (v.size !== sz || v.starter || (G.villageState[v.id] && G.villageState[v.id].freed)) continue; const d = Math.hypot(v.x - p.x, v.z - p.z); if (d < bd) { bd = d; best = v; } } return best ? { x: best.x, z: best.z, note: best.name + ', level ' + Village.bossLevel(best) } : null; }
+    if ((q.id === 'woodfind' || q.id === 'woodone' || q.id === 'woodall') && typeof Wood !== 'undefined' && Wood.site() && (G.stats.woodKnown || G.stats.woodSeen)) { const c = Wood.site(); return { x: c.x, z: c.z, note: 'the dark wood' }; }
     if (q.id === 'ember') { const b = G.world.findNearest(B.GLOWWORM, p.x, p.z, 80) || G.world.findNearest(B.EMBER, p.x, p.z, 40); return b ? { x: b.x, z: b.z } : null; }
     if (q.id === 'void') { const b = G.world.findNearest(B.VOID, p.x, p.z, 40); return b ? { x: b.x, z: b.z } : null; }
     if (q.id === 'fuse' && !pairReady()) { const hs = Wild.haunts ? Wild.haunts() : []; if (hs.length) { hs.sort((a, b) => Math.hypot(a.x - p.x, a.z - p.z) - Math.hypot(b.x - p.x, b.z - p.z)); return { x: hs[0].x, z: hs[0].z }; } }
@@ -21120,8 +21136,8 @@ const Fields = (() => {
     const sn = season(), PAY = 4; /* the year gives the fields their work: sowing in spring and bringing in the harvest in autumn are paid by the day, summer is for picking, winter the land rests */
     if (sn === 3) { UI.toast('The field is resting under the frost. Nothing here until the spring sowing.'); return true; }
     if (S1.day === (G.dayCount || 0)) { UI.toast(sn === 0 ? 'This field is sown for today. There will be more rows tomorrow.' : sn === 2 ? 'You have done your share of this field today.' : 'Picked over for today. It will have grown back by morning.'); return true; }
-    if (sn === 0) { S1.day = G.dayCount || 0; G.shards += PAY; UI.sfx('place'); UI.toast('You take a row and sow it, a seed to every hand span. ' + PAY + ' shards for the work.', 'good'); return true; }
-    S1.day = G.dayCount || 0; const n = c[1] * (tst(v).scare ? 2 : 1); if (sn === 2) G.shards += PAY; G.player.add(c[0], n); UI.sfx('place'); UI.renderHotbar(); UI.toast(sn === 2 ? 'You cut and carry until the cart is full. ' + PAY + ' shards for the work, and ' + n + ' ' + ITEMS[c[0]].name.toLowerCase() + ' pressed into your hand as thanks.' : 'You pick ' + n + ' ' + ITEMS[c[0]].name.toLowerCase() + '.', 'good'); return true; }
+    if (sn === 0) { S1.day = G.dayCount || 0; G.stats.fieldJobs = (G.stats.fieldJobs || 0) + 1; G.shards += PAY; UI.sfx('place'); UI.toast('You take a row and sow it, a seed to every hand span. ' + PAY + ' shards for the work.', 'good'); return true; }
+    S1.day = G.dayCount || 0; G.stats.fieldJobs = (G.stats.fieldJobs || 0) + 1; const n = c[1] * (tst(v).scare ? 2 : 1); if (sn === 2) G.shards += PAY; G.player.add(c[0], n); UI.sfx('place'); UI.renderHotbar(); UI.toast(sn === 2 ? 'You cut and carry until the cart is full. ' + PAY + ' shards for the work, and ' + n + ' ' + ITEMS[c[0]].name.toLowerCase() + ' pressed into your hand as thanks.' : 'You pick ' + n + ' ' + ITEMS[c[0]].name.toLowerCase() + '.', 'good'); return true; }
   return { init, update, entities, tap, label, patch, scarecrow, season, SEASONS, marketDay, wanted, masked, shunInd, shunRail, get carts() { return carts; }, get guard() { return guard; }, get live() { return live; }, get farmers() { return farmers; } };
 })();
 
