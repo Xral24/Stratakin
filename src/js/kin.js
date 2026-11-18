@@ -677,6 +677,41 @@ const KIN = (() => {
     put(['embermonkey', 'torchmandrill', 'magmagorilla'], [{ all: true, s: [1.1, 1.12, 1.1] }, { i: 2, rx: -1.0, osc: { rx: 0.6, f: 16 } }, { i: 3, rx: -1.0, osc: { rx: -0.6, f: 16 } }]); /* drums on its chest */
     put(['windfox', 'skyfox'], [{ kind: 'head', osc: { rz: 0.45, f: 2.2 } }, { kind: 'tail', s: [1.6, 1.6, 1.6], rx: -0.5 }], { idle: 0.06 }); /* head tipped one way then the other, listening for something under the grass */
     put(['walrus'], [{ all: true, rx: -0.35, t: [0, 0.05, 0] }, { kind: 'head', osc: { rx: 0.25, f: 3 } }]); /* rears and bellows */
+    /* the third batch: the rest of the animals */
+    put(['eaglet', 'hawk', 'stormeagle'], [{ kind: 'wing', rz: -0.5, s: [1.35, 1, 1.35] }, { all: true, s: [1.1, 0.92, 1.1] }]); /* mantling: hunched, wings half out over what it has caught */
+    put(['geode', 'scorpion'], [{ kind: 'tail', rx: -0.9, s: [1.35, 1.35, 1.35] }, { kind: 'arm', rz: 0.9 }]); /* sting up over its back, claws wide */
+    put(['kingfisherchick', 'kingfisher'], [{ all: true, rx: 0.8, t: [0, 0.45, 0] }, { kind: 'wing', osc: { rz: 0.7, f: 30 } }], { idle: 0.05 }); /* hangs in the air, bill straight down, about to dive */
+    put(['lyrebird'], [{ kind: 'tail', s: [2.3, 2.1, 1], rx: -1.1 }, { kind: 'head', osc: { ry: 0.4, f: 3 } }], { idle: 0.06 }); /* the lyre goes up and over */
+    put(['gibbon'], [{ kind: 'arm', rz: 2.5 }, { all: true, osc: { rz: 0.18, f: 4 } }]); /* arms straight up, swaying as if the branch were still there */
+    put(['lemurkid', 'skylemur'], [{ kind: 'arm', rz: 1.4 }, { all: true, rx: -0.22 }, { kind: 'tail', s: [1.3, 1.3, 1.3], rx: -0.8 }], { idle: 0.1 }); /* sits back with its arms out to the sun */
+    put(['cygnet', 'lotusswan'], [{ kind: 'wing', rz: -0.9, s: [1.2, 1.2, 1.2] }, { kind: 'head', rx: 0.3 }]); /* busking: wings arched up over its back, neck drawn in */
+    put(['gardensnail', 'mushsnail'], [{ kind: 'head', s: [0.15, 0.15, 0.15], t: [0, 0, -0.12] }, { all: true, s: [1, 0.92, 1] }]); /* in */
+    put(['mantisnymph', 'orchidmantis'], [{ kind: 'arm', rz: 1.8, rx: -0.6 }, { all: true, s: [1, 1.15, 1], osc: { rz: 0.1, f: 3 } }]); /* arms thrown wide, swaying like a leaf */
+    put(['bug', 'stagbeetle', 'hercules'], [{ all: true, rx: -0.5 }, { kind: 'head', s: [1.3, 1.3, 1.3] }]); /* rears with its jaws up */
+    put(['flyingsnakelet', 'paradisesnake'], [{ all: true, s: [1.7, 0.55, 1] }]); /* flattens itself to a ribbon: that is how they glide */
+    put(['lavatoad'], [{ all: true, s: [1.45, 0.9, 1.45], pulse: 7 }]);
+    put(['orerhino'], [{ kind: 'head', rx: 0.5 }, { all: true, rx: 0.12 }, { i: 2, osc: { rx: 0.5, f: 6 } }]); /* head down, pawing */
+    put(['shoebill'], [{ kind: 'head', rx: 0.4, osc: { rx: 0.25, f: 22 } }], { idle: 0.08 }); /* bows and clatters its bill like a gun */
+    put(['magmavulture'], [{ kind: 'wing', s: [1.8, 1.1, 1.2], rz: -0.15 }], { idle: 0.1 }); /* wings held open to the sun */
+    put(['emuchick', 'rockemu', 'terrorbird'], [{ all: true, s: [0.85, 1.3, 0.85] }, { kind: 'head', osc: { rx: 0.2, f: 8 } }]); /* neck up, drumming */
+    put(['glyphtail', 'icewolf', 'jackal'], [{ kind: 'head', rx: -0.9 }, { kind: 'tail', rx: -0.4 }], { idle: 0.04 }); /* howls */
+    put(['cranechick', 'crane'], [{ kind: 'wing', rz: -1.0, s: [1.2, 1.2, 1.2] }, { kind: 'head', rx: -0.4 }, { all: true, s: [1, 1.1, 1], pulse: 5 }], { idle: 0.07 }); /* the dance */
+    put(['stoat'], [{ all: true, osc: { ry: 0.9, rz: 0.25, f: 7 } }]); /* the weasel's war dance */
+    put(['penguinchick', 'emperor', 'icegeneral'], [{ kind: 'head', rx: -0.9 }, { kind: 'wing', rz: -0.9 }, { kind: 'arm', rz: 0.9 }], { idle: 0.06 }); /* bill to the sky, flippers out, calling */
+    put(['ayeaye', 'nightshaman'], [{ kind: 'head', osc: { rz: 0.35, f: 2.5 } }, { i: 2, osc: { rx: 0.5, f: 12 } }], { idle: 0.08 }); /* taps the ground with one finger and listens */
+    put(['seaturtle'], [{ kind: 'head', s: [0.3, 0.3, 0.3] }, { kind: 'leg', s: [0.5, 0.5, 0.5] }, { kind: 'arm', s: [0.5, 0.5, 0.5] }]);
+    put(['tarhound'], [{ all: true, s: [0.95, 1.15, 0.95] }, { kind: 'tail', rx: -0.6 }]);
+    put(['emberchick', 'flamekestrel', 'phoenix'], [{ kind: 'wing', osc: { rz: 0.7, f: 28 } }, { kind: 'tail', s: [1.6, 1, 1.6] }], { idle: 0.05 }); /* hovers on the spot, tail fanned */
+    put(['sunlion'], [{ kind: 'head', rx: -0.5, s: [1.15, 1.15, 1.15] }, { all: true, s: [1.08, 1.08, 1.08] }]); /* roars */
+    put(['unicorn'], [{ all: true, rx: -0.55, t: [0, 0.06, 0] }, { i: 2, osc: { rx: 0.7, f: 9 } }, { i: 3, osc: { rx: -0.7, f: 9 } }]); /* rears */
+    put(['cloudram', 'd_pachy'], [{ kind: 'head', rx: 0.65 }, { all: true, rx: 0.1 }]); /* head down to butt */
+    put(['d_trike'], [{ kind: 'head', rx: 0.45, s: [1.12, 1.12, 1.12] }, { all: true, rx: 0.08 }]);
+    put(['d_bronto', 'd_brachio'], [{ all: true, rx: -0.3 }], { idle: 0.03 }); /* up on its hind legs to reach */
+    put(['d_anky', 'd_stego'], [{ kind: 'tail', osc: { ry: 0.9, f: 5 } }]); /* the tail swings */
+    put(['d_para'], [{ kind: 'head', rx: -0.6 }], { idle: 0.05 }); /* trumpets */
+    put(['d_raptor'], [{ kind: 'arm', rz: 0.8 }, { kind: 'head', osc: { rz: 0.4, f: 3 } }, { kind: 'tail', rx: -0.3 }]);
+    put(['jelly', 'manowar'], [{ all: true, s: [1.25, 0.8, 1.25], pulse: 6 }]);
+    put(['moth'], [{ kind: 'wing', s: [1.4, 1.4, 1.4] }]);
     put(['w_toad'], [{ i: 13, s0: [0.8, 0.8, 0.8], s: [1.12, 1.12, 1.12], pulse: 6 }], { idle: 0.1 }); /* the flame swells in the glass */
     put(['w_moth'], [{ kind: 'wing', s: [1.3, 1.3, 1.3] }], { idle: 0.08 }); /* wings wide, keyholes to the light */
     put(['w_cock'], [{ all: true, not: [4], osc: { ry: 1.5, f: 3.2 } }], { idle: 0.1 }); /* swings round like a vane in a gust */
@@ -721,7 +756,7 @@ const KIN = (() => {
     put(['narwhal'], (c) => { const h = c.hp, iv = '#f4efe2'; c.B(13, 'part', [0, h[1], h[2] + 0.15]); /* the lance: a second length of spiral tusk that runs out of the first like a drawn sword */
       c.tube([[0, h[1], h[2] + 0.15], [0, h[1] + 0.06, h[2] + 1.5]], [0.045, 0.008], iv, { cap0: 'round', cap1: 'round', segs: 8 }); for (let i = 0; i < 9; i++) { const z = h[2] + 0.25 + i * 0.13, r = 0.047 - i * 0.0042; c.tube([[0, h[1] + (z - h[2]) * 0.044, z], [0.012, h[1] + (z - h[2]) * 0.044, z + 0.03]], [r, r], '#cfc6b0', { cap0: 'flat', cap1: 'flat', segs: 3 }); }
       return { ops: [{ i: 13, s0: [0.6, 0.6, 0.04], s: [1, 1, 1] }] }; });
-    put(['coilsnake', 'teslaserpent'], (c) => { const b = c.bb, y = b.y0 + (b.y1 - b.y0) * 0.5, z = b.z0 - 0.02; c.B(13, 'part', [0, y, z]); /* a rattle on the end of it: five dry beads standing up, and they blur */
+    put(['coilsnake', 'teslaserpent', 'whiterattler', 'batteryrattler'], (c) => { const b = c.bb, y = b.y0 + (b.y1 - b.y0) * 0.5, z = b.z0 - 0.02; c.B(13, 'part', [0, y, z]); /* a rattle on the end of it: five dry beads standing up, and they blur */
       for (let i = 0; i < 5; i++) c.ball(0, y + 0.06 + i * 0.085, z - i * 0.012, 0.07 - i * 0.008, i % 2 ? '#d8c48a' : '#a8905a', { n: 2 });
       return { ops: [{ i: 13, s0: [0.25, 0.25, 0.25], s: [1.9, 1.9, 1.9], osc: { rz: 0.6, f: 30 } }, { all: true, not: [13], s: [1, 1.15, 1] }] }; });
     put(['ravenlet', 'raven', 'ravenking'], (c) => { const h = c.hp, y = h[1] - 0.06, z = h[2] + 0.1, col = c.C.accent || '#3a3e58'; c.B(13, 'part', [0, y, z]); /* throat hackles: a beard of long feathers that stands out when it has something to say */
@@ -733,7 +768,15 @@ const KIN = (() => {
     put(['lanternstag', 'hart'], (c) => { const h = c.hp, y = h[1] + 0.2, z = h[2] - 0.02, bone0 = '#e8dcc0'; c.B(13, 'part', [0, y, z]); /* the full rack: it carries a modest set, and a great branching one comes up through it for the rut */
       for (const sd of [-1, 1]) { c.tube([[sd * 0.08, y, z], [sd * 0.3, y + 0.4, z - 0.1], [sd * 0.5, y + 0.82, z - 0.04]], [0.04, 0.032, 0.012], bone0, { cap0: 'round', cap1: 'round', segs: 6 }); for (const [u, dx, dy, dz, l] of [[0.3, 0.18, 0.2, 0.2, 0.26], [0.55, 0.2, 0.22, 0.12, 0.28], [0.8, -0.12, 0.26, 0.1, 0.22]]) { const px = sd * (0.08 + 0.42 * u), py = y + 0.82 * u, pz = z - 0.07; c.cone([px, py, pz], [sd * dx, dy, dz], l, 0.028, bone0, { segs: 5 }); } }
       return { ops: [{ i: 13, s0: [0.08, 0.08, 0.08], s: [1, 1, 1] }, { all: true, not: [13], s: [1.04, 1.06, 1.04] }] }; });
-    put(['masker'], (c) => { const b = c.bb, top = b.y1 - 0.03; c.B(13, 'part', [0, top, (b.z0 + b.z1) / 2]); /* a ridge of fur down the spine that lies flat until its back goes up */
+    put(['frigatebird'], (c) => { const h = c.hp; c.B(13, 'part', [0, h[1] - 0.14, h[2] + 0.08]); c.ball(0, h[1] - 0.2, h[2] + 0.14, 0.12, '#e0242a', { n: 3 }); /* the red throat pouch, blown up like a balloon */
+      return { ops: [{ i: 13, s0: [0.12, 0.12, 0.12], s: [2.6, 2.6, 2.6], pulse: 5 }, { kind: 'wing', rz: -0.5 }, { kind: 'head', rx: -0.35 }], idle: 0.08 }; });
+    put(['zapchick', 'cockatoo', 'thundercockatoo'], (c) => { const h = c.hp, y = h[1] + 0.2, z = h[2] - 0.02, col = c.C.accent || '#ffe14a'; c.B(13, 'part', [0, y, z]); /* the crest: seven long feathers that lie back flat and stand up into a fan */
+      for (let i = 0; i < 7; i++) { const a = -0.9 + i * 0.3; c.cone([Math.sin(a) * 0.08, y, z], [Math.sin(a) * 0.8, 1, -0.25], 0.42 - Math.abs(a) * 0.1, 0.04, i % 2 ? col : '#ffffff', { segs: 4 }); }
+      return { ops: [{ i: 13, s0: [1, 0.06, 1], s: [1.15, 1.15, 1.15] }, { kind: 'head', osc: { rx: 0.3, f: 6 } }], idle: 0.07 }; });
+    put(['axolotl'], (c) => { const h = c.hp, col = '#ff7a9a'; c.B(13, 'part', [0, h[1] + 0.04, h[2] - 0.04]); /* the gills: three feathery plumes each side that flare out wide */
+      for (const sd of [-1, 1]) for (let i = 0; i < 3; i++) { const a = 0.3 + i * 0.5; c.tube([[sd * 0.12, h[1] + 0.04, h[2] - 0.04], [sd * (0.12 + Math.cos(a) * 0.34), h[1] + 0.04 + Math.sin(a) * 0.34, h[2] - 0.1]], [0.035, 0.012], col, { cap0: 'round', cap1: 'round', segs: 5 }); for (let j = 1; j <= 3; j++) c.ball(sd * (0.12 + Math.cos(a) * 0.34 * j / 3.4), h[1] + 0.04 + Math.sin(a) * 0.34 * j / 3.4 + 0.035, h[2] - 0.06, 0.03, col, { n: 1 }); }
+      return { ops: [{ i: 13, s0: [0.05, 0.05, 0.05], s: [1.2, 1.2, 1.2], pulse: 6 }], idle: 0.08 }; });
+    put(['masker', 'eclipsecat'], (c) => { const b = c.bb, top = b.y1 - 0.03; c.B(13, 'part', [0, top, (b.z0 + b.z1) / 2]); /* a ridge of fur down the spine that lies flat until its back goes up */
       for (let i = 0; i < 9; i++) { const z = b.z0 + 0.04 + (b.z1 - b.z0 - 0.08) * i / 8; c.cone([0, top - 0.04, z], [0, 1, -0.2], 0.42 + 0.1 * Math.sin(i * 1.3), 0.075, i % 2 ? (c.C.accent || c.C.dark) : c.C.dark); }
       return { ops: [{ i: 13, s0: [1, 0.04, 1], s: [1.3, 1, 1] }, { kind: 'tail', s: [3.6, 1.6, 3.6], rx: -0.7 }, { all: true, s: [0.88, 1.3, 0.8] }] }; });
     put(['froglet', 'riverfrog', 'sumofrog'], (c) => { const h = c.hp; c.B(13, 'part', [0, h[1] - 0.04, h[2] + 0.2]); c.ball(0, h[1] - 0.04, h[2] + 0.3, 0.17, '#fff4d8', { n: 3 }); c.ball(0, h[1] - 0.04, h[2] + 0.44, 0.05, c.C.accent || '#ffd24a', { n: 1 }); /* a throat sac under the chin: flat at rest, a drum as big as its head when it sings */

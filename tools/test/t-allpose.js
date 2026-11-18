@@ -1,0 +1,4 @@
+const { open } = require('./harness');
+(async () => { const h = await open(); const { ev } = h; await h.newGame('look-3', 0);
+  console.log(await ev(() => { R.render = () => {}; let n = 0, tr = 0, bad = []; for (const sp of KIN.dex('earth')) for (let st = 1; st <= 3; st++) { try { const m = KIN.model(sp, st); n++; if (m.trick) { tr++; const e = { kin: { id: 1 }, model: m, x: 0, y: 0, z: 0, bob: 1, alert: 1, trickT: performance.now() + 9999 }; for (let i = 0; i < 12; i++) { const r = Anim.pose(e, performance.now() + i * 50); const a = r.mats || r; for (let k = 0; k < 14 * 16; k++) if (!isFinite(a[k])) { bad.push(sp.names[st - 1] + ':nan'); break; } } } } catch (er) { bad.push(sp.names[st - 1] + ':' + er.message.slice(0, 50)); } } return JSON.stringify({ models: n, withTrick: tr, bad: bad.slice(0, 8) }); }));
+  console.log('errors', JSON.stringify(h.errors.slice(0, 4))); await h.close(); })();
