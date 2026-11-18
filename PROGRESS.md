@@ -435,6 +435,8 @@ Scope (Alexander, 8 Nov evening): EVERYTHING visible goes to the same standard: 
 
 - 18 Nov, dress for the Moon and the Halo (the last item of the older queue). **Moon: a quilted silver suit with a hard collar ring, a lit chest box and a hose; a gold foil cape with a visor band (the elder); a dust-grey miner's overall with a shoulder lamp and patches. Halo: white panels with a gold sun on the chest and a ring of light over the head (the elder); a feather mantle with a sky-blue sash; a white skirt with wrist ribbons and a circlet of points. Chosen per person by hash, same every time.** Photographed a line-up of each; the feather mantle did not come up in the sample.
 
+- 18 Nov, loose ends closed and the whole set run (carried on). **Meerkat rebuilt: a dark eyeshade on its brow that swings out over the eyes when it stands to look. Pangolin rebuilt: a whole sphere of overlapping scales closes round it. Tested: the fox halves the distance a wild Kin notices you from (6 blocks to 3); the moth is recognised at a barred door. suite.sh now runs 32 scripts; all 32 pass.** Still unrun: the spider's wider net (a single multiplier), the moth actually opening the door by tap.
+
 ## Still to do
 UI polish as feedback comes in. Card battle screen still used for scripted encounters (raids at the walls, thief, citadel duel, holds) and the snare mini-game; converting those to live is the next big step if wanted. (Old list: train/ships, combat animation, eggs, avatar hair/paint, buddy WEAR cosmetics, Silas and Finch, UI polish (item icons), quality toggles in settings (state.shadows, state.grassQuality, state.dprCap).
 
