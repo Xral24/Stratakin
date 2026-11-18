@@ -1,0 +1,4 @@
+const { open } = require('./harness');
+(async () => { const h = await open(); const { page, ev } = h; await h.newGame('look-3', 0); await h.calm();
+  console.log(JSON.stringify(await ev(() => { R.render = () => {}; const bad = []; Roads.HINTS.forEach((hh, i) => { try { hh[0](); const t = hh[1](); if (typeof t !== 'string' || t.length < 20) bad.push(i); } catch (e) { bad.push(i + ':' + e.message); } }); const a = Roads.hints(2), b = Roads.hints(2); G.stats.woodSeen = true; const c = Roads.hints(8); return { n: Roads.HINTS.length, bad, a: a.map(x => x.slice(0, 40)), repeat: a.some(x => b.includes(x)), webHint: c.some(x => /threads between the trunks|no web will hold/.test(x)) || Roads.hints(8).some(x => /threads|web/.test(x)) }; })));
+  console.log('errors', JSON.stringify(h.errors.slice(0, 4))); await h.close(); })();

@@ -12,7 +12,7 @@ const ITEMS = {
   snow: { name: 'Snow', block: B.SNOW, col: '#eef3f8', elem: 'Frost', desc: 'Packed snow. Frost ingredient at the Fusion Table.' },
   basalt: { name: 'Basalt', block: B.BASALT, col: '#45404a', desc: 'Dark stone from the deep.' },
   cloud: { name: 'Cloudstone', block: B.CLOUD, col: '#e9ecf6', elem: 'Light', desc: 'Stone from the sky islands. Light ingredient.' },
-  frond: { name: 'Frond', col: '#3f8a33', elem: 'Bloom', desc: 'Leaves and fibres. Bloom ingredient.' },
+  frond: { name: 'Frond', col: '#3f8a33', elem: 'Bloom', desc: 'Leaves and fibres. Hold your finger on a low bush to pick one, or fell a tree and take them off the crown. Arrows, a vest and fins all want them.' },
   planks: { name: 'Planks', block: B.PLANKS, col: '#b58d58', desc: 'Building planks.' },
   glass: { name: 'Glass', block: B.GLASS, col: '#cfe9f5', crafted: true, desc: 'Sand melted with ember. See-through: windows.' },
   ironwall: { name: 'Iron Wall', block: B.IRONWALL, col: '#8f98a6', crafted: true, desc: 'Riveted iron. Raiders hate it. Wall blocks for a village you found.' },
