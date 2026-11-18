@@ -443,6 +443,8 @@ Scope (Alexander, 8 Nov evening): EVERYTHING visible goes to the same standard: 
 
 - 18 Nov, the new story is now in the quest log (his ask: do whatever is best for gameplay and story). **The log had nothing about the gangs, the wood, the stones or the farms, so a player had no thread to follow after the first village. Two new arcs beside the old four. The Free Land: free a town (two hold it), free a city (all three), free every town, free every city; the hint points at the nearest held one with its level. The Country: find the dark wood, catch one of its creatures, help a farmer, read the fourteen stones, catch all eight. Both open once the first village is free. Fixed on the way: farm work was never counted; the Villages blurb still said places pay daily and fall every seventh night.** Note: look-3 has 5 towns and 3 cities, not 8 and 4, so the top tyrant there is 46.
 
+- 18 Nov, four weak tricks strengthened (carried on). **Wolf and jackal now sit back and throw the head right up to howl; the crane's wings go up over its back; the axolotl's gill plumes are twice as long and paler at the tips; the swan's wings arch higher.** The swan is still the least clear of the four.
+
 ## Still to do
 UI polish as feedback comes in. Card battle screen still used for scripted encounters (raids at the walls, thief, citadel duel, holds) and the snare mini-game; converting those to live is the next big step if wanted. (Old list: train/ships, combat animation, eggs, avatar hair/paint, buddy WEAR cosmetics, Silas and Finch, UI polish (item icons), quality toggles in settings (state.shadows, state.grassQuality, state.dprCap).
 
