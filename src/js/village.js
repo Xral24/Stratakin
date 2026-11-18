@@ -1543,6 +1543,8 @@ const Village = (() => {
       else if (style === 'land' && child && hh % 2) KIN.decorate(m, 'garb0', tint);
       else if (style === 'frontier' && (role === 'villager' || role === 'keeper')) KIN.decorate(m, 'west' + (hh % 3), CLOTH_STYLE.frontier[(hh >> 3) % 6]);
       else if (style === 'atlantis' && (role === 'villager' || role === 'keeper' || role === 'elder')) KIN.decorate(m, 'atl' + (role === 'elder' ? 0 : hh % 3));
+      else if (style === 'alien' && (role === 'villager' || role === 'keeper' || role === 'elder') && !child) KIN.decorate(m, 'moon' + (role === 'elder' ? 1 : role === 'keeper' ? (hh % 2 ? 0 : 2) : hh % 3));
+      else if (style === 'halo' && (role === 'villager' || role === 'keeper' || role === 'elder') && !child) KIN.decorate(m, 'halo' + (role === 'elder' ? 0 : hh % 3));
       else if (role === 'explorer' || (role === 'traveller' && style === 'land' && hh % 2)) KIN.decorate(m, 'explorer'); }
     if (child) KIN.childify(m, 1.32);
     const v = vid ? villages.get(vid) : null;
