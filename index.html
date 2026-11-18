@@ -12240,12 +12240,12 @@ const Village = (() => {
   }
   const QUOTA = { hamlet: [2, 140, 650], town: [8, 550, 1500], city: [4, 1300, 2300] };
   function plan() {
-    if (PLAN) return PLAN; if (world.preset.id !== 'earth') return null;
+    if (PLAN) return PLAN; if (!world.preset.villages) return null; /* the Moon and Halo keep a fixed map of hamlets, towns and cities just as Earth does */
     planning = true; const cands = [];
     const sx = Math.floor(U.mod(world.spawn.x, WORLD_W) / CELL), sz = Math.floor(U.mod(world.spawn.z, WORLD_W) / CELL); const R = Math.ceil(2400 / CELL);
     for (let dx = -R; dx <= R; dx++) for (let dz = -R; dz <= R; dz++) { const v = siteFor(sx + dx, sz + dz); if (v && !v.founded) cands.push(v); }
     planning = false; PLAN = new Map(); const taken = [];
-    { let a = null; try { a = findAtlantis(); } catch (e) { console.warn('no Atlantis:', e.message); } ATL = null; world.atlantis = null;
+    { let a = null; try { a = world.preset.id === 'earth' ? findAtlantis() : null; } catch (e) { console.warn('no Atlantis:', e.message); } ATL = null; world.atlantis = null;
       if (a) { const cx = Math.floor(U.mod(a.x, WORLD_W) / CELL), cz = Math.floor(U.mod(a.z, WORLD_W) / CELL), id = PREFIX + cx + ',' + cz; // it takes the place of whatever that stretch of sea would have held
         const v = { id, x: a.x, z: a.z, y: U.clamp(Math.round(a.h), 20, SEA - ATL_RV - 5), type: 'deep', style: 'atlantis', atlantis: true, RH: ATL_RH, RV: ATL_RV, name: 'Atlantis', dist: a.d, tier: Math.max(4, Math.floor(a.d / 300) + 2), zoneBase: world.preset.zoneBase || 0, npcs: [], boss: null, elder: null, amen: FULL, guardEnts: [] };
         villages.set(id, v); ATL = v; world.atlantis = { id, x: v.x, y: v.y, z: v.z, RH: ATL_RH, RV: ATL_RV };
@@ -12256,6 +12256,7 @@ const Village = (() => {
       for (const v of byD) { if (got >= n) break; if (v.dist < lo || v.dist > hi || PLAN.has(v.id) || !far(v, size === 'city' ? 500 : 300)) continue;
         if (size === 'hamlet' && v.type !== 'land') continue; if (v.type !== 'land') { if (sea >= (size === 'town' ? 2 : 1)) continue; sea++; }
         PLAN.set(v.id, size); taken.push(v); got++; } }
+    { const seen = new Set(), PRE = ['Far ', 'Upper ', 'Lower ', 'New ']; let k = 0; for (const v of taken) { if (v.atlantis) continue; if (seen.has(v.name)) v.name = (PLAN.get(v.id) === 'city' ? 'Old ' : PRE[k++ % 4]) + v.name; seen.add(v.name); } } /* a small pool of names off Earth: no two places on the map share one */
     PLANNED = taken.slice();
     const specs = ['stables', 'aerie', 'sanctuary']; let si = 0; for (const v of byD) if (PLAN.get(v.id) === 'town' && v.type === 'land' && si < specs.length) SPECIAL.set(v.id, specs[si++]);
     const LOOKS = ['barber', 'mirror', 'designer', 'kinwear']; const hosts = byD.filter(v => PLAN.get(v.id) === 'city' && v.type === 'land').concat(byD.filter(v => PLAN.get(v.id) === 'town' && v.type === 'land').reverse());
@@ -12315,7 +12316,7 @@ const Village = (() => {
     if (!world.preset.villages) return null;
     cx = U.mod(cx, NC); cz = U.mod(cz, NC);
     const id = PREFIX + cx + ',' + cz;
-    if (!planning && world.preset.id === 'earth') { const P = plan(); const v0 = villages.has(id) ? villages.get(id) : rawSite(cx, cz, id); if (!v0 || !P.has(id)) return null; v0.size = P.get(id); v0.special = SPECIAL.get(id) || null; v0.looks = LOOK.get(id) || []; if (v0.type === 'land') v0.R = TOWN_R[v0.size]; if (v0.size === 'city' && !v0.atlantis && !/^(Great|Old|High|Port) /.test(v0.name)) v0.name = (v0.type !== 'land' ? 'Port ' : 'Great ') + v0.name; if (v0.size === 'city') v0.tier = Math.max(v0.tier, 4); return v0; }
+    if (!planning) { const P = plan(); const v0 = villages.has(id) ? villages.get(id) : rawSite(cx, cz, id); if (!v0 || !P.has(id)) return null; v0.size = P.get(id); v0.special = SPECIAL.get(id) || null; v0.looks = LOOK.get(id) || []; if (v0.type === 'land') v0.R = TOWN_R[v0.size]; if (v0.size === 'city' && !v0.atlantis && !/^(Great|Old|High|Port) /.test(v0.name)) v0.name = (v0.type !== 'land' ? 'Port ' : 'Great ') + v0.name; if (v0.size === 'city') v0.tier = Math.max(v0.tier, 4); return v0; }
     return rawSite(cx, cz, id);
   }
   // ================= towns as part of the world =================
@@ -12638,7 +12639,7 @@ const Village = (() => {
   }
   // called by the world as each chunk is generated: draw any town that touches it
   function overlay(chunk) {
-    if (!world || world.preset.id !== 'earth') return;
+    if (!world || !world.preset.villages) return;
     if (!PLAN && world.spawn && !planning && !trailBusy) { try { plan(); } catch (e) { console.warn('plan:', e.message); } }
     const key = U.mod(chunk.cx, NCH) + ',' + U.mod(chunk.cz, NCH);
     for (const v of townList()) {
@@ -13048,7 +13049,7 @@ const Village = (() => {
   function portalBlock(v) { return v.type === 'land' ? { x: v.x + 5, y: v.y, z: v.z - 5 } : v.type === 'sea' ? { x: v.x - 3, y: v.y, z: v.z - 2 } : { x: v.x + 4, y: v.y, z: v.z - 4 }; }
   // an Earth town built before the trains may still have its old portal standing: take it down
   function clearPortal(v) { if (world.preset.id !== 'earth') return; for (let dx = -8; dx <= 8; dx++) for (let dz = -8; dz <= 8; dz++) for (let dy = -2; dy <= 3; dy++) if (world.getBlock(v.x + dx, v.y + dy, v.z + dz) === B.PORTAL) world.setBlock(v.x + dx, v.y + dy, v.z + dz, B.AIR); }
-  function ensurePortal(v) { if (v.founded || v.R || world.preset.id === 'earth') { clearPortal(v); return; } const s = portalBlock(v); const x = s.x, z = s.z; if (world.getBlock(x, s.y, z) !== B.PORTAL) { world.setBlock(x, s.y, z, B.PORTAL); if (!isSolid(world.getBlock(x, s.y - 1, z))) world.setBlock(x, s.y - 1, z, B.STONE); for (let y = s.y + 1; y <= s.y + 2; y++) if (world.getBlock(x, y, z) !== B.AIR) world.setBlock(x, y, z, B.AIR); } }
+  function ensurePortal(v) { if (v.founded || world.preset.id === 'earth' || (v.R && !(MATS[v.style] || MATS.land).pod)) { clearPortal(v); return; } const s = portalBlock(v); const x = s.x, z = s.z; if (world.getBlock(x, s.y, z) !== B.PORTAL) { world.setBlock(x, s.y, z, B.PORTAL); if (!isSolid(world.getBlock(x, s.y - 1, z))) world.setBlock(x, s.y - 1, z, B.STONE); for (let y = s.y + 1; y <= s.y + 2; y++) if (world.getBlock(x, y, z) !== B.AIR) world.setBlock(x, y, z, B.AIR); } }
   function portalSpot(v) { return v.type === 'land' ? { x: v.x + 5.5, y: v.y, z: v.z - 3.5 } : v.type === 'sea' ? { x: v.x - 2.5, y: v.y, z: v.z - 0.5 } : { x: v.x + 4.5, y: v.y, z: v.z - 2.5 }; }
   function portalList(fromId) {
     const out = [];
@@ -14951,7 +14952,7 @@ const Village = (() => {
   }
   // which quarter of a city a spot is in (null in the square, on the castle hill, or outside a city)
   function quarterAt(v, x, z) { if (!v || !v.R || v.size !== 'city' || (MATS[v.style] || MATS.land) !== MATS.land) return null; const dx = x - v.x, dz = z - v.z, m = Math.max(Math.abs(dx), Math.abs(dz)); if (m > v.R - 4 || m <= 7 || (Math.abs(dx) <= 14 && dz <= -v.R + 28)) return null; return QUARTERS[quarterOf(dx, dz)].name; }
-  return { bossLevel: (v) => bossLevelFor(v), doorLocked, bossBeaten, makeNpc, addLoose: (n) => { if (!loose.includes(n)) loose.push(n); }, dropLoose: (n) => { const i = loose.indexOf(n); if (i >= 0) loose.splice(i, 1); }, designerWall, wallRadiusOf: (v) => wallRadius(state(v.id)), atlantis: () => { if (world && world.preset.id === 'earth') plan(); return ATL; }, railAt, quarterAt, plotsOf, plotPrice, ownsPlotAt, buyPlot, enterShow, thiefCaught, layout, townList, init, stamp, restoreStart, update, pick, talk, entities, buy, boardTrain, trainArrive, trainFilm, trainOf, sell, sellValue, raiseDome, shopDef, freed, onBossGone, lieutenantDown, tableChallenge, placeKit, portalList, portalHere, markers, wakeDialogue, questTarget, dawn, pendingIncome, foundingInfo, foundVillage, summaryHtml, ledger, station, recall, upgradeWall, repairWall, expand, build, postShop, levelOf, SHOPS, WALLS,
+  return { bossLevel: (v) => bossLevelFor(v), doorLocked, bossBeaten, makeNpc, addLoose: (n) => { if (!loose.includes(n)) loose.push(n); }, dropLoose: (n) => { const i = loose.indexOf(n); if (i >= 0) loose.splice(i, 1); }, designerWall, wallRadiusOf: (v) => wallRadius(state(v.id)), atlantis: () => { if (world && world.preset.id === 'earth') plan(); return ATL; }, planned: () => { plan(); return (PLANNED || []).map(v => siteFor(Math.floor(U.mod(v.x, WORLD_W) / CELL), Math.floor(U.mod(v.z, WORLD_W) / CELL)) || v); }, railAt, quarterAt, plotsOf, plotPrice, ownsPlotAt, buyPlot, enterShow, thiefCaught, layout, townList, init, stamp, restoreStart, update, pick, talk, entities, buy, boardTrain, trainArrive, trainFilm, trainOf, sell, sellValue, raiseDome, shopDef, freed, onBossGone, lieutenantDown, tableChallenge, placeKit, portalList, portalHere, markers, wakeDialogue, questTarget, dawn, pendingIncome, foundingInfo, foundVillage, summaryHtml, ledger, station, recall, upgradeWall, repairWall, expand, build, postShop, levelOf, SHOPS, WALLS,
     get def() { return active ? { x: active.x, y: active.y, z: active.z } : null; }, set def(v) { restoreStart(v); }, get active() { return active; }, get boss() { return active ? active.boss : null; }, get elder() { return active ? active.elder : null; }, get walking() { return !!walkState; }, get fisher() { return fisher; } };
 })();
 
