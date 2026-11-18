@@ -13121,6 +13121,20 @@ const Village = (() => {
     }
     for (const [x, z] of st.holeCols) for (let y = vy; y <= vy + 4; y++) if (world.getBlock(x, y, z) !== B.AIR) set(x, y, z, B.AIR);
   }
+  /* what a stone or metal wall wears over its blocks: a round turret under a pointed roof at each corner, a peaked cap on every merlon, a sloped foot
+     along the outside. The blocks are all still there underneath; this is drawn over them, and redrawn when the wall is rebuilt or breached */
+  function wallDress(v) { const st = state(v.id); if (v.type !== 'land' || v.founded || typeof Sky === 'undefined' || !Sky.kit) return null; const blk = wallSet(v)[st.wall || 0].block; if (blk === B.PALISADE || blk === B.LOG || blk === B.REGOLITH) return null;
+    const wr = wallRadius(st), key = 'walldress:' + v.id + ':' + blk + ':' + wr + ':' + (st.holeCols || []).length, now = performance.now(); if (v._wd && v._wd.key === key) return v._wd.mesh; if (v._wdTry && now - v._wdTry < 1000) return null; v._wdTry = now;
+    const cols = ringCols(v, st), vy = v.y, found = []; for (const [x, z, gate, role] of cols) { if (gate) continue; let top = vy + 9; while (top > vy - 2 && world.getBlock(x, top, z) !== blk) top--; if (top <= vy - 2) continue; let base = top; while (world.getBlock(x, base - 1, z) === blk) base--; found.push([x - v.x, z - v.z, base - vy, top + 1 - vy, role, world.getBlock(x, top + 1, z) === B.AIR]); }
+    if (found.length < cols.length * 0.5) return null; /* the land is not all loaded yet */
+    const M = MATS[v.style] || MATS.land, c0 = BLOCKS[blk].side, col = [c0[0], c0[1], c0[2]], r0 = (BLOCKS[M.roof] || BLOCKS[B.SLATE]).top, rf = [r0[0], r0[1], r0[2]];
+    const mesh = R.entityMesh(key, (mb) => { const K = Sky.kit(mb), dk = K.sh(col, 0.78), up = [0, 1, 0], U4 = [up, up, up, up];
+      for (const [dx, dz, y0, y1, role, open] of found) { const corner = Math.abs(dx) === wr && Math.abs(dz) === wr, along = Math.abs(dx) === wr ? dz : dx;
+        if (corner) { K.drum(dx, dz, y0 - 0.3, y0 + 1.1, 1.14, 0.95, dk, { N: 10, course: 0.7, seed: dx + dz * 3 }); K.drum(dx, dz, y0 + 1.1, y1 - 0.5, 0.95, 0.9, col, { N: 10, seed: dx * 3 + dz }); K.drum(dx, dz, y1 - 0.5, y1 - 0.1, 0.9, 1.16, dk, { N: 10, course: 0.5 }); K.cap(K.circ(dx, dz, 1.16, 10), y1 - 0.1, dk, true); K.drum(dx, dz, y1 - 0.1, y1 + 0.45, 1.16, 1.16, col, { N: 10, course: 0.6, skip: (i) => i % 2 === 1 }); K.drum(dx, dz, y1 - 0.1, y1 + 0.9, 0.8, 0.76, col, { N: 10, seed: 5 }); K.hat(dx, dz, y1 + 0.9, 1.25, 2.4, rf, 10); continue; }
+        const nx = Math.abs(dx) === wr ? Math.sign(dx) : 0, nz = nx ? 0 : Math.sign(dz), tx = -nz * 0.5, tz = nx * 0.5, fx = dx + nx * 0.5, fz = dz + nz * 0.5, c = K.sh(dk, 0.9 + 0.2 * U.hash3(dx, 7, dz, 91)), l = Math.hypot(1.3, 0.34), nn = [nx * 1.3 / l, 0.34 / l, nz * 1.3 / l];
+        K.q([[fx + tx + nx * 0.34, y0 - 0.2, fz + tz + nz * 0.34], [fx - tx + nx * 0.34, y0 - 0.2, fz - tz + nz * 0.34], [fx - tx, y0 + 1.1, fz - tz], [fx + tx, y0 + 1.1, fz + tz]], c, false, [nn, nn, nn, nn]); /* the sloped foot */
+        if (open && role !== 'post' && along % 2 === 0) { const A = [dx, y1 + 0.42, dz], h = 0.56, C = [[dx - h, y1, dz - h], [dx + h, y1, dz - h], [dx + h, y1, dz + h], [dx - h, y1, dz + h]], cc = K.sh(col, 1.06); for (let i = 0; i < 4; i++) K.q([C[i], C[(i + 1) % 4], A, A], cc, false, U4); } } });
+    v._wd = { key, mesh }; return mesh; }
   function clearWall(v, st) {
     const vy = v.y; const M = MATS[v.style] || MATS.land;
     for (const [x, z] of ringCols(v, st)) for (let y = vy - 1; y <= vy + 7; y++) { const b = world.getBlock(x, y, z); if (WALL_BLOCKS.has(b)) world.setBlock(x, y, z, y === vy - 1 ? M.ground : B.AIR); }
@@ -14786,6 +14800,7 @@ const Village = (() => {
   function entities() {
     const out = [];
     if (active) out.push(...trainPieces(active), ...ferryPieces(active));
+    if (active && G.wallDressOn) { const wm = wallDress(active); /* parked: not yet checked by eye, and the Moon and Halo are to get shapes of their own */ if (wm) out.push({ x: active.x + 0.5, y: active.y, z: active.z + 0.5, yaw: 0, scale: 1, hover: 0, skyMul: 1, isStatue: true, noOutline: true, mesh: wm }); }
     if (active) {
       for (const n of active.npcs) if (!n.hidden) out.push({ x: n.x, y: n.y, z: n.z, yaw: n.yaw, model: n.model, mesh: n.mesh, scale: n.scale || 1, hover: 0, skyMul: 1, src: n });
       if (active.gang && !state(active.id).freed) for (const g of active.gang) { g.yaw = Math.atan2(G.player.x - g.x, G.player.z - g.z); g.y = standY(g.x, g.y, g.z) ?? g.y; out.push(g); } /* the ones waiting their turn stand behind the first and watch you */
@@ -20452,7 +20467,7 @@ const Sky = (() => {
     }
   }
   function mapMarks() { if (!onEarth()) return []; return sites().filter(k => (k.kind === 'tree' && (st().rootTold || st().seen_skyroot)) || (k.kind === 'city' && G.questState && Quests.isDone && (Quests.isDone('glider'))) || st()['seen_' + k.id] || (k.kind === 'fort' && st().fortSeen)).map(k => ({ x: k.x, z: k.z, t: k.kind === 'tree' ? '🌳' : k.kind === 'city' ? '☁' : k.kind === 'fort' ? (st().fortTaken ? '♜' : '⛈') : '☁', name: k.name + (k.kind === 'fort' && !st().fortTaken ? ' (the Storm Warden)' : '') })); }
-  return { init, sites, overlay, update, talk, onBattle, inFort, gloom, mapMarks, layout, tangle, rootHint, puffEntities, entities, skyrootLog, hideFor };
+  return { init, sites, overlay, update, talk, onBattle, inFort, gloom, mapMarks, layout, tangle, rootHint, puffEntities, entities, skyrootLog, hideFor, kit };
 })();
 
 </script>

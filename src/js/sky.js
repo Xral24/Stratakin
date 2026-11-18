@@ -345,5 +345,5 @@ const Sky = (() => {
     }
   }
   function mapMarks() { if (!onEarth()) return []; return sites().filter(k => (k.kind === 'tree' && (st().rootTold || st().seen_skyroot)) || (k.kind === 'city' && G.questState && Quests.isDone && (Quests.isDone('glider'))) || st()['seen_' + k.id] || (k.kind === 'fort' && st().fortSeen)).map(k => ({ x: k.x, z: k.z, t: k.kind === 'tree' ? '🌳' : k.kind === 'city' ? '☁' : k.kind === 'fort' ? (st().fortTaken ? '♜' : '⛈') : '☁', name: k.name + (k.kind === 'fort' && !st().fortTaken ? ' (the Storm Warden)' : '') })); }
-  return { init, sites, overlay, update, talk, onBattle, inFort, gloom, mapMarks, layout, tangle, rootHint, puffEntities, entities, skyrootLog, hideFor };
+  return { init, sites, overlay, update, talk, onBattle, inFort, gloom, mapMarks, layout, tangle, rootHint, puffEntities, entities, skyrootLog, hideFor, kit };
 })();
