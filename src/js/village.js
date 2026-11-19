@@ -98,7 +98,7 @@ const Village = (() => {
       bakery: { title: 'Spore Kitchen', keeper: 'Zyx', greet: 'Spore cake. It is bread, to your kind. Eat.', stock: [{ item: 'bread', price: 12 }, { item: 'moonlamp', price: 10, n: 4 }, { item: 'torch', price: 8, n: 4 }] },
       juice: { title: 'Nectar Vat', keeper: 'Oolu', greet: 'The vat mends. Drink, and your Kin drink with you.', stock: [{ item: 'smoothie', price: 16 }, { item: 'tonic_heal', price: 12 }, { item: 'tonic_vigor', price: 40 }, { item: 'starsalt', price: 20, n: 2 }] },
       voodoo: { title: 'Mender\'s Pod', keeper: 'Qa', greet: 'Fainted Kin. I wake them. The price is Shards.', stock: [{ service: 'rest', name: 'Revive and heal the whole party', price: 24 }, { item: 'tonic_revive', price: 28 }, { item: 'tonic_heal', price: 12 }] },
-      trader: { title: 'Exchange', keeper: 'Vreek', greet: 'Minerals of your world, minerals of mine. I take both.', sell: true, stock: [{ item: 'snare2', price: 45 }, { item: 'selenite', price: 24, n: 2 }, { item: 'tycho', price: 30, n: 2 }, { item: 'glass', price: 5, n: 4 }, { item: 'iron', price: 20, n: 2 }, { item: 'void', price: 30 }, { item: 'stone', price: 2, n: 16 }] },
+      trader: { title: 'Exchange', keeper: 'Vreek', greet: 'Minerals of your world, minerals of mine. I take both.', sell: true, stock: [{ item: 'raygun', price: 700 }, { item: 'snare2', price: 45 }, { item: 'selenite', price: 24, n: 2 }, { item: 'tycho', price: 30, n: 2 }, { item: 'glass', price: 5, n: 4 }, { item: 'iron', price: 20, n: 2 }, { item: 'void', price: 30 }, { item: 'stone', price: 2, n: 16 }] },
       post: { title: 'Drift Market', keeper: 'Ixil', greet: 'What drifts in, I sell. New stock every two days.', stock: [] },
     },
     halo: {
@@ -683,6 +683,7 @@ const Village = (() => {
     if (ATL) stampAtl(chunk);
     if (typeof Sky !== 'undefined') Sky.overlay(chunk);
     if (typeof Arena !== 'undefined') Arena.overlay(chunk);
+    if (typeof Garrison !== 'undefined') Garrison.overlay(chunk);
   }
   function patchLoaded(v) {
     if (v.patched) return; v.patched = true; const L = layout(v);

@@ -37,6 +37,7 @@ const ITEMS = {
   bait_glow: { name: 'Glow Bait', col: '#d8ff6a', crafted: true, desc: 'Used up on a cast. Rare fish come to the light.' },
   bait_void: { name: 'Void Bait', col: '#9a4de0', crafted: true, desc: 'Used up on a cast. Epic and legendary fish answer it.' },
   bow: { name: 'Bow', col: '#8a5a2c', keep: true, bow: true, desc: 'The castle-builder\'s bow. Hold it and tap a Kin up to 40 blocks away: each arrow takes a big bite out of its health before the fight starts. Uses arrows.' },
+  raygun: { name: 'Ray Gun', col: '#7df0ff', keep: true, bow: true, desc: 'A Moon garrison sidearm. Hold it and tap: a bolt of light out to 40 blocks, no arrows needed. Stuns a trooper for a moment and takes a fifth of a wild Kin\'s health. It wears out: an armoury recharges it.' },
   arrow: { name: 'Arrow', col: '#c9b48a', arrow: 0.22, crafted: true, desc: 'Takes about a fifth of a wild Kin\'s health. Twice that if it never saw you. Needs a bow.' },
   arrow_ember: { name: 'Ember Arrow', col: '#ff7a3a', arrow: 0.34, crafted: true, desc: 'Burns. Takes about a third of a wild Kin\'s health. Needs a bow.' },
   target: { name: 'Target', block: B.TARGET, col: '#e04040', crafted: true, desc: 'A bullseye. Set a few up and shoot at them from a distance. Archery jobs ask for them.' },

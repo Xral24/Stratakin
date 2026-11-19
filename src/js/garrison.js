@@ -1,0 +1,64 @@
+'use strict';
+// The Garrison. When the three went up to the Moon they did not go alone: their master's troops hold a walled post outside its nearest city,
+// a landing pad with a command dome in the middle and barricades across the yard. This is the Moon's shoot-out. Troopers fire bolts of
+// light you can see coming: get behind a barricade, step out, shoot back. The first trooper you put down drops his ray gun, and from
+// then on it is a gun fight. When the yard is clear the Commander comes out of the dome with his Kin. Beat it and the post is yours.
+const Garrison = (() => {
+  let G = null, site = null, siteW = null, mustered = false, boss = null, wasThird = null, tipT = 0, cmdSaid = false;
+  const R0 = 15, WALLH = 4, ID = 'garrison';
+  const COVER = [[-7, -4, 3, 0], [6, -5, 0, 3], [-3, 5, 3, 0], [7, 4, 0, 3], [0, -8, 3, 0], [-8, 3, 0, 3]]; /* barricades: x, z, length along x, length along z */
+  const S = () => (G.stats.garrison = G.stats.garrison || {});
+  const onMoon = () => G && G.worldId === 'moon' && G.world && G.world.preset.id === 'moon';
+  function find() { const w = G.world; if (siteW === w) return site; siteW = w; site = null; if (!onMoon() || !Village.planned) return null;
+    const c = Village.planned().filter(v => v.size === 'city' && v.type === 'land').sort((a, b) => a.dist - b.dist)[0]; if (!c) return null;
+    let best = null; for (let k = 0; k < 16; k++) { const a = k * 0.3927 + 0.2, d = (c.R || 66) + 40, x = Math.round(c.x + Math.sin(a) * d), z = Math.round(c.z + Math.cos(a) * d); let lo = 999, hi = -999, bad = false;
+      for (let dx = -18; dx <= 18 && !bad; dx += 4) for (let dz = -18; dz <= 18; dz += 4) { const ci = w.colInfo(x + dx, z + dz); lo = Math.min(lo, ci.h); hi = Math.max(hi, ci.h); if (w.trackAt && w.trackAt(x + dx, z + dz)) { bad = true; break; } }
+      if (bad) continue; const sc = hi - lo; if (!best || sc < best.sc) best = { x, z, sc, y: Math.round((lo + hi) / 2), city: c, ga: Math.atan2(c.x - x, c.z - z) }; }
+    site = best; return site; }
+  const gateAt = (s, dx, dz) => { const a = Math.atan2(dx, dz), d = a - s.ga; return Math.abs(Math.atan2(Math.sin(d), Math.cos(d))) * Math.hypot(dx, dz) < 2.4; };
+  const rot = (s, x, z) => { const c = Math.cos(-s.ga), n = Math.sin(-s.ga); return [Math.round(x * c - z * n), Math.round(x * n + z * c)]; }; /* yard plan turned so its front faces the gate */
+  function overlay(chunk) { if (!G || !G.world || G.world.preset.id !== 'moon') return; const s = find(); if (!s) return; const ox = chunk.cx * CH, oz = chunk.cz * CH; if (ox + CH < s.x - 20 || ox > s.x + 20 || oz + CH < s.z - 20 || oz > s.z + 20) return;
+    const bl = chunk.blocks, put = (wx, y, wz, id) => { const lx = wx - ox, lz = wz - oz; if (lx >= 0 && lx < CH && lz >= 0 && lz < CH && y > 0 && y < WH) bl[(lx * CH + lz) * WH + y] = id; };
+    for (let lx = 0; lx < CH; lx++) for (let lz = 0; lz < CH; lz++) { const dx = ox + lx - s.x, dz = oz + lz - s.z, d = Math.hypot(dx, dz); if (d > R0 + 3.5) continue; const base = (lx * CH + lz) * WH;
+      if (d <= R0 + 0.5) { for (let y = s.y - 6; y < s.y; y++) if (bl[base + y] === B.AIR) bl[base + y] = B.BASALT; bl[base + s.y] = B.BASALT; }
+      for (let y = s.y + 1; y <= s.y + 12 && y < WH; y++) bl[base + y] = B.AIR;
+      if (d > R0 - 1.5 && d <= R0 + 0.5 && !gateAt(s, dx, dz)) for (let y = s.y + 1; y <= s.y + WALLH; y++) bl[base + y] = B.IRONWALL; }
+    for (const [cx, cz, lx, lz] of COVER) for (let i = 0; i < Math.max(1, lx); i++) for (let j = 0; j < Math.max(1, lz); j++) { const [rx, rz] = rot(s, cx + i, cz + j); put(s.x + rx, s.y + 1, s.z + rz, B.IRONWALL); put(s.x + rx, s.y + 2, s.z + rz, B.IRONWALL); }
+    for (let dx = -2; dx <= 2; dx++) for (let dz = -2; dz <= 2; dz++) if (Math.hypot(dx, dz) < 2.6) for (let y = 1; y <= 3; y++) put(s.x + dx, s.y + y, s.z + dz, B.IRONWALL); } /* the dome's core */
+  function mesh(s) { const taken = !!S().taken; return R.entityMesh('garrison2:' + (taken ? 1 : 0) + ':' + Math.round(s.ga * 100), (mb) => { const K = Sky.kit(mb), hull = [0.84, 0.86, 0.9], dark = [0.2, 0.22, 0.28], trim = [0.55, 0.6, 0.7], lit = taken ? [1, 0.9, 0.6] : [0.5, 0.98, 1.0], red = taken ? [1, 0.9, 0.6] : [1, 0.35, 0.3], N = 48, ga = Math.PI / 2 - s.ga, up = [0, 1, 0], U4 = [up, up, up, up];
+      const gap = (i) => { let dg = (i + 0.5) / N * 6.2832 - ga; dg = Math.abs(Math.atan2(Math.sin(dg), Math.cos(dg))); return dg * R0 < 2.7; };
+      K.prism(K.circ(0, 0, R0 + 0.9, N), -0.2, 0.9, 0.5, 0, dark, { course: 0.55, skip: gap, flat: true }); K.prism(K.circ(0, 0, R0 + 0.9, N), 0.9, WALLH + 0.3, 0, -0.25, hull, { course: 1.15, seed: 3, skip: gap }); K.prism(K.circ(0, 0, R0 - 1.9, N), 0, WALLH + 0.3, 0, 0, K.sh(hull, 0.82), { course: 1.4, seed: 4, skip: gap, inside: true });
+      for (let i = 0; i < N; i++) { if (gap(i)) continue; const a0 = i / N * 6.2832, a1 = (i + 1) / N * 6.2832, r0 = R0 - 1.9, r1 = R0 + 0.65; K.q([[Math.cos(a0) * r0, WALLH + 0.3, Math.sin(a0) * r0], [Math.cos(a1) * r0, WALLH + 0.3, Math.sin(a1) * r0], [Math.cos(a1) * r1, WALLH + 0.3, Math.sin(a1) * r1], [Math.cos(a0) * r1, WALLH + 0.3, Math.sin(a0) * r1]], trim, false, U4);
+        if (i % 2 === 0) { const am = (a0 + a1) / 2, r = R0 + 0.82; K.slit(Math.cos(am) * r, 2.3, Math.sin(am) * r, Math.cos(am), Math.sin(am), 0.3, 0.16, lit); } /* a band of lights round the wall */
+        if (i % 12 === 3) { const am = (a0 + a1) / 2, r = R0 - 0.6, x = Math.cos(am) * r, z = Math.sin(am) * r; K.drum(x, z, WALLH + 0.3, WALLH + 4.2, 0.22, 0.14, trim, { N: 8, course: 2 }); K.gem(x, WALLH + 4.6, z, 0.24, 0.3, red); } } /* four pylons with a warning light each */
+      for (const sd of [-1, 1]) { const a = ga + sd * (2.9 / R0), x = Math.cos(a) * (R0 - 0.5), z = Math.sin(a) * (R0 - 0.5); K.drum(x, z, -0.2, WALLH + 1.6, 1.1, 0.9, hull, { N: 10, course: 1.2, seed: 6 }); K.cap(K.circ(x, z, 0.9, 10), WALLH + 1.6, trim, true); K.gem(x, WALLH + 2.1, z, 0.22, 0.3, lit); } /* gate posts */
+      K.drum(0, 0, 0, 1.2, 3.6, 3.4, dark, { N: 16, course: 0.6, flat: true }); for (let j = 0; j < 5; j++) { const p0 = j / 5 * 1.5708, p1 = (j + 1) / 5 * 1.5708; K.drum(0, 0, 1.2 + Math.sin(p0) * 3.2, 1.2 + Math.sin(p1) * 3.2, Math.cos(p0) * 3.4, Math.max(0.05, Math.cos(p1) * 3.4), hull, { N: 16, course: 9, seed: 8 + j }); } /* the command dome */
+      K.drum(0, 0, 1.25, 1.5, 3.45, 3.45, lit, { N: 16, course: 9, flat: true, em: true }); mb.box(-0.05, 4.3, -0.05, 0.05, 7.4, 0.05, trim); K.gem(0, 7.6, 0, 0.16, 0.25, red); const da = ga, dx = Math.cos(da), dz = Math.sin(da); K.slit(dx * 3.48, 1.3, dz * 3.48, dx, dz, 0.55, 1.5, K.sh(dark, 0.6)); /* its door, facing the gate */
+      for (const [cx, cz, lx, lz] of COVER) { const a = rot(s, cx, cz), b = rot(s, cx + Math.max(0, lx - 1), cz + Math.max(0, lz - 1)), x0 = Math.min(a[0], b[0]) - 0.58, x1 = Math.max(a[0], b[0]) + 0.58, z0 = Math.min(a[1], b[1]) - 0.58, z1 = Math.max(a[1], b[1]) + 0.58, P = K.rrect(x0, z0, x1, z1, 0.3, 1.2); K.prism(P, -0.05, 0.5, 0.18, 0, dark, { course: 0.6, flat: true }); K.prism(P, 0.5, 2.12, 0, -0.08, hull, { course: 0.85, seed: 12 + cx }); K.cap(P, 2.12, trim, true); K.prism(P, 1.25, 1.42, 0.02, 0.02, [1, 0.72, 0.2], { course: 9, flat: true }); } /* barricades, a hazard stripe on each */
+      for (let i = 0; i < 24; i++) { const a0 = i / 24 * 6.2832, a1 = (i + 0.6) / 24 * 6.2832; K.q([[Math.cos(a0) * 9.6, 0.03, Math.sin(a0) * 9.6], [Math.cos(a1) * 9.6, 0.03, Math.sin(a1) * 9.6], [Math.cos(a1) * 10, 0.03, Math.sin(a1) * 10], [Math.cos(a0) * 10, 0.03, Math.sin(a0) * 10]], lit, true, U4); } }); } /* the landing ring painted on the pad */
+  function muster(s) { mustered = true; const best = Math.max(1, ...G.kin.map(k => k.level || 1)), lv = Math.min(6, 2 + Math.floor(best / 25)); const PL = [['trooper', -9, -7], ['trooper', 9, -6], ['trooper', -5, 8], ['trooper', 8, 7], ['trooper', -10, 2], ['trooper', 2, -10], ['trooper', 4, 9], ['tshield', -3, -4], ['tshield', 4, 3]];
+    for (const [kind, x, z] of PL) { const [rx, rz] = rot(s, x, z); const f = Combat.spawn(kind, s.x + rx + 0.5, s.y + 1, s.z + rz + 0.5, ID, lv); if (kind === 'trooper') { f.dmg = 1; f.rest = 5 + (Math.abs(x * 7 + z) % 6) * 0.5; f.t = 1.5 + (Math.abs(x * 3 + z) % 5) * 0.9; } } /* seven guns at once would be an execution: a bolt costs one heart, each trooper takes his time between shots, and they do not fire in step */
+    if (!S().told) { S().told = true; G.explain && G.explain('The Garrison', 'Troopers fire bolts of light. You can see them coming: put a barricade between you and them, step out, and strike. The first trooper you put down drops his ray gun. Hold it and tap to fire, no arrows needed.'); } }
+  function commander(s) { const dexM = KIN.dex('moon').filter(sp => !sp.legend && !sp.mythic && (sp.rarity || 0) >= 2), pool = dexM.length ? dexM : KIN.dex('moon'), sp = pool[U.strHash('hask') % pool.length], best = Math.max(1, ...G.kin.map(k => k.level || 1)), [rx, rz] = rot(s, 0, 6);
+    const e = Wild.makeEntity(sp, Math.min(120, Math.max(60, best + 2)), s.x + rx + 0.5, s.y + 1, s.z + rz + 0.5, { plain: true }); e.garrison = true; e.isBoss = true; e.fought = true; e.scale = (e.scale || 1) * 1.5; e.kin.nick = 'the Commander\'s ' + KIN.name(e.kin); Wild.list.push(e); boss = e;
+    const go = () => { if (boss === e && !Battle.active) Battle.start(e, false); };
+    if (!cmdSaid) { cmdSaid = true; Dialogue.show('Commander Hask', ['The dome opens. A man in white walks out with his hands behind his back.', 'You have broken a good many of my troopers. They will mend. The post will not, if I lose it.', 'So I do not intend to lose it.'], go); } else go(); }
+  function bossEnd(result) { const won = result === 'won' || result === 'caught'; boss = null; if (!won) { UI.toast('Hask has you put out through the gate. The yard stays clear: come back and finish it.', 'bad'); tipT = performance.now() + 12000; return; }
+    const st = S(); st.taken = true; Combat.clearHold(ID); G.shards += 600; if (!G.player.has('raygun')) G.player.add('raygun', 1); UI.sfx('quest'); if (UI.renderHotbar) UI.renderHotbar(); restoreView();
+    UI.toast('The Garrison is yours. 600 shards. Its lights turn from cold to warm, and the Moon\'s towns will hear of it by morning.', 'good');
+    if (typeof Cine !== 'undefined' && Cine.play) try { Cine.play([{ orbit: { x: site.x + 0.5, y: site.y + 3, z: site.z + 0.5, r: 22, h: 9, a0: 0.3, a1: 2.6 }, secs: 7, title: 'The Garrison Falls', mood: 'free', sfx: 'quest' }], () => {}); } catch (e) { /* a flourish only */ } }
+  function restoreView() { if (wasThird != null) { G.thirdPerson = wasThird; wasThird = null; } }
+  function update(dt, p) { if (!onMoon()) { if (mustered) { Combat.clearHold(ID); mustered = false; } restoreView(); return; } const s = find(); if (!s) return; const d = Math.hypot(p.x - s.x - 0.5, p.z - s.z - 0.5), st = S();
+    if (st.taken) { restoreView(); return; }
+    if (d > 150) { if (mustered && !st.cleared) { Combat.clearHold(ID); mustered = false; } restoreView(); return; }
+    if (d < 70 && !mustered && !st.cleared) muster(s);
+    const standing = Combat.standingIn(ID);
+    if (d < R0 + 6) Wild.noSpawn = { x: s.x, z: s.z, r: R0 + 14 };
+    if (standing > 0 && d < R0 + 1) { if (wasThird == null) { wasThird = !!G.thirdPerson; G.thirdPerson = false; UI.toast('Ray fire. Get behind something.', 'bad'); } } /* the shoot-out is seen through your own eyes */
+    else if (standing === 0 || d > R0 + 8) restoreView();
+    if (mustered && standing === 0 && !st.cleared && Combat.forHold(ID).length) { st.cleared = true; UI.toast('The yard is clear. Something moves inside the dome.', 'good'); }
+    if (st.cleared && !boss && d < R0 - 2 && !(typeof Battle !== 'undefined' && Battle.active) && !Dialogue.active() && performance.now() > tipT) commander(s); }
+  function entities() { if (!onMoon() || !G) return []; const s = find(); if (!s || Math.hypot(G.player.x - s.x, G.player.z - s.z) > 240) return []; return [{ x: s.x + 0.5, y: s.y + 1, z: s.z + 0.5, yaw: 0, scale: 1, hover: 0, skyMul: 1, isStatue: true, noOutline: true, mesh: mesh(s) }]; }
+  function init(g) { G = g; site = null; siteW = null; mustered = false; boss = null; wasThird = null; tipT = 0; cmdSaid = false; }
+  return { init, update, entities, overlay, bossEnd, site: () => find(), ID, get boss() { return boss; } };
+})();

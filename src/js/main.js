@@ -53,7 +53,7 @@ G.setupWorld = function (seed, presetId) {
   this.world.findSpawn();
   Wild.init(this.world, this.mobile);
   Weather.init(this.world.seed);
-  Village.init(this); Hazards.init(this); Campaign.init(this); Npcs.init(this); Camps.init(this); Mer.init(this); Lab.init(this); Avatar.init(this); Combat.init(this); Buddy.init(this); Cine.init(this); Wood.init(this); Roads.init(this); Arena.init(this); First.init(this); Breath.init(this); Ruins.init(this); Fields.init(this); Felling.init(this); Relics.init(this); Gems.init(this); Keeps.init(this); Citadel.init(this); Farms.init(this); Sky.init(this);
+  Village.init(this); Hazards.init(this); Campaign.init(this); Npcs.init(this); Camps.init(this); Mer.init(this); Lab.init(this); Avatar.init(this); Combat.init(this); Buddy.init(this); Cine.init(this); Wood.init(this); Roads.init(this); Arena.init(this); Garrison.init(this); First.init(this); Breath.init(this); Ruins.init(this); Fields.init(this); Felling.init(this); Relics.init(this); Gems.init(this); Keeps.init(this); Citadel.init(this); Farms.init(this); Sky.init(this);
   Quests.init(this);
 };
 G.newWorld = function (seed, starterIdx, name) {
@@ -457,6 +457,7 @@ G.shoot = function (pick) {
   const p = this.player;
   const ammo = pick && p.has(pick) ? pick : (this.stats.ammo && p.has(this.stats.ammo)) ? this.stats.ammo : ['arrow_ember', 'arrow', 'arrow_barbed', 'arrow_frost', 'arrow_spark', 'arrow_heavy', 'arrow_void', 'arrow_sleep'].find(a => p.has(a)) || null; if (pick) this.stats.ammo = pick;
   const bw = Combat.bow(); if (!bw) { UI.toast(Combat.anyBow() ? 'Your bow is broken. An armoury will mend it.' : 'You need a bow.', 'bad'); return; }
+  if (bw === 'raygun') return this.shootRay(bw);
   if (!ammo) { UI.toast('No arrows. Craft them: 1 wood, 1 stone, 1 frond makes 6.', 'bad'); return; }
   if (this.lastShot && performance.now() - this.lastShot < 600) return; this.lastShot = performance.now();
   p.take(ammo, 1); Combat.use(bw, 1); UI.sfx('place'); UI.renderHotbar();
@@ -479,6 +480,19 @@ G.shoot = function (pick) {
   if (e.high && Math.random() < 0.6) { p.add('feather', 1); setTimeout(() => UI.toast('A Sky Feather spins down to you.', 'good'), 400); }
   const pct = Math.round(e.kin.hp / st.hp * 100);
   UI.sfx('hit'); UI.toast(`${unaware ? 'Clean shot! ' : 'Hit! '}${KIN.name(e.kin)} down to ${pct}% (${before - e.kin.hp} damage). ${e.kin.hp <= 1 ? 'It is barely standing.' : 'It is coming for you.'}`, 'good');
+};
+/* the ray gun: the bow's job without arrows. A bolt of light to whatever the crosshair is on */
+G.shootRay = function (bw) {
+  const p = this.player; if (this.lastShot && performance.now() - this.lastShot < 430) return; this.lastShot = performance.now();
+  Combat.use(bw, 1); UI.sfx('zap'); UI.renderHotbar(); const eye = p.eye(), f0 = U.forwardVec(p.yaw, p.pitch), from = [eye.x + f0[0] * 0.6, eye.y - 0.25, eye.z + f0[2] * 0.6], to = (d) => [eye.x + f0[0] * d, eye.y + f0[1] * d, eye.z + f0[2] * d];
+  { const fh = Combat.arrowHit('ray', 40); const wall0 = fh && p.raycast(40, false, true); if (fh && (!wall0 || wall0.dist > fh.dist)) { Combat.beam(from, to(fh.dist)); UI.sfx('hit'); const ft = Combat.focusText(); if (ft) UI.toast(ft); return; } }
+  const e = Wild.pick(p, 40), wall = p.raycast(40, false, true), eD = e ? Math.hypot(e.x - p.x, e.y - p.y, e.z - p.z) : Infinity;
+  if (wall && wall.dist < eD) { Combat.beam(from, to(wall.dist));
+    if (wall.id === B.BALLOON) { this.world.setBlock(wall.x, wall.y, wall.z, B.AIR); this.meshPass(99); UI.sfx('caught'); Builds.onShot('balloon', wall, p); return; }
+    if (wall.id === B.TARGET && Citadel.onTarget(wall)) return; if (wall.id === B.TARGET) { UI.sfx('hit'); Builds.onShot('target', wall, p); return; } return; }
+  if (!e) { Combat.beam(from, to(40)); return; }
+  Combat.beam(from, to(eD)); const st = KIN.stats(e.kin), unaware = !e.chase && (e.alert || 0) < 0.6, before = e.kin.hp; Wild.strike(e, 0.2 * (unaware ? 2 : 1), { arrow: true, keepOne: true });
+  this.stats.arrowHits = (this.stats.arrowHits || 0) + 1; UI.sfx('hit'); UI.toast(`${unaware ? 'Clean shot! ' : 'Hit! '}${KIN.name(e.kin)} down to ${Math.round(e.kin.hp / st.hp * 100)}% (${before - e.kin.hp} damage). ${e.kin.hp <= 1 ? 'It is barely standing.' : 'It is coming for you.'}`, 'good');
 };
 // use a consumable from the Bag or by tapping with it held
 G.useItem = function (key) {
@@ -528,7 +542,7 @@ G.onBattleEnd = function (result, wildE, wild, mine, ambush) {
   document.getElementById('hud').classList.remove('in-battle');
   if (mine) mine.buffs = null;
   const st = wild.sp.mythic;
-  if (wildE && wildE.bandit) Roads.holdupEnd(result); if (wildE && wildE.pit) Arena.boutEnd(result);
+  if (wildE && wildE.bandit) Roads.holdupEnd(result); if (wildE && wildE.pit) Arena.boutEnd(result); if (wildE && wildE.garrison) Garrison.bossEnd(result);
   const baseXp = Math.floor(9 * wild.level * (1 + 0.4 * (wild.stage - 1)) * KIN.RARITY[wild.sp.rarity || 0].xp * (st ? 6 : 1) * (wildE && wildE.isBoss ? 2.5 : 1)); /* throwing a tyrant out teaches a Kin a great deal */
   if (result === 'won' || result === 'caught') {
     const xp = result === 'won' ? baseXp : Math.floor(baseXp * 0.6);
@@ -776,7 +790,7 @@ G.loop = function (t) {
       if (w.regrow && w.regrow.length && (this.frame & 31) === 0) { const now = performance.now(); w.regrow = w.regrow.filter(r => { if (now < r.t) return true; if ((r.id === B.LOG || r.id === B.BIRCHLOG || r.id === B.PALMLOG || r.id === B.LEAVES) && !Felling.natural(r.x, r.y, r.z, r.id)) return false; /* a block you built and took away stays gone */ const b = w.getBlock(r.x, r.y, r.z); if (r.id != null) { if (b === B.AIR && !(Math.abs(r.x + 0.5 - p.x) < 0.8 && Math.abs(r.z + 0.5 - p.z) < 0.8 && r.y >= Math.floor(p.y) - 1 && r.y <= Math.floor(p.y) + 2)) { if (r.id === B.GLOWWORM && !isSolid(w.getBlock(r.x, r.y - 1, r.z))) return false; w.setBlock(r.x, r.y, r.z, r.id); } else if (b === B.AIR) { r.t = now + 15000; return true; } } else if (r.leaf) { if (b === B.LEAVES) w.setBlock(r.x, r.y, r.z, B.BERRYLEAF); } else if (b === B.AIR) w.setBlock(r.x, r.y, r.z, B.BERRY); return false; }); }
       const trig = (Dialogue.active() || Village.walking) ? null : Wild.update(dt, p, performance.now() / 1000, false);
       { const tn = this.talkNpc, on = tn && Dialogue.active() && !(typeof Cine !== 'undefined' && Cine.active()); if (this._spoke && this._spoke !== tn) this._spoke.talkOpen = 0; if (tn) { const tt = performance.now() / 1000; tn.talkOpen = on ? Math.abs(Math.sin(tt * 11.5)) * (0.35 + 0.65 * Math.abs(Math.sin(tt * 3.3 + 1))) : 0; this._spoke = tn; } } /* whoever is speaking moves their mouth */
-      R.setSeason(this.worldId === 'earth' && !(this.world.colInfo(Math.floor(p.x), Math.floor(p.z)).lost) ? Fields.season() : 1); Cine.update(dt); Wood.update(dt, p); Roads.update(dt, p); Arena.update(dt, p); Buddy.update(dt, p); First.update(dt, p); Breath.update(dt, p); Ruins.update(dt, p); Fields.update(dt, p); Gems.update(dt, p); Felling.update(dt); Keeps.update(dt, p); Citadel.update(dt, p); Farms.update(dt, p); Sky.update(dt, p); Combat.update(dt, p, input);
+      R.setSeason(this.worldId === 'earth' && !(this.world.colInfo(Math.floor(p.x), Math.floor(p.z)).lost) ? Fields.season() : 1); Cine.update(dt); Wood.update(dt, p); Roads.update(dt, p); Arena.update(dt, p); Garrison.update(dt, p); Buddy.update(dt, p); First.update(dt, p); Breath.update(dt, p); Ruins.update(dt, p); Fields.update(dt, p); Gems.update(dt, p); Felling.update(dt); Keeps.update(dt, p); Citadel.update(dt, p); Farms.update(dt, p); Sky.update(dt, p); Combat.update(dt, p, input);
       Wild.ensureHeart(p, this.trainerLevel, this.mythicCaught); Wild.ensureLegend(p); Wild.ensureApex(p);
       if (trig && !trig.e.cool && !Dialogue.active() && !Taming.active && !p.flying && !(this.fightGrace > performance.now()) && !((Keeps.inHold(p) || Citadel.inside(p) || Sky.inFort(p)) && !trig.e.keepBoss && !trig.e.skyBoss)) Wild.engage(trig.e, trig.ambush);
       for (const e of Wild.list) if (e.cool > 0) e.cool -= dt;
@@ -868,7 +882,7 @@ G.loop = function (t) {
   const showMe = !this.hideMe && !Battle.net && (inBattle || (this.thirdPerson && !(this.camNear && !p.mount)) || this.talkK > 0 || !!p.mount || this.grassCamOn); // hideMe: he has gone inside something (a railway carriage)
   if (showMe) { const me = Avatar.entity(p, Math.hypot(p.vx, p.vz) > 0.6); if (p.mount) { const mm = KIN.model(p.mount.sp, p.mount.stage); const st = seatOf(mm); const f = U.forwardVec(p.yaw, 0); const along = 0.5 + st.zc - 0.06; me.x = p.x + f[0] * along; me.z = p.z + f[2] * along; me.y = G.mountBase(p) + st.top - hipOf(me.model) * (me.scale || 1) + 0.1; me._an.cross = 1; /* sat cross-legged on top: fits a pony and a T-rex alike */ me.seatY = hipOf(me.model) * (me.scale || 1); } me.M = null; ents.push(me); this.meEnt = me; } else this.meEnt = null;
   if (p.mount) { const k = p.mount; const m = KIN.dress(KIN.model(k.sp, k.stage), k.wear); const fwd = U.forwardVec(p.yaw, 0); if (!k._an) k._an = { ph: 0, mv: 0, lx: p.x, lz: p.z, ly: p.y, lt: performance.now(), vy: 0, seed: 5, air: 0 }; k._an.swim = p.mountMode === 'water' ? 1 : 0; const mt = { x: p.x + fwd[0] * 0.5, y: G.mountBase(p), z: p.z + fwd[2] * 0.5, yaw: p.yaw + Math.PI, model: m, mesh: R.entityMesh(KIN.meshKey(k.sp, k.stage) + KIN.wearKey(k.wear), (mb) => KIN.buildMesh(mb, m)), scale: 1, hover: 0, skyMul: 1, isMount: true, flying: p.mountMode === 'air' && !p.onGround, _an: k._an }; ents.push(mt); if (Taming.active) Taming.pose(mt, this.meEnt, cam.yaw); /* it bucks, and you with it */ }
-  ents.push(...Battle.fxEntities()); ents.push(...Sky.puffEntities()); ents.push(...Wild.dropEntities()); ents.push(...Gems.entities()); ents.push(...Buddy.entities()); ents.push(...First.entities()); ents.push(...Cine.entities()); ents.push(...Wood.entities()); ents.push(...Arena.entities()); ents.push(...Sky.entities()); ents.push(...Ruins.entities()); ents.push(...Fields.entities()); ents.push(...Farms.entities()); ents.push(...Felling.entities()); ents.push(...Combat.entities()); ents.push(...Hazards.entities()); ents.push(...Npcs.entities());
+  ents.push(...Battle.fxEntities()); ents.push(...Sky.puffEntities()); ents.push(...Wild.dropEntities()); ents.push(...Gems.entities()); ents.push(...Buddy.entities()); ents.push(...First.entities()); ents.push(...Cine.entities()); ents.push(...Wood.entities()); ents.push(...Arena.entities()); ents.push(...Garrison.entities()); ents.push(...Sky.entities()); ents.push(...Ruins.entities()); ents.push(...Fields.entities()); ents.push(...Farms.entities()); ents.push(...Felling.entities()); ents.push(...Combat.entities()); ents.push(...Hazards.entities()); ents.push(...Npcs.entities());
   for (const o of w.statues.values()) {
     if ((o.x - p.x) ** 2 + (o.z - p.z) ** 2 > 4000) continue;
     if (!o.model) { o.model = KIN.statueModel(o); o.mesh = R.entityMesh('statue:' + o.id, (mb) => KIN.buildMesh(mb, o.model)); }

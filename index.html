@@ -5118,6 +5118,7 @@ const ITEMS = {
   bait_glow: { name: 'Glow Bait', col: '#d8ff6a', crafted: true, desc: 'Used up on a cast. Rare fish come to the light.' },
   bait_void: { name: 'Void Bait', col: '#9a4de0', crafted: true, desc: 'Used up on a cast. Epic and legendary fish answer it.' },
   bow: { name: 'Bow', col: '#8a5a2c', keep: true, bow: true, desc: 'The castle-builder\'s bow. Hold it and tap a Kin up to 40 blocks away: each arrow takes a big bite out of its health before the fight starts. Uses arrows.' },
+  raygun: { name: 'Ray Gun', col: '#7df0ff', keep: true, bow: true, desc: 'A Moon garrison sidearm. Hold it and tap: a bolt of light out to 40 blocks, no arrows needed. Stuns a trooper for a moment and takes a fifth of a wild Kin\'s health. It wears out: an armoury recharges it.' },
   arrow: { name: 'Arrow', col: '#c9b48a', arrow: 0.22, crafted: true, desc: 'Takes about a fifth of a wild Kin\'s health. Twice that if it never saw you. Needs a bow.' },
   arrow_ember: { name: 'Ember Arrow', col: '#ff7a3a', arrow: 0.34, crafted: true, desc: 'Burns. Takes about a third of a wild Kin\'s health. Needs a bow.' },
   target: { name: 'Target', block: B.TARGET, col: '#e04040', crafted: true, desc: 'A bullseye. Set a few up and shoot at them from a distance. Archery jobs ask for them.' },
@@ -12088,7 +12089,7 @@ const Village = (() => {
       bakery: { title: 'Spore Kitchen', keeper: 'Zyx', greet: 'Spore cake. It is bread, to your kind. Eat.', stock: [{ item: 'bread', price: 12 }, { item: 'moonlamp', price: 10, n: 4 }, { item: 'torch', price: 8, n: 4 }] },
       juice: { title: 'Nectar Vat', keeper: 'Oolu', greet: 'The vat mends. Drink, and your Kin drink with you.', stock: [{ item: 'smoothie', price: 16 }, { item: 'tonic_heal', price: 12 }, { item: 'tonic_vigor', price: 40 }, { item: 'starsalt', price: 20, n: 2 }] },
       voodoo: { title: 'Mender\'s Pod', keeper: 'Qa', greet: 'Fainted Kin. I wake them. The price is Shards.', stock: [{ service: 'rest', name: 'Revive and heal the whole party', price: 24 }, { item: 'tonic_revive', price: 28 }, { item: 'tonic_heal', price: 12 }] },
-      trader: { title: 'Exchange', keeper: 'Vreek', greet: 'Minerals of your world, minerals of mine. I take both.', sell: true, stock: [{ item: 'snare2', price: 45 }, { item: 'selenite', price: 24, n: 2 }, { item: 'tycho', price: 30, n: 2 }, { item: 'glass', price: 5, n: 4 }, { item: 'iron', price: 20, n: 2 }, { item: 'void', price: 30 }, { item: 'stone', price: 2, n: 16 }] },
+      trader: { title: 'Exchange', keeper: 'Vreek', greet: 'Minerals of your world, minerals of mine. I take both.', sell: true, stock: [{ item: 'raygun', price: 700 }, { item: 'snare2', price: 45 }, { item: 'selenite', price: 24, n: 2 }, { item: 'tycho', price: 30, n: 2 }, { item: 'glass', price: 5, n: 4 }, { item: 'iron', price: 20, n: 2 }, { item: 'void', price: 30 }, { item: 'stone', price: 2, n: 16 }] },
       post: { title: 'Drift Market', keeper: 'Ixil', greet: 'What drifts in, I sell. New stock every two days.', stock: [] },
     },
     halo: {
@@ -12673,6 +12674,7 @@ const Village = (() => {
     if (ATL) stampAtl(chunk);
     if (typeof Sky !== 'undefined') Sky.overlay(chunk);
     if (typeof Arena !== 'undefined') Arena.overlay(chunk);
+    if (typeof Garrison !== 'undefined') Garrison.overlay(chunk);
   }
   function patchLoaded(v) {
     if (v.patched) return; v.patched = true; const L = layout(v);
@@ -15787,6 +15789,7 @@ const QUESTS = [
   /* the Dark Wood */
   /* the old stones, and the country */
   /* the Moon's own chapter and Halo's: the same three, further from home each time */
+  { id: 'garrison', title: 'The Garrison', desc: 'The three did not come up alone. Their master\'s troopers hold a walled landing post outside the nearest Moon city: white walls, a dome in the middle, barricades across the yard. They shoot bolts of light. Use the barricades, put one trooper down and take his ray gun, clear the yard, then beat Commander Hask\'s Kin.', hint: 'Take the Garrison (outside the nearest Moon city)', check: G => (G.stats.garrison || {}).taken ? 1 : 0, reward: { xp: 2500, items: { tonic_heal: 4 } } },
   { id: 'moontown', title: 'Two, and No Air', desc: 'The three followed their master up. On the Moon a town is two of them in pressure rigs, level 57 and climbing, and its gates stay shut until both are out. The Glide will take you between the docks you have relit.', hint: 'Free a town on the Moon', check: G => (((G.stats.freedW || {}).moon || {}).town || 0) >= 1 ? 1 : 0, reward: { xp: 1200, items: { snare2: 3, tonic_heal: 4 } } },
   { id: 'mooncity', title: 'The Great Domes', desc: 'Four cities under glass, each held by all three together. Bigmouth says his suit squeaks when he laughs. Make him laugh.', hint: 'Free a city on the Moon', check: G => (((G.stats.freedW || {}).moon || {}).city || 0) >= 1 ? 1 : 0, reward: { xp: 2000 } },
   { id: 'moonall', title: 'The Lit Side', desc: 'Eight towns and four cities. Free them all and every dome on the Moon has its lights on again.', hint: 'Free every town and city on the Moon', check: G => ((((G.stats.freedW || {}).moon || {}).town || 0) + (((G.stats.freedW || {}).moon || {}).city || 0)) / 12, reward: { xp: 5000 } },
@@ -15810,8 +15813,8 @@ const QUESTS = [
 const Quests = (() => {
   let G = null;
   // three arcs that run side by side: the journey (your tools, the people, the worlds), the Dark Arc (the Kinmaster), and the Old Ones (the great Kin)
-  const ARC_OF = { kinmaster: 'dark', holds: 'dark', storm: 'dark', citadel: 'dark', scientist: 'dark', ship: 'dark', heart: 'old', mythic: 'old', lost: 'old', abyss: 'old', rex: 'old', legend: 'old', atlantis: 'deep', skerry: 'deep', calder: 'deep', trident: 'deep', town: 'land', towns: 'land', city: 'land', cities: 'land', woodfind: 'wood', woodone: 'wood', woodall: 'wood', stones: 'wood', harvest: 'wood', moontown: 'moonarc', mooncity: 'moonarc', moonall: 'moonarc', halofree: 'haloarc', pit1: 'haloarc', pit: 'haloarc', halocity: 'haloarc', haloall: 'haloarc' };
-  const AFTER = { moontown: 'moon', halofree: 'halo', town: 'village', woodfind: 'village', storm: 'sky', kinmaster: 'glider', heart: 'legend', moon: 'ship', legend: 'ship', atlantis: 'diver' };
+  const ARC_OF = { kinmaster: 'dark', holds: 'dark', storm: 'dark', citadel: 'dark', scientist: 'dark', ship: 'dark', heart: 'old', mythic: 'old', lost: 'old', abyss: 'old', rex: 'old', legend: 'old', atlantis: 'deep', skerry: 'deep', calder: 'deep', trident: 'deep', town: 'land', towns: 'land', city: 'land', cities: 'land', woodfind: 'wood', woodone: 'wood', woodall: 'wood', stones: 'wood', harvest: 'wood', garrison: 'moonarc', moontown: 'moonarc', mooncity: 'moonarc', moonall: 'moonarc', halofree: 'haloarc', pit1: 'haloarc', pit: 'haloarc', halocity: 'haloarc', haloall: 'haloarc' };
+  const AFTER = { garrison: 'moon', halofree: 'halo', town: 'village', woodfind: 'village', storm: 'sky', kinmaster: 'glider', heart: 'legend', moon: 'ship', legend: 'ship', atlantis: 'diver' };
   const ARCS = { main: { name: 'The Journey', col: '#4fb0ff' }, dark: { name: 'The Dark Arc', col: '#b07aff' }, old: { name: 'The Old Ones', col: '#ffc94a' }, deep: { name: 'The Deep', col: '#3fd4ff' }, land: { name: 'The Free Land', col: '#7bd66a' }, moonarc: { name: 'The Quiet Side', col: '#9fd0ff' }, haloarc: { name: 'The Burning Ring', col: '#ff9a4a' }, wood: { name: 'The Country', col: '#c9a03a' } };
   const arcList = (a) => QUESTS.filter(q => (ARC_OF[q.id] || 'main') === a);
   function init(game) { G = game; if (!G.questState) G.questState = { index: 0, bounty: { need: 3, done: 0, round: 1 } }; }
@@ -18231,6 +18234,7 @@ const UI = (() => {
         case 'break': tone(300, 80, 0.15, 'sawtooth', 0.08); break;
         case 'place': tone(220, 330, 0.08, 'triangle', 0.08); break;
         case 'hit': tone(240, 90, 0.18, 'sawtooth', 0.1); break;
+        case 'zap': tone(1400, 260, 0.14, 'sawtooth', 0.06); tone(2200, 500, 0.1, 'square', 0.03); break; /* a ray gun */
         case 'hit2': tone(320, 70, 0.25, 'sawtooth', 0.12); tone(600, 200, 0.12, 'square', 0.05, 0.05); break;
         case 'miss': tone(500, 700, 0.12, 'sine', 0.05); break;
         case 'util': tone(440, 660, 0.2, 'triangle', 0.07); break;
@@ -19408,7 +19412,8 @@ const Combat = (() => {
     arrow_void: { dmg: 22, pierce: true, name: 'Void Arrow', col: '#7a2aa8', kin: 0.4, desc: 'Void-tipped: ignores shields entirely. On a wild Kin, two fifths of its health. Made only at a Dark Fusion Table.', needs: { wood: 1, void: 1, frond: 1 }, n: 3 },
   };
   // ---------------- wear: blades, spears, bows, shields and armour all wear out and need mending ----------------
-  const BOWS = { bow: { life: 170, price: 120 }, bow_painted: { life: 90, price: 60 } };
+  const BOWS = { bow: { life: 170, price: 120 }, bow_painted: { life: 90, price: 60 }, raygun: { life: 260, price: 700, ray: true } }; /* the Moon garrison's sidearm: needs no arrows, and is the one you reach for once you have it */
+  ARROWS.ray = { dmg: 15, stun: 0.5, name: 'Ray' };
   const TOOLS = { shovel: { life: 400, price: 40 }, hatchet: { life: 260, price: 40 }, axe_iron: { life: 600, price: 140 }, pick_iron: { life: 520, price: 160 }, pick: { life: 1300, price: 650 } }; // the stone pick and the rods never wear
   function lifeOf(id) { const g = GEAR[id], a = ARMOUR[id], b = BOWS[id] || TOOLS[id]; if (b) return b.life; if (a) return 70 + a.tier * 35; if (g) return g.kind === 'shield' ? 60 + g.tier * 30 : 90 + g.tier * 45; return 0; }
   function priceOf(id) { const g = GEAR[id], a = ARMOUR[id], b = BOWS[id] || TOOLS[id]; return (b && b.price) || (g && g.price) || (a && a.price) || 60; }
@@ -19482,12 +19487,14 @@ const Combat = (() => {
     brute: { name: 'Bound Brute', hp: 120, dmg: 3, speed: 1.7, reach: 2.3, wind: 1.15, rest: 1.7, deco: 'maul', big: 1.22, cols: { body: '#2a2434', belly: '#b8926a', accent: '#6a2a9a' } },
     lancer: { name: 'Bound Lancer', hp: 48, dmg: 2, speed: 2.9, reach: 3.0, wind: 0.75, rest: 1.3, deco: 'lance', cols: { body: '#34304a', belly: '#d8b090', accent: '#9a3ac8' } },
     hexer: { name: 'Bound Hexer', hp: 36, dmg: 2, speed: 2.0, reach: 12, wind: 1.3, rest: 2.2, deco: 'staff', archer: true, hex: true, cols: { body: '#2a1640', belly: '#c9b48a', accent: '#b026ff' } },
+    trooper: { name: 'Garrison Trooper', hp: 36, dmg: 1, speed: 2.6, reach: 15, wind: 0.85, rest: 1.5, deco: 'raygun', archer: true, ray: true, glow: '#7df0ff', cols: { body: '#c9d0dc', belly: '#8a93a6', accent: '#2a3348' } },
+    tshield: { name: 'Garrison Shield', hp: 64, dmg: 1, speed: 2.1, reach: 1.8, wind: 0.7, rest: 1.2, deco: 'shield', block: 0.7, glow: '#7df0ff', cols: { body: '#aab2c2', belly: '#8a93a6', accent: '#2a3348' } },
     captain: { name: 'Bound Captain', hp: 90, dmg: 2, speed: 2.5, reach: 2.2, wind: 0.65, rest: 1.0, deco: 'captain', block: 0.5, cols: { body: '#241c30', belly: '#c9b48a', accent: '#b026ff' } },
   };
   /* The Kinmaster's bound warriors, drawn as soldiers and not as boxes: a helm for each trade, plate at the chest and shoulders, a violet light in the
      eye slit, and the weapon in the hand that swings it (it rides the arm, so a blow is a blow). Seven of them now: the brute, the hexer and the lancer hold the keep's upper floors. */
   function warriorModel(kind, freed) {
-    const K = KINDS[kind]; const glow = freed ? '#ffe08a' : '#c04cff', steel = '#4a4a5a', dsteel = '#2c2c38', lsteel = '#8a8a9c', wood = '#6b4a2b', ac = K.cols.accent;
+    const K = KINDS[kind]; const glow = freed ? '#ffe08a' : (K.glow || '#c04cff'), steel = '#4a4a5a', dsteel = '#2c2c38', lsteel = '#8a8a9c', wood = '#6b4a2b', ac = K.cols.accent;
     const sp = { build: ({ axeman: 'stout', brute: 'stout', archer: 'slim', hexer: 'slim', lancer: 'slim' })[kind] || 'man', hairVar: ({ guard: 1, axeman: 2, archer: 3, captain: 0 })[kind] || 0, hair: '#1a1018', shape: 'human', feat: { crest: false, ears: false, horns: false, spikes: false, tail: false, wings: false, bigEyes: false }, colors: Object.assign({ dark: '#120818', eye: glow }, K.cols), size: 1, gen: 0, names: ['warrior'] };
     const m = KIN.model(sp, 2); const H = KIN.partHelpers(m); const { blob, ball, tube, plate, ring, cone } = H; const G1 = { emis: true };
     const hooded = kind === 'archer' || kind === 'hexer';
@@ -19516,6 +19523,7 @@ const Combat = (() => {
     if (K.deco === 'maul') { tube([[hx, hy - 0.3, hz], [hx, hy + 1.2, hz]], [0.04, 0.04], wood, { segs: 6, cap0: 'round', cap1: 'round' }); blob(hx - 0.26, hy + 0.96, hz - 0.16, hx + 0.26, hy + 1.36, hz + 0.16, 0.35, '#3a3440', { n: 2 }); for (const sd of [-1, 1]) { cone([hx + sd * 0.26, hy + 1.16, hz], [sd, 0, 0], 0.14, 0.07, lsteel, { segs: 4 }); } ball(hx, hy + 1.16, hz + 0.17, 0.06, glow, G1); }
     if (K.deco === 'lance') { tube([[hx, hy - 0.5, hz], [hx, hy + 1.7, hz]], [0.028, 0.026], wood, { segs: 5, cap0: 'round', cap1: 'flat' }); cone([hx, hy + 1.7, hz], [0, 1, 0], 0.34, 0.06, '#d8dae6', { segs: 4 }); plate([[hx, hy + 1.62, hz], [hx - 0.34, hy + 1.5, hz - 0.02], [hx, hy + 1.38, hz]], 0.012, ac, { edge: glow }); blob(hx - 0.07, hy + 0.1, hz - 0.07, hx + 0.07, hy + 0.2, hz + 0.07, 0.6, lsteel, { n: 2 }); }
     if (K.deco === 'bow') { const p = []; for (let i = 0; i <= 8; i++) { const a = -1.2 + i / 8 * 2.4; p.push([hx, hy + 0.2 + Math.sin(a) * 0.62, hz + Math.cos(a) * 0.3 - 0.1]); } tube(p, p.map((_, i) => 0.012 + 0.02 * Math.sin(i / 8 * Math.PI)), wood, { segs: 5, cap0: 'round', cap1: 'round' }); tube([p[0], p[8]], [0.005, 0.005], '#e8e4dc', { segs: 3 }); }
+    if (K.deco === 'raygun') { blob(hx - 0.05, hy + 0.1, hz - 0.1, hx + 0.05, hy + 0.24, hz + 0.34, 0.5, '#3a4052', { n: 2 }); tube([[hx, hy + 0.17, hz + 0.3], [hx, hy + 0.17, hz + 0.62]], [0.035, 0.028], '#8d97aa', { segs: 6, cap0: 'flat', cap1: 'flat' }); ball(hx, hy + 0.17, hz + 0.64, 0.04, glow, G1); blob(hx - 0.035, hy - 0.08, hz - 0.06, hx + 0.035, hy + 0.12, hz + 0.02, 0.4, '#2a2e3a', { n: 2 }); for (const z of [0.38, 0.46, 0.54]) tube([[hx, hy + 0.17, hz + z - 0.01], [hx, hy + 0.17, hz + z + 0.01]], [0.05, 0.05], '#cfd6e2', { segs: 6 }); } /* a ray gun: a grip, a body, a ringed barrel with a light in the mouth */
     if (K.deco === 'staff') { tube([[hx, hy - 0.5, hz], [hx, hy + 1.3, hz]], [0.026, 0.03], '#3a2a1a', { segs: 5, cap0: 'round', cap1: 'round' }); for (let i = 0; i < 3; i++) { const a = i / 3 * 6.283; tube([[hx, hy + 1.2, hz], [hx + Math.cos(a) * 0.12, hy + 1.38, hz + Math.sin(a) * 0.12], [hx + Math.cos(a) * 0.07, hy + 1.56, hz + Math.sin(a) * 0.07]], [0.02, 0.016, 0.006], '#3a2a1a', { segs: 4 }); } ball(hx, hy + 1.44, hz, 0.09, glow, G1); }
     /* on the left arm */
     H.bone = 2;
@@ -19527,18 +19535,21 @@ const Combat = (() => {
   function spawn(kind, x, y, z, holdId, level) {
     const K = KINDS[kind]; const m = warriorModel(kind, false); const lv = level || 0;
     const f = { kind, name: K.name, x, y, z, yaw: 0, hx: x, hz: z, model: m, mesh: R.entityMesh('foe3:' + kind, (mb) => KIN.buildMesh(mb, m)), scale: K.big || 1, hover: 0, hex: !!K.hex, skyMul: 1,
-      hp: Math.round(K.hp * (1 + lv * 0.45)), max: Math.round(K.hp * (1 + lv * 0.45)), dmg: K.dmg + Math.floor(lv / 2), speed: K.speed, reach: K.reach, wind: K.wind, rest: K.rest, block: K.block || 0, archer: !!K.archer,
+      hp: Math.round(K.hp * (1 + lv * 0.45)), max: Math.round(K.hp * (1 + lv * 0.45)), dmg: K.dmg + Math.floor(lv / 2), speed: K.speed, reach: K.reach, wind: K.wind, rest: K.rest, block: K.block || 0, archer: !!K.archer, ray: !!K.ray,
       state: 'idle', t: 0, aware: false, holdId, lv, burn: 0, bleed: 0, slowT: 0, stun: 0, hitT: 0, isFoe: true };
     foes.push(f); return f;
   }
   const shots = []; // the archers' arrows
+  const bolts = []; /* your own ray gun's bolts: light only, the hit is decided the moment you fire */
+  function beam(a, b) { const d = Math.hypot(b[0] - a[0], b[1] - a[1], b[2] - a[2]) || 1, v = 70; for (let k = 0; k < 3; k++) bolts.push({ x: a[0], y: a[1], z: a[2], vx: (b[0] - a[0]) / d * v, vy: (b[1] - a[1]) / d * v, vz: (b[2] - a[2]) / d * v, t: -k * 0.018, life: d / v }); }
   function down(f, how) {
     f.state = 'down'; f.hp = 0; f.t = 0; f.hover = -0.55; UI.sfx('win'); G.knockout(f.x, f.y, f.z);
     const P = G.player; const gold = weapon() && weapon().fx === 'loot' ? 2 : 1; const sh = Math.round((8 + f.lv * 6) * gold * (f.kind === 'captain' ? 3 : 1)); G.shards += sh;
     let msg = `${f.name} drops to his knees, dazed. +${sh} shards.`;
     // what he fought with is yours: his sword, axe, shield or bow, as good as his rank (one you already carry turns into shards)
-    const takes = { guard: ['sword'], axeman: ['axe'], brute: ['axe'], lancer: ['sword'], shield: ['shield'], captain: ['sword', 'shield'], archer: ['bow'] }[f.kind] || [];
+    const takes = { guard: ['sword'], axeman: ['axe'], brute: ['axe'], lancer: ['sword'], shield: ['shield'], captain: ['sword', 'shield'], archer: ['bow'], trooper: ['raygun'] }[f.kind] || [];
     for (const kind of takes) {
+      if (kind === 'raygun') { if (!P.has('raygun')) { P.add('raygun', 1); msg += ' You take his ray gun. It needs no arrows: hold it and tap.'; if (UI.renderHotbar) UI.renderHotbar(); } continue; }
       if (kind === 'bow') { if (!P.has('bow')) { P.add('bow', 1); msg += ' You take his bow.'; } else { P.add('arrow', 4); msg += ' You take his arrows.'; } continue; }
       const pool = Object.values(GEAR).filter(g => g.kind === kind && g.tier <= Math.max(1, f.lv) && g.tier >= Math.max(0, f.lv - 2)); const g = pool[Math.floor(Math.random() * pool.length)]; if (!g) continue;
       if (P.has(g.id)) { const extra = Math.max(6, Math.round(g.price / 4 || 10)); G.shards += extra; msg += ` His ${g.name} is like yours: +${extra} shards for it.`; }
@@ -19643,6 +19654,7 @@ const Combat = (() => {
     const wantBlock = !!(sh && ((w && input && input.mine) || G.blockHeld)); // hold the screen with a weapon out, or hold the shield button
     if (wantBlock && !p.blocking) blockT = 0; p.blocking = wantBlock; if (p.blocking) blockT += dt;
     if (G.foeFocusT > 0) G.foeFocusT -= dt;
+    for (let i = bolts.length - 1; i >= 0; i--) { const b = bolts[i]; b.t += dt; if (b.t > 0) { b.x += b.vx * dt; b.y += b.vy * dt; b.z += b.vz * dt; } if (b.t > b.life) bolts.splice(i, 1); }
     for (let i = shots.length - 1; i >= 0; i--) { const s = shots[i]; s.t += dt; s.x += s.vx * dt; s.y += s.vy * dt; s.z += s.vz * dt; s.vy -= 6 * dt;
       if (Math.abs(s.x - p.x) < 0.5 && Math.abs(s.z - p.z) < 0.5 && s.y > p.y && s.y < p.y + 1.9) { const fac = Math.cos(Math.atan2(s.x - p.x, s.z - p.z) - (p.yaw + Math.PI)) > 0.2; if (blocking() && fac) { UI.sfx('place'); use(shield().id, 1); } else { p.lastArrow = true; p.damage(s.dmg, 'warrior'); p.lastArrow = false; } shots.splice(i, 1); continue; }
       if (s.t > 3 || isSolid(G.world.getBlock(Math.floor(s.x), Math.floor(s.y), Math.floor(s.z)))) shots.splice(i, 1); }
@@ -19677,7 +19689,7 @@ const Combat = (() => {
         if (f.t <= 0) {
           f.hover = 0;
           f.strikeT = 0.22;
-          if (f.archer) { const tt = d / 16; shots.push({ hex: f.hex, x: f.x, y: f.y + 1.4, z: f.z, vx: dx / tt, vy: (p.y + 1.2 - f.y - 1.4) / tt + 3 * tt, vz: dz / tt, t: 0, dmg: f.dmg }); UI.sfx('miss'); }
+          if (f.archer) { const tt = d / (f.ray ? 24 : 16); shots.push({ hex: f.hex, ray: f.ray, x: f.x, y: f.y + 1.4, z: f.z, vx: dx / tt, vy: (p.y + 1.2 - f.y - 1.4) / tt + 3 * tt, vz: dz / tt, t: 0, dmg: f.dmg }); UI.sfx(f.ray ? 'zap' : 'miss'); }
           else if (d <= f.reach + 0.5) {
             const r = takeBlow(f.dmg, f.x, f.z, 'warrior', f);
             if (r.result === 'parry') { f.state = 'stun'; f.t = 1.2; continue; }
@@ -19688,7 +19700,7 @@ const Combat = (() => {
     }
   }
   function entities() {
-    const out = foes.concat(shots.map(s => s.hex ? { x: s.x, y: s.y, z: s.z, yaw: 0, scale: 1, hover: 0, skyMul: 1, isFx: true, noOutline: true, mesh: R.entityMesh('fx:hexbolt', (mb) => { mb.blob(-0.14, -0.14, -0.14, 0.14, 0.14, 0.14, 1, [0.75, 0.3, 1.0], { emis: true, n: 3 }); mb.blob(-0.07, -0.07, -0.07, 0.07, 0.07, 0.07, 1, [1, 0.9, 1], { emis: true, n: 2 }); }) } : ({ x: s.x, y: s.y, z: s.z, yaw: Math.atan2(s.vx, s.vz), scale: 1, hover: 0, skyMul: 1, isFx: true, noOutline: true, mesh: R.entityMesh('fx:foearrow2', (mb) => { mb.tube([[0, 0, -0.4], [0, 0, 0.36]], [0.02, 0.02], [0.55, 0.4, 0.22], { segs: 5, cap0: 'none', cap1: 'none' }); mb.plate([[0, 0.0, 0.36], [0.04, 0, 0.3], [0, 0, 0.5], [-0.04, 0, 0.3]], 0.01, [0.6, 0.62, 0.66]); for (const sgn of [-1, 1]) mb.plate([[0, 0, -0.4], [sgn * 0.06, 0.02, -0.3], [0, 0, -0.2]], 0.006, [0.9, 0.9, 0.92]); }) })));
+    const out = foes.concat(bolts.filter(b => b.t >= 0).map(b => ({ x: b.x, y: b.y, z: b.z, yaw: 0, scale: 1, hover: 0, skyMul: 1, isFx: true, noOutline: true, mesh: R.entityMesh('fx:raybolt:me', (mb) => { mb.blob(-0.1, -0.1, -0.1, 0.1, 0.1, 0.1, 1, [0.5, 1.0, 1.0], { emis: true, n: 3 }); mb.blob(-0.05, -0.05, -0.05, 0.05, 0.05, 0.05, 1, [1, 1, 1], { emis: true, n: 2 }); }) })), shots.map(s => s.ray ? { x: s.x, y: s.y, z: s.z, yaw: 0, scale: 1, hover: 0, skyMul: 1, isFx: true, noOutline: true, mesh: R.entityMesh('fx:raybolt:foe', (mb) => { mb.blob(-0.12, -0.12, -0.12, 0.12, 0.12, 0.12, 1, [1.0, 0.35, 0.3], { emis: true, n: 3 }); mb.blob(-0.06, -0.06, -0.06, 0.06, 0.06, 0.06, 1, [1, 0.9, 0.8], { emis: true, n: 2 }); }) } : s.hex ? { x: s.x, y: s.y, z: s.z, yaw: 0, scale: 1, hover: 0, skyMul: 1, isFx: true, noOutline: true, mesh: R.entityMesh('fx:hexbolt', (mb) => { mb.blob(-0.14, -0.14, -0.14, 0.14, 0.14, 0.14, 1, [0.75, 0.3, 1.0], { emis: true, n: 3 }); mb.blob(-0.07, -0.07, -0.07, 0.07, 0.07, 0.07, 1, [1, 0.9, 1], { emis: true, n: 2 }); }) } : ({ x: s.x, y: s.y, z: s.z, yaw: Math.atan2(s.vx, s.vz), scale: 1, hover: 0, skyMul: 1, isFx: true, noOutline: true, mesh: R.entityMesh('fx:foearrow2', (mb) => { mb.tube([[0, 0, -0.4], [0, 0, 0.36]], [0.02, 0.02], [0.55, 0.4, 0.22], { segs: 5, cap0: 'none', cap1: 'none' }); mb.plate([[0, 0.0, 0.36], [0.04, 0, 0.3], [0, 0, 0.5], [-0.04, 0, 0.3]], 0.01, [0.6, 0.62, 0.66]); for (const sgn of [-1, 1]) mb.plate([[0, 0, -0.4], [sgn * 0.06, 0.02, -0.3], [0, 0, -0.2]], 0.006, [0.9, 0.9, 0.92]); }) })));
     if (swoosh) { const p = G.player; const u = swoosh.t / swoosh.dur; const f0 = U.forwardVec(swoosh.yaw, 0); out.push({ x: p.x + f0[0] * 0.3, y: p.y + 1.0 + swoosh.pitch * 0.6, z: p.z + f0[2] * 0.3, yaw: swoosh.yaw + (u - 0.5) * swoosh.wide * 0.6, scale: 1, hover: 0, skyMul: 1, isFx: true, noOutline: true, alpha: (1 - u) * 0.55,
       mesh: R.entityMesh('swoosh:' + Math.round(swoosh.wide * 10) + ':' + Math.round(swoosh.reach * 10), (mb) => { const r0 = Math.max(0.3, swoosh.reach - 0.7), r1 = swoosh.reach + 0.2, W = swoosh.wide; const pts = []; const N = 9; for (let i = 0; i <= N; i++) { const a = -W / 2 + W * i / N; pts.push([Math.sin(a) * r1, (i / N - 0.5) * -0.25, -Math.cos(a) * r1]); } for (let i = N; i >= 0; i--) { const a = -W / 2 + W * i / N; pts.push([Math.sin(a) * r0, (i / N - 0.5) * -0.25, -Math.cos(a) * r0]); } mb.plate(pts, 0.01, [1.0, 0.98, 0.9], { emis: true }); }) }); }
     return out; }
@@ -19702,8 +19714,8 @@ const Combat = (() => {
     const e = G.kinFocus; if (e && G.kinFocusT > 0) { const st = KIN.stats(e.kin); return { name: `${KIN.name(e.kin)} Lv ${e.kin.level}`, note: e.dazed > 0 ? 'dazed' : (Wild.unfinishable && Wild.unfinishable(e) ? 'only a Kin can finish it' : ''), frac: Math.max(0, Math.min(1, e.kin.hp / st.hp)), kind: 'kin' }; }
     return null;
   }
-  function reset() { foes.length = 0; shots.length = 0; }
-  return { cond, broken, use, bow, anyBow, mend, mendQuote, lifeOf, BOWS, rack, ARMOUR, worn, armourPts, armourCut, wornPerk, init, GEAR, ARROWS, armoury, weapon, shield, chopTier, spawn, warriorModel, swing, arrowHit, takeBlow, nearestFoe, hurtFoe, update, entities, forHold, clearHold, standingIn, focusText, focus, reset, blocking, KINDS };
+  function reset() { foes.length = 0; shots.length = 0; bolts.length = 0; }
+  return { cond, broken, use, bow, anyBow, mend, mendQuote, lifeOf, BOWS, rack, ARMOUR, worn, armourPts, armourCut, wornPerk, init, GEAR, ARROWS, armoury, weapon, shield, chopTier, spawn, beam, warriorModel, swing, arrowHit, takeBlow, nearestFoe, hurtFoe, update, entities, forHold, clearHold, standingIn, focusText, focus, reset, blocking, KINDS };
 })();
 
 </script>
@@ -21183,6 +21195,73 @@ const Arena = (() => {
 
 </script>
 <script>
+'use strict';
+// The Garrison. When the three went up to the Moon they did not go alone: their master's troops hold a walled post outside its nearest city,
+// a landing pad with a command dome in the middle and barricades across the yard. This is the Moon's shoot-out. Troopers fire bolts of
+// light you can see coming: get behind a barricade, step out, shoot back. The first trooper you put down drops his ray gun, and from
+// then on it is a gun fight. When the yard is clear the Commander comes out of the dome with his Kin. Beat it and the post is yours.
+const Garrison = (() => {
+  let G = null, site = null, siteW = null, mustered = false, boss = null, wasThird = null, tipT = 0, cmdSaid = false;
+  const R0 = 15, WALLH = 4, ID = 'garrison';
+  const COVER = [[-7, -4, 3, 0], [6, -5, 0, 3], [-3, 5, 3, 0], [7, 4, 0, 3], [0, -8, 3, 0], [-8, 3, 0, 3]]; /* barricades: x, z, length along x, length along z */
+  const S = () => (G.stats.garrison = G.stats.garrison || {});
+  const onMoon = () => G && G.worldId === 'moon' && G.world && G.world.preset.id === 'moon';
+  function find() { const w = G.world; if (siteW === w) return site; siteW = w; site = null; if (!onMoon() || !Village.planned) return null;
+    const c = Village.planned().filter(v => v.size === 'city' && v.type === 'land').sort((a, b) => a.dist - b.dist)[0]; if (!c) return null;
+    let best = null; for (let k = 0; k < 16; k++) { const a = k * 0.3927 + 0.2, d = (c.R || 66) + 40, x = Math.round(c.x + Math.sin(a) * d), z = Math.round(c.z + Math.cos(a) * d); let lo = 999, hi = -999, bad = false;
+      for (let dx = -18; dx <= 18 && !bad; dx += 4) for (let dz = -18; dz <= 18; dz += 4) { const ci = w.colInfo(x + dx, z + dz); lo = Math.min(lo, ci.h); hi = Math.max(hi, ci.h); if (w.trackAt && w.trackAt(x + dx, z + dz)) { bad = true; break; } }
+      if (bad) continue; const sc = hi - lo; if (!best || sc < best.sc) best = { x, z, sc, y: Math.round((lo + hi) / 2), city: c, ga: Math.atan2(c.x - x, c.z - z) }; }
+    site = best; return site; }
+  const gateAt = (s, dx, dz) => { const a = Math.atan2(dx, dz), d = a - s.ga; return Math.abs(Math.atan2(Math.sin(d), Math.cos(d))) * Math.hypot(dx, dz) < 2.4; };
+  const rot = (s, x, z) => { const c = Math.cos(-s.ga), n = Math.sin(-s.ga); return [Math.round(x * c - z * n), Math.round(x * n + z * c)]; }; /* yard plan turned so its front faces the gate */
+  function overlay(chunk) { if (!G || !G.world || G.world.preset.id !== 'moon') return; const s = find(); if (!s) return; const ox = chunk.cx * CH, oz = chunk.cz * CH; if (ox + CH < s.x - 20 || ox > s.x + 20 || oz + CH < s.z - 20 || oz > s.z + 20) return;
+    const bl = chunk.blocks, put = (wx, y, wz, id) => { const lx = wx - ox, lz = wz - oz; if (lx >= 0 && lx < CH && lz >= 0 && lz < CH && y > 0 && y < WH) bl[(lx * CH + lz) * WH + y] = id; };
+    for (let lx = 0; lx < CH; lx++) for (let lz = 0; lz < CH; lz++) { const dx = ox + lx - s.x, dz = oz + lz - s.z, d = Math.hypot(dx, dz); if (d > R0 + 3.5) continue; const base = (lx * CH + lz) * WH;
+      if (d <= R0 + 0.5) { for (let y = s.y - 6; y < s.y; y++) if (bl[base + y] === B.AIR) bl[base + y] = B.BASALT; bl[base + s.y] = B.BASALT; }
+      for (let y = s.y + 1; y <= s.y + 12 && y < WH; y++) bl[base + y] = B.AIR;
+      if (d > R0 - 1.5 && d <= R0 + 0.5 && !gateAt(s, dx, dz)) for (let y = s.y + 1; y <= s.y + WALLH; y++) bl[base + y] = B.IRONWALL; }
+    for (const [cx, cz, lx, lz] of COVER) for (let i = 0; i < Math.max(1, lx); i++) for (let j = 0; j < Math.max(1, lz); j++) { const [rx, rz] = rot(s, cx + i, cz + j); put(s.x + rx, s.y + 1, s.z + rz, B.IRONWALL); put(s.x + rx, s.y + 2, s.z + rz, B.IRONWALL); }
+    for (let dx = -2; dx <= 2; dx++) for (let dz = -2; dz <= 2; dz++) if (Math.hypot(dx, dz) < 2.6) for (let y = 1; y <= 3; y++) put(s.x + dx, s.y + y, s.z + dz, B.IRONWALL); } /* the dome's core */
+  function mesh(s) { const taken = !!S().taken; return R.entityMesh('garrison2:' + (taken ? 1 : 0) + ':' + Math.round(s.ga * 100), (mb) => { const K = Sky.kit(mb), hull = [0.84, 0.86, 0.9], dark = [0.2, 0.22, 0.28], trim = [0.55, 0.6, 0.7], lit = taken ? [1, 0.9, 0.6] : [0.5, 0.98, 1.0], red = taken ? [1, 0.9, 0.6] : [1, 0.35, 0.3], N = 48, ga = Math.PI / 2 - s.ga, up = [0, 1, 0], U4 = [up, up, up, up];
+      const gap = (i) => { let dg = (i + 0.5) / N * 6.2832 - ga; dg = Math.abs(Math.atan2(Math.sin(dg), Math.cos(dg))); return dg * R0 < 2.7; };
+      K.prism(K.circ(0, 0, R0 + 0.9, N), -0.2, 0.9, 0.5, 0, dark, { course: 0.55, skip: gap, flat: true }); K.prism(K.circ(0, 0, R0 + 0.9, N), 0.9, WALLH + 0.3, 0, -0.25, hull, { course: 1.15, seed: 3, skip: gap }); K.prism(K.circ(0, 0, R0 - 1.9, N), 0, WALLH + 0.3, 0, 0, K.sh(hull, 0.82), { course: 1.4, seed: 4, skip: gap, inside: true });
+      for (let i = 0; i < N; i++) { if (gap(i)) continue; const a0 = i / N * 6.2832, a1 = (i + 1) / N * 6.2832, r0 = R0 - 1.9, r1 = R0 + 0.65; K.q([[Math.cos(a0) * r0, WALLH + 0.3, Math.sin(a0) * r0], [Math.cos(a1) * r0, WALLH + 0.3, Math.sin(a1) * r0], [Math.cos(a1) * r1, WALLH + 0.3, Math.sin(a1) * r1], [Math.cos(a0) * r1, WALLH + 0.3, Math.sin(a0) * r1]], trim, false, U4);
+        if (i % 2 === 0) { const am = (a0 + a1) / 2, r = R0 + 0.82; K.slit(Math.cos(am) * r, 2.3, Math.sin(am) * r, Math.cos(am), Math.sin(am), 0.3, 0.16, lit); } /* a band of lights round the wall */
+        if (i % 12 === 3) { const am = (a0 + a1) / 2, r = R0 - 0.6, x = Math.cos(am) * r, z = Math.sin(am) * r; K.drum(x, z, WALLH + 0.3, WALLH + 4.2, 0.22, 0.14, trim, { N: 8, course: 2 }); K.gem(x, WALLH + 4.6, z, 0.24, 0.3, red); } } /* four pylons with a warning light each */
+      for (const sd of [-1, 1]) { const a = ga + sd * (2.9 / R0), x = Math.cos(a) * (R0 - 0.5), z = Math.sin(a) * (R0 - 0.5); K.drum(x, z, -0.2, WALLH + 1.6, 1.1, 0.9, hull, { N: 10, course: 1.2, seed: 6 }); K.cap(K.circ(x, z, 0.9, 10), WALLH + 1.6, trim, true); K.gem(x, WALLH + 2.1, z, 0.22, 0.3, lit); } /* gate posts */
+      K.drum(0, 0, 0, 1.2, 3.6, 3.4, dark, { N: 16, course: 0.6, flat: true }); for (let j = 0; j < 5; j++) { const p0 = j / 5 * 1.5708, p1 = (j + 1) / 5 * 1.5708; K.drum(0, 0, 1.2 + Math.sin(p0) * 3.2, 1.2 + Math.sin(p1) * 3.2, Math.cos(p0) * 3.4, Math.max(0.05, Math.cos(p1) * 3.4), hull, { N: 16, course: 9, seed: 8 + j }); } /* the command dome */
+      K.drum(0, 0, 1.25, 1.5, 3.45, 3.45, lit, { N: 16, course: 9, flat: true, em: true }); mb.box(-0.05, 4.3, -0.05, 0.05, 7.4, 0.05, trim); K.gem(0, 7.6, 0, 0.16, 0.25, red); const da = ga, dx = Math.cos(da), dz = Math.sin(da); K.slit(dx * 3.48, 1.3, dz * 3.48, dx, dz, 0.55, 1.5, K.sh(dark, 0.6)); /* its door, facing the gate */
+      for (const [cx, cz, lx, lz] of COVER) { const a = rot(s, cx, cz), b = rot(s, cx + Math.max(0, lx - 1), cz + Math.max(0, lz - 1)), x0 = Math.min(a[0], b[0]) - 0.58, x1 = Math.max(a[0], b[0]) + 0.58, z0 = Math.min(a[1], b[1]) - 0.58, z1 = Math.max(a[1], b[1]) + 0.58, P = K.rrect(x0, z0, x1, z1, 0.3, 1.2); K.prism(P, -0.05, 0.5, 0.18, 0, dark, { course: 0.6, flat: true }); K.prism(P, 0.5, 2.12, 0, -0.08, hull, { course: 0.85, seed: 12 + cx }); K.cap(P, 2.12, trim, true); K.prism(P, 1.25, 1.42, 0.02, 0.02, [1, 0.72, 0.2], { course: 9, flat: true }); } /* barricades, a hazard stripe on each */
+      for (let i = 0; i < 24; i++) { const a0 = i / 24 * 6.2832, a1 = (i + 0.6) / 24 * 6.2832; K.q([[Math.cos(a0) * 9.6, 0.03, Math.sin(a0) * 9.6], [Math.cos(a1) * 9.6, 0.03, Math.sin(a1) * 9.6], [Math.cos(a1) * 10, 0.03, Math.sin(a1) * 10], [Math.cos(a0) * 10, 0.03, Math.sin(a0) * 10]], lit, true, U4); } }); } /* the landing ring painted on the pad */
+  function muster(s) { mustered = true; const best = Math.max(1, ...G.kin.map(k => k.level || 1)), lv = Math.min(6, 2 + Math.floor(best / 25)); const PL = [['trooper', -9, -7], ['trooper', 9, -6], ['trooper', -5, 8], ['trooper', 8, 7], ['trooper', -10, 2], ['trooper', 2, -10], ['trooper', 4, 9], ['tshield', -3, -4], ['tshield', 4, 3]];
+    for (const [kind, x, z] of PL) { const [rx, rz] = rot(s, x, z); const f = Combat.spawn(kind, s.x + rx + 0.5, s.y + 1, s.z + rz + 0.5, ID, lv); if (kind === 'trooper') { f.dmg = 1; f.rest = 5 + (Math.abs(x * 7 + z) % 6) * 0.5; f.t = 1.5 + (Math.abs(x * 3 + z) % 5) * 0.9; } } /* seven guns at once would be an execution: a bolt costs one heart, each trooper takes his time between shots, and they do not fire in step */
+    if (!S().told) { S().told = true; G.explain && G.explain('The Garrison', 'Troopers fire bolts of light. You can see them coming: put a barricade between you and them, step out, and strike. The first trooper you put down drops his ray gun. Hold it and tap to fire, no arrows needed.'); } }
+  function commander(s) { const dexM = KIN.dex('moon').filter(sp => !sp.legend && !sp.mythic && (sp.rarity || 0) >= 2), pool = dexM.length ? dexM : KIN.dex('moon'), sp = pool[U.strHash('hask') % pool.length], best = Math.max(1, ...G.kin.map(k => k.level || 1)), [rx, rz] = rot(s, 0, 6);
+    const e = Wild.makeEntity(sp, Math.min(120, Math.max(60, best + 2)), s.x + rx + 0.5, s.y + 1, s.z + rz + 0.5, { plain: true }); e.garrison = true; e.isBoss = true; e.fought = true; e.scale = (e.scale || 1) * 1.5; e.kin.nick = 'the Commander\'s ' + KIN.name(e.kin); Wild.list.push(e); boss = e;
+    const go = () => { if (boss === e && !Battle.active) Battle.start(e, false); };
+    if (!cmdSaid) { cmdSaid = true; Dialogue.show('Commander Hask', ['The dome opens. A man in white walks out with his hands behind his back.', 'You have broken a good many of my troopers. They will mend. The post will not, if I lose it.', 'So I do not intend to lose it.'], go); } else go(); }
+  function bossEnd(result) { const won = result === 'won' || result === 'caught'; boss = null; if (!won) { UI.toast('Hask has you put out through the gate. The yard stays clear: come back and finish it.', 'bad'); tipT = performance.now() + 12000; return; }
+    const st = S(); st.taken = true; Combat.clearHold(ID); G.shards += 600; if (!G.player.has('raygun')) G.player.add('raygun', 1); UI.sfx('quest'); if (UI.renderHotbar) UI.renderHotbar(); restoreView();
+    UI.toast('The Garrison is yours. 600 shards. Its lights turn from cold to warm, and the Moon\'s towns will hear of it by morning.', 'good');
+    if (typeof Cine !== 'undefined' && Cine.play) try { Cine.play([{ orbit: { x: site.x + 0.5, y: site.y + 3, z: site.z + 0.5, r: 22, h: 9, a0: 0.3, a1: 2.6 }, secs: 7, title: 'The Garrison Falls', mood: 'free', sfx: 'quest' }], () => {}); } catch (e) { /* a flourish only */ } }
+  function restoreView() { if (wasThird != null) { G.thirdPerson = wasThird; wasThird = null; } }
+  function update(dt, p) { if (!onMoon()) { if (mustered) { Combat.clearHold(ID); mustered = false; } restoreView(); return; } const s = find(); if (!s) return; const d = Math.hypot(p.x - s.x - 0.5, p.z - s.z - 0.5), st = S();
+    if (st.taken) { restoreView(); return; }
+    if (d > 150) { if (mustered && !st.cleared) { Combat.clearHold(ID); mustered = false; } restoreView(); return; }
+    if (d < 70 && !mustered && !st.cleared) muster(s);
+    const standing = Combat.standingIn(ID);
+    if (d < R0 + 6) Wild.noSpawn = { x: s.x, z: s.z, r: R0 + 14 };
+    if (standing > 0 && d < R0 + 1) { if (wasThird == null) { wasThird = !!G.thirdPerson; G.thirdPerson = false; UI.toast('Ray fire. Get behind something.', 'bad'); } } /* the shoot-out is seen through your own eyes */
+    else if (standing === 0 || d > R0 + 8) restoreView();
+    if (mustered && standing === 0 && !st.cleared && Combat.forHold(ID).length) { st.cleared = true; UI.toast('The yard is clear. Something moves inside the dome.', 'good'); }
+    if (st.cleared && !boss && d < R0 - 2 && !(typeof Battle !== 'undefined' && Battle.active) && !Dialogue.active() && performance.now() > tipT) commander(s); }
+  function entities() { if (!onMoon() || !G) return []; const s = find(); if (!s || Math.hypot(G.player.x - s.x, G.player.z - s.z) > 240) return []; return [{ x: s.x + 0.5, y: s.y + 1, z: s.z + 0.5, yaw: 0, scale: 1, hover: 0, skyMul: 1, isStatue: true, noOutline: true, mesh: mesh(s) }]; }
+  function init(g) { G = g; site = null; siteW = null; mustered = false; boss = null; wasThird = null; tipT = 0; cmdSaid = false; }
+  return { init, update, entities, overlay, bossEnd, site: () => find(), ID, get boss() { return boss; } };
+})();
+
+</script>
+<script>
 // Ruins. Somebody was here before the villages: broken walls, lone columns, a roofless hall now and then, all in mossed stone, scattered
 // across the Earth. Each has one standing stone with a line cut into it that you can read, and some hide a relic gem. They are stamped
 // into the world the first time you come near, and remembered.
@@ -21660,7 +21739,7 @@ G.setupWorld = function (seed, presetId) {
   this.world.findSpawn();
   Wild.init(this.world, this.mobile);
   Weather.init(this.world.seed);
-  Village.init(this); Hazards.init(this); Campaign.init(this); Npcs.init(this); Camps.init(this); Mer.init(this); Lab.init(this); Avatar.init(this); Combat.init(this); Buddy.init(this); Cine.init(this); Wood.init(this); Roads.init(this); Arena.init(this); First.init(this); Breath.init(this); Ruins.init(this); Fields.init(this); Felling.init(this); Relics.init(this); Gems.init(this); Keeps.init(this); Citadel.init(this); Farms.init(this); Sky.init(this);
+  Village.init(this); Hazards.init(this); Campaign.init(this); Npcs.init(this); Camps.init(this); Mer.init(this); Lab.init(this); Avatar.init(this); Combat.init(this); Buddy.init(this); Cine.init(this); Wood.init(this); Roads.init(this); Arena.init(this); Garrison.init(this); First.init(this); Breath.init(this); Ruins.init(this); Fields.init(this); Felling.init(this); Relics.init(this); Gems.init(this); Keeps.init(this); Citadel.init(this); Farms.init(this); Sky.init(this);
   Quests.init(this);
 };
 G.newWorld = function (seed, starterIdx, name) {
@@ -22064,6 +22143,7 @@ G.shoot = function (pick) {
   const p = this.player;
   const ammo = pick && p.has(pick) ? pick : (this.stats.ammo && p.has(this.stats.ammo)) ? this.stats.ammo : ['arrow_ember', 'arrow', 'arrow_barbed', 'arrow_frost', 'arrow_spark', 'arrow_heavy', 'arrow_void', 'arrow_sleep'].find(a => p.has(a)) || null; if (pick) this.stats.ammo = pick;
   const bw = Combat.bow(); if (!bw) { UI.toast(Combat.anyBow() ? 'Your bow is broken. An armoury will mend it.' : 'You need a bow.', 'bad'); return; }
+  if (bw === 'raygun') return this.shootRay(bw);
   if (!ammo) { UI.toast('No arrows. Craft them: 1 wood, 1 stone, 1 frond makes 6.', 'bad'); return; }
   if (this.lastShot && performance.now() - this.lastShot < 600) return; this.lastShot = performance.now();
   p.take(ammo, 1); Combat.use(bw, 1); UI.sfx('place'); UI.renderHotbar();
@@ -22086,6 +22166,19 @@ G.shoot = function (pick) {
   if (e.high && Math.random() < 0.6) { p.add('feather', 1); setTimeout(() => UI.toast('A Sky Feather spins down to you.', 'good'), 400); }
   const pct = Math.round(e.kin.hp / st.hp * 100);
   UI.sfx('hit'); UI.toast(`${unaware ? 'Clean shot! ' : 'Hit! '}${KIN.name(e.kin)} down to ${pct}% (${before - e.kin.hp} damage). ${e.kin.hp <= 1 ? 'It is barely standing.' : 'It is coming for you.'}`, 'good');
+};
+/* the ray gun: the bow's job without arrows. A bolt of light to whatever the crosshair is on */
+G.shootRay = function (bw) {
+  const p = this.player; if (this.lastShot && performance.now() - this.lastShot < 430) return; this.lastShot = performance.now();
+  Combat.use(bw, 1); UI.sfx('zap'); UI.renderHotbar(); const eye = p.eye(), f0 = U.forwardVec(p.yaw, p.pitch), from = [eye.x + f0[0] * 0.6, eye.y - 0.25, eye.z + f0[2] * 0.6], to = (d) => [eye.x + f0[0] * d, eye.y + f0[1] * d, eye.z + f0[2] * d];
+  { const fh = Combat.arrowHit('ray', 40); const wall0 = fh && p.raycast(40, false, true); if (fh && (!wall0 || wall0.dist > fh.dist)) { Combat.beam(from, to(fh.dist)); UI.sfx('hit'); const ft = Combat.focusText(); if (ft) UI.toast(ft); return; } }
+  const e = Wild.pick(p, 40), wall = p.raycast(40, false, true), eD = e ? Math.hypot(e.x - p.x, e.y - p.y, e.z - p.z) : Infinity;
+  if (wall && wall.dist < eD) { Combat.beam(from, to(wall.dist));
+    if (wall.id === B.BALLOON) { this.world.setBlock(wall.x, wall.y, wall.z, B.AIR); this.meshPass(99); UI.sfx('caught'); Builds.onShot('balloon', wall, p); return; }
+    if (wall.id === B.TARGET && Citadel.onTarget(wall)) return; if (wall.id === B.TARGET) { UI.sfx('hit'); Builds.onShot('target', wall, p); return; } return; }
+  if (!e) { Combat.beam(from, to(40)); return; }
+  Combat.beam(from, to(eD)); const st = KIN.stats(e.kin), unaware = !e.chase && (e.alert || 0) < 0.6, before = e.kin.hp; Wild.strike(e, 0.2 * (unaware ? 2 : 1), { arrow: true, keepOne: true });
+  this.stats.arrowHits = (this.stats.arrowHits || 0) + 1; UI.sfx('hit'); UI.toast(`${unaware ? 'Clean shot! ' : 'Hit! '}${KIN.name(e.kin)} down to ${Math.round(e.kin.hp / st.hp * 100)}% (${before - e.kin.hp} damage). ${e.kin.hp <= 1 ? 'It is barely standing.' : 'It is coming for you.'}`, 'good');
 };
 // use a consumable from the Bag or by tapping with it held
 G.useItem = function (key) {
@@ -22135,7 +22228,7 @@ G.onBattleEnd = function (result, wildE, wild, mine, ambush) {
   document.getElementById('hud').classList.remove('in-battle');
   if (mine) mine.buffs = null;
   const st = wild.sp.mythic;
-  if (wildE && wildE.bandit) Roads.holdupEnd(result); if (wildE && wildE.pit) Arena.boutEnd(result);
+  if (wildE && wildE.bandit) Roads.holdupEnd(result); if (wildE && wildE.pit) Arena.boutEnd(result); if (wildE && wildE.garrison) Garrison.bossEnd(result);
   const baseXp = Math.floor(9 * wild.level * (1 + 0.4 * (wild.stage - 1)) * KIN.RARITY[wild.sp.rarity || 0].xp * (st ? 6 : 1) * (wildE && wildE.isBoss ? 2.5 : 1)); /* throwing a tyrant out teaches a Kin a great deal */
   if (result === 'won' || result === 'caught') {
     const xp = result === 'won' ? baseXp : Math.floor(baseXp * 0.6);
@@ -22383,7 +22476,7 @@ G.loop = function (t) {
       if (w.regrow && w.regrow.length && (this.frame & 31) === 0) { const now = performance.now(); w.regrow = w.regrow.filter(r => { if (now < r.t) return true; if ((r.id === B.LOG || r.id === B.BIRCHLOG || r.id === B.PALMLOG || r.id === B.LEAVES) && !Felling.natural(r.x, r.y, r.z, r.id)) return false; /* a block you built and took away stays gone */ const b = w.getBlock(r.x, r.y, r.z); if (r.id != null) { if (b === B.AIR && !(Math.abs(r.x + 0.5 - p.x) < 0.8 && Math.abs(r.z + 0.5 - p.z) < 0.8 && r.y >= Math.floor(p.y) - 1 && r.y <= Math.floor(p.y) + 2)) { if (r.id === B.GLOWWORM && !isSolid(w.getBlock(r.x, r.y - 1, r.z))) return false; w.setBlock(r.x, r.y, r.z, r.id); } else if (b === B.AIR) { r.t = now + 15000; return true; } } else if (r.leaf) { if (b === B.LEAVES) w.setBlock(r.x, r.y, r.z, B.BERRYLEAF); } else if (b === B.AIR) w.setBlock(r.x, r.y, r.z, B.BERRY); return false; }); }
       const trig = (Dialogue.active() || Village.walking) ? null : Wild.update(dt, p, performance.now() / 1000, false);
       { const tn = this.talkNpc, on = tn && Dialogue.active() && !(typeof Cine !== 'undefined' && Cine.active()); if (this._spoke && this._spoke !== tn) this._spoke.talkOpen = 0; if (tn) { const tt = performance.now() / 1000; tn.talkOpen = on ? Math.abs(Math.sin(tt * 11.5)) * (0.35 + 0.65 * Math.abs(Math.sin(tt * 3.3 + 1))) : 0; this._spoke = tn; } } /* whoever is speaking moves their mouth */
-      R.setSeason(this.worldId === 'earth' && !(this.world.colInfo(Math.floor(p.x), Math.floor(p.z)).lost) ? Fields.season() : 1); Cine.update(dt); Wood.update(dt, p); Roads.update(dt, p); Arena.update(dt, p); Buddy.update(dt, p); First.update(dt, p); Breath.update(dt, p); Ruins.update(dt, p); Fields.update(dt, p); Gems.update(dt, p); Felling.update(dt); Keeps.update(dt, p); Citadel.update(dt, p); Farms.update(dt, p); Sky.update(dt, p); Combat.update(dt, p, input);
+      R.setSeason(this.worldId === 'earth' && !(this.world.colInfo(Math.floor(p.x), Math.floor(p.z)).lost) ? Fields.season() : 1); Cine.update(dt); Wood.update(dt, p); Roads.update(dt, p); Arena.update(dt, p); Garrison.update(dt, p); Buddy.update(dt, p); First.update(dt, p); Breath.update(dt, p); Ruins.update(dt, p); Fields.update(dt, p); Gems.update(dt, p); Felling.update(dt); Keeps.update(dt, p); Citadel.update(dt, p); Farms.update(dt, p); Sky.update(dt, p); Combat.update(dt, p, input);
       Wild.ensureHeart(p, this.trainerLevel, this.mythicCaught); Wild.ensureLegend(p); Wild.ensureApex(p);
       if (trig && !trig.e.cool && !Dialogue.active() && !Taming.active && !p.flying && !(this.fightGrace > performance.now()) && !((Keeps.inHold(p) || Citadel.inside(p) || Sky.inFort(p)) && !trig.e.keepBoss && !trig.e.skyBoss)) Wild.engage(trig.e, trig.ambush);
       for (const e of Wild.list) if (e.cool > 0) e.cool -= dt;
@@ -22475,7 +22568,7 @@ G.loop = function (t) {
   const showMe = !this.hideMe && !Battle.net && (inBattle || (this.thirdPerson && !(this.camNear && !p.mount)) || this.talkK > 0 || !!p.mount || this.grassCamOn); // hideMe: he has gone inside something (a railway carriage)
   if (showMe) { const me = Avatar.entity(p, Math.hypot(p.vx, p.vz) > 0.6); if (p.mount) { const mm = KIN.model(p.mount.sp, p.mount.stage); const st = seatOf(mm); const f = U.forwardVec(p.yaw, 0); const along = 0.5 + st.zc - 0.06; me.x = p.x + f[0] * along; me.z = p.z + f[2] * along; me.y = G.mountBase(p) + st.top - hipOf(me.model) * (me.scale || 1) + 0.1; me._an.cross = 1; /* sat cross-legged on top: fits a pony and a T-rex alike */ me.seatY = hipOf(me.model) * (me.scale || 1); } me.M = null; ents.push(me); this.meEnt = me; } else this.meEnt = null;
   if (p.mount) { const k = p.mount; const m = KIN.dress(KIN.model(k.sp, k.stage), k.wear); const fwd = U.forwardVec(p.yaw, 0); if (!k._an) k._an = { ph: 0, mv: 0, lx: p.x, lz: p.z, ly: p.y, lt: performance.now(), vy: 0, seed: 5, air: 0 }; k._an.swim = p.mountMode === 'water' ? 1 : 0; const mt = { x: p.x + fwd[0] * 0.5, y: G.mountBase(p), z: p.z + fwd[2] * 0.5, yaw: p.yaw + Math.PI, model: m, mesh: R.entityMesh(KIN.meshKey(k.sp, k.stage) + KIN.wearKey(k.wear), (mb) => KIN.buildMesh(mb, m)), scale: 1, hover: 0, skyMul: 1, isMount: true, flying: p.mountMode === 'air' && !p.onGround, _an: k._an }; ents.push(mt); if (Taming.active) Taming.pose(mt, this.meEnt, cam.yaw); /* it bucks, and you with it */ }
-  ents.push(...Battle.fxEntities()); ents.push(...Sky.puffEntities()); ents.push(...Wild.dropEntities()); ents.push(...Gems.entities()); ents.push(...Buddy.entities()); ents.push(...First.entities()); ents.push(...Cine.entities()); ents.push(...Wood.entities()); ents.push(...Arena.entities()); ents.push(...Sky.entities()); ents.push(...Ruins.entities()); ents.push(...Fields.entities()); ents.push(...Farms.entities()); ents.push(...Felling.entities()); ents.push(...Combat.entities()); ents.push(...Hazards.entities()); ents.push(...Npcs.entities());
+  ents.push(...Battle.fxEntities()); ents.push(...Sky.puffEntities()); ents.push(...Wild.dropEntities()); ents.push(...Gems.entities()); ents.push(...Buddy.entities()); ents.push(...First.entities()); ents.push(...Cine.entities()); ents.push(...Wood.entities()); ents.push(...Arena.entities()); ents.push(...Garrison.entities()); ents.push(...Sky.entities()); ents.push(...Ruins.entities()); ents.push(...Fields.entities()); ents.push(...Farms.entities()); ents.push(...Felling.entities()); ents.push(...Combat.entities()); ents.push(...Hazards.entities()); ents.push(...Npcs.entities());
   for (const o of w.statues.values()) {
     if ((o.x - p.x) ** 2 + (o.z - p.z) ** 2 > 4000) continue;
     if (!o.model) { o.model = KIN.statueModel(o); o.mesh = R.entityMesh('statue:' + o.id, (mb) => KIN.buildMesh(mb, o.model)); }

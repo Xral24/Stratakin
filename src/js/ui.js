@@ -63,6 +63,7 @@ const UI = (() => {
         case 'break': tone(300, 80, 0.15, 'sawtooth', 0.08); break;
         case 'place': tone(220, 330, 0.08, 'triangle', 0.08); break;
         case 'hit': tone(240, 90, 0.18, 'sawtooth', 0.1); break;
+        case 'zap': tone(1400, 260, 0.14, 'sawtooth', 0.06); tone(2200, 500, 0.1, 'square', 0.03); break; /* a ray gun */
         case 'hit2': tone(320, 70, 0.25, 'sawtooth', 0.12); tone(600, 200, 0.12, 'square', 0.05, 0.05); break;
         case 'miss': tone(500, 700, 0.12, 'sine', 0.05); break;
         case 'util': tone(440, 660, 0.2, 'triangle', 0.07); break;
