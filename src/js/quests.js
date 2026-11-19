@@ -226,7 +226,7 @@ const Quests = (() => {
   const NOTE = {
     catch: () => 'any wild Kin near you will do', party: () => 'any wild Kin near you will do', mines: () => 'dig straight down where you stand',
     suit: () => G.player.has('lavasuit') ? 'done' : `iron ${G.player.count('iron')}/5 · void ${G.player.count('void')}/3 · ember ${G.player.count('ember')}/4`,
-    moon: () => G.player.has('ship') ? (G.player.has('spacesuit') ? 'board the Nightwing (Ship button) and climb' : 'you need the Space Suit') : 'Professor Finch has to finish the Starlark first',
+    moon: () => G.player.has('ship') ? (G.player.has('spacesuit') ? 'board the Starlark (Ship button) and climb' : 'you need the Space Suit') : 'Professor Finch has to finish the Starlark first',
     halo: () => G.player.has('ship') ? 'Ship, climb above the clouds, choose Halo' : 'you need the Starship', ship: () => 'bring Professor Finch his materials at the Mining Camp',
     lost: () => 'do jobs for the people by the fires (yellow dots on the map)', legend: () => G.worldId === 'earth' ? 'take the Starship to the Moon or Halo; the ✶ shows on your radar there' : 'the ✶ is beaten for now; try the other world',
     moonjobs: () => G.worldId === 'moon' ? 'yellow dots on the radar' : 'fly the Starship to the Moon', halojobs: () => G.worldId === 'halo' ? 'yellow dots on the radar' : 'fly the Starship to Halo',

@@ -678,7 +678,10 @@ G.boardShip = function () {
   if (!p.has('ship')) return;
   if (p.inWater || p.inLava) { UI.toast('Board from dry ground.'); return; }
   if (this.world.layerAt(Math.floor(p.y), Math.floor(p.x), Math.floor(p.z)) === 'Mines' || p.y < CORE_TOP) { UI.toast('The ship needs open sky. Go up to the surface.'); return; }
-  p.flying = true; p.mount = null; p.vy = 4; UI.sfx('fuse'); UI.toast('Starship up. Hold ▲ to climb, hold ▼ to go down. Above the clouds the world lets go.', 'good');
+  /* the canopy swings up beside you, you climb in, it shuts, and she lifts */
+  if (this.shipBoard) return; const f0 = U.forwardVec(p.yaw, 0); this.shipBoard = { t0: performance.now(), x: p.x + f0[0] * 1.6, y: p.y - 0.1, z: p.z + f0[2] * 1.6, yaw: p.yaw + Math.PI / 2 }; this.shipPark = null; p.frozen = true; UI.sfx('place');
+  setTimeout(() => { const b = this.shipBoard; if (!b) return; p.x = b.x; p.z = b.z; p.y = b.y + 0.6; }, 700);
+  setTimeout(() => { const b = this.shipBoard; if (!b) return; this.shipBoard = null; p.frozen = false; p.yaw = b.yaw - Math.PI; p.flying = true; p.mount = null; p.vy = 4; UI.sfx('fuse'); UI.toast('The Starlark is up. Hold ▲ to climb, hold ▼ to go down. Above the clouds the world lets go.', 'good'); }, 1400);
 };
 // ---------- chunk streaming ----------
 G.meshPass = function (budget) {
@@ -830,7 +833,8 @@ G.loop = function (t) {
     const mm = KIN.model(p.mount.sp, p.mount.stage); const size = Math.max(mm.height, mm.radius * 1.4);
     const tk = Taming.active ? Math.min(1, Taming.state.t / 0.9) : 0, te = tk * tk * (3 - 2 * tk); // breaking it in: the camera comes in close behind you, so the animal fills the middle of the view behind the gauge
     cam = Avatar.thirdCam(cam, p, w, (4.5 + size * 1.6) * (1 - 0.26 * te), (0.6 + mm.height * 0.45) * (1 - 0.1 * te));
-  } else if (this.thirdPerson && !inBattle) { cam = Avatar.thirdCam(cam, p, w); this.camNear = !!cam.tooNear; }
+  } else if (p.flying && !inBattle) { cam = Avatar.thirdCam(cam, p, w, 11.5, 0.1); this.camNear = false; } /* in the ship you are always looking at the ship */
+  else if (this.thirdPerson && !inBattle) { cam = Avatar.thirdCam(cam, p, w); this.camNear = !!cam.tooNear; }
   if (this.cutCam && !inBattle) cam = Object.assign({}, cam, this.cutCam); // a little film is playing: the camera stands where the film put it
   // tall grass: the camera eases up and back over your shoulder (more when you crouch) so you see over the blades
   { const want = (!inBattle && !p.mount && !p.flying && Wild.inTallGrass()) ? (p.sneak ? 1 : 0.65) : 0; this.grassCamK = U.lerp(this.grassCamK || 0, want, Math.min(1, dt * 3));
@@ -857,29 +861,33 @@ G.loop = function (t) {
   const ents = Wild.list.filter(e => !e.ridden); // the one you are sat on is drawn under you, as your mount
   if (Battle.mineEntity && !Battle.net) ents.push(Battle.mineEntity);
   ents.push(...Village.entities());
-  if (p.flying) { // the Starship: a pale swept hull with a glass canopy, twin engine pods glowing blue, a tail fin, and a wash of sparks behind it when it moves
-    ents.push({ x: p.x, y: p.y - 0.85, z: p.z, yaw: p.yaw + Math.PI, model: { height: 1.2, radius: 2.3 }, mesh: R.entityMesh('ship2', (mb) => {
-      const hull = [0.8, 0.9, 0.95], trim = [0.3, 0.36, 0.48], glass = [0.5, 0.78, 0.95], glow = [0.45, 0.95, 1.0], dark = [0.16, 0.18, 0.24];
-      mb.blob(-0.75, 0.05, -1.5, 0.75, 0.6, 1.9, 1, hull, { n: 3 });                           // the hull, long and low
-      mb.blob(-0.55, 0.15, 1.3, 0.55, 0.5, 2.3, 1, trim, { n: 2 });                             // the nose
-      mb.blob(-0.42, 0.5, 0.45, 0.42, 0.98, 1.6, 1, glass, { n: 3 });                           // the windscreen, ahead of the seat
-      mb.blob(-0.45, 0.5, -1.2, 0.45, 0.95, -0.55, 1, hull, { n: 2 });                            // the seat back fairing
-      mb.box(-0.8, 0.28, -1.0, 0.8, 0.36, 0.9, trim);                                            // a waist stripe
-      for (const sx of [-1, 1]) {
-        mb.plate([[sx * 0.7, 0.3, 0.6], [sx * 2.4, 0.26, -0.9], [sx * 2.5, 0.26, -1.4], [sx * 0.7, 0.3, -1.3]], 0.07, hull); // swept wings
-        mb.plate([[sx * 1.9, 0.3, -0.75], [sx * 2.3, 0.3, -1.3], [sx * 2.3, 0.8, -1.5], [sx * 1.9, 0.8, -1.0]], 0.05, trim);   // winglets
-        mb.tube([[sx * 1.15, 0.42, 0.4], [sx * 1.15, 0.42, -1.45]], [0.3, 0.26], trim, { segs: 10, cap0: 'round', cap1: 'flat' }); // engine pods
-        mb.tube([[sx * 1.15, 0.42, -1.45], [sx * 1.15, 0.42, -1.6]], [0.22, 0.2], glow, { segs: 10, emis: true, cap0: 'none', cap1: 'flat' }); // the exhaust ring
-        mb.box(sx * 0.5 - 0.05, -0.2, -0.9, sx * 0.5 + 0.05, 0.1, 0.9, dark); mb.box(sx * 0.5 - 0.04, -0.28, -1.0, sx * 0.5 + 0.04, -0.2, 1.0, dark); // landing skids
-        mb.box(sx * 0.12 - 0.02, 0.38, 2.25, sx * 0.12 + 0.02, 0.44, 2.45, glow, 1, true); // running lights in the nose
-      }
-      mb.plate([[0, 0.55, -0.9], [0, 1.25, -1.5], [0, 1.25, -1.75], [0, 0.55, -1.5]], 0.06, trim); // the tail fin
-      mb.box(-0.02, 1.2, -1.7, 0.02, 1.3, -1.6, [1.0, 0.4, 0.3], 1, true);                      // its beacon
-      mb.tube([[0, 0.5, -1.45], [0, 0.5, -1.62]], [0.2, 0.18], glow, { segs: 10, emis: true, cap0: 'none', cap1: 'flat' }); // the centre exhaust
-    }), scale: 1, hover: Math.sin(performance.now() / 300) * 0.05, skyMul: 1, isMount: true });
-    const sp = Math.hypot(p.vx, p.vz, p.vy || 0); if (sp > 1.5 && Math.random() < Math.min(0.9, sp * 0.08)) { const b = U.forwardVec(p.yaw, 0); Hazards.sparks(p.x - b[0] * 1.7, p.y - 0.4, p.z - b[2] * 1.7, 2, [0.5, 0.9, 1.0], 1.2); }
-  }
-  const showMe = !this.hideMe && !Battle.net && (inBattle || (this.thirdPerson && !(this.camNear && !p.mount)) || this.talkK > 0 || !!p.mount || this.grassCamOn); // hideMe: he has gone inside something (a railway carriage)
+  /* the Starlark. Professor Finch built ships for an observatory before he built them for anyone else, and it shows: a cream hull banded in brass, a
+     domed canopy that swings up on its hinge, feathered wings like the bird she is named for, a telescope slung under the nose, three engine bells.
+     You climb in and the canopy shuts; from then on it is the ship you see, not him. Parked, the canopy stands open */
+  if (this._wasFly === this.worldId && !p.flying && !this.shipPark && !p.dead && !(typeof Cine !== 'undefined' && Cine.active())) { const gy0 = w.groundY(Math.floor(p.x), Math.floor(p.z), p.y + 2); if (Math.abs(gy0 + 1 - p.y) < 3) { this.shipPark = { t0: performance.now(), until: performance.now() + 6000, x: p.x, y: gy0 + 0.5, z: p.z, yaw: p.yaw + Math.PI }; const f1 = U.forwardVec(p.yaw + Math.PI / 2, 0), nx = p.x + f1[0] * 2.4, nz = p.z + f1[2] * 2.4, ny = w.groundY(Math.floor(nx), Math.floor(nz), p.y + 2); if (Math.abs(ny - gy0) < 2) { p.x = nx; p.z = nz; p.y = ny + 1.2; } } } /* landed: the canopy swings up, you are standing beside her, and she stays a few breaths before she is stowed */
+  this._wasFly = p.flying ? this.worldId : null;
+  { const board = this.shipBoard, park = this.shipPark, now2 = performance.now(); if (park && now2 > park.until) this.shipPark = null;
+    if (p.flying || board || this.shipPark) { const open = board ? Math.min(1, (now2 - board.t0) / 350) * (now2 - board.t0 > 1050 ? Math.max(0, 1 - (now2 - board.t0 - 1050) / 300) : 1) : this.shipPark ? Math.min(1, (now2 - this.shipPark.t0) / 400) : 0, ok = open > 0.5 ? 1 : 0;
+      const sx0 = p.flying ? p.x : board ? board.x : this.shipPark.x, sy0 = p.flying ? p.y - 0.55 : board ? board.y : this.shipPark.y, sz0 = p.flying ? p.z : board ? board.z : this.shipPark.z, syaw = p.flying ? p.yaw + Math.PI : board ? board.yaw : this.shipPark.yaw;
+      ents.push({ x: sx0, y: sy0, z: sz0, yaw: syaw, model: { height: 1.8, radius: 3.2 }, mesh: R.entityMesh('starlark2:' + ok, (mb) => {
+        const hull = [0.93, 0.9, 0.82], brass = [0.78, 0.58, 0.22], teal = [0.16, 0.5, 0.52], glass = [0.14, 0.24, 0.34], glow = [0.5, 0.96, 1.0], dark = [0.15, 0.16, 0.2], warm = [1, 0.86, 0.5];
+        mb.blob(-0.95, 0.0, -2.2, 0.95, 1.05, 2.3, 1, hull, { n: 3 }); mb.blob(-0.6, 0.15, 1.7, 0.6, 0.85, 3.1, 1, hull, { n: 3 }); mb.blob(-0.22, 0.32, 2.9, 0.22, 0.66, 3.5, 1, brass, { n: 2 }); /* body and a brass beak */
+        mb.blob(-0.98, 0.42, -2.0, 0.98, 0.6, 2.0, 1, brass, { n: 2 }); mb.blob(-0.64, 0.4, 1.75, 0.64, 0.56, 2.95, 1, brass, { n: 2 }); /* a brass waist band, nose to tail */
+        if (ok) { mb.blob(-0.6, 0.78, -0.55, 0.6, 1.0, 1.05, 1, dark, { n: 2 }); mb.push(); mb.translate(0, 1.0, -0.6); mb.rotate(-1.05, 0, 0); mb.blob(-0.62, 0.0, 0.0, 0.62, 0.62, 1.7, 1, glass, { n: 3 }); mb.tube([[-0.6, 0.02, 0.05], [0.6, 0.02, 0.05]], [0.05, 0.05], brass, { segs: 6 }); mb.pop(); mb.box(-0.3, 0.82, -0.3, 0.3, 1.02, 0.3, [0.5, 0.2, 0.16]); } /* canopy up on its hinge, the seat showing */
+        else { mb.blob(-0.62, 0.72, -0.6, 0.62, 1.42, 1.15, 1, glass, { n: 3 }); mb.tube([[-0.58, 0.9, 1.0], [0, 1.4, 0.3], [0.58, 0.9, 1.0]], [0.035, 0.035, 0.035], brass, { segs: 5 }); mb.tube([[0, 1.02, 1.12], [0, 1.43, 0.25], [0, 1.2, -0.6]], [0.035, 0.035, 0.035], brass, { segs: 5 }); } /* shut: dark glass in a brass frame */
+        for (const sx of [-1, 1]) { for (let k = 0; k < 4; k++) { const z0 = 0.7 - k * 0.55, L = 3.3 - k * 0.42; mb.plate([[sx * 0.8, 0.5 + k * 0.03, z0], [sx * L, 0.42 + k * 0.03, z0 - 1.15], [sx * (L - 0.05), 0.42 + k * 0.03, z0 - 1.55], [sx * 0.8, 0.5 + k * 0.03, z0 - 0.7]], 0.06, k === 3 ? teal : hull); } /* four long feathers a side, the last one teal */
+          mb.tube([[sx * 0.8, 0.5, 0.75], [sx * 3.3, 0.42, -0.45]], [0.06, 0.04], brass, { segs: 6, cap0: 'round', cap1: 'round' }); mb.ball(sx * 3.3, 0.44, -0.47, 0.07, sx > 0 ? [0.4, 1, 0.5] : [1, 0.4, 0.35], { emis: true });
+          mb.tube([[sx * 0.72, 0.45, -1.3], [sx * 0.72, 0.45, -2.35]], [0.33, 0.4], brass, { segs: 12, cap0: 'round', cap1: 'none' }); mb.tube([[sx * 0.72, 0.45, -2.3], [sx * 0.72, 0.45, -2.42]], [0.33, 0.3], glow, { segs: 12, emis: true, cap0: 'none', cap1: 'flat' }); /* an engine bell each side */
+          mb.plate([[sx * 0.2, 0.9, -1.5], [sx * 1.25, 1.35, -2.5], [sx * 1.2, 1.35, -2.9], [sx * 0.2, 0.9, -2.2]], 0.05, k2col(sx)); /* tail feathers, spread */
+          mb.tube([[sx * 0.55, 0.1, 0.9], [sx * 0.7, -0.42, 1.0]], [0.05, 0.04], dark, { segs: 5 }); mb.tube([[sx * 0.55, 0.1, -1.0], [sx * 0.7, -0.42, -1.1]], [0.05, 0.04], dark, { segs: 5 }); mb.tube([[sx * 0.7, -0.44, 1.25], [sx * 0.7, -0.44, -1.35]], [0.055, 0.055], dark, { segs: 6, cap0: 'round', cap1: 'round' }); /* skids */
+          mb.ball(sx * 0.3, 0.5, 3.02, 0.06, warm, { emis: true }); for (const z of [0.9, 0.3, -0.9]) mb.ball(sx * 0.93, 0.6, z, 0.11, glass); } /* nose lamps and three portholes */
+        mb.tube([[0, 0.5, -1.9], [0, 0.5, -2.55]], [0.42, 0.52], brass, { segs: 12, cap0: 'round', cap1: 'none' }); mb.tube([[0, 0.5, -2.5], [0, 0.5, -2.64]], [0.44, 0.4], glow, { segs: 12, emis: true, cap0: 'none', cap1: 'flat' }); /* the big bell in the middle */
+        mb.plate([[0, 1.0, -1.2], [0, 1.9, -2.3], [0, 1.9, -2.75], [0, 1.0, -2.2]], 0.06, teal); mb.ball(0, 1.95, -2.5, 0.06, [1, 0.4, 0.3], { emis: true }); /* the fin and its beacon */
+        mb.tube([[0, -0.08, 0.5], [0, -0.08, 2.2]], [0.13, 0.1], brass, { segs: 8, cap0: 'round', cap1: 'flat' }); mb.tube([[0, -0.08, 2.2], [0, -0.08, 2.28]], [0.12, 0.12], glass, { segs: 8, cap0: 'none', cap1: 'flat' }); /* his telescope, slung underneath. He would not leave it behind */
+        function k2col(sx) { return sx > 0 ? teal : hull; }
+      }), scale: 1, hover: p.flying ? Math.sin(performance.now() / 300) * 0.05 : 0, skyMul: 1, isMount: true });
+      if (p.flying) { const sp = Math.hypot(p.vx, p.vz, p.vy || 0); if (sp > 1.5 && Math.random() < Math.min(0.9, sp * 0.08)) { const b = U.forwardVec(p.yaw, 0); Hazards.sparks(p.x - b[0] * 2.6, p.y - 0.2, p.z - b[2] * 2.6, 2, [0.5, 0.9, 1.0], 1.2); } } } }
+  const showMe = !this.hideMe && !p.flying && !(this.shipBoard && performance.now() - this.shipBoard.t0 > 700) && !Battle.net && (inBattle || (this.thirdPerson && !(this.camNear && !p.mount)) || this.talkK > 0 || !!p.mount || this.grassCamOn); // hideMe: he has gone inside something (a railway carriage)
   if (showMe) { const me = Avatar.entity(p, Math.hypot(p.vx, p.vz) > 0.6); if (p.mount) { const mm = KIN.model(p.mount.sp, p.mount.stage); const st = seatOf(mm); const f = U.forwardVec(p.yaw, 0); const along = 0.5 + st.zc - 0.06; me.x = p.x + f[0] * along; me.z = p.z + f[2] * along; me.y = G.mountBase(p) + st.top - hipOf(me.model) * (me.scale || 1) + 0.1; me._an.cross = 1; /* sat cross-legged on top: fits a pony and a T-rex alike */ me.seatY = hipOf(me.model) * (me.scale || 1); } me.M = null; ents.push(me); this.meEnt = me; } else this.meEnt = null;
   if (p.mount) { const k = p.mount; const m = KIN.dress(KIN.model(k.sp, k.stage), k.wear); const fwd = U.forwardVec(p.yaw, 0); if (!k._an) k._an = { ph: 0, mv: 0, lx: p.x, lz: p.z, ly: p.y, lt: performance.now(), vy: 0, seed: 5, air: 0 }; k._an.swim = p.mountMode === 'water' ? 1 : 0; const mt = { x: p.x + fwd[0] * 0.5, y: G.mountBase(p), z: p.z + fwd[2] * 0.5, yaw: p.yaw + Math.PI, model: m, mesh: R.entityMesh(KIN.meshKey(k.sp, k.stage) + KIN.wearKey(k.wear), (mb) => KIN.buildMesh(mb, m)), scale: 1, hover: 0, skyMul: 1, isMount: true, flying: p.mountMode === 'air' && !p.onGround, _an: k._an }; ents.push(mt); if (Taming.active) Taming.pose(mt, this.meEnt, cam.yaw); /* it bucks, and you with it */ }
   ents.push(...Battle.fxEntities()); ents.push(...Sky.puffEntities()); ents.push(...Wild.dropEntities()); ents.push(...Gems.entities()); ents.push(...Buddy.entities()); ents.push(...First.entities()); ents.push(...Cine.entities()); ents.push(...Wood.entities()); ents.push(...Arena.entities()); ents.push(...Roads.entities()); ents.push(...Garrison.entities()); ents.push(...Sky.entities()); ents.push(...Ruins.entities()); ents.push(...Fields.entities()); ents.push(...Farms.entities()); ents.push(...Felling.entities()); ents.push(...Combat.entities()); ents.push(...Hazards.entities()); ents.push(...Npcs.entities());
@@ -983,7 +991,21 @@ G.chooseDestination = function (id) {
   UI.closePanel();
   if (id === 'back') { this.player.flying = true; this.player.y = WH + 10; this.player.vy = -2; return; }
   if (id === this.worldId) { this.player.flying = true; this.player.y = WH + 10; this.player.vy = -2; UI.toast('You are already here. Coming back down.'); return; }
-  this.fadeTravel(id);
+  this.shipTravel(id);
+};
+/* leaving a world and reaching the next one, as a film: the Starlark seen from outside against the sky she is leaving, a white-out, and then
+   the new world turning under her as she comes down to the pad. The first time for each world is the long telling; after that a few seconds */
+G.shipTravel = function (target) {
+  const p = this.player, from = this.worldId, NAME = { earth: 'Earth', moon: 'the Moon', halo: 'Halo' }, fl = (this.stats.flown = this.stats.flown || {}), firstOut = !fl['out:' + from], firstIn = !fl['in:' + target]; fl['out:' + from] = true; fl['in:' + target] = true;
+  const OUT = { earth: ['Below you the lamps are coming on in every town you opened.', 'The Citadel is a dark tooth on the edge of the world, and already small.', 'Ahead there is one black ship, and a whole sky he means to take.'], moon: ['The domes shrink to beads of light on the grey.', 'He said there is nowhere past Halo.', 'You are about to find out.'], halo: ['The ring turns under you, slow as a mill wheel.', 'The Pit is a scratch in the sand from up here.'] };
+  const IN = { moon: ['Grey to the edge of everything, and no sound at all.', 'Glass domes with people in them who glow.', 'And one white post where the lights are the wrong colour.'], halo: ['The ring fills half the sky.', 'Rust and sand, and tracks that run out to yards you cannot see.', 'This is where the road stops.'], earth: ['It is greener than you remembered.', 'Somebody down there is mending a net.'] };
+  const arr = { orbit: { x: p.x, y: p.y, z: p.z, r: [46, 11], h: [26, 4], a: [0.4, 2.2], ly: 0.5 }, plain: true, secs: firstIn ? 10 : 3.5, title: firstIn ? NAME[target][0].toUpperCase() + NAME[target].slice(1) : null, glow: 'gold', sfx: 'quest', flash: firstIn ? IN[target] : null };
+  p.flying = true; p.vx = p.vy = p.vz = 0;
+  const beats = [{ orbit: { x: p.x, y: p.y, z: p.z, r: [8, 11], h: [1.5, 3.5], a: [p.yaw + 2.2, p.yaw + 3.9], ly: 0.5 }, plain: true, secs: firstOut ? 10 : 3, title: firstOut ? 'The Starlark leaves ' + NAME[from] : null, shake: 0.5, sfx: 'fuse', flash: firstOut ? OUT[from] : null },
+    { orbit: { x: p.x, y: p.y, z: p.z, r: [11, 40], h: [3.5, -14], a: [p.yaw + 3.9, p.yaw + 4.5], ly: 0.5 }, secs: firstOut ? 3.5 : 1.8, glow: 'gold', shake: 0.8 },
+    { run: () => { crossed = true; setTimeout(() => { if (this.worldId === target) return; this.travel(target); const q = this.player; q.flying = true; q.y += 3.2; q.vy = 0; arr.orbit.x = q.x; arr.orbit.y = q.y; arr.orbit.z = q.z; arr.orbit.a = [q.yaw + 0.6, q.yaw + 2.6]; Cine.play([arr], land); }, 0); } }]; /* setting up a world clears any film, so the arrival is a film of its own, started on the far side */ /* the world is swapped between two frames, never in the middle of one */
+  let crossed = false; const land = () => { if (this.worldId !== target) { this.travel(target); } const q = this.player; if (this.worldId === target && !q.flying && !this.shipPark) { q.flying = true; } if (q.flying) { const gy = this.world.groundY(Math.floor(q.x), Math.floor(q.z)); q.flying = false; q.vy = 0; this.shipPark = { t0: performance.now(), until: performance.now() + 6000, x: q.x, y: gy + 0.5, z: q.z, yaw: q.yaw + Math.PI }; const f = U.forwardVec(q.yaw + Math.PI / 2, 0); q.x += f[0] * 2.4; q.z += f[2] * 2.4; q.y = this.world.groundY(Math.floor(q.x), Math.floor(q.z)) + 1.2; } };
+  if (typeof Cine === 'undefined' || !Cine.play(beats, () => { if (!crossed) { crossed = true; setTimeout(land, 0); } })) { this.fadeTravel(target); } /* skipped before the crossing: go anyway, and land */
 };
 G.fadeTravel = function (target) {
   const f = document.getElementById('fade'); f.style.opacity = 1; this.paused = true; Controls.setEnabled(false);
