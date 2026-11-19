@@ -21,11 +21,12 @@ const Roads = (() => {
     halo: [
       [() => pitWon() < 1, () => 'Outside the nearest city there is a ring under a dead thing\'s ribs. Five animals, each worse than the last. No nets. The purse is good.'],
       [() => pitWon() >= 1 && pitWon() < 5, () => 'I had money on you in the Pit. Do not stop at ' + pitWon() + '. Nobody remembers who won ' + pitWon() + '.'],
-      [() => pitWon() >= 5 && !G.stats.kmEnded, () => 'There is a man in black in the top row of the Pit. He does not bet and he does not sit down.'],
+      [() => pitWon() >= 5 && !G.stats.kmEnded && !(G.stats.arena || {}).sawKM, () => 'There is a man in black in the top row of the Pit. He does not bet and he does not sit down.'],
+      [() => (G.stats.arena || {}).sawKM && !G.stats.kmEnded, () => 'I was in the Pit the day your Kin bounced off that black thing. Look at the ribs over the ring. The animal you want is that size, and they say one still walks on Earth.'],
       [() => !gar(), () => 'People off the Rig say a black ship came in low a while back. Whoever flies it is waiting on news from the Moon.'],
       [() => true, () => 'The brine burns. Where the Rig crosses it on plate, walk the plate.'],
       [() => true, () => 'Dune crests. That is where the pink stones are. The low ground has only the little ones.'],
-      [() => true, () => 'All three hold a city here, close on level ninety. Train on what lives outside their walls first.'],
+      [() => true, () => 'All three hold a city here, past level one-fifty. Train on what lives outside their walls first.'],
       [() => !G.player.has('wings'), () => 'The caravan folk make wings out of ring shards, for people who do their work. Three jobs, I heard.']] };
   function init(game) { G = game; if (ped) Village.dropLoose && Village.dropLoose(ped); ped = null; t = 0; next = 70; }
   const wear = (x, z) => (G.world.trailWear ? G.world.trailWear(Math.floor(x), Math.floor(z)) : 0);

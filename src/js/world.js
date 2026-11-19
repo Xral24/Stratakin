@@ -173,10 +173,10 @@ const PRESETS = {
   earth: { id: 'earth', name: 'Earth', gravity: 1, water: true, trees: true, skyIslands: true, weather: true, seedXor: 0, arrival: null, villages: { nc: 64, prefix: '', style: 'land' }, fisher: true, founding: true, zoneBase: 0, lostWorld: true, reefs: true },
   moon: { id: 'moon', name: 'the Moon', gravity: 0.38, water: false, trees: false, skyIslands: false, weather: false, seedXor: 0x100D, craters: true, spires: true, flatDay: 0.85, airless: true,
     palette: { [B.GRASS]: ['#a3a3ab', '#8b8b93'], [B.DIRT]: ['#80808a', '#76767f'], [B.STONE]: ['#8e8e97', '#85858e'], [B.SAND]: ['#bcbcc3', '#b0b0b7'], [B.GRAVEL]: ['#6f6f78', '#65656e'], [B.SNOW]: ['#e4e4ea', '#d4d4da'], [B.MOSS]: ['#9d9da6', '#8d8d96'] },
-    sky: [0.01, 0.01, 0.03], fogMul: 1, biomes: 'moon', villages: { nc: 96, prefix: 'm', style: 'alien' }, zoneBase: 40, legend: { name: 'Selenaut', level: 180, elem: 'Light', shape: 'floater', zone: 20 }, worms: true, people: 'alien' },
+    sky: [0.01, 0.01, 0.03], fogMul: 1, biomes: 'moon', villages: { nc: 96, prefix: 'm', style: 'alien' }, zoneBase: 84, /* you leave Earth with Kin near 90 (the Citadel's two are 90 and 95): the Moon starts just under that and climbs */ legend: { name: 'Selenaut', level: 180, elem: 'Light', shape: 'floater', zone: 20 }, worms: true, people: 'alien' },
   halo: { id: 'halo', name: 'Halo', gravity: 0.72, water: false, brine: true, brineLevel: 40, trees: false, skyIslands: false, weather: false, seedXor: 0x4A10, craters: false, spires: false, airless: true,
     palette: { [B.GRASS]: ['#d9b96a', '#b9955a'], [B.DIRT]: ['#b08a4c', '#9c7a42'], [B.STONE]: ['#b49a6a', '#a68c5e'], [B.SAND]: ['#e2c374', '#d4b468'], [B.GRAVEL]: ['#9a8458', '#8a7650'], [B.SNOW]: ['#f0ead8', '#d8d0b8'], [B.MOSS]: ['#b4a060', '#a08c54'], [B.BASALT]: ['#5a4a3a', '#4a3c30'] },
-    skyNoon: [0.95, 0.78, 0.42], skyNight: [0.08, 0.05, 0.03], skyDusk: [0.98, 0.55, 0.25], fogMul: 0.85, biomes: 'halo', villages: { nc: 80, prefix: 'h', style: 'halo' }, zoneBase: 70, legend: { name: 'Ringwarden', level: 200, elem: 'Spark', shape: 'bird', zone: 30 }, ringfall: true, people: 'halo' },
+    skyNoon: [0.95, 0.78, 0.42], skyNight: [0.08, 0.05, 0.03], skyDusk: [0.98, 0.55, 0.25], fogMul: 0.85, biomes: 'halo', villages: { nc: 80, prefix: 'h', style: 'halo' }, zoneBase: 120, /* and Halo starts where the Moon's cities leave off */ legend: { name: 'Ringwarden', level: 200, elem: 'Spark', shape: 'bird', zone: 30 }, ringfall: true, people: 'halo' },
 };
 let ACTIVE_PRESET = PRESETS.earth;
 

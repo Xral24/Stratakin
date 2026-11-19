@@ -32,13 +32,13 @@ const Wild = (() => {
       const dv = Math.hypot(wdd(x - v.x), wdd(z - v.z)); const st = G.villageState && G.villageState[v.id];
       if (st && st.freed && dv < 60) lv -= 3; // your village: a calm place
       else if (st && !st.freed && dv < 70) lv += 2 + v.tier * 2; // a tyrant's: his creatures
-      if (onEarth && st && !st.freed && !v.starter && v.type === 'land' && dv < 130 && Village.bossLevel) { const bl = Village.bossLevel(v); heldLv = bl - 4 + Math.floor(U.hash3(Math.floor(x / 6), 9, Math.floor(z / 6), world.seed) * 3); } /* round a held place the wild Kin are his, three or four levels under him: that is where you train for him */
+      if (st && !st.freed && !v.starter && v.type === 'land' && dv < 130 && Village.bossLevel && (onEarth || v.R)) { const bl = Village.bossLevel(v); heldLv = bl - 4 + Math.floor(U.hash3(Math.floor(x / 6), 9, Math.floor(z / 6), world.seed) * 3); } /* round a held place the wild Kin are his, three or four levels under him: that is where you train for him */
     }
     lv += layerBonus(ctx.layer, ctx.layer === 'Water' && (SEA - y) > 3);
     const biome = world.colInfo(Math.floor(x), Math.floor(z)).biome;
     if (onEarth && y >= 64 && biome === BIOME.MOUNTAIN && U.vnoise2(Math.floor(x), Math.floor(z), 256, WORLD_W, world.seed + 611) > 0.6) lv += 8; // the heart of a volcano
     let cap = onEarth ? trainerLevel + 8 : (pr.zoneBase || 0) + 110;
-    if (biome === BIOME.LOSTWORLD) { lv = Math.max(lv, 38); cap = Math.max(cap, trainerLevel + 14); } // the Lost World: old and big
+    if (biome === BIOME.LOSTWORLD) { lv = Math.max(lv, 140 + Math.floor(U.hash3(Math.floor(x / 8), 5, Math.floor(z / 8), world.seed) * 16)); cap = Math.max(cap, 168); } /* you come here from Halo now, for the one animal that can face Umbrarch: its jungle is 140 to 155, under the Tyrannorex's 170 */ // the Lost World: old and big
     if (world.legend) { const dl = Math.hypot(wdd(x - world.legend.x), wdd(z - world.legend.z)); if (dl < world.legend.r) { lv += pr.legend.zone * (1 - dl / world.legend.r * 0.4); cap += pr.legend.zone; } }
     if (heldLv > 0) { lv = Math.max(1, heldLv); cap = Math.max(cap, heldLv); }
     return U.clamp(Math.round(lv), 1, Math.min(cap, KIN.MAX_LEVEL));
