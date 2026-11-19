@@ -129,7 +129,7 @@ const Lab = (() => {
     } else { scientist = null; if (bossRef && dh > 90) { Wild.remove(bossRef); bossRef = null; } }
   }
   /* the thanks and what comes with them, the same whether he reaches you or you go over and speak to him first. (Speaking to him first used to pay out but never count the quest as done) */
-  function thank(sc) { const L = S(); if (L.thanked) return; L.thanked = true; G.talkNpc = sc; Dialogue.show(story().who, story().thanks, () => { G.shards += 60; G.player.add('snare2', 2); UI.sfx('quest'); UI.toast('+60 Shards and two Void Nets. The incubator is yours.', 'good'); G.stats.labDone = (G.stats.labDone || 0) + 1; if (world.preset.id === 'earth' && !G.stats.lostMap) setTimeout(() => G.giveLostMap(story().who), 600); }); }
+  function thank(sc) { const L = S(); if (L.thanked) return; L.thanked = true; G.talkNpc = sc; Dialogue.show(story().who, story().thanks, () => { G.shards += 60; G.player.add('snare2', 2); UI.sfx('quest'); UI.toast('+60 Shards and two Void Nets. The incubator is yours.', 'good'); G.stats.labDone = (G.stats.labDone || 0) + 1; if (world.preset.id === 'earth' && !G.stats.lostMap && (G.stats.garrison || {}).taken) setTimeout(() => G.giveLostMap(story().who), 600); }); }
   function onBossBeaten() { const L = S(); L.rescued = true; bossRef = null; UI.toast(`${story().bossName} is down. ${story().who} crawls out from under the bench.`, 'good'); }
   function talk(n) {
     const L = S(); G.talkNpc = n;

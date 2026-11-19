@@ -115,7 +115,7 @@ const Battle = (() => {
   function snareRule() {
     const p = G.player;
     if (wildE && wildE.isBoss) return { list: [], why: 'A tyrant cannot be caged. Beat him and he runs' };
-    if (wildE && wildE.finalBoss) return { list: [], why: 'Not this one. This one you end' }; if (wildE && wildE.pit) return { list: [], why: 'No nets in the Pit. Its beasts belong to the Pit' }; // the last fight only; the Kinmaster's own Kin and his warlords' can be caught
+    if (wildE && wildE.finalBoss) return { list: [], why: 'Not this one. This one you end' }; if (wildE && wildE.kmLast) return { list: [], why: 'Not this one. It is his to keep' }; if (wildE && wildE.pit) return { list: [], why: 'No nets in the Pit. Its beasts belong to the Pit' }; // the last fight only; the Kinmaster's own Kin and his warlords' can be caught
     if (wildE && wildE.aquatic && !wildE.isApex) return { list: [], why: 'Water Kin slip any cage. Fish them with a rod.' };
     if (wildE && wildE.high) { const air = p.gliding || p.mountMode === 'air'; if (!air) return { list: [], why: 'Only from the air' }; return { list: p.has('snare_sky') ? ['snare_sky'] : [], why: 'Needs a Flight Net' }; }
     return { list: ['snare2', 'snare'].filter(s => p.has(s)), why: 'No nets' };

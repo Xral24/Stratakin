@@ -15,4 +15,5 @@ const { open } = require('./harness');
   await ev(() => { const s = Garrison.site(), p = G.player; p.x = s.x + Math.sin(s.ga) * 8 + 0.5; p.z = s.z + Math.cos(s.ga) * 8 + 0.5; }); await page.waitForTimeout(2500);
   console.log('boss', JSON.stringify(await ev(() => { const out = { dlg: Dialogue.active(), boss: Garrison.boss ? [KIN.name(Garrison.boss.kin), Garrison.boss.kin.level] : null }; return out; })));
   console.log('win', JSON.stringify(await ev(() => { const b = Garrison.boss; if (!b) return 'no boss'; G.onBattleEnd('won', b, b.kin, G.kin[0], false); return { st: G.stats.garrison, shards: G.shards, left: Combat.forHold('garrison').length }; })));
+  await page.waitForTimeout(800); console.log('after', JSON.stringify(await ev(() => { const act = Cine.active && (typeof Cine.active === 'function' ? Cine.active() : Cine.active); Cine.stop(); return { cine: !!act, dlg: Dialogue.active(), map: !!G.stats.lostMap, fled: !!(G.stats.garrison || {}).fled }; })));
   console.log('ERRORS:', h.errors.slice(0, 5).join(' | ') || 'none'); await h.close(); })();
