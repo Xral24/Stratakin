@@ -270,6 +270,59 @@ const Games = (() => {
     st.stop = () => cancelAnimationFrame(st.raf); head(); ui.say.textContent = 'Tap when the gap in the lit hoop is under the pointer. Outside hoop first.'; st.raf = requestAnimationFrame(tick);
     st.debug = { state: st, step: (dt) => { advance(dt); draw(); }, off, GAP, tap: yours };
   }
-  const KINDS = { ringboard: { name: 'Ringboard', fn: ringboard, blurb: 'Five throws each at the ringboard. Highest count takes both stakes.' }, draughts: { name: 'Draughts', fn: draughts, blurb: 'One game of draughts. Whoever is left without a move pays.' }, chess: { name: 'Chess', fn: chess, blurb: 'One game of chess. Mate takes both stakes.' }, moonshot: { name: 'Moonshot', fn: moonshot, blurb: 'Five stones each, lobbed at a marked crater. Nearest takes both stakes.' }, hoops: { name: 'Three Rings', fn: hoops, blurb: 'Four darts each through three turning hoops. Most hoops takes both stakes.' }, tide: { name: 'High Tide', fn: tide, blurb: 'Nine prizes, nine cards each. Higher card takes the prize, most points takes both stakes.' } };
+
+  // ================= signal: the Moon's memory game =================
+  // Four beacon lamps. The keeper of the board lights a run of them, one longer every round. The champion repeats it, then you do.
+  // Whoever fumbles first loses. If the champion fumbles you still have to get that round right to take the stake
+  function signal(o) {
+    const first = o.champ.split(' ')[0], ui = shell('Signal', `${o.champ} · ${o.stake} shards a side`), sk = U.clamp(o.skill == null ? 0.4 : o.skill, 0, 1);
+    const limit = Math.max(3, Math.min(13, Math.round(5 + sk * 6.5 + gauss() * 1.2))); /* the round the champion drops it on */
+    const st = { seq: [], round: 0, phase: 'show', at: 0, over: false, timers: [], themOut: false, limit }; cur = st;
+    const COLS = ['#59e6ff', '#ffd45a', '#ff7ad1', '#8dff9a'], pad = $('<div class="gb-sig"></div>'), lamps = COLS.map((c, i) => { const b = $(`<i class="gs-lamp" style="--c:${c}"></i>`); b.addEventListener('pointerdown', () => press(i)); pad.appendChild(b); return b; }); ui.stage.appendChild(pad);
+    const quit = $('<button class="btn ghost">Give up</button>'); ui.foot.appendChild(quit); quit.addEventListener('click', () => { st.over = true; close(); if (o.onEnd) o.onEnd('lose'); });
+    const later = (fn, ms) => { const t = setTimeout(() => { if (cur === st && !st.over) fn(); }, ms); st.timers.push(t); };
+    const head = () => { ui.score.innerHTML = `<span class="gb-you">You</span><span class="gb-mid">run of ${st.seq.length}</span><span class="gb-them">${first}</span>`; };
+    const lit = (i, ms) => { lamps[i].classList.add('on'); if (typeof UI !== 'undefined' && UI.sfx) UI.sfx('tick'); setTimeout(() => lamps[i] && lamps[i].classList.remove('on'), ms); };
+    function done(res, line) { st.over = true; quit.remove(); finish(ui, o, res, line); }
+    function next() { st.round++; st.seq.push(Math.floor(Math.random() * 4)); st.phase = 'show'; head(); ui.say.textContent = 'Watch the lamps.'; const gap = Math.max(300, 620 - st.round * 22);
+      st.seq.forEach((v, i) => later(() => lit(v, gap * 0.62), 500 + i * gap));
+      later(() => { if (st.themOut) return yours(); if (st.round >= st.limit) { st.themOut = true; ui.say.textContent = `${first} goes for it and hits the wrong lamp ${Math.max(1, Math.floor(Math.random() * st.round) + 1)} in. Get this one right and the stake is yours.`; later(yours, 1500); } else { ui.say.textContent = `${first} taps it back clean.`; later(yours, 900); } }, 700 + st.seq.length * gap); }
+    function yours() { st.phase = 'you'; st.at = 0; ui.say.textContent = 'Your turn. Tap them back in order.'; }
+    function press(i) { if (st.over || st.phase !== 'you') return; lit(i, 180);
+      if (i !== st.seq[st.at]) { st.phase = 'end'; return done(st.themOut ? 'draw' : 'lose', st.themOut ? 'You both dropped it on the same run. Nobody pays.' : `Wrong lamp. ${first} takes your stake.`); }
+      if (++st.at >= st.seq.length) { st.phase = 'wait'; if (st.themOut) return done('win', `Clean, ${st.seq.length} long. The stake is yours.`); if (st.round >= 14) return done('draw', 'Fourteen long and neither of you has dropped it. Call it level.'); ui.say.textContent = 'Clean.'; later(next, 800); } }
+    st.stop = () => st.timers.forEach(clearTimeout); head(); later(next, 600);
+    st.debug = { state: st, press, yours, next };
+  }
+  // ================= bones: Halo's dice =================
+  // Two knucklebones. Roll as often as you dare and the spots pile up; bank them and they are yours. A skull on either bone and the pile is gone.
+  // Skulls on both and everything you have banked goes with it. First to fifty
+  function bones(o) {
+    const first = o.champ.split(' ')[0], ui = shell('Bones', `${o.champ} · ${o.stake} shards a side`), sk = U.clamp(o.skill == null ? 0.4 : o.skill, 0, 1), GOAL = 50;
+    const st = { you: 0, them: 0, pile: 0, mine: true, over: false, busy: false, d: [3, 4], timers: [] }; cur = st;
+    const table = $('<div class="gb-bones"><div class="gbn-dice"><i class="gbn-die"></i><i class="gbn-die"></i></div><div class="gbn-pile"></div></div>'); ui.stage.appendChild(table); const dice = table.querySelectorAll('.gbn-die'), pileEl = table.querySelector('.gbn-pile');
+    const roll = $('<button class="btn big gb-throw">Roll</button>'), bank = $('<button class="btn big">Bank</button>'), quit = $('<button class="btn ghost">Give up</button>'); ui.foot.appendChild(roll); ui.foot.appendChild(bank); ui.foot.appendChild(quit);
+    quit.addEventListener('click', () => { st.over = true; close(); if (o.onEnd) o.onEnd('lose'); });
+    const later = (fn, ms) => { const t = setTimeout(() => { if (cur === st && !st.over) fn(); }, ms); st.timers.push(t); };
+    const PIP = ['', '☠', '⚁', '⚂', '⚃', '⚄', '⚅'];
+    const show = () => { dice.forEach((e, i) => { e.textContent = PIP[st.d[i]]; e.classList.toggle('skull', st.d[i] === 1); }); pileEl.textContent = st.pile ? `${st.mine ? 'Your' : first + "'s"} pile: ${st.pile}` : ''; ui.score.innerHTML = `<span class="gb-you">You <b>${st.you}</b></span><span class="gb-mid">first to ${GOAL}</span><span class="gb-them">${first} <b>${st.them}</b></span>`; roll.disabled = bank.disabled = !st.mine || st.busy || st.over; bank.disabled = bank.disabled || !st.pile; };
+    function done(res, line) { st.over = true; roll.remove(); bank.remove(); quit.remove(); finish(ui, o, res, line); }
+    /* one throw for whoever's turn it is. Returns what happened so the champion can decide what to do next */
+    function cast(force) { st.d = force || [1 + Math.floor(Math.random() * 6), 1 + Math.floor(Math.random() * 6)]; const who = st.mine ? 'you' : 'them', a = st.d[0], b = st.d[1];
+      if (a === 1 && b === 1) { st[who] = 0; st.pile = 0; ui.say.textContent = st.mine ? 'Two skulls. Everything you had banked is gone.' : `Two skulls. ${first} loses the lot.`; return 'wipe'; }
+      if (a === 1 || b === 1) { st.pile = 0; ui.say.textContent = st.mine ? 'A skull. The pile is gone.' : `A skull. ${first} loses the pile.`; return 'bust'; }
+      st.pile += a + b; ui.say.textContent = st.mine ? `${a + b}. Roll again or bank it.` : `${first} rolls ${a + b}.`; return 'ok'; }
+    function pass() { st.pile = 0; st.mine = !st.mine; show(); if (!st.mine) later(theirs, 900); }
+    function keep() { const who = st.mine ? 'you' : 'them'; st[who] += st.pile; st.pile = 0; if (st[who] >= GOAL) { show(); return done(st.mine ? 'win' : 'lose', st.mine ? `${st.you} to ${st.them}. The stake is yours.` : `${st.them} to ${st.you}. ${first} takes your stake.`); } pass(); }
+    /* the champion: a good one holds at about twenty, presses when behind and goes for it when the line is in reach. A poor one holds too early or too late */
+    function theirs() { const r = cast(); show(); if (r !== 'ok') return later(pass, 1100);
+      const need = GOAL - st.them, hold = sk > 0.6 ? (st.you >= GOAL - 10 ? 99 : st.you - st.them > 15 ? 26 : 20) : sk > 0.35 ? 16 + Math.floor(Math.random() * 10) : 8 + Math.floor(Math.random() * 22);
+      if (st.pile >= need || st.pile >= hold) return later(() => { ui.say.textContent = `${first} banks ${st.pile}.`; keep(); }, 900); later(theirs, 850); }
+    roll.addEventListener('click', () => { if (st.over || !st.mine || st.busy) return; const r = cast(); show(); if (r !== 'ok') { st.busy = true; show(); later(() => { st.busy = false; pass(); }, 1100); } });
+    bank.addEventListener('click', () => { if (st.over || !st.mine || st.busy || !st.pile) return; keep(); });
+    st.stop = () => st.timers.forEach(clearTimeout); ui.say.textContent = 'Roll as long as you dare. A skull takes the pile.'; show();
+    st.debug = { state: st, cast, keep, pass, show, theirs };
+  }
+  const KINDS = { signal: { name: 'Signal', fn: signal, blurb: 'Four lamps and a run that gets longer. First to fumble it pays.' }, bones: { name: 'Bones', fn: bones, blurb: 'Two knucklebones, first to fifty. Roll as long as you dare: a skull takes your pile.' }, ringboard: { name: 'Ringboard', fn: ringboard, blurb: 'Five throws each at the ringboard. Highest count takes both stakes.' }, draughts: { name: 'Draughts', fn: draughts, blurb: 'One game of draughts. Whoever is left without a move pays.' }, chess: { name: 'Chess', fn: chess, blurb: 'One game of chess. Mate takes both stakes.' }, moonshot: { name: 'Moonshot', fn: moonshot, blurb: 'Five stones each, lobbed at a marked crater. Nearest takes both stakes.' }, hoops: { name: 'Three Rings', fn: hoops, blurb: 'Four darts each through three turning hoops. Most hoops takes both stakes.' }, tide: { name: 'High Tide', fn: tide, blurb: 'Nine prizes, nine cards each. Higher card takes the prize, most points takes both stakes.' } };
   return { KINDS, play(kind, o) { const K = KINDS[kind]; if (!K) return false; K.fn(o || {}); return true; }, close, get current() { return cur; }, D, C };
 })();
