@@ -469,6 +469,8 @@ Scope (Alexander, 8 Nov evening): EVERYTHING visible goes to the same standard: 
 
 - 19 Nov, people on the Moon's and Halo's tracks (his ask: Halo's people and what they ride; hints from people you bump into). **Roads now runs on every planned world: a pedlar or wayfarer walks the worn tracks, in the dress of the place, with lines and names of the place (FOLK_W, NAMES_W) and hint pools of its own (HINTS_W: the Garrison, the survey, the Glide, the Pit, the man in black, pink stones on high ground, brine, wings). On Halo every one leads a laden pack beast (a Halo quadruped with panniers, blanket and bedroll hung from its body box); on the Moon a white cargo drone drifts behind. FOUND AND FIXED: wayside people (Village loose list) were only drawn on Earth, so Pit Boss Varga and the Pit crowd were invisible until now. tools/test/t-roads3.js.**
 
+- 19 Nov, Halo riders (his ask: Go, after I offered a ridden beast). **About half of Halo's wayfarers now ride their beast: seated cross-legged on its back (n.lift raises the drawn figure, _an.sit and _an.cross pose it), the beast walking the track under them, a blanket but no panniers. The pedlar still walks and leads a laden one.**
+
 ## Still to do
 UI polish as feedback comes in. Card battle screen still used for scripted encounters (raids at the walls, thief, citadel duel, holds) and the snare mini-game; converting those to live is the next big step if wanted. (Old list: train/ships, combat animation, eggs, avatar hair/paint, buddy WEAR cosmetics, Silas and Finch, UI polish (item icons), quality toggles in settings (state.shadows, state.grassQuality, state.dprCap).
 
