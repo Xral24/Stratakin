@@ -2794,6 +2794,7 @@ const Village = (() => {
     }
     if (n.role === 'elder') {
       const v = active; if (!v) return;
+      if (v.starter && world.preset.id === 'earth' && (G.stats.garrison || {}).taken && !G.stats.haskHome) { G.stats.haskHome = true; G.talkNpc = n; return Dialogue.show(n.name, ['Sit down a minute. I heard what post you took, up there, and I heard whose.', 'Corwin. My brother. We were boys in this square. He wanted a uniform and somebody to tell him he was right, and one day a man in a mask came through who was happy to do both.', 'Forty years. I told people he drowned. It was easier.', 'They say you put him out of his own gate and he walked. He always could take a beating. Thank you for not making it worse than that.'], () => { G.shards += 120; UI.toast('Elder Hask presses 120 shards on you and will not hear a word about it.', 'good'); }); }
       const st = state(v.id);
       if (typeof Npcs !== 'undefined' && Npcs.onElderTalk(v)) { Dialogue.show(n.name, ['A parcel, for me? From the road? Well. Tell them it arrived.']); return; }
       if (!st.freed) { Dialogue.show(n.name, ['The tyrant is back in the square. Beat him and we are yours again.']); return; }
