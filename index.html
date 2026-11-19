@@ -11053,6 +11053,7 @@ const Wild = (() => {
     let cap = onEarth ? trainerLevel + 8 : (pr.zoneBase || 0) + 110;
     if (biome === BIOME.LOSTWORLD) { lv = Math.max(lv, 140 + Math.floor(U.hash3(Math.floor(x / 8), 5, Math.floor(z / 8), world.seed) * 16)); cap = Math.max(cap, 168); } /* you come here from Halo now, for the one animal that can face Umbrarch: its jungle is 140 to 155, under the Tyrannorex's 170 */ // the Lost World: old and big
     if (world.legend) { const dl = Math.hypot(wdd(x - world.legend.x), wdd(z - world.legend.z)); if (dl < world.legend.r) { lv += pr.legend.zone * (1 - dl / world.legend.r * 0.4); cap += pr.legend.zone; } }
+    if (onEarth && !heldLv && typeof Keeps !== 'undefined' && Keeps.levelNear) { const hl = Keeps.levelNear(x, z); if (hl) heldLv = hl - 4 + Math.floor(U.hash3(Math.floor(x / 6), 9, Math.floor(z / 6), world.seed) * 3); } /* round a hold too */
     if (heldLv > 0) { lv = Math.max(1, heldLv); cap = Math.max(cap, heldLv); }
     return U.clamp(Math.round(lv), 1, Math.min(cap, KIN.MAX_LEVEL));
   }
@@ -14038,9 +14039,9 @@ const Village = (() => {
   }
   /* how strong the one who holds a place is. On Earth it is a ladder, the way gyms are, and each rung is three or four above the last so the climb never has a wall in it: the home village 3, the two hamlets 6 and 9, the eight towns 12 up to 33, the four cities 38, 42, 46 and 50. Which rung a place gets depends on how many of its kind you have already freed. Settled the first time it is asked, so a place does not get harder behind your back */
   function bossLevelFor(v) { if (world.preset.id === 'earth' && v.type === 'land' && !v.founded) { const st = state(v.id); if (st.bossLvl) return st.bossLvl; let cities = 0, towns = 0, hams = 0; for (const o of townList()) if (!o.starter && state(o.id).freed) { if (o.size === 'city') cities++; else if (o.size === 'town') towns++; else hams++; }
-      const lvl = v.starter ? 3 : v.size === 'city' ? Math.min(50, 38 + cities * 4) : v.size === 'town' ? Math.min(33, 12 + towns * 3) : Math.min(10, 6 + hams * 3); if (st.stamped) st.bossLvl = lvl; return lvl; }
+      const lvl = v.starter ? 3 : v.size === 'city' ? Math.min(50, 38 + cities * 4) : v.size === 'town' ? Math.min(31, 10 + towns * 3) : Math.min(8, 5 + hams * 3); /* one ladder for the whole of Earth, each rung a step from the last: home 3, hamlets 5 and 8, towns 10 to 31, Thornhold 36, cities 38 to 50 (54 with the gang), the five holds 56 to 72, Stormspire 76, the Citadel 82 and 88 */ if (st.stamped) st.bossLvl = lvl; return lvl; }
     if (v.R && v.type === 'land' && !v.founded && (world.preset.id === 'moon' || world.preset.id === 'halo')) { const st = state(v.id); if (st.bossLvl) return st.bossLvl; let cities = 0, towns = 0, hams = 0; for (const o of townList()) if (state(o.id).freed) { if (o.size === 'city') cities++; else if (o.size === 'town') towns++; else hams++; } /* the same climb as Earth's, starting where Earth's leaves off: the Moon from 90, Halo from 126 */
-      const b0 = world.preset.id === 'moon' ? 90 : 126, lvl = v.size === 'city' ? Math.min(b0 + 33, b0 + 24 + cities * 3) : v.size === 'town' ? Math.min(b0 + 20, b0 + 6 + towns * 2) : Math.min(b0 + 4, b0 + hams * 2); /* Moon: hamlets 90, towns 96 to 110, cities 114 to 123. Halo: hamlets 126, towns 132 to 146, cities 150 to 159. Each gang member adds 2 */ if (st.stamped) st.bossLvl = lvl; return lvl; }
+      const b0 = world.preset.id === 'moon' ? 90 : 126, lvl = v.size === 'city' ? Math.min(b0 + 33, b0 + 24 + cities * 3) : v.size === 'town' ? Math.min(b0 + 19, b0 + 5 + towns * 2) : Math.min(b0 + 2, b0 + hams * 2); /* Moon: hamlets 90, towns 96 to 110, cities 114 to 123. Halo: hamlets 126, towns 132 to 146, cities 150 to 159. Each gang member adds 2 */ if (st.stamped) st.bossLvl = lvl; return lvl; }
     return bossLevelFor0(v); }
   function bossLevelFor0(v) { return Math.max(3, (G.trainerLevel || 1) - 1 + (v.size === 'city' ? 6 : v.size === 'town' ? 2 : 0) + v.tier * 2, (v.zoneBase || 0) + v.tier * 3); }
   /* a beaten tyrant is not dead and not caught: he legs it. He turns, bolts away from you, and is gone in dust past the wall. The Moon one lifts off, the sea one dives */
@@ -15843,7 +15844,7 @@ const QUESTS = [
   /* the Moon's own chapter and Halo's: the same three, further from home each time */
   { id: 'garrison', title: 'The Garrison', desc: 'The three did not come up alone. Their master\'s troopers hold a walled landing post outside the nearest Moon city: white walls, a dome in the middle, barricades across the yard. They shoot bolts of light. Use the barricades, put one trooper down and take his ray gun, clear the yard, then beat Commander Hask\'s Kin.', hint: 'Take the Garrison (outside the nearest Moon city)', check: G => (G.stats.garrison || {}).taken ? 1 : 0, reward: { xp: 2500, items: { tonic_heal: 4 } } },
   { id: 'laststand', title: 'Nowhere Past Halo', desc: 'He left the Moon for Halo, and there is nowhere past Halo. He waits in the top row of the Pit and comes down only for its champion. His last Kin is Umbrarch, and nothing that has ever belonged to a person can mark it. One animal was never anybody\'s: the Tyrannorex, in the Lost World on Earth, the valley on his own survey. Net it, bring it back in your party, and stand on the mark.', hint: 'Champion of the Pit, with the Tyrannorex in your party: stand on the mark', check: G => G.stats.kmEnded ? 1 : 0, reward: { xp: 12000 } },
-  { id: 'moontown', title: 'Two, and No Air', desc: 'The three followed their master up. On the Moon a town is two of them in pressure rigs, level 96 and climbing, and its gates stay shut until both are out. The Glide will take you between the docks you have relit.', hint: 'Free a town on the Moon', check: G => (((G.stats.freedW || {}).moon || {}).town || 0) >= 1 ? 1 : 0, reward: { xp: 1200, items: { snare2: 3, tonic_heal: 4 } } },
+  { id: 'moontown', title: 'Two, and No Air', desc: 'The three followed their master up. On the Moon a town is two of them in pressure rigs, level 95 and climbing, and its gates stay shut until both are out. The Glide will take you between the docks you have relit.', hint: 'Free a town on the Moon', check: G => (((G.stats.freedW || {}).moon || {}).town || 0) >= 1 ? 1 : 0, reward: { xp: 1200, items: { snare2: 3, tonic_heal: 4 } } },
   { id: 'mooncity', title: 'The Great Domes', desc: 'Four cities under glass, each held by all three together. Bigmouth says his suit squeaks when he laughs. Make him laugh.', hint: 'Free a city on the Moon', check: G => (((G.stats.freedW || {}).moon || {}).city || 0) >= 1 ? 1 : 0, reward: { xp: 2000 } },
   { id: 'moonall', title: 'The Lit Side', desc: 'Eight towns and four cities. Free them all and every dome on the Moon has its lights on again.', hint: 'Free every town and city on the Moon', check: G => ((((G.stats.freedW || {}).moon || {}).town || 0) + (((G.stats.freedW || {}).moon || {}).city || 0)) / 12, reward: { xp: 5000 } },
   { id: 'halofree', title: 'Under the Rings', desc: 'Halo is the far end of the road: scrap walls, dome huts dug into the sand, the Rig hauling between the yards. The three are here too, in road leathers, level 126 and up. Free one place and the caravan people will know your name.', hint: 'Free a place on Halo', check: G => Object.values(((G.stats.freedW || {}).halo || {})).reduce((a, b) => a + b, 0) >= 1 ? 1 : 0, reward: { xp: 1500, items: { snare2: 3 } } },
@@ -16954,7 +16955,7 @@ const Campaign = (() => {
     if (n.job === 'kinmaster') {
       if (c.kinmaster) return;
       const f = sites().fort;
-      return say(['So you are the one freeing my villages. Keychain wrote to me about you, before you sent him packing.', 'Every tyrant was mine. Every square, every wall. And under all of it, in the Core, something older than both of us is waking. I mean to be the one it obeys.', 'You came all this way through my little puzzles. Let us see if your Kin are as clever as you.'], () => { if (bossRef && Wild.list.includes(bossRef)) { Battle.start(bossRef, false); return; } const sp = kinmasterSpecies(); const e = Wild.makeEntity(sp, Math.max(45, Math.min(70, G.trainerLevel + 12)), f.throne.x - 3 + 0.5, f.floorY + 1, f.throne.z + 0.5, { senseR: 12, elite: true }); e.kinmaster = true; bossRef = e; Wild.list.push(e); Battle.start(e, false); });
+      return say(['So you are the one freeing my villages. Keychain wrote to me about you, before you sent him packing.', 'Every tyrant was mine. Every square, every wall. And under all of it, in the Core, something older than both of us is waking. I mean to be the one it obeys.', 'You came all this way through my little puzzles. Let us see if your Kin are as clever as you.'], () => { if (bossRef && Wild.list.includes(bossRef)) { Battle.start(bossRef, false); return; } const sp = kinmasterSpecies(); const e = Wild.makeEntity(sp, 36, f.throne.x - 3 + 0.5, f.floorY + 1, f.throne.z + 0.5, { senseR: 12, elite: true }); e.kinmaster = true; bossRef = e; Wild.list.push(e); Battle.start(e, false); });
     }
     if (n.job === 'keeper') {
       if (G.stats.lostMap) return say([(G.stats.apex || {}).rex === true ? 'You caught it. The Tyrannorex. I took a tooth when it shed one in the cage, set it in amber. It is the only one there will ever be, and it is for sale, to you, at a price that will make you sit down.' : 'You found it? The country they come from? Bring me back something with teeth.'], relic('keeper'));
@@ -19961,7 +19962,7 @@ const Keeps = (() => {
         if (!b || !Wild.list.includes(b)) {
           const sp = warlordSpecies(k); if (!sp) continue;
           const zl = Wild.zoneLevel(k.x, k.y + 1, k.z, { layer: 'Surface' }, G.trainerLevel || 1);
-          const lv = Math.max(14, Math.min(KIN.capOf(sp) + 10, zl + 10));
+          const nT = sites().filter(h => taken(h.id)).length, lv = Math.min(72, 56 + nT * 4); /* the holds come after the cities on the ladder: 56 for the first you take, then 60, 64, 68, 72 */
           const e = tw ? Wild.makeEntity(sp, lv, k.x + 0.5, k.y + 16, k.z + 4.5, { senseR: 6 }) : Wild.makeEntity(sp, lv, k.x + 0.5, k.y + 1, k.z - 1 + 0.5, { senseR: 6 }); e.keepBoss = k.id; e.elite = true; e.speed = 0; e.patrol = tw ? { ax: k.x - 1.5, az: k.z + 4.5, bx: k.x + 2.5, bz: k.z + 4.5, period: 10, phase: 0 } : { ax: k.x - 3.5, az: k.z - 1.5, bx: k.x + 4.5, bz: k.z - 1.5, period: 10, phase: 0 };
           Wild.list.push(e); bosses[k.id] = e; if (!tw && Combat.forHold(k.id).length) UI.toast('His warriors are down. The warlord comes off the dais with his Kin.', 'bad');
           if (!s['seen_' + k.id]) { s['seen_' + k.id] = true; UI.toast(`${k.name}: one of the Kinmaster's keeps. His warlord holds the Dark Fusion Table inside.`, 'bad'); }
@@ -20048,7 +20049,9 @@ const Keeps = (() => {
     return true;
   }
   function mapMarks() { if (!onEarth()) return []; const p = G.player; return Citadel.mapMarks().concat(sites().filter(k => st()['seen_' + k.id] || taken(k.id) || (k.core && G.player.has('deepchart'))).map(k => ({ x: k.x, z: k.z, t: taken(k.id) ? '♜' : '☠', name: k.name + (k.core ? ' (deep in the Core)' : '') + (taken(k.id) ? ' (yours)' : '') }))); }
-  return { gates: (id) => st()['gate_' + id] || 0, isTaken: (id) => taken(id), inHold, init, update, onBattle, tableOpen, near, mapMarks, keepFor, sites, gloom, talkWarrior, finalReady, onFinal, COUNT };
+  /* the level of the warlord in an untaken hold near here, so the wild Kin round it can be his: somewhere to train for him */
+  const levelNear = (x, z) => { if (!onEarth()) return 0; const S = sites(), nT = S.filter(h => taken(h.id)).length; for (const h of S) if (!h.core && !taken(h.id) && Math.hypot(h.x - x, h.z - z) < 130) return Math.min(72, 56 + nT * 4); return 0; };
+  return { levelNear, gates: (id) => st()['gate_' + id] || 0, isTaken: (id) => taken(id), inHold, init, update, onBattle, tableOpen, near, mapMarks, keepFor, sites, gloom, talkWarrior, finalReady, onFinal, COUNT };
 })();
 
 </script>
@@ -20179,7 +20182,7 @@ const Citadel = (() => {
   // the end of it: two Kin, one after the other
   function talk(n, say) {
     return Cine.tell('The Kinmaster', n, { 2: [{ flash: ['Isla rode before she could walk.', 'The seabed dropped in the night. The city went with it.', 'Skerry came back to the ring. Isla did not.', 'So he bent the Concord until it stopped asking.'], mood: 'memory' }] }, ['So. You put my crystal back together. Do you know how long it took me to break it?', 'Twelve holds. Twelve. Even the one in the Core. And every one of those fools I bound, free again, singing about you in their villages.', 'They will have told you about Isla, under the sea. They tell everyone. They never say what it is to trust a thing, and have it turn over in its sleep.', 'No more puzzles, no more warlords. Just me, and what I have left.'], () => {
-      const t = C().throne; const lv = Math.max(90, Math.min(180, (G.trainerLevel || 1) + 18));
+      const t = C().throne; const lv = 92; /* his first comes out ten under this, at 82 */
       const first = KIN.species(U.combine(0x0BAD, 2), ['Void'], 0, { primary: 'Flame', shape: 'quadruped', total: 680, rarity: 4 }); first.names = ['Gravemaw', 'Gravemaw', 'Gravemaw']; first.noFuse = true; first.colors = { body: '#2a0a10', belly: '#ff5a1f', accent: '#ff9f2a', dark: '#120408', eye: '#ffe08a' };
       const e1 = Wild.makeEntity(first, lv - 10, t.x - 5 + 0.5, t.y, t.z + 0.5, { senseR: 12, elite: true }); e1.citadelFirst = true; e1.kinmaster = false; Wild.list.push(e1);
       Battle.start(e1, false);
@@ -20187,7 +20190,7 @@ const Citadel = (() => {
   }
   function onBattle(e, result) {
     if (!e.citadelFirst || (result !== 'won' && result !== 'caught')) return;
-    const t = C().throne; const lv = Math.max(95, Math.min(190, (G.trainerLevel || 1) + 24));
+    const t = C().throne; const lv = 88; /* the top of Earth's ladder: you leave for the Moon with Kin near 90 */
     setTimeout(() => Cine.tell('The Kinmaster', km || { x: t.x - 2, y: t.y, z: t.z }, { 1: [{ orbit: { x: t.x - 2, y: t.y, z: t.z, r: [5, 9], h: [1.5, -1], a: [-1.2, -0.3], ly: 9 }, secs: 5, glow: 'violet', shake: 1.2, sfx: 'hurt', title: 'A black ship tears out through the roof' }] }, ['Gravemaw... no matter. You want to end me? Earth is yours. Have it. It was always too small.', 'VEXMAW. Hold them here. I have a whole sky to take.'], () => {
       { const i = Campaign.removePerson('km_final'); km = null; }
       UI.toast('He runs for the back of the hall. Engines scream: a black ship tears out through the roof and is gone, up, toward the Moon. Vexmaw stays.', 'bad'); G.shake = 1.2;
@@ -20498,7 +20501,7 @@ const Sky = (() => {
     if (d < 60 && Math.abs(p.y - k.y) < 20 && !Combat.forHold(k.id).length) { for (const [kind, ox, oz] of [['guard', -3, -6], ['guard', 3, -6], ['archer', -7, 6], ['archer', 7, 6], ['shield', 0, -3], ['lancer', -5, 0], ['brute', 5, 0], ['captain', 0, 1]]) Combat.spawn(kind, k.x + ox + 0.5, k.y + 1, k.z + oz + 0.5, k.id, 7); if (!s.fortSeen) { s.fortSeen = true; UI.toast('Stormspire. The Storm Warden\'s fortress, riding the clouds. His men are on the walls.', 'bad'); } }
     if (d > 160 && Combat.forHold(k.id).length) Combat.clearHold(k.id);
     if (d < 50 && Combat.forHold(k.id).length && Combat.standingIn(k.id) === 0 && (!boss || !Wild.list.includes(boss))) {
-      const sp = wardenSpecies(); if (!sp) return; const lv = Math.max(40, (G.trainerLevel || 1) + 12);
+      const sp = wardenSpecies(); if (!sp) return; const lv = 76; /* after the last hold, before the Citadel */
       const e = Wild.makeEntity(sp, lv, k.x + 0.5, k.y + 1, k.z + 2.5, { senseR: 7 }); e.skyBoss = true; e.elite = true; e.speed = 0; Wild.list.push(e); boss = e;
       UI.toast('His warriors are down. The Storm Warden sends out his Kin.', 'bad');
     }
@@ -20513,7 +20516,7 @@ const Sky = (() => {
     if (s.tangleDone) return;
     const de = Math.hypot(p.x - end.x, p.z - end.z);
     if (de < 10 && Math.abs(p.y - end.y) < 6 && (!tangleBoss || !Wild.list.includes(tangleBoss))) {
-      const sp = tangleSpecies(); if (!sp) return; const lv = Math.max(24, (G.trainerLevel || 1) + 7);
+      const sp = tangleSpecies(); if (!sp) return; const lv = 58;
       const e = Wild.makeEntity(sp, lv, end.x + 0.5, end.y + 1, end.z - 2.5, { senseR: 6 }); e.tangleBoss = true; e.elite = true; e.speed = 0; Wild.list.push(e); tangleBoss = e;
       UI.toast('Something has made its nest at the end of the Tangle, and it does not want company.', 'bad');
     }
@@ -21265,7 +21268,7 @@ const Arena = (() => {
   function start(s) { const st = S(), b = nextBout(), p = G.player; if (!G.kin.some(k => k.hp > 0)) { UI.toast('You need a Kin that can stand before you step on the mark.', 'bad'); told = performance.now() + 6000; return; }
     if (lastDue()) return lastStand(s);
     if (st.won >= 5 && boutsToday >= 2) { UI.toast('Varga waves you off: no more bouts today.', 'bad'); told = performance.now() + 8000; return; }
-    const dexH = KIN.dex('halo').filter(sp => !sp.legend && !sp.mythic), pick = dexH[(U.strHash(b.name) + st.won * 7) % dexH.length], best = Math.max(...G.kin.map(k => k.level || 1)), lv = st.won >= 5 ? Math.max(140, Math.min(168, best - 2)) : 140 + st.won * 6; /* 140, 146, 152, 158, 164: between Halo's towns and its cities */
+    const dexH = KIN.dex('halo').filter(sp => !sp.legend && !sp.mythic), pick = dexH[(U.strHash(b.name) + st.won * 7) % dexH.length], best = Math.max(...G.kin.map(k => k.level || 1)), lv = st.won >= 5 ? Math.max(146, Math.min(168, best - 2)) : 146 + st.won * 3; /* 146, 149, 152, 155, 158: the step between Halo's towns (to 145) and its cities (150 to 159) */
     const a = Math.PI / 2 - s.ga + Math.PI, x = s.x + 0.5 + Math.cos(a) * 5, z = s.z + 0.5 + Math.sin(a) * 5; const e = Wild.makeEntity(pick, Math.min(199, lv), x, s.y + 1, z, { plain: true }); e.pit = true; e.fought = true; e.scale = (e.scale || 1) * b.size; e.pitName = b.name; e.kin.nick = b.name[0].toUpperCase() + b.name.slice(1); e.yaw = Math.atan2(p.x - x, p.z - z); Wild.list.push(e); beast = e;
     UI.sfx('alert'); UI.toast(`The far gate drops. ${b.name[0].toUpperCase() + b.name.slice(1)} comes out. Lv ${e.kin.level}.`, 'bad'); for (const n of crowd) n.cheer = performance.now() + 4000; setTimeout(() => { if (beast === e && !(Battle.active)) Battle.start(e, false); }, 1400); }
   /* the end of the road. He ran from Earth to the Moon and from the Moon to here, and there is nowhere past Halo */
@@ -21343,7 +21346,7 @@ const Garrison = (() => {
     for (const [kind, x, z] of PL) { const [rx, rz] = rot(s, x, z); const f = Combat.spawn(kind, s.x + rx + 0.5, s.y + 1, s.z + rz + 0.5, ID, lv); if (kind === 'trooper') { f.dmg = 1; f.rest = 5 + (Math.abs(x * 7 + z) % 6) * 0.5; f.t = 1.5 + (Math.abs(x * 3 + z) % 5) * 0.9; } } /* seven guns at once would be an execution: a bolt costs one heart, each trooper takes his time between shots, and they do not fire in step */
     if (!S().told) { S().told = true; G.explain && G.explain('The Garrison', 'Troopers fire bolts of light. You can see them coming: put a barricade between you and them, step out, and strike. The first trooper you put down drops his ray gun. Hold it and tap to fire, no arrows needed.'); } }
   function commander(s) { const dexM = KIN.dex('moon').filter(sp => !sp.legend && !sp.mythic && (sp.rarity || 0) >= 2), pool = dexM.length ? dexM : KIN.dex('moon'), sp = pool[U.strHash('hask') % pool.length], best = Math.max(1, ...G.kin.map(k => k.level || 1)), [rx, rz] = rot(s, 0, 6);
-    const e = Wild.makeEntity(sp, Math.min(150, Math.max(118, best + 2)), s.x + rx + 0.5, s.y + 1, s.z + rz + 0.5, { plain: true }); e.garrison = true; e.isBoss = true; e.fought = true; e.scale = (e.scale || 1) * 1.5; e.kin.nick = 'the Commander\'s ' + KIN.name(e.kin); Wild.list.push(e); boss = e;
+    const e = Wild.makeEntity(sp, 112 /* between the Moon's towns (to 109) and its cities (from 114) */, s.x + rx + 0.5, s.y + 1, s.z + rz + 0.5, { plain: true }); e.garrison = true; e.isBoss = true; e.fought = true; e.scale = (e.scale || 1) * 1.5; e.kin.nick = 'the Commander\'s ' + KIN.name(e.kin); Wild.list.push(e); boss = e;
     const go = () => { if (boss === e && !Battle.active) Battle.start(e, false); };
     if (!cmdSaid) { cmdSaid = true; Dialogue.show('Commander Hask', ['The dome opens. A man in white walks out with his hands behind his back.', 'You have broken a good many of my troopers. They will mend. The post will not, if I lose it.', 'So I do not intend to lose it.'], go); } else go(); }
   function bossEnd(result) { const won = result === 'won' || result === 'caught'; boss = null; if (!won) { UI.toast('Hask has you put out through the gate. The yard stays clear: come back and finish it.', 'bad'); tipT = performance.now() + 12000; return; }

@@ -186,7 +186,7 @@ const Sky = (() => {
     if (d < 60 && Math.abs(p.y - k.y) < 20 && !Combat.forHold(k.id).length) { for (const [kind, ox, oz] of [['guard', -3, -6], ['guard', 3, -6], ['archer', -7, 6], ['archer', 7, 6], ['shield', 0, -3], ['lancer', -5, 0], ['brute', 5, 0], ['captain', 0, 1]]) Combat.spawn(kind, k.x + ox + 0.5, k.y + 1, k.z + oz + 0.5, k.id, 7); if (!s.fortSeen) { s.fortSeen = true; UI.toast('Stormspire. The Storm Warden\'s fortress, riding the clouds. His men are on the walls.', 'bad'); } }
     if (d > 160 && Combat.forHold(k.id).length) Combat.clearHold(k.id);
     if (d < 50 && Combat.forHold(k.id).length && Combat.standingIn(k.id) === 0 && (!boss || !Wild.list.includes(boss))) {
-      const sp = wardenSpecies(); if (!sp) return; const lv = Math.max(40, (G.trainerLevel || 1) + 12);
+      const sp = wardenSpecies(); if (!sp) return; const lv = 76; /* after the last hold, before the Citadel */
       const e = Wild.makeEntity(sp, lv, k.x + 0.5, k.y + 1, k.z + 2.5, { senseR: 7 }); e.skyBoss = true; e.elite = true; e.speed = 0; Wild.list.push(e); boss = e;
       UI.toast('His warriors are down. The Storm Warden sends out his Kin.', 'bad');
     }
@@ -201,7 +201,7 @@ const Sky = (() => {
     if (s.tangleDone) return;
     const de = Math.hypot(p.x - end.x, p.z - end.z);
     if (de < 10 && Math.abs(p.y - end.y) < 6 && (!tangleBoss || !Wild.list.includes(tangleBoss))) {
-      const sp = tangleSpecies(); if (!sp) return; const lv = Math.max(24, (G.trainerLevel || 1) + 7);
+      const sp = tangleSpecies(); if (!sp) return; const lv = 58;
       const e = Wild.makeEntity(sp, lv, end.x + 0.5, end.y + 1, end.z - 2.5, { senseR: 6 }); e.tangleBoss = true; e.elite = true; e.speed = 0; Wild.list.push(e); tangleBoss = e;
       UI.toast('Something has made its nest at the end of the Tangle, and it does not want company.', 'bad');
     }

@@ -185,7 +185,7 @@ const Keeps = (() => {
         if (!b || !Wild.list.includes(b)) {
           const sp = warlordSpecies(k); if (!sp) continue;
           const zl = Wild.zoneLevel(k.x, k.y + 1, k.z, { layer: 'Surface' }, G.trainerLevel || 1);
-          const lv = Math.max(14, Math.min(KIN.capOf(sp) + 10, zl + 10));
+          const nT = sites().filter(h => taken(h.id)).length, lv = Math.min(72, 56 + nT * 4); /* the holds come after the cities on the ladder: 56 for the first you take, then 60, 64, 68, 72 */
           const e = tw ? Wild.makeEntity(sp, lv, k.x + 0.5, k.y + 16, k.z + 4.5, { senseR: 6 }) : Wild.makeEntity(sp, lv, k.x + 0.5, k.y + 1, k.z - 1 + 0.5, { senseR: 6 }); e.keepBoss = k.id; e.elite = true; e.speed = 0; e.patrol = tw ? { ax: k.x - 1.5, az: k.z + 4.5, bx: k.x + 2.5, bz: k.z + 4.5, period: 10, phase: 0 } : { ax: k.x - 3.5, az: k.z - 1.5, bx: k.x + 4.5, bz: k.z - 1.5, period: 10, phase: 0 };
           Wild.list.push(e); bosses[k.id] = e; if (!tw && Combat.forHold(k.id).length) UI.toast('His warriors are down. The warlord comes off the dais with his Kin.', 'bad');
           if (!s['seen_' + k.id]) { s['seen_' + k.id] = true; UI.toast(`${k.name}: one of the Kinmaster's keeps. His warlord holds the Dark Fusion Table inside.`, 'bad'); }
@@ -272,5 +272,7 @@ const Keeps = (() => {
     return true;
   }
   function mapMarks() { if (!onEarth()) return []; const p = G.player; return Citadel.mapMarks().concat(sites().filter(k => st()['seen_' + k.id] || taken(k.id) || (k.core && G.player.has('deepchart'))).map(k => ({ x: k.x, z: k.z, t: taken(k.id) ? '♜' : '☠', name: k.name + (k.core ? ' (deep in the Core)' : '') + (taken(k.id) ? ' (yours)' : '') }))); }
-  return { gates: (id) => st()['gate_' + id] || 0, isTaken: (id) => taken(id), inHold, init, update, onBattle, tableOpen, near, mapMarks, keepFor, sites, gloom, talkWarrior, finalReady, onFinal, COUNT };
+  /* the level of the warlord in an untaken hold near here, so the wild Kin round it can be his: somewhere to train for him */
+  const levelNear = (x, z) => { if (!onEarth()) return 0; const S = sites(), nT = S.filter(h => taken(h.id)).length; for (const h of S) if (!h.core && !taken(h.id) && Math.hypot(h.x - x, h.z - z) < 130) return Math.min(72, 56 + nT * 4); return 0; };
+  return { levelNear, gates: (id) => st()['gate_' + id] || 0, isTaken: (id) => taken(id), inHold, init, update, onBattle, tableOpen, near, mapMarks, keepFor, sites, gloom, talkWarrior, finalReady, onFinal, COUNT };
 })();

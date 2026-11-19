@@ -40,6 +40,7 @@ const Wild = (() => {
     let cap = onEarth ? trainerLevel + 8 : (pr.zoneBase || 0) + 110;
     if (biome === BIOME.LOSTWORLD) { lv = Math.max(lv, 140 + Math.floor(U.hash3(Math.floor(x / 8), 5, Math.floor(z / 8), world.seed) * 16)); cap = Math.max(cap, 168); } /* you come here from Halo now, for the one animal that can face Umbrarch: its jungle is 140 to 155, under the Tyrannorex's 170 */ // the Lost World: old and big
     if (world.legend) { const dl = Math.hypot(wdd(x - world.legend.x), wdd(z - world.legend.z)); if (dl < world.legend.r) { lv += pr.legend.zone * (1 - dl / world.legend.r * 0.4); cap += pr.legend.zone; } }
+    if (onEarth && !heldLv && typeof Keeps !== 'undefined' && Keeps.levelNear) { const hl = Keeps.levelNear(x, z); if (hl) heldLv = hl - 4 + Math.floor(U.hash3(Math.floor(x / 6), 9, Math.floor(z / 6), world.seed) * 3); } /* round a hold too */
     if (heldLv > 0) { lv = Math.max(1, heldLv); cap = Math.max(cap, heldLv); }
     return U.clamp(Math.round(lv), 1, Math.min(cap, KIN.MAX_LEVEL));
   }

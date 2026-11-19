@@ -124,7 +124,7 @@ const Citadel = (() => {
   // the end of it: two Kin, one after the other
   function talk(n, say) {
     return Cine.tell('The Kinmaster', n, { 2: [{ flash: ['Isla rode before she could walk.', 'The seabed dropped in the night. The city went with it.', 'Skerry came back to the ring. Isla did not.', 'So he bent the Concord until it stopped asking.'], mood: 'memory' }] }, ['So. You put my crystal back together. Do you know how long it took me to break it?', 'Twelve holds. Twelve. Even the one in the Core. And every one of those fools I bound, free again, singing about you in their villages.', 'They will have told you about Isla, under the sea. They tell everyone. They never say what it is to trust a thing, and have it turn over in its sleep.', 'No more puzzles, no more warlords. Just me, and what I have left.'], () => {
-      const t = C().throne; const lv = Math.max(90, Math.min(180, (G.trainerLevel || 1) + 18));
+      const t = C().throne; const lv = 92; /* his first comes out ten under this, at 82 */
       const first = KIN.species(U.combine(0x0BAD, 2), ['Void'], 0, { primary: 'Flame', shape: 'quadruped', total: 680, rarity: 4 }); first.names = ['Gravemaw', 'Gravemaw', 'Gravemaw']; first.noFuse = true; first.colors = { body: '#2a0a10', belly: '#ff5a1f', accent: '#ff9f2a', dark: '#120408', eye: '#ffe08a' };
       const e1 = Wild.makeEntity(first, lv - 10, t.x - 5 + 0.5, t.y, t.z + 0.5, { senseR: 12, elite: true }); e1.citadelFirst = true; e1.kinmaster = false; Wild.list.push(e1);
       Battle.start(e1, false);
@@ -132,7 +132,7 @@ const Citadel = (() => {
   }
   function onBattle(e, result) {
     if (!e.citadelFirst || (result !== 'won' && result !== 'caught')) return;
-    const t = C().throne; const lv = Math.max(95, Math.min(190, (G.trainerLevel || 1) + 24));
+    const t = C().throne; const lv = 88; /* the top of Earth's ladder: you leave for the Moon with Kin near 90 */
     setTimeout(() => Cine.tell('The Kinmaster', km || { x: t.x - 2, y: t.y, z: t.z }, { 1: [{ orbit: { x: t.x - 2, y: t.y, z: t.z, r: [5, 9], h: [1.5, -1], a: [-1.2, -0.3], ly: 9 }, secs: 5, glow: 'violet', shake: 1.2, sfx: 'hurt', title: 'A black ship tears out through the roof' }] }, ['Gravemaw... no matter. You want to end me? Earth is yours. Have it. It was always too small.', 'VEXMAW. Hold them here. I have a whole sky to take.'], () => {
       { const i = Campaign.removePerson('km_final'); km = null; }
       UI.toast('He runs for the back of the hall. Engines scream: a black ship tears out through the roof and is gone, up, toward the Moon. Vexmaw stays.', 'bad'); G.shake = 1.2;
