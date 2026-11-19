@@ -471,6 +471,7 @@ const Campaign = (() => {
     }
     if (n.job === 'keeper') {
       if (G.stats.lostMap) return say([(G.stats.apex || {}).rex === true ? 'You caught it. The Tyrannorex. I took a tooth when it shed one in the cage, set it in amber. It is the only one there will ever be, and it is for sale, to you, at a price that will make you sit down.' : 'You found it? The country they come from? Bring me back something with teeth.'], relic('keeper'));
+      if (!c.zoo && !G.stats.lostMap && !(G.stats.garrison || {}).taken) return say(['Welcome to Quill\'s Menagerie! Yes, that is a dinosaur. A real one. A Kin that should not exist.', 'I found it half-starved out past the far hills. Where it came from, nobody can tell me, and I have asked everybody on this world.', 'On this world. Ha. Listen to me. As if there were another to ask on.']); /* the trail to the Lost World starts on the Moon now: until the survey has been seen, Quill has an animal and no answers */
       if (!c.zoo) return say(['Welcome to Quill\'s Menagerie! Yes, that is a dinosaur. A real one. A Kin that should not exist.', 'I found it half-starved out past the far hills, wandering the trapper country. It came from somewhere. Nobody believes me.', 'Two people live out that way: Trapper Jo and Old Sela. If anyone knows where it came from, they do. Ask them.'], () => { c.zoo = 1; c.zooHeard = true; });
       return say(['Trapper Jo and Old Sela, out in the trapper country. Follow your compass.']);
     }
