@@ -1052,7 +1052,7 @@ G.flyTo = function (id) {
       Village.trainArrive(Village.active); this.meshPass(999); this.paused = false; Controls.setEnabled(true);
       setTimeout(() => { f.style.opacity = 0; UI.toast(r.tide ? `The Current sets you down in ${r.name}, under the glass.` : r.ferry || (Village.active && Village.active.type === 'sea') ? `The ferry ties up at ${r.name}.` : `The train pulls into ${r.name}.`, 'good'); }, 300);
     };
-    setTimeout(() => { const byTrain = !r.tide && !r.ferry && this.worldId === 'earth' && r.type !== 'sea' && r.type !== 'deep' && !!Village.trainOf(here); if (byTrain && Roads.holdup(r, f, arrive)) return; arrive(); }, 1100); /* now and then the train does not get there in one go */
+    setTimeout(() => { const byTrain = !r.tide && !r.ferry && r.type !== 'sea' && r.type !== 'deep' && !!Village.trainOf(here); if (byTrain && Roads.holdup(r, f, arrive)) return; arrive(); }, 1100); /* now and then the train does not get there in one go */
   };
   // where a train stands at the platform you ride out on it first; elsewhere (the old stations) the fade alone
   if (!Village.boardTrain(Village.active, go)) { UI.sfx('quest'); go(); }

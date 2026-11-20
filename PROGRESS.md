@@ -489,6 +489,8 @@ Scope (Alexander, 8 Nov evening): EVERYTHING visible goes to the same standard: 
 
 - 20 Nov, the glider flies differently on each world (his ask: normal on Earth, on the Moon it barely works and hangs on the spot, on Halo adapt it to the atmosphere; then: a quest on each planet to kit the glider up so it flies like on Earth). **player.js:** Moon without the kit: cruise 1.6, no stall, no hard landing, slow fall you can hurry or hold. Halo without the kit: slower (6.2 / 11.5) and floatier (sink 1.05). **Halo thermals:** `Player.thermal(x,z)` fixed columns about 65 apart, climb about 3 blocks a second while circling; drawn as dust devils (`G.thermalLines`). **Kits (`G.stats.wingKit`):** Maren sews a dust-sail for 6 Stardust + 4 selenite (quest `moonwing`), Trapper Jo ribs it for 3 Storm Cells + 4 amber (quest `halowing`); with the kit the wing uses Earth numbers, and Halo keeps the thermals. First glide on each world explains it. Test `t-glide3.js` (SHOT=1 for a dust devil photo).
 
+- 20 Nov, hold-ups on the Glide and the Rig (roads.js `HOLD_W`). Moon: Beam Jacks cut the beam, purse 140 and 2 Stardust. Halo: Howlers board the Rig, purse 200 and a Storm Cell. Their Kin come from the world's own dex, the robber wears the world's rig. The bandana trick stays Earth-only. Test `t-holdup3.js`.
+
 ## Still to do
 UI polish as feedback comes in. Card battle screen still used for scripted encounters (raids at the walls, thief, citadel duel, holds) and the snare mini-game; converting those to live is the next big step if wanted. (Old list: train/ships, combat animation, eggs, avatar hair/paint, buddy WEAR cosmetics, Silas and Finch, UI polish (item icons), quality toggles in settings (state.shadows, state.grassQuality, state.dprCap).
 
