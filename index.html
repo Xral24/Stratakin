@@ -5222,7 +5222,7 @@ const ITEMS = {
   tidelung: { name: 'Tidal Lung', col: '#3fd4ff', gear: true, keep: true, desc: 'Atlantean. A band of living pearl worn at the throat: you breathe water as if it were air, for as long as you like. Does everything a Breathing Bulb does.' },
   abysstooth: { name: 'Abyssaurus Tooth', col: '#e8e2d0', keep: true, desc: 'As long as your forearm, and still sharp. The Tideforge in Atlantis wants one for the trident.' },
   bulb: { name: 'Breathing Bulb', col: '#9fd8ff', gear: true, desc: 'Breathe underwater for two minutes.' },
-  glider: { name: 'Glider', col: '#f0d090', gear: true, desc: 'Hold ▲ while falling to glide. Stick sideways turns, forward dives, back brakes. Pull back just before the ground to flare and land soft.' },
+  glider: { name: 'Glider', col: '#f0d090', gear: true, desc: 'Hold ▲ while falling to glide. Stick sideways turns, forward dives, back brakes. Pull back just before the ground to flare and land soft. On the Moon there is no air for it: it only lets you down slowly. On Halo the dust columns over the pans will lift you.' },
   lavasuit: { name: 'Lava Suit', col: '#ff9050', gear: true, desc: 'Keeps the heat of the Core off you. Without it the heat down there wears you down, the way the cold does on the peaks. It does not make lava safe: nothing does. Stay out of it.' },
   voidshard: { name: 'Void Shard', col: '#8a4ad8', gear: true, desc: 'A splinter of the Kinmaster\'s own table. Carry it and every Fusion Table you stand at takes dark materials: Void Crystal, Void Essence and Void Stones.' },
   frostcloak: { name: 'Frost Cloak', col: '#bfe3ff', gear: true, desc: 'Keeps the cold out. Without it, snowfields and mountain tops slow you, then freeze you.' },
@@ -5339,17 +5339,22 @@ class Player {
       // the glider: the stick steers left and right, forward dives for speed, back brakes and flares; the wind carries you
       this.gliding = true; this.fallStart = null;
       const gm = mountShape === 'air' ? 1 : this.gearMul('glider');
-      if (!wasGliding) { this.glideS = Math.max(5.5, Math.min(9, Math.hypot(this.vx, this.vz))); this.vy = Math.max(this.vy, -3); }
+      if (!wasGliding) { const w0 = typeof G !== 'undefined' && G.worldId; this.glideS = w0 === 'moon' && mountShape !== 'air' && !((G.stats || {}).wingKit || {}).moon ? Math.min(3, Math.hypot(this.vx, this.vz)) : Math.max(5.5, Math.min(9, Math.hypot(this.vx, this.vz))); this.vy = Math.max(this.vy, -3); }
       this.yaw -= input.mx * 1.3 * dt;
       const fy = Math.sin(this.yaw), fc = Math.cos(this.yaw);
       const dive = Math.max(0, input.mz), brake = Math.max(0, -input.mz);
-      const cruise = 7.5 * gm, top = 14.5 * gm;
-      const target = dive > 0.05 ? cruise + (top - cruise) * dive : brake > 0.05 ? cruise + (2.4 - cruise) * brake : cruise;
+      /* the same wing flies three ways. Earth is the one it was cut for. The Moon has no air for it to bite: it will not carry you anywhere, it only lets you down slowly, nearly on the spot.
+         Halo's air is thick with dust: slower and floatier, and over the hot pans it rises in columns that will lift you if you circle in them */
+      const wid = typeof G !== 'undefined' && G.worldId, kit = (typeof G !== 'undefined' && G.stats && G.stats.wingKit) || {}, moon = wid === 'moon' && mountShape !== 'air' && !kit.moon, halo = wid === 'halo', heavy = halo && !kit.halo; /* a wing refitted for the place flies there as it does at home. On Halo it keeps the rising air as well */
+      const cruise = (moon ? 1.6 : heavy ? 6.2 : 7.5) * gm, top = (moon ? 3.2 : heavy ? 11.5 : 14.5) * gm;
+      const target = dive > 0.05 ? cruise + (top - cruise) * dive : brake > 0.05 ? cruise + ((moon ? 0.3 : 2.4) - cruise) * brake : cruise;
       const rate = dive > 0.05 ? 6.5 : brake > 0.05 ? 7.5 : 2.2;
       let sp = this.glideS || cruise; sp += U.clamp(target - sp, -rate * dt, rate * dt); this.glideS = sp;
-      let sink = 1.55 / Math.sqrt(gm) + 4.2 * dive;
+      let sink = (heavy ? 1.05 : 1.55) / Math.sqrt(gm) + 4.2 * dive;
       sink -= brake * U.clamp((sp - 4) / 5, 0, 1) * 3.3; // the flare: speed traded for lift, only while you have speed to trade
       if (sp < 3.8) sink += (3.8 - sp) * 2.4; // too slow: she stalls and drops
+      if (moon) sink = 0.9 + dive * 1.6 - brake * 0.45; /* nothing to stall in and nothing to flare against: a slow fall you can hurry a little or hold back a little */
+      if (halo) { const up = Player.thermal(this.x, this.z); this.inThermal = up > 0.05; if (up > 0) sink -= up * (5.2 - dive * 2); } else this.inThermal = false;
       this.vy += (-sink - this.vy) * Math.min(1, 4 * dt);
       const wd = typeof Weather !== 'undefined' && Weather.wind ? Weather.wind(this.x, this.y, this.z) : { x: 0, z: 0 };
       this.vx = -fy * sp + wd.x; this.vz = -fc * sp + wd.z;
@@ -5420,7 +5425,7 @@ class Player {
     const hitY = this.moveAxis(1, this.vy * dt);
     if (hitY) {
       if (wasFalling && this.gliding && !mountShape && this.glideImpact) {
-        const im = this.glideImpact; const hard = im.s > 10.5 && im.vy < -2.6, stall = im.s < 3.6 && im.vy < -4.4;
+        const im = this.glideImpact; const onMoon = typeof G !== 'undefined' && G.worldId === 'moon' && !((G.stats || {}).wingKit || {}).moon; const hard = !onMoon && im.s > 10.5 && im.vy < -2.6, stall = !onMoon && im.s < 3.6 && im.vy < -4.4;
         if (hard) { this.damage(Math.max(1, Math.floor((im.s - 9) / 1.4)), 'fall'); this.landMsg = 'hard'; }
         else if (stall) { this.damage(1, 'fall'); this.landMsg = 'stall'; }
         else this.landMsg = im.s < 6.5 ? 'soft' : 'ok';
@@ -5664,6 +5669,11 @@ class Player {
     this.inv = new Map(d.inv || []); this.sel = d.sel || 0; this.objects = d.objects || []; this.gearPower = d.gearPower || {};
   }
 }
+
+/* Halo's rising air: columns about a dozen blocks across, sixty-odd apart, always in the same places so you can learn them. 0 outside, up to 1 at the core */
+Player.THERM = { kx: 0.045, kz: 0.05, ox: 1.3, oz: 0.7, edge: 0.6 };
+Player.thermal = function (x, z) { const T = Player.THERM, t = Math.sin(x * T.kx + T.ox) * Math.sin(z * T.kz + T.oz); return t > T.edge ? (t - T.edge) / (1 - T.edge) : 0; };
+Player.thermalsNear = function (x, z, r) { const T = Player.THERM, out = [], k0 = Math.round((x * T.kx + T.ox - Math.PI / 2) / Math.PI), m0 = Math.round((z * T.kz + T.oz - Math.PI / 2) / Math.PI); for (let k = k0 - 2; k <= k0 + 2; k++) for (let m = m0 - 2; m <= m0 + 2; m++) { if ((k + m) & 1) continue; const cx = (Math.PI / 2 + Math.PI * k - T.ox) / T.kx, cz = (Math.PI / 2 + Math.PI * m - T.oz) / T.kz; if (Math.hypot(cx - x, cz - z) < r) out.push({ x: cx, z: cz }); } return out; };
 
 </script>
   <script>
@@ -15923,6 +15933,8 @@ const QUESTS = [
   { id: 'mooncity', title: 'The Great Domes', desc: 'Four cities under glass, each held by all three together. Bigmouth says his suit squeaks when he laughs. Make him laugh.', hint: 'Free a city on the Moon', check: G => (((G.stats.freedW || {}).moon || {}).city || 0) >= 1 ? 1 : 0, reward: { xp: 2000 } },
   { id: 'moonall', title: 'The Lit Side', desc: 'Eight towns and four cities. Free them all and every dome on the Moon has its lights on again.', hint: 'Free every town and city on the Moon', check: G => ((((G.stats.freedW || {}).moon || {}).town || 0) + (((G.stats.freedW || {}).moon || {}).city || 0)) / 12, reward: { xp: 5000 } },
   { id: 'halofree', title: 'Under the Rings', desc: 'Halo is the far end of the road: scrap walls, dome huts dug into the sand, the Rig hauling between the yards. The three are here too, in road leathers, level 126 and up. Free one place and the caravan people will know your name.', hint: 'Free a place on Halo', check: G => Object.values(((G.stats.freedW || {}).halo || {})).reduce((a, b) => a + b, 0) >= 1 ? 1 : 0, reward: { xp: 1500, items: { snare2: 3 } } },
+  { id: 'moonwing', title: 'A Wing for No Air', desc: 'Your glider does nothing on the Moon but let you down slowly. Maren, the net-maker from the brook, is on the square of a Moon town and says the dust that falls here will carry a wing sewn for it. She wants Stardust from the catch bowls and selenite for the hem.', hint: 'Bring Maren 6 Stardust and 4 selenite (talk to her twice)', check: G => (G.stats.wingKit || {}).moon ? 1 : 0, reward: { xp: 900 } },
+  { id: 'halowing', title: 'A Hen in Soup', desc: 'Halo\'s dust makes your glider slow and heavy. Trapper Jo, on the square of a Halo town with Old Sela, has watched the riders rib their kites with charged wire and glaze them with amber. Jo will do the same to yours.', hint: 'Bring Trapper Jo 3 Storm Cells and 4 amber (talk to her twice)', check: G => (G.stats.wingKit || {}).halo ? 1 : 0, reward: { xp: 1100 } },
   { id: 'pit1', title: 'Sand in Your Teeth', desc: 'Outside the nearest city stands the Pit: a ring of scrap under the ribs of something enormous. Pit Boss Varga runs five bouts against the biggest animals on Halo. Walk in through the tusks, hear him out, and stand on the mark.', hint: 'Win a bout in the Pit (outside the nearest Halo city)', check: G => ((G.stats.arena || {}).won || 0) >= 1 ? 1 : 0, reward: { xp: 900 } },
   { id: 'pit', title: 'Champion of the Pit', desc: 'Five beasts, each bigger than the last, and no nets allowed. The last one nobody has seen all of at once.', hint: 'Win all five bouts in the Pit', check: G => ((G.stats.arena || {}).won || 0) / 5, reward: { xp: 4000 } },
   { id: 'halocity', title: 'The Scrap Cities', desc: 'Halo has four cities and all three hold each one, past level 150. This is as strong as they get anywhere.', hint: 'Free a city on Halo', check: G => (((G.stats.freedW || {}).halo || {}).city || 0) >= 1 ? 1 : 0, reward: { xp: 3000 } },
@@ -15942,8 +15954,8 @@ const QUESTS = [
 const Quests = (() => {
   let G = null;
   // three arcs that run side by side: the journey (your tools, the people, the worlds), the Dark Arc (the Kinmaster), and the Old Ones (the great Kin)
-  const ARC_OF = { kinmaster: 'dark', holds: 'dark', storm: 'dark', citadel: 'dark', scientist: 'dark', ship: 'dark', heart: 'old', mythic: 'old', lost: 'old', abyss: 'old', rex: 'old', legend: 'old', atlantis: 'deep', skerry: 'deep', calder: 'deep', trident: 'deep', town: 'land', towns: 'land', city: 'land', cities: 'land', woodfind: 'wood', woodone: 'wood', woodall: 'wood', stones: 'wood', harvest: 'wood', garrison: 'dark', laststand: 'dark', moontown: 'moonarc', mooncity: 'moonarc', moonall: 'moonarc', halofree: 'haloarc', pit1: 'haloarc', pit: 'haloarc', halocity: 'haloarc', haloall: 'haloarc' };
-  const AFTER = { garrison: 'moon', laststand: 'garrison', lost: 'garrison', moontown: 'moon', halofree: 'halo', town: 'village', woodfind: 'village', storm: 'sky', kinmaster: 'glider', heart: 'legend', moon: 'ship', legend: 'ship', atlantis: 'diver' };
+  const ARC_OF = { kinmaster: 'dark', holds: 'dark', storm: 'dark', citadel: 'dark', scientist: 'dark', ship: 'dark', heart: 'old', mythic: 'old', lost: 'old', abyss: 'old', rex: 'old', legend: 'old', atlantis: 'deep', skerry: 'deep', calder: 'deep', trident: 'deep', town: 'land', towns: 'land', city: 'land', cities: 'land', woodfind: 'wood', woodone: 'wood', woodall: 'wood', stones: 'wood', harvest: 'wood', garrison: 'dark', laststand: 'dark', moonwing: 'moonarc', halowing: 'haloarc', moontown: 'moonarc', mooncity: 'moonarc', moonall: 'moonarc', halofree: 'haloarc', pit1: 'haloarc', pit: 'haloarc', halocity: 'haloarc', haloall: 'haloarc' };
+  const AFTER = { moonwing: 'moon', halowing: 'halo', garrison: 'moon', laststand: 'garrison', lost: 'garrison', moontown: 'moon', halofree: 'halo', town: 'village', woodfind: 'village', storm: 'sky', kinmaster: 'glider', heart: 'legend', moon: 'ship', legend: 'ship', atlantis: 'diver' };
   const ARCS = { main: { name: 'The Journey', col: '#4fb0ff' }, dark: { name: 'The Dark Arc', col: '#b07aff' }, old: { name: 'The Old Ones', col: '#ffc94a' }, deep: { name: 'The Deep', col: '#3fd4ff' }, land: { name: 'The Free Land', col: '#7bd66a' }, moonarc: { name: 'The Quiet Side', col: '#9fd0ff' }, haloarc: { name: 'The Burning Ring', col: '#ff9a4a' }, wood: { name: 'The Country', col: '#c9a03a' } };
   const arcList = (a) => QUESTS.filter(q => (ARC_OF[q.id] || 'main') === a);
   function init(game) { G = game; if (!G.questState) G.questState = { index: 0, bounty: { need: 3, done: 0, round: 1 } }; }
@@ -21862,7 +21874,18 @@ const Cast = (() => {
   const S = () => (G.stats.cast = G.stats.cast || {});
   const say = (n, lines, done) => { G.talkNpc = n; Dialogue.show(n.name, lines, done); };
   const taken = () => !!(G.stats.garrison || {}).taken;
-  function marenTalk() { const st = S(), n = maren, shop = () => UI.openPanel('shop', { title: 'Maren\'s nets', keeper: 'Maren', greet: 'Friend\'s price. Do not tell the Exchange.', stock: [{ item: 'snare2', price: 30 }, { item: 'snare', price: 8, n: 2 }, { item: 'bread', price: 8 }] });
+  /* the wing, refitted for where you are. Maren sews a dust-sail for the Moon, Jo ribs it for Halo. Both want what the local harvest brings in */
+  const KITS = { moon: { who: 'Maren', need: { stardust: 6, selenite: 4 }, ask: ['That wing of yours. I watched you come off the crater rim with it. You dropped like a coat off a peg.', 'There is no air for it. But the dust that falls here pushes on anything fine enough to feel it. The catchers sew their bowl covers from a cloth that rides on it.', 'Bring me six measures of Stardust and four pieces of selenite to weight the hem, and I will sew you panels that fly on the fall itself. It will handle the way it does at home.'], done: ['Hold it up. There. See it lift on nothing?', 'Stardust in the weave and selenite in the hem. It will carry you here the way it does over the brook. Do not ask me to do it twice, my fingers are glowing.'], toast: 'Maren has sewn dust-sail panels into your glider. On the Moon it now flies as it does on Earth.' },
+    halo: { who: 'Trapper Jo', need: { stormcell: 3, amber: 4 }, ask: ['I saw you come over the wall on that wing. Wallowing. Like a hen in soup.', 'The air here is half grit. Your cloth soaks it up and gets heavy. The riders here rib their kites with charged wire so the dust jumps off, and they glaze the leading edge with amber.', 'Three Storm Cells and four pieces of amber. I will do the work, I have watched them do it. She will fly like she does at home, and she will still ride the dust devils.'], done: ['There. Hear it crackle? That is the dust being told to go elsewhere.', 'Fast as home, and the devils will still lift you. Sela says it is ugly. Sela is right. It flies.'], toast: 'Trapper Jo has ribbed your glider with charged wire. On Halo it now flies as it does on Earth, and still climbs in the dust devils.' } };
+  /* returns true if this talk was about the wing */
+  function wingTalk(n, wid) { const k = KITS[wid], kit = (G.stats.wingKit = G.stats.wingKit || {}), st = S(); if (kit[wid] || !G.player.has('glider')) return false;
+    const have = Object.keys(k.need).every(it => G.player.count(it) >= k.need[it]);
+    if (have && st['wing' + wid]) { say(n, k.done, () => { for (const it in k.need) G.player.take(it, k.need[it]); kit[wid] = true; UI.sfx('quest'); UI.toast(k.toast, 'good'); if (UI.renderHotbar) UI.renderHotbar(); }); return true; }
+    if (!st['wing' + wid]) { st['wing' + wid] = 1; say(n, k.ask); return true; }
+    if (!st['wingNag' + wid] || have) { st['wingNag' + wid] = 1; say(n, [(wid === 'moon' ? 'Six Stardust and four selenite' : 'Three Storm Cells and four amber') + ' for the wing. You have ' + Object.keys(k.need).map(it => Math.min(G.player.count(it), k.need[it]) + ' of ' + k.need[it]).join(' and ') + '.']); return true; }
+    st['wingNag' + wid] = 0; return false; }
+  function marenTalk() { const st = S(), n = maren; if (st.maren && wingTalk(n, 'moon')) return; return marenTalk2(); }
+  function marenTalk2() { const st = S(), n = maren, shop = () => UI.openPanel('shop', { title: 'Maren\'s nets', keeper: 'Maren', greet: 'Friend\'s price. Do not tell the Exchange.', stock: [{ item: 'snare2', price: 30 }, { item: 'snare', price: 8, n: 2 }, { item: 'bread', price: 8 }] });
     if (!st.maren) { st.maren = 1; return say(n, ['You look as if you have seen a ghost.', 'I came up on a cargo Glide with forty nets and a letter of credit from Mr Crowe, of all people. Nothing up here has fur and nothing has feathers, but a net is a net, and they pay double for anything that holds.', 'I pulled you out of a brook once. Do not make me come and pull you out of a crater.'], shop); }
     if (taken() && st.maren < 2) { st.maren = 2; return say(n, ['The white post went dark last night and came back on warm. I knew it was you before anybody said a name.', 'They say he ran for Halo. They say the air there eats you. You have that thing round your neck now, so I suppose you are going anyway.', 'Take nets. You always need more than you think.'], shop); }
     if ((G.stats.arena || {}).last) return say(n, ['It is finished, then. All of it.', 'I am staying. I like it here. Nobody on the Moon has ever asked me where I am from.'], shop);
@@ -21883,7 +21906,8 @@ const Cast = (() => {
     if (!st.marisol) { st.marisol = 1; return say(n, [camp().bulbDone ? 'You. The one who brought my mother\'s pearls up. Of course you got here before me.' : 'You have the look of somebody from home. Marisol. I dive.', 'They told me there were seas on the Moon. Mare this, Mare that, it is on every map. So I sold the pier and came.', 'Dust. Every one of them. I walked out into the Sea of Something up to my knees and it was dust.', 'I am diving it anyway. You sink slower. There are things at the bottom of a dust sea that nobody has looked at since it was put there.'], shop); }
     if (ended()) return say(n, ['I heard. All the way out here I heard.', 'I found a hull at the bottom of the mare last week. Not one of theirs and not one of ours. I am not telling anybody but you.'], shop);
     say(n, [taken() ? 'The white post is quiet now and the dust has stopped tasting of their engines. Good diving weather.' : 'Keep clear of the white post. Their ships foul the dust for a mile round it.'], shop); }
-  function joTalk(n) { const st = S(), met = camp().mapA, shop = () => UI.openPanel('shop', { title: 'Jo\'s pack', keeper: 'Trapper Jo', greet: 'What I have spare. Sela says I charge too much. Sela can sell her own.', stock: [{ item: 'snare2', price: 34 }, { item: 'snare_sky', price: 40 }, { item: 'tonic_heal', price: 30 }] });
+  function joTalk(n) { if (S().jo && wingTalk(n, 'halo')) return; return joTalk2(n); }
+  function joTalk2(n) { const st = S(), met = camp().mapA, shop = () => UI.openPanel('shop', { title: 'Jo\'s pack', keeper: 'Trapper Jo', greet: 'What I have spare. Sela says I charge too much. Sela can sell her own.', stock: [{ item: 'snare2', price: 34 }, { item: 'snare_sky', price: 40 }, { item: 'tonic_heal', price: 30 }] });
     if (!st.jo) { st.jo = 1; return say(n, [met ? 'Ha. Told her. Told her it would be you. Sela owes me a week of cooking.' : 'Jo. I trap. You have the look of somebody who has walked a long way to be surprised.', 'We tracked that dinosaur of Quill\'s for a year and never found where it came from. Then word comes that there is a whole ring of country where everything is that size.', 'So here we are. Two old fools on a world made of rust. Best year of my life.', 'The big ones here do not spook. They turn and look at you. Take a net that holds.'], shop); }
     if (G.kin.find(k => k.sp && k.sp.apex === 'rex')) return say(n, ['That is it. That is the track I followed for a year. Three toes and a drag mark.', 'Let me look at it. No, do not bring it closer. I can look from here.'], shop);
     say(n, [ended() ? 'They are saying the thing in the Pit is gone. The herds came down off the high dunes the same night. Animals know.' : 'Dawn and dusk they come down to the masts to lick the salt off the legs. That is when to net one.'], shop); }
@@ -22836,7 +22860,7 @@ G.loop = function (t) {
       Wild.ensureHeart(p, this.trainerLevel, this.mythicCaught); Wild.ensureLegend(p); Wild.ensureApex(p);
       if (trig && !trig.e.cool && !Dialogue.active() && !Taming.active && !p.flying && !(this.fightGrace > performance.now()) && !((Keeps.inHold(p) || Citadel.inside(p) || Sky.inFort(p)) && !trig.e.keepBoss && !trig.e.skyBoss)) Wild.engage(trig.e, trig.ambush);
       for (const e of Wild.list) if (e.cool > 0) e.cool -= dt;
-      Hazards.update(dt, p, false); Npcs.update(dt, p, false); Campaign.update(dt, p, false); Taming.update(dt, p); if (p.gliding) { this.lastGlide = performance.now(); if (!this.stats.glideTold && !p.mount && !p.wingsOn) { this.stats.glideTold = true; G.explain('Gliding', 'Left stick: push sideways to bank and turn. Push forward to dive and pick up speed, pull back to brake. The arrow on the glide compass is the wind: with it behind you, you go far; into it, you barely move over the ground. Coming in to land, pull back a moment before the ground to flare and you touch down soft. Too fast and too steep, and it hurts. Let go of ▲ to drop, best done low.'); } }
+      Hazards.update(dt, p, false); Npcs.update(dt, p, false); Campaign.update(dt, p, false); Taming.update(dt, p); if (p.gliding) { this.lastGlide = performance.now(); if (!p.mount && !p.wingsOn && (this.worldId === 'moon' || this.worldId === 'halo') && !(this.stats.glideW = this.stats.glideW || {})[this.worldId]) { this.stats.glideW[this.worldId] = 1; G.explain('Gliding on ' + (this.worldId === 'moon' ? 'the Moon' : 'Halo'), this.worldId === 'moon' ? 'There is no air up here for the wing to bite. It will not carry you anywhere: it lets you down slowly, almost on the spot. Push forward to drop a little faster, pull back to hang a little longer. You cannot stall and you cannot land hard. Somebody up here may know how to sew a wing for this sky.' : 'The air here is thick with dust. The wing is slower and floats longer than at home. Look for the dust devils turning over the pans: the air inside one is rising, and if you circle in it you climb. The riders here do something to their kites to make them quick: ask around.'); } if (!this.stats.glideTold && !p.mount && !p.wingsOn) { this.stats.glideTold = true; G.explain('Gliding', 'Left stick: push sideways to bank and turn. Push forward to dive and pick up speed, pull back to brake. The arrow on the glide compass is the wind: with it behind you, you go far; into it, you barely move over the ground. Coming in to land, pull back a moment before the ground to flare and you touch down soft. Too fast and too steep, and it hurts. Let go of ▲ to drop, best done low.'); } }
       if (p.landMsg) { if (p.landMsg === 'hard') UI.toast('Hard landing. Pull back on the stick just before the ground to flare.', 'bad'); else if (p.landMsg === 'stall') UI.toast('You stalled her and dropped. Brake less: keep a little speed until the flare.', 'bad'); else if (p.landMsg === 'soft' && !this.stats.flareTold) { this.stats.flareTold = true; UI.toast('A clean flare. Feather-soft.', 'good'); } p.landMsg = null; }
       // passive healing
       for (const k of this.kin) { const mx = KIN.stats(k).hp; if (k.hp > 0 && k.hp < mx) k.hp = Math.min(mx, k.hp + mx * 0.012 * healMul * dt); }
@@ -22895,7 +22919,7 @@ G.loop = function (t) {
   const lines = [];
   if (!inBattle && !this.paused) { const hit = p.raycast(5.5); if (hit && BLOCKS[hit.id].hard !== Infinity && !w.lostKeep(hit.x, hit.z)) lines.push({ data: R.targetLines(w, hit.x, hit.y, hit.z), color: [0, 0, 0, 0.75] }); }
   lines.push(...Wild.rings(p)); lines.push(...Hazards.lines());
-  if (!R.state.underwater && !R.state.inCore && p.y >= w.topAt(Math.floor(p.x), Math.floor(p.z)) - 1) { const rl = Weather.rainLines(w, cam, performance.now() / 1000); if (rl) lines.push(rl); const hl = Harvest.lines(cam, performance.now() / 1000); if (hl) lines.push(...hl); }
+  if (!R.state.underwater && !R.state.inCore && p.y >= w.topAt(Math.floor(p.x), Math.floor(p.z)) - 1) { const rl = Weather.rainLines(w, cam, performance.now() / 1000); if (rl) lines.push(rl); const hl = Harvest.lines(cam, performance.now() / 1000); if (hl) lines.push(...hl); const tl = this.thermalLines(performance.now() / 1000); if (tl) lines.push(tl); }
   document.getElementById('flash').style.opacity = Weather.state.flash > 0.6 ? 0.7 : 0;
   const ents = Wild.list.filter(e => !e.ridden); // the one you are sat on is drawn under you, as your mount
   if (Battle.mineEntity && !Battle.net) ents.push(Battle.mineEntity);
@@ -23047,6 +23071,10 @@ G.shipTravel = function (target) {
   let crossed = false; const land = () => { if (this.worldId !== target) { this.travel(target); } const q = this.player; if (this.worldId === target && !q.flying && !this.shipPark) { q.flying = true; } if (q.flying) { const gy = this.world.groundY(Math.floor(q.x), Math.floor(q.z)); q.flying = false; q.vy = 0; this.shipPark = { t0: performance.now(), until: performance.now() + 6000, x: q.x, y: gy + 0.5, z: q.z, yaw: q.yaw + Math.PI }; const f = U.forwardVec(q.yaw + Math.PI / 2, 0); q.x += f[0] * 2.4; q.z += f[2] * 2.4; q.y = this.world.groundY(Math.floor(q.x), Math.floor(q.z)) + 1.2; } };
   if (typeof Cine === 'undefined' || !Cine.play(beats, () => { if (!crossed) { crossed = true; setTimeout(land, 0); } })) { this.fadeTravel(target); } /* skipped before the crossing: go anyway, and land */
 };
+/* the dust devils that mark Halo's rising air: a loose spiral of grit turning up off the pan, so you can see where to circle */
+G.thermalLines = function (time) { if (this.worldId !== 'halo') return null; const p = this.player, L = Player.thermalsNear(p.x, p.z, 110); if (!L.length) return null; const N = 110, out = new Float32Array(L.length * N * 6); let k = 0;
+  for (const c of L) { const gy = (c.gy != null ? c.gy : this.world.groundY(Math.floor(c.x), Math.floor(c.z))) + 1; for (let i = 0; i < N; i++) { const f = ((i / N) + time * 0.07) % 1, h = f * 46, a = i * 2.4 + time * 1.6 + h * 0.25, r = 0.7 + f * f * 5.5, x = c.x + Math.cos(a) * r, z = c.z + Math.sin(a) * r, a2 = a + 0.75; out[k++] = x; out[k++] = gy + h; out[k++] = z; out[k++] = c.x + Math.cos(a2) * r; out[k++] = gy + h + 0.9; out[k++] = c.z + Math.sin(a2) * r; } }
+  return { data: out, color: [0.42, 0.25, 0.13, 0.85] }; };
 /* Halo's air is dust. Without the breather collar it wears you down to your last two hearts and keeps you there */
 G.dustTick = function (dt, p) { if (!p.has('collar') && this.stats.garrison && this.stats.garrison.taken) { p.add('collar', 1); UI.toast('Among what you took from the Garrison: Hask\'s breather collar. With it you can stand the dust on Halo.', 'good'); if (UI.renderHotbar) UI.renderHotbar(); }
   if (this.worldId !== 'halo' || p.has('collar') || p.flying || this.shipBoard || (typeof Cine !== 'undefined' && Cine.active()) || Battle.active) { this._dust = 0; return; }

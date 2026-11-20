@@ -125,7 +125,7 @@ const ITEMS = {
   tidelung: { name: 'Tidal Lung', col: '#3fd4ff', gear: true, keep: true, desc: 'Atlantean. A band of living pearl worn at the throat: you breathe water as if it were air, for as long as you like. Does everything a Breathing Bulb does.' },
   abysstooth: { name: 'Abyssaurus Tooth', col: '#e8e2d0', keep: true, desc: 'As long as your forearm, and still sharp. The Tideforge in Atlantis wants one for the trident.' },
   bulb: { name: 'Breathing Bulb', col: '#9fd8ff', gear: true, desc: 'Breathe underwater for two minutes.' },
-  glider: { name: 'Glider', col: '#f0d090', gear: true, desc: 'Hold ▲ while falling to glide. Stick sideways turns, forward dives, back brakes. Pull back just before the ground to flare and land soft.' },
+  glider: { name: 'Glider', col: '#f0d090', gear: true, desc: 'Hold ▲ while falling to glide. Stick sideways turns, forward dives, back brakes. Pull back just before the ground to flare and land soft. On the Moon there is no air for it: it only lets you down slowly. On Halo the dust columns over the pans will lift you.' },
   lavasuit: { name: 'Lava Suit', col: '#ff9050', gear: true, desc: 'Keeps the heat of the Core off you. Without it the heat down there wears you down, the way the cold does on the peaks. It does not make lava safe: nothing does. Stay out of it.' },
   voidshard: { name: 'Void Shard', col: '#8a4ad8', gear: true, desc: 'A splinter of the Kinmaster\'s own table. Carry it and every Fusion Table you stand at takes dark materials: Void Crystal, Void Essence and Void Stones.' },
   frostcloak: { name: 'Frost Cloak', col: '#bfe3ff', gear: true, desc: 'Keeps the cold out. Without it, snowfields and mountain tops slow you, then freeze you.' },
@@ -242,17 +242,22 @@ class Player {
       // the glider: the stick steers left and right, forward dives for speed, back brakes and flares; the wind carries you
       this.gliding = true; this.fallStart = null;
       const gm = mountShape === 'air' ? 1 : this.gearMul('glider');
-      if (!wasGliding) { this.glideS = Math.max(5.5, Math.min(9, Math.hypot(this.vx, this.vz))); this.vy = Math.max(this.vy, -3); }
+      if (!wasGliding) { const w0 = typeof G !== 'undefined' && G.worldId; this.glideS = w0 === 'moon' && mountShape !== 'air' && !((G.stats || {}).wingKit || {}).moon ? Math.min(3, Math.hypot(this.vx, this.vz)) : Math.max(5.5, Math.min(9, Math.hypot(this.vx, this.vz))); this.vy = Math.max(this.vy, -3); }
       this.yaw -= input.mx * 1.3 * dt;
       const fy = Math.sin(this.yaw), fc = Math.cos(this.yaw);
       const dive = Math.max(0, input.mz), brake = Math.max(0, -input.mz);
-      const cruise = 7.5 * gm, top = 14.5 * gm;
-      const target = dive > 0.05 ? cruise + (top - cruise) * dive : brake > 0.05 ? cruise + (2.4 - cruise) * brake : cruise;
+      /* the same wing flies three ways. Earth is the one it was cut for. The Moon has no air for it to bite: it will not carry you anywhere, it only lets you down slowly, nearly on the spot.
+         Halo's air is thick with dust: slower and floatier, and over the hot pans it rises in columns that will lift you if you circle in them */
+      const wid = typeof G !== 'undefined' && G.worldId, kit = (typeof G !== 'undefined' && G.stats && G.stats.wingKit) || {}, moon = wid === 'moon' && mountShape !== 'air' && !kit.moon, halo = wid === 'halo', heavy = halo && !kit.halo; /* a wing refitted for the place flies there as it does at home. On Halo it keeps the rising air as well */
+      const cruise = (moon ? 1.6 : heavy ? 6.2 : 7.5) * gm, top = (moon ? 3.2 : heavy ? 11.5 : 14.5) * gm;
+      const target = dive > 0.05 ? cruise + (top - cruise) * dive : brake > 0.05 ? cruise + ((moon ? 0.3 : 2.4) - cruise) * brake : cruise;
       const rate = dive > 0.05 ? 6.5 : brake > 0.05 ? 7.5 : 2.2;
       let sp = this.glideS || cruise; sp += U.clamp(target - sp, -rate * dt, rate * dt); this.glideS = sp;
-      let sink = 1.55 / Math.sqrt(gm) + 4.2 * dive;
+      let sink = (heavy ? 1.05 : 1.55) / Math.sqrt(gm) + 4.2 * dive;
       sink -= brake * U.clamp((sp - 4) / 5, 0, 1) * 3.3; // the flare: speed traded for lift, only while you have speed to trade
       if (sp < 3.8) sink += (3.8 - sp) * 2.4; // too slow: she stalls and drops
+      if (moon) sink = 0.9 + dive * 1.6 - brake * 0.45; /* nothing to stall in and nothing to flare against: a slow fall you can hurry a little or hold back a little */
+      if (halo) { const up = Player.thermal(this.x, this.z); this.inThermal = up > 0.05; if (up > 0) sink -= up * (5.2 - dive * 2); } else this.inThermal = false;
       this.vy += (-sink - this.vy) * Math.min(1, 4 * dt);
       const wd = typeof Weather !== 'undefined' && Weather.wind ? Weather.wind(this.x, this.y, this.z) : { x: 0, z: 0 };
       this.vx = -fy * sp + wd.x; this.vz = -fc * sp + wd.z;
@@ -323,7 +328,7 @@ class Player {
     const hitY = this.moveAxis(1, this.vy * dt);
     if (hitY) {
       if (wasFalling && this.gliding && !mountShape && this.glideImpact) {
-        const im = this.glideImpact; const hard = im.s > 10.5 && im.vy < -2.6, stall = im.s < 3.6 && im.vy < -4.4;
+        const im = this.glideImpact; const onMoon = typeof G !== 'undefined' && G.worldId === 'moon' && !((G.stats || {}).wingKit || {}).moon; const hard = !onMoon && im.s > 10.5 && im.vy < -2.6, stall = !onMoon && im.s < 3.6 && im.vy < -4.4;
         if (hard) { this.damage(Math.max(1, Math.floor((im.s - 9) / 1.4)), 'fall'); this.landMsg = 'hard'; }
         else if (stall) { this.damage(1, 'fall'); this.landMsg = 'stall'; }
         else this.landMsg = im.s < 6.5 ? 'soft' : 'ok';
@@ -567,3 +572,8 @@ class Player {
     this.inv = new Map(d.inv || []); this.sel = d.sel || 0; this.objects = d.objects || []; this.gearPower = d.gearPower || {};
   }
 }
+
+/* Halo's rising air: columns about a dozen blocks across, sixty-odd apart, always in the same places so you can learn them. 0 outside, up to 1 at the core */
+Player.THERM = { kx: 0.045, kz: 0.05, ox: 1.3, oz: 0.7, edge: 0.6 };
+Player.thermal = function (x, z) { const T = Player.THERM, t = Math.sin(x * T.kx + T.ox) * Math.sin(z * T.kz + T.oz); return t > T.edge ? (t - T.edge) / (1 - T.edge) : 0; };
+Player.thermalsNear = function (x, z, r) { const T = Player.THERM, out = [], k0 = Math.round((x * T.kx + T.ox - Math.PI / 2) / Math.PI), m0 = Math.round((z * T.kz + T.oz - Math.PI / 2) / Math.PI); for (let k = k0 - 2; k <= k0 + 2; k++) for (let m = m0 - 2; m <= m0 + 2; m++) { if ((k + m) & 1) continue; const cx = (Math.PI / 2 + Math.PI * k - T.ox) / T.kx, cz = (Math.PI / 2 + Math.PI * m - T.oz) / T.kz; if (Math.hypot(cx - x, cz - z) < r) out.push({ x: cx, z: cz }); } return out; };
