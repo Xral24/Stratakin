@@ -2696,7 +2696,7 @@ const R = (() => {
       drawEntityMesh(e.mesh);
     };
     const list = [];
-    const P = entPV; for (const e of entities) { if (!e.mesh || !e.mesh.count) continue; const d2 = (e.x - cam.x) ** 2 + (e.z - cam.z) ** 2; if (d2 > state.viewDist * state.viewDist) continue;
+    const P = entPV; for (const e of entities) { if (!e.mesh || !e.mesh.count) continue; const d2 = (e.x - cam.x) ** 2 + (e.z - cam.z) ** 2, far = state.viewDist + (e.wide || 0); if (d2 > far * far) continue; /* something as big as a town is judged by its near edge, not its middle, or it would not appear until you were half way across it */
       if (P && !e.M && e.mesh.rad) { const rad = e.mesh.rad * (e.scale || 1) + 1.5, y = e.y + (e.hover || 0) + rad * 0.4, cw = P[3] * e.x + P[7] * y + P[11] * e.z + P[15]; if (cw < -rad) continue; const m = rad * 3 + Math.max(cw, 0); if (Math.abs(P[0] * e.x + P[4] * y + P[8] * e.z + P[12]) > m || Math.abs(P[1] * e.x + P[5] * y + P[9] * e.z + P[13]) > m) continue; } // behind you, or off the side of the screen: not posed, not drawn
       e._d2 = d2; list.push(e); }
     const seeThru = []; for (const e of list) { if (e.alpha != null && e.alpha < 1) seeThru.push(e); else drawOne(e, false); }

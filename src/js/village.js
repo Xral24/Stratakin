@@ -684,6 +684,7 @@ const Village = (() => {
     if (typeof Sky !== 'undefined') Sky.overlay(chunk);
     if (typeof Arena !== 'undefined') Arena.overlay(chunk);
     if (typeof Garrison !== 'undefined') Garrison.overlay(chunk);
+    if (typeof Hub !== 'undefined') Hub.overlay(chunk);
   }
   function patchLoaded(v) {
     if (v.patched) return; v.patched = true; const L = layout(v);
@@ -3006,7 +3007,7 @@ const Village = (() => {
       if (st.n >= 5) { UI.toast(`${first} has played enough for one day. Come back tomorrow.`); return false; } if (G.shards < entry.stake) { UI.toast('You have not got the stake.', 'bad'); return false; }
       G.shards -= entry.stake; st.n++; UI.closePanel(); // the stake is on the table before the first move: walk away and it stays there
       Games.play(entry.game, { champ: entry.champ, stake: entry.stake, skill: entry.skill, onEnd: (res) => {
-        if (res === 'win') { G.shards += entry.stake * 2; st.won++; UI.sfx('caught'); UI.toast(`${entry.stake} shards off ${first}.`, 'good'); if (st.won === 3) UI.toast(`They chalk your name over the board: champion of ${v.name}.`, 'good'); }
+        if (res === 'win') { G.shards += entry.stake * 2; st.won++; if (entry.game === 'signal') G.stats.signalWon = (G.stats.signalWon || 0) + 1; UI.sfx('caught'); UI.toast(`${entry.stake} shards off ${first}.`, 'good'); if (st.won === 3) UI.toast(`They chalk your name over the board: champion of ${v.name}.`, 'good'); }
         else if (res === 'draw') { G.shards += entry.stake; UI.toast('A draw. You take your stake back.'); } else { st.lost++; UI.toast(`${first} takes your ${entry.stake} shards.`, 'bad'); }
         if (G.save) G.save(); } });
       return true; }

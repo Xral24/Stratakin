@@ -4,7 +4,7 @@ const { open } = require('./harness');
   await page.waitForTimeout(500); await page.screenshot({ path: '/home/claude/scratch/ship-board.png', timeout: 150000 });
   await page.waitForTimeout(2500); console.log('up', JSON.stringify(await ev(() => ({ flying: G.player.flying, board: !!G.shipBoard }))));
   await ev(() => { const p = G.player; p.y += 10; window.__si = setInterval(() => { p.vy = 0; }, 30); }); await page.waitForTimeout(3000);
-  await ev(() => { clearInterval(window.__si); G.stats.flown = { 'out:earth': true }; G.shipTravel('moon'); });
+  await ev(() => { clearInterval(window.__si); G.stats.flown = { 'out:earth': true }; G.stats.hub = { greeted: true, got: {}, in: {} }; G.shipTravel('moon'); });
   console.log('film', JSON.stringify(await ev(() => ({ cine: Cine.active(), beat: Cine.beat, world: G.worldId }))));
   for (let i = 0; i < 40; i++) { await page.waitForTimeout(3000); const st = await ev(() => ({ cine: Cine.active(), beat: Cine.beat, world: G.worldId })); if (st.world === 'moon' && st.cine && !globalThis.__shot) { globalThis.__shot = 1; await page.waitForTimeout(9000); await page.screenshot({ path: '/home/claude/scratch/ship-arrive.png', timeout: 150000 }); } if (!st.cine) break; }
   await ev(() => { if (Cine.active()) Cine.stop(); }); await page.waitForTimeout(1500);
