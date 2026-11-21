@@ -1722,7 +1722,7 @@ const R = (() => {
       if (!lod && U.hash3(wx, 67, wz, 977) < 0.2) { const fx = px + Math.cos(a0 + 3.3) * R * 0.5, fz = pz + Math.sin(a0 + 3.3) * R * 0.5, pink = U.hash3(wx, 68, wz, 977) < 0.5; // a flower: a cup of petals, a gold heart
         for (let q = 0; q < 7; q++) { const a = q / 7 * 6.283, ux = Math.cos(a), uz = Math.sin(a), c = (tt) => [fx + ux * 0.3 * tt, py + 0.03 + 0.26 * (1.3 * tt - 0.8 * tt * tt), fz + uz * 0.3 * tt]; op.ribbon([c(0.05), c(0.55), c(1)], [0.06, 0.1, 0.01], pink ? [0.98, 0.72, 0.84] : [0.98, 0.97, 0.94], { sky: sk, droop: 0.3, tip: pink ? [0.95, 0.45, 0.68] : [1, 0.9, 0.95] }); }
         op.blob(fx - 0.08, py + 0.04, fz - 0.08, fx + 0.08, py + 0.2, fz + 0.08, 1, [1.0, 0.8, 0.2], { sky: sk, n: 2 }); } }
-    const blocks = chunk.blocks; const skyHide = (typeof Sky !== 'undefined' && Sky.hideFor) ? Sky.hideFor(ox, oz) : null;
+    const blocks = chunk.blocks; let skyHide = (typeof Sky !== 'undefined' && Sky.hideFor) ? Sky.hideFor(ox, oz) : null; /* and the other great works that are drawn whole over blocks you never see */ { const more = []; if (typeof Arena !== 'undefined' && Arena.hideFor) more.push(Arena.hideFor(ox, oz)); if (typeof Hub !== 'undefined' && Hub.hideFor) more.push(Hub.hideFor(ox, oz)); for (const f of more) if (f) { const prev = skyHide; skyHide = prev ? (x, y, z, id) => prev(x, y, z, id) || f(x, y, z, id) : f; } }
     const col0 = [0, 0, 0];
     for (let lx = 0; lx < CH; lx++) for (let lz = 0; lz < CH; lz++) {
       const base = (lx * CH + lz) * WH;

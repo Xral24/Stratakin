@@ -238,11 +238,30 @@ G.designerMoon = function () {
   for (let i = 0; this.kin.length < 6 && i < 12 && pool.length; i++) { const sp = pool[Math.floor((i + 0.5) / 6 * pool.length) % pool.length]; if (this.kin.some(k => k.sp === sp)) continue; const k = KIN.create(sp, LV); this.kin.push(k); if (sp.dex) { if (!this.stats.dex) this.stats.dex = {}; this.stats.dex[sp.seed] = 'caught'; } }
   for (const [it, n] of [['spacesuit', 1], ['ship', 1], ['glider', 1], ['torch', 4], ['snare2', 20], ['tonic_heal', 10], ['tonic_revive', 5], ['bread', 10]]) if (ITEMS[it] && p.count(it) < n) p.add(it, n - p.count(it));
   this.shards = Math.max(this.shards || 0, 1500); if (this.trainerXpFor) { this.xp = Math.max(this.xp || 0, this.trainerXpFor(40)); this.trainerLevel = this.trainerLevelFor(this.xp); }
-  this.stats.lightReturned = true; this.stats.citadel = Object.assign(this.stats.citadel || {}, { profFree: true, lark: true }); (this.stats.hub = this.stats.hub || {}).greeted = false;
+  this.stats.lightReturned = true; this.stats.citadel = Object.assign(this.stats.citadel || {}, { profFree: true, lark: true }); if (Quests.skipTo) { Quests.skipTo({ main: 'moonjobs', dark: 'garrison' }); this.questState.focus = 'moonarc'; } (this.stats.hub = this.stats.hub || {}).greeted = false;
   p.mount = null; p.flying = false; p.gliding = false; p.vx = p.vy = p.vz = 0; p.fallStart = null; p.frozen = false; p.hp = p.maxHp;
   if (this.worldId !== 'moon') this.travel('moon'); else { const w = this.world, pd = w.pad; if (pd) { w.ensureAround(Math.floor(pd.x / CH), Math.floor(pd.z / CH), 3, 9999); p.x = pd.x + 2.5; p.z = pd.z + 0.5; p.y = pd.y + 0.2; } }
   if (this.meshPass) this.meshPass(120); UI.renderHotbar(); UI.toast('Test jump: you are on the pad at the Starwell with the suit, the Starlark and six Kin at level 95.', 'good');
 };
+/* the same for Halo: the kit, six Kin at level 150, the collar, the Starwell lit and the Garrison taken behind you, and you are set down outside the Pit gate */
+G.designerHalo = function () {
+  if (Battle.active || Taming.active) return; const p = this.player, LV = 150; UI.closePanel(); if (typeof Cine !== 'undefined' && Cine.active()) Cine.stop(true);
+  for (const k of this.kin) { const lv = Math.max(LV, k.level || 1), t = KIN.create(k.sp, lv); k.level = lv; k.stage = t.stage; k.xp = 0; k.status = null; k.hp = KIN.stats(k).hp; }
+  const pool = KIN.dex('earth').filter(sp => !sp.mythic && !sp.legend && !sp.noFuse && !sp.fusion && !this.kin.some(k => k.sp === sp));
+  for (let i = 0; this.kin.length < 6 && i < 12 && pool.length; i++) { const sp = pool[Math.floor((i + 0.5) / 6 * pool.length) % pool.length]; if (this.kin.some(k => k.sp === sp)) continue; this.kin.push(KIN.create(sp, LV)); if (sp.dex) { if (!this.stats.dex) this.stats.dex = {}; this.stats.dex[sp.seed] = 'caught'; } }
+  for (const [it, n] of [['spacesuit', 1], ['collar', 1], ['ship', 1], ['glider', 1], ['raygun', 1], ['torch', 4], ['snare2', 20], ['tonic_heal', 12], ['tonic_revive', 6], ['bread', 10]]) if (ITEMS[it] && p.count(it) < n) p.add(it, n - p.count(it));
+  this.shards = Math.max(this.shards || 0, 2500); if (this.trainerXpFor) { this.xp = Math.max(this.xp || 0, this.trainerXpFor(60)); this.trainerLevel = this.trainerLevelFor(this.xp); }
+  this.stats.lightReturned = true; this.stats.citadel = Object.assign(this.stats.citadel || {}, { profFree: true, lark: true }); this.stats.reachedMoon = true; this.stats.garrison = Object.assign(this.stats.garrison || {}, { taken: true, fled: true }); this.stats.lostMap = true;
+  const hb = (this.stats.hub = this.stats.hub || {}); hb.greeted = true; hb.lit = true; hb.got = hb.got || {}; hb.in = { reg: true, coil: true, key: true, dust: true };
+  if (Quests.skipTo) { Quests.skipTo({ main: 'halo', dark: 'laststand' }); this.questState.focus = 'haloarc'; }
+  p.mount = null; p.flying = false; p.gliding = false; p.vx = p.vy = p.vz = 0; p.fallStart = null; p.frozen = false; p.hp = p.maxHp;
+  if (this.worldId !== 'halo') this.travel('halo'); const s = Arena.site(), w = this.world; if (s) { const x = s.x + 0.5 + Math.sin(s.ga) * (Arena.R + 12), z = s.z + 0.5 + Math.cos(s.ga) * (Arena.R + 12); w.ensureAround(Math.floor(x / CH), Math.floor(z / CH), 3, 9999); p.x = x; p.z = z; p.y = w.groundY(Math.floor(x), Math.floor(z)) + 1.2; p.yaw = Math.atan2(-(s.x - x), -(s.z - z)); }
+  if (this.meshPass) this.meshPass(120); UI.renderHotbar(); UI.toast('Test jump: you are outside the Pit on Halo with the collar and six Kin at level 150. The gate is under the skull.', 'good');
+};
+/* and what the Pit asks for, without the asking: five banners so Varga will open every gate, and the Tyrannorex for the day Umbrarch shrugs the others off */
+G.designerPit = function () { UI.closePanel(); if (this.worldId !== 'halo') { UI.toast('The Pit is on Halo. Use the Halo jump first.'); return; } const st = (this.stats.arena = this.stats.arena || { won: 0 }), names = (Village.planned ? Village.planned().map(v => v.name) : []).slice(0, 5); st.banners = (st.banners || []).slice(0, 5); for (const n of names) if (st.banners.length < 5 && !st.banners.includes(n)) st.banners.push(n);
+  if (!this.kin.some(k => k.sp && k.sp.apex === 'rex')) { const k = KIN.create(KIN.apexSpecies('rex'), 170); if (this.kin.length >= 6) this.kin[5] = k; else this.kin.push(k); this.stats.apex = Object.assign(this.stats.apex || {}, { rex: true }); }
+  UI.toast('Five banners hang in the Pit and the Tyrannorex is in your party. Leave it out of the party to see Umbrarch shrug the others off first.', 'good'); };
 G.mountKin = function (k) { const p = this.player; const mode = this.rideMode(k); if (!mode) return; p.mount = k; p.mountMode = mode; UI.sfx('util'); UI.toast(`You climb onto ${KIN.name(k)}.`); };
 G.toast = function (m, c) { UI.toast(m, c); };
 G.toggleCamera = function () { this.thirdPerson = !this.thirdPerson; if (this.orbit) { if (this.thirdPerson) { this.orbit.yaw = this.player.yaw; this.orbit.pitch = this.player.pitch; } else this.player.yaw = this.orbit.yaw; } UI.toast(this.thirdPerson ? 'Third person. You can see yourself now; V or the menu switches back.' : 'First person.'); };
