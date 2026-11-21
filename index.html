@@ -18819,8 +18819,10 @@ const UI = (() => {
       <p class="small">Graphics: <b>full</b> is shadows, dense grass and a sharp picture; <b>balanced</b> thins the grass and the pixels; <b>light</b> drops the shadows and most of the grass for a steadier frame rate. The number in the corner of the screen is frames per second.</p>
       <div class="settings"><button class="btn ghost tog on" id="m-camera">Camera <span>${G.thirdPerson ? 'third person' : 'first person'}</span></button><button class="btn ghost tog on" id="m-skins">Skin <span>${Avatar.skin().name}</span></button></div>
       <h4>Designer shortcuts</h4>
-      <p class="small">For looking at new work without making the journey. They move you, nothing else: no quest is skipped and nothing is given.</p>
+      <p class="small">For looking at new work without making the journey. These three move you, nothing else: no quest is skipped and nothing is given.</p>
       <div class="settings"><button class="btn ghost" id="m-go-atl">Go to Atlantis</button><button class="btn ghost" id="m-go-lost">Go to the Lost World</button><button class="btn ghost" id="m-go-home">Back to the first village</button></div>
+      <p class="small"><b>Land on the Moon</b> is different, because nobody lasts up there empty-handed: it gives you the Space Suit, the Starlark, six Kin at level 95, nets and tonics, and sets you down on the pad at the Starwell with Professor Finch's greeting still to come. <b>Four hearts</b> puts the Starwell's missing hearts in your bag, so you can seat them and light it without doing the four tests.</p>
+      <div class="settings"><button class="btn" id="m-go-moon">Land on the Moon</button><button class="btn ghost" id="m-go-hearts">Four hearts</button></div>
       <h4>How to play</h4>
       <p class="small">${Controls.isTouch ? 'Left stick walks; drag anywhere on the right of the screen to turn the camera. <b>Hold</b> to mine, or to block when you hold a weapon; <b>tap</b> to place a block, swing, talk, or use a Fusion Table. ▲ jumps, ▼ crouches, hold ▲ in the air with a Glider to glide. In third person the camera orbits you: swing it round to see your face, or your Kin\'s.' : 'WASD to move, mouse to look, <b>hold left click</b> to mine or block, <b>right click</b> to place or use. Space jumps, Shift sneaks, 1-9 or the wheel pick an item. E opens Craft, Q opens Kin, J opens Quests, V switches the camera, F deploys a Kin or sets a snare. Esc releases the mouse.'}</p>
       <p class="small">Chests (Craft › Blocks) keep what you store in them through anything. Amulets come from the people by the fires on the road; nobody sells them. Third person shows your skin: unlock more by playing.</p>
@@ -18833,7 +18835,7 @@ const UI = (() => {
     </div>`;
     q('m-save').addEventListener('click', () => { toast(G.save() ? `Saved${G.gameName ? ' · ' + G.gameName : ''}.` : 'Saving is not available here.'); });
     q('m-games').addEventListener('click', () => G.toGames(false));
-    q('m-go-atl').addEventListener('click', () => G.designerJump('atlantis')); q('m-go-lost').addEventListener('click', () => G.designerJump('lost')); q('m-go-home').addEventListener('click', () => G.designerJump('home'));
+    q('m-go-atl').addEventListener('click', () => G.designerJump('atlantis')); q('m-go-lost').addEventListener('click', () => G.designerJump('lost')); q('m-go-home').addEventListener('click', () => G.designerJump('home')); q('m-go-moon').addEventListener('click', () => G.designerMoon()); q('m-go-hearts').addEventListener('click', () => { closePanel(); Hub.giveAll(); });
     q('m-sound').addEventListener('click', () => { soundOn = !soundOn; if (!soundOn) Music.stop(); renderMenu(); });
     q('m-music').addEventListener('click', () => { Music.setEnabled(!Music.enabled); renderMenu(); });
     q('m-map').addEventListener('click', () => { setMinimap(!MM.on); renderMenu(); });
@@ -22107,6 +22109,8 @@ const Hub = (() => {
     if ((G.stats.garrison || {}).taken) grant('reg', 'Under the maps on Hask\'s table: the Starwell\'s Regulator. He was using it as a paperweight.');
     if ((fw.hamlet || 0) + (fw.town || 0) + (fw.city || 0) >= 2) grant('coil', 'A Glide crew is waiting for you with something wrapped in sailcloth: the Starwell\'s Glide Coil. "For the professor. Tell him we kept it dry."');
     if ((G.stats.signalWon || 0) >= 1) grant('key', 'The champion unscrews the top lamp of the Signal board and puts it in your hand. It is not a lamp. It is the Signal Key.'); }
+  /* the designer's shortcut: whichever hearts are not yet seated, straight into the bag, so the sockets and the lighting can be tried without doing the four tests */
+  function giveAll() { if (!onMoon()) { UI.toast('The hearts belong to the Starwell, on the Moon.'); return; } const st = S(); if (st.lit) { UI.toast('The Starwell is already lit.'); return; } let n = 0; for (const q of PARTS) if (!st.in[q.id] && !G.player.has(q.item)) { G.player.add(q.item, 1); st.got[q.id] = true; n++; } if (UI.renderHotbar) UI.renderHotbar(); UI.toast(n ? n + ' hearts in your bag. Each goes in its own socket by the well: walk up to one and tap.' : 'You are already carrying every heart that is not seated.', 'good'); }
   function sockNear(p) { const s = find(); if (!s) return null; for (const q of PARTS) if (Math.hypot(p.x - (s.x + q.at[0] + 0.5), p.z - (s.z + q.at[1] + 0.5)) < 2.7 && Math.abs(p.y - s.y - 1) < 4) return q; return null; }
   function label(p) { if (!onMoon()) return null; const q = sockNear(p); if (!q) return null; return S().in[q.id] ? q.name + ' · seated' : G.player.has(q.item) ? q.name + ' socket · tap to seat it' : q.name + ' socket · empty'; }
   function tap(p) { if (!onMoon()) return false; const q = sockNear(p); if (!q) return false; const st = S();
@@ -22121,7 +22125,7 @@ const Hub = (() => {
     if (!S().greeted && prof && d < R0 && !p.flying && !(typeof Cine !== 'undefined' && Cine.active()) && !Dialogue.active() && !Battle.active) { greetAt += dt; if (greetAt > 1.2) { greetAt = 0; greet(); } } else greetAt = 0;
     tick -= dt; if (tick <= 0) { tick = 2; tests(); } }
   function init(g) { G = g; site = null; siteW = null; prof = null; hands = []; greetAt = 0; tick = 0; }
-  return { init, update, entities, overlay, tap, label, haloOpen, site: () => find(), tests, PARTS, get prof() { return prof; }, _greet: () => greet(), _light: () => light() };
+  return { init, update, entities, overlay, tap, label, haloOpen, giveAll, site: () => find(), tests, PARTS, get prof() { return prof; }, _greet: () => greet(), _light: () => light() };
 })();
 
 </script>
@@ -22477,6 +22481,20 @@ G.designerJump = function (where) {
   p.mount = null; p.flying = false; p.gliding = false; p.vx = p.vy = p.vz = 0; p.fallStart = null; p.frozen = false;
   w.ensureAround(Math.floor(x / CH), Math.floor(z / CH), 2, 9999); if (y == null) y = w.groundY(Math.floor(x), Math.floor(z)) + 1.2;
   p.x = x; p.y = y; p.z = z; p.breath = 1; UI.closePanel(); if (this.meshPass) this.meshPass(80); UI.toast(say, 'good');
+};
+/* a designer's way to the Moon without playing Earth through. Unlike the other shortcuts this one has to give things, because nobody lasts a minute up there without them:
+   the suit, the Starlark, a party of six at level 95, nets and tonics. It also puts the professor's greeting back, so the landing can be watched as often as wanted */
+G.designerMoon = function () {
+  if (Battle.active || Taming.active) return; const p = this.player, LV = 95; UI.closePanel(); if (typeof Cine !== 'undefined' && Cine.active()) Cine.stop(true);
+  for (const k of this.kin) { const lv = Math.max(LV, k.level || 1), t = KIN.create(k.sp, lv); k.level = lv; k.stage = t.stage; k.xp = 0; k.status = null; k.hp = KIN.stats(k).hp; }
+  const pool = KIN.dex('earth').filter(sp => !sp.mythic && !sp.legend && !sp.noFuse && !sp.fusion && !this.kin.some(k => k.sp === sp)); /* the rest are taken evenly from across this Earth's own animals, so the six are not all of a kind */
+  for (let i = 0; this.kin.length < 6 && i < 12 && pool.length; i++) { const sp = pool[Math.floor((i + 0.5) / 6 * pool.length) % pool.length]; if (this.kin.some(k => k.sp === sp)) continue; const k = KIN.create(sp, LV); this.kin.push(k); if (sp.dex) { if (!this.stats.dex) this.stats.dex = {}; this.stats.dex[sp.seed] = 'caught'; } }
+  for (const [it, n] of [['spacesuit', 1], ['ship', 1], ['glider', 1], ['torch', 4], ['snare2', 20], ['tonic_heal', 10], ['tonic_revive', 5], ['bread', 10]]) if (ITEMS[it] && p.count(it) < n) p.add(it, n - p.count(it));
+  this.shards = Math.max(this.shards || 0, 1500); if (this.trainerXpFor) { this.xp = Math.max(this.xp || 0, this.trainerXpFor(40)); this.trainerLevel = this.trainerLevelFor(this.xp); }
+  this.stats.lightReturned = true; this.stats.citadel = Object.assign(this.stats.citadel || {}, { profFree: true, lark: true }); (this.stats.hub = this.stats.hub || {}).greeted = false;
+  p.mount = null; p.flying = false; p.gliding = false; p.vx = p.vy = p.vz = 0; p.fallStart = null; p.frozen = false; p.hp = p.maxHp;
+  if (this.worldId !== 'moon') this.travel('moon'); else { const w = this.world, pd = w.pad; if (pd) { w.ensureAround(Math.floor(pd.x / CH), Math.floor(pd.z / CH), 3, 9999); p.x = pd.x + 2.5; p.z = pd.z + 0.5; p.y = pd.y + 0.2; } }
+  if (this.meshPass) this.meshPass(120); UI.renderHotbar(); UI.toast('Test jump: you are on the pad at the Starwell with the suit, the Starlark and six Kin at level 95.', 'good');
 };
 G.mountKin = function (k) { const p = this.player; const mode = this.rideMode(k); if (!mode) return; p.mount = k; p.mountMode = mode; UI.sfx('util'); UI.toast(`You climb onto ${KIN.name(k)}.`); };
 G.toast = function (m, c) { UI.toast(m, c); };

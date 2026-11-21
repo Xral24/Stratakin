@@ -114,6 +114,8 @@ const Hub = (() => {
     if ((G.stats.garrison || {}).taken) grant('reg', 'Under the maps on Hask\'s table: the Starwell\'s Regulator. He was using it as a paperweight.');
     if ((fw.hamlet || 0) + (fw.town || 0) + (fw.city || 0) >= 2) grant('coil', 'A Glide crew is waiting for you with something wrapped in sailcloth: the Starwell\'s Glide Coil. "For the professor. Tell him we kept it dry."');
     if ((G.stats.signalWon || 0) >= 1) grant('key', 'The champion unscrews the top lamp of the Signal board and puts it in your hand. It is not a lamp. It is the Signal Key.'); }
+  /* the designer's shortcut: whichever hearts are not yet seated, straight into the bag, so the sockets and the lighting can be tried without doing the four tests */
+  function giveAll() { if (!onMoon()) { UI.toast('The hearts belong to the Starwell, on the Moon.'); return; } const st = S(); if (st.lit) { UI.toast('The Starwell is already lit.'); return; } let n = 0; for (const q of PARTS) if (!st.in[q.id] && !G.player.has(q.item)) { G.player.add(q.item, 1); st.got[q.id] = true; n++; } if (UI.renderHotbar) UI.renderHotbar(); UI.toast(n ? n + ' hearts in your bag. Each goes in its own socket by the well: walk up to one and tap.' : 'You are already carrying every heart that is not seated.', 'good'); }
   function sockNear(p) { const s = find(); if (!s) return null; for (const q of PARTS) if (Math.hypot(p.x - (s.x + q.at[0] + 0.5), p.z - (s.z + q.at[1] + 0.5)) < 2.7 && Math.abs(p.y - s.y - 1) < 4) return q; return null; }
   function label(p) { if (!onMoon()) return null; const q = sockNear(p); if (!q) return null; return S().in[q.id] ? q.name + ' · seated' : G.player.has(q.item) ? q.name + ' socket · tap to seat it' : q.name + ' socket · empty'; }
   function tap(p) { if (!onMoon()) return false; const q = sockNear(p); if (!q) return false; const st = S();
@@ -128,5 +130,5 @@ const Hub = (() => {
     if (!S().greeted && prof && d < R0 && !p.flying && !(typeof Cine !== 'undefined' && Cine.active()) && !Dialogue.active() && !Battle.active) { greetAt += dt; if (greetAt > 1.2) { greetAt = 0; greet(); } } else greetAt = 0;
     tick -= dt; if (tick <= 0) { tick = 2; tests(); } }
   function init(g) { G = g; site = null; siteW = null; prof = null; hands = []; greetAt = 0; tick = 0; }
-  return { init, update, entities, overlay, tap, label, haloOpen, site: () => find(), tests, PARTS, get prof() { return prof; }, _greet: () => greet(), _light: () => light() };
+  return { init, update, entities, overlay, tap, label, haloOpen, giveAll, site: () => find(), tests, PARTS, get prof() { return prof; }, _greet: () => greet(), _light: () => light() };
 })();

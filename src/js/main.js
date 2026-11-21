@@ -229,6 +229,20 @@ G.designerJump = function (where) {
   w.ensureAround(Math.floor(x / CH), Math.floor(z / CH), 2, 9999); if (y == null) y = w.groundY(Math.floor(x), Math.floor(z)) + 1.2;
   p.x = x; p.y = y; p.z = z; p.breath = 1; UI.closePanel(); if (this.meshPass) this.meshPass(80); UI.toast(say, 'good');
 };
+/* a designer's way to the Moon without playing Earth through. Unlike the other shortcuts this one has to give things, because nobody lasts a minute up there without them:
+   the suit, the Starlark, a party of six at level 95, nets and tonics. It also puts the professor's greeting back, so the landing can be watched as often as wanted */
+G.designerMoon = function () {
+  if (Battle.active || Taming.active) return; const p = this.player, LV = 95; UI.closePanel(); if (typeof Cine !== 'undefined' && Cine.active()) Cine.stop(true);
+  for (const k of this.kin) { const lv = Math.max(LV, k.level || 1), t = KIN.create(k.sp, lv); k.level = lv; k.stage = t.stage; k.xp = 0; k.status = null; k.hp = KIN.stats(k).hp; }
+  const pool = KIN.dex('earth').filter(sp => !sp.mythic && !sp.legend && !sp.noFuse && !sp.fusion && !this.kin.some(k => k.sp === sp)); /* the rest are taken evenly from across this Earth's own animals, so the six are not all of a kind */
+  for (let i = 0; this.kin.length < 6 && i < 12 && pool.length; i++) { const sp = pool[Math.floor((i + 0.5) / 6 * pool.length) % pool.length]; if (this.kin.some(k => k.sp === sp)) continue; const k = KIN.create(sp, LV); this.kin.push(k); if (sp.dex) { if (!this.stats.dex) this.stats.dex = {}; this.stats.dex[sp.seed] = 'caught'; } }
+  for (const [it, n] of [['spacesuit', 1], ['ship', 1], ['glider', 1], ['torch', 4], ['snare2', 20], ['tonic_heal', 10], ['tonic_revive', 5], ['bread', 10]]) if (ITEMS[it] && p.count(it) < n) p.add(it, n - p.count(it));
+  this.shards = Math.max(this.shards || 0, 1500); if (this.trainerXpFor) { this.xp = Math.max(this.xp || 0, this.trainerXpFor(40)); this.trainerLevel = this.trainerLevelFor(this.xp); }
+  this.stats.lightReturned = true; this.stats.citadel = Object.assign(this.stats.citadel || {}, { profFree: true, lark: true }); (this.stats.hub = this.stats.hub || {}).greeted = false;
+  p.mount = null; p.flying = false; p.gliding = false; p.vx = p.vy = p.vz = 0; p.fallStart = null; p.frozen = false; p.hp = p.maxHp;
+  if (this.worldId !== 'moon') this.travel('moon'); else { const w = this.world, pd = w.pad; if (pd) { w.ensureAround(Math.floor(pd.x / CH), Math.floor(pd.z / CH), 3, 9999); p.x = pd.x + 2.5; p.z = pd.z + 0.5; p.y = pd.y + 0.2; } }
+  if (this.meshPass) this.meshPass(120); UI.renderHotbar(); UI.toast('Test jump: you are on the pad at the Starwell with the suit, the Starlark and six Kin at level 95.', 'good');
+};
 G.mountKin = function (k) { const p = this.player; const mode = this.rideMode(k); if (!mode) return; p.mount = k; p.mountMode = mode; UI.sfx('util'); UI.toast(`You climb onto ${KIN.name(k)}.`); };
 G.toast = function (m, c) { UI.toast(m, c); };
 G.toggleCamera = function () { this.thirdPerson = !this.thirdPerson; if (this.orbit) { if (this.thirdPerson) { this.orbit.yaw = this.player.yaw; this.orbit.pitch = this.player.pitch; } else this.player.yaw = this.orbit.yaw; } UI.toast(this.thirdPerson ? 'Third person. You can see yourself now; V or the menu switches back.' : 'First person.'); };
