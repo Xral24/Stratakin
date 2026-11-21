@@ -30,7 +30,7 @@ const Cine = (() => {
     if (b.sfx && typeof UI !== 'undefined') UI.sfx(b.sfx); if (b.mood !== undefined) G.filmMood = b.mood; if (b.shake) G.shake = b.shake;
     q('title').textContent = b.title || ''; q('title').style.opacity = b.title ? '1' : '0';
     const sy = q('say'); if (b.say) { sy.style.display = 'block'; q('who').textContent = b.say[0]; q('text').textContent = b.say[1]; } else sy.style.display = 'none';
-    cur.actors = (b.actors || []).map(mkActor).filter(Boolean);
+    cur.actors = (b.actors || []).map(mkActor).filter(Boolean); cur.sayAt = b.say && b.at ? b.at : null; /* who is speaking stands here: whoever it is nods as they talk */
     const m = q('memo'); m.style.justifyContent = b.orbit ? 'flex-end' : 'center'; m.style.paddingBottom = b.orbit ? '15vh' : '0'; m.style.background = b.orbit ? 'radial-gradient(circle at 50% 45%,rgba(60,40,20,0),rgba(20,12,4,.5))' : 'radial-gradient(circle at 50% 45%,rgba(60,40,20,.15),rgba(20,12,4,.78))'; m.style.backdropFilter = m.style.webkitBackdropFilter = b.orbit ? 'sepia(.85) saturate(.8) brightness(.9)' : 'sepia(1) saturate(.7) brightness(.62) blur(1.5px)'; /* a memory you can see into: the picture stays sharp and brown, the words sit at the foot of it */
     if (b.plain) { m.style.background = 'linear-gradient(to top,rgba(0,0,0,.5),rgba(0,0,0,0) 38%)'; m.style.backdropFilter = m.style.webkitBackdropFilter = 'none'; } /* not a memory: what is happening now, in its own colours, with the lines at the foot */
     if (b.flash && b.orbit) { m.innerHTML = '<div style="position:relative;width:100%;height:4.4em">' + b.flash.map((l, i) => `<div style="position:absolute;left:0;right:0;bottom:0;opacity:0;animation:cinecap 3s ${0.4 + i * 3}s both">${l}</div>`).join('') + '</div>'; m.style.opacity = '1'; } /* over a moving picture the lines come one at a time, so they never sit on top of what is being shown */
@@ -52,5 +52,5 @@ const Cine = (() => {
     q('glow').style.opacity = cur.glow ? String(cur.t < 0.5 ? cur.t * 1.3 : Math.max(0, 0.65 - (cur.t - 0.5) * 0.22)) : '0';
     const secs = b.secs || (b.say ? 9 : b.flash ? 2.2 + b.flash.length * 2.6 : 5); if (cur.t >= secs) next(); }
   function stop(quiet) { const c = cur; cur = null; if (el) el.style.display = 'none'; document.body.classList.remove('cine-on'); if (!G) return; if (c) { const p = G.player; p.frozen = false; G.cutCam = null; G.thirdPerson = c.third; G.filmMood = c.mood0; for (let i = Math.max(0, c.i); i < c.beats.length; i++) if (c.beats[i].run && i > c.i) { try { c.beats[i].run(); } catch (e) { /* skipped film, world still moves on */ } } if (!quiet && c.done) c.done(); } }
-  return { init, play, tell, entities, update, stop, active, get beat() { return cur ? cur.i : -1; } };
+  return { init, play, tell, entities, update, stop, active, get beat() { return cur ? cur.i : -1; }, get speakAt() { return cur && cur.sayAt ? cur.sayAt : null; } };
 })();

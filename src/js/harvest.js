@@ -21,8 +21,8 @@ const Harvest = (() => {
   function landIn(v) { const w = G.world, r = (v.R || 16) + 40; for (let x = v.x - r; x <= v.x + r; x += CH) for (let z = v.z - r; z <= v.z + r; z += CH) if (!w.chunks.get(Math.floor(x / CH) + ',' + Math.floor(z / CH))) return false; return true; }
   /* a ring of them outside the wall, each on ground that is level and has nothing built on it */
   function lay(v) { const w = G.world, out = [], wr = Math.max(v.R || 16, (Village.wallRadiusOf && Village.wallRadiusOf(v)) || 0), want = (v.R || 16) > 30 ? 6 : (v.R || 16) > 20 ? 4 : 3, a0 = U.hash3(Math.round(v.x), 9, Math.round(v.z), w.seed + 77) * 6.283, moon = G.worldId === 'moon', rad = moon ? 4 : 2;
-    for (let i = 0; i < 14 && out.length < want; i++) { const a = a0 + i * 0.83, dist = wr + 13 + (i % 3) * 7, x = Math.round(v.x + Math.sin(a) * dist), z = Math.round(v.z + Math.cos(a) * dist), g = w.groundY(x, z); let ok = g > 2 && Math.abs(g - (v.y || g)) < 9;
-      for (let dx = -rad; dx <= rad && ok; dx += 2) for (let dz = -rad; dz <= rad && ok; dz += 2) { const X = x + dx, Z = z + dz, gg = w.groundY(X, Z); if (Math.abs(gg - g) > 1 || (w.trackAt && w.trackAt(X, Z)) || (w.trailWear && w.trailWear(X, Z) > 0.3)) ok = false; }
+    for (let i = 0; i < 40 && out.length < want; i++) { const a = a0 + i * 0.83, dist = wr + 13 + (i % 4) * 6 + (i >= 20 ? 3 : 0), x = Math.round(v.x + Math.sin(a) * dist), z = Math.round(v.z + Math.cos(a) * dist), g = w.groundY(x, z); let ok = g > 2 && Math.abs(g - (v.y || g)) < 9;
+      for (let dx = -rad; dx <= rad && ok; dx += 2) for (let dz = -rad; dz <= rad && ok; dz += 2) { const X = x + dx, Z = z + dz, gg = w.groundY(X, Z); if (Math.abs(gg - g) > (i >= 14 ? 2 : 1) || (w.trackAt && w.trackAt(X, Z)) || (w.trailWear && w.trailWear(X, Z) > 0.3)) ok = false; }
       if (ok) for (const o of [typeof Arena !== 'undefined' && Arena.site && Arena.site(), typeof Garrison !== 'undefined' && Garrison.site && Garrison.site()]) if (o && Math.hypot(o.x - x, o.z - z) < 40) ok = false;
       if (ok && out.some(o => Math.hypot(o.x - x, o.z - z) < 12)) ok = false; if (!ok) continue;
       out.push({ x: x + 0.5, z: z + 0.5, y: g + 1, v, key: G.worldId + ':' + x + ',' + z, yaw: U.hash3(x, 2, z, 5) * 6.283, sc: 0.88 + U.hash3(x, 3, z, 5) * 0.3 }); }
@@ -92,5 +92,7 @@ const Harvest = (() => {
     res.push({ data: out, color: moon ? [1.0, 0.93, 0.6, 0.9] : [0.8, 0.56, 0.34, 0.5] });
     if (bolt) { const b = new Float32Array((bolt.pts.length - 1) * 12); let j = 0; for (let i = 0; i + 1 < bolt.pts.length; i++) for (const o of [0, 0.12]) { const a = bolt.pts[i], c = bolt.pts[i + 1]; b[j++] = a[0] + o; b[j++] = a[1]; b[j++] = a[2] + o; b[j++] = c[0] + o; b[j++] = c[1]; b[j++] = c[2] + o; } res.push({ data: b, color: [0.9, 0.85, 1.0, 1] }); }
     return res; }
-  return { init, update, entities, lines, tap, label, fallDay, nextIn, stock, get live() { return live; }, get keepers() { return keepers; }, get bolt() { return bolt; }, KIT };
+  /* for the photograph: a bolt on the nearest mast that stays long enough to be seen */
+  function strike(secs) { const p = G.player, c = live.slice().sort((a, b) => Math.hypot(a.x - p.x, a.z - p.z) - Math.hypot(b.x - p.x, b.z - p.z))[0]; if (!c) return false; const top = c.y + 13.3 * c.sc, pts = [[c.x, top, c.z]]; let x = c.x, z = c.z; for (let y = top + 6; y < top + 60; y += 6) { x += (Math.random() - 0.5) * 5; z += (Math.random() - 0.5) * 5; pts.push([x, y, z]); } bolt = { pts, t: secs || 0.26 }; boltIn = (secs || 0) + 4; return true; }
+  return { init, _strike: strike, update, entities, lines, tap, label, fallDay, nextIn, stock, get live() { return live; }, get keepers() { return keepers; }, get bolt() { return bolt; }, KIT };
 })();
