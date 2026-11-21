@@ -776,11 +776,16 @@ class World {
     for (let y = Math.min(WH - 1, fromY); y > 0; y--) { const b = c.blocks[base + y]; if (isSolid(b) && !isLeaf(b)) return y; }
     return 0;
   }
+  /* the top of whatever is solid over your head, with tree crowns and open air taken off */
+  roofAt(x, y, z) { let top = this.topAt(x, z); while (top > y && (isLeaf(this.getBlock(x, top, z)) || isTrunk(this.getBlock(x, top, z)) || this.getBlock(x, top, z) === B.FROND || this.getBlock(x, top, z) === B.AIR)) top--; return top; }
+  /* how far underground you are, 0 to 1. It takes both a roof over you and being below where the land would naturally lie, so a house, a tree, an overhang or a pit open to the sky is not a cave,
+     and it comes on over six blocks instead of all at once */
+  caveK(x, y, z) { const bx = Math.floor(x), by = Math.floor(y), bz = Math.floor(z), roof = this.roofAt(bx, by, bz) - y; if (roof <= 2) return 0; let nat = roof; try { nat = this.colInfo(bx, bz).h - y; } catch (e) { nat = roof; } return U.clamp((Math.min(roof, nat) - 2) / 6, 0, 1); }
   layerAt(y, x, z) {
     if (y < CORE_TOP) return 'Core';
     if (y >= SKY_SPLIT) return 'Sky';
     if (this.getBlock(x, y, z) === B.WATER) return 'Water';
-    let top = this.topAt(x, z); while (top > y && (isLeaf(this.getBlock(x, top, z)) || isTrunk(this.getBlock(x, top, z)) || this.getBlock(x, top, z) === B.FROND || this.getBlock(x, top, z) === B.AIR)) top--; /* a tree's crown overhead is not a roof of rock: standing under one used to count as being down a mine, and the light went with it */
+    const top = this.roofAt(x, y, z); /* a tree's crown overhead is not a roof of rock: standing under one used to count as being down a mine, and the light went with it */
     if (y < top - 3) return 'Mines';
     return 'Surface';
   }

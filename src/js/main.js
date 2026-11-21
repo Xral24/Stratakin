@@ -727,7 +727,8 @@ G.loop = function (t) {
   let input = Controls.poll();
   const inBattle = Battle.active;
   if (!this.paused) {
-    const t0 = w.time; w.time = (w.time + dt / 1500) % 1; // 25-minute days
+    const t0 = w.time; if (this.restLapse) { const L = this.restLapse; L.t += dt; w.time = (L.from + L.span * U.smooth(Math.min(1, L.t / L.secs))) % 1; if (w.time < t0) L.wrapped = true; } /* asleep: the hours run by in a few seconds */
+    else w.time = (w.time + dt / 1500) % 1; // 25-minute days
     if (w.time < t0) this.dayCount = (this.dayCount || 0) + 1;
     const nightNow = Math.cos(w.time * Math.PI * 2) > 0.17;
     if (this.wasNight === true && !nightNow) this.onDawn();
@@ -849,12 +850,12 @@ G.loop = function (t) {
   if (this.talkK > 0 && this.talkNpc && !this.cutCam) cam = this.talkCamera(cam, this.talkNpc, U.smooth(this.talkK)); /* a film's camera is never pulled off its shot by somebody talking */
   if (this.shake > 0) { const sh = this.shake * 0.12, tt = performance.now() / 1000; cam = Object.assign({}, cam, { x: cam.x + Math.sin(tt * 43) * sh, y: cam.y + Math.sin(tt * 57) * sh * 0.7, z: cam.z + Math.cos(tt * 39) * sh }); }
   const lights = [];
-  if (p.holdingTorch()) lights.push([eye.x, eye.y - 0.2, eye.z, 9]);
-  else if (this.traits().includes('Lantern')) lights.push([eye.x, eye.y - 0.2, eye.z, 11]);
+  if (p.holdingTorch()) lights.push([eye.x, eye.y - 0.2, eye.z, 14]); /* a torch in the hand reaches the far wall of a gallery, not just your boots */
+  else if (this.traits().includes('Lantern')) lights.push([eye.x, eye.y - 0.2, eye.z, 16]);
   else { const wl = Wood.light(eye); if (wl) lights.push(wl); } /* a Lampwart along: no torch needed */
   const torches = [...w.torches.values()].map(tp => [tp[0], tp[1], tp[2], (tp[0] - p.x) ** 2 + (tp[2] - p.z) ** 2, tp[3]]).sort((a, b) => a[3] - b[3]);
   if (w.heart && p.y < 20 && Math.hypot(w.heart.x - p.x, w.heart.z - p.z) < 48) lights.push([w.heart.x + 0.5, 7, w.heart.z + 0.5, 18]);
-  for (let i = 0; i < torches.length && lights.length < 8; i++) lights.push([torches[i][0], torches[i][1], torches[i][2], torches[i][4] || 10]);
+  for (let i = 0; i < torches.length && lights.length < 8; i++) lights.push([torches[i][0], torches[i][1], torches[i][2], torches[i][4] || 12]);
   const lines = [];
   if (!inBattle && !this.paused) { const hit = p.raycast(5.5); if (hit && BLOCKS[hit.id].hard !== Infinity && !w.lostKeep(hit.x, hit.z)) lines.push({ data: R.targetLines(w, hit.x, hit.y, hit.z), color: [0, 0, 0, 0.75] }); }
   lines.push(...Wild.rings(p)); lines.push(...Hazards.lines());
@@ -977,8 +978,9 @@ G.onTap = function () {
   if (ev.interact === 'camp') {
     const now = performance.now();
     if (this.lastRest && now - this.lastRest < 120000) { UI.toast(`The fire is still warm. Rest again in ${Math.ceil((120000 - (now - this.lastRest)) / 1000)}s.`); return; }
-    if (this.kin.every(k => k.hp >= KIN.stats(k).hp)) { UI.toast('Your Kin are already rested.'); return; }
-    this.lastRest = now; for (const k of this.kin) k.hp = KIN.stats(k).hp; p.hp = p.maxHp; UI.sfx('caught'); UI.toast('You rest by the fire. Every Kin wakes, whole.', 'good'); return;
+    const dark = this.isNightNow(), worn = !this.kin.every(k => k.hp >= KIN.stats(k).hp) || p.hp < p.maxHp;
+    if (!worn && !dark) { UI.toast('Your Kin are rested and there is plenty of day left. Come back at dusk and you can sleep the night through.'); return; }
+    this.lastRest = now; this.restTo('fire', (slept) => { for (const k of this.kin) k.hp = KIN.stats(k).hp; p.hp = p.maxHp; UI.sfx('caught'); UI.toast(slept ? 'First light. You wake by the fire, and every Kin wakes with you, whole.' : 'A couple of hours by the fire. Every Kin wakes, whole.', 'good'); }); return;
   }
   if (ev.interact === 'starmetal') {
     if (this.worldId !== 'earth') { this.fadeTravel('earth'); return; }
@@ -1010,6 +1012,14 @@ G.shipTravel = function (target) {
   let crossed = false; const land = () => { if (this.worldId !== target) { this.travel(target); } const q = this.player; if (this.worldId === target && !q.flying && !this.shipPark) { q.flying = true; } if (q.flying) { const gy = this.world.groundY(Math.floor(q.x), Math.floor(q.z)); q.flying = false; q.vy = 0; this.shipPark = { t0: performance.now(), until: performance.now() + 6000, x: q.x, y: gy + 0.5, z: q.z, yaw: q.yaw + Math.PI }; const f = U.forwardVec(q.yaw + Math.PI / 2, 0); q.x += f[0] * 2.4; q.z += f[2] * 2.4; q.y = this.world.groundY(Math.floor(q.x), Math.floor(q.z)) + 1.2; } };
   if (typeof Cine === 'undefined' || !Cine.play(beats, () => { if (!crossed) { crossed = true; setTimeout(land, 0); } })) { this.fadeTravel(target); } /* skipped before the crossing: go anyway, and land */
 };
+/* resting passes the time. A short film runs the sky on from now to when you wake, and the world is at that hour when it ends: sleep through the dark and it is dawn, rest by day and a couple of hours have gone */
+G.isNightNow = function () { const w = this.world, t = w.time; return !w.preset.flatDay && (t > 0.72 || t < 0.22); };
+G.restTo = function (how, done) { const w = this.world, p = this.player, slept = this.isNightNow(), from = w.time, span = slept ? ((0.275 - from) + 1) % 1 : 0.085, day0 = this.dayCount || 0;
+  const fin = () => { const L = this.restLapse; this.restLapse = null; w.time = (from + span) % 1; if (from + span >= 1) this.dayCount = day0 + 1; /* however the film ended, skipped or not, the clock lands where it was going */ if (done) done(slept); };
+  this.restLapse = { from, span, t: 0, secs: 5.4 };
+  const beats = how === 'bed' ? [{ flash: slept ? ['The lamp burns down.', 'First light at the shutters.'] : ['You shut your eyes for a couple of hours.'], secs: 5.4, mood: 'memory' }]
+    : [{ orbit: { x: p.x, y: p.y, z: p.z, r: [6.5, 9], h: [1.9, 2.9], a: [p.yaw + 0.5, p.yaw + 2.5], ly: 2.3 }, secs: 5.4, title: slept ? 'The night goes by' : 'A couple of hours go by', mood: null }];
+  try { if (!Cine.play(beats, fin)) fin(); } catch (e) { fin(); } };
 /* the dust devils that mark Halo's rising air: a loose spiral of grit turning up off the pan, so you can see where to circle */
 G.thermalLines = function (time) { if (this.worldId !== 'halo') return null; const p = this.player, L = Player.thermalsNear(p.x, p.z, 110); if (!L.length) return null; const N = 110, out = new Float32Array(L.length * N * 6); let k = 0;
   for (const c of L) { const gy = (c.gy != null ? c.gy : this.world.groundY(Math.floor(c.x), Math.floor(c.z))) + 1; for (let i = 0; i < N; i++) { const f = ((i / N) + time * 0.07) % 1, h = f * 46, a = i * 2.4 + time * 1.6 + h * 0.25, r = 0.7 + f * f * 5.5, x = c.x + Math.cos(a) * r, z = c.z + Math.sin(a) * r, a2 = a + 0.75; out[k++] = x; out[k++] = gy + h; out[k++] = z; out[k++] = c.x + Math.cos(a2) * r; out[k++] = gy + h + 0.9; out[k++] = c.z + Math.sin(a2) * r; } }

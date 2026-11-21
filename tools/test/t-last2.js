@@ -1,0 +1,22 @@
+const { open } = require('./harness');
+(async () => { const h = await open(); const { page, ev } = h; await h.newGame('look-3', 0); await h.calm(); const SH = process.env.SHOT; await ev(() => { window.__r = R.render; R.render = () => {}; G.player.add('lavasuit', 1); G.player.add('collar', 1); });
+  const shot = async (name) => { if (!SH) return; await ev(() => { G.setPaused && G.setPaused(true); R.render = window.__r; }); await page.waitForTimeout(11000); await page.screenshot({ path: '/home/claude/scratch/' + name, timeout: 150000 }); await ev(() => { R.render = () => {}; G.setPaused && G.setPaused(false); }); };
+  const tap = async (ms) => { await ev(() => document.getElementById('cine').dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }))); await page.waitForTimeout(ms || 400); };
+  const st = () => ev(() => ({ beat: Cine.beat, on: Cine.active(), actors: Cine.entities().map(e => KIN.name(e.kin)), stage: Arena.entities().length, text: ((document.querySelector('#cine [data-k="text"]') || {}).textContent || '').slice(0, 50), title: (document.querySelector('#cine [data-k="title"]') || {}).textContent, dlg: Dialogue.active(), d: +Math.hypot(G.player.x - Arena.site().x - 0.5, G.player.z - Arena.site().z - 0.5).toFixed(1), paused: !!G.paused }));
+  console.log('setup', JSON.stringify(await ev(() => { G.travel('halo'); G.world.time = 0.4; G.repelUntil = performance.now() + 9e7; const s = Arena.site(), w = G.world, p = G.player; w.ensureAround(Math.floor(s.x / CH), Math.floor(s.z / CH), 4, 99999); for (const k of G.kin) { k.level = 150; k.hp = 99999; } G.stats.arena = { won: 5, champ: true }; G.stats.garrison = { taken: true }; p.x = s.x + 0.5 + Math.sin(s.ga) * 6; p.z = s.z + 0.5 + Math.cos(s.ga) * 6; p.y = s.y + 1.05; return { kin: KIN.name(G.kin[0]) }; })));
+  const mark = (on) => ev((on) => { const s = Arena.site(), p = G.player; for (let i = 0; i < 12 && Dialogue.active(); i++) document.getElementById('dialogue').click(); p.frozen = false; p.x = s.x + 0.5 + (on ? 0 : Math.sin(s.ga) * 6); p.z = s.z + 0.5 + (on ? 0 : Math.cos(s.ga) * 6); p.y = s.y + 1.05; }, on);
+  await page.waitForTimeout(2500); await mark(true); await page.waitForTimeout(900);
+  console.log('say0', JSON.stringify(await st())); await shot('umb-a.png');
+  await tap(5600); console.log('after open', JSON.stringify(await st()));
+  await tap(500); console.log('say2', JSON.stringify(await st()));
+  await tap(1500); console.log('charge', JSON.stringify(await st())); await shot('umb-b.png');
+  await page.waitForTimeout(1300); console.log('slide', JSON.stringify(await st())); await shot('umb-c.png');
+  if (SH === 'abc') { await h.close(); return; }
+  await page.waitForTimeout(3600); console.log('say3', JSON.stringify(await st()));
+  await tap(600); console.log('done', JSON.stringify(await ev(() => ({ on: Cine.active(), saw: G.stats.arena.sawKM, beast: !!Arena.beast })))); await page.waitForTimeout(3200);
+  console.log('unstaged', JSON.stringify(await ev(() => Arena.entities().length)));
+  await page.waitForTimeout(7000); console.log('no repeat while standing', JSON.stringify(await ev(() => Cine.active()))); await mark(false); await page.waitForTimeout(500); await mark(true); await page.waitForTimeout(900); console.log('again', JSON.stringify(await st())); await ev(() => Cine.stop()); await page.waitForTimeout(3000);
+  console.log('with rex', JSON.stringify(await ev(() => { const k = KIN.create(KIN.apexSpecies('rex'), 170); G.kin.push(k); G.stats.apex = { rex: true }; return 1; }))); await mark(false); await page.waitForTimeout(4000); await mark(true); await page.waitForTimeout(900); console.log(' stage', JSON.stringify(await st())); await ev(() => Cine.stop()); await page.waitForTimeout(1800);
+  console.log('fight', JSON.stringify(await ev(() => { const b = Arena.beast; if (!b) return 'no beast'; const r = { battle: !!Battle.active, ents: Arena.entities().length }; G.onBattleEnd('won', b, b.kin, G.kin[0], false); return r; }))); await page.waitForTimeout(700);
+  console.log('ending', JSON.stringify(await st())); await shot('umb-d.png'); await ev(() => Cine.stop());
+  console.log('ERRORS:', h.errors.slice(0, 5).join(' | ') || 'none'); await h.close(); })();

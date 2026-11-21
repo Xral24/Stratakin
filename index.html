@@ -1633,11 +1633,16 @@ class World {
     for (let y = Math.min(WH - 1, fromY); y > 0; y--) { const b = c.blocks[base + y]; if (isSolid(b) && !isLeaf(b)) return y; }
     return 0;
   }
+  /* the top of whatever is solid over your head, with tree crowns and open air taken off */
+  roofAt(x, y, z) { let top = this.topAt(x, z); while (top > y && (isLeaf(this.getBlock(x, top, z)) || isTrunk(this.getBlock(x, top, z)) || this.getBlock(x, top, z) === B.FROND || this.getBlock(x, top, z) === B.AIR)) top--; return top; }
+  /* how far underground you are, 0 to 1. It takes both a roof over you and being below where the land would naturally lie, so a house, a tree, an overhang or a pit open to the sky is not a cave,
+     and it comes on over six blocks instead of all at once */
+  caveK(x, y, z) { const bx = Math.floor(x), by = Math.floor(y), bz = Math.floor(z), roof = this.roofAt(bx, by, bz) - y; if (roof <= 2) return 0; let nat = roof; try { nat = this.colInfo(bx, bz).h - y; } catch (e) { nat = roof; } return U.clamp((Math.min(roof, nat) - 2) / 6, 0, 1); }
   layerAt(y, x, z) {
     if (y < CORE_TOP) return 'Core';
     if (y >= SKY_SPLIT) return 'Sky';
     if (this.getBlock(x, y, z) === B.WATER) return 'Water';
-    let top = this.topAt(x, z); while (top > y && (isLeaf(this.getBlock(x, top, z)) || isTrunk(this.getBlock(x, top, z)) || this.getBlock(x, top, z) === B.FROND || this.getBlock(x, top, z) === B.AIR)) top--; /* a tree's crown overhead is not a roof of rock: standing under one used to count as being down a mine, and the light went with it */
+    const top = this.roofAt(x, y, z); /* a tree's crown overhead is not a roof of rock: standing under one used to count as being down a mine, and the light went with it */
     if (y < top - 3) return 'Mines';
     return 'Surface';
   }
@@ -2813,7 +2818,7 @@ const R = (() => {
     // the land's edge is carried up or down by whatever lies past the corner, the built block's top is square at its own height, and neither draws the side between them
     // because each thinks the other covers it. That left a slot you could see the sky through. So the slot is closed here: below the built top with the built block's own side, above it with a bank of earth
     for (let lx = 0; lx < CH; lx++) for (let lz = 0; lz < CH; lz++) { const y = ST(lx, lz); if (y < 0 || isOpaque(get(lx, y + 1, lz))) continue; const Y1 = y + 1;
-      for (const [dx, dz, e0, e1] of [[1, 0, [lx + 1, lz], [lx + 1, lz + 1]], [-1, 0, [lx, lz + 1], [lx, lz]], [0, 1, [lx + 1, lz + 1], [lx, lz + 1]], [0, -1, [lx, lz], [lx + 1, lz]]]) { const nx = lx + dx, nz = lz + dz, nb = get(nx, y, nz); if (!isOpaque(nb) || ST(nx, nz) === y) continue;
+      for (const [dx, dz, e0, e1] of [[1, 0, [lx + 1, lz], [lx + 1, lz + 1]], [-1, 0, [lx, lz + 1], [lx, lz]], [0, 1, [lx + 1, lz + 1], [lx, lz + 1]], [0, -1, [lx, lz], [lx + 1, lz]]]) { const nx = lx + dx, nz = lz + dz, nb = get(nx, y, nz); if (!isOpaque(nb) || ST(nx, nz) >= y) continue; /* only against something built. Land that simply stands higher next door shares this edge's corners and needs no closing: treating it as built left a brown tooth of earth standing up out of every steep, rounded slope */
         const c0 = CHt(e0[0], e0[1]), c1 = CHt(e1[0], e1[1]), h0 = c0 >= 0 ? c0 : Y1, h1 = c1 >= 0 ? c1 : Y1, lo = h0 < Y1 - 0.004 || h1 < Y1 - 0.004, hi = (h0 > Y1 + 0.004 || h1 > Y1 + 0.004) && !isOpaque(get(nx, y + 1, nz)); if (!lo && !hi) continue;
         const sk = skyAt(lx, y + 1, lz), sks = [sk, sk, sk, sk], pal = world.preset.paletteRgb && world.preset.paletteRgb[nb], sc = pal ? pal[1] : BLOCKS[nb].side, cb = [sc[0] * 0.82, sc[1] * 0.82, sc[2] * 0.82], dc = BLOCKS[B.DIRT].side, cd = [dc[0] * 0.86, dc[1] * 0.86, dc[2] * 0.86];
         const xk = (h0 - Y1) * (h1 - Y1) < 0 ? (Y1 - h0) / (h1 - h0) : -1, X = xk >= 0 ? [e0[0] + (e1[0] - e0[0]) * xk, Y1, e0[1] + (e1[1] - e0[1]) * xk] : null, A = [e0[0], h0, e0[1]], Bq = [e1[0], h1, e1[1]], A1 = [e0[0], Y1, e0[1]], B1 = [e1[0], Y1, e1[1]], nIn = [-dx, 0, -dz], nOut = [dx, 0, dz];
@@ -4563,14 +4568,17 @@ const R = (() => {
     state.mist = MIST0; if (world.lost && !inAtl && eyeBlock !== B.WATER && player.y > 40) { const L = world.lost, W = WORLD_W, dx = ((player.x - L.x) % W + W * 1.5) % W - W / 2, dz = ((player.z - L.z) % W + W * 1.5) % W - W / 2, k = U.clamp((L.inner - Math.hypot(dx, dz)) / 14, 0, 1); if (k > 0) { state.mist = [LOST_WATER + 3.6, 0.72 * k * (1.3 - 0.45 * state.dayLight), 3.4, 0.3 + 0.7 * state.dayLight];
         const wet = U.mixColor(state.fogColor, [0.74, 0.88, 0.78].map(v => v * (0.25 + 0.75 * state.dayLight)), 0.42 * k); state.fogColor = wet; state.skyColor = wet; state.fogNear = U.lerp(state.fogNear, state.fogFar * 0.5, 0.8 * k * U.clamp((76 - player.y) / 8, 0, 1)); } } // wet green air: the trees pale into it one row behind another
     const inTun = !!world.lost && world.inLostTunnel(player.x, player.y, player.z); // the way into the Lost World is not a cave: the day shows at both ends of it, and the sky is drawn
-    if (eyeBlock === B.WATER || eyeBlock === B.BRINE || eyeBlock === B.LAVA || player.y < CORE_TOP || (!inAtl && !inTun && player.y < world.topAt(Math.floor(player.x), Math.floor(player.z)) - 2)) state.skyPass = false;
+    const caveK = inAtl || inTun ? 0 : world.caveK(player.x, player.y, player.z); state.caveK = caveK;
+    if (eyeBlock === B.WATER || eyeBlock === B.BRINE || eyeBlock === B.LAVA || player.y < CORE_TOP || caveK > 0.995) state.skyPass = false;
     if (eyeBlock === B.WATER) { state.underwater = true; state.fogSky = false; state.fogColor = [0.05, 0.2, 0.45]; state.skyColor = state.fogColor; state.fogNear = 2; state.fogFar = 18; state.tint = [0.6, 0.8, 1.0];
       if (AT && AT.halls) { const W = WORLD_W, dx = ((player.x - AT.x) % W + W * 1.5) % W - W / 2, dz = ((player.z - AT.z) % W + W * 1.5) % W - W / 2, k = U.clamp(1 - (Math.hypot(dx, dz) - AT.RH - 30) / 70, 0, 1); state.fogFar = 18 + 66 * k; state.fogNear = 2 + 14 * k; } }
     else if (eyeBlock === B.BRINE) { state.underwater = true; state.fogSky = false; state.fogColor = [0.35, 0.42, 0.08]; state.skyColor = state.fogColor; state.fogNear = 1; state.fogFar = 9; state.tint = [0.9, 1.0, 0.5]; }
     else if (eyeBlock === B.LAVA) { state.fogSky = false; state.fogColor = [0.9, 0.3, 0.05]; state.skyColor = state.fogColor; state.fogNear = 0.5; state.fogFar = 4; state.tint = [1.2, 0.6, 0.3]; }
     else if (inAtl) { state.dayLight = Math.max(state.dayLight, 0.9); state.sun = [0.17, 0.97, 0.17]; state.sunAmt = 1; state.sunCol = [0.92, 0.98, 1.0]; state.tint = [1, 1, 1]; /* under the dome it is lit like day whatever the hour above, and the light comes straight down through the eye: no long shadows off the reef at dusk, no night */ const k = 0.3 + 0.7 * state.dayLight; state.fogSky = false; state.fogColor = [0.05 * k, 0.34 * k, 0.5 * k]; state.skyColor = state.fogColor; state.zenith = [0.16 * k, 0.6 * k, 0.74 * k]; state.clouds = 0; state.fogNear = 46; state.fogFar = 150; state.ambient = 0.18 + 0.3 * state.dayLight; }
     else if (player.y < CORE_TOP) { state.inCore = true; state.fogSky = false; state.fogColor = [0.2, 0.05, 0.015]; state.skyColor = state.fogColor; state.fogNear = 10; state.fogFar = 56; state.ambient = 0.3; state.tint = [1.08, 0.9, 0.82]; }
-    else if (!inTun && player.y < world.topAt(Math.floor(player.x), Math.floor(player.z)) - 2) { state.fogSky = false; state.fogColor = [0.0, 0.0, 0.0]; state.skyColor = state.fogColor; state.fogNear = 10; state.fogFar = 48; }
+    else if (caveK > 0) { /* going underground: the day's colour drains out of the distance and a dim cold light takes over, so rock still has a shape past the reach of your torch. Not black: you can see where the gallery goes */
+      const CAVE = [0.035, 0.038, 0.055]; state.fogColor = U.mixColor(state.fogColor, CAVE, caveK); if (caveK > 0.995) state.skyColor = state.fogColor; if (caveK > 0.5) state.fogSky = false;
+      state.fogNear = U.lerp(state.fogNear, 18, caveK); state.fogFar = U.lerp(state.fogFar, 64, caveK); state.ambient = U.lerp(state.ambient, 0.17, caveK); }
   }
 
   function render(world, player, entities, cam, extras) {
@@ -15096,6 +15104,7 @@ const Village = (() => {
     if (entry.service === 'calm') { if (G.shards < price) return false; G.shards -= price; for (const k of G.kin) k.hp = KIN.stats(k).hp; UI.sfx('caught'); UI.toast('A day in the garden. Your whole party is whole again.', 'good'); return true; }
     if (entry.service === 'trust') { const k = G.kin[G.activeIdx]; if (!k) return false; if ((k.trust || 0) >= 0.98) { UI.toast(`${KIN.name(k)} already trusts you completely.`); return false; } if (G.shards < price) return false; G.shards -= price; k.trust = Math.min(1, (k.trust || 0) + 0.4); UI.sfx('caught'); UI.toast(`A long morning in the ring. ${KIN.name(k)} trusts you more (${Math.round(k.trust * 100)}%).`, 'good'); return true; }
     if (entry.service === 'tune') { const P = G.player; if (!P.has('glider')) { UI.toast('You need a glider first. Old Wren has one.', 'bad'); return false; } if ((P.gearPower.glider || {}).mark === 'Merrow') { UI.toast('Already tuned.'); return false; } if (G.shards < price) return false; G.shards -= price; P.gearPower.glider = { power: 1.3, mark: 'Merrow', shards: 0 }; UI.sfx('quest'); UI.toast('Captain Merrow re-rigs your glider. It flies further and faster now.', 'good'); return true; }
+    if (entry.service === 'rest' && /\bbed\b/i.test(entry.name || '')) { /* a bed is a night's sleep: the hours go by and you wake in the morning */ if (G.kin.every(k => k.hp >= KIN.stats(k).hp) && !G.isNightNow()) { UI.toast('Nobody is tired and it is broad day. The bed will keep until dark.'); return false; } if (G.shards < price) { UI.toast('Not enough Shards.', 'bad'); return false; } G.shards -= price; if (UI.closePanel) UI.closePanel(); G.restTo('bed', (slept) => { for (const k of G.kin) k.hp = KIN.stats(k).hp; G.player.hp = G.player.maxHp; UI.sfx('caught'); UI.toast(slept ? 'Morning. Clean sheets, and every Kin up and whole.' : 'A couple of hours with your boots off. Every Kin is whole again.', 'good'); }); return true; }
     if (entry.service === 'rest') { if (G.kin.every(k => k.hp >= KIN.stats(k).hp)) { UI.toast('Your party is already whole.'); return false; } G.shards -= price; for (const k of G.kin) k.hp = KIN.stats(k).hp; UI.sfx('caught'); UI.toast('Mama Oyé wakes and mends every Kin.', 'good'); return true; }
     G.shards -= price; G.player.add(entry.item, entry.n || 1); UI.sfx('place');
     if (shop.post && entry.postIdx != null) { const st = state(shop.post); if (st.postSold) st.postSold.idx.push(entry.postIdx); shop.stock.splice(shop.stock.indexOf(entry), 1); }
@@ -21350,7 +21359,7 @@ const Arena = (() => {
   function people(s) { if (crowd.length || !Village.makeNpc || !Village.addLoose) return; const NAMES = ['Sefa', 'Tali', 'Besh', 'Orun', 'Zora', 'Halim', 'Pell', 'Doru'];
     for (let i = 0; i < 8; i++) { const a = Math.PI / 2 - s.ga + 0.6 + i * 0.63, r = RI + 1.5, x = s.x + 0.5 + Math.cos(a) * r, z = s.z + 0.5 + Math.sin(a) * r; const n = Village.makeNpc(700 + i, 'villager', x, z, NAMES[i], null, s.y + WALLH + 1, 'pit', 'halo', false); n.wander = false; n.tag = 'pitcrowd'; n.yaw = Math.atan2(s.x - x, s.z - z); Village.addLoose(n); crowd.push(n); }
     const a = Math.PI / 2 - s.ga, bx = s.x + 0.5 + Math.cos(a + 0.35) * (RI - 2.5), bz = s.z + 0.5 + Math.sin(a + 0.35) * (RI - 2.5); boss = Village.makeNpc(799, 'elder', bx, bz, 'Pit Boss Varga', null, s.y + 1, 'pit', 'halo', false); boss.wander = false; boss.tag = 'pitboss'; boss.yaw = Math.atan2(s.x - bx, s.z - bz); Village.addLoose(boss); }
-  function clear() { for (const n of crowd) Village.dropLoose && Village.dropLoose(n); crowd = []; if (boss) { Village.dropLoose && Village.dropLoose(boss); boss = null; } }
+  function clear() { unstage(); for (const n of crowd) Village.dropLoose && Village.dropLoose(n); crowd = []; if (boss) { Village.dropLoose && Village.dropLoose(boss); boss = null; } }
   function nextBout() { const st = S(); return st.won < 5 ? BOUTS[st.won] : Object.assign({}, BOUTS[1 + ((G.dayCount || 0) + st.won) % 4], { purse: 90, show: true }); }
   const moonDone = () => !!(G.stats.garrison || {}).taken, lastDue = () => S().won >= 5 && !S().last && moonDone(), rexWith = () => G.kin.find(k => k.sp && k.sp.apex === 'rex' && k.hp > 0) || null;
   function brief() { const st = S(), b = nextBout(); if (lastDue() && st.sawKM && !rexWith()) return ['He is still up there. So is that thing of his.', 'I have run this ring thirty years and I never saw an animal a Kin could not mark. Look up. See the ribs? Whatever those came off, that is the size of thing you want.', (G.stats.apex || {}).rex === true ? 'You have one? Then bring it. It has to be in your party when you stand on the mark.' : 'They say the like still walks, in a valley on your Earth. If your survey from the Moon is true, go and net it.'];
@@ -21365,19 +21374,38 @@ const Arena = (() => {
     const a = Math.PI / 2 - s.ga + Math.PI, x = s.x + 0.5 + Math.cos(a) * 5, z = s.z + 0.5 + Math.sin(a) * 5; const e = Wild.makeEntity(pick, Math.min(199, lv), x, s.y + 1, z, { plain: true }); e.pit = true; e.fought = true; e.scale = (e.scale || 1) * b.size; e.pitName = b.name; e.kin.nick = b.name[0].toUpperCase() + b.name.slice(1); e.yaw = Math.atan2(p.x - x, p.z - z); Wild.list.push(e); beast = e;
     UI.sfx('alert'); UI.toast(`The far gate drops. ${b.name[0].toUpperCase() + b.name.slice(1)} comes out. Lv ${e.kin.level}.`, 'bad'); for (const n of crowd) n.cheer = performance.now() + 4000; setTimeout(() => { if (beast === e && !(Battle.active)) Battle.start(e, false); }, 1400); }
   /* the end of the road. He ran from Earth to the Moon and from the Moon to here, and there is nowhere past Halo */
-  function lastStand(s) { const p = G.player, a = Math.PI / 2 - s.ga + Math.PI, x = s.x + 0.5 + Math.cos(a) * 6, z = s.z + 0.5 + Math.sin(a) * 6, at = { x, y: s.y + 1, z, faceY: 1.5, faceD: 4.2 };
-    const rex = rexWith();
+  /* the two of them on the sand: the man himself, and Umbrarch standing beside him. They are there for as long as he is talking, so the film has somebody in it */
+  let stage = null, offMark = true;
+  const umbSp = () => { const sp = KIN.species(U.combine(0x0BAD, 3), ['Void', 'Light'], 0, { primary: 'Void', shape: 'quadruped', total: 780, rarity: 4 }); sp.names = ['Umbrarch', 'Umbrarch', 'Umbrarch']; sp.noFuse = true; sp.colors = { body: '#1a1028', belly: '#e8e0ff', accent: '#ffd76a', dark: '#07040c', eye: '#ffd76a' }; return sp; };
+  function umbFig(s, x, z, yaw) { const e = Wild.makeEntity(umbSp(), 170, x, s.y + 1, z, { plain: true }); e.scale = (e.scale || 1) * 2.2; e.yaw = yaw; e.sleep = false; e.alert = 0; e.moving = false; return e; }
+  function setStage(s, x, z) { if (stage) return stage; const p = G.player, a = Math.atan2(p.x - x, p.z - z), kx = x + Math.sin(a) * 4.0 + Math.cos(a) * 2.3, kz = z + Math.cos(a) * 4.0 - Math.sin(a) * 2.3; /* out in front of his beast and a little to one side: him small, it enormous behind */
+    const km = Village.makeNpc(96, 'traveller', kx, kz, 'The Kinmaster', null, s.y + 1, 'shore'), sp = { shape: 'human', feat: { crest: false, ears: false, horns: false, spikes: false, tail: false, wings: false, bigEyes: false }, colors: { body: '#3a1a4a', belly: '#c9b48a', accent: '#b026ff', dark: '#120818', eye: '#ff3a3a' }, size: 1, gen: 0, names: ['person'] }, m = KIN.model(sp, 2); KIN.decorate(m, 'crown'); KIN.decorate(m, 'mask');
+    km.model = m; km.mesh = R.entityMesh('pit:km', (mb) => KIN.buildMesh(mb, m)); km.scale = 1.12; km.wander = false; km.tag = ''; km.yaw = a; km.onTalk = () => {}; Village.addLoose(km);
+    stage = { km, umb: umbFig(s, x, z, a), x, z, a }; return stage; }
+  function unstage() { if (!stage) return; if (Village.dropLoose) Village.dropLoose(stage.km); stage = null; }
+  /* what it looks like when a bound Kin goes for Umbrarch: it comes past you at a run, hits, and slides off the flank like rain off slate. Umbrarch does not move */
+  function glanceBeats(s, st) { const p = G.player, k = G.kin.find(q => q.hp > 0); if (!k) return []; const dx = st.x - p.x, dz = st.z - p.z, d = Math.hypot(dx, dz) || 1, ux = dx / d, uz = dz / d, px = uz, pz = -ux, y = s.y + 1, a = Math.atan2(ux, uz), side = a - Math.PI / 2, back = a + Math.PI;
+    /* the Kinmaster stands on one side of the line, so the charge goes up the other and the Kin comes off the far flank */
+    const S0 = { x: p.x - ux * 3.5 - px * 1.6, z: p.z - uz * 3.5 - pz * 1.6 }, C = { x: st.x - ux * 3.0 - px * 1.3, z: st.z - uz * 3.0 - pz * 1.3 }, E = { x: C.x - px * 3.6 + ux * 3.2, z: C.z - pz * 3.6 + uz * 3.2 };
+    const run = (t) => { const u = U.clamp((t - 0.45) / 1.5, 0, 1), e = u * u; return { x: S0.x + (C.x - S0.x) * e, y, z: S0.z + (C.z - S0.z) * e, yaw: a }; };
+    let hit = false; const slide = (t) => { const u = U.clamp(t / 1.5, 0, 1), e = 1 - (1 - u) * (1 - u); if (!hit) { hit = true; G.shake = 0.9; UI.sfx('hurt'); } return { x: C.x + (E.x - C.x) * e, y: y + Math.sin(Math.min(1, t / 0.7) * Math.PI) * 0.9, z: C.z + (E.z - C.z) * e, yaw: a + e * 2.6 }; };
+    return [{ orbit: { x: p.x + ux * 2.2, y, z: p.z + uz * 2.2, r: [8.4, 7.6], h: [4.0, 3.2], a: [side - 0.5, side - 0.15], ly: 3.0 }, secs: 2.0, mood: 'dread', actors: [{ sp: k.sp, lvl: k.level || 1, at: run }] },
+      { orbit: { x: st.x, y, z: st.z, r: [10, 10.8], h: [6.5, 8.2], a: [back + 0.22, back + 0.48], ly: 5.6 }, secs: 3.6, glow: 'violet', title: 'It does not even turn its head', actors: [{ sp: k.sp, lvl: k.level || 1, at: slide }] }]; }
+  function lastStand(s) { const p = G.player, a = Math.PI / 2 - s.ga + Math.PI, x = s.x + 0.5 + Math.cos(a) * 6, z = s.z + 0.5 + Math.sin(a) * 6;
+    const rex = rexWith(), st = setStage(s, s.x + 0.5 + Math.cos(a) * 7.6, s.z + 0.5 + Math.sin(a) * 7.6), at = { x: st.km.x, y: s.y + 1, z: st.km.z, faceY: 1.7, faceD: 2.7 }, open = { orbit: { x: s.x + 0.5, y: s.y + 2, z: s.z + 0.5, r: [14, 18], h: [6, 9], a: [0.2, 1.6], ly: 2 }, secs: 5, title: 'Nowhere Past Halo', mood: 'dread' };
     if (!rex) { /* without the Tyrannorex there is no fight to be had: nothing bound to a person can mark what he bound first */ const first = !S().sawKM; S().sawKM = true; told = performance.now() + 30000;
-      const l0 = first ? ['He comes down the steps between the rows. Nobody chants. Varga takes his hat off.', 'Three skies. I gave you three skies to turn back in.', 'This is Umbrarch. The first one I ever bound, and the last one I have. Go on. Send yours.', 'Your Kin goes in. Its best blow slides off like rain off slate. Umbrarch does not even turn its head.', 'You see? Nothing that has ever belonged to a person can mark it. I made sure of that, a long time ago. Go home.'] : ['Again? With those?', 'Nothing that has ever belonged to a person can mark it. You have seen my survey. You know where the old ones are. I am almost curious.'];
-      try { Cine.tell('The Kinmaster', at, first ? { 0: [{ orbit: { x: s.x + 0.5, y: s.y + 2, z: s.z + 0.5, r: [14, 18], h: [6, 9], a: [0.2, 1.6], ly: 2 }, secs: 5, title: 'Nowhere Past Halo', mood: 'dread' }] } : {}, l0, () => UI.toast('Only something older than the binding can face Umbrarch. The Tyrannorex, in the Lost World on Earth: net it and bring it here.', 'bad')); } catch (e) { UI.toast('Only the Tyrannorex can face Umbrarch. Net it in the Lost World and bring it here.', 'bad'); } return; }
-    const go = () => { const sp = KIN.species(U.combine(0x0BAD, 3), ['Void', 'Light'], 0, { primary: 'Void', shape: 'quadruped', total: 780, rarity: 4 }); sp.names = ['Umbrarch', 'Umbrarch', 'Umbrarch']; sp.noFuse = true; sp.colors = { body: '#1a1028', belly: '#e8e0ff', accent: '#ffd76a', dark: '#07040c', eye: '#ffd76a' };
+      const l0 = first ? ['He comes down the steps between the rows. Nobody chants. Varga takes his hat off.', 'Three skies. I gave you three skies to turn back in.', 'This is Umbrarch. The first one I ever bound, and the last one I have. Go on. Send yours.', 'You see? Nothing that has ever belonged to a person can mark it. I made sure of that, a long time ago. Go home.'] : ['Again? With those? Go on, then.', 'Nothing that has ever belonged to a person can mark it. You have seen my survey. You know where the old ones are. I am almost curious.'];
+      const after = () => { UI.toast('Only something older than the binding can face Umbrarch. The Tyrannorex, in the Lost World on Earth: net it and bring it here.', 'bad'); setTimeout(unstage, 2500); };
+      let ins = {}; try { const gb = glanceBeats(s, st); ins = first ? { 0: [open], 2: gb } : { 0: gb }; } catch (e) { ins = {}; }
+      try { Cine.tell('The Kinmaster', at, ins, l0, after); } catch (e) { after(); } return; }
+    const go = () => { const sp = umbSp(); if (stage) stage.umb = null; /* the real one takes the stand-in's place */
       const best = Math.max(1, ...G.kin.map(k => k.level || 1)), e = Wild.makeEntity(sp, Math.min(199, Math.max(170, rex.level || 170)), x, s.y + 1, z, { plain: true, elite: true }); /* level with the Tyrannorex: an even fight */ e.pit = true; e.kmLast = true; e.fought = true; e.scale = (e.scale || 1) * 2.2; e.yaw = Math.atan2(p.x - x, p.z - z); Wild.list.push(e); beast = e; for (const n of crowd) n.cheer = performance.now() + 6000; setTimeout(() => { if (beast === e && !Battle.active) Battle.start(e, false); }, 900); };
     const lines = S().sawKM ? ['He is half way down the steps before he sees what is standing behind you. He stops.', 'You went and fetched it. Out of my own valley. I could not net that animal in ten years of trying.', 'I watched you the whole way. I kept waiting for one of yours to turn on you. That is what they do. That is what I know about them.', 'And that one follows you. Very well. Umbrarch. Let us see which of us was right.'] : ['He comes down the steps between the rows. Nobody chants. Varga takes his hat off.', 'Three skies. I gave you three skies to turn back in. And you bring that. Out of my own valley.', 'I watched you the whole way. I kept waiting for one of yours to turn on you. That is what they do. That is what I know about them.', 'This is Umbrarch. It is the first one I ever bound and the last one I have. Let us see which of us was right.'];
-    try { Cine.tell('The Kinmaster', at, { 0: [{ orbit: { x: s.x + 0.5, y: s.y + 2, z: s.z + 0.5, r: [14, 18], h: [6, 9], a: [0.2, 1.6], ly: 2 }, secs: 5, title: 'Nowhere Past Halo', mood: 'dread' }] }, lines, go); } catch (e) { go(); } }
-  function lastEnd(won) { const st = S(), s = site; beast = null; told = performance.now() + 20000; if (!won) { UI.toast('Umbrarch stands over you. He does not finish it. "Get up," he says. "Come back when you mean it."', 'bad'); return; }
-    st.last = true; G.stats.kmEnded = true; G.shards += 3000; UI.sfx('quest'); const at = { x: s.x + 0.5, y: s.y + 1, z: s.z + 0.5, faceY: 1.2, faceD: 4 };
+    try { Cine.tell('The Kinmaster', at, { 0: [open] }, lines, go); } catch (e) { go(); } }
+  function lastEnd(won) { const st = S(), s = site; beast = null; told = performance.now() + 20000; if (!won) { unstage(); UI.toast('Umbrarch stands over you. He does not finish it. "Get up," he says. "Come back when you mean it."', 'bad'); return; }
+    st.last = true; G.stats.kmEnded = true; G.shards += 3000; UI.sfx('quest'); if (stage) stage.umb = umbFig(s, stage.km.x - Math.sin(stage.a) * 0.5 - Math.cos(stage.a) * 3.4, stage.km.z - Math.cos(stage.a) * 0.5 + Math.sin(stage.a) * 3.4, stage.a + 0.5); const at = stage ? { x: stage.km.x, y: s.y + 1, z: stage.km.z, faceY: 1.5, faceD: 5 } : { x: s.x + 0.5, y: s.y + 1, z: s.z + 0.5, faceY: 1.2, faceD: 4 };
     const lines = ['Umbrarch goes down in the sand, and gets up, and walks over to stand beside him. He looks at it for a long time.', 'It did not turn. Not even now.', 'Isla\'s did not turn either, did it. The sea took her. Skerry came back because there was nobody left to carry.', 'Take the crystal off my neck. I am tired of holding all of them still.'];
-    const fin = () => { UI.toast('The Kinmaster is finished. 3,000 shards. On three worlds, every Kin he ever bound lifts its head. There is still a great deal to do.', 'good'); };
+    const fin = () => { setTimeout(unstage, 6000); UI.toast('The Kinmaster is finished. 3,000 shards. On three worlds, every Kin he ever bound lifts its head. There is still a great deal to do.', 'good'); };
     try { Cine.tell('The Kinmaster', at, { 3: [{ orbit: { x: s.x + 0.5, y: s.y + 3, z: s.z + 0.5, r: [8, 30], h: [3, 18], a: [0, 2.4], ly: 4 }, secs: 9, title: 'Every bound Kin lifts its head', mood: 'free', sfx: 'quest', flash: ['On Earth the towns light their lamps.', 'On the Moon the domes open.', 'On Halo the Pit, for once, is quiet.'] }] }, lines, fin); } catch (e) { fin(); } }
   function boutEnd(result) { if (beast && beast.kmLast) return lastEnd(result === 'won'); const st = S(), b = nextBout(), won = result === 'won'; beast = null; told = performance.now() + 9000; if (!won) { UI.toast('The crowd groans. Varga has you carried out through the tusks. Heal up and come back.', 'bad'); return; }
     G.shards += b.purse; UI.sfx('quest'); if (b.show) { boutsToday++; UI.toast(`The Pit roars. ${b.purse} shards for the show.`, 'good'); return; }
@@ -21387,11 +21415,13 @@ const Arena = (() => {
     if (d > 95) { if (crowd.length || boss) clear(); return; } if (d < 70) people(s);
     const day = G.dayCount || 0; if (day !== lastDay) { lastDay = day; boutsToday = 0; }
     const now = performance.now(); for (const n of crowd) { n.bob = n.cheer > now ? Math.abs(Math.sin(now / 110 + n.x)) * 0.25 : 0; n.yaw = Math.atan2(s.x - n.x, s.z - n.z); }
-    if (typeof Battle !== 'undefined' && Battle.active) return; if (typeof Dialogue !== 'undefined' && Dialogue.active()) return; if (beast) return;
+    if (stage) stage.km.yaw = Math.atan2(p.x - stage.km.x, p.z - stage.km.z); /* he never takes his eyes off you */
+    if (d > 2.8) offMark = true; /* you have to step off the mark and back on to ask for another go: standing there does not ask twice */
+    if (typeof Battle !== 'undefined' && Battle.active) return; if (typeof Dialogue !== 'undefined' && Dialogue.active()) return; if (typeof Cine !== 'undefined' && Cine.active()) return; if (beast) return;
     if (boss && d < RI && now > told && Math.hypot(p.x - boss.x, p.z - boss.z) < 4.5) { told = now + 45000; boss.yaw = Math.atan2(p.x - boss.x, p.z - boss.z); G.talkNpc = boss; Dialogue.show('Pit Boss Varga', brief(), () => {}); return; }
-    if (d < 1.7 && Math.abs(p.y - (s.y + 1)) < 2 && now > (start.cool || 0)) { start.cool = now + 6000; start(s); } }
-  function entities() { if (!onHalo() || !G) return []; const s = find(); if (!s || Math.hypot(G.player.x - s.x, G.player.z - s.z) > 240) return []; return [{ x: s.x + 0.5, y: s.y + 1, z: s.z + 0.5, yaw: 0, scale: 1, hover: 0, skyMul: 1, isStatue: true, noOutline: true, mesh: mesh(s) }]; }
-  function init(g) { G = g; site = null; siteW = null; crowd = []; boss = null; beast = null; told = 0; }
+    if (offMark && d < 1.7 && Math.abs(p.y - (s.y + 1)) < 2 && now > (start.cool || 0)) { start.cool = now + 6000; offMark = false; start(s); } }
+  function entities() { if (!onHalo() || !G) return []; const s = find(); if (!s || Math.hypot(G.player.x - s.x, G.player.z - s.z) > 240) return []; const out = [{ x: s.x + 0.5, y: s.y + 1, z: s.z + 0.5, yaw: 0, scale: 1, hover: 0, skyMul: 1, isStatue: true, noOutline: true, mesh: mesh(s) }]; if (stage && stage.umb) out.push(stage.umb); return out; }
+  function init(g) { G = g; stage = null; offMark = true; site = null; siteW = null; crowd = []; boss = null; beast = null; told = 0; }
   return { init, update, entities, overlay, boutEnd, site: () => find(), BOUTS, get beast() { return beast; }, _start: () => start(find()) };
 })();
 
@@ -22793,7 +22823,8 @@ G.loop = function (t) {
   let input = Controls.poll();
   const inBattle = Battle.active;
   if (!this.paused) {
-    const t0 = w.time; w.time = (w.time + dt / 1500) % 1; // 25-minute days
+    const t0 = w.time; if (this.restLapse) { const L = this.restLapse; L.t += dt; w.time = (L.from + L.span * U.smooth(Math.min(1, L.t / L.secs))) % 1; if (w.time < t0) L.wrapped = true; } /* asleep: the hours run by in a few seconds */
+    else w.time = (w.time + dt / 1500) % 1; // 25-minute days
     if (w.time < t0) this.dayCount = (this.dayCount || 0) + 1;
     const nightNow = Math.cos(w.time * Math.PI * 2) > 0.17;
     if (this.wasNight === true && !nightNow) this.onDawn();
@@ -22915,12 +22946,12 @@ G.loop = function (t) {
   if (this.talkK > 0 && this.talkNpc && !this.cutCam) cam = this.talkCamera(cam, this.talkNpc, U.smooth(this.talkK)); /* a film's camera is never pulled off its shot by somebody talking */
   if (this.shake > 0) { const sh = this.shake * 0.12, tt = performance.now() / 1000; cam = Object.assign({}, cam, { x: cam.x + Math.sin(tt * 43) * sh, y: cam.y + Math.sin(tt * 57) * sh * 0.7, z: cam.z + Math.cos(tt * 39) * sh }); }
   const lights = [];
-  if (p.holdingTorch()) lights.push([eye.x, eye.y - 0.2, eye.z, 9]);
-  else if (this.traits().includes('Lantern')) lights.push([eye.x, eye.y - 0.2, eye.z, 11]);
+  if (p.holdingTorch()) lights.push([eye.x, eye.y - 0.2, eye.z, 14]); /* a torch in the hand reaches the far wall of a gallery, not just your boots */
+  else if (this.traits().includes('Lantern')) lights.push([eye.x, eye.y - 0.2, eye.z, 16]);
   else { const wl = Wood.light(eye); if (wl) lights.push(wl); } /* a Lampwart along: no torch needed */
   const torches = [...w.torches.values()].map(tp => [tp[0], tp[1], tp[2], (tp[0] - p.x) ** 2 + (tp[2] - p.z) ** 2, tp[3]]).sort((a, b) => a[3] - b[3]);
   if (w.heart && p.y < 20 && Math.hypot(w.heart.x - p.x, w.heart.z - p.z) < 48) lights.push([w.heart.x + 0.5, 7, w.heart.z + 0.5, 18]);
-  for (let i = 0; i < torches.length && lights.length < 8; i++) lights.push([torches[i][0], torches[i][1], torches[i][2], torches[i][4] || 10]);
+  for (let i = 0; i < torches.length && lights.length < 8; i++) lights.push([torches[i][0], torches[i][1], torches[i][2], torches[i][4] || 12]);
   const lines = [];
   if (!inBattle && !this.paused) { const hit = p.raycast(5.5); if (hit && BLOCKS[hit.id].hard !== Infinity && !w.lostKeep(hit.x, hit.z)) lines.push({ data: R.targetLines(w, hit.x, hit.y, hit.z), color: [0, 0, 0, 0.75] }); }
   lines.push(...Wild.rings(p)); lines.push(...Hazards.lines());
@@ -23043,8 +23074,9 @@ G.onTap = function () {
   if (ev.interact === 'camp') {
     const now = performance.now();
     if (this.lastRest && now - this.lastRest < 120000) { UI.toast(`The fire is still warm. Rest again in ${Math.ceil((120000 - (now - this.lastRest)) / 1000)}s.`); return; }
-    if (this.kin.every(k => k.hp >= KIN.stats(k).hp)) { UI.toast('Your Kin are already rested.'); return; }
-    this.lastRest = now; for (const k of this.kin) k.hp = KIN.stats(k).hp; p.hp = p.maxHp; UI.sfx('caught'); UI.toast('You rest by the fire. Every Kin wakes, whole.', 'good'); return;
+    const dark = this.isNightNow(), worn = !this.kin.every(k => k.hp >= KIN.stats(k).hp) || p.hp < p.maxHp;
+    if (!worn && !dark) { UI.toast('Your Kin are rested and there is plenty of day left. Come back at dusk and you can sleep the night through.'); return; }
+    this.lastRest = now; this.restTo('fire', (slept) => { for (const k of this.kin) k.hp = KIN.stats(k).hp; p.hp = p.maxHp; UI.sfx('caught'); UI.toast(slept ? 'First light. You wake by the fire, and every Kin wakes with you, whole.' : 'A couple of hours by the fire. Every Kin wakes, whole.', 'good'); }); return;
   }
   if (ev.interact === 'starmetal') {
     if (this.worldId !== 'earth') { this.fadeTravel('earth'); return; }
@@ -23076,6 +23108,14 @@ G.shipTravel = function (target) {
   let crossed = false; const land = () => { if (this.worldId !== target) { this.travel(target); } const q = this.player; if (this.worldId === target && !q.flying && !this.shipPark) { q.flying = true; } if (q.flying) { const gy = this.world.groundY(Math.floor(q.x), Math.floor(q.z)); q.flying = false; q.vy = 0; this.shipPark = { t0: performance.now(), until: performance.now() + 6000, x: q.x, y: gy + 0.5, z: q.z, yaw: q.yaw + Math.PI }; const f = U.forwardVec(q.yaw + Math.PI / 2, 0); q.x += f[0] * 2.4; q.z += f[2] * 2.4; q.y = this.world.groundY(Math.floor(q.x), Math.floor(q.z)) + 1.2; } };
   if (typeof Cine === 'undefined' || !Cine.play(beats, () => { if (!crossed) { crossed = true; setTimeout(land, 0); } })) { this.fadeTravel(target); } /* skipped before the crossing: go anyway, and land */
 };
+/* resting passes the time. A short film runs the sky on from now to when you wake, and the world is at that hour when it ends: sleep through the dark and it is dawn, rest by day and a couple of hours have gone */
+G.isNightNow = function () { const w = this.world, t = w.time; return !w.preset.flatDay && (t > 0.72 || t < 0.22); };
+G.restTo = function (how, done) { const w = this.world, p = this.player, slept = this.isNightNow(), from = w.time, span = slept ? ((0.275 - from) + 1) % 1 : 0.085, day0 = this.dayCount || 0;
+  const fin = () => { const L = this.restLapse; this.restLapse = null; w.time = (from + span) % 1; if (from + span >= 1) this.dayCount = day0 + 1; /* however the film ended, skipped or not, the clock lands where it was going */ if (done) done(slept); };
+  this.restLapse = { from, span, t: 0, secs: 5.4 };
+  const beats = how === 'bed' ? [{ flash: slept ? ['The lamp burns down.', 'First light at the shutters.'] : ['You shut your eyes for a couple of hours.'], secs: 5.4, mood: 'memory' }]
+    : [{ orbit: { x: p.x, y: p.y, z: p.z, r: [6.5, 9], h: [1.9, 2.9], a: [p.yaw + 0.5, p.yaw + 2.5], ly: 2.3 }, secs: 5.4, title: slept ? 'The night goes by' : 'A couple of hours go by', mood: null }];
+  try { if (!Cine.play(beats, fin)) fin(); } catch (e) { fin(); } };
 /* the dust devils that mark Halo's rising air: a loose spiral of grit turning up off the pan, so you can see where to circle */
 G.thermalLines = function (time) { if (this.worldId !== 'halo') return null; const p = this.player, L = Player.thermalsNear(p.x, p.z, 110); if (!L.length) return null; const N = 110, out = new Float32Array(L.length * N * 6); let k = 0;
   for (const c of L) { const gy = (c.gy != null ? c.gy : this.world.groundY(Math.floor(c.x), Math.floor(c.z))) + 1; for (let i = 0; i < N; i++) { const f = ((i / N) + time * 0.07) % 1, h = f * 46, a = i * 2.4 + time * 1.6 + h * 0.25, r = 0.7 + f * f * 5.5, x = c.x + Math.cos(a) * r, z = c.z + Math.sin(a) * r, a2 = a + 0.75; out[k++] = x; out[k++] = gy + h; out[k++] = z; out[k++] = c.x + Math.cos(a2) * r; out[k++] = gy + h + 0.9; out[k++] = c.z + Math.sin(a2) * r; } }
