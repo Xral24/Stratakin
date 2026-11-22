@@ -81,3 +81,37 @@ Front-facing uploads: kinmaster 9a993b3c, varga 0373d1de, hask 2409eb06, maren 6
 | Maren + Idle_3 (243) | fe8fd5ee-6a05-46d9-af18-130a7db22c7d |
 | Brannock + Idle_12 (252) | 9c2f3ea0-3730-416e-8fa8-4a4b25a679dd |
 | Garrick (upload 67285ae1) + Idle (0) | d483271d-7e14-4e63-82c7-ab806fe57f8f |
+
+# Quality test (22 Nov, evening): Alexander called the cast models poor. They were Tripo H3.1 on its cheapest settings (10k faces, standard texture and shape), with textures cut to 1024 on the phone. Three top-end versions of Finch to compare, each with full PBR maps:
+| Model | Job id | Credits |
+|---|---|---|
+| Tripo H3.1, detailed texture, detailed geometry, adaptive faces | 87f56dd4-e238-4e96-9823-b144d62c1199 | 18 |
+| Tripo P2, extreme texture, 50k faces | bc766e84-ebf8-4142-acac-e121e7aaba88 | 40 |
+| Meshy 7, ultra mode, 50k triangles | e8f8cedf-e33d-4a49-bf7e-0da7299adf18 | 44 |
+
+Winner: Meshy 7 ultra. Side by side at the same 2048 texture, its Finch has the cleanest face and shapes; H3.1 detailed is decent but rougher (and comes as 2 million triangles, cut to 40k), P2 changed his face (eyes off, nose bigger). The cast is redone on Meshy 7 ultra, 50k triangles, A-pose, rigged with a clip in the same call (53.5 each):
+| Who | Job id | Clip |
+|---|---|---|
+| Finch | 5b9935ec-b197-4eac-bc9d-d533d0baa1c0 | Idle_4 (244) |
+| Silas | b942cecf-784b-4a6c-97f1-6f69d9952068 | Idle_13 (253) |
+| Kinmaster | 4d40abb7-5eeb-465a-b548-807f8c35de26 | Idle_02 (11) |
+| Varga | aedb15ce-6cfc-4947-b677-97dbae0ddbea | Idle (0) |
+| Hask | e9931beb-b4d8-499e-bb82-86490e86fd38 | Idle_9 (249), walk to add |
+| Garrick | f7bcbe1b-51fc-4e63-aa95-8fcc627520b2 | Idle (0) |
+| Maren | 01d02636-7284-4b92-93e0-b09e5af62678 | Idle_3 (243) |
+| Brannock | a17b205b-cef0-4c20-9710-009d1ec90224 | Idle_12 (252) |
+| Stonewall | 16797cdf-ec09-4566-b807-7af79dfb3344 | Slow_Orc_Walk (119), idle to add |
+
+The tyrants are Kin in the story (bound by the Kinmaster's crystal), so Keychain and Bigmouth go back to creature bodies with the approved outfits (Stonewall's brick body already reads as a creature). Two options each, for Alexander to choose (2 credits each):
+| What | Job id |
+|---|---|
+| Keychain, slim lizard, key planted like a staff | 6a937aa9-274a-4b86-b606-3d6329ac4436 |
+| Keychain, chameleon, hand on hip | 536b3427-f8a2-4d72-a8ac-05b7cf5a611b |
+| Bigmouth, giant toad, spoon as a staff | 451e3626-3870-4a00-8c7f-59684f11a4a6 |
+| Bigmouth, bullfrog with a chef's cap | e8b09956-b514-4f3f-b56a-208f57578640 |
+
+Second clips for the two figures that need both an idle and a walk, rigged from their own Meshy mesh with the skin taken off (tools/art/strip_skin.py), 8 credits each. Hask's old walk (Elderly_Shaky_Walk) shook by design, which is half of why he vibrated: he gets Thoughtful_Walk instead.
+| Who | Job id | Clip |
+|---|---|---|
+| Hask | 1e6d8d6b-3be4-42a6-b3cc-7b5e32471a6d | Thoughtful_Walk (121) |
+| Stonewall | f4bc9956-adc1-405e-b60e-d6510635c35f | Idle_11 (251) |

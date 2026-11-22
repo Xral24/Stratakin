@@ -1,6 +1,9 @@
 # Stratakin art plan (agreed with Alexander, 22 Nov 2026)
 
-Started 22 Nov: the ten reference pictures are approved and kept in `art/style/`, the GLB loader is in, and the main cast wear their own models (Finch, Silas, the three tyrants, the Kinmaster, Varga, Hask, Garrick, Maren, Brannock). Credits and job ids: `art/ref/JOBS.md`.
+Started 22 Nov: the ten reference pictures are approved and kept in `art/style/`, the GLB loader is in, and the main cast wear their own models, remade the same evening at the phone's ceiling on Meshy 7 ultra (Finch, Silas, Stonewall, the Kinmaster, Varga, Hask, Garrick, Maren, Brannock). Keychain and Bigmouth wait for Alexander to pick their creature versions (the tyrants are Kin, not men). Credits and job ids: `art/ref/JOBS.md`.
+
+## Quality first (Alexander, 22 Nov 2026)
+Never pick the cheapest setting on your own, and never go past what a phone can show either: the target is the most a phone screen can display, worked out, not guessed. For characters that is a 2048 texture (a figure fills about 1,000 pixels of the screen at most, so 2048 is already more than a texel a pixel; 4096 costs four times the memory for nothing you can see) and about 40,000 triangles (under a pixel a triangle at any distance he is met at). The tool for it is Meshy 7 in ultra mode, 50k triangles, A-pose, rigged in the same call (53.5 credits): it won a three-way test on Finch against Tripo H3.1 detailed and Tripo P2 extreme. The first cast went out on Tripo's budget settings (10k faces, standard texture) with textures cut to 1024 on the phone, and he called it out: it looks poor. Use the best settings each tool offers by default (detailed or extreme texture, detailed geometry, full PBR maps, high face counts) and only go cheaper when he says so. The credit limit below still holds.
 
 ## Hard credit limit (Alexander, 22 Nov 2026)
 **Never spend money.** The budget is the Ultra allowance only: 3,010 credits at the start. Never buy a credit pack, never turn on auto-refill, never upgrade the plan, never accept anything that charges his card. If a step needs more credits than are left, stop and tell him; the answer to spending more is an automatic no. Inside the allowance, use the credits freely and fit everything in. Check `mcp__Higgsfield__balance` before each batch.
@@ -30,7 +33,7 @@ Sword slashes, hit sparks, element bursts (fire, water, light, void...), level-u
 - 3D: Tripo H3.1 image-to-3D, textured, no PBR, 10k faces: **9 credits**. Hunyuan3D v3 LowPoly: 14. Tripo P2 game-ready: 34. Meshy 7 low-poly textured: 38.
 - So the budget below came in far cheaper than feared: a finished model is roughly 2 images plus 1 or 2 tries at 9, about 13 to 22 credits.
 - A rig with one animation clip (Meshy `3d_rigging`): **8 credits**; 5 with no clip. A finished, walking character is about 2 to 6 for its pictures, 9 for the model and 8 for the rig: roughly 20 to 25.
-- Spent so far: 253 credits (10 reference pictures, 15 front views counting the redos, 11 models, 13 rigs). Balance 2,757 on 22 Nov.
+- Spent so far: 860.5 credits (reference pictures and front views, the first cast on Tripo, the quality test, the nine-strong cast remade on Meshy 7 ultra, second clips). Balance 2,149.5 on 22 Nov, evening.
 
 ## Budget (credits, rough)
 | Item | Credits |

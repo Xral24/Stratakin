@@ -584,7 +584,7 @@ const R = (() => {
     if (shlocC.aMat >= 0) gl.disableVertexAttribArray(shlocC.aMat);
     gl.useProgram(shProgE); gl.uniformMatrix4fv(shlocE.uLightPV, false, lightPV); const now = performance.now();
     for (const e of entities) { const em = meshOf(e); if (!em || !em.count || e.isFx || e.noShadow) continue; if ((e.x - cx) ** 2 + (e.z - cz) ** 2 > R2) continue;
-      gl.uniformMatrix4fv(shlocE.uModel, false, e.M || U.m4model(e.x, e.y + (e.hover || 0), e.z, e.yaw, e.scale || 1));
+      gl.uniformMatrix4fv(shlocE.uModel, false, e.M || U.m4model(e.x, e.y + (e.hover || 0), e.z, e.glb && e.glb.ry != null ? e.glb.ry : e.yaw, e.scale || 1)); /* a figure in a model from a file turns smoothly (glb.js keeps ry) */
       const pose = poseOf(e, now); gl.uniformMatrix4fv(shlocE.uBones, false, pose ? pose.mats : IDENT_BONES);
       gl.bindBuffer(gl.ARRAY_BUFFER, em.vbo); gl.enableVertexAttribArray(shlocE.aPos); gl.vertexAttribPointer(shlocE.aPos, 3, gl.FLOAT, false, 0, 0);
       if (em.bbo) { gl.bindBuffer(gl.ARRAY_BUFFER, em.bbo); gl.enableVertexAttribArray(shlocE.aBone); gl.vertexAttribPointer(shlocE.aBone, 1, gl.FLOAT, false, 0, 0); } else { gl.disableVertexAttribArray(shlocE.aBone); gl.vertexAttrib1f(shlocE.aBone, 0); }
@@ -2709,7 +2709,7 @@ const R = (() => {
     const outlineW = state.outlines === false ? 0 : (isMobile ? 0.013 : 0.015);
     let bonesId = true; gl.uniformMatrix4fv(eloc.uBones, false, IDENT_BONES);
     const drawOne = (e, outline) => {
-      gl.uniformMatrix4fv(eloc.uModel, false, e.M || U.m4model(e.x, e.y + (e.hover || 0), e.z, e.yaw, e.scale || 1)); // an entity may bring its own matrix (a felled tree tipping over)
+      gl.uniformMatrix4fv(eloc.uModel, false, e.M || U.m4model(e.x, e.y + (e.hover || 0), e.z, e.glb && e.glb.ry != null ? e.glb.ry : e.yaw, e.scale || 1)); // an entity may bring its own matrix (a felled tree tipping over)
       const pose = poseOf(e, now);
       if (pose) { gl.uniformMatrix4fv(eloc.uBones, false, pose.mats); bonesId = false; gl.uniform4fv(eloc.uSway, pose.sway); }
       else { if (!bonesId) { gl.uniformMatrix4fv(eloc.uBones, false, IDENT_BONES); bonesId = true; } gl.uniform4f(eloc.uSway, 0, 0, 0, 0); }

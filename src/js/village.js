@@ -2665,14 +2665,16 @@ const Village = (() => {
   function elderWalk(dt, player) {
     const v = walkState.v, e = v.elder; if (!e) { walkState = null; return; }
     const strict = v.type !== 'land';
+    /* in his model from a file he goes at the pace his walk was acted at (a little brisker when someone is waiting), so his feet keep to the ground; the old shape keeps the old speeds */
+    const pace = typeof GLB !== 'undefined' && GLB.pace ? GLB.pace(e) : null, fast = pace ? Math.min(2.6, pace * 1.5) : 2.6, lead = pace ? Math.min(2.2, pace * 1.3) : 2.2, wait = pace ? 12 : 7;
     const moveTo = (tx, tz, speed) => { const dx = tx - e.x, dz = tz - e.z, d = Math.hypot(dx, dz); if (d < 0.4) return true; const step = Math.min(d, speed * dt); const nx = e.x + dx / d * step, nz = e.z + dz / d * step; const gy = standY(nx, e.y, nz); if (gy != null) { e.x = nx; e.z = nz; e.y += (gy - e.y) * Math.min(1, dt * 8); } else if (!strict) { e.x = nx; e.z = nz; } e.yaw = Math.atan2(dx, dz); return false; };
     const dx = player.x - e.x, dz = player.z - e.z, d = Math.hypot(dx, dz);
     const st = state(v.id); const income = st.income || incomeFor(v, st);
     switch (walkState.stage) {
       case 'approach-headman': {
         walkState.t = (walkState.t || 0) + dt;
-        if (d > 2.2 && d < 40 && walkState.t < 7) moveTo(player.x - dx / d * 1.8, player.z - dz / d * 1.8, 2.6);
-        else if (d <= 2.2 || walkState.far || (d < 40 && walkState.t >= 7)) {
+        if (d > 2.2 && d < 40 && walkState.t < wait) moveTo(player.x - dx / d * 1.8, player.z - dz / d * 1.8, fast);
+        else if (d <= 2.2 || walkState.far || (d < 40 && walkState.t >= wait)) {
           e.yaw = Math.atan2(dx, dz); walkState.stage = 'done';
           const reward = v.size === 'city' ? 450 : v.size === 'town' ? 220 : 100; G.talkNpc = e;
           Dialogue.show(e.name, [`Thank you! ${walkState.tyrant ? walkState.tyrant + ' kept' : 'That tyrant kept'} us shut in our own homes. We never thought anyone would stand up to him.`, `${v.name} is free. The doors are open again: ${shopDef('bakery', v).title}, ${shopDef('juice', v).title}, ${shopDef('trader', v).title}, and the ${shopDef('voodoo', v).title}. ${world.preset.id !== 'earth' ? 'The arch in the square is yours now: tap it to step to any village you hold on this world.' : 'The station (or the ferry) will take you to any village you hold once its line is running.'}`, `We passed a hat round every door. Here are ${reward} Shards. It is all of it and it is yours, once and gladly.`, `They will not be back while you are about. But stay away ${AWAY} days and they will hear of it, and we will be shut indoors again. Look in on us. Talk to me for the village ledger.`], () => { G.shards += reward; UI.toast(`+${reward} Shards from ${v.name}.`, 'good'); walkState = null; e.wander = true; });
@@ -2681,15 +2683,15 @@ const Village = (() => {
       }
       case 'approach-founded': {
         walkState.t = (walkState.t || 0) + dt;
-        if (d > 2.2 && d < 40 && walkState.t < 7) moveTo(player.x - dx / d * 1.8, player.z - dz / d * 1.8, 2.6);
-        else if (d <= 2.2 || (d < 40 && walkState.t >= 7)) {
+        if (d > 2.2 && d < 40 && walkState.t < wait) moveTo(player.x - dx / d * 1.8, player.z - dz / d * 1.8, fast);
+        else if (d <= 2.2 || (d < 40 && walkState.t >= wait)) {
           e.yaw = Math.atan2(dx, dz); walkState.stage = 'done'; G.talkNpc = e;
           Dialogue.show(e.name, [`So this is ${v.name}. We saw the lights and came. I will speak for the village, if you will have me.`, `It is yours and under your protection: we set aside ${income} Shards for you every dawn. Build more and more will come: Void Crystal over a door for a healer, Copper for a trader, Iron Ore for a trading post.`, 'Leave guards. Raiders come at night, and a stone or iron wall holds them longer than planks.'], () => { walkState = null; e.wander = true; });
         } else if (d >= 40) walkState = null;
         break;
       }
       case 'approach': {
-        if (d > 2.2) moveTo(player.x - dx / d * 1.8, player.z - dz / d * 1.8, 2.6);
+        if (d > 2.2) moveTo(player.x - dx / d * 1.8, player.z - dz / d * 1.8, fast);
         else {
           e.yaw = Math.atan2(dx, dz); walkState.stage = 'talk1'; G.talkNpc = e;
           Dialogue.show(e.name, [
@@ -2702,7 +2704,7 @@ const Village = (() => {
         break;
       }
       case 'lead': {
-        const arrived = moveTo(v.x + 0.5, v.z - 2.5, 2.2);
+        const arrived = moveTo(v.x + 0.5, v.z - 2.5, lead);
         const p = G.player; const ex = e.x - p.x, ez = e.z - p.z, ed = Math.hypot(ex, ez);
         if (ed > 2.4) { const step = Math.min(ed - 2.2, 2.4 * dt); p.x += ex / ed * step; p.z += ez / ed * step; const gy = standY(p.x, p.y, p.z); if (gy != null) p.y += (gy - p.y) * Math.min(1, dt * 8); }
         p.yaw = Math.atan2(-ex, -ez); p.pitch += (-0.05 - p.pitch) * Math.min(1, dt * 3);

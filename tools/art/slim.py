@@ -1,9 +1,11 @@
 # Slim a GLB for the phone: cut it to a triangle budget and limit its texture, keeping plain glTF that js/glb.js reads
 # (no quantization, no meshopt compression). gltfpack cuts the mesh; the textures are then shrunk here with PIL (JPEG, or PNG where there is transparency).
-# usage: python3 tools/art/slim.py in.glb out.glb [triangles=8000] [texture=1024]
+# usage: python3 tools/art/slim.py in.glb out.glb [triangles=40000] [texture=2048]
+# Defaults are the most a phone can show (see ART-PLAN.md, Quality first): 2048 textures, about 40k triangles for a character.
+# Only the base colour picture is kept: the game draws no normal or roughness maps yet, so those would be download for nothing.
 # needs gltfpack: npm i gltfpack in tools/art (or anywhere on NODE_PATH); falls back to npx.
 import sys, os, struct, json, subprocess, shutil
-src, dst = sys.argv[1], sys.argv[2]; budget = int(sys.argv[3]) if len(sys.argv) > 3 else 8000; tex = int(sys.argv[4]) if len(sys.argv) > 4 else 1024
+src, dst = sys.argv[1], sys.argv[2]; budget = int(sys.argv[3]) if len(sys.argv) > 3 else 40000; tex = int(sys.argv[4]) if len(sys.argv) > 4 else 2048
 def tris(path):
     b = open(path, 'rb').read(); n = struct.unpack('<I', b[12:16])[0]; j = json.loads(b[20:20 + n]); t = 0
     for m in j.get('meshes', []):
@@ -22,8 +24,23 @@ import io
 from PIL import Image
 b = open(dst, 'rb').read(); n = struct.unpack('<I', b[12:16])[0]; j = json.loads(b[20:20 + n]); o = 20 + n; bn = struct.unpack('<I', b[o:o + 4])[0]; binb = b[o + 8:o + 8 + bn]
 views = j['bufferViews']; data = [binb[v.get('byteOffset', 0):v.get('byteOffset', 0) + v['byteLength']] for v in views]
+# drop every texture but the base colour: unused maps go from the materials, then any image no texture points at is emptied
+for m in j.get('materials', []):
+    for k in ('normalTexture', 'occlusionTexture', 'emissiveTexture'):
+        m.pop(k, None)
+    m.get('pbrMetallicRoughness', {}).pop('metallicRoughnessTexture', None)
+used_tex = set()
+for m in j.get('materials', []):
+    t = m.get('pbrMetallicRoughness', {}).get('baseColorTexture')
+    if t is not None: used_tex.add(t['index'])
+used_img = {j['textures'][t]['source'] for t in used_tex} if 'textures' in j else set()
+import io as _io
+from PIL import Image as _Image
+_b = _io.BytesIO(); _Image.new('RGB', (1, 1), (128, 128, 255)).save(_b, 'PNG'); TINY = _b.getvalue()
+for i, im in enumerate(j.get('images', [])):
+    if i not in used_img and 'bufferView' in im: data[im['bufferView']] = TINY; im['mimeType'] = 'image/png'; im['_unused'] = True
 for im in j.get('images', []):
-    if 'bufferView' not in im: continue
+    if 'bufferView' not in im or im.pop('_unused', False): continue
     k = im['bufferView']; img = Image.open(io.BytesIO(data[k])); big = max(img.size)
     alpha = img.mode in ('RGBA', 'LA') and img.getextrema()[-1][0] < 255
     if big > tex: img = img.resize((max(1, round(img.size[0] * tex / big)), max(1, round(img.size[1] * tex / big))), Image.LANCZOS)

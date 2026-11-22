@@ -417,10 +417,12 @@ const Wild = (() => {
       if (e.raider || e.siege) continue; // raiders and besiegers are steered by their village
       // ---- movement ----
       if (e.patrol) {
-        const p = e.patrol; const t = ((time / p.period) + p.phase) % 1; const s = t < 0.5 ? t * 2 : 2 - t * 2; // ping-pong
+        /* ping-pong along the beat; with p.rest he stands that long at each end, turned for the way back (figures in a model from a file do: a person stops before turning) */
+        const p = e.patrol, half = p.period / 2, rest = p.rest || 0, cyc = p.period + 2 * rest, u = (((time + p.phase * cyc) % cyc) + cyc) % cyc;
+        const s = u < half ? u / half : u < half + rest ? 1 : u < 2 * half + rest ? 1 - (u - half - rest) / half : 0, out = u < half || u >= 2 * half + rest;
         const nx = U.lerp(p.ax, p.bx, s), nz = U.lerp(p.az, p.bz, s);
-        const mdx = nx - e.x, mdz = nz - e.z;
-        if (Math.hypot(mdx, mdz) > 0.02) e.yaw = Math.atan2(mdx, mdz);
+        const fw = out ? 1 : -1, ddx = (p.bx - p.ax) * fw, ddz = (p.bz - p.az) * fw; /* facing the way the beat runs, worked out rather than from the last step: a slow walker (a tyrant at his own pace) moves less than a hair a frame, too little to read a heading from */
+        if (Math.hypot(ddx, ddz) > 0.01) e.yaw = Math.atan2(ddx, ddz);
         const gy = findGround(nx, e.y, nz, e);
         if (gy != null) { e.x = nx; e.z = nz; settleY(e, gy, dt, 8); }
       } else if (e.hunt > 0 && !e.sleep) {

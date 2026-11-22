@@ -138,20 +138,23 @@ const GLB = (() => {
     const Wm = model._W || (model._W = nodes.map(() => new Float32Array(16))), L = model._L || (model._L = new Float32Array(16));
     for (const i of g.order) { const n = nodes[i]; if (n.m) L.set(n.m); else compose(T[i], R[i], S[i], L); if (n.parent < 0) Wm[i].set(L); else mul(Wm[n.parent], L, Wm[i]); }
     return Wm; }
-  /* how fast a figure is going over the ground (0 standing, 1 walking), and how far it has walked: the walk clip is wound on by the distance,
-     so the feet keep pace with the ground at any speed. Shadow and colour passes both ask in the same frame; only one of them counts */
-  function motion(st, e, now) {
-    if (st.lt == null) { st.lt = now; st.lx = e.x; st.lz = e.z; st.mv = 0; st.wd = 0; return; }
+  /* how fast a figure is going over the ground, and the walk clip's own clock. The clip plays at its natural pace times how much faster
+     or slower the figure is going than the walk was acted (v0), held between 0.55 and 1.6 of it: past that the feet slide a little
+     rather than the legs whirring. Shadow and colour passes both ask in the same frame; only one of them counts */
+  function motion(st, e, now, model) {
+    if (st.lt == null) { st.lt = now; st.lx = e.x; st.lz = e.z; st.mv = 0; st.v = 0; st.wt = Math.random() * 3; return; }
     const ms = now - st.lt; if (ms < 10) return; st.lt = now; const dt = Math.min(0.25, ms / 1000), dx = e.x - st.lx, dz = e.z - st.lz; st.lx = e.x; st.lz = e.z;
     const d = Math.hypot(dx, dz); if (d > 2.5) return; /* carried off somewhere else at once: not a step */
-    const want = Math.min(1, d / dt / (0.65 * (e.scale || 1))); st.mv += (want - st.mv) * Math.min(1, dt * 7); st.wd += d; }
+    const sc = e.scale || 1; st.v += (d / dt - st.v) * Math.min(1, dt * 6);
+    const want = Math.min(1, st.v / (0.45 * sc)); st.mv += (want - st.mv) * Math.min(1, dt * 6);
+    if (st.mv > 0.01) st.wt += dt * Math.max(0.55, Math.min(1.6, st.v / Math.max(0.05, (model.v0 || 1) * sc))); }
   function pose(e, now) {
     const st = e.glb, model = st && registry.get(st.name); if (!model) return null;
     const mats = st._mats || (st._mats = new Float32Array(16 * MAXG)), out = st._out || (st._out = { mats, sway: [0, 0, 0, 0] });
     const g = model.g; if (!g.skin) { mats.set(model.Nm, 0); return out; }
     if (st._now === now && st._for === e) return out; st._now = now; st._for = e; /* drawn twice a frame, posed once */
     const clip = pickClip(model, st), t = st.at != null ? st.at : ((now - (st.t0 || 0)) / 1000) * (st.speed || 1); /* at: hold the clip at one moment (a film, a photograph) */
-    let walk = null, wt = 0, ww = 0; if (model.walk != null && st.walk !== false && st.at == null) { motion(st, e, now); walk = g.anims[model.walk]; ww = st.mv || 0; wt = (st.wd || 0) / Math.max(0.05, model.stride * (e.scale || 1)) * walk.dur; }
+    let walk = null, wt = 0, ww = 0; if (model.walk != null && st.walk !== false && st.at == null) { motion(st, e, now, model); walk = g.anims[model.walk]; ww = st.mv || 0; wt = st.wt || 0; }
     if (st.walkAt != null) { walk = g.anims[model.walk] || null; ww = 1; wt = st.walkAt; } /* a test can hold the walk at one moment too */
     const Wm = posed(model, clip, t, st.nod ? Math.sin(now / 95) * 0.08 * st.nod : 0, walk, wt, ww), tmp = model._tmp || (model._tmp = new Float32Array(16));
     for (let s = 0; s < model.grp.keep.length; s++) { const k = model.grp.keep[s]; mul(Wm[g.skin.joints[k]], g.skin.ibm[k], tmp); mul(model.Nm, tmp, model._tmp2 || (model._tmp2 = new Float32Array(16))); mats.set(model._tmp2, s * 16); }
@@ -170,7 +173,7 @@ const GLB = (() => {
     const H = Math.max(1e-4, y1 - y0), s = (opts.height || H) / H, cx = (x0 + x1) / 2, cz = (z0 + z1) / 2, turn = opts.turn || 0, cs = Math.cos(turn), sn = Math.sin(turn);
     const Nm = new Float32Array([cs * s, 0, -sn * s, 0, 0, s, 0, 0, sn * s, 0, cs * s, 0, 0, 0, 0, 1]); const off = xf(Nm, -cx, -y0, -cz); Nm[12] = off[0]; Nm[13] = off[1]; Nm[14] = off[2];
     const rad = Math.hypot((x1 - x0) / 2, y1 - y0, (z1 - z0) / 2) * s;
-    const mesh = R.glbUpload({ P: g.P, N: g.N, T: g.T, C: g.C, bone: grp.bone, bone2: grp.bone2, IX: g.IX, image: g.image, maxTex: opts.maxTex || (G.mobile ? 1024 : 2048) }); if (mesh) mesh.rad = rad;
+    const mesh = R.glbUpload({ P: g.P, N: g.N, T: g.T, C: g.C, bone: grp.bone, bone2: grp.bone2, IX: g.IX, image: g.image, maxTex: opts.maxTex || 2048 }); if (mesh) mesh.rad = rad;
     let head = null; if (g.skin) { const hk = g.skin.joints.find(n => /head/i.test(g.nodes[n].name) && !/top|end|nub/i.test(g.nodes[n].name)); head = hk == null ? null : hk; }
     const spine = g.skin ? g.skin.joints.filter(n => /spine|chest/i.test(g.nodes[n].name)) : [];
     const isWalk = (a) => /walk|strut|run|jog|march|waddle/i.test(a.name), walkI = g.anims.findIndex(isWalk), baseI = g.anims.findIndex(a => !isWalk(a));
@@ -178,10 +181,20 @@ const GLB = (() => {
     const model = { name, g, grp, Nm, mesh, height: (y1 - y0) * s, head, spine, clips: g.anims.map(a => a.name), tris: g.IX.length / 3, walk: walkI >= 0 ? walkI : null, base: baseI >= 0 ? baseI : null, hips: null, stride: 0.8 * (y1 - y0) * s, still, lockYaw: opts.lockYaw };
     if (g.skin) { const J = g.skin.joints, hn = J.find(n => /hips|pelvis/i.test(g.nodes[n].name)) ?? J.find(n => !J.includes(g.nodes[n].parent));
       if (hn != null) { const p = g.nodes[hn].parent, W = p >= 0 ? g.restWorld[p] : I4(), A = [W[0], W[1], W[2], W[4], W[5], W[6], W[8], W[9], W[10]], Ai = inv3(A); if (Ai) { const ul = Math.hypot(Ai[3], Ai[4], Ai[5]) || 1; model.hips = { node: hn, rest: g.nodes[hn].t.slice(), A, Ai, up: [Ai[3] / ul, Ai[4] / ul, Ai[5] / ul] }; } } }
-    if (model.walk != null && g.skin) { /* how far one loop of the walk carries it: the planted foot slides back by the step while it is down, about three fifths of the loop */
+    if (model.walk != null && g.skin) { /* how fast the walk was acted: a clip holds several steps (Meshy's take three or four a loop), so count the left
+         foot's swings as well as how far it reaches; a planted foot slides back by the step while it is down, about three fifths of each cycle */
       const fk = g.skin.joints.find(n => /foot/i.test(g.nodes[n].name) && /left|^l[_.]|[_.]l$/i.test(g.nodes[n].name) && !/toe|end/i.test(g.nodes[n].name)), clip = g.anims[model.walk];
-      if (fk != null) { let lo = 1e9, hi = -1e9; for (let k = 0; k < 32; k++) { const Wm = posed(model, null, 0, 0, clip, clip.dur * k / 32, 1), z = xf(Nm, Wm[fk][12], Wm[fk][13], Wm[fk][14])[2]; lo = Math.min(lo, z); hi = Math.max(hi, z); }
-        if (hi - lo > 0.05 * model.height) model.stride = (hi - lo) / 0.6; } }
+      if (fk != null) { const N = 120, zs = []; for (let k = 0; k < N; k++) { const Wm = posed(model, null, 0, 0, clip, clip.dur * k / N, 1); zs.push(xf(Nm, Wm[fk][12], Wm[fk][13], Wm[fk][14])[2]); }
+        const lo = Math.min(...zs), hi = Math.max(...zs), R = hi - lo, mid = (lo + hi) / 2; let cyc = 0, up = zs[0] > mid; for (const z of zs) { if (!up && z > mid + R * 0.2) { up = true; cyc++; } else if (up && z < mid - R * 0.2) up = false; }
+        if (R > 0.05 * model.height) { model.cycles = Math.max(1, cyc); model.stride = R / 0.6; model.v0 = model.cycles * model.stride / clip.dur; } }
+      /* better, where the clip shows it: the speed a planted foot slides back under the body is exactly the speed the figure must travel for that
+         foot to stay put on the ground. Both feet, every moment one is down (within 3% of the height of its lowest), the middle of those speeds */
+      const feet = g.skin.joints.filter(n => /foot/i.test(g.nodes[n].name) && !/toe|end/i.test(g.nodes[n].name)).slice(0, 2);
+      if (feet.length === 2) { const N = 240, dt = clip.dur / N, ys = feet.map(() => []), zs2 = feet.map(() => []);
+        for (let k = 0; k < N; k++) { const Wm = posed(model, null, 0, 0, clip, dt * k, 1); feet.forEach((f, i) => { const q = xf(Nm, Wm[f][12], Wm[f][13], Wm[f][14]); ys[i].push(q[1]); zs2[i].push(q[2]); }); }
+        const sp = []; feet.forEach((f, i) => { const lo = Math.min(...ys[i]); for (let k = 0; k < N; k++) { if (ys[i][k] > lo + 0.03 * model.height) continue; const a = zs2[i][(k + N - 1) % N], b = zs2[i][(k + 1) % N]; if (Math.abs(b - a) > 0.5 * model.height) continue; sp.push(-(b - a) / (2 * dt)); } });
+        const fwd = sp.filter(v => v > 0).sort((a, b) => a - b); if (fwd.length > N * 0.25) { model.vFoot = fwd[fwd.length >> 1]; model.v0 = model.vFoot; } }
+      if (!model.v0) model.v0 = 1.1 * model.height / 1.8; }
     registry.set(name, model); return model; }
   function inv3(a) { const [m0, m1, m2, m3, m4, m5, m6, m7, m8] = a, c0 = m4 * m8 - m5 * m7, c1 = m5 * m6 - m3 * m8, c2 = m3 * m7 - m4 * m6, det = m0 * c0 + m1 * c1 + m2 * c2; if (Math.abs(det) < 1e-12) return null; const k = 1 / det;
     /* column-major in and out: a = [col0, col1, col2]; returns B with B·(A·v) = v */
@@ -198,9 +211,9 @@ const GLB = (() => {
   const CAST = {
     finch: { names: ['Professor Finch', 'Professor Aldous Finch'], file: 'assets/finch.glb', height: 1.95 }, /* rigged square to the front, with a calm idle of his own */
     silas: { names: ['Silas Pennywise'], file: 'assets/silas.glb', height: 2.1 }, /* the hat is in the height; his idle is the patter of a man selling you something */
-    keychain: { names: ['Keychain'], pre: true, file: 'assets/keychain.glb', height: 2.35, still: ['RightShoulder', 'RightArm', 'RightForeArm', 'RightHand'] }, /* the key is as tall as he is: that arm does not swing */ /* the three tyrants on Earth (village.js names them glbName): a strut, a heavy walk, and a walk that is enjoying itself */
+    keychain: { names: ['Keychain'], pre: true, file: null, height: 2.35, still: ['RightShoulder', 'RightArm', 'RightForeArm', 'RightHand'] }, /* the key is as tall as he is: that arm does not swing. No file until he is remade as the Kin he is (a lizard in his coat): your Kin fighting a man made no sense */ /* the three tyrants on Earth (village.js names them glbName): a strut, a heavy walk, and a walk that is enjoying itself */
     stonewall: { names: ['Stonewall'], pre: true, file: 'assets/stonewall.glb', height: 2.9 },
-    bigmouth: { names: ['Bigmouth'], pre: true, file: 'assets/bigmouth.glb', height: 2.5, still: ['LeftShoulder', 'LeftArm', 'LeftForeArm', 'LeftHand'] }, /* nor does the arm with the spoon */
+    bigmouth: { names: ['Bigmouth'], pre: true, file: null, height: 2.5, still: ['LeftShoulder', 'LeftArm', 'LeftForeArm', 'LeftHand'] }, /* nor does the arm with the spoon. No file until he is remade as a toad in his apron */
     kinmaster: { names: ['The Kinmaster'], file: 'assets/kinmaster.glb', height: 2.3 }, /* the rest of the main cast, made from their own pictures (art/ref 10 to 15) */
     varga: { names: ['Pit Boss Varga'], file: 'assets/varga.glb', height: 2.0 },
     hask: { names: ['Elder Hask'], pre: true, file: 'assets/hask.glb', height: 1.9 }, /* an idle and an old man's walk in one file: he wanders the square once it is free */
@@ -221,15 +234,24 @@ const GLB = (() => {
   function dressAll(ents) {
     const now = performance.now(); if (!preloadAt) preloadAt = now + 2500; else if (preloadAt > 0 && now > preloadAt) { preloadAt = -1; for (const k of Object.keys(CAST)) if (CAST[k].pre) want(k); } /* only the first village's people ahead of time; the rest when they are first in view */
     let n = 0;
-    for (let i = 0; i < ents.length; i++) { const e = ents[i]; if (!e) continue; const o = e.src || e, k = byName.get(o.glbName || o.name || e.name);
+    for (let i = 0; i < ents.length; i++) { const e = ents[i]; if (!e) continue; const o = e.src || e, k0 = byName.get(o.glbName || o.name || e.name), k = k0 && CAST[k0].file ? k0 : null; /* a cast entry with no file yet: drawn as before */
       const ok = k && ready(k); if (k && !ok) { want(k); if (!failed.has(k) && now - (since.get(k) || now) < 8000) continue; } /* on its way (the file, or its picture): not drawn yet */
       if (ok) { const c = CAST[k], st = o._glb || (o._glb = { name: k, t0: now - Math.random() * 5000, clip: c.clip, walk: c.walk }); st.nod = (o.talkOpen || 0) > 0.05 ? 1 : 0; /* talking: the head nods along with the words */ e.glb = st;
-        if (o.isBoss && o._glbH !== k) { o._glbH = k; o.sayH = registry.get(k).height * (o.scale || 1) + 0.35; } } /* his words float over the model's head, not the old one's */
+        { /* he turns like a person, not a weathervane: a patrol's about-turn, or a step round a post, swings him round over a third of a second instead of
+             snapping him the other way in one frame (that snapping, back and forth, was the shiver). Only how he is drawn: the game's own yaw is left alone (render.js draws st.ry) */
+          const dtY = st.yt ? Math.min(0.1, (now - st.yt) / 1000) : 0; st.yt = now; const aim = e.yaw;
+          if (st.ry == null || !dtY || dtY >= 0.1) st.ry = aim; else { const d = Math.atan2(Math.sin(aim - st.ry), Math.cos(aim - st.ry)); st.ry += d * Math.min(1, dtY * 7); } }
+        if (o.isBoss && o._glbH !== k) { o._glbH = k; o.sayH = registry.get(k).height * (o.scale || 1) + 0.35; } /* his words float over the model's head, not the old one's */
+        const md = registry.get(k); if (md.walk != null && md.v0 && o._glbPace !== k) { o._glbPace = k; const pace = md.v0 * (o.scale || 1); /* he goes about at the pace his walk was acted at, so his feet keep to the ground: Stonewall plods, Hask shuffles */
+          if (o.patrol) { const p = o.patrol, span = Math.hypot(p.bx - p.ax, p.bz - p.az); if (span > 0.5) { p.period = Math.max(p.period, 2 * span / pace); p.rest = Math.max(p.rest || 0, 1.6); } }
+          if (o.wander !== false && !o.isBoss) o.speed = Math.max(0.3, Math.min(1.6, pace)); } }
       ents[n++] = e; }
     ents.length = n; }
   /* a small picture of a figure in his model, for the cards that show who you are facing; false until the model and its texture are in */
   function portrait(cv, name, size) { const m = registry.get(name); if (!m || !m.mesh || !m.mesh.texReady || typeof R === 'undefined' || !R.renderPortrait) return false;
     return R.renderPortrait(cv, m.mesh, { height: m.height }, size, { glb: { name, clip: false, at: 0, walk: false }, yaw: -0.35, pitch: -0.12 }); }
   const meshFor = (e) => { const m = e.glb && registry.get(e.glb.name); return m && m.mesh ? m.mesh : e.mesh; };
-  return { parse, fromBuffer, load, get, dress, pose, dressAll, meshFor, portrait, CAST, want, get list() { return [...registry.keys()]; } };
+  /* how fast someone in a model from a file walks without his feet sliding (metres a second), or null if he has no such model or it has no walk */
+  function pace(o) { const k = o && (o._glb ? o._glb.name : byName.get(o.glbName || o.name)), md = k && CAST[k] && CAST[k].file ? registry.get(k) : null; return md && md.walk != null && md.v0 ? md.v0 * (o.scale || 1) : null; }
+  return { parse, fromBuffer, load, get, dress, pose, dressAll, meshFor, portrait, pace, CAST, want, get list() { return [...registry.keys()]; } };
 })();
