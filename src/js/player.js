@@ -105,6 +105,7 @@ const ITEMS = {
   hub_coil: { name: 'Glide Coil', col: '#8ff0e0', keep: true, desc: 'One of the four hearts of the Starwell. The Glide crews hid it from the garrison and gave it to you. Seat it in its socket by the well.' },
   hub_key: { name: 'Signal Key', col: '#ffd45a', keep: true, desc: 'One of the four hearts of the Starwell. It was the top lamp of a Signal board all along. Seat it in its socket by the well.' },
   hub_dust: { name: 'Dust Heart', col: '#ffe9a8', keep: true, desc: 'One of the four hearts of the Starwell. Professor Finch blew it from four measures of Stardust. Seat it in its socket by the well.' },
+  grapple: { name: 'Marisol\'s Grapple', col: '#9fd0ff', keep: true, desc: 'Four hooks on forty fathoms of line. Marisol has floated a lamp over each piece of the hull under the mare: drop this at a lamp, wait for the bite, and haul on the beat.' },
   collar: { name: 'Breather Collar', col: '#9fe8ff', keep: true, desc: 'Taken from Commander Hask. It sits on your collarbone and hums, and whatever is in the air stays out of you. With it you can breathe the dust on Halo.' },
   bread: { name: 'Bread', col: '#d9a65b', use: 'player', desc: 'Restores all your health.' },
   smoothie: { name: 'Smoothie', col: '#ff8fb8', use: 'party', desc: 'Every Kin recovers half its health.' },

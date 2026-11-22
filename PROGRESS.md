@@ -509,6 +509,13 @@ Scope (Alexander, 8 Nov evening): EVERYTHING visible goes to the same standard: 
   - **Harvest bug found:** a town's bowls and masts were only laid once every chunk within R+40 of its centre was loaded, which for a big town never happens from one side. Now placed from the land as the world makes it (`colInfo`).
   - **Designer shortcuts:** Land on Halo (six Kin at 150, collar, Starwell lit, outside the Pit) and Banners and the Rex. Tests `t-pit2.js` (SHOT=1 / SHOT=out), `t-side.js`, `t-jump2.js`.
 
+- 22 Nov, three bigger side quests (his 'Continue' on my three suggestions). **`js/side.js`.**
+  - **Moon, What the Dust Kept:** Marisol (second talk on) lends her grapple and floats three lamps on the lowest, flattest ground near her town, Mare first (`findFloats`, pinned on the compass, ⚓ on the map). At a float: tap, wait for the bite, haul on the beat three times (the fishing bar, tighter each haul). After the second piece a wild Moon Kin comes up with it. Back at Marisol: it is a Moon-folk dust boat, and in the hold a jar with a sleeping Kin: you get the rarest ordinary Moon species, **shining**, at about your level. The boat then stands on trestles beside her.
+  - **Moon, The Heart Run:** Wellhand Teth at the Starwell (third talk starts it) times you to the nearest town's wall. Gold/silver/bronze from the distance at 9.2 / 6.4 / 3.9 blocks a second; each tier pays once (500 / 260 / 120 shards, gold adds 3 Stardust). Wild Kin leave you alone while you carry the heart-lamp. The time shows in the look-label.
+  - **Halo, The Rig Runs Free:** the Howlers' camp 150 out from the Pit on the side away from the city (`findCamp`: hide tents, tusk arch, fire, three Howlers, ☠ on the map once heard of or seen). Big Howl Brakk fights anybody who walks in: three beasts in a row at your level -3, -1, +1, no rest. Win: 600 shards, 3 Storm Cells, and no more hold-ups on Halo ('Rig-friend'). Lose: you buy the stew and can come back.
+  - **Quest log: 'loose' arcs.** Moon Lore and Ring Lore are now shelves: every quest on them is open at once and ticked off on its own (`ARCS[a].loose`, `questState.loose`), so one odd job never hides another.
+  - Test `t-side2.js` (SHOT=1 for the float, the boat and the camp).
+
 ## Still to do
 UI polish as feedback comes in. Card battle screen still used for scripted encounters (raids at the walls, thief, citadel duel, holds) and the snare mini-game; converting those to live is the next big step if wanted. (Old list: train/ships, combat animation, eggs, avatar hair/paint, buddy WEAR cosmetics, Silas and Finch, UI polish (item icons), quality toggles in settings (state.shadows, state.grassQuality, state.dprCap).
 
