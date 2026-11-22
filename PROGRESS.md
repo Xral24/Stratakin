@@ -535,6 +535,14 @@ Scope (Alexander, 8 Nov evening): EVERYTHING visible goes to the same standard: 
 - Craft button removed from the top bar (crafting is at a Fusion Table). Secure slots moved into the bag (tap the hotbar); Elder Hask's line says so.
 - Waiting for Fable (Alexander's call): Moon village houses (Zorim: pods not showing, posts and lamps standing on their own, cubes about), Finch's moustache, Moon and Halo Kin ceilings.
 
+## Models from files, slash trails (Nov 22, Alexander away, no credits spent)
+- **GLB loader** (`js/glb.js`): reads binary glTF (what Higgsfield makes): mesh, normals, texture coordinates, the embedded base colour texture (decoded in the background, shrunk to 1K on phones), the skin and the animation clips. A skeleton with more than 14 joints is folded into the shader's 14 bone groups by how much of the mesh each joint carries; each vertex follows its two strongest groups, blended (new `aBone2` attribute), so elbows and knees bend. Models are normalised to stand on y = 0 at a given height, facing +z. `GLB.CAST` names who wears a file model (Finch is listed with `file: null` until his file exists); `GLB.dressAll` dresses them by name as they are drawn and nods the head while they talk. Their box models stay for portraits and everything else.
+- **Shaders:** entity shader takes `aUV`/`uTex`/`uUseTex` and a second blended bone; untextured meshes are unchanged (UV -1, weight 0). Shadows use the same pose.
+- **Tests:** `tools/test/make_test_glb.py` builds a skinned, textured, animated test GLB (validated with the Khronos validator, 0 errors); `t-glb.js` loads it and plays clips; `t-glb2.js` checks Finch at the Starwell wears a file model.
+- **Slimming:** `tools/art/slim.py in.glb out.glb [tris] [tex]`: gltfpack cuts to a triangle budget (40k-triangle test ball to 3,979, 1.1 MB to 73 KB), PIL shrinks textures to JPEG/PNG. Output validated and loaded in the game.
+- **Slash trails** (`Combat.slashEntity`): a glowing crescent swept in front of you on each swing, drawn additively; sword sweeps across (alternating, slightly tilted), axe chops on a diagonal, spear leaves a flat streak; colour follows the blade (fire orange, frost blue, pierce violet, all gold). Hit sparks were already there.
+- Lighting pass towards the reference pictures is waiting until the pictures can be downloaded (cloudfront host not yet allowed).
+
 ## Still to do
 UI polish as feedback comes in. Card battle screen still used for scripted encounters (raids at the walls, thief, citadel duel, holds) and the snare mini-game; converting those to live is the next big step if wanted. (Old list: train/ships, combat animation, eggs, avatar hair/paint, buddy WEAR cosmetics, Silas and Finch, UI polish (item icons), quality toggles in settings (state.shadows, state.grassQuality, state.dprCap).
 

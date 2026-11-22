@@ -925,6 +925,8 @@ G.loop = function (t) {
   document.getElementById('flash').style.opacity = Weather.state.flash > 0.6 ? 0.7 : 0;
   const ents = Wild.list.filter(e => !e.ridden); // the one you are sat on is drawn under you, as your mount
   if (Battle.mineEntity && !Battle.net) ents.push(Battle.mineEntity);
+  { const sl = typeof Combat !== 'undefined' && Combat.slashEntity ? Combat.slashEntity() : null; if (sl) ents.push(sl); } /* the blade's trail while a swing is going through */
+  if (this.extraEnts && this.extraEnts.length) ents.push(...this.extraEnts); /* figures set into the world from outside the usual lists: models from files while they are being tried out */
   ents.push(...Village.entities());
   /* the Starlark. Professor Finch built ships for an observatory before he built them for anyone else, and it shows: a cream hull banded in brass, a
      domed canopy that swings up on its hinge, feathered wings like the bird she is named for, a telescope slung under the nose, three engine bells.
@@ -958,6 +960,7 @@ G.loop = function (t) {
   ents.push(...Battle.fxEntities()); ents.push(...Sky.puffEntities()); ents.push(...Wild.dropEntities()); ents.push(...Gems.entities()); ents.push(...Buddy.entities()); ents.push(...First.entities()); ents.push(...Cine.entities()); ents.push(...Wood.entities()); ents.push(...Arena.entities()); ents.push(...Roads.entities()); ents.push(...Garrison.entities()); ents.push(...Sky.entities()); ents.push(...Ruins.entities()); ents.push(...Fields.entities()); ents.push(...Harvest.entities()); ents.push(...Hub.entities()); ents.push(...Side.entities()); ents.push(...Farms.entities()); ents.push(...Felling.entities()); ents.push(...Combat.entities()); ents.push(...Hazards.entities()); ents.push(...Npcs.entities());
   /* in a film the one speaking is whoever stands where the view is put: their mouth works, as it does across a counter */
   { const sa = Cine.speakAt, tt = performance.now() / 1000; for (const e of ents) { if (!e || !e.model) continue; const o = e.src || e, on = !!sa && Math.abs(e.x - sa.x) < 0.9 && Math.abs(e.z - sa.z) < 0.9 && Math.abs(e.y - sa.y) < 3; if (on) { o.talkOpen = Math.abs(Math.sin(tt * 11.5)) * (0.35 + 0.65 * Math.abs(Math.sin(tt * 3.3 + 1))); o._said = true; } else if (o._said) { o._said = false; o.talkOpen = 0; } } }
+  if (typeof GLB !== 'undefined') GLB.dressAll(ents); /* the cast who have models from files wear them (see glb.js) */
   for (const o of w.statues.values()) {
     if ((o.x - p.x) ** 2 + (o.z - p.z) ** 2 > 4000) continue;
     if (!o.model) { o.model = KIN.statueModel(o); o.mesh = R.entityMesh('statue:' + o.id, (mb) => KIN.buildMesh(mb, o.model)); }

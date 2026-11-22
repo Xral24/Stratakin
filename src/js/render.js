@@ -452,12 +452,13 @@ const R = (() => {
   }`;
   // ---- entities: smooth normals, ten bones, a soft cel ramp with rim light; a second pass draws a thin dark outline (inverted hull) ----
   const EVS = `
-  attribute vec3 aPos; attribute vec4 aCol; attribute vec3 aNorm; attribute float aBone;
+  attribute vec3 aPos; attribute vec4 aCol; attribute vec3 aNorm; attribute float aBone; attribute vec2 aUV; attribute vec2 aBone2;
   uniform mat4 uPV; uniform mat4 uModel; uniform mat4 uBones[14]; uniform float uOutline; uniform vec4 uSway; uniform float uTime;
-  varying vec4 vCol; varying vec3 vWorld; varying vec3 vNorm; varying vec3 vLocal;
+  varying vec4 vCol; varying vec3 vWorld; varying vec3 vNorm; varying vec3 vLocal; varying vec2 vUV;
   void main(){
     int b = int(aBone + 0.5);
-    mat4 M = uModel * uBones[b];
+    mat4 B = uBones[b]; if (aBone2.y > 0.001) { int b2 = int(aBone2.x + 0.5); B = B * (1.0 - aBone2.y) + uBones[b2] * aBone2.y; } /* a model from a file: each vertex follows two bones, blended, so elbows and knees bend instead of folding */
+    mat4 M = uModel * B; vUV = aUV;
     vec3 p = aPos;
     if (uSway.x > 0.0) { float w = clamp((uSway.w - aPos.z) / max(uSway.w * 1.6 + 0.6, 0.6), 0.0, 1.0); p.x += sin(aPos.z * uSway.y + uSway.z) * uSway.x * w * w; }
     vec3 n = normalize(mat3(M) * aNorm);
@@ -474,7 +475,7 @@ const R = (() => {
   #endif
   ${TONE}
   /*SHADOW*/
-  varying vec4 vCol; varying vec3 vWorld; varying vec3 vNorm; varying vec3 vLocal;
+  varying vec4 vCol; varying vec3 vWorld; varying vec3 vNorm; varying vec3 vLocal; varying vec2 vUV; uniform sampler2D uTex; uniform float uUseTex;
   uniform vec3 uCam; uniform float uDay; uniform vec3 uFog; uniform float uFogNear; uniform float uFogFar; uniform float uAmbient; uniform float uFogSky; uniform float uCoreGlow; uniform vec4 uMist;
   uniform vec3 uLights[8]; uniform float uLightR[8]; uniform float uAlpha; uniform vec3 uTint; uniform float uSkyMul;
   uniform vec3 uSun; uniform vec3 uSunCol; uniform vec3 uZenith; uniform float uSunAmt; uniform float uOutline; uniform float uFlash;
@@ -486,7 +487,8 @@ const R = (() => {
   void main(){
     vec3 toCam = uCam - vWorld; float dist = length(toCam); vec3 V = toCam / max(dist, 0.0001);
     float f = clamp((dist - uFogNear) / (uFogFar - uFogNear), 0.0, 1.0); f = f * f * (3.0 - 2.0 * f);
-    if (uOutline > 0.0) { vec3 oc = vCol.rgb; float ol = dot(oc, vec3(0.3, 0.59, 0.11)); oc = clamp(mix(vec3(ol), oc, 1.5), 0.0, 1.0) * 0.26 + vec3(0.02, 0.015, 0.035); /* the line is the surface's own colour, deepened: ink, not black wire */ gl_FragColor = vec4(tonemap(mix(oc, skyFog(-V), f)), uAlpha); return; }
+    vec3 base = vCol.rgb; if (uUseTex > 0.5 && vUV.x > -0.5) base *= texture2D(uTex, vUV).rgb; /* a model from a file carries its painted texture; the part with none keeps its own colour */
+    if (uOutline > 0.0) { vec3 oc = base; float ol = dot(oc, vec3(0.3, 0.59, 0.11)); oc = clamp(mix(vec3(ol), oc, 1.5), 0.0, 1.0) * 0.26 + vec3(0.02, 0.015, 0.035); /* the line is the surface's own colour, deepened: ink, not black wire */ gl_FragColor = vec4(tonemap(mix(oc, skyFog(-V), f)), uAlpha); return; }
     vec3 n = normalize(vNorm); if (dot(n, V) < -0.15) n = -n;
     float sky = vCol.a; float emis = step(0.999, sky); float skyL = sky * uSkyMul;
     float torch = 0.0;
@@ -501,7 +503,7 @@ const R = (() => {
     light = max(light, vec3(uAmbient)); light = max(light, vec3(1.0, 0.78, 0.52) * torch * 0.95);
     if (vWorld.y < 14.5 && uCoreGlow > 0.5) { float up = clamp((vWorld.y - 3.5) / 9.0, 0.0, 1.0); light = max(light, vec3(1.0, 0.42, 0.1) * (1.0 - up * 0.75) * (0.55 - 0.45 * n.y) * 1.1 + vec3(0.6, 0.16, 0.05) * 0.45); }
     light = mix(light, vec3(1.0), emis);
-    vec3 vc = vCol.rgb; float lum = dot(vc, vec3(0.3, 0.59, 0.11)); vc = clamp(mix(vec3(lum), vc, 1.14), 0.0, 1.0);
+    vec3 vc = base; float lum = dot(vc, vec3(0.3, 0.59, 0.11)); vc = clamp(mix(vec3(lum), vc, 1.14), 0.0, 1.0);
     float lit = clamp(ramp * (0.4 + 0.6 * sh), 0.0, 1.0);
     vec3 shadeC = clamp(mix(vec3(lum), vc, 1.1), 0.0, 1.0) * vec3(0.9, 0.88, 1.03); /* shadows keep their colour and lean cool, the way painted cels do */
     vec3 col = mix(shadeC, vc, max(lit, emis)) * light;
@@ -581,12 +583,12 @@ const R = (() => {
     for (const c of world.chunks.values()) { if (!c.mesh || !c.mesh.op) continue; const mx = c.cx * CH + 8, mz = c.cz * CH + 8; if ((mx - cx) ** 2 + (mz - cz) ** 2 > R2) continue; ident[12] = c.cx * CH; ident[14] = c.cz * CH; gl.uniformMatrix4fv(shlocC.uModel, false, ident); gl.bindBuffer(gl.ARRAY_BUFFER, c.mesh.op.vbo); gl.enableVertexAttribArray(shlocC.aPos); gl.vertexAttribPointer(shlocC.aPos, 3, gl.FLOAT, false, 0, 0); if (shlocC.aMat >= 0) { if (c.mesh.op.mbo) { gl.bindBuffer(gl.ARRAY_BUFFER, c.mesh.op.mbo); gl.enableVertexAttribArray(shlocC.aMat); gl.vertexAttribPointer(shlocC.aMat, 1, gl.UNSIGNED_BYTE, false, 0, 0); } else { gl.disableVertexAttribArray(shlocC.aMat); gl.vertexAttrib1f(shlocC.aMat, 0); } } gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, c.mesh.op.ibo); gl.drawElements(gl.TRIANGLES, c.mesh.op.count, gl.UNSIGNED_INT, 0); }
     if (shlocC.aMat >= 0) gl.disableVertexAttribArray(shlocC.aMat);
     gl.useProgram(shProgE); gl.uniformMatrix4fv(shlocE.uLightPV, false, lightPV); const now = performance.now();
-    for (const e of entities) { if (!e.mesh || !e.mesh.count || e.isFx || e.noShadow) continue; if ((e.x - cx) ** 2 + (e.z - cz) ** 2 > R2) continue;
+    for (const e of entities) { const em = meshOf(e); if (!em || !em.count || e.isFx || e.noShadow) continue; if ((e.x - cx) ** 2 + (e.z - cz) ** 2 > R2) continue;
       gl.uniformMatrix4fv(shlocE.uModel, false, e.M || U.m4model(e.x, e.y + (e.hover || 0), e.z, e.yaw, e.scale || 1));
-      const pose = (typeof Anim !== 'undefined' && e.model && e.model.bones) ? Anim.pose(e, now) : null; gl.uniformMatrix4fv(shlocE.uBones, false, pose ? pose.mats : IDENT_BONES);
-      gl.bindBuffer(gl.ARRAY_BUFFER, e.mesh.vbo); gl.enableVertexAttribArray(shlocE.aPos); gl.vertexAttribPointer(shlocE.aPos, 3, gl.FLOAT, false, 0, 0);
-      if (e.mesh.bbo) { gl.bindBuffer(gl.ARRAY_BUFFER, e.mesh.bbo); gl.enableVertexAttribArray(shlocE.aBone); gl.vertexAttribPointer(shlocE.aBone, 1, gl.FLOAT, false, 0, 0); } else { gl.disableVertexAttribArray(shlocE.aBone); gl.vertexAttrib1f(shlocE.aBone, 0); }
-      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, e.mesh.ibo); gl.drawElements(gl.TRIANGLES, e.mesh.count, gl.UNSIGNED_INT, 0); }
+      const pose = poseOf(e, now); gl.uniformMatrix4fv(shlocE.uBones, false, pose ? pose.mats : IDENT_BONES);
+      gl.bindBuffer(gl.ARRAY_BUFFER, em.vbo); gl.enableVertexAttribArray(shlocE.aPos); gl.vertexAttribPointer(shlocE.aPos, 3, gl.FLOAT, false, 0, 0);
+      if (em.bbo) { gl.bindBuffer(gl.ARRAY_BUFFER, em.bbo); gl.enableVertexAttribArray(shlocE.aBone); gl.vertexAttribPointer(shlocE.aBone, 1, gl.FLOAT, false, 0, 0); } else { gl.disableVertexAttribArray(shlocE.aBone); gl.vertexAttrib1f(shlocE.aBone, 0); }
+      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, em.ibo); gl.drawElements(gl.TRIANGLES, em.count, gl.UNSIGNED_INT, 0); }
     gl.disable(gl.POLYGON_OFFSET_FILL); gl.disable(gl.CULL_FACE); gl.bindFramebuffer(gl.FRAMEBUFFER, null); gl.viewport(0, 0, canvas.width, canvas.height);
   }
   // bind the shadow map and its matrix for a program (its loc map must hold uShadow, uLightPV, uShadowOn, uShadowTexel)
@@ -595,11 +597,13 @@ const R = (() => {
     gl.uniform1f(L.uShadowOn, state.shadowOn || 0); if (!shadowReady) return;
     gl.activeTexture(gl.TEXTURE0 + unit); gl.bindTexture(gl.TEXTURE_2D, shTex); gl.uniform1i(L.uShadow, unit); gl.uniformMatrix4fv(L.uLightPV, false, lightPV); gl.uniform2f(L.uShadowTexel, 1 / shSize, 1 / shSize);
   }
+  const meshOf = (e) => e.glb && typeof GLB !== 'undefined' ? GLB.meshFor(e) : e.mesh; /* a figure dressed in a model from a file is drawn with that model; everything else about it stays its own */
+  const poseOf = (e, now) => e.glb && typeof GLB !== 'undefined' ? GLB.pose(e, now) : (typeof Anim !== 'undefined' && e.model && e.model.bones) ? Anim.pose(e, now) : null;
   let eprog = null; const eloc = {}; const IDENT_BONES = new Float32Array(224); for (let i = 0; i < 14; i++) { IDENT_BONES[i * 16] = IDENT_BONES[i * 16 + 5] = IDENT_BONES[i * 16 + 10] = IDENT_BONES[i * 16 + 15] = 1; }
   function initEntityProg() {
     eprog = compile(EVS, EFS);
-    for (const n of ['aPos', 'aCol', 'aNorm', 'aBone']) eloc[n] = gl.getAttribLocation(eprog, n);
-    for (const n of ['uPV', 'uModel', 'uBones', 'uOutline', 'uSway', 'uTime', 'uCam', 'uDay', 'uFog', 'uFogNear', 'uFogFar', 'uAmbient', 'uLights', 'uLightR', 'uAlpha', 'uTint', 'uSkyMul', 'uSun', 'uSunCol', 'uZenith', 'uSunAmt', 'uFlash', 'uShadow', 'uLightPV', 'uShadowOn', 'uShadowTexel', 'uFogSky', 'uCoreGlow', 'uMist', 'uHM', 'uHMO']) eloc[n] = gl.getUniformLocation(eprog, n);
+    for (const n of ['aPos', 'aCol', 'aNorm', 'aBone', 'aUV', 'aBone2']) eloc[n] = gl.getAttribLocation(eprog, n);
+    for (const n of ['uPV', 'uModel', 'uBones', 'uOutline', 'uSway', 'uTime', 'uCam', 'uDay', 'uFog', 'uFogNear', 'uFogFar', 'uAmbient', 'uLights', 'uLightR', 'uAlpha', 'uTint', 'uSkyMul', 'uSun', 'uSunCol', 'uZenith', 'uSunAmt', 'uFlash', 'uShadow', 'uLightPV', 'uShadowOn', 'uShadowTexel', 'uFogSky', 'uCoreGlow', 'uMist', 'uHM', 'uHMO', 'uTex', 'uUseTex']) eloc[n] = gl.getUniformLocation(eprog, n);
   }
   // ---- the meadow: one blade shape drawn tens of thousands of times around you (WebGL2 instancing) ----
   const GVS = `#version 300 es
@@ -920,7 +924,7 @@ const R = (() => {
     else if (mb.nrm) { out.nbo = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, out.nbo); gl.bufferData(gl.ARRAY_BUFFER, mb.nrm.subarray(0, mb.nv * 3), gl.STATIC_DRAW); out.bbo = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, out.bbo); gl.bufferData(gl.ARRAY_BUFFER, mb.bone.subarray(0, mb.nv), gl.STATIC_DRAW); }
     return out;
   }
-  function freeMesh(m) { if (!m) return; gl.deleteBuffer(m.vbo); gl.deleteBuffer(m.cbo); gl.deleteBuffer(m.ibo); if (m.nbo) gl.deleteBuffer(m.nbo); if (m.bbo) gl.deleteBuffer(m.bbo); if (m.mbo) gl.deleteBuffer(m.mbo); }
+  function freeMesh(m) { if (!m) return; gl.deleteBuffer(m.vbo); gl.deleteBuffer(m.cbo); gl.deleteBuffer(m.ibo); if (m.nbo) gl.deleteBuffer(m.nbo); if (m.bbo) gl.deleteBuffer(m.bbo); if (m.mbo) gl.deleteBuffer(m.mbo); if (m.uvbo) gl.deleteBuffer(m.uvbo); if (m.b2bo) gl.deleteBuffer(m.b2bo); if (m.tex) gl.deleteTexture(m.tex); }
   function drawMesh(m) {
     gl.bindBuffer(gl.ARRAY_BUFFER, m.vbo); gl.enableVertexAttribArray(loc.aPos); gl.vertexAttribPointer(loc.aPos, 3, gl.FLOAT, false, 0, 0);
     gl.bindBuffer(gl.ARRAY_BUFFER, m.cbo); gl.enableVertexAttribArray(loc.aCol); gl.vertexAttribPointer(loc.aCol, 4, gl.UNSIGNED_BYTE, true, 0, 0);
@@ -935,8 +939,27 @@ const R = (() => {
     gl.bindBuffer(gl.ARRAY_BUFFER, m.cbo); gl.enableVertexAttribArray(eloc.aCol); gl.vertexAttribPointer(eloc.aCol, 4, gl.UNSIGNED_BYTE, true, 0, 0);
     if (m.nbo) { gl.bindBuffer(gl.ARRAY_BUFFER, m.nbo); gl.enableVertexAttribArray(eloc.aNorm); gl.vertexAttribPointer(eloc.aNorm, 3, gl.FLOAT, false, 0, 0); gl.bindBuffer(gl.ARRAY_BUFFER, m.bbo); gl.enableVertexAttribArray(eloc.aBone); gl.vertexAttribPointer(eloc.aBone, 1, gl.FLOAT, false, 0, 0); }
     else { gl.disableVertexAttribArray(eloc.aNorm); gl.vertexAttrib3f(eloc.aNorm, 0, 1, 0); gl.disableVertexAttribArray(eloc.aBone); gl.vertexAttrib1f(eloc.aBone, 0); }
+    if (eloc.aUV >= 0) { if (m.uvbo) { gl.bindBuffer(gl.ARRAY_BUFFER, m.uvbo); gl.enableVertexAttribArray(eloc.aUV); gl.vertexAttribPointer(eloc.aUV, 2, gl.FLOAT, false, 0, 0); } else { gl.disableVertexAttribArray(eloc.aUV); gl.vertexAttrib2f(eloc.aUV, -1, -1); } }
+    if (eloc.aBone2 >= 0) { if (m.b2bo) { gl.bindBuffer(gl.ARRAY_BUFFER, m.b2bo); gl.enableVertexAttribArray(eloc.aBone2); gl.vertexAttribPointer(eloc.aBone2, 2, gl.FLOAT, false, 0, 0); } else { gl.disableVertexAttribArray(eloc.aBone2); gl.vertexAttrib2f(eloc.aBone2, 0, 0); } }
+    if (m.tex && m.texReady) { gl.activeTexture(gl.TEXTURE3); gl.bindTexture(gl.TEXTURE_2D, m.tex); gl.uniform1i(eloc.uTex, 3); gl.uniform1f(eloc.uUseTex, 1); gl.activeTexture(gl.TEXTURE0); } else gl.uniform1f(eloc.uUseTex, 0);
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, m.ibo);
     gl.drawElements(gl.TRIANGLES, m.count, gl.UNSIGNED_INT, 0);
+  }
+  /* a model read from a GLB file (see glb.js): its streams straight onto the card, and its texture decoded in the background, shrunk to fit a phone */
+  function glbUpload(d) {
+    if (!gl || !d || !d.IX || !d.IX.length) return null; const mk = (arr, el) => { const b = gl.createBuffer(); gl.bindBuffer(el ? gl.ELEMENT_ARRAY_BUFFER : gl.ARRAY_BUFFER, b); gl.bufferData(el ? gl.ELEMENT_ARRAY_BUFFER : gl.ARRAY_BUFFER, arr, gl.STATIC_DRAW); return b; };
+    const m = { vbo: mk(d.P), cbo: mk(d.C), nbo: mk(d.N), bbo: mk(d.bone), b2bo: mk(d.bone2), uvbo: mk(d.T), ibo: mk(d.IX, true), count: d.IX.length, tris: d.IX.length / 3, tex: null, texReady: false, glb: true };
+    if (d.image && typeof createImageBitmap !== 'undefined') {
+      const blob = new Blob([d.image.bytes], { type: d.image.mime || 'image/png' }), cap = d.maxTex || 1024;
+      createImageBitmap(blob).then(bmp => { const big = Math.max(bmp.width, bmp.height); if (big <= cap) return bmp; const k = cap / big; return createImageBitmap(bmp, { resizeWidth: Math.max(1, Math.round(bmp.width * k)), resizeHeight: Math.max(1, Math.round(bmp.height * k)), resizeQuality: 'high' }); })
+        .then(bmp => { const t = gl.createTexture(); gl.activeTexture(gl.TEXTURE3); gl.bindTexture(gl.TEXTURE_2D, t); gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, bmp);
+          const pot = (bmp.width & (bmp.width - 1)) === 0 && (bmp.height & (bmp.height - 1)) === 0, gl2 = typeof WebGL2RenderingContext !== 'undefined' && gl instanceof WebGL2RenderingContext;
+          if (pot || gl2) { gl.generateMipmap(gl.TEXTURE_2D); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR); } else gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR); if (!pot && !gl2) { gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE); }
+          gl.activeTexture(gl.TEXTURE0); m.tex = t; m.texReady = true; m.texW = bmp.width; m.texH = bmp.height; })
+        .catch(err => console.warn('GLB texture: ' + err.message));
+    }
+    return m;
   }
 
   // ---------- chunk meshing ----------
@@ -2686,21 +2709,22 @@ const R = (() => {
     let bonesId = true; gl.uniformMatrix4fv(eloc.uBones, false, IDENT_BONES);
     const drawOne = (e, outline) => {
       gl.uniformMatrix4fv(eloc.uModel, false, e.M || U.m4model(e.x, e.y + (e.hover || 0), e.z, e.yaw, e.scale || 1)); // an entity may bring its own matrix (a felled tree tipping over)
-      const pose = (typeof Anim !== 'undefined' && e.model && e.model.bones) ? Anim.pose(e, now) : null;
+      const pose = poseOf(e, now);
       if (pose) { gl.uniformMatrix4fv(eloc.uBones, false, pose.mats); bonesId = false; gl.uniform4fv(eloc.uSway, pose.sway); }
       else { if (!bonesId) { gl.uniformMatrix4fv(eloc.uBones, false, IDENT_BONES); bonesId = true; } gl.uniform4f(eloc.uSway, 0, 0, 0, 0); }
       gl.uniform1f(eloc.uSkyMul, e.skyMul == null ? 1 : e.skyMul);
       gl.uniform1f(eloc.uFlash, e.hitT > 0 ? Math.max(0, Math.min(0.7, e.hitT * 2.5)) : (e.kin && e.kin.shiny) ? 0.14 + 0.42 * Math.pow(Math.max(0, Math.sin(performance.now() / 420 + (e.kin.id % 97))), 8) : 0); /* a shining Kin carries a sheen and glints every couple of seconds */
       gl.uniform1f(eloc.uAlpha, e.alpha == null ? 1 : e.alpha);
       gl.uniform1f(eloc.uOutline, outline ? outlineW * (e.outlineMul || 1) : 0);
-      drawEntityMesh(e.mesh);
+      drawEntityMesh(meshOf(e));
     };
     const list = [];
-    const P = entPV; for (const e of entities) { if (!e.mesh || !e.mesh.count) continue; const d2 = (e.x - cam.x) ** 2 + (e.z - cam.z) ** 2, far = state.viewDist + (e.wide || 0); if (d2 > far * far) continue; /* something as big as a town is judged by its near edge, not its middle, or it would not appear until you were half way across it */
-      if (P && !e.M && e.mesh.rad) { const rad = e.mesh.rad * (e.scale || 1) + 1.5, y = e.y + (e.hover || 0) + rad * 0.4, cw = P[3] * e.x + P[7] * y + P[11] * e.z + P[15]; if (cw < -rad) continue; const m = rad * 3 + Math.max(cw, 0); if (Math.abs(P[0] * e.x + P[4] * y + P[8] * e.z + P[12]) > m || Math.abs(P[1] * e.x + P[5] * y + P[9] * e.z + P[13]) > m) continue; } // behind you, or off the side of the screen: not posed, not drawn
+    const P = entPV; for (const e of entities) { const em = meshOf(e); if (!em || !em.count) continue; const d2 = (e.x - cam.x) ** 2 + (e.z - cam.z) ** 2, far = state.viewDist + (e.wide || 0); if (d2 > far * far) continue; /* something as big as a town is judged by its near edge, not its middle, or it would not appear until you were half way across it */
+      if (P && !e.M && em.rad) { const rad = em.rad * (e.scale || 1) + 1.5, y = e.y + (e.hover || 0) + rad * 0.4, cw = P[3] * e.x + P[7] * y + P[11] * e.z + P[15]; if (cw < -rad) continue; const m = rad * 3 + Math.max(cw, 0); if (Math.abs(P[0] * e.x + P[4] * y + P[8] * e.z + P[12]) > m || Math.abs(P[1] * e.x + P[5] * y + P[9] * e.z + P[13]) > m) continue; } // behind you, or off the side of the screen: not posed, not drawn
       e._d2 = d2; list.push(e); }
-    const seeThru = []; for (const e of list) { if (e.alpha != null && e.alpha < 1) seeThru.push(e); else drawOne(e, false); }
+    const seeThru = [], glow = []; for (const e of list) { if (e.additive) glow.push(e); else if (e.alpha != null && e.alpha < 1) seeThru.push(e); else drawOne(e, false); }
     if (seeThru.length) { gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA); gl.depthMask(false); for (const e of seeThru) drawOne(e, false); gl.depthMask(true); gl.disable(gl.BLEND); }
+    if (glow.length) { gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE); gl.depthMask(false); for (const e of glow) drawOne(e, false); gl.depthMask(true); gl.disable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA); } /* light that adds: a blade's trail, a spell */
     if (outlineW > 0) { gl.enable(gl.CULL_FACE); gl.cullFace(gl.FRONT); for (const e of list) { if (e.isFx || e.noOutline || e._d2 > 1600) continue; drawOne(e, true); } gl.disable(gl.CULL_FACE); }
     gl.uniform1f(eloc.uOutline, 0); gl.uniform1f(eloc.uSkyMul, 1); gl.uniform1f(eloc.uAlpha, 1);
   }
@@ -3015,5 +3039,5 @@ const R = (() => {
     return out;
   }
 
-  return { setGloom: (k) => { gloomK = k; }, setSeason: (k) => { seasonK = k; }, grassZone, init, resize, buildChunk, freeChunk, entityMesh, dropEntityMesh, renderPortrait, render, project, surfaceAt, standY, under, isSoil, boxLines, targetLines, ringLines, state, setQuality, QUALITY, get gl() { return gl; }, get scratch() { return scratchOpaque; } }; // scratch: the last chunk's solid mesh as it was built, for the tests to measure
+  return { setGloom: (k) => { gloomK = k; }, setSeason: (k) => { seasonK = k; }, grassZone, init, resize, buildChunk, freeChunk, entityMesh, dropEntityMesh, glbUpload, renderPortrait, render, project, surfaceAt, standY, under, isSoil, boxLines, targetLines, ringLines, state, setQuality, QUALITY, get gl() { return gl; }, get scratch() { return scratchOpaque; } }; // scratch: the last chunk's solid mesh as it was built, for the tests to measure
 })();

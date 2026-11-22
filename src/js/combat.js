@@ -257,6 +257,35 @@ const Combat = (() => {
     swingCd = Math.max(w.cd, p.swingDur * 0.8); p.swingT = p.swingDur; UI.sfx('miss'); pendingHit = { t: p.swingDur * 0.48, w }; return true; /* the blow lands when the blade gets there, not when the arm starts */
   }
   let pendingHit = null;
+  /* the slash: a crescent of light swept out in front of you as the blade goes through, the colour of what the blade does (fire orange, frost blue,
+     a piercing edge violet, all three gold), glowing rather than painted. A sword sweeps across, one way then the other, a little tilted; an axe comes
+     down; a spear leaves a straight streak. Each kind is built once in eight stages of its sweep and the swing shows the stage it has reached */
+  const SLK = 8; let slashTilt = 0, slashN = -1;
+  const slashCol = (w) => { const f = w && w.fx; return f === 'burn' ? [1.0, 0.5, 0.16] : f === 'slow' ? [0.5, 0.84, 1.0] : f === 'pierce' ? [0.78, 0.52, 1.0] : f === 'all' ? [1.0, 0.84, 0.32] : [0.86, 0.94, 1.0]; };
+  function slashMesh(kind, k, dir, col) {
+    return R.entityMesh('slash:' + kind + ':' + k + ':' + dir + ':' + col.join(','), (mb) => {
+      const prog = (k + 1) / SLK, C = (s) => [col[0] * s, col[1] * s, col[2] * s];
+      if (kind === 'thrust') { /* a streak straight out along the spear, brightest at its point */
+        const z0 = 0.4, z1 = 0.4 + 2.0 * prog, n = 10, rows = [[-0.16, 0], [0, 1], [0.16, 0]]; /* lying flat, so it shows from behind and from your own eyes */
+        for (let i = 0; i < n; i++) { const t0 = i / n, t1 = (i + 1) / n, za = z0 + (z1 - z0) * t0, zb = z0 + (z1 - z0) * t1, ia = t0 * t0, ib = t1 * t1;
+          for (let r = 0; r < 2; r++) { const [xa, sa] = rows[r], [xb, sb] = rows[r + 1]; mb.quad([[xa * (1 - t0 * 0.6), 0, za], [xa * (1 - t1 * 0.6), 0, zb], [xb * (1 - t1 * 0.6), 0, zb], [xb * (1 - t0 * 0.6), 0, za]], [C(sa * ia), C(sa * ib), C(sb * ib), C(sb * ia)], [1, 1, 1, 1], true, [[0, 1, 0], [0, 1, 0], [0, 1, 0], [0, 1, 0]]); } }
+        return; }
+      const chop = kind === 'chop', a0 = chop ? 1.25 : -1.2 * dir, a1 = chop ? -0.55 : 1.2 * dir, head = a0 + (a1 - a0) * prog, tail = a0 + (a1 - a0) * Math.max(0, prog - 0.62), n = 14;
+      const rIn = 1.05, rMid = 1.55, rOut = 1.9, P = (ang, r) => chop ? [0, Math.sin(ang) * r, Math.cos(ang) * r] : [Math.sin(ang) * r, 0, Math.cos(ang) * r], NRM = chop ? [1, 0, 0] : [0, 1, 0];
+      for (let i = 0; i < n; i++) { const t0 = i / n, t1 = (i + 1) / n, aa = tail + (head - tail) * t0, ab = tail + (head - tail) * t1, ia = t0 * t0, ib = t1 * t1; /* bright at the blade, dying away behind it */
+        const wa = 0.35 + 0.65 * t0, wb = 0.35 + 0.65 * t1, ra = [rMid - (rMid - rIn) * wa, rMid, rMid + (rOut - rMid) * wa], rb = [rMid - (rMid - rIn) * wb, rMid, rMid + (rOut - rMid) * wb], lv = [0, 1, 0.3]; /* soft inner edge, a bright core, a thin bright outer rim */
+        for (let r = 0; r < 2; r++) mb.quad([P(aa, ra[r]), P(ab, rb[r]), P(ab, rb[r + 1]), P(aa, ra[r + 1])], [C(lv[r] * ia), C(lv[r] * ib), C(lv[r + 1] * ib), C(lv[r + 1] * ia)], [1, 1, 1, 1], true, [NRM, NRM, NRM, NRM]); }
+    }); }
+  function slashEntity() {
+    const p = G.player; if (!(p.swingT > 0) || !p.swingDur) return null; const w = weapon(); if (!w) return null;
+    if (slashN !== p.swingN) { slashN = p.swingN; slashTilt = (Math.random() - 0.5) * 0.5; }
+    const kind0 = p.swingKind || 'slash', tilt = kind0 === 'chop' ? ((p.swingN || 0) % 2 ? 0.6 : -0.6) : kind0 === 'slash' ? slashTilt : 0; /* an axe comes down on a slant, so the cut shows from behind as well as from your own eyes */
+    const prog = 1 - p.swingT / p.swingDur, k = Math.min(SLK - 1, Math.floor(prog * SLK * 1.25)), kind = p.swingKind || 'slash', dir = (p.swingN || 0) % 2 ? 1 : -1;
+    const fade = prog < 0.62 ? 1 : Math.max(0, 1 - (prog - 0.62) / 0.38), col = slashCol(w).map(c => +(c * fade).toFixed(2)); if (fade <= 0.02) return null;
+    const y = p.y + (kind === 'chop' ? 1.15 : kind === 'thrust' ? 1.2 : 1.28), yaw = p.yaw + Math.PI, c = Math.cos(yaw), s = Math.sin(yaw), ct = Math.cos(tilt), st = Math.sin(tilt);
+    const M = new Float32Array([c * ct, st, -s * ct, 0, -c * st, ct, s * st, 0, s, 0, c, 0, p.x, y, p.z, 1]); /* turned to face where you face, rolled a little so no two swings cut the same line */
+    return { x: p.x, y, z: p.z, yaw, scale: 1, M, mesh: slashMesh(kind, k, dir, col), isFx: true, noShadow: true, noOutline: true, additive: true, skyMul: 1 };
+  }
   function land(w) {
     const p = G.player; const fx = -Math.sin(p.yaw), fz = -Math.cos(p.yaw); let hit = false;
     for (const f of foes) {
@@ -386,5 +415,5 @@ const Combat = (() => {
     return null;
   }
   function reset() { foes.length = 0; shots.length = 0; bolts.length = 0; }
-  return { cond, broken, use, bow, anyBow, mend, mendQuote, lifeOf, BOWS, rack, ARMOUR, worn, armourPts, armourCut, wornPerk, init, GEAR, ARROWS, armoury, weapon, shield, chopTier, spawn, beam, warriorModel, swing, arrowHit, takeBlow, nearestFoe, hurtFoe, update, entities, forHold, clearHold, standingIn, focusText, focus, reset, blocking, KINDS };
+  return { slashEntity, cond, broken, use, bow, anyBow, mend, mendQuote, lifeOf, BOWS, rack, ARMOUR, worn, armourPts, armourCut, wornPerk, init, GEAR, ARROWS, armoury, weapon, shield, chopTier, spawn, beam, warriorModel, swing, arrowHit, takeBlow, nearestFoe, hurtFoe, update, entities, forHold, clearHold, standingIn, focusText, focus, reset, blocking, KINDS };
 })();
