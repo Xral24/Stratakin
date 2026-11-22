@@ -91,5 +91,5 @@ const Cast = (() => {
       quill = Village.makeNpc(99, 'traveller', x, z, 'Barnaby Quill', null, ground(x, z), 'shore'); const sp = { shape: 'human', feat: { crest: false, ears: false, horns: false, spikes: false, tail: false, wings: false, bigEyes: false }, colors: { accent: '#c94c4c', dark: '#3a2a20', eye: '#222222', body: '#6a2a4a', belly: '#e8c39e' }, size: 1, gen: 0, names: ['person'] }, m = KIN.model(sp, 2); KIN.decorate(m, 'hat'); KIN.decorate(m, 'lamp');
       quill.model = m; quill.mesh = R.entityMesh('camp:keeper', (mb) => KIN.buildMesh(mb, m)); quill.scale = 1; quill.wander = false; quill.tag = 'of Quill\'s Menagerie'; quill.onTalk = quillTalk; quill.yaw = Math.atan2(s.x - x, s.z - z); Village.addLoose(quill); }
   }
-  return { init, update, get maren() { return maren; }, get quill() { return quill; }, get more() { return more; } };
+  return { init, update, spot, get maren() { return maren; }, get quill() { return quill; }, get more() { return more; } };
 })();
