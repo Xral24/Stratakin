@@ -126,9 +126,104 @@ const KIN = (() => {
     }
     return [bodyId, layer, biomeName];
   }
+  /* ---- the Kin of each world, chosen by hand (DEX-CUT.md, approved by Alexander 22 Nov 2026) ----
+     About a hundred and fifty forms in all, counted the way the first games counted theirs. Each line is ONE species, met in every place it belongs
+     to, instead of two hundred rolled species a world. An entry: [what it is built on, element, how it moves (shape), rarity, homes].
+     Earth names a line as 'class|element|index' into LINES (or 'steed', or a starter 'start1..3'); the Moon, the Halo and the Lost World name a native body.
+     Rarity is the species' own (0 common, 1 uncommon, 2 rare, 3 epic). The first home is the one the Kindex shows and its strength is set by.
+     LINES itself is not cut: the other bodies stay in the code for old saves and for anything that wants them back. */
+  const SP = 'Surface', PL = 'Plains';
+  const KEPT = {
+    earth: [
+      ['land|Bloom|0', 'Bloom', 'blob', 0, [[SP, 'Plains'], [SP, 'Forest'], [SP, 'Swamp'], [SP, 'Ocean']]],            // seed pod > sprout > walking oak
+      ['land|Spark|2', 'Spark', 'blob', 0, [[SP, 'Plains'], ['Mines', PL]]],                                          // battery beetle > stag beetle > hercules titan
+      ['floater|Tide|0', 'Tide', 'floater', 0, [[SP, 'Plains'], [SP, 'Swamp'], [SP, 'Ocean'], ['Sky', PL]]],           // raindrop > fountain sprite > tide moon
+      ['land|Stone|0', 'Stone', 'blob', 0, [[SP, 'Mountains'], [SP, 'Desert'], [SP, 'Ocean'], ['Mines', PL], ['Core', PL]]], // pebble > boulder > mountain giant
+      ['bird|Flame|0', 'Flame', 'bird', 0, [[SP, 'Desert'], [SP, 'Mountains'], ['Core', PL], ['Sky', PL]]],            // ember chick > flame kestrel > phoenix
+      ['water|Gale|0', 'Gale', 'fish', 0, [['Water', PL]]],                                                            // bubble-fin fry > kite-fin flyer > waterspout rider
+      ['land|Frost|0', 'Frost', 'blob', 0, [[SP, 'Snowfield'], [SP, 'Mountains']]],                                    // snowball imp > snow golem > yeti
+      ['land|Light|0', 'Light', 'quadruped', 1, [[SP, 'Plains'], [SP, 'Forest']]],                                     // glow fawn > white hart
+      ['steed', 'Gale', 'quadruped', 1, [[SP, 'Plains']], { names: ['Trotlet', 'Canterling', 'Destrider'] }],                                                             // foal > colt > warhorse (the one you ride)
+      ['biped|Bloom|0', 'Bloom', 'biped', 1, [[SP, 'Forest'], [SP, 'Swamp'], ['Mines', PL]]],                          // sporeling > mushroom knight > fungus elder
+      ['bird|Void|0', 'Void', 'bird', 1, [[SP, 'Forest'], [SP, 'Mountains'], [SP, 'Snowfield'], ['Sky', PL]]],         // ravenlet > raven > three-eyed raven king
+      ['biped|Flame|0', 'Flame', 'biped', 1, [[SP, 'Desert'], ['Core', PL]]],                                          // ember monkey > torch mandrill > magma gorilla
+      ['water|Gale|1', 'Gale', 'fish', 1, [['Water', PL]]],                                                            // sail fry > galleon sailfish
+      ['land|Frost|1', 'Frost', 'quadruped', 1, [[SP, 'Snowfield'], [SP, 'Mountains']]],                               // arctic fox kit > ice wolf
+      ['biped|Void|0', 'Void', 'biped', 2, [[SP, 'Forest'], [SP, 'Swamp'], ['Mines', PL]]],                            // puppet > marionette > puppeteer
+      ['biped|Light|0', 'Light', 'biped', 2, [[SP, 'Mountains'], [SP, 'Plains'], [SP, 'Snowfield'], ['Sky', PL]]],     // prism sprite > crystal knight > radiant paladin
+      ['biped|Spark|0', 'Spark', 'biped', 2, [['Mines', PL], [SP, 'Desert'], ['Core', PL]]],                           // wind-up bot > coil soldier > thunder mech
+      ['water|Stone|1', 'Stone', 'fish', 2, [['Water', PL]]],                                                          // fossil fry > living fossil
+      ['floater|Tide|1', 'Tide', 'floater', 2, [[SP, 'Ocean'], ['Water', PL]]],                                        // sea angel > abyssal seraph
+      ['start1', 'Flame', 'quadruped', 3, [[SP, 'Desert'], ['Core', PL]]],                                             // cinder kitten > magma jaguar (a starter)
+      ['start2', 'Tide', 'biped', 3, [[SP, 'Swamp'], [SP, 'Ocean']]],                                                  // froglet > river frog > sumo bullfrog (a starter)
+      ['start3', 'Bloom', 'blob', 3, [[SP, 'Forest']]],                                                                // thornback hedgehog (a starter)
+      ['d_trike', 'Stone', 'horned', 0, [[SP, 'Lost World']], { names: ['Trikid', 'Tricrest', 'Tricerathorn'] }], ['d_raptor', 'Flame', 'raptor', 0, [[SP, 'Lost World']], { names: ['Clawlet', 'Raptalon', 'Razoraptor'] }], ['d_brachio', 'Bloom', 'longneck', 1, [[SP, 'Lost World']], { names: ['Brachlet', 'Brachineck', 'Brachiotower'] }],
+    ],
+    moon: [
+      ['m_tardi', 'Stone', 'quadruped', 0, [[SP, 'Mare'], [SP, 'Highlands'], ['Mines', PL]]],
+      ['m_firefly', 'Spark', 'bird', 0, [[SP, 'Mare'], [SP, 'Crater'], ['Sky', PL]]],
+      ['m_snail', 'Bloom', 'serpent', 0, [[SP, 'Mare'], ['Mines', PL]]],
+      ['m_jerboa', 'Gale', 'quadruped', 0, [[SP, 'Highlands'], [SP, 'Mare']]],
+      ['m_crab', 'Flame', 'blob', 0, [[SP, 'Crater'], ['Core', PL]]],
+      ['m_mochi', 'Bloom', 'blob', 1, [[SP, 'Mare'], [SP, 'Highlands']]],
+      ['m_naut', 'Tide', 'biped', 1, [[SP, 'Mare'], ['Mines', PL]]],
+      ['m_ibex', 'Frost', 'quadruped', 1, [[SP, 'Highlands'], [SP, 'Crater']], { steed: true }],
+      ['m_sickle', 'Gale', 'bird', 1, [[SP, 'Highlands'], ['Sky', PL]]],
+      ['m_geode', 'Stone', 'blob', 1, [['Mines', PL], [SP, 'Crater'], ['Core', PL]]],
+      ['m_rille', 'Flame', 'serpent', 2, [[SP, 'Mare'], ['Mines', PL], ['Core', PL]]],
+      ['m_tarsier', 'Void', 'biped', 2, [[SP, 'Highlands'], [SP, 'Crater'], ['Mines', PL]]],
+      ['m_comet', 'Frost', 'serpent', 2, [['Sky', PL], [SP, 'Crater']]],
+      ['m_moonlet', 'Light', 'floater', 2, [['Sky', PL], [SP, 'Highlands']]],
+    ],
+    halo: [
+      ['h_scarab', 'Stone', 'quadruped', 0, [[SP, 'Dunes'], [SP, 'Mesa'], ['Mines', PL], ['Core', PL]]],
+      ['h_cactus', 'Bloom', 'biped', 0, [[SP, 'Dunes'], [SP, 'Mesa']]],
+      ['h_dune', 'Gale', 'blob', 0, [[SP, 'Dunes'], [SP, 'Saltflats']]],
+      ['h_flamingo', 'Tide', 'bird', 0, [[SP, 'Saltflats'], ['Sky', PL]]],
+      ['h_brine', 'Tide', 'fish', 0, [['Water', PL]]],
+      ['h_camel', 'Flame', 'quadruped', 1, [[SP, 'Dunes'], [SP, 'Saltflats']], { steed: true }],
+      ['h_tortoise', 'Stone', 'quadruped', 1, [[SP, 'Mesa'], [SP, 'Saltflats']]],
+      ['h_roadrunner', 'Gale', 'bird', 1, [[SP, 'Mesa'], [SP, 'Dunes'], ['Sky', PL]]],
+      ['h_halite', 'Frost', 'floater', 1, [[SP, 'Saltflats'], ['Water', PL], ['Mines', PL]]],
+      ['h_dragonfly', 'Spark', 'bird', 1, [[SP, 'Saltflats'], ['Sky', PL]]],
+      ['h_frill', 'Spark', 'biped', 2, [[SP, 'Mesa'], [SP, 'Dunes']]],
+      ['h_mirage', 'Void', 'floater', 2, [[SP, 'Dunes'], [SP, 'Saltflats'], ['Sky', PL]]],
+      ['h_lamp', 'Flame', 'biped', 2, [['Mines', PL], ['Core', PL]]],
+      ['h_sundog', 'Light', 'floater', 2, [['Sky', PL], [SP, 'Saltflats'], ['Core', PL]]],
+    ],
+  };
+  const START_DEF = [null, ['Flame', 'quadruped', 0.25], ['Tide', 'biped', 0.15], ['Bloom', 'blob', 0.1]];
+  const keptCache = {};
+  function keptSpecies(b) {
+    if (keptCache[b]) return keptCache[b]; const list = keptCache[b] = [];
+    (KEPT[b] || []).forEach((row, i) => { const [key, el, shape, rar, homes, extra] = row, home = homes[0];
+      let sp;
+      if (key.startsWith('start')) { const n = +key.slice(5), d = START_DEF[n]; sp = species(U.combine(SPECIES_SEED.earth, n), [d[0]], 0, { primary: d[0], shape: d[1], total: 350, hpBonus: d[2] }); sp.rarity = rar; sp.starter = n; } /* the same species the game hands you by the brook, so the one you meet in the wild is the one you chose (or did not) */
+      else { const dino = key.startsWith('d_');
+        sp = species(U.combine(SPECIES_SEED[b], 0xD3C5, U.strHash(key), 1), [el], 0, { primary: el, shape, rarity: rar, total: 300 + LAYER_HARD[home[0]] + BODY_HARD[b] + RARITY[rar].stat + (dino ? 120 : 0) + (i % 5) * 8, neon: b !== 'earth' });
+        if (dino) { sp.dino = true; sp.size *= 1.25; sp.natPick = key; }
+        else if (key === 'steed') sp.steed = true;
+        else if (b === 'earth') sp.lineRef = key.split('|').map((x, k) => k === 2 ? +x : x);
+        else sp.natPick = key; }
+      if (extra) Object.assign(sp, extra);
+      if (homes.some(h => h[0] === SP && (h[1] === 'Mountains' || h[1] === 'Snowfield' || h[1] === 'Highlands' || h[1] === 'Mesa')) && (sp.shape === 'quadruped' || sp.shape === 'biped')) sp.climber = true;
+      sp.home = { body: b, layer: home[0], biome: home[1] }; sp.homes = homes.map(h => [h[0], h[1]]); sp.dex = 0;
+      nativize(sp); list.push(sp); });
+    /* the great one of each special place is who it always was: the same seed, the same Kin (see LEGEND) */
+    for (const [L, bn] of HABITATS[b]) for (const sp of legacyHabitat(b, L, bn)) if ((sp.rarity || 0) >= 4) { sp.homes = [[L, bn]]; list.push(sp); }
+    return list;
+  }
   function habitat(bodyId, layer, biomeName) {
     const [b, L, bn] = habitatKey(bodyId, layer, biomeName); const key = b + '|' + L + '|' + bn;
     let list = habitatCache.get(key); if (list) return list;
+    list = keptSpecies(b).filter(sp => sp.homes.some(h => h[0] === L && h[1] === bn));
+    habitatCache.set(key, list);
+    return list;
+  }
+  const legacyCache = new Map(); /* the two hundred rolled species a world that the game had before the cut: only built to read an old save, and for the legendaries above */
+  function legacyHabitat(bodyId, layer, biomeName) {
+    const [b, L, bn] = habitatKey(bodyId, layer, biomeName); const key = b + '|' + L + '|' + bn;
+    let list = legacyCache.get(key); if (list) return list;
     const hs = HABITATS[b] || HABITATS.earth; const hi = hs.findIndex(h => h[0] === L && h[1] === bn); const n = Math.floor(PLANET_SIZE / hs.length) + (hi < PLANET_SIZE % hs.length ? 1 : 0);
     // about half common, then fewer at each step; legendaries live only in the special places
     const special = L === 'Core' || L === 'Sky' || bn === 'Lost World' || bn === 'Crater';
@@ -145,7 +240,7 @@ const KIN = (() => {
       nativize(sp);
       list.push(sp);
     }
-    habitatCache.set(key, list);
+    legacyCache.set(key, list);
     return list;
   }
   // what lives in one place: the area's own commons and uncommons, and the habitat's rare ones
@@ -155,15 +250,15 @@ const KIN = (() => {
     const pickLocal = (arr, k, salt) => { if (arr.length <= k) return arr; const r = U.rng(U.combine(regionX, regionZ, salt, arr[0].seed)); const idx = arr.map((_, i) => i); for (let i = idx.length - 1; i > 0; i--) { const j = r.int(i + 1); [idx[i], idx[j]] = [idx[j], idx[i]]; } return idx.slice(0, k).sort((a, b) => a - b).map(i => arr[i]); };
     return pickLocal(by[0], 4, 11).concat(pickLocal(by[1], 3, 12), by[2], by[3], by[4]);
   }
-  function speciesForContext(bodyId, regionX, regionZ, layer, biomeName, tier, index) { return roster(bodyId, regionX, regionZ, layer, biomeName)[index % 3]; }
+  function speciesForContext(bodyId, regionX, regionZ, layer, biomeName, tier, index) { const ro = roster(bodyId, regionX, regionZ, layer, biomeName); return ro[index % Math.min(3, ro.length || 1)]; }
   // Build every habitat once, in a fixed order: give every species a unique name and a Kindex number.
   const MAX_TIER = 9;
   let universeBuilt = false; const DEX = { earth: [], moon: [], halo: [] };
   function buildUniverse() {
     if (universeBuilt) return; universeBuilt = true;
     const taken = new Map();
-    for (const body of ['earth', 'moon', 'halo']) for (const [layer, biome] of HABITATS[body]) {
-      for (const sp of habitat(body, layer, biome)) {
+    for (const body of ['earth', 'moon', 'halo']) { /* every kept species once, in the order of KEPT, then the great ones */
+      for (const sp of keptSpecies(body)) {
         { let cn = craftedNames(sp); if (cn && sp.neon && !nativeId(sp)) { const pre = body === 'halo' ? 'Astral ' : 'Lunar '; cn = cn.map(n => pre + n); } if (cn && !taken.has(cn[0])) sp.names = cn; } /* a second species on the same line keeps its own made-up name */
         let nm = sp.names[0];
         if (taken.has(nm)) {
@@ -178,8 +273,7 @@ const KIN = (() => {
     }
     for (const body of ['earth', 'moon', 'halo']) {
       const land = DEX[body].filter(sp => sp.home && sp.home.layer === 'Surface' && (sp.shape === 'quadruped' || sp.shape === 'horned' || sp.shape === 'raptor' || sp.shape === 'longneck'));
-      const picks = land.filter(sp => sp.rarity >= 1 && sp.rarity <= 2 && sp.home.biome !== 'Lost World'); const r = U.rng(U.combine(SPECIES_SEED[body], 0x57EED));
-      for (let i = 0; i < 4 && picks.length; i++) { const sp = picks.splice(r.int(picks.length), 1)[0]; sp.steed = true; }
+      /* which Kin can be ridden is in KEPT now (the horse, the Moon's ibex, the Halo's camel), not drawn by lot */
       for (const sp of land) if (sp.rarity === 4 || (sp.dino && sp.shape === 'raptor' && sp.rarity <= 1)) sp.steed = true;
     }
   }
@@ -195,23 +289,26 @@ const KIN = (() => {
     const homeCommons = commons.filter(sp => sp.home.layer === 'Surface' && ['Plains', 'Forest', 'Mare', 'Dunes'].includes(sp.home.biome)); // the first two are easy to find
     const r = U.rng(U.combine(SPECIES_SEED[body] || 1, 0xF05E));
     const usedPair = new Set();
+    /* the pools are small now (fourteen Kin on the Moon), so pairs are dealt, not rolled: every pair the step allows, shuffled, the first not yet used */
+    const pairsOf = (A, B, ok) => { const out = []; for (const x of A) for (const y of B) if (x !== y && (!ok || ok(x, y))) out.push([x, y]); return out; };
+    const deal = (cands) => { for (let k = cands.length - 1; k > 0; k--) { const j = r.int(k + 1); const t = cands[k]; cands[k] = cands[j]; cands[j] = t; } for (const [x, y] of cands) { const key = [x.seed, y.seed].sort().join(':'); if (!usedPair.has(key)) { usedPair.add(key); return [x, y]; } } return null; };
+    const apart = (x, y) => !x.home || !y.home || x.home.biome !== y.home.biome || x.home.layer !== y.home.layer, everyone = commons.concat(uncs, rares);
     for (let i = 0; i < 30; i++) {
-      let a, b;
-      for (let t = 0; t < 40; t++) {
-        if (i < 2) { a = homeCommons[r.int(homeCommons.length)]; b = homeCommons[r.int(homeCommons.length)]; }
-        else if (i < 10) { a = commons[r.int(commons.length)]; b = commons[r.int(commons.length)]; }
-        else if (i < 20) { a = (i % 2 ? uncs : commons)[r.int((i % 2 ? uncs : commons).length)]; b = (i % 3 ? uncs : rares)[r.int((i % 3 ? uncs : rares).length)]; }
-        else { a = list[i - 20].out; b = (i % 2 ? rares : uncs)[r.int((i % 2 ? rares : uncs).length)]; }
-        const key = [a.seed, b.seed].sort().join(':'); if (a !== b && a.home && (!b.home || a.home.biome !== b.home.biome || i >= 20 || i < 2) && !usedPair.has(key)) { usedPair.add(key); break; }
-      }
+      let pr;
+      if (i < 2) pr = deal(pairsOf(homeCommons, homeCommons)) || deal(pairsOf(commons, commons));
+      else if (i < 10) pr = deal(pairsOf(commons, commons, apart)) || deal(pairsOf(commons, commons)) || deal(pairsOf(commons, uncs));
+      else if (i < 20) { const A = i % 2 ? uncs : commons, B = i % 3 ? uncs : rares; pr = deal(pairsOf(A, B, apart)) || deal(pairsOf(A, B)); }
+      else { const B = i % 2 ? rares : uncs; pr = deal(pairsOf([list[i - 20].out], B)); }
+      if (!pr) pr = deal(pairsOf(i >= 20 ? [list[i - 20].out] : everyone, everyone)) || [everyone[i % everyone.length], everyone[(i + 1) % everyone.length]];
+      const a = pr[0], b = pr[1];
       const parts = [a, b];
-      if (i >= 20) { let c; for (let t = 0; t < 20; t++) { c = uncs[r.int(uncs.length)]; if (!parts.includes(c)) break; } parts.push(c); }
-      if (i >= 27) { let d; for (let t = 0; t < 20; t++) { d = rares[r.int(rares.length)]; if (!parts.includes(d)) break; } parts.push(d); }
+      if (i >= 20) { const cs = uncs.filter(x => !parts.includes(x)); if (cs.length) parts.push(cs[r.int(cs.length)]); }
+      if (i >= 27) { const ds = rares.filter(x => !parts.includes(x)); if (ds.length) parts.push(ds[r.int(ds.length)]); }
       const elA = dominant(a.elem, 1)[0], elB = dominant(b.elem, 1)[0]; const stone = r.chance(0.5) ? elA : elB;
       const elem = normalize(a.elem.map((v, k) => v * 0.45 + b.elem[k] * 0.35 + (EI[stone] === k ? 0.2 : 0)));
       const tot = Math.max(...STAT_KEYS.map(() => 0), STAT_KEYS.reduce((s, k) => s + a.base[k], 0), STAT_KEYS.reduce((s, k) => s + b.base[k], 0)) + 70 + (i >= 27 ? 130 : i >= 20 ? 70 : i >= 10 ? 30 : 0);
-      const out = species(U.combine(a.seed, b.seed, 0xF0), [stone], 0, { primary: dominant(elem, 1)[0], shape: r.chance(0.6) ? a.shape : b.shape, rarity: 3, total: tot, neon: body !== 'earth' });
-      out.elem = elem;
+      const takeA = r.chance(0.6), out = species(U.combine(a.seed, b.seed, 0xF0), [stone], 0, { primary: dominant(elem, 1)[0], shape: takeA ? a.shape : b.shape, rarity: 3, total: tot, neon: body !== 'earth' });
+      out.elem = elem; inheritBody(out, takeA ? a : b, takeA ? b : a);
       const stem = a.names[0].slice(0, Math.min(3, a.names[0].length)); const tail = b.names[0].slice(-Math.min(4, b.names[0].length)).toLowerCase();
       let nm = cap(stem + tail); if (DEX[body].some(x => x.names[0] === nm)) nm = cap(stem + r.pick(MID) + tail);
       out.names = [nm, cap(nm + r.pick(['ra', 'on', 'ix', 'or'])), cap(nm + r.pick(SUFFIX))];
@@ -234,7 +331,7 @@ const KIN = (() => {
       // the dark path: a second species, turned toward Void
       const elem = normalize(a.elem.map((v, k) => v * 0.3 + b.elem[k] * 0.3 + (EI.Void === k ? 0.4 : 0)));
       const out = species(U.combine(a.seed, b.seed, 0xF1), ['Void'], 0, { primary: 'Void', shape: base.shape === a.shape ? b.shape : a.shape, rarity: 3, total: STAT_KEYS.reduce((t, k) => t + base.base[k], 0), neon: body !== 'earth' });
-      out.elem = elem;
+      out.elem = elem; { const other = base.shape === a.shape ? b : a; inheritBody(out, other, other === a ? b : a); if (out.lineRef && base.lineRef && out.lineRef.join() === base.lineRef.join() || out.natPick && out.natPick === base.natPick) inheritBody(out, other === a ? b : a, other); } /* the dark path is built on the other parent where there is one */
       const stem = b.names[0].slice(0, Math.min(3, b.names[0].length)); const tail = a.names[0].slice(-Math.min(4, a.names[0].length)).toLowerCase();
       let nm = cap(stem + tail); if (DEX[body].some(x => x.names[0] === nm)) nm = cap(stem + r2.pick(MID) + tail);
       out.names = [nm, cap(nm + r2.pick(['ra', 'on', 'ix', 'or'])), cap(nm + r2.pick(SUFFIX))];
@@ -246,6 +343,9 @@ const KIN = (() => {
     }
     return list;
   }
+  /* a fused Kin is built on the body of one of its parents (the one it takes its shape from, else the other), in its own colours and under its own name:
+     so a fusion needs no art of its own, and nothing that was cut from the Kindex comes back through the Fusion Table */
+  function inheritBody(out, from, alt) { for (const p of [from, alt]) { if (!p) continue; if (p.lineRef) { out.lineRef = p.lineRef.slice(); out.shape = p.shape; return out; } if (p.natPick) { out.natPick = p.natPick; out.shape = p.shape; return out; } } return out; }
   const FORK_AT = [3, 9, 15, 22, 28];
   function findRecipe(sps) {
     const key = sps.map(sp => sp.seed).sort().join(':');
@@ -259,6 +359,27 @@ const KIN = (() => {
     k.hp = stats(k).hp;
     return k;
   }
+  /* ---- old saves: a Kin of a species that was cut becomes the nearest kept one of its world: the same element, the same kind of body if there is one ----
+     Fused Kin, the great ones and the one-offs are left as they are. Returns null when there is nothing to change. */
+  const kindOf = (sp) => LAND_LINE.has(sp.shape) ? 'land' : sp.shape;
+  function keptFor(sp) {
+    buildUniverse(); if (!sp || sp.fusion || sp.fusedFrom || sp.gen || sp.mythic || sp.legend || sp.natId !== undefined || sp.wood || sp.lineRef || sp.natPick || sp.starter) return null;
+    for (const b in DEX) if (DEX[b].some(x => x.seed === sp.seed)) return null;
+    for (let n = 1; n <= 3; n++) if (sp.seed === U.combine(SPECIES_SEED.earth, n)) return DEX.earth.find(x => x.starter === n);
+    if (!sp.home) return null;
+    const body = DEX[sp.home.body] ? sp.home.body : 'earth', el = dominant(sp.elem || [], 1)[0], dom = (x) => dominant(x.elem, 1)[0];
+    const pool = DEX[body].filter(x => !x.fusion && x.home && (x.rarity || 0) < 4);
+    if (sp.dino) { const d = pool.filter(x => x.dino); return d.find(x => x.shape === sp.shape) || d.find(x => x.shape === 'raptor') || d[0] || pool[0]; }
+    const wild = pool.filter(x => !x.dino);
+    if (sp.steed) { const st = wild.find(x => x.steed); if (st) return st; }
+    return wild.find(x => dom(x) === el && kindOf(x) === kindOf(sp)) || wild.find(x => dom(x) === el) || wild.find(x => kindOf(x) === kindOf(sp)) || wild[0] || null;
+  }
+  function legacyBySeed(seed) { for (const b of ['earth', 'moon', 'halo']) for (const [L, bn] of HABITATS[b]) { const sp = legacyHabitat(b, L, bn).find(x => x.seed === seed); if (sp) return sp; } return null; }
+  /* an old save's Kin, eggs and anything else kept by species: brought over in place. Returns how many changed */
+  function migrateKin(k) { if (!k || !k.sp) return 0; const n = keptFor(k.sp); if (!n) return 0; k.sp = n; k.stage = Math.max(1, Math.min(k.stage || 1, maxStage(n))); try { const mx = stats(k).hp; if (!(k.hp <= mx)) k.hp = mx; } catch (e) {} return 1; }
+  function migrateSeed(seed) { if (bySeed(seed)) return seed; const old = legacyBySeed(seed), n = old && keptFor(old); return n ? n.seed : seed; }
+  /* does this species live in a place: any of its homes, not only the first (old one-home species answer from their home) */
+  function lives(sp, layer, biome) { const hs = sp && (sp.homes || (sp.home ? [[sp.home.layer, sp.home.biome]] : [])); return !!hs && hs.some(h => h[0] === layer && (biome == null || h[1] === biome)); }
   function dex(body) { buildUniverse(); for (const b of ['earth', 'moon', 'halo']) recipes(b); return DEX[body] || []; }
   function bySeed(seed) { buildUniverse(); for (const b in DEX) { const sp = DEX[b].find(x => x.seed === seed); if (sp) return sp; } return null; }
   function mythicSpecies(worldSeed) {
@@ -315,13 +436,7 @@ const KIN = (() => {
   }
   /* the three by the brook are somebody before you meet them: the coal pup is cross, the tadpole shy, the rose drowsy. Everything else gets the temper its seed gives it */
   const FIXT = {}; function temperOf(sp) { if (!FIXT.done) { FIXT.done = 1; FIXT[U.combine(SPECIES_SEED.earth, 1)] = 2; FIXT[U.combine(SPECIES_SEED.earth, 2)] = 1; FIXT[U.combine(SPECIES_SEED.earth, 3)] = 4; } const f = FIXT[sp.seed]; return f != null ? f : (sp.seed >>> 0) % 5; }
-  function starters(worldSeed) {
-    return [
-      species(U.combine(SPECIES_SEED.earth, 1), ['Flame'], 0, { primary: 'Flame', shape: 'quadruped', total: 350, hpBonus: 0.25 }),
-      species(U.combine(SPECIES_SEED.earth, 2), ['Tide'], 0, { primary: 'Tide', shape: 'biped', total: 350, hpBonus: 0.15 }),
-      species(U.combine(SPECIES_SEED.earth, 3), ['Bloom'], 0, { primary: 'Bloom', shape: 'blob', total: 350, hpBonus: 0.1 }),
-    ].map(sp => { const cn = craftedNames(sp); if (cn) sp.names = cn; return sp; });
-  }
+  function starters(worldSeed) { buildUniverse(); return [1, 2, 3].map(n => DEX.earth.find(sp => sp.starter === n)); } /* the three by the brook are species of the Kindex like any other (rare ones) */
 
   // ---- evolution lines: what a Kin IS, and what it grows into ----
   // A line is one to three forms. Each form names a body ([shape, plan]) and the real creature it is built on, so Fable (or
@@ -428,6 +543,7 @@ const KIN = (() => {
   function nativeBody(sp) { return (sp.home && sp.home.body) || (sp.recipe && sp.recipe.body) || null; }
   function nativeId(sp) { if (!sp) return null; if (sp.natId !== undefined) return sp.natId;
     if (sp.home && (sp.rarity || 0) >= 4) { const lg = LEGEND[sp.home.body + '|' + (sp.home.layer === 'Surface' ? sp.home.biome : sp.home.layer)]; if (lg) return lg; }
+    if (sp.natPick) return sp.natPick; /* a kept species (or a fusion built on one) says which body it is */
     if (sp.dino && sp.home && !sp.apex) { const o2 = NATIVE.lost[sp.shape]; return o2 ? o2[(sp.natIdx != null ? sp.natIdx : (sp.seed >>> 0) % 1013) % o2.length] : null; }
     if (!sp.neon || sp.mythic || (sp.home && (sp.rarity || 0) === 3)) return null; const T = NATIVE[nativeBody(sp)], opts = T && T[sp.shape]; return opts && opts.length ? opts[(sp.natIdx != null ? sp.natIdx : (sp.seed >>> 0) % 1013) % opts.length] : null; }
   function nativeColors(body, el, seed) { const c = (NAT_COL[body] || NAT_COL.moon)[el] || NAT_COL.moon.Stone; const v = (seed >>> 3) % 3, moon = body !== 'halo';
@@ -445,7 +561,9 @@ const KIN = (() => {
     if (LAND_LINE.has(sp.shape)) return 'land'; if (sp.shape === 'biped') return 'biped'; if (sp.shape === 'bird') return 'bird'; if (sp.shape === 'serpent') return 'serpent'; if (sp.shape === 'floater') return 'floater'; if (sp.shape === 'fish') return 'water'; return null; }
   const STARTLINE = {}; STARTLINE[U.combine(SPECIES_SEED.earth, 1)] = 1; /* Flame: the cinder kitten, not the lump of coal */
   function lineOf(sp) {
-    if (sp._line !== undefined) return sp._line; { const nid = nativeId(sp); if (nid) { const full = nativeLine(nid, sp.shape), pick = (sp.rarity || 0) >= 4 || sp.natId !== undefined ? (NATL[nid + '|' + sp.shape + '|1'] || (NATL[nid + '|' + sp.shape + '|1'] = [full[2]])) : full; Object.defineProperty(sp, '_line', { value: pick, enumerable: false, writable: true }); return pick; } } const cls = lineClass(sp); if (!cls) return (sp._line = null);
+    if (sp._line !== undefined) return sp._line; { const nid = nativeId(sp); if (nid) { const full = nativeLine(nid, sp.shape), pick = (sp.rarity || 0) >= 4 || sp.natId !== undefined ? (NATL[nid + '|' + sp.shape + '|1'] || (NATL[nid + '|' + sp.shape + '|1'] = [full[2]])) : full; Object.defineProperty(sp, '_line', { value: pick, enumerable: false, writable: true }); return pick; } }
+    if (sp.lineRef) { const LR = sp.lineRef, pickR = LINES[LR[0]] && LINES[LR[0]][LR[1]] && LINES[LR[0]][LR[1]][LR[2]]; if (pickR) { Object.defineProperty(sp, '_line', { value: pickR, enumerable: false, writable: true }); return pickR; } } /* a kept species (or a fusion built on one) names its line outright */
+    const cls = lineClass(sp); if (!cls) return (sp._line = null);
     const el = dominant(sp.elem || [], 1)[0];
     if (cls.startsWith('legend:')) { const T2 = LINES[cls.slice(7)], o2 = T2 && (T2[el] || T2._); const first = o2 && o2[0]; const one = first ? [first[first.length - 1]] : null; Object.defineProperty(sp, '_line', { value: one, enumerable: false, writable: true }); return one; } // a legendary bird, fish or serpent is the grandest form of its element's first line
     const T = LINES[cls]; const opts = T[el] || T._ || null; if (!opts) return (sp._line = null);
@@ -648,6 +766,7 @@ const KIN = (() => {
     if (n >= 6) { const dom = dominant(nelem, 2); const pool = []; for (const e of dom) pool.push(...ELEM_TRAITS[e]); traits.push(r.pick(pool)); if (n >= 12) { const rest = pool.filter(t => t !== traits[0]); traits.push(rest.length ? r.pick(rest) : r.pick(Object.keys(TRAITS).filter(t => t !== traits[0]))); } }
     const size = Math.max(...kins.map(k => k.sp.size || 1)) * (n >= 12 ? 1.18 : n >= 6 ? 1.08 : 1);
     const sp = { seed: U.combine(...parts, 99), names, elem: nelem, base, shape, feat, colors, dims, tier: Math.max(...kins.map(k => k.sp.tier)), gen, evolveAt: [Math.max(14, level + 7), Math.max(30, level + 19)], mythic: kins.some(k => k.sp.mythic), size, traits, fusedFrom: n };
+    { const from = shape === lead.sp.shape ? lead.sp : other.sp; inheritBody(sp, from, from === lead.sp ? other.sp : lead.sp); }
     const k = create(sp, level, r);
     k.iv = {}; for (const key of STAT_KEYS) k.iv[key] = Math.max(...kins.map(x => x.iv[key]));
     k.hp = stats(k).hp;
@@ -4875,5 +4994,5 @@ const KIN = (() => {
   function serialize(k) { return { id: k.id, sp: k.sp, level: k.level, xp: k.xp, iv: k.iv, stage: k.stage, hp: k.hp, nick: k.nick, shiny: k.shiny || undefined, equip: k.equip || null, tech: k.tech || null, wear: k.wear || null, trust: k.trust || 0, bond: k.bond || 0, tamed: k.tamed || false }; }
   function deserialize(d) { return Object.assign({ status: null }, d); }
 
-  return { NATIVE, NAT_STEM, nativeLine, nativeColors, nativeId, nativize, childify, formName, LINES, lineOf, maxStage, lookOf, formOf, partHelpers, dress, tyrSuit, landmarks, wearKey, E, EI, CHART, STAT_KEYS, STAT_NAMES, growth, xpToNext, dominant, species, speciesForContext, dex, bySeed, HABITATS, capOf, recipes, findRecipe, fuseRecipe, mythicSpecies, legendSpecies, apexSpecies, woodSpecies, WOODKIN, wardenSpecies, MAX_LEVEL, TECH, techFor, techByName, temperOf, starters, create, stats, name, moves, effectiveness, gainXp, fuse, fusionLevel, TRAITS, RARITY, roster, buildUniverse, decorate, makeStatue, statueModel, shardsFor, model, buildMesh, meshKey, portrait, serialize, deserialize, UTIL_DESC, eggModel, eggPortrait };
+  return { NATIVE, NAT_STEM, nativeLine, nativeColors, nativeId, nativize, childify, formName, LINES, lineOf, maxStage, lookOf, formOf, partHelpers, dress, tyrSuit, landmarks, wearKey, E, EI, CHART, STAT_KEYS, STAT_NAMES, growth, xpToNext, dominant, species, speciesForContext, dex, bySeed, keptFor, migrateKin, migrateSeed, lives, KEPT, habitat, HABITATS, capOf, recipes, findRecipe, fuseRecipe, mythicSpecies, legendSpecies, apexSpecies, woodSpecies, WOODKIN, wardenSpecies, MAX_LEVEL, TECH, techFor, techByName, temperOf, starters, create, stats, name, moves, effectiveness, gainXp, fuse, fusionLevel, TRAITS, RARITY, roster, buildUniverse, decorate, makeStatue, statueModel, shardsFor, model, buildMesh, meshKey, portrait, serialize, deserialize, UTIL_DESC, eggModel, eggPortrait };
 })();

@@ -584,6 +584,11 @@ Scope (Alexander, 8 Nov evening): EVERYTHING visible goes to the same standard: 
 - **The tyrants are Kin.** His point: your Kin should fight a Kin, not a man. Stonewall (a brick giant) stays. Keychain and Bigmouth lose their human files (`CAST` entries with `file: null` are drawn in their old Kin shape, never hidden) until he picks a creature version: two pictures each sent (Keychain as a slim lizard or a chameleon, Bigmouth as a bullfrog or a toad, both in their approved outfits).
 - Credits this round: 102 on the quality test, 481.5 on the nine models, 8 on four pictures, 16 on two rigs (607.5). Balance 2,149.5.
 
+## The Kindex cut to about 150, the tyrants as Kin (Nov 22, night)
+- **Kindex cut** (DEX-CUT.md, approved): 159 natural forms instead of 600. Earth 28 species (19 wild lines, 3 starters, the horse, 3 dinosaurs, 3 great ones), the Moon 17, the Halo 16, each living in the two to five places it belongs to. Details and the list of what changed in the code are at the end of DEX-CUT.md. Old saves are brought over on load (a cut Kin becomes its nearest kept kin; nothing is lost). Fusions are built on a parent's body.
+- **Keychain and Bigmouth are Kin** (his picks: lizard A, toad B). Meshy 7 ultra models, A-pose, walk in the call, idle added the usual way (107 + 16 credits). The A-pose step drew both empty-handed, so `tools/art/add_prop.py` puts the great key and the wooden spoon back as plain geometry on the hand joint, coloured from a small painted patch placed in an unused corner of the model's texture; that arm is `still`, so the prop stays upright. Keychain's tail was weighted to his legs and thrashed: `rigid_prop.py` gives it to the hips.
+- Credits this round: 123. Balance 2,026.5.
+
 ## Still to do
 UI polish as feedback comes in. Card battle screen still used for scripted encounters (raids at the walls, thief, citadel duel, holds) and the snare mini-game; converting those to live is the next big step if wanted. (Old list: train/ships, combat animation, eggs, avatar hair/paint, buddy WEAR cosmetics, Silas and Finch, UI polish (item icons), quality toggles in settings (state.shadows, state.grassQuality, state.dprCap).
 

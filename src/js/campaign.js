@@ -399,7 +399,7 @@ const Campaign = (() => {
       }
     }
   }
-  function skyEggSpecies() { const list = KIN.dex('earth').filter(sp => sp.home && sp.home.layer === 'Sky' && (sp.shape === 'bird' || sp.shape === 'floater') && sp.rarity <= 1); const sp = list[0] || KIN.dex('earth').find(sp => sp.shape === 'bird'); sp.tame = true; return sp; }
+  function skyEggSpecies() { const list = KIN.dex('earth').filter(sp => KIN.lives(sp, 'Sky') && (sp.shape === 'bird' || sp.shape === 'floater') && sp.rarity <= 1); const sp = list[0] || KIN.dex('earth').find(sp => sp.shape === 'bird'); sp.tame = true; return sp; }
   function waterEggSpecies() { const list = KIN.dex('earth').filter(sp => sp.home && sp.home.layer === 'Water' && sp.shape === 'fish' && sp.rarity <= 1); const sp = list[1] || list[0]; sp.tame = true; return sp; }
 
   // ---------- talking ----------

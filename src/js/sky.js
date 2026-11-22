@@ -180,7 +180,7 @@ const Sky = (() => {
   }
   // ---------- the fortress ----------
   let boss = null;
-  function wardenSpecies() { const pool = KIN.dex('earth').filter(sp => !sp.fusion && sp.home && sp.home.layer === 'Sky' && (sp.rarity || 0) >= 2); const any = pool.length ? pool : KIN.dex('earth').filter(sp => !sp.fusion && (sp.rarity || 0) === 3); return any[Math.floor(U.hash3(5, 405, 5, world.seed || 1) * any.length)]; }
+  function wardenSpecies() { const pool = KIN.dex('earth').filter(sp => !sp.fusion && KIN.lives(sp, 'Sky') && (sp.rarity || 0) >= 2); const any = pool.length ? pool : KIN.dex('earth').filter(sp => !sp.fusion && (sp.rarity || 0) === 3); return any[Math.floor(U.hash3(5, 405, 5, world.seed || 1) * any.length)]; }
   function fortTick(k, p, d) {
     const s = st(); if (s.fortTaken) { if (Combat.forHold(k.id).length) Combat.clearHold(k.id); return; }
     if (d < 60 && Math.abs(p.y - k.y) < 20 && !Combat.forHold(k.id).length) { for (const [kind, ox, oz] of [['guard', -3, -6], ['guard', 3, -6], ['archer', -7, 6], ['archer', 7, 6], ['shield', 0, -3], ['lancer', -5, 0], ['brute', 5, 0], ['captain', 0, 1]]) Combat.spawn(kind, k.x + ox + 0.5, k.y + 1, k.z + oz + 0.5, k.id, 7); if (!s.fortSeen) { s.fortSeen = true; UI.toast('Stormspire. The Storm Warden\'s fortress, riding the clouds. His men are on the walls.', 'bad'); } }
@@ -193,7 +193,7 @@ const Sky = (() => {
   }
   // ---------- the Skyroot and the Tangle ----------
   let tangleBoss = null;
-  function tangleSpecies() { const pool = KIN.dex('earth').filter(sp => !sp.fusion && sp.home && sp.home.layer === 'Sky' && (sp.rarity || 0) >= 1); const any = pool.length ? pool : KIN.dex('earth').filter(sp => !sp.fusion && (sp.rarity || 0) >= 2); return any[Math.floor(U.hash3(6, 412, 6, world.seed || 1) * any.length)]; }
+  function tangleSpecies() { const pool = KIN.dex('earth').filter(sp => !sp.fusion && KIN.lives(sp, 'Sky') && (sp.rarity || 0) >= 1); const any = pool.length ? pool : KIN.dex('earth').filter(sp => !sp.fusion && (sp.rarity || 0) >= 2); return any[Math.floor(U.hash3(6, 412, 6, world.seed || 1) * any.length)]; }
   function treeTick(k, p, d) {
     const s = st(); const P = tangle(k); const end = P.pieces[P.end];
     if (!s.seen_skyroot && d < 70) { s.seen_skyroot = true; UI.toast('The Skyroot. A ladder runs up its trunk, and something is strung out from its crown.', 'good'); }
@@ -228,7 +228,7 @@ const Sky = (() => {
       const has = Object.keys(f.need).every(i => P.has(i, f.need[i]));
       if (!has) return say(f.say.concat(['(' + Object.keys(f.need).map(i => `${ITEMS[i].name} ${P.count(i)}/${f.need[i]}`).join(', ') + ')']));
       for (const i in f.need) P.take(i, f.need[i]); s[key] = true; G.shards += f.reward; G.addTrainerXp(80);
-      return say(f.done, () => { UI.toast(`+${f.reward} Shards.`, 'good'); if (f.draught) { P.add('draught', 1); UI.toast('And a Sage\'s Draught, pressed into your hand.', 'good'); } if (f.egg) { const sp = KIN.dex('earth').filter(x => x.home && x.home.layer === 'Sky' && (x.rarity || 0) >= 2)[0]; if (sp) G.addEgg(sp, 'a cloud'); } });
+      return say(f.done, () => { UI.toast(`+${f.reward} Shards.`, 'good'); if (f.draught) { P.add('draught', 1); UI.toast('And a Sage\'s Draught, pressed into your hand.', 'good'); } if (f.egg) { const sp = KIN.dex('earth').filter(x => KIN.lives(x, 'Sky') && (x.rarity || 0) >= 2)[0]; if (sp) G.addEgg(sp, 'a cloud'); } });
     }
     if (n.job === 'skymayor') return say(s.fortTaken ? ['Highmere breathes again. The storm has gone from the east. You did that.', 'Every house up here has your name on its door, figuratively. Literally, if you like.'] : ['Welcome to Highmere, the only city above the weather. Mind the edge; the railings are mostly decorative.', 'Out past the far clouds the Storm Warden built Stormspire. His storm creeps closer every season. If someone took it, the whole sky would owe them.']);
     if (n.job === 'skyguard') return say(['Captain Ilse, Highmere watch. Small cloud islands drift all round here. Folk live on some of them, odd folk, and most of them want something.', 'Stormspire is the grey smudge you can see from the spire. Go well armed. Go with arrows.']);

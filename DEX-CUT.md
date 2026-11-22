@@ -1,6 +1,6 @@
-# Cutting the Kin to about 150: first draft for Alexander
+# Cutting the Kin to about 150
 
-A draft to mark up, not a decision. Nothing in the game has been changed.
+**Done 22 Nov 2026** (Alexander approved the draft: "do the Kin"). The game now has 159 natural forms: Earth 70 (19 wild lines, the three starter lines, the horse, three dinosaur lines, three great ones), the Moon 45, the Halo 44. How it is built is at the end of this file; the draft he approved follows unchanged.
 
 ## The idea
 - Today: 235 species per world (705), most with three stages. That's far more than anyone can learn, and far more than we can give proper art.
@@ -77,3 +77,15 @@ Earth about 57, Lost World 5, Moon 42, Halo 42, legends about 8: **about 154**.
 - Wild spawns, tamers, guards and quests pick from the dex, so they follow on their own; any quest that names a cut species gets a kept one.
 - Old saves: a Kin of a cut species becomes the nearest kept species of the same element and family, keeping its level, moves and name.
 - Art: each kept form gets a Higgsfield concept picture and a painted skin (about 150 x 2 images); the headline ones get full models.
+
+
+## How it was built (22 Nov 2026)
+- `js/kin.js` `KEPT` is the list: one row a species, `[what it is built on, element, shape, rarity, homes]`. A species lives in several places now (`sp.homes`; `sp.home` is the first, the one the Kindex shows; `KIN.lives(sp, layer, biome)` asks). `keptSpecies(body)` builds them, `habitat()` answers from them.
+- `LINES` was **not** cut: every body stays in the code, so old fused Kin still draw and any line can come back by adding a row. An Earth row names its line (`sp.lineRef = [class, element, index]`), a Moon, Halo or Lost World row its native body (`sp.natPick`).
+- The three starters are Kindex species like the rest (epic, found rarely: the cinder kitten in the desert and the core, the froglet in the swamp, the hedgehog in the forest). `KIN.starters()` hands out those same species.
+- Rideable Kin are named in the table (the horse Trotlet, the Moon's ibex, the Halo's camel, the Lost World's raptor), not drawn by lot.
+- The great one of each special place is who it was (same seed): the old generator is kept as `legacyHabitat()` for that and for reading old saves.
+- Fusion: still 30 recipes and 5 forks a world. Pairs are dealt from the small pools (never the same pair twice), and a fused Kin is built on the body of one of its parents in its own colours (`inheritBody`), at the Fusion Table and in free fusion, so nothing that was cut comes back through fusion and fusions need no art.
+- Old saves (`kinV` 2 to 3, `main.js`): every Kin of a cut species, wherever the save keeps it (party, storage, guards, lab, eggs), becomes the nearest kept species of its world: same element and kind of body if there is one, else same element (`KIN.keptFor`, `KIN.migrateKin`, `KIN.migrateSeed`). Level, moves, nickname, gear and bond stay. Fused Kin and the great ones are untouched.
+- Rarity is the species' own now, so each world's table was balanced by hand: every habitat has commons, and the filters other systems use (a rare surface Kin for a quest, a Void rare for a keep, Sky birds, water fish) all still find something. `scratch/dexaudit.js` (in tools/test) lists every habitat and checks them.
+- Differences from the draft: the starters are 6 forms, not 9 (the kitten has two, the hedgehog one, and the froglet line is both the Tide starter and a wild line); the three dinosaur lines have three stages each.

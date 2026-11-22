@@ -115,3 +115,10 @@ Second clips for the two figures that need both an idle and a walk, rigged from 
 |---|---|---|
 | Hask | 1e6d8d6b-3be4-42a6-b3cc-7b5e32471a6d | Thoughtful_Walk (121) |
 | Stonewall | f4bc9956-adc1-405e-b60e-d6510635c35f | Idle_11 (251) |
+
+Alexander's pick (22 Nov, 20:18): Keychain A (the slim lizard, 6a937aa9) and Bigmouth B (the toad with a hand on his belly, 451e3626), kept as `art/ref/16-keychain-kin.png` and `17-bigmouth-kin.png`. Models on Meshy 7 ultra, 50k, A-pose, PBR, rig and walk in the call (53.5 each):
+| Who | Job id | Clip |
+|---|---|---|
+| Keychain (lizard) | 316f7ff3-9af6-4c26-88d3-982e1372bc44 | Proud_Strut (114), idle to add |
+| Bigmouth (toad) | 4f5b5aa1-eee5-47d0-87f8-e86b95bd3b34 | Casual_Walk (30), idle to add |
+Idles for the two (stripped mesh re-rigged, 8 each): Keychain Idle_7 (247) job 021163b9-68b9-49c5-b641-60b69f17b296, Bigmouth Idle_15 (599) job d17a2f10-d1d8-4a7a-9b21-0b1f9cc7d116. The A-pose step dropped the big key and the spoon from both models; Keychain's tail was weighted to his legs and is given to the hips (`rigid_prop.py ... Hips "((z < -0.10) & (y < 0.85)) | ((abs(x) > 0.33) & (y < 0.6))"`).

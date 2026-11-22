@@ -1144,7 +1144,7 @@ G.save = function () {
   if (!this.running || !this.world) return false;
   try {
     const data = {
-      v: 2, kinV: 2, seed: this.baseSeed, worldId: this.worldId, worlds: Object.assign({}, this.worlds, { [this.worldId]: this.captureWorldState() }), player: this.player.serialize(), kin: this.kin.map(KIN.serialize), box: this.box, eggs: this.eggs, activeIdx: this.activeIdx, xp: this.xp,
+      v: 2, kinV: 3, seed: this.baseSeed, worldId: this.worldId, worlds: Object.assign({}, this.worlds, { [this.worldId]: this.captureWorldState() }), player: this.player.serialize(), kin: this.kin.map(KIN.serialize), box: this.box, eggs: this.eggs, activeIdx: this.activeIdx, xp: this.xp,
       stats: this.stats, questState: this.questState, edits: this.world.serializeEdits(), mythicCaught: this.mythicCaught, shards: this.shards, village: this.village, secure: this.secure, respawnPoint: this.respawnPoint, weather: Weather.serialize(),
       villageState: this.villageState, lastVillage: this.lastVillage, fisherSpot: this.fisherSpot, fisherTarget: this.fisherTarget, founded: this.founded, dayCount: this.dayCount, poiState: this.poiState || {}, pin: this.pin || null, chests: this.chests || {}, npcState: this.npcState || {}, labState: this.labState || {}, skin: this.skin || 'ranger', thirdPerson: !!this.thirdPerson, regrow: (this.world.regrow || []).map(r => ({ x: r.x, y: r.y, z: r.z, t: 0, leaf: !!r.leaf, id: r.id })),
       statues: [...this.world.statues.values()].map(o => { const c = Object.assign({}, o); delete c.model; delete c.mesh; return c; }),
@@ -1159,6 +1159,17 @@ G.load = function () {
   let data = null;
   try { data = JSON.parse(localStorage.getItem(this.SAVE_KEY)); } catch (e) { return false; }
   if (!data || !data.seed) return false;
+  let cutMoved = 0;
+  if (data.kinV === 2) { /* the Kindex was cut to about 150 forms (22 Nov 2026): a Kin of a species that is gone becomes the nearest kept one of its world, wherever the save keeps it
+       (party, storage, village guards, the lab, eggs). Level, moves, nickname, gear and bond stay. Fused Kin and the great ones are untouched */
+    const walk = (o, d) => { if (!o || typeof o !== 'object' || d > 9) return; if (Array.isArray(o)) { for (const x of o) walk(x, d + 1); return; }
+      if (o.sp && typeof o.sp === 'object' && o.sp.seed != null && o.sp.base && o.level != null) { cutMoved += KIN.migrateKin(o); return; }
+      for (const k in o) { if (k === 'edits' || k === 'statues' || k === 'regrow') continue; const v = o[k];
+        if (k === 'eggs' && Array.isArray(v)) { for (const e of v) if (e && e.seed != null) e.seed = KIN.migrateSeed(e.seed); }
+        else if (k === 'egg' && v && v.seed != null) v.seed = KIN.migrateSeed(v.seed);
+        else walk(v, d + 1); } };
+    try { walk(data, 0); } catch (err) { console.warn('Kin migration: ' + err.message); }
+    data.kinV = 3; }
   this.stats = Object.assign(freshStats(), data.stats || {}); this.questState = data.questState || null; this.xp = data.xp || 0; this.trainerLevel = this.trainerLevelFor(this.xp); this.mythicCaught = !!data.mythicCaught; this.shards = data.shards || 0; this.secure = data.secure || {};
   this.thirdPerson = true; /* every game opens looking over your own shoulder */
   this.villageState = data.villageState || {}; this.poiState = data.poiState || {}; this.pin = data.pin || null; this.chests = data.chests || {}; this.npcState = data.npcState || {}; this.labState = data.labState || {}; this.amulet = { cd: 0, kind: null, until: 0, charges: 0 }; this.skin = data.skin || 'ranger'; this.thirdPerson = !!data.thirdPerson; this.lastVillage = data.lastVillage || null; this.fisherSpot = data.fisherSpot || null; this.fisherTarget = data.fisherTarget || null; this.founded = data.founded || []; this.dayCount = data.dayCount || 0; this.wasNight = null; this.fisherTried = false;
@@ -1180,7 +1191,8 @@ G.load = function () {
   while (this.kin.length > this.MAX_KIN) this.box.push(KIN.serialize(this.kin.pop())); // the party is eight now
   this.player.load(data.player);
   { const P = this.player, st = data.stats || {}; if (st.villageFreed && !P.has('shovel')) { P.add('shovel', 1); P.add('hatchet', 1); } if (((st.camp || {}).pick || 0) >= 2 && !P.has('axe_iron')) P.add('axe_iron', 1); } // tools arrived after this save was made
-  if (data.kinV !== 2) { // the Kindex arrived: the old one-of-a-kind Kin are let go, everywhere; a fresh starter takes their place
+  if (cutMoved) setTimeout(() => UI.toast(`The Kindex is smaller now: about 150 Kin worth knowing. ${cutMoved} of yours became their nearest kin, with their levels and names.`, 'good'), 1800);
+  if (data.kinV !== 2 && data.kinV !== 3) { // the Kindex arrived: the old one-of-a-kind Kin are let go, everywhere; a fresh starter takes their place
     this.kin = []; this.activeIdx = 0; this.box = []; this.eggs = [];
     for (const id in (this.villageState || {})) if (this.villageState[id].guards) this.villageState[id].guards = [];
     for (const id in (this.labState || {})) { this.labState[id].kin = []; this.labState[id].days = []; }

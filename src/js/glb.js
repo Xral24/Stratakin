@@ -211,9 +211,9 @@ const GLB = (() => {
   const CAST = {
     finch: { names: ['Professor Finch', 'Professor Aldous Finch'], file: 'assets/finch.glb', height: 1.95 }, /* rigged square to the front, with a calm idle of his own */
     silas: { names: ['Silas Pennywise'], file: 'assets/silas.glb', height: 2.1 }, /* the hat is in the height; his idle is the patter of a man selling you something */
-    keychain: { names: ['Keychain'], pre: true, file: null, height: 2.35, still: ['RightShoulder', 'RightArm', 'RightForeArm', 'RightHand'] }, /* the key is as tall as he is: that arm does not swing. No file until he is remade as the Kin he is (a lizard in his coat): your Kin fighting a man made no sense */ /* the three tyrants on Earth (village.js names them glbName): a strut, a heavy walk, and a walk that is enjoying itself */
+    keychain: { names: ['Keychain'], pre: true, file: 'assets/keychain.glb', height: 2.35, still: ['RightShoulder', 'RightArm', 'RightForeArm', 'RightHand'] }, /* the three tyrants on Earth (village.js names them glbName) are Kin, not men: your Kin fights a Kin. Keychain is a lizard in his coat and crown of keys; the great key in his right hand is put back by tools/art/add_prop.py and that arm does not swing, so it stays upright */
     stonewall: { names: ['Stonewall'], pre: true, file: 'assets/stonewall.glb', height: 2.9 },
-    bigmouth: { names: ['Bigmouth'], pre: true, file: null, height: 2.5, still: ['LeftShoulder', 'LeftArm', 'LeftForeArm', 'LeftHand'] }, /* nor does the arm with the spoon. No file until he is remade as a toad in his apron */
+    bigmouth: { names: ['Bigmouth'], pre: true, file: 'assets/bigmouth.glb', height: 2.82, still: ['LeftShoulder', 'LeftArm', 'LeftForeArm', 'LeftHand'] }, /* a toad in his apron; the height counts the spoon in his left hand, which stands taller than he does */
     kinmaster: { names: ['The Kinmaster'], file: 'assets/kinmaster.glb', height: 2.3 }, /* the rest of the main cast, made from their own pictures (art/ref 10 to 15) */
     varga: { names: ['Pit Boss Varga'], file: 'assets/varga.glb', height: 2.0 },
     hask: { names: ['Elder Hask'], pre: true, file: 'assets/hask.glb', height: 1.9 }, /* an idle and an old man's walk in one file: he wanders the square once it is free */
