@@ -87,7 +87,8 @@ const Battle = (() => {
     const rar = KIN.RARITY[k.sp.rarity || 0];
     { // a small portrait on the card, redrawn only when the Kin on it changes
       let cv = card.querySelector('canvas.bpic'); if (!cv) { cv = document.createElement('canvas'); cv.className = 'bpic'; cv.width = cv.height = 56; card.insertBefore(cv, card.firstChild); }
-      const key = (k.id || k.sp.seed) + ':' + k.stage; if (cv.dataset.k !== key) { cv.dataset.k = key; try { KIN.portrait(cv, k.sp, k.stage, 56); } catch (e) {} }
+      const gn = k === wild && wildE && wildE.glb && wildE.glb.name, key = gn ? 'glb:' + gn : (k.id || k.sp.seed) + ':' + k.stage; /* a tyrant in his own body gets his own face on the card */
+      if (cv.dataset.k !== key) { let ok = false; if (gn && typeof GLB !== 'undefined') try { ok = GLB.portrait(cv, gn, 56); } catch (e) {} if (ok || !gn) cv.dataset.k = key; if (!ok) try { KIN.portrait(cv, k.sp, k.stage, 56); } catch (e) {} }
     }
     card.querySelector('.nm').innerHTML = KIN.name(k) + (k.sp.mythic ? ' ✦' : '') + ((k.sp.rarity || 0) > 0 ? ` <span class="rar r${k.sp.rarity}">${rar.name}</span>` : '');
     card.querySelector('.lv').textContent = 'Lv ' + k.level;

@@ -4470,7 +4470,7 @@ const R = (() => {
   // ---------- drawing the entity list (shared by the frame and by portraits) ----------
   let entPV = null;
   function setEntityUniforms(pv, cam, lightsL, lightsR) {
-    entPV = pv; gl.useProgram(eprog);
+    entPV = pv; gl.useProgram(eprog); if (eloc.uTex) gl.uniform1i(eloc.uTex, 3); /* the model texture's sampler always reads unit 3, which only ever holds model textures: left on unit 0 it would point at whatever target is being drawn into (a feedback loop WebGL refuses) */
     gl.uniformMatrix4fv(eloc.uPV, false, pv); gl.uniform1f(eloc.uTime, performance.now() / 1000);
     gl.uniform4fv(eloc.uMist, state.mist || MIST0); bindHM(eloc, state.mist && state.mist[1] > 0); gl.uniform3f(eloc.uCam, cam.x, cam.y, cam.z); gl.uniform1f(eloc.uDay, state.dayLight); gl.uniform3fv(eloc.uFog, state.fogColor); gl.uniform1f(eloc.uFogSky, state.fogSky ? (state.rangeKind || 1) : 0); gl.uniform1f(eloc.uCoreGlow, state.coreGlow ? 1 : 0);
     gl.uniform1f(eloc.uFogNear, state.fogNear); gl.uniform1f(eloc.uFogFar, state.fogFar); gl.uniform1f(eloc.uAmbient, state.ambient); gl.uniform3fv(eloc.uTint, state.tint);
@@ -4532,7 +4532,7 @@ const R = (() => {
     state.fogColor = [0.5, 0.6, 0.7]; state.fogNear = 50; state.fogFar = 60; state.sun = [-0.45, 0.72, 0.53]; state.sunCol = [1.0, 0.95, 0.86]; state.sunAmt = 1; state.dayLight = 1; state.zenith = [0.5, 0.65, 0.95]; state.tint = [1, 1, 1]; state.ambient = 0.06; state.skyPass = true;
     const L = new Float32Array(24), LR = new Float32Array(8); for (let i = 0; i < 8; i++) { L[i * 3 + 1] = -999; LR[i] = 0.001; }
     setEntityUniforms(pv, { x: cx, y: cy, z: cz }, L, LR);
-    const ent = { x: 0, y: 0, z: 0, yaw: 0, scale: 1, mesh, model, hover: 0, skyMul: 1, anim: opts.anim || null, _portrait: true };
+    const ent = { x: 0, y: 0, z: 0, yaw: 0, scale: 1, mesh, model, hover: 0, skyMul: 1, anim: opts.anim || null, _portrait: true }; if (opts.glb) ent.glb = opts.glb; /* a model from a file, posed at rest */
     gl.enable(gl.DEPTH_TEST); gl.disable(gl.BLEND);
     const ol = state.outlines; state.outlines = opts.outline === false ? false : true; const vd = state.viewDist; state.viewDist = 100;
     drawEntities([ent], { x: cx, y: cy, z: cz }, performance.now()); state.outlines = ol; state.viewDist = vd;
@@ -4825,7 +4825,7 @@ const R = (() => {
    ancestor (fingers with the hand, toes with the foot). Poses come from the file's own animation clips; without a clip the model stands
    in its rest pose. Everything is normalised to stand on y = 0, centred, at the height asked for, facing +z like every entity. */
 const GLB = (() => {
-  const registry = new Map(), pending = new Map();
+  const registry = new Map(), pending = new Map(), failed = new Set();
   const CT = { 5120: 1, 5121: 1, 5122: 2, 5123: 2, 5125: 4, 5126: 4 };
   const NC = { SCALAR: 1, VEC2: 2, VEC3: 3, VEC4: 4, MAT2: 4, MAT3: 9, MAT4: 16 };
   const NORM = { 5120: 127, 5121: 255, 5122: 32767, 5123: 65535 };
@@ -4838,6 +4838,7 @@ const GLB = (() => {
     o[8] = (xz + wy) * s[2]; o[9] = (yz - wx) * s[2]; o[10] = (1 - (xx + yy)) * s[2]; o[11] = 0; o[12] = t[0]; o[13] = t[1]; o[14] = t[2]; o[15] = 1; return o; }
   function slerp(a, b, t, o) { let d = a[0] * b[0] + a[1] * b[1] + a[2] * b[2] + a[3] * b[3], s = 1; if (d < 0) { d = -d; s = -1; } let k0, k1; if (d > 0.9995) { k0 = 1 - t; k1 = t * s; } else { const th = Math.acos(d), sn = Math.sin(th); k0 = Math.sin((1 - t) * th) / sn; k1 = Math.sin(t * th) / sn * s; }
     for (let i = 0; i < 4; i++) o[i] = a[i] * k0 + b[i] * k1; const l = Math.hypot(o[0], o[1], o[2], o[3]) || 1; for (let i = 0; i < 4; i++) o[i] /= l; return o; }
+  const qmul = (a, b) => [a[3] * b[0] + a[0] * b[3] + a[1] * b[2] - a[2] * b[1], a[3] * b[1] - a[0] * b[2] + a[1] * b[3] + a[2] * b[0], a[3] * b[2] + a[0] * b[1] - a[1] * b[0] + a[2] * b[3], a[3] * b[3] - a[0] * b[0] - a[1] * b[1] - a[2] * b[2]];
   const xf = (m, x, y, z) => [m[0] * x + m[4] * y + m[8] * z + m[12], m[1] * x + m[5] * y + m[9] * z + m[13], m[2] * x + m[6] * y + m[10] * z + m[14]];
   const xn = (m, x, y, z) => { const a = m[0] * x + m[4] * y + m[8] * z, b = m[1] * x + m[5] * y + m[9] * z, c = m[2] * x + m[6] * y + m[10] * z, l = Math.hypot(a, b, c) || 1; return [a / l, b / l, c / l]; };
 
@@ -4905,41 +4906,80 @@ const GLB = (() => {
     const J = g.skin.joints, jset = new Map(J.map((n, k) => [n, k])), imp = new Float64Array(J.length);
     for (let v = 0; v < nv; v++) for (let k = 0; k < 4; k++) { const j = g.JW[v * 8 + k], w = g.JW[v * 8 + 4 + k]; if (j >= 0 && j < J.length) imp[j] += w; }
     const isRoot = (k) => { let p = g.nodes[J[k]].parent; while (p >= 0) { if (jset.has(p)) return false; p = g.nodes[p].parent; } return true; };
-    const keep = []; const root = J.findIndex((_, k) => isRoot(k)); if (root >= 0) keep.push(root);
-    const byImp = J.map((_, k) => k).filter(k => k !== root).sort((a, b) => imp[b] - imp[a]); for (const k of byImp) { if (keep.length >= MAXG) break; if (imp[k] > 0) keep.push(k); }
+    const hum = humanoid(g), keep = hum ? hum.slice() : []; if (!keep.length) { const root = J.findIndex((_, k) => isRoot(k)); if (root >= 0) keep.push(root);
+      const byImp = J.map((_, k) => k).filter(k => k !== root).sort((a, b) => imp[b] - imp[a]); for (const k of byImp) { if (keep.length >= MAXG) break; if (imp[k] > 0) keep.push(k); } }
     const slot = new Map(keep.map((k, s) => [k, s])), map = J.map((_, k) => { let n = J[k]; while (n >= 0) { const jk = jset.get(n); if (jk != null && slot.has(jk)) return slot.get(jk); n = g.nodes[n].parent; } return 0; });
     for (let v = 0; v < nv; v++) { const acc2 = new Map(); for (let k = 0; k < 4; k++) { const j = g.JW[v * 8 + k], w = g.JW[v * 8 + 4 + k]; if (j < 0 || w <= 0 || j >= J.length) continue; const s = map[j]; acc2.set(s, (acc2.get(s) || 0) + w); }
       const best = [...acc2.entries()].sort((a, b) => b[1] - a[1]); if (!best.length) continue; bone[v] = best[0][0];
       if (best.length > 1) { const w1 = best[0][1], w2 = best[1][1]; bone2[v * 2] = best[1][0]; bone2[v * 2 + 1] = w2 / (w1 + w2); } }
-    return { bone, bone2, keep, map };
+    return { bone, bone2, keep, map, chest: hum ? J[hum[1]] : null };
   }
 
-  // ---- posing: local transforms from a clip at time t, world matrices down the tree, then each group's skinning matrix ----
+  /* a figure on two legs keeps what a walk needs: hips, chest, head, both arms to the forearm, both legs to the foot, and the middle of the back.
+     Hands ride with the forearm (and whatever they hold), shoulders with the chest, the neck with the chest, toes with the foot.
+     Picked by name, as the riggers name them (Hips, LeftUpLeg, LeftForeArm...); anything else is folded by weight instead */
+  function humanoid(g) {
+    const J = g.skin.joints, nm = J.map(n => g.nodes[n].name.replace(/^.*:/, '')), find = (re) => nm.findIndex(n => re.test(n));
+    const hips = find(/^(hips|pelvis)$/i), head = find(/^head$/i);
+    const limbs = [/^left_?arm$|^leftupperarm$/i, /^left_?fore_?arm$|^leftlowerarm$/i, /^right_?arm$|^rightupperarm$/i, /^right_?fore_?arm$|^rightlowerarm$/i,
+      /^left_?up_?leg$|^leftupperleg$|^leftthigh$/i, /^left_?leg$|^leftlowerleg$|^leftcalf$/i, /^left_?foot$/i, /^right_?up_?leg$|^rightupperleg$|^rightthigh$/i, /^right_?leg$|^rightlowerleg$|^rightcalf$/i, /^right_?foot$/i].map(find);
+    if (hips < 0 || head < 0 || limbs.some(k => k < 0)) return null;
+    const up = (n) => { const out = []; let p = g.nodes[n].parent; while (p >= 0) { out.push(p); p = g.nodes[p].parent; } return out; };
+    let chain = up(J[head]).map(n => J.indexOf(n)).filter(k => k >= 0); const hi = chain.indexOf(hips); if (hi >= 0) chain = chain.slice(0, hi); /* the neck down to just above the hips */
+    const chest = up(J[limbs[0]]).map(n => J.indexOf(n)).find(k => chain.includes(k)) ?? (chain[0] ?? hips), below = chain.slice(chain.indexOf(chest) + 1), mid = below.length ? below[(below.length - 1) >> 1] : null;
+    return [...new Set([hips, chest, head, ...limbs, ...(mid != null ? [mid] : [])])].slice(0, MAXG); }
+
+  // ---- posing: local transforms from up to two clips (what it does standing, and its walk laid over the top as fast as it is going),
+  //      world matrices down the tree, then each group's skinning matrix ----
   function sample(ch, t, out) { const T = ch.times, n = T.length, w = ch.path === 'rotation' ? 4 : 3, cub = ch.interp === 'CUBICSPLINE', at = (k) => cub ? (k * 3 + 1) * w : k * w;
     if (t <= T[0] || n === 1) { for (let c = 0; c < w; c++) out[c] = ch.vals[at(0) + c]; return out; } if (t >= T[n - 1]) { for (let c = 0; c < w; c++) out[c] = ch.vals[at(n - 1) + c]; return out; }
     let k = 0; while (k < n - 2 && T[k + 1] <= t) k++; const u = (t - T[k]) / (T[k + 1] - T[k] || 1), a = [], b = []; for (let c = 0; c < w; c++) { a[c] = ch.vals[at(k) + c]; b[c] = ch.vals[at(k + 1) + c]; }
     if (ch.interp === 'STEP') { for (let c = 0; c < w; c++) out[c] = a[c]; return out; } if (w === 4) return slerp(a, b, u, out); for (let c = 0; c < w; c++) out[c] = a[c] + (b[c] - a[c]) * u; return out; }
-  function posed(model, clip, t, nod) {
-    const g = model.g, nodes = g.nodes, T = model._T || (model._T = nodes.map(n => n.t.slice())), R = model._R || (model._R = nodes.map(n => n.r.slice())), S = model._S || (model._S = nodes.map(n => n.s.slice()));
-    for (let i = 0; i < nodes.length; i++) { const n = nodes[i]; T[i][0] = n.t[0]; T[i][1] = n.t[1]; T[i][2] = n.t[2]; R[i][0] = n.r[0]; R[i][1] = n.r[1]; R[i][2] = n.r[2]; R[i][3] = n.r[3]; S[i][0] = n.s[0]; S[i][1] = n.s[1]; S[i][2] = n.s[2]; }
-    if (clip) { const tt = clip.dur > 0 ? t % clip.dur : 0; for (const ch of clip.ch) sample(ch, tt, ch.path === 'translation' ? T[ch.node] : ch.path === 'rotation' ? R[ch.node] : S[ch.node]); }
-    if (!clip && model.spine && model.spine.length) { const tt = t * 1.0, a = Math.sin(tt * 1.7) * 0.022, b = Math.sin(tt * 0.9 + 1.3) * 0.016; /* standing, breathing: the spine leans a touch forward and back and side to side */
+  function restInto(nodes, T, R, S) { for (let i = 0; i < nodes.length; i++) { const n = nodes[i]; T[i][0] = n.t[0]; T[i][1] = n.t[1]; T[i][2] = n.t[2]; R[i][0] = n.r[0]; R[i][1] = n.r[1]; R[i][2] = n.r[2]; R[i][3] = n.r[3]; S[i][0] = n.s[0]; S[i][1] = n.s[1]; S[i][2] = n.s[2]; } }
+  /* still: joints that keep their rest pose whatever the clip does (the arm that holds a key as long as he is, which no walk was made for) */
+  function clipInto(clip, t, T, R, S, still) { const tt = clip.dur > 0 ? ((t % clip.dur) + clip.dur) % clip.dur : 0; for (const ch of clip.ch) { if (still && still.has(ch.node)) continue; sample(ch, tt, ch.path === 'translation' ? T[ch.node] : ch.path === 'rotation' ? R[ch.node] : S[ch.node]); } }
+  /* a walk clip walks on the spot, but some carry the hips forward as well: that travel is taken out (the game moves the figure itself), the bob up and down stays */
+  function pinHips(model, t) { const h = model.hips; if (!h) return; const r = h.rest, d0 = t[0] - r[0], d1 = t[1] - r[1], d2 = t[2] - r[2], A = h.A, B = h.Ai;
+    const up = A[1] * d0 + A[4] * d1 + A[7] * d2; /* only how far it rose, in the file's own up */ t[0] = r[0] + B[3] * up; t[1] = r[1] + B[4] * up; t[2] = r[2] + B[5] * up; }
+  function posed(model, clip, t, nod, walk, wt, ww) {
+    const g = model.g, nodes = g.nodes, mk = (k, f) => model[k] || (model[k] = nodes.map(f));
+    const T = mk('_T', n => n.t.slice()), R = mk('_R', n => n.r.slice()), S = mk('_S', n => n.s.slice());
+    restInto(nodes, T, R, S);
+    if (clip) { clipInto(clip, t, T, R, S, model.still);
+      if (model.hips && model.lockYaw !== false && clip === g.anims[model.base]) { /* an idle never turns the figure round: whatever the actor did with his hips about the upright (Silas's patter is played half turned away, Varga's idle looks over his shoulder), it is taken out, so he faces where the game faces him; the twist above the hips stays */
+        const h = model.hips, q = R[h.node], r0 = g.nodes[h.node].r, dq = qmul(q, [-r0[0], -r0[1], -r0[2], r0[3]]), u = h.up, pr = dq[0] * u[0] + dq[1] * u[1] + dq[2] * u[2], l = Math.hypot(pr, dq[3]) || 1;
+        const nq = qmul([-u[0] * pr / l, -u[1] * pr / l, -u[2] * pr / l, dq[3] / l], q); q[0] = nq[0]; q[1] = nq[1]; q[2] = nq[2]; q[3] = nq[3]; } }
+    else if (model.spine && model.spine.length) { const tt = t * 1.0, a = Math.sin(tt * 1.7) * 0.022, b = Math.sin(tt * 0.9 + 1.3) * 0.016; /* standing, breathing: the spine leans a touch forward and back and side to side */
       for (const j of model.spine) { const q = R[j], sx = Math.sin(a / model.spine.length), cx = Math.cos(a / model.spine.length), sz = Math.sin(b / model.spine.length), cz = Math.cos(b / model.spine.length);
         let x = q[0], y = q[1], z = q[2], w = q[3]; [x, y, z, w] = [w * sx + x * cx, y * cx + z * sx, z * cx - y * sx, w * cx - x * sx]; R[j] = [x * cz + y * sz, y * cz - x * sz, w * sz + z * cz, w * cz - z * sz]; } }
+    if (walk && ww > 0.001) { const T2 = mk('_T2', n => n.t.slice()), R2 = mk('_R2', n => n.r.slice()), S2 = mk('_S2', n => n.s.slice()); restInto(nodes, T2, R2, S2); clipInto(walk, wt, T2, R2, S2, model.still); if (model.hips) pinHips(model, T2[model.hips.node]);
+      for (let i = 0; i < nodes.length; i++) { const a = T[i], b = T2[i], c = S[i], d = S2[i]; for (let k = 0; k < 3; k++) { a[k] += (b[k] - a[k]) * ww; c[k] += (d[k] - c[k]) * ww; } slerp(R[i], R2[i], ww, R[i]); } }
     if (nod && model.head != null) { const q = R[model.head], a = nod * 0.5, sx = Math.sin(a), cx = Math.cos(a), x = q[0], y = q[1], z = q[2], w = q[3]; R[model.head] = [w * sx + x * cx, y * cx + z * sx, z * cx - y * sx, w * cx - x * sx]; } /* a nod on top of whatever the clip is doing */
     const Wm = model._W || (model._W = nodes.map(() => new Float32Array(16))), L = model._L || (model._L = new Float32Array(16));
     for (const i of g.order) { const n = nodes[i]; if (n.m) L.set(n.m); else compose(T[i], R[i], S[i], L); if (n.parent < 0) Wm[i].set(L); else mul(Wm[n.parent], L, Wm[i]); }
     return Wm; }
+  /* how fast a figure is going over the ground (0 standing, 1 walking), and how far it has walked: the walk clip is wound on by the distance,
+     so the feet keep pace with the ground at any speed. Shadow and colour passes both ask in the same frame; only one of them counts */
+  function motion(st, e, now) {
+    if (st.lt == null) { st.lt = now; st.lx = e.x; st.lz = e.z; st.mv = 0; st.wd = 0; return; }
+    const ms = now - st.lt; if (ms < 10) return; st.lt = now; const dt = Math.min(0.25, ms / 1000), dx = e.x - st.lx, dz = e.z - st.lz; st.lx = e.x; st.lz = e.z;
+    const d = Math.hypot(dx, dz); if (d > 2.5) return; /* carried off somewhere else at once: not a step */
+    const want = Math.min(1, d / dt / (0.65 * (e.scale || 1))); st.mv += (want - st.mv) * Math.min(1, dt * 7); st.wd += d; }
   function pose(e, now) {
     const st = e.glb, model = st && registry.get(st.name); if (!model) return null;
     const mats = st._mats || (st._mats = new Float32Array(16 * MAXG)), out = st._out || (st._out = { mats, sway: [0, 0, 0, 0] });
     const g = model.g; if (!g.skin) { mats.set(model.Nm, 0); return out; }
+    if (st._now === now && st._for === e) return out; st._now = now; st._for = e; /* drawn twice a frame, posed once */
     const clip = pickClip(model, st), t = st.at != null ? st.at : ((now - (st.t0 || 0)) / 1000) * (st.speed || 1); /* at: hold the clip at one moment (a film, a photograph) */
-    const Wm = posed(model, clip, t, st.nod ? Math.sin(now / 95) * 0.08 * st.nod : 0), tmp = model._tmp || (model._tmp = new Float32Array(16));
+    let walk = null, wt = 0, ww = 0; if (model.walk != null && st.walk !== false && st.at == null) { motion(st, e, now); walk = g.anims[model.walk]; ww = st.mv || 0; wt = (st.wd || 0) / Math.max(0.05, model.stride * (e.scale || 1)) * walk.dur; }
+    if (st.walkAt != null) { walk = g.anims[model.walk] || null; ww = 1; wt = st.walkAt; } /* a test can hold the walk at one moment too */
+    const Wm = posed(model, clip, t, st.nod ? Math.sin(now / 95) * 0.08 * st.nod : 0, walk, wt, ww), tmp = model._tmp || (model._tmp = new Float32Array(16));
     for (let s = 0; s < model.grp.keep.length; s++) { const k = model.grp.keep[s]; mul(Wm[g.skin.joints[k]], g.skin.ibm[k], tmp); mul(model.Nm, tmp, model._tmp2 || (model._tmp2 = new Float32Array(16))); mats.set(model._tmp2, s * 16); }
     return out; }
-  function pickClip(model, st) { const A = model.g.anims; if (!A.length || st.clip === false) return null; const want = st.clip; /* clip false: the rest pose */ if (want == null) return A[0]; if (typeof want === 'number') return A[want] || A[0];
-    const w = String(want).toLowerCase(); return A.find(a => a.name.toLowerCase().includes(w)) || A[0]; }
+  /* which clip it plays standing: the one asked for by name or number, else its own idle; a file whose only clip is a walk stands in its rest pose and breathes */
+  function pickClip(model, st) { const A = model.g.anims; if (!A.length || st.clip === false) return null; const want = st.clip, base = model.base != null ? A[model.base] : null;
+    if (want == null) return base; if (typeof want === 'number') return A[want] || base;
+    const w = String(want).toLowerCase(); return A.find(a => a.name.toLowerCase().includes(w)) || base; }
 
   // ---- building and registering a model ----
   function build(name, buf, opts = {}) {
@@ -4953,11 +4993,22 @@ const GLB = (() => {
     const mesh = R.glbUpload({ P: g.P, N: g.N, T: g.T, C: g.C, bone: grp.bone, bone2: grp.bone2, IX: g.IX, image: g.image, maxTex: opts.maxTex || (G.mobile ? 1024 : 2048) }); if (mesh) mesh.rad = rad;
     let head = null; if (g.skin) { const hk = g.skin.joints.find(n => /head/i.test(g.nodes[n].name) && !/top|end|nub/i.test(g.nodes[n].name)); head = hk == null ? null : hk; }
     const spine = g.skin ? g.skin.joints.filter(n => /spine|chest/i.test(g.nodes[n].name)) : [];
-    const model = { name, g, grp, Nm, mesh, height: (y1 - y0) * s, head, spine, clips: g.anims.map(a => a.name), tris: g.IX.length / 3 };
+    const isWalk = (a) => /walk|strut|run|jog|march|waddle/i.test(a.name), walkI = g.anims.findIndex(isWalk), baseI = g.anims.findIndex(a => !isWalk(a));
+    const still = opts.still && opts.still.length ? new Set(g.nodes.filter(n => opts.still.includes(n.name.replace(/^.*:/, ''))).map(n => n.i)) : null;
+    const model = { name, g, grp, Nm, mesh, height: (y1 - y0) * s, head, spine, clips: g.anims.map(a => a.name), tris: g.IX.length / 3, walk: walkI >= 0 ? walkI : null, base: baseI >= 0 ? baseI : null, hips: null, stride: 0.8 * (y1 - y0) * s, still, lockYaw: opts.lockYaw };
+    if (g.skin) { const J = g.skin.joints, hn = J.find(n => /hips|pelvis/i.test(g.nodes[n].name)) ?? J.find(n => !J.includes(g.nodes[n].parent));
+      if (hn != null) { const p = g.nodes[hn].parent, W = p >= 0 ? g.restWorld[p] : I4(), A = [W[0], W[1], W[2], W[4], W[5], W[6], W[8], W[9], W[10]], Ai = inv3(A); if (Ai) { const ul = Math.hypot(Ai[3], Ai[4], Ai[5]) || 1; model.hips = { node: hn, rest: g.nodes[hn].t.slice(), A, Ai, up: [Ai[3] / ul, Ai[4] / ul, Ai[5] / ul] }; } } }
+    if (model.walk != null && g.skin) { /* how far one loop of the walk carries it: the planted foot slides back by the step while it is down, about three fifths of the loop */
+      const fk = g.skin.joints.find(n => /foot/i.test(g.nodes[n].name) && /left|^l[_.]|[_.]l$/i.test(g.nodes[n].name) && !/toe|end/i.test(g.nodes[n].name)), clip = g.anims[model.walk];
+      if (fk != null) { let lo = 1e9, hi = -1e9; for (let k = 0; k < 32; k++) { const Wm = posed(model, null, 0, 0, clip, clip.dur * k / 32, 1), z = xf(Nm, Wm[fk][12], Wm[fk][13], Wm[fk][14])[2]; lo = Math.min(lo, z); hi = Math.max(hi, z); }
+        if (hi - lo > 0.05 * model.height) model.stride = (hi - lo) / 0.6; } }
     registry.set(name, model); return model; }
+  function inv3(a) { const [m0, m1, m2, m3, m4, m5, m6, m7, m8] = a, c0 = m4 * m8 - m5 * m7, c1 = m5 * m6 - m3 * m8, c2 = m3 * m7 - m4 * m6, det = m0 * c0 + m1 * c1 + m2 * c2; if (Math.abs(det) < 1e-12) return null; const k = 1 / det;
+    /* column-major in and out: a = [col0, col1, col2]; returns B with B·(A·v) = v */
+    return [c0 * k, (m2 * m7 - m1 * m8) * k, (m1 * m5 - m2 * m4) * k, c1 * k, (m0 * m8 - m2 * m6) * k, (m2 * m3 - m0 * m5) * k, c2 * k, (m1 * m6 - m0 * m7) * k, (m0 * m4 - m1 * m3) * k]; }
   function fromBuffer(name, buf, opts) { try { return build(name, buf, opts); } catch (err) { console.warn('GLB ' + name + ': ' + err.message); return null; } }
   function load(name, url, opts) { if (registry.has(name)) return Promise.resolve(registry.get(name)); if (pending.has(name)) return pending.get(name);
-    const p = fetch(url).then(r => { if (!r.ok) throw new Error(r.status + ' ' + url); return r.arrayBuffer(); }).then(b => fromBuffer(name, b, opts)).catch(err => { console.warn('GLB ' + name + ' not loaded: ' + err.message); return null; });
+    const p = fetch(url).then(r => { if (!r.ok) throw new Error(r.status + ' ' + url); return r.arrayBuffer(); }).then(b => { const m = fromBuffer(name, b, opts); if (!m) failed.add(name); return m; }).catch(err => { failed.add(name); console.warn('GLB ' + name + ' not loaded: ' + err.message); return null; });
     pending.set(name, p); return p; }
   function get(name) { return registry.get(name) || null; }
   /* dress an entity in a loaded model: it keeps its own model data (height, radius) for everything else, only its look changes */
@@ -4965,18 +5016,40 @@ const GLB = (() => {
   /* the cast: who wears a model from a file, and where the file is. A name here with no file yet is ignored, so nothing is fetched that is not
      shipped. Each figure is dressed by its name as it is drawn; its own box model stays for portraits, collisions and everything else */
   const CAST = {
-    finch: { names: ['Professor Finch', 'Professor Aldous Finch'], file: 'assets/finch.glb', height: 1.95, turn: -Math.PI / 2, clip: false }, /* Tripo made him facing +x; his rig's idle clip was fitted sideways, so he breathes in code instead */
+    finch: { names: ['Professor Finch', 'Professor Aldous Finch'], file: 'assets/finch.glb', height: 1.95 }, /* rigged square to the front, with a calm idle of his own */
+    silas: { names: ['Silas Pennywise'], file: 'assets/silas.glb', height: 2.1 }, /* the hat is in the height; his idle is the patter of a man selling you something */
+    keychain: { names: ['Keychain'], pre: true, file: 'assets/keychain.glb', height: 2.35, still: ['RightShoulder', 'RightArm', 'RightForeArm', 'RightHand'] }, /* the key is as tall as he is: that arm does not swing */ /* the three tyrants on Earth (village.js names them glbName): a strut, a heavy walk, and a walk that is enjoying itself */
+    stonewall: { names: ['Stonewall'], pre: true, file: 'assets/stonewall.glb', height: 2.9 },
+    bigmouth: { names: ['Bigmouth'], pre: true, file: 'assets/bigmouth.glb', height: 2.5, still: ['LeftShoulder', 'LeftArm', 'LeftForeArm', 'LeftHand'] }, /* nor does the arm with the spoon */
+    kinmaster: { names: ['The Kinmaster'], file: 'assets/kinmaster.glb', height: 2.3 }, /* the rest of the main cast, made from their own pictures (art/ref 10 to 15) */
+    varga: { names: ['Pit Boss Varga'], file: 'assets/varga.glb', height: 2.0 },
+    hask: { names: ['Elder Hask'], pre: true, file: 'assets/hask.glb', height: 1.9 }, /* an idle and an old man's walk in one file: he wanders the square once it is free */
+    garrick: { names: ['Foreman Garrick'], file: 'assets/garrick.glb', height: 1.95 },
+    maren: { names: ['Maren'], pre: true, file: 'assets/maren.glb', height: 1.75 },
+    brannock: { names: ['Old Brannock'], pre: true, file: 'assets/brannock.glb', height: 1.85 },
   };
   const byName = new Map(); for (const [k, c] of Object.entries(CAST)) for (const n of c.names) byName.set(n, k);
-  let booted = false;
   /* where a file is served: beside the page (GitHub Pages, the installed app), or at its asset address where the page is hosted as an artifact (the build writes that map) */
   const where = (file) => (typeof window !== 'undefined' && window.STRATAKIN_ASSETS && window.STRATAKIN_ASSETS[file]) || file;
-  function boot() { if (booted) return; booted = true; for (const [k, c] of Object.entries(CAST)) if (c.file) load(k, where(c.file), { height: c.height, turn: c.turn || 0 }); }
-  function dressAll(ents) { if (!booted) boot(); if (!registry.size) return;
-    for (const e of ents) { if (!e) continue; const o = e.src || e, k = byName.get(o.name || e.name); if (!k || !registry.has(k)) continue;
-      const st = o._glb || (o._glb = { name: k, t0: performance.now() - Math.random() * 5000, clip: CAST[k].clip }); st.nod = (o.talkOpen || 0) > 0.05 ? 1 : 0; /* talking: the head nods along with the words */ e.glb = st; } }
+  /* each file is fetched the moment someone who wears it comes into view, and the people round the first village (pre) a moment after
+     the game starts, so they are waiting before they are met. Until his file has arrived a figure is not drawn at all (a second at most), rather than
+     shown in his old shape and swapped; if the file cannot be had, he keeps his old shape */
+  const want = (k) => { const c = CAST[k]; if (!c || !c.file || registry.has(k) || pending.has(k)) return; load(k, where(c.file), { height: c.height, turn: c.turn || 0, still: c.still }); };
+  let preloadAt = 0;
+  function dressAll(ents) {
+    const now = performance.now(); if (!preloadAt) preloadAt = now + 2500; else if (preloadAt > 0 && now > preloadAt) { preloadAt = -1; for (const k of Object.keys(CAST)) if (CAST[k].pre) want(k); } /* only the first village's people ahead of time; the rest when they are first in view */
+    let n = 0;
+    for (let i = 0; i < ents.length; i++) { const e = ents[i]; if (!e) continue; const o = e.src || e, k = byName.get(o.glbName || o.name || e.name);
+      if (k && !registry.has(k)) { want(k); if (!failed.has(k)) continue; } /* on its way: not drawn yet */
+      if (k && registry.has(k)) { const c = CAST[k], st = o._glb || (o._glb = { name: k, t0: now - Math.random() * 5000, clip: c.clip, walk: c.walk }); st.nod = (o.talkOpen || 0) > 0.05 ? 1 : 0; /* talking: the head nods along with the words */ e.glb = st;
+        if (o.isBoss && o._glbH !== k) { o._glbH = k; o.sayH = registry.get(k).height * (o.scale || 1) + 0.35; } } /* his words float over the model's head, not the old one's */
+      ents[n++] = e; }
+    ents.length = n; }
+  /* a small picture of a figure in his model, for the cards that show who you are facing; false until the model and its texture are in */
+  function portrait(cv, name, size) { const m = registry.get(name); if (!m || !m.mesh || !m.mesh.texReady || typeof R === 'undefined' || !R.renderPortrait) return false;
+    return R.renderPortrait(cv, m.mesh, { height: m.height }, size, { glb: { name, clip: false, at: 0, walk: false }, yaw: -0.35, pitch: -0.12 }); }
   const meshFor = (e) => { const m = e.glb && registry.get(e.glb.name); return m && m.mesh ? m.mesh : e.mesh; };
-  return { parse, fromBuffer, load, get, dress, pose, dressAll, meshFor, CAST, get list() { return [...registry.keys()]; } };
+  return { parse, fromBuffer, load, get, dress, pose, dressAll, meshFor, portrait, CAST, want, get list() { return [...registry.keys()]; } };
 })();
 
 </script>
@@ -14314,6 +14387,7 @@ const Village = (() => {
     const lurk = v.type === 'sea'; const by = lurk ? SEA - 3 : v.y;
     const e = { kin, x: bx, y: by, z: bz, yaw: Math.PI, tx: bx, tz: bz, wait: 99, speed: 0, senseR: lurk ? 0 : 5.5, alert: 0, model: m, scale: 1, hover: 0, bob: 0, mesh: R.entityMesh(KIN.meshKey(sp, 2) + ':tyrant:' + world.preset.id + ':' + v.id + (force ? ':' + force.name : ''), (mb) => KIN.buildMesh(mb, m)), skyMul: 1, isBoss: true, villageId: v.id, sleep: lurk, aquatic: lurk, lurk, patrol: { ax: bx - 3, az: bz, bx: bx + 3, bz: bz, period: lurk ? 12 : 8, phase: 0 }, skyT: 0, elite: true };
     e.persona = tyrantVoice(v, sp.tyrMood || 0, h, force); e.vh = h; e.cast0 = force || null; e.sayH = (m.height || 2.4) + 0.35;
+    if (three && cast && world.preset.id === 'earth' && typeof GLB !== 'undefined' && GLB.CAST[cast.name.toLowerCase()]) e.glbName = cast.name; /* on Earth the three wear the bodies made from their pictures (glb.js); on the Moon and Halo the suits stay until those outfits are made */
     return e;
   }
   // touching the table in a village the tyrant still holds brings him down on you
@@ -15488,7 +15562,8 @@ const Battle = (() => {
     const rar = KIN.RARITY[k.sp.rarity || 0];
     { // a small portrait on the card, redrawn only when the Kin on it changes
       let cv = card.querySelector('canvas.bpic'); if (!cv) { cv = document.createElement('canvas'); cv.className = 'bpic'; cv.width = cv.height = 56; card.insertBefore(cv, card.firstChild); }
-      const key = (k.id || k.sp.seed) + ':' + k.stage; if (cv.dataset.k !== key) { cv.dataset.k = key; try { KIN.portrait(cv, k.sp, k.stage, 56); } catch (e) {} }
+      const gn = k === wild && wildE && wildE.glb && wildE.glb.name, key = gn ? 'glb:' + gn : (k.id || k.sp.seed) + ':' + k.stage; /* a tyrant in his own body gets his own face on the card */
+      if (cv.dataset.k !== key) { let ok = false; if (gn && typeof GLB !== 'undefined') try { ok = GLB.portrait(cv, gn, 56); } catch (e) {} if (ok || !gn) cv.dataset.k = key; if (!ok) try { KIN.portrait(cv, k.sp, k.stage, 56); } catch (e) {} }
     }
     card.querySelector('.nm').innerHTML = KIN.name(k) + (k.sp.mythic ? ' ✦' : '') + ((k.sp.rarity || 0) > 0 ? ` <span class="rar r${k.sp.rarity}">${rar.name}</span>` : '');
     card.querySelector('.lv').textContent = 'Lv ' + k.level;

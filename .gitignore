@@ -3,3 +3,4 @@ tools/test/*.png
 dist-single/
 art/ref/*.png
 art/models/
+tools/art/__pycache__/

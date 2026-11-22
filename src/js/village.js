@@ -2034,6 +2034,7 @@ const Village = (() => {
     const lurk = v.type === 'sea'; const by = lurk ? SEA - 3 : v.y;
     const e = { kin, x: bx, y: by, z: bz, yaw: Math.PI, tx: bx, tz: bz, wait: 99, speed: 0, senseR: lurk ? 0 : 5.5, alert: 0, model: m, scale: 1, hover: 0, bob: 0, mesh: R.entityMesh(KIN.meshKey(sp, 2) + ':tyrant:' + world.preset.id + ':' + v.id + (force ? ':' + force.name : ''), (mb) => KIN.buildMesh(mb, m)), skyMul: 1, isBoss: true, villageId: v.id, sleep: lurk, aquatic: lurk, lurk, patrol: { ax: bx - 3, az: bz, bx: bx + 3, bz: bz, period: lurk ? 12 : 8, phase: 0 }, skyT: 0, elite: true };
     e.persona = tyrantVoice(v, sp.tyrMood || 0, h, force); e.vh = h; e.cast0 = force || null; e.sayH = (m.height || 2.4) + 0.35;
+    if (three && cast && world.preset.id === 'earth' && typeof GLB !== 'undefined' && GLB.CAST[cast.name.toLowerCase()]) e.glbName = cast.name; /* on Earth the three wear the bodies made from their pictures (glb.js); on the Moon and Halo the suits stay until those outfits are made */
     return e;
   }
   // touching the table in a village the tyrant still holds brings him down on you

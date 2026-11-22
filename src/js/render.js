@@ -2696,7 +2696,7 @@ const R = (() => {
   // ---------- drawing the entity list (shared by the frame and by portraits) ----------
   let entPV = null;
   function setEntityUniforms(pv, cam, lightsL, lightsR) {
-    entPV = pv; gl.useProgram(eprog);
+    entPV = pv; gl.useProgram(eprog); if (eloc.uTex) gl.uniform1i(eloc.uTex, 3); /* the model texture's sampler always reads unit 3, which only ever holds model textures: left on unit 0 it would point at whatever target is being drawn into (a feedback loop WebGL refuses) */
     gl.uniformMatrix4fv(eloc.uPV, false, pv); gl.uniform1f(eloc.uTime, performance.now() / 1000);
     gl.uniform4fv(eloc.uMist, state.mist || MIST0); bindHM(eloc, state.mist && state.mist[1] > 0); gl.uniform3f(eloc.uCam, cam.x, cam.y, cam.z); gl.uniform1f(eloc.uDay, state.dayLight); gl.uniform3fv(eloc.uFog, state.fogColor); gl.uniform1f(eloc.uFogSky, state.fogSky ? (state.rangeKind || 1) : 0); gl.uniform1f(eloc.uCoreGlow, state.coreGlow ? 1 : 0);
     gl.uniform1f(eloc.uFogNear, state.fogNear); gl.uniform1f(eloc.uFogFar, state.fogFar); gl.uniform1f(eloc.uAmbient, state.ambient); gl.uniform3fv(eloc.uTint, state.tint);
@@ -2758,7 +2758,7 @@ const R = (() => {
     state.fogColor = [0.5, 0.6, 0.7]; state.fogNear = 50; state.fogFar = 60; state.sun = [-0.45, 0.72, 0.53]; state.sunCol = [1.0, 0.95, 0.86]; state.sunAmt = 1; state.dayLight = 1; state.zenith = [0.5, 0.65, 0.95]; state.tint = [1, 1, 1]; state.ambient = 0.06; state.skyPass = true;
     const L = new Float32Array(24), LR = new Float32Array(8); for (let i = 0; i < 8; i++) { L[i * 3 + 1] = -999; LR[i] = 0.001; }
     setEntityUniforms(pv, { x: cx, y: cy, z: cz }, L, LR);
-    const ent = { x: 0, y: 0, z: 0, yaw: 0, scale: 1, mesh, model, hover: 0, skyMul: 1, anim: opts.anim || null, _portrait: true };
+    const ent = { x: 0, y: 0, z: 0, yaw: 0, scale: 1, mesh, model, hover: 0, skyMul: 1, anim: opts.anim || null, _portrait: true }; if (opts.glb) ent.glb = opts.glb; /* a model from a file, posed at rest */
     gl.enable(gl.DEPTH_TEST); gl.disable(gl.BLEND);
     const ol = state.outlines; state.outlines = opts.outline === false ? false : true; const vd = state.viewDist; state.viewDist = 100;
     drawEntities([ent], { x: cx, y: cy, z: cz }, performance.now()); state.outlines = ol; state.viewDist = vd;

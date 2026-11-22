@@ -28,6 +28,56 @@ Downloading needs d8j0ntlcm91z4.cloudfront.net allowed in Settings > Capabilitie
 | Bigmouth front, fixed | fb5849d3-6911-49e9-986a-65629e60a6fc | 2 |
 | Silas front (three hands, rejected) | bb1b6b6a-08dd-4145-8416-b0bc45841b5c | 2 |
 | Silas front, second try (three hands again, rejected) | 08884172-05ff-458a-88f6-acdde0b66c92 | 2 |
-| Silas front, empty-handed | 04538087-3a58-497e-96a8-1c15e220ee41 | 2 |
+| Silas front, empty-handed (checked: two arms, two hands, abacus on a belt hook) | 04538087-3a58-497e-96a8-1c15e220ee41 | 2 |
+| Keychain 3D, Tripo H3.1 align_image | aeba82dd-f2cc-4071-b7b4-381c96ee99c3 | 9 |
+| Stonewall 3D, Tripo H3.1 align_image | 98bc8402-e8d5-47df-a3ba-92c4225a390b | 9 |
+| Bigmouth 3D, Tripo H3.1 align_image | d1a55a78-e505-4aae-9f4e-fdc7606735b2 | 9 |
+| Silas 3D, Tripo H3.1 align_image | 3104641a-24aa-46b8-bc12-98d4e084dac2 | 9 |
 
-Lessons: check every picture for extra limbs before it becomes a model; held props invite extra hands. Use Tripo's `orientation: align_image` so the model faces +z, and rig only a model that faces forward, or the rig's clips come out twisted.
+Lessons: check every picture for extra limbs before it becomes a model; held props invite extra hands. `orientation: align_image` does not make the model face +z (it only copies the picture's angle); run face_front.py instead, and rig only a model that faces +z, or the rig's clips come out twisted.
+
+# Batch 3: models square to the front, then rigs (22 Nov)
+`align_image` turned out to be a node matrix that copies the picture's three-quarter angle; Tripo's own front is +x either way.
+`tools/art/face_front.py` drops the matrix and turns the mesh so it faces +z, then the file is uploaded (media_upload, PUT, media_confirm) and rigged from that URL.
+
+| What | Job id / media id | Credits |
+|---|---|---|
+| Uploads (front-facing): keychain c7a74ecb, stonewall 145303fe, bigmouth 6752cacd, silas 4837a682, finch 163db98c | media | 0 |
+| Keychain rig + Proud_Strut walk (114) | a7ad7894-00bf-47f9-a70e-bd08dd9f6436 | 8 |
+| Stonewall rig + Slow_Orc_Walk (119) | 8b20f66f-064c-4327-a0f8-1658072ffb72 | 8 |
+| Bigmouth rig + Casual_Walk (30) | 0297e355-c208-4b7a-a4c1-d5a1892a073b | 8 |
+| Silas rig + Idle_13, the showman's patter (253) | 7661a953-28a7-4083-b168-28303a86cc95 | 8 |
+| Finch re-rig, front-facing, + Idle_4 (244) | ac5a7e6b-8d9b-43af-9625-947f2cd11871 | 8 |
+
+# Batch 4: front views for the rest of the main cast (22 Nov), Nano Banana Pro with the Finch and Keychain fronts as style references, 2 each
+| Who | Job id | Credits |
+|---|---|---|
+| The Kinmaster | c657bbbf-2a43-48f0-a40e-3d9f8a49f123 | 2 |
+| Pit Boss Varga | ed91bbc3-a3db-42f4-a268-46f37e582dde | 2 |
+| Elder Hask | c57153ac-1374-441c-9739-e852a37b3161 | 2 |
+| Foreman Garrick (a glove hung on his belt like a third hand: redone) | 28a815f3-7cef-4546-a12e-d0ef7b783c93 | 2 |
+| Foreman Garrick, bare hands, nothing on the belt | 806fa291-a5c5-47de-83cf-40bc7b70d9f5 | 2 |
+| Maren | 57142383-8531-4a6a-b18a-3682c70621a6 | 2 |
+| Old Brannock | 5678617a-7203-49f6-8efc-e9df470d2e06 | 2 |
+
+Checked limb by limb: Kinmaster, Varga, Hask, Maren, Brannock all two arms and two hands. Models (Tripo H3.1, default orientation, 9 each):
+| Who | Job id |
+|---|---|
+| Kinmaster | d14381cd-d233-4034-a637-57547cfb8741 |
+| Varga | 92676fbb-abd9-4125-a008-ae82b4a57c6e |
+| Hask | b3396b89-1f84-4118-b8e4-c43ab9e9e176 |
+| Maren | 1dca54af-ce81-4ade-81c2-8351c7cfda72 |
+| Brannock | cc4e0422-1e9a-499a-b8d3-2d46f74a0dd5 |
+
+| Garrick (bare hands) | af8b0334-9f1c-43f1-95b7-709b4904de2b |
+
+Front-facing uploads: kinmaster 9a993b3c, varga 0373d1de, hask 2409eb06, maren 66081c2a, brannock eb588d13. Rigs (8 each):
+| What | Job id |
+|---|---|
+| Kinmaster + Idle_02 (11) | fe9be093-538f-4ee0-b24e-a73a78e35af7 |
+| Varga + Idle (0) | 99f094c4-b5d4-4ee3-b173-1d2919fbce24 |
+| Hask + Elderly_Shaky_Walk_inplace (626) | 775f03d0-bd21-4c5f-b1f8-210537059a34 |
+| Hask + Idle_9 (249), to merge with the walk | 0d94c79a-0c8f-49fb-a8c0-d5ad4eeaf68b |
+| Maren + Idle_3 (243) | fe8fd5ee-6a05-46d9-af18-130a7db22c7d |
+| Brannock + Idle_12 (252) | 9c2f3ea0-3730-416e-8fa8-4a4b25a679dd |
+| Garrick (upload 67285ae1) + Idle (0) | d483271d-7e14-4e63-82c7-ab806fe57f8f |
