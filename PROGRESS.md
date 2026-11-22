@@ -524,6 +524,8 @@ Scope (Alexander, 8 Nov evening): EVERYTHING visible goes to the same standard: 
 
 - 22 Nov, test starts on the start screen (his words: he could not see Land on the Moon anywhere at the beginning; the buttons were buried at the bottom of the in-game menu). New world screen now has **Start on the Moon** and **Start on Halo** under Begin: a new world is made, then the designer jump runs once the world is ticking (`window.__jump`, waits for 3 frames). Test `t-jump3.js`.
 
+- 22 Nov, the test starts gave no pick (he could not mine copper for Garrick's quest on the Moon start). Both designer jumps now give the stone and iron picks, iron axe, hatchet and shovel, and mark Garrick's pick quest done. Waiting for Fable (his ask): Finch's moustache rises over his eyes when he talks; the ship's landed state looks half-finished (panels splayed, LAND button still up); raise Kin ceilings on the Moon and Halo to their world's level (a common Moon Kin caps at 18 to 43 against a level 90 world).
+
 ## Still to do
 UI polish as feedback comes in. Card battle screen still used for scripted encounters (raids at the walls, thief, citadel duel, holds) and the snare mini-game; converting those to live is the next big step if wanted. (Old list: train/ships, combat animation, eggs, avatar hair/paint, buddy WEAR cosmetics, Silas and Finch, UI polish (item icons), quality toggles in settings (state.shadows, state.grassQuality, state.dprCap).
 
