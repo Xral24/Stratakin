@@ -1,5 +1,14 @@
 # Stratakin: handover for the visual redesign
 
+## Current state (22 Nov 2026): read this before the rest
+- **Start with `ART-PLAN.md`.** It is the agreed plan for the new look: Higgsfield for reference pictures, textures, Kin skins and about 40 headline 3D models, everything else in code. Smooth surface on top, cubes once you dig, softened cubes for lava and the Core. Dex cut to about 150 with five dinosaurs. Nothing in it has been built yet; Alexander says go.
+- **Higgsfield is connected** as an MCP connector (tools `mcp__Higgsfield__*`). Alexander is on **Ultra, 3,010 credits** at the start. Check `mcp__Higgsfield__balance` before spending and keep him told what each batch costs.
+- **The "no image assets" rule below is lifted** for Higgsfield art under the plan, but phone limits still apply: keep textures small (512 or 1K, compressed) and slim every model before it goes in.
+- **Network access** has to be on for the workspace to download what Higgsfield makes (Settings, Capabilities). If `curl https://pypi.org` fails, ask him to switch it on and start a fresh chat.
+- **`PROGRESS.md`** has the full log of what has been built and the Still to do list. Waiting for Fable: Moon village houses (Zorim), Finch's moustache in films, Moon and Halo Kin level ceilings.
+- **Build and publish:** edit `src/`, `python3 tools/build.py` (repo-root `index.html` for GitHub Pages), `python3 tools/build_single.py` (`dist-single/index.html` for the artifact), test, commit as Xral24, push, then publish `dist-single/index.html` to the artifact (slug `95c42275-5e63-4850-a378-dd4d1b3950d6`) with `publish_files`, `as: index.html`, chaining `base_version` from `get_artifact`.
+- **Tests:** `tools/test/` (copy to a scratch dir with Playwright installed; `suite.sh` lists the regular run). One Chromium at a time. Designer jumps on the start screen: Start on the Moon, Start on Halo, Start at the Lost World.
+
 Read this first. It is written for the next Claude session (Fable 5), whose job is the **visual redesign**. Gameplay is in place on Earth; your job is making it look the way Alexander wants it to look, without breaking what plays.
 
 ## Who you are working with
