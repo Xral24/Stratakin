@@ -1630,7 +1630,7 @@ class World {
     const cx = Math.floor(x / CH), cz = Math.floor(z / CH);
     const c = this.getChunk(cx, cz, true);
     const base = ((x - cx * CH) * CH + (z - cz * CH)) * WH;
-    for (let y = Math.min(WH - 1, fromY); y > 0; y--) { const b = c.blocks[base + y]; if (isSolid(b) && !isLeaf(b)) return y; }
+    for (let y = Math.min(WH - 1, Math.floor(fromY)); y > 0; y--) { const b = c.blocks[base + y]; if (isSolid(b) && !isLeaf(b)) return y; } /* a height off a slope is not a whole block: floor it, or the lookup reads past the column and every frame after touchdown throws */
     return 0;
   }
   /* the top of whatever is solid over your head, with tree crowns and open air taken off */
@@ -4054,7 +4054,7 @@ const R = (() => {
               for (let k = 0; k < (birch ? 3 : 4); k++) { const a = (k + U.hash3(wx, 88 + k, wz, 5) * 0.8) * (birch ? 2.094 : 1.5708) + hB * 6, L = (0.8 + U.hash3(wx, 92 + k, wz, 5) * 0.5) * (rb / 0.47 + 0.25), dx = Math.cos(a), dz = Math.sin(a); op.tube([[lx + 0.5 + dx * rb * 0.5, yb + 0.45, lz + 0.5 + dz * rb * 0.5], [lx + 0.5 + dx * L * 0.6, gy + 0.1, lz + 0.5 + dz * L * 0.6], [lx + 0.5 + dx * L, gy - 0.15, lz + 0.5 + dz * L]], [rb * 0.5, rb * 0.34, rb * 0.12], base, { sky: sk, segs: 5, cap0: 'none', cap1: 'round' }); }
               if (!pine) for (let k = 0; k < 4; k++) { const tt = 0.64 + 0.28 * U.hash3(wx, 96 + k, wz, 5), o = at(tt), a = (k + U.hash3(wx, 100 + k, wz, 5) * 0.7) * 1.5708 + hA * 6, L = (birch ? 1.0 : 1.5) + U.hash3(wx, 104 + k, wz, 5) * (birch ? 0.7 : 1.1), dx = Math.cos(a), dz = Math.sin(a), rise = 0.8 + U.hash3(wx, 108 + k, wz, 5), r0 = (rb + (tipR - rb) * tt) * 0.62; op.tube([o, [o[0] + dx * L * 0.5, o[1] + rise * 0.4, o[2] + dz * L * 0.5], [o[0] + dx * L, o[1] + rise, o[2] + dz * L]], [r0, r0 * 0.7, r0 * 0.3], base, { sky: sk, segs: 5, cap0: 'none', cap1: 'round' }); }
               continue; }
-            if (crown === B.PLANKS && yt - yb >= 1 && single && yt <= SEA) { // a pile under a deck: one bowed pole standing in the water on splayed roots, like a mangrove, and no stack of logs
+            if (crown === B.PLANKS && yt - yb >= 1 && single && yt <= SEA && [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([a, b]) => { const n = get(lx + a, yb, lz + b); return n === B.WATER || n === B.BRINE; })) { /* only a post standing in water: a prop under a mine roof is not a pile, and used to come out as a bowed pole on splayed roots */ // a pile under a deck: one bowed pole standing in the water on splayed roots, like a mangrove, and no stack of logs
               if (y !== yb) continue;
               const sk = skyAt(lx, yt + 1, lz), hA = U.hash3(wx, 3, wz, 221), hB = U.hash3(wx, 4, wz, 222), top = yt + 1.0, bow = 0.16, pc = [0.36, 0.27, 0.17];
               const at = (t) => [lx + 0.5 + Math.sin(t * 3.1416) * bow * (hA - 0.5) * 2, yb - 0.6 + t * (top - yb + 0.6), lz + 0.5 + Math.sin(t * 3.1416) * bow * (hB - 0.5) * 2];
@@ -16692,7 +16692,7 @@ const Campaign = (() => {
   // the shaft has to come out through the gallery ceiling, and its ladder has to reach the gallery floor, or you drop in and cannot climb out
   function openShaft(s, bottom) {
     for (let dx = -1; dx <= 1; dx++) for (let dz = -1; dz <= 1; dz++) set(s.x + dx, bottom + 4, s.z + dz, B.AIR);
-    for (let y = bottom; y <= bottom + 4; y++) { set(s.x, y, s.z + 1, B.LADDER); if (y <= bottom + 3) set(s.x, y, s.z + 2, B.LOG); } // a beam behind the bottom of it, so it reads as one ladder down to the floor
+    for (let y = bottom; y <= bottom + 4; y++) { set(s.x, y, s.z + 1, B.LADDER); if (y <= bottom + 3) set(s.x, y, s.z + 2, B.BEAM); } // a beam behind the bottom of it, so it reads as one ladder down to the floor
   }
   function stampMine(s) {
     world.ensureAround(Math.floor(s.x / CH), Math.floor(s.z / CH), 1, 99);
@@ -16706,7 +16706,7 @@ const Campaign = (() => {
     // the shaft: 3x3, iron-lined, a ladder down one side to the gallery
     const bottom = Math.max(18, y0 - 26);
     for (let y = y0; y >= bottom; y--) for (let dx = -2; dx <= 2; dx++) for (let dz = -2; dz <= 2; dz++) {
-      const edge = Math.abs(dx) === 2 || Math.abs(dz) === 2; if (edge) { if (y < y0) set(s.x + dx, y, s.z + dz, (y % 5 === 0) ? B.LOG : B.STONE); } else set(s.x + dx, y, s.z + dz, B.AIR);
+      const edge = Math.abs(dx) === 2 || Math.abs(dz) === 2; if (edge) { if (y < y0) set(s.x + dx, y, s.z + dz, (y % 5 === 0) ? B.BEAM : B.STONE); } else set(s.x + dx, y, s.z + dz, B.AIR);
     }
     for (let y = y0; y >= bottom + 1; y--) set(s.x, y, s.z + 1, B.LADDER);
     for (let y = y0 - 4; y >= bottom; y -= 6) set(s.x - 1, y, s.z - 1, B.TORCH);
@@ -16717,7 +16717,7 @@ const Campaign = (() => {
       if (wall) { const r = U.hash3(X, y, Z, 0x0E); set(X, y, Z, r < 0.12 ? B.COPPER : r < 0.2 ? B.IRON : r < 0.24 ? B.EMBER : r < 0.255 ? B.VOID : B.STONE); }
       else set(X, y, Z, B.AIR);
     }
-    for (const dx of [-6, -2, 2, 6]) { for (let y = bottom; y <= bottom + 3; y++) { set(s.x + dx, y, s.z - 3, B.LOG); set(s.x + dx, y, s.z + 3, B.LOG); } for (let dz = -3; dz <= 3; dz++) set(s.x + dx, bottom + 3, s.z + dz, B.PLANKS); set(s.x + dx, bottom + 2, s.z - 2, B.TORCH); }
+    for (const dx of [-6, -2, 2, 6]) { for (let y = bottom; y <= bottom + 3; y++) { set(s.x + dx, y, s.z - 3, B.BEAM); set(s.x + dx, y, s.z + 3, B.BEAM); } for (let dz = -3; dz <= 3; dz++) set(s.x + dx, bottom + 3, s.z + dz, B.PLANKS); set(s.x + dx, bottom + 2, s.z - 2, B.TORCH); }
     openShaft(s, bottom);
     set(s.x + 7, bottom, s.z + 2, B.CHEST); set(s.x + 7, bottom, s.z + 1, B.CHEST);
     const ch = G.chestAt(s.x + 7, bottom, s.z + 2, true); ch.items = { torch: 6, bread: 2, copper: 2 };
@@ -16748,13 +16748,13 @@ const Campaign = (() => {
     const drift = (sg) => { // a heading driven on from the end of the gallery: three wide, timbered, ending in a face of broken rock and ore
       for (let d = 9; d <= 15; d++) for (let dz = -2; dz <= 2; dz++) for (let y = bottom - 1; y <= bottom + 3; y++) { const x = X + sg * d, z = Z + dz; const inside = Math.abs(dz) <= 1 && y >= bottom && y <= bottom + 2 && d < 15;
         set(x, y, z, inside ? B.AIR : (y >= bottom && ore(x, y, z)) || B.STONE); }
-      for (const d of [10, 13]) { for (let y = bottom; y <= bottom + 1; y++) for (const dz of [-1, 1]) set(X + sg * d, y, Z + dz, B.LOG); for (let dz = -1; dz <= 1; dz++) set(X + sg * d, bottom + 2, Z + dz, B.PLANKS); }
+      for (const d of [10, 13]) { for (let y = bottom; y <= bottom + 1; y++) for (const dz of [-1, 1]) set(X + sg * d, y, Z + dz, B.BEAM); for (let dz = -1; dz <= 1; dz++) set(X + sg * d, bottom + 2, Z + dz, B.PLANKS); }
       set(X + sg * 14, bottom, Z, B.RUBBLE); set(X + sg * 14, bottom, Z + 1, B.RUBBLE); set(X + sg * 14, bottom + 1, Z + 1, sg > 0 ? B.GOLD : B.EMBER); set(X + sg * 15, bottom + 1, Z, sg > 0 ? B.GOLD : B.VOID); set(X + sg * 15, bottom, Z - 1, B.COPPER); set(X + sg * 12, bottom + 1, Z - 1, B.TORCH); };
     drift(-1); drift(1);
     for (let dx = -13; dx <= 12; dx++) { const x = X + dx; if (!air(x, bottom, Z - 2) && Math.abs(dx) < 9) continue; const z = Math.abs(dx) >= 9 ? Z : Z - 2; if (Math.abs(dx) === 9) { set(x, bottom, Z - 1, B.RAIL); } if (air(x, bottom, z)) set(x, bottom, z, dx === -11 || dx === 5 ? B.CART : B.RAIL); } // the tub road: along the north side of the gallery, turning into each drift
     for (const dx of [-6, -2, 2, 6]) if (air(X + dx, bottom + 2, Z + 2)) set(X + dx, bottom + 2, Z + 2, B.TORCH);
     for (const [dx, dz] of [[-8, 3], [8, -3]]) if (air(X + dx, bottom, Z + dz)) set(X + dx, bottom, Z + dz, B.LAMP);
-    for (const [dx, dz, id] of [[-7, 3, B.LOG], [-6, 3, B.LOG], [5, 3, B.CHEST]]) if (air(X + dx, bottom, Z + dz)) set(X + dx, bottom, Z + dz, id);
+    for (const [dx, dz, id] of [[-7, 3, B.BEAM], [-6, 3, B.BEAM], [5, 3, B.CHEST]]) if (air(X + dx, bottom, Z + dz)) set(X + dx, bottom, Z + dz, id);
   }
   function stampDiver(s) {
     world.ensureAround(Math.floor(s.x / CH), Math.floor(s.z / CH), 1, 99);
@@ -16924,6 +16924,7 @@ const Campaign = (() => {
     tick += dt; if (tick > 0.4) { tick = 0;
       if (near(S.mine, p, 90) && !c.st_mine) { c.st_mine = true; stampMine(S.mine); G.meshPass(99); }
       if (near(S.mine, p, 90) && c.st_mine && !c.mineLook1) { c.mineLook1 = true; dressMine(S.mine); G.meshPass(99); }
+      else if (near(S.mine, p, 90) && c.st_mine && !c.mineBeams) { c.mineBeams = true; const m = S.mine, h0 = world.colInfo(m.x, m.z).h; for (let dx = -16; dx <= 16; dx++) for (let dz = -9; dz <= 9; dz++) for (let y = 8; y < h0 - 2; y++) if (world.getBlock(m.x + dx, y, m.z + dz) === B.LOG) set(m.x + dx, y, m.z + dz, B.BEAM); G.meshPass(99); } /* worlds stamped with log props underground: they drew as tree roots. Timber beams now */
       else if (near(S.mine, p, 90) && c.st_mine && !c.mineShaftFix2) { c.mineShaftFix2 = true; const m = S.mine; openShaft(m, Math.max(18, world.colInfo(m.x, m.z).h - 26)); G.meshPass(99); } // worlds stamped before the fix: the plug over the shaft comes out
       if (S.diver && near(S.diver, p, 90) && !c.st_diver) { c.st_diver = true; stampDiver(S.diver); G.meshPass(99); }
       else if (S.diver && near(S.diver, p, 60) && c.st_diver && pierWays(S.diver)) G.meshPass(99); // keeps the pier ladders whole, old worlds included (terrain can fill in after the stamp)
@@ -23251,6 +23252,8 @@ G.travel = function (targetId) {
   this.save();
 };
 G.LAND_REACH = 6;
+/* where the parked Starlark sits: on the highest ground under her hull, so a slope or a lump of rock never comes up through her */
+G.parkY = function (x, z, from) { const w = this.world; let top = -1; for (const [dx, dz] of [[0, 0], [1.5, 0], [-1.5, 0], [0, 1.5], [0, -1.5], [1.2, 1.2], [-1.2, 1.2], [1.2, -1.2], [-1.2, -1.2]]) top = Math.max(top, w.groundY(Math.floor(x + dx), Math.floor(z + dz), Math.floor(from))); return top + 1; };
 G.landHeight = function () { const p = this.player; return p.y - (this.world.groundY(Math.floor(p.x), Math.floor(p.z), Math.floor(p.y) + 1) + 1); };
 G.boardShip = function () {
   const p = this.player;
@@ -23451,7 +23454,7 @@ G.loop = function (t) {
   /* the Starlark. Professor Finch built ships for an observatory before he built them for anyone else, and it shows: a cream hull banded in brass, a
      domed canopy that swings up on its hinge, feathered wings like the bird she is named for, a telescope slung under the nose, three engine bells.
      You climb in and the canopy shuts; from then on it is the ship you see, not him. Parked, the canopy stands open */
-  if (this._wasFly === this.worldId && !p.flying && !this.shipPark && !p.dead && !(typeof Cine !== 'undefined' && Cine.active())) { const gy0 = w.groundY(Math.floor(p.x), Math.floor(p.z), p.y + 2); if (Math.abs(gy0 + 1 - p.y) < 3) { this.shipPark = { t0: performance.now(), until: performance.now() + 6000, x: p.x, y: gy0 + 0.5, z: p.z, yaw: p.yaw + Math.PI }; const f1 = U.forwardVec(p.yaw + Math.PI / 2, 0), nx = p.x + f1[0] * 2.4, nz = p.z + f1[2] * 2.4, ny = w.groundY(Math.floor(nx), Math.floor(nz), p.y + 2); if (Math.abs(ny - gy0) < 2) { p.x = nx; p.z = nz; p.y = ny + 1.2; } } } /* landed: the canopy swings up, you are standing beside her, and she stays a few breaths before she is stowed */
+  if (this._wasFly === this.worldId && !p.flying && !this.shipPark && !p.dead && !(typeof Cine !== 'undefined' && Cine.active())) { const gy0 = w.groundY(Math.floor(p.x), Math.floor(p.z), p.y + 2); if (Math.abs(gy0 + 1 - p.y) < 3) { this.shipPark = { t0: performance.now(), until: performance.now() + 6000, x: p.x, y: this.parkY(p.x, p.z, p.y + 2), z: p.z, yaw: p.yaw + Math.PI }; const f1 = U.forwardVec(p.yaw + Math.PI / 2, 0), nx = p.x + f1[0] * 2.4, nz = p.z + f1[2] * 2.4, ny = w.groundY(Math.floor(nx), Math.floor(nz), p.y + 2); if (Math.abs(ny - gy0) < 2) { p.x = nx; p.z = nz; p.y = ny + 1.2; } } } /* landed: the canopy swings up, you are standing beside her, and she stays a few breaths before she is stowed */
   this._wasFly = p.flying ? this.worldId : null;
   { const board = this.shipBoard, park = this.shipPark, now2 = performance.now(); if (park && now2 > park.until) this.shipPark = null;
     if (p.flying || board || this.shipPark) { const open = board ? Math.min(1, (now2 - board.t0) / 350) * (now2 - board.t0 > 1050 ? Math.max(0, 1 - (now2 - board.t0 - 1050) / 300) : 1) : this.shipPark ? Math.min(1, (now2 - this.shipPark.t0) / 400) : 0, ok = open > 0.5 ? 1 : 0;
@@ -23600,7 +23603,7 @@ G.shipTravel = function (target) {
   const beats = [{ orbit: { x: p.x, y: p.y, z: p.z, r: [8, 11], h: [1.5, 3.5], a: [p.yaw + 2.2, p.yaw + 3.9], ly: 0.5 }, plain: true, secs: firstOut ? 10 : 3, title: firstOut ? 'The Starlark leaves ' + NAME[from] : null, shake: 0.5, sfx: 'fuse', flash: firstOut ? OUT[from] : null },
     { orbit: { x: p.x, y: p.y, z: p.z, r: [11, 40], h: [3.5, -14], a: [p.yaw + 3.9, p.yaw + 4.5], ly: 0.5 }, secs: firstOut ? 3.5 : 1.8, glow: 'gold', shake: 0.8 },
     { run: () => { crossed = true; setTimeout(() => { if (this.worldId === target) return; this.travel(target); const q = this.player; q.flying = true; q.y += 3.2; q.vy = 0; arr.orbit.x = q.x; arr.orbit.y = q.y; arr.orbit.z = q.z; arr.orbit.a = [q.yaw + 0.6, q.yaw + 2.6]; Cine.play([arr], land); }, 0); } }]; /* setting up a world clears any film, so the arrival is a film of its own, started on the far side */ /* the world is swapped between two frames, never in the middle of one */
-  let crossed = false; const land = () => { if (this.worldId !== target) { this.travel(target); } const q = this.player; if (this.worldId === target && !q.flying && !this.shipPark) { q.flying = true; } if (q.flying) { const gy = this.world.groundY(Math.floor(q.x), Math.floor(q.z)); q.flying = false; q.vy = 0; this.shipPark = { t0: performance.now(), until: performance.now() + 6000, x: q.x, y: gy + 0.5, z: q.z, yaw: q.yaw + Math.PI }; const f = U.forwardVec(q.yaw + Math.PI / 2, 0); q.x += f[0] * 2.4; q.z += f[2] * 2.4; q.y = this.world.groundY(Math.floor(q.x), Math.floor(q.z)) + 1.2; } };
+  let crossed = false; const land = () => { if (this.worldId !== target) { this.travel(target); } const q = this.player; if (this.worldId === target && !q.flying && !this.shipPark) { q.flying = true; } if (q.flying) { const gy = this.world.groundY(Math.floor(q.x), Math.floor(q.z)); q.flying = false; q.vy = 0; this.shipPark = { t0: performance.now(), until: performance.now() + 6000, x: q.x, y: this.parkY(q.x, q.z, gy + 3), z: q.z, yaw: q.yaw + Math.PI }; const f = U.forwardVec(q.yaw + Math.PI / 2, 0); q.x += f[0] * 2.4; q.z += f[2] * 2.4; q.y = this.world.groundY(Math.floor(q.x), Math.floor(q.z)) + 1.2; } };
   if (typeof Cine === 'undefined' || !Cine.play(beats, () => { if (!crossed) { crossed = true; setTimeout(land, 0); } })) { this.fadeTravel(target); } /* skipped before the crossing: go anyway, and land */
 };
 /* resting passes the time. A short film runs the sky on from now to when you wake, and the world is at that hour when it ends: sleep through the dark and it is dawn, rest by day and a couple of hours have gone */

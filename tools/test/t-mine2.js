@@ -1,11 +1,10 @@
 const { open } = require('./harness');
-(async () => { const h = await open(); const { page, ev } = h; await h.newGame('look-1'); await h.calm();
-  await ev(() => { G.repelUntil = performance.now() + 9e7; G.explain = () => {}; G.world.time = 0.33; G.stats.buddyOff = true; });
-  const chk = await ev(() => { const s = Campaign.sites().mine, w = G.world, p = G.player; p.x = s.x + 0.5; p.z = s.z + 6.5; w.ensureAround(Math.floor(s.x / CH), Math.floor(s.z / CH), 3, 9999); p.y = w.groundY(Math.floor(p.x), Math.floor(p.z)) + 2; for (let i = 0; i < 6; i++) Campaign.update(1, p);
-    const y0 = s.y0, bt = s.bottom; let ladder = true; for (let y = bt; y <= y0; y++) if (w.getBlock(s.x, y, s.z + 1) !== B.LADDER) ladder = false; let shaft = true; for (let y = bt; y <= y0 + 3; y++) for (let a = -1; a <= 1; a++) for (let b = -1; b <= 0; b++) if (BLOCKS[w.getBlock(s.x + a, y, s.z + b)].solid) shaft = false;
-    return 'ladderWhole=' + ladder + ' shaftClear=' + shaft + ' look=' + !!Campaign.C().mineLook1 + ' y0=' + y0 + ' bottom=' + bt; });
-  console.log(chk);
-  for (const [nm, ox, oz, up, under, tx, tz] of [['mine-top', -9, 11, 5, false, -2, 0], ['mine-gal', 4, 0, 1.7, true, -9, -1], ['mine-drift', -8, 1, 1.7, true, -15, 0]]) {
-    await ev(([ox, oz, up, under, tx, tz]) => { const s = Campaign.sites().mine, p = G.player, w = G.world; p.frozen = true; G.thirdPerson = false; const by = under ? s.bottom : s.y0; p.x = s.x + ox + 0.5; p.z = s.z + oz + 0.5; p.y = by + up; p.yaw = Math.atan2(-(s.x + tx - p.x), -(s.z + tz - p.z)); p.pitch = under ? -0.05 : -0.12; G.meshPass(999); document.getElementById('toasts').innerHTML = ''; }, [ox, oz, up, under, tx, tz]);
-    await page.waitForTimeout(3000); await page.screenshot({ path: (process.env.OUT || '/home/claude/') + nm + '.png' }); }
-  console.log('ERRORS:', h.errors.length ? h.errors.slice(0, 3).join('\n') : 'none'); await h.close(); })();
+(async () => { const h = await open(); const { page, ev } = h; await h.newGame('look-3', 0); await h.calm();
+  const m = await ev(() => { const S = Campaign.sites ? (typeof Campaign.sites === 'function' ? Campaign.sites() : Campaign.sites) : null; const m = S.mine; const p = G.player; G.repelUntil = performance.now() + 9e7; G.world.time = 0.45; p.x = m.x + 12; p.z = m.z + 0.5; G.world.ensureAround(Math.floor(p.x / CH), Math.floor(p.z / CH), 3, 99999); p.y = G.world.groundY(Math.floor(p.x), Math.floor(p.z)) + 1; return { x: m.x, z: m.z, h: G.world.colInfo(m.x, m.z).h }; });
+  console.log('mine', JSON.stringify(m)); await page.waitForTimeout(5000);
+  const r = await ev((m) => { const w = G.world, c = Campaign.C || {}; let bottom = null; for (let y = m.h - 3; y > 8; y--) if (w.getBlock(m.x + 2, y, m.z - 3) === B.BEAM && w.getBlock(m.x + 2, y - 1, m.z - 3) !== B.BEAM) { bottom = y; break; } let logs = 0; for (let dx = -16; dx <= 16; dx++) for (let dz = -9; dz <= 9; dz++) for (let y = 8; y < m.h - 2; y++) if (w.getBlock(m.x + dx, y, m.z + dz) === B.LOG) logs++;
+    const p = G.player; if (bottom != null) { p.x = m.x - 4 + 0.5; p.z = m.z + 0.5; p.y = bottom + 0.05; p.vy = 0; p.yaw = -Math.PI / 2; p.pitch = 0; } p.add('torch', 1); const i = p.hotbar().indexOf('torch'); if (i >= 0) p.sel = i; G.thirdPerson = false; if (G.meshPass) G.meshPass(999); return { bottom, logs }; }, m);
+  console.log('gal', JSON.stringify(r)); await page.waitForTimeout(3000);
+  await page.screenshot({ path: '/home/claude/scratch/mine2-1.png', timeout: 150000 });
+  await ev(() => { G.player.yaw = Math.PI / 2; }); await page.waitForTimeout(1500); await page.screenshot({ path: '/home/claude/scratch/mine2-2.png', timeout: 150000 });
+  console.log('ERRORS:', h.errors.slice(0, 4).join(' | ') || 'none'); await h.close(); })();

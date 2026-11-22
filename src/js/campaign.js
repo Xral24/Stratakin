@@ -76,7 +76,7 @@ const Campaign = (() => {
   // the shaft has to come out through the gallery ceiling, and its ladder has to reach the gallery floor, or you drop in and cannot climb out
   function openShaft(s, bottom) {
     for (let dx = -1; dx <= 1; dx++) for (let dz = -1; dz <= 1; dz++) set(s.x + dx, bottom + 4, s.z + dz, B.AIR);
-    for (let y = bottom; y <= bottom + 4; y++) { set(s.x, y, s.z + 1, B.LADDER); if (y <= bottom + 3) set(s.x, y, s.z + 2, B.LOG); } // a beam behind the bottom of it, so it reads as one ladder down to the floor
+    for (let y = bottom; y <= bottom + 4; y++) { set(s.x, y, s.z + 1, B.LADDER); if (y <= bottom + 3) set(s.x, y, s.z + 2, B.BEAM); } // a beam behind the bottom of it, so it reads as one ladder down to the floor
   }
   function stampMine(s) {
     world.ensureAround(Math.floor(s.x / CH), Math.floor(s.z / CH), 1, 99);
@@ -90,7 +90,7 @@ const Campaign = (() => {
     // the shaft: 3x3, iron-lined, a ladder down one side to the gallery
     const bottom = Math.max(18, y0 - 26);
     for (let y = y0; y >= bottom; y--) for (let dx = -2; dx <= 2; dx++) for (let dz = -2; dz <= 2; dz++) {
-      const edge = Math.abs(dx) === 2 || Math.abs(dz) === 2; if (edge) { if (y < y0) set(s.x + dx, y, s.z + dz, (y % 5 === 0) ? B.LOG : B.STONE); } else set(s.x + dx, y, s.z + dz, B.AIR);
+      const edge = Math.abs(dx) === 2 || Math.abs(dz) === 2; if (edge) { if (y < y0) set(s.x + dx, y, s.z + dz, (y % 5 === 0) ? B.BEAM : B.STONE); } else set(s.x + dx, y, s.z + dz, B.AIR);
     }
     for (let y = y0; y >= bottom + 1; y--) set(s.x, y, s.z + 1, B.LADDER);
     for (let y = y0 - 4; y >= bottom; y -= 6) set(s.x - 1, y, s.z - 1, B.TORCH);
@@ -101,7 +101,7 @@ const Campaign = (() => {
       if (wall) { const r = U.hash3(X, y, Z, 0x0E); set(X, y, Z, r < 0.12 ? B.COPPER : r < 0.2 ? B.IRON : r < 0.24 ? B.EMBER : r < 0.255 ? B.VOID : B.STONE); }
       else set(X, y, Z, B.AIR);
     }
-    for (const dx of [-6, -2, 2, 6]) { for (let y = bottom; y <= bottom + 3; y++) { set(s.x + dx, y, s.z - 3, B.LOG); set(s.x + dx, y, s.z + 3, B.LOG); } for (let dz = -3; dz <= 3; dz++) set(s.x + dx, bottom + 3, s.z + dz, B.PLANKS); set(s.x + dx, bottom + 2, s.z - 2, B.TORCH); }
+    for (const dx of [-6, -2, 2, 6]) { for (let y = bottom; y <= bottom + 3; y++) { set(s.x + dx, y, s.z - 3, B.BEAM); set(s.x + dx, y, s.z + 3, B.BEAM); } for (let dz = -3; dz <= 3; dz++) set(s.x + dx, bottom + 3, s.z + dz, B.PLANKS); set(s.x + dx, bottom + 2, s.z - 2, B.TORCH); }
     openShaft(s, bottom);
     set(s.x + 7, bottom, s.z + 2, B.CHEST); set(s.x + 7, bottom, s.z + 1, B.CHEST);
     const ch = G.chestAt(s.x + 7, bottom, s.z + 2, true); ch.items = { torch: 6, bread: 2, copper: 2 };
@@ -132,13 +132,13 @@ const Campaign = (() => {
     const drift = (sg) => { // a heading driven on from the end of the gallery: three wide, timbered, ending in a face of broken rock and ore
       for (let d = 9; d <= 15; d++) for (let dz = -2; dz <= 2; dz++) for (let y = bottom - 1; y <= bottom + 3; y++) { const x = X + sg * d, z = Z + dz; const inside = Math.abs(dz) <= 1 && y >= bottom && y <= bottom + 2 && d < 15;
         set(x, y, z, inside ? B.AIR : (y >= bottom && ore(x, y, z)) || B.STONE); }
-      for (const d of [10, 13]) { for (let y = bottom; y <= bottom + 1; y++) for (const dz of [-1, 1]) set(X + sg * d, y, Z + dz, B.LOG); for (let dz = -1; dz <= 1; dz++) set(X + sg * d, bottom + 2, Z + dz, B.PLANKS); }
+      for (const d of [10, 13]) { for (let y = bottom; y <= bottom + 1; y++) for (const dz of [-1, 1]) set(X + sg * d, y, Z + dz, B.BEAM); for (let dz = -1; dz <= 1; dz++) set(X + sg * d, bottom + 2, Z + dz, B.PLANKS); }
       set(X + sg * 14, bottom, Z, B.RUBBLE); set(X + sg * 14, bottom, Z + 1, B.RUBBLE); set(X + sg * 14, bottom + 1, Z + 1, sg > 0 ? B.GOLD : B.EMBER); set(X + sg * 15, bottom + 1, Z, sg > 0 ? B.GOLD : B.VOID); set(X + sg * 15, bottom, Z - 1, B.COPPER); set(X + sg * 12, bottom + 1, Z - 1, B.TORCH); };
     drift(-1); drift(1);
     for (let dx = -13; dx <= 12; dx++) { const x = X + dx; if (!air(x, bottom, Z - 2) && Math.abs(dx) < 9) continue; const z = Math.abs(dx) >= 9 ? Z : Z - 2; if (Math.abs(dx) === 9) { set(x, bottom, Z - 1, B.RAIL); } if (air(x, bottom, z)) set(x, bottom, z, dx === -11 || dx === 5 ? B.CART : B.RAIL); } // the tub road: along the north side of the gallery, turning into each drift
     for (const dx of [-6, -2, 2, 6]) if (air(X + dx, bottom + 2, Z + 2)) set(X + dx, bottom + 2, Z + 2, B.TORCH);
     for (const [dx, dz] of [[-8, 3], [8, -3]]) if (air(X + dx, bottom, Z + dz)) set(X + dx, bottom, Z + dz, B.LAMP);
-    for (const [dx, dz, id] of [[-7, 3, B.LOG], [-6, 3, B.LOG], [5, 3, B.CHEST]]) if (air(X + dx, bottom, Z + dz)) set(X + dx, bottom, Z + dz, id);
+    for (const [dx, dz, id] of [[-7, 3, B.BEAM], [-6, 3, B.BEAM], [5, 3, B.CHEST]]) if (air(X + dx, bottom, Z + dz)) set(X + dx, bottom, Z + dz, id);
   }
   function stampDiver(s) {
     world.ensureAround(Math.floor(s.x / CH), Math.floor(s.z / CH), 1, 99);
@@ -308,6 +308,7 @@ const Campaign = (() => {
     tick += dt; if (tick > 0.4) { tick = 0;
       if (near(S.mine, p, 90) && !c.st_mine) { c.st_mine = true; stampMine(S.mine); G.meshPass(99); }
       if (near(S.mine, p, 90) && c.st_mine && !c.mineLook1) { c.mineLook1 = true; dressMine(S.mine); G.meshPass(99); }
+      else if (near(S.mine, p, 90) && c.st_mine && !c.mineBeams) { c.mineBeams = true; const m = S.mine, h0 = world.colInfo(m.x, m.z).h; for (let dx = -16; dx <= 16; dx++) for (let dz = -9; dz <= 9; dz++) for (let y = 8; y < h0 - 2; y++) if (world.getBlock(m.x + dx, y, m.z + dz) === B.LOG) set(m.x + dx, y, m.z + dz, B.BEAM); G.meshPass(99); } /* worlds stamped with log props underground: they drew as tree roots. Timber beams now */
       else if (near(S.mine, p, 90) && c.st_mine && !c.mineShaftFix2) { c.mineShaftFix2 = true; const m = S.mine; openShaft(m, Math.max(18, world.colInfo(m.x, m.z).h - 26)); G.meshPass(99); } // worlds stamped before the fix: the plug over the shaft comes out
       if (S.diver && near(S.diver, p, 90) && !c.st_diver) { c.st_diver = true; stampDiver(S.diver); G.meshPass(99); }
       else if (S.diver && near(S.diver, p, 60) && c.st_diver && pierWays(S.diver)) G.meshPass(99); // keeps the pier ladders whole, old worlds included (terrain can fill in after the stamp)

@@ -773,7 +773,7 @@ class World {
     const cx = Math.floor(x / CH), cz = Math.floor(z / CH);
     const c = this.getChunk(cx, cz, true);
     const base = ((x - cx * CH) * CH + (z - cz * CH)) * WH;
-    for (let y = Math.min(WH - 1, fromY); y > 0; y--) { const b = c.blocks[base + y]; if (isSolid(b) && !isLeaf(b)) return y; }
+    for (let y = Math.min(WH - 1, Math.floor(fromY)); y > 0; y--) { const b = c.blocks[base + y]; if (isSolid(b) && !isLeaf(b)) return y; } /* a height off a slope is not a whole block: floor it, or the lookup reads past the column and every frame after touchdown throws */
     return 0;
   }
   /* the top of whatever is solid over your head, with tree crowns and open air taken off */
