@@ -18,3 +18,11 @@ open(f'{out}/index.html', 'w').write(html)
 shutil.copy(os.path.join(root, 'tools', 'single', 'sw.js'), f'{out}/sw.js')
 shutil.copy(f'{src}/icon-180.png', f'{out}/icon-180.png')
 print('dist-single/index.html bytes', os.path.getsize(f'{out}/index.html'))
+
+# model files (Higgsfield GLBs, slimmed) travel with the page: src/assets -> assets/ beside index.html
+import shutil as _sh
+_a = os.path.join(src, 'assets')
+if os.path.isdir(_a):
+    _d = os.path.join(out, 'assets'); os.makedirs(_d, exist_ok=True)
+    for _f in os.listdir(_a): _sh.copy(os.path.join(_a, _f), os.path.join(_d, _f))
+    print('assets', sorted(os.listdir(_d)))

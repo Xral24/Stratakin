@@ -4923,6 +4923,9 @@ const GLB = (() => {
     const g = model.g, nodes = g.nodes, T = model._T || (model._T = nodes.map(n => n.t.slice())), R = model._R || (model._R = nodes.map(n => n.r.slice())), S = model._S || (model._S = nodes.map(n => n.s.slice()));
     for (let i = 0; i < nodes.length; i++) { const n = nodes[i]; T[i][0] = n.t[0]; T[i][1] = n.t[1]; T[i][2] = n.t[2]; R[i][0] = n.r[0]; R[i][1] = n.r[1]; R[i][2] = n.r[2]; R[i][3] = n.r[3]; S[i][0] = n.s[0]; S[i][1] = n.s[1]; S[i][2] = n.s[2]; }
     if (clip) { const tt = clip.dur > 0 ? t % clip.dur : 0; for (const ch of clip.ch) sample(ch, tt, ch.path === 'translation' ? T[ch.node] : ch.path === 'rotation' ? R[ch.node] : S[ch.node]); }
+    if (!clip && model.spine && model.spine.length) { const tt = t * 1.0, a = Math.sin(tt * 1.7) * 0.022, b = Math.sin(tt * 0.9 + 1.3) * 0.016; /* standing, breathing: the spine leans a touch forward and back and side to side */
+      for (const j of model.spine) { const q = R[j], sx = Math.sin(a / model.spine.length), cx = Math.cos(a / model.spine.length), sz = Math.sin(b / model.spine.length), cz = Math.cos(b / model.spine.length);
+        let x = q[0], y = q[1], z = q[2], w = q[3]; [x, y, z, w] = [w * sx + x * cx, y * cx + z * sx, z * cx - y * sx, w * cx - x * sx]; R[j] = [x * cz + y * sz, y * cz - x * sz, w * sz + z * cz, w * cz - z * sz]; } }
     if (nod && model.head != null) { const q = R[model.head], a = nod * 0.5, sx = Math.sin(a), cx = Math.cos(a), x = q[0], y = q[1], z = q[2], w = q[3]; R[model.head] = [w * sx + x * cx, y * cx + z * sx, z * cx - y * sx, w * cx - x * sx]; } /* a nod on top of whatever the clip is doing */
     const Wm = model._W || (model._W = nodes.map(() => new Float32Array(16))), L = model._L || (model._L = new Float32Array(16));
     for (const i of g.order) { const n = nodes[i]; if (n.m) L.set(n.m); else compose(T[i], R[i], S[i], L); if (n.parent < 0) Wm[i].set(L); else mul(Wm[n.parent], L, Wm[i]); }
@@ -4935,7 +4938,7 @@ const GLB = (() => {
     const Wm = posed(model, clip, t, st.nod ? Math.sin(now / 95) * 0.08 * st.nod : 0), tmp = model._tmp || (model._tmp = new Float32Array(16));
     for (let s = 0; s < model.grp.keep.length; s++) { const k = model.grp.keep[s]; mul(Wm[g.skin.joints[k]], g.skin.ibm[k], tmp); mul(model.Nm, tmp, model._tmp2 || (model._tmp2 = new Float32Array(16))); mats.set(model._tmp2, s * 16); }
     return out; }
-  function pickClip(model, st) { const A = model.g.anims; if (!A.length) return null; const want = st.clip; if (want == null) return A[0]; if (typeof want === 'number') return A[want] || A[0];
+  function pickClip(model, st) { const A = model.g.anims; if (!A.length || st.clip === false) return null; const want = st.clip; /* clip false: the rest pose */ if (want == null) return A[0]; if (typeof want === 'number') return A[want] || A[0];
     const w = String(want).toLowerCase(); return A.find(a => a.name.toLowerCase().includes(w)) || A[0]; }
 
   // ---- building and registering a model ----
@@ -4949,7 +4952,8 @@ const GLB = (() => {
     const rad = Math.hypot((x1 - x0) / 2, y1 - y0, (z1 - z0) / 2) * s;
     const mesh = R.glbUpload({ P: g.P, N: g.N, T: g.T, C: g.C, bone: grp.bone, bone2: grp.bone2, IX: g.IX, image: g.image, maxTex: opts.maxTex || (G.mobile ? 1024 : 2048) }); if (mesh) mesh.rad = rad;
     let head = null; if (g.skin) { const hk = g.skin.joints.find(n => /head/i.test(g.nodes[n].name) && !/top|end|nub/i.test(g.nodes[n].name)); head = hk == null ? null : hk; }
-    const model = { name, g, grp, Nm, mesh, height: (y1 - y0) * s, head, clips: g.anims.map(a => a.name), tris: g.IX.length / 3 };
+    const spine = g.skin ? g.skin.joints.filter(n => /spine|chest/i.test(g.nodes[n].name)) : [];
+    const model = { name, g, grp, Nm, mesh, height: (y1 - y0) * s, head, spine, clips: g.anims.map(a => a.name), tris: g.IX.length / 3 };
     registry.set(name, model); return model; }
   function fromBuffer(name, buf, opts) { try { return build(name, buf, opts); } catch (err) { console.warn('GLB ' + name + ': ' + err.message); return null; } }
   function load(name, url, opts) { if (registry.has(name)) return Promise.resolve(registry.get(name)); if (pending.has(name)) return pending.get(name);
@@ -4961,14 +4965,14 @@ const GLB = (() => {
   /* the cast: who wears a model from a file, and where the file is. A name here with no file yet is ignored, so nothing is fetched that is not
      shipped. Each figure is dressed by its name as it is drawn; its own box model stays for portraits, collisions and everything else */
   const CAST = {
-    finch: { names: ['Professor Finch', 'Professor Aldous Finch'], file: null, height: 1.95 },
+    finch: { names: ['Professor Finch', 'Professor Aldous Finch'], file: 'assets/finch.glb', height: 1.95, turn: -Math.PI / 2, clip: false }, /* Tripo made him facing +x; his rig's idle clip was fitted sideways, so he breathes in code instead */
   };
   const byName = new Map(); for (const [k, c] of Object.entries(CAST)) for (const n of c.names) byName.set(n, k);
   let booted = false;
-  function boot() { if (booted) return; booted = true; for (const [k, c] of Object.entries(CAST)) if (c.file) load(k, c.file, { height: c.height }); }
+  function boot() { if (booted) return; booted = true; for (const [k, c] of Object.entries(CAST)) if (c.file) load(k, c.file, { height: c.height, turn: c.turn || 0 }); }
   function dressAll(ents) { if (!booted) boot(); if (!registry.size) return;
     for (const e of ents) { if (!e) continue; const o = e.src || e, k = byName.get(o.name || e.name); if (!k || !registry.has(k)) continue;
-      const st = o._glb || (o._glb = { name: k, t0: performance.now() }); st.nod = (o.talkOpen || 0) > 0.05 ? 1 : 0; /* talking: the head nods along with the words */ e.glb = st; } }
+      const st = o._glb || (o._glb = { name: k, t0: performance.now() - Math.random() * 5000, clip: CAST[k].clip }); st.nod = (o.talkOpen || 0) > 0.05 ? 1 : 0; /* talking: the head nods along with the words */ e.glb = st; } }
   const meshFor = (e) => { const m = e.glb && registry.get(e.glb.name); return m && m.mesh ? m.mesh : e.mesh; };
   return { parse, fromBuffer, load, get, dress, pose, dressAll, meshFor, CAST, get list() { return [...registry.keys()]; } };
 })();

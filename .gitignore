@@ -1,3 +1,5 @@
 node_modules/
 tools/test/*.png
 dist-single/
+art/ref/*.png
+art/models/

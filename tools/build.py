@@ -12,3 +12,11 @@ man = json.load(open(f'{src}/manifest.json')); man['start_url'] = './index.html'
 html = html.replace('<link rel="manifest" href="manifest.json">', '<link rel="manifest" href="data:application/manifest+json,' + urllib.parse.quote(json.dumps(man)) + '">')
 open(os.path.join(root, 'index.html'), 'w').write(html)
 print('index.html', os.path.getsize(os.path.join(root, 'index.html')), 'bytes')
+
+# model files (Higgsfield GLBs, slimmed) travel with the page: src/assets -> assets/ beside index.html
+import shutil as _sh
+_a = os.path.join(src, 'assets')
+if os.path.isdir(_a):
+    _d = os.path.join(root, 'assets'); os.makedirs(_d, exist_ok=True)
+    for _f in os.listdir(_a): _sh.copy(os.path.join(_a, _f), os.path.join(_d, _f))
+    print('assets', sorted(os.listdir(_d)))

@@ -543,6 +543,12 @@ Scope (Alexander, 8 Nov evening): EVERYTHING visible goes to the same standard: 
 - **Slash trails** (`Combat.slashEntity`): a glowing crescent swept in front of you on each swing, drawn additively; sword sweeps across (alternating, slightly tilted), axe chops on a diagonal, spear leaves a flat streak; colour follows the blade (fire orange, frost blue, pierce violet, all gold). Hit sparks were already there.
 - Lighting pass towards the reference pictures is waiting until the pictures can be downloaded (cloudfront host not yet allowed).
 
+## First Higgsfield model in the game: Professor Finch (Nov 22)
+- Downloads opened (cloudfront host allowed). The ten approved reference pictures are kept small in `art/style/` as the style guide; full size stays out of git.
+- Finch: front view (Nano Banana, 2) > Tripo H3.1 model (9) > Meshy rig with idle (8). Tripo made him facing +x, so the cast entry turns him -90 degrees; the rig's idle clip was fitted to the sideways figure and twisted his legs, so his clip is off and he breathes in code (spine sway in `glb.js`) and nods while he talks. Slimmed to 506 KB (9,785 triangles, 1024 JPEG). `GLB.CAST.finch.file = 'assets/finch.glb'`: he wears it at the Starwell, the Mining Camp and his cell.
+- Builds copy `src/assets` beside index.html (repo root for GitHub Pages, `dist-single/` for the artifact, which now ships `assets/finch.glb` too).
+- Front views for the tyrants (Keychain, Stonewall, Bigmouth fixed) and Silas (two rejects for a third hand, third try empty-handed) are made, models next.
+
 ## Still to do
 UI polish as feedback comes in. Card battle screen still used for scripted encounters (raids at the walls, thief, citadel duel, holds) and the snare mini-game; converting those to live is the next big step if wanted. (Old list: train/ships, combat animation, eggs, avatar hair/paint, buddy WEAR cosmetics, Silas and Finch, UI polish (item icons), quality toggles in settings (state.shadows, state.grassQuality, state.dprCap).
 
