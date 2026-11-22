@@ -2,6 +2,9 @@
 
 Nothing here has been started. Alexander says go before any of it is built.
 
+## Hard credit limit (Alexander, 22 Nov 2026)
+**Never spend money.** The budget is the Ultra allowance only: 3,010 credits at the start. Never buy a credit pack, never turn on auto-refill, never upgrade the plan, never accept anything that charges his card. If a step needs more credits than are left, stop and tell him; the answer to spending more is an automatic no. Inside the allowance, use the credits freely and fit everything in. Check `mcp__Higgsfield__balance` before each batch.
+
 ## The look
 Benchmark is the latest Zelda. The look comes mostly from lighting, colour and shapes, so the renderer does most of the work and Higgsfield supplies the 2D art and a small number of 3D models.
 

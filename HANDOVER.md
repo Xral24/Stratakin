@@ -1,6 +1,8 @@
 # Stratakin: handover for the visual redesign
 
 ## Current state (22 Nov 2026): read this before the rest
+- **Hard credit limit:** **Never spend money.** The budget is the Ultra allowance only: 3,010 credits at the start. Never buy a credit pack, never turn on auto-refill, never upgrade the plan, never accept anything that charges his card. If a step needs more credits than are left, stop and tell him; the answer to spending more is an automatic no. Inside the allowance, use the credits freely and fit everything in. Check `mcp__Higgsfield__balance` before each batch.
+
 - **Start with `ART-PLAN.md`.** It is the agreed plan for the new look: Higgsfield for reference pictures, textures, Kin skins and about 40 headline 3D models, everything else in code. Smooth surface on top, cubes once you dig, softened cubes for lava and the Core. Dex cut to about 150 with five dinosaurs. Nothing in it has been built yet; Alexander says go.
 - **Higgsfield is connected** as an MCP connector (tools `mcp__Higgsfield__*`). Alexander is on **Ultra, 3,010 credits** at the start. Check `mcp__Higgsfield__balance` before spending and keep him told what each batch costs.
 - **The "no image assets" rule below is lifted** for Higgsfield art under the plan, but phone limits still apply: keep textures small (512 or 1K, compressed) and slim every model before it goes in.
