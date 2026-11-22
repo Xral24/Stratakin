@@ -19239,8 +19239,10 @@ const UI = (() => {
       const draw = () => {
         const sts = KIN.starters(seed);
         el.starters.innerHTML = `<button class="starter story" data-story="1" style="flex-basis:100%;padding:14px 10px"><b>Begin</b><small>You wake by a brook with no Kin. You will meet these three and choose one yourself.</small></button><div class="small" style="flex-basis:100%;opacity:.7;margin:6px 0 2px">Or skip the opening and take one now:</div>` + sts.map((sp, i) => `<button class="starter" data-i="${i}"><canvas width="96" height="96"></canvas><b>${sp.names[0]}</b><span class="badge" style="background:${ELEM_COLOR[KIN.dominant(sp.elem, 1)[0]]}">${KIN.dominant(sp.elem, 1)[0]}</span><small>${sp.shape}</small></button>`).join('');
+        el.starters.querySelector('[data-story]').insertAdjacentHTML('afterend', `<div class="small" style="flex-basis:100%;opacity:.7;margin:8px 0 2px">Or jump ahead to test (you get the kit and a full party):</div><button class="starter jump" data-jump="moon" style="flex:1 1 45%;padding:12px 8px"><b>Start on the Moon</b><small>The Starwell, Professor Finch, six Kin at level 95.</small></button><button class="starter jump" data-jump="halo" style="flex:1 1 45%;padding:12px 8px"><b>Start on Halo</b><small>Outside the Pit, six Kin at level 150.</small></button>`);
+        el.starters.querySelectorAll('[data-jump]').forEach(b => b.addEventListener('click', () => { const sb = q('s-build'); window.__pickBuild = sb ? sb.value : 'man'; window.__jump = b.dataset.jump; onNew(seed, 0, q('s-name').value || (b.dataset.jump === 'moon' ? 'Moon test' : 'Halo test')); }));
         el.starters.querySelector('[data-story]').addEventListener('click', () => { const sb = q('s-build'); window.__pickBuild = sb ? sb.value : 'man'; onNew(seed, -1, q('s-name').value); });
-        el.starters.querySelectorAll('.starter:not(.story)').forEach((b, i) => { KIN.portrait(b.querySelector('canvas'), sts[i], 1, 96); b.addEventListener('click', () => { const sb = q('s-build'); window.__pickBuild = sb ? sb.value : 'man'; onNew(seed, i, q('s-name').value); }); });
+        el.starters.querySelectorAll('.starter:not(.story):not(.jump)').forEach((b, i) => { KIN.portrait(b.querySelector('canvas'), sts[i], 1, 96); b.addEventListener('click', () => { const sb = q('s-build'); window.__pickBuild = sb ? sb.value : 'man'; onNew(seed, i, q('s-name').value); }); });
       };
       draw();
       q('s-seed').addEventListener('input', () => { seed = seedOf(); draw(); });
@@ -22636,7 +22638,8 @@ G.newWorld = function (seed, starterIdx, name) {
     p.add('torch', 2); if (!story) { p.add('snare', 1); p.add('bread', 1); }
     this.start();
     if (starter) UI.toast(`Welcome to Stratakin. ${KIN.name(starter)} is with you.`, 'good');
-    UI.showTutorial();
+    const jump = typeof window !== 'undefined' && window.__jump; if (jump) { window.__jump = null; const f0 = this.frame || 0; const go = () => { if ((this.frame || 0) < f0 + 3) { setTimeout(go, 200); return; } /* wait until the world is actually running */ try { const t = document.getElementById('tutorial'); if (t) t.classList.add('hidden'); if (jump === 'moon') this.designerMoon(); else this.designerHalo(); } catch (e) { UI.toast('The jump failed: ' + e.message, 'bad'); } }; setTimeout(go, 400); } /* a test start chosen on the way in */
+    else UI.showTutorial();
   }, 30);
 };
 G.continueGame = function (id) {

@@ -522,6 +522,8 @@ Scope (Alexander, 8 Nov evening): EVERYTHING visible goes to the same standard: 
 
 - 22 Nov, eight weak tricks strengthened so they read as a still (his 'whatever needs doing'): scorpion (sting right over, claws wide and bigger), beetles (rear to nearly upright), lava toad (nearly twice as wide), rhino (head right down, tail up), shoebill (deep bow, wings half out), emu line (much taller, wings out), aye-aye line (bent over, ear to the ground), tar hound (hackles up, half as big again). Photographed with the five missed before (phoenix, lion, unicorn, ram, jelly): kin-sheet-4.png. Lion and ram are still slight.
 
+- 22 Nov, test starts on the start screen (his words: he could not see Land on the Moon anywhere at the beginning; the buttons were buried at the bottom of the in-game menu). New world screen now has **Start on the Moon** and **Start on Halo** under Begin: a new world is made, then the designer jump runs once the world is ticking (`window.__jump`, waits for 3 frames). Test `t-jump3.js`.
+
 ## Still to do
 UI polish as feedback comes in. Card battle screen still used for scripted encounters (raids at the walls, thief, citadel duel, holds) and the snare mini-game; converting those to live is the next big step if wanted. (Old list: train/ships, combat animation, eggs, avatar hair/paint, buddy WEAR cosmetics, Silas and Finch, UI polish (item icons), quality toggles in settings (state.shadows, state.grassQuality, state.dprCap).
 

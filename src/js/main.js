@@ -90,7 +90,8 @@ G.newWorld = function (seed, starterIdx, name) {
     p.add('torch', 2); if (!story) { p.add('snare', 1); p.add('bread', 1); }
     this.start();
     if (starter) UI.toast(`Welcome to Stratakin. ${KIN.name(starter)} is with you.`, 'good');
-    UI.showTutorial();
+    const jump = typeof window !== 'undefined' && window.__jump; if (jump) { window.__jump = null; const f0 = this.frame || 0; const go = () => { if ((this.frame || 0) < f0 + 3) { setTimeout(go, 200); return; } /* wait until the world is actually running */ try { const t = document.getElementById('tutorial'); if (t) t.classList.add('hidden'); if (jump === 'moon') this.designerMoon(); else this.designerHalo(); } catch (e) { UI.toast('The jump failed: ' + e.message, 'bad'); } }; setTimeout(go, 400); } /* a test start chosen on the way in */
+    else UI.showTutorial();
   }, 30);
 };
 G.continueGame = function (id) {
