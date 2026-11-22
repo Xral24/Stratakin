@@ -1,5 +1,5 @@
 // Offline cache: every file of the game is stored on first load, so the installed app runs without a connection.
-const VERSION = 'stratakin-v10';
+const VERSION = 'stratakin-v11';
 const FILES = ['./', './index.html', './style.css', './manifest.json', './icon-192.png', './icon-512.png', './icon-180.png',
   './js/util.js', './js/world.js', './js/render.js', './js/glb.js', './js/player.js', './js/controls.js', './js/kin.js', './js/weather.js', './js/wild.js', './js/village.js', './js/battle.js', './js/quests.js', './js/fishing.js', './js/music.js', './js/ui.js', './js/main.js', './js/saves.js', './js/hazards.js', './js/npcs.js', './js/camps.js', './js/mer.js', './js/lab.js', './js/avatar.js'];
 self.addEventListener('install', (e) => { e.waitUntil(caches.open(VERSION).then(c => c.addAll(FILES)).then(() => self.skipWaiting())); });

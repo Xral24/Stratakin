@@ -1969,6 +1969,10 @@ const R = (() => {
   ${TONE}
   /*SHADOW*/
   varying vec4 vCol; varying vec3 vWorld; varying float vMat; varying vec3 vN;
+  /* the painted ground (art made on Higgsfield, assets/g_*.jpg): grass, sand, rock, earth and water, each a picture that repeats. uGT is 1 once all five are in; uGM0..4 are their average colours */
+  uniform sampler2D uTG; uniform sampler2D uTS; uniform sampler2D uTR; uniform sampler2D uTE; uniform sampler2D uTW; uniform float uGT; uniform vec3 uGM0; uniform vec3 uGM1; uniform vec3 uGM2; uniform vec3 uGM3; uniform vec3 uGM4;
+  vec3 gtex(sampler2D s, vec2 p){ vec3 a = texture2D(s, p).rgb, b = texture2D(s, p * 0.37 + vec2(0.31, 0.57)).rgb; float k = 0.5 + 0.5 * sin(p.x * 0.9 + sin(p.y * 0.7) * 1.7) * sin(p.y * 0.8 + 1.3); return mix(a, b, k * 0.6); } /* the same picture at two sizes, one fading into the other in drifts, so the eye finds no grid */
+  vec3 gpaint(vec3 c, vec3 t, vec3 m, float own){ float lc = dot(c, vec3(0.3, 0.59, 0.11)), lm = max(dot(m, vec3(0.3, 0.59, 0.11)), 0.05); return mix(c * t / max(m, vec3(0.05)), t * (lc / lm), own); } /* the land keeps its own colour (a biome's tint, a season) and takes the brushwork of the picture; own is how much of the picture's own colour comes with it */
   uniform vec3 uCam; uniform float uDay; uniform vec3 uFog; uniform float uFogNear; uniform float uFogFar; uniform float uAmbient; uniform float uFogSky; uniform float uCoreGlow; uniform vec4 uMist;
   uniform vec3 uLights[8]; uniform float uLightR[8]; uniform float uAlpha; uniform vec3 uTint; uniform float uSkyMul; uniform float uSeason;
   uniform vec3 uSun; uniform vec3 uSunCol; uniform vec3 uZenith; uniform float uGrid; uniform float uWave; uniform float uTime; uniform float uSunAmt; uniform float uQuality; uniform vec3 uPlayer; uniform float uBladeShade;
@@ -2009,6 +2013,8 @@ const R = (() => {
         wn = normalize(wn); } else wn = n;
       vec3 shallow = brine ? vec3(0.55, 0.62, 0.12) : vec3(0.16, 0.74, 0.74), deep = brine ? vec3(0.22, 0.26, 0.04) : vec3(0.03, 0.2, 0.42); shallow = mix(shallow, vec3(0.3, 0.66, 0.42), vCol.b); deep = mix(deep, vec3(0.05, 0.25, 0.2), vCol.b); // a jungle river is jade, not sea-blue
       vec3 base = mix(shallow, deep, smoothstep(0.0, 0.85, depth)) * (0.35 + 0.65 * uDay);
+      if (uGT > 0.5 && top) { vec2 q2 = vWorld.xz; vec3 tm = (texture2D(uTW, q2 * 0.11 + vec2(uTime * 0.012, uTime * 0.007)).rgb + texture2D(uTW, q2 * 0.07 - vec2(uTime * 0.009, -uTime * 0.006) + 0.4).rgb) * 0.5; /* the painted water, two layers sliding over each other */
+        float sh2 = 1.0 - smoothstep(0.0, 0.9, depth); base = mix(base, base * tm / max(uGM4, vec3(0.05)), 0.8); base += max(tm - uGM4, vec3(0.0)) * (0.25 + 0.3 * sh2) * uDay; }
       vec3 R = reflect(-V, wn); vec3 skyR = mix(uFog, uZenith, clamp(R.y * 1.6, 0.0, 1.0));
       float fres = 0.04 + 0.96 * pow(1.0 - max(dot(V, wn), 0.0), 4.0);
       col = mix(base, skyR, top ? fres * 0.85 : 0.1);
@@ -2087,13 +2093,13 @@ const R = (() => {
         float pd = length(vWorld.xz - uPlayer.xz) + abs(vWorld.y - uPlayer.y) * 0.5; float lw = 0.018; float g = 1.0 - smoothstep(lw, lw * 2.2, e); g *= 1.0 - smoothstep(2.5, 4.5, pd); g *= blocky * (1.0 - smoothstep(0.35, 0.7, sky)); // the lines between blocks show only on rock underground, where the world is cubes; never on the land, on leaves or on anything built
         col *= 1.0 - 0.28 * g;
         float near = 1.0 - smoothstep(30.0, 70.0, dist); int mat = int(vMat + 0.5); if (mat == 32) mat = 3;
-        float gw = 0.0; vec3 cg = col; // how much of the ground here is turf (the mesher sends it in the length of the normal): the land's materials run into one another, they never change along the edge of a block
+        float gw = 0.0; vec3 cg = col; vec3 c0 = col; int mat0 = mat; // how much of the ground here is turf (the mesher sends it in the length of the normal): the land's materials run into one another, they never change along the edge of a block
         bool turf = mat == 1 || (mat >= 22 && mat <= 24); // 22, 23, 24: turf beside sand, earth, snow
         if ((mat >= 1 && mat <= 5) || turf) { float lt = clamp((1.0 - length(vN)) * 2.0, 0.0, 1.0); gw = turf ? 1.0 - lt : lt;
           if (gw > 0.002) { // grass: a carpet of fine blades, with wind rolling over it
             vec2 q = vWorld.xz; float fine = vn(q * 26.0) * 0.6 + vn(q * 61.0 + 3.1) * 0.4; float tuft = vn(q * 7.0 + 9.0);
             vec2 wd = normalize(vec2(0.8, 0.45)); float wave = sin(dot(q, wd) * 0.42 - uTime * 1.6 + vn(q * 0.15) * 4.0) * 0.5 + 0.5; wave *= wave * (0.5 + 0.5 * vn(q * 0.07 + uTime * 0.05));
-            cg *= 0.78 + 0.34 * fine + 0.1 * (tuft - 0.5);
+            if (uGT > 0.5) cg = gpaint(cg, gtex(uTG, q * 0.19), uGM0, 0.45) * (0.95 + 0.1 * fine); else cg *= 0.78 + 0.34 * fine + 0.1 * (tuft - 0.5); /* the painted meadow, in place of the noise that stood for it */
             cg = mix(cg, cg * vec3(1.18, 1.16, 1.0) + vec3(0.035, 0.04, 0.0), wave * 0.42 * (1.0 - smoothstep(60.0, 110.0, dist)));
             cg *= mix(mix(0.66, 1.0, smoothstep(12.0, 36.0, dist)), 1.0, 1.0 - uBladeShade); // the ground under standing blades is in their shade
           }
@@ -2217,6 +2223,10 @@ const R = (() => {
           vec3 bed = mix(col * 0.66, vec3(0.3, 0.4, 0.17) * (0.8 + 0.4 * uDay), 0.6 * smoothstep(0.42, 0.7, vn(uv * 0.55 + 9.0)) * uGrade); /* grass and moss have taken the joints in patches */
           col = mix(bed, stone, mortar) * (0.94 + 0.1 * vn(uv * 0.3 + 5.0));
         }
+        if (uGT > 0.5 && mat == mat0) { /* painted sand, rock and earth over the land's own colour (not where thin turf shows another material through: that is painted by the turf) */
+          if (mat == 2) col = mix(col, gpaint(c0, gtex(uTS, vWorld.xz * 0.17), uGM1, 0.5), 0.85);
+          else if (mat == 3) col = mix(col, gpaint(c0, gtex(uTR, uv * 0.21), uGM2, 0.55), 0.9);
+          else if (mat == 4) col = mix(col, gpaint(c0, gtex(uTE, uv * 0.2), uGM3, 0.5), 0.85); }
         if (gw > 0.002) col = mix(col, cg, gw);
       }
     }
@@ -2445,7 +2455,7 @@ const R = (() => {
   precision highp float;
   ${TONE}
   /*SHADOW*/
-  in vec3 vC; in vec3 vW; in float vH; out vec4 o; uniform vec4 uMist; uniform float uSeason;
+  in vec3 vC; in vec3 vW; in float vH; out vec4 o; uniform vec4 uMist; uniform float uSeason; uniform sampler2D uTG; uniform float uGT; uniform vec3 uGM0;
   uniform vec3 uCam; uniform vec3 uFog; uniform float uFogNear; uniform float uFogFar; uniform vec3 uSun; uniform vec3 uSunCol; uniform float uSunAmt; uniform float uDay; uniform vec3 uTint; uniform vec3 uZenith; uniform float uFogSky;
   
 #define RK uFogSky
@@ -2457,6 +2467,7 @@ const R = (() => {
     float back = pow(max(dot(-V, uSun), 0.0), 3.0) * uSunAmt * vH * sh; // sun through the blades
     float sheen = pow(max(dot(-V, uSun), 0.0), 14.0) * uSunAmt * vH * vH * sh; // the field shines toward the sun
     vec3 vS = uSeason < 0.5 ? mix(vC, vec3(0.56, 0.9, 0.34) * dot(vC, vec3(0.3, 0.6, 0.1)) / 0.72, 0.34) : uSeason < 1.5 ? vC : uSeason < 2.5 ? mix(vC, vec3(0.86, 0.74, 0.3) * dot(vC, vec3(0.3, 0.6, 0.1)) / 0.73, 0.55) : mix(mix(vC, vec3(0.8, 0.82, 0.76) * dot(vC, vec3(0.3, 0.6, 0.1)) / 0.81, 0.66), vec3(0.93, 0.95, 1.0) * (0.55 + dot(vC, vec3(0.3, 0.6, 0.1)) * 0.75), 0.85 * smoothstep(-0.35, -0.05, sin(vW.x * 0.31 + sin(vW.z * 0.23) * 1.7) * sin(vW.z * 0.29 + sin(vW.x * 0.19) * 1.9))); /* the blades turn with the year as the turf under them does */
+    if (uGT > 0.5) { vec3 tg = texture(uTG, vW.xz * 0.19).rgb; vS = mix(vS, tg * (dot(vS, vec3(0.3, 0.59, 0.11)) / max(dot(uGM0, vec3(0.3, 0.59, 0.11)), 0.05)), 0.72); } /* the blades take the painted meadow's colours where they stand (dark at the root, light at the tip as before), so field and blades are one picture */
     vec3 col = vS * light + vS * uSunCol * back * 0.5 + uSunCol * sheen * 0.35;
     if (uMist.y > 0.001) { float mg = 1.0 - vH * 0.22; col = mix(col, vec3(0.8, 0.89, 0.85) * uMist.w, mg * mg * smoothstep(3.0, 30.0, dist) * 0.8 * uMist.y); } // a blade stands on the ground: it is in the mist to its tip
     float f = clamp((dist - uFogNear) / (uFogFar - uFogNear), 0.0, 1.0); f = f * f * (3.0 - 2.0 * f);
@@ -2476,7 +2487,7 @@ const R = (() => {
       const mk = (t, src) => { const s = gl.createShader(t); gl.shaderSource(s, src); gl.compileShader(s); if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s)); return s; };
       const p = gl.createProgram(); gl.attachShader(p, mk(gl.VERTEX_SHADER, GVS)); gl.attachShader(p, mk(gl.FRAGMENT_SHADER, GFS.replace('/*SHADOW*/', SHADOW_GLSL(true)))); gl.linkProgram(p); if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(p)); GRADED.push({ p, loc: gl.getUniformLocation(p, 'uGrade') });
       grassProg = p; gloc.aBlade = gl.getAttribLocation(p, 'aBlade');
-      for (const n of ['uPV', 'uCam', 'uOrigin', 'uSpacing', 'uSide', 'uRIn', 'uROut', 'uScale', 'uWidth', 'uHM', 'uHMO', 'uTime', 'uFog', 'uFogNear', 'uFogFar', 'uSun', 'uSunCol', 'uSunAmt', 'uDay', 'uTint', 'uShadow', 'uLightPV', 'uShadowOn', 'uShadowTexel', 'uZenith', 'uFogSky', 'uMist', 'uSeason']) gloc[n] = gl.getUniformLocation(p, n);
+      for (const n of ['uPV', 'uCam', 'uOrigin', 'uSpacing', 'uSide', 'uRIn', 'uROut', 'uScale', 'uWidth', 'uHM', 'uHMO', 'uTime', 'uFog', 'uFogNear', 'uFogFar', 'uSun', 'uSunCol', 'uSunAmt', 'uDay', 'uTint', 'uShadow', 'uLightPV', 'uShadowOn', 'uShadowTexel', 'uZenith', 'uFogSky', 'uMist', 'uSeason']) gloc[n] = gl.getUniformLocation(p, n); for (const n of ['uTG', 'uGT', 'uGM0']) gloc[n] = gl.getUniformLocation(p, n); gl.useProgram(p); if (gloc.uTG) gl.uniform1i(gloc.uTG, GROUND.unit0);
       // a blade: two quads tapering to a point (5 vertices, a strip)
       grassBuf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, grassBuf); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-0.5, 0, 0.5, 0, -0.42, 0.5, 0.42, 0.5, 0, 1]), gl.STATIC_DRAW);
       ensureHM();
@@ -2522,6 +2533,7 @@ const R = (() => {
     const now = performance.now(); freshHM(world, player);
     gl.useProgram(grassProg);
     gl.uniformMatrix4fv(gloc.uPV, false, pv); gl.uniform3f(gloc.uCam, cam.x, cam.y, cam.z); gl.uniform1f(gloc.uTime, now / 1000);
+    { const on = GROUND.ready && GROUND.ok && state.groundArt !== false && state.groundHere; gl.uniform1f(gloc.uGT, on ? 1 : 0); if (on) { gl.activeTexture(gl.TEXTURE0 + GROUND.unit0); gl.bindTexture(gl.TEXTURE_2D, GROUND.tex[0]); gl.uniform3fv(gloc.uGM0, GROUND.mean[0]); gl.activeTexture(gl.TEXTURE0); } }
     gl.uniform4fv(gloc.uMist, state.mist || MIST0); gl.uniform3fv(gloc.uFog, state.fogColor); gl.uniform3fv(gloc.uZenith, state.zenith || state.fogColor); gl.uniform1f(gloc.uFogSky, state.fogSky ? (state.rangeKind || 1) : 0); gl.uniform1f(gloc.uFogNear, state.fogNear); gl.uniform1f(gloc.uFogFar, state.fogFar); gl.uniform3fv(gloc.uSun, state.sun); gl.uniform3fv(gloc.uSunCol, state.sunCol); gl.uniform1f(gloc.uSunAmt, state.sunAmt); gl.uniform1f(gloc.uDay, state.dayLight); gl.uniform3fv(gloc.uTint, state.tint); gl.uniform1f(gloc.uSeason, seasonK);
     gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, hmTex); gl.uniform1i(gloc.uHM, 0); gl.uniform2f(gloc.uHMO, hmCenter.ox, hmCenter.oz); bindShadow(gloc, 1);
     gl.bindBuffer(gl.ARRAY_BUFFER, grassBuf); gl.enableVertexAttribArray(gloc.aBlade); gl.vertexAttribPointer(gloc.aBlade, 2, gl.FLOAT, false, 0, 0);
@@ -2632,6 +2644,24 @@ const R = (() => {
   const LVS = `attribute vec3 aPos; uniform mat4 uPV; void main(){ gl_Position = uPV * vec4(aPos,1.0); }`;
   const LFS = `precision mediump float; uniform vec4 uColor; void main(){ gl_FragColor = uColor; }`;
 
+  /* ---- the painted ground: five pictures that repeat (grass, sand, rock, earth, water), fetched once, drawn by the terrain shader ----
+     Each sits on a texture unit of its own (8 to 12), with a grey pixel there until its picture has come, so the shader always has something to read.
+     A phone with fewer than 16 units keeps the old drawn ground. */
+  const GROUND = { unit0: 8, files: ['assets/g_grass.jpg', 'assets/g_sand.jpg', 'assets/g_rock.jpg', 'assets/g_earth.jpg', 'assets/g_water.jpg'], tex: [], mean: [], got: 0, ready: false, ok: true };
+  function loadGround() {
+    if (GROUND.tex.length) return; GROUND.ok = (gl.getParameter(gl.MAX_TEXTURE_IMAGE_UNITS) || 8) >= 16;
+    const where = (f) => (typeof window !== 'undefined' && window.STRATAKIN_ASSETS && window.STRATAKIN_ASSETS[f]) || f;
+    GROUND.files.forEach((f, k) => { const t = gl.createTexture(); GROUND.tex[k] = t; GROUND.mean[k] = [0.5, 0.5, 0.5]; gl.activeTexture(gl.TEXTURE0 + (GROUND.ok ? GROUND.unit0 + k : 0)); gl.bindTexture(gl.TEXTURE_2D, t); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([128, 128, 128, 255]));
+      if (!GROUND.ok || typeof Image === 'undefined') return; const im = new Image(); im.crossOrigin = 'anonymous';
+      im.onload = () => { try { const c = document.createElement('canvas'); c.width = c.height = 16; const x = c.getContext('2d'); x.drawImage(im, 0, 0, 16, 16); const d = x.getImageData(0, 0, 16, 16).data; let r = 0, g = 0, b = 0; for (let i = 0; i < d.length; i += 4) { r += d[i]; g += d[i + 1]; b += d[i + 2]; } const n = d.length / 4 * 255; GROUND.mean[k] = [r / n, g / n, b / n];
+          gl.activeTexture(gl.TEXTURE0 + GROUND.unit0 + k); gl.bindTexture(gl.TEXTURE_2D, t); gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, im); gl.generateMipmap(gl.TEXTURE_2D);
+          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+          const ext = gl.getExtension('EXT_texture_filter_anisotropic'); if (ext) gl.texParameterf(gl.TEXTURE_2D, ext.TEXTURE_MAX_ANISOTROPY_EXT, Math.min(4, gl.getParameter(ext.MAX_TEXTURE_MAX_ANISOTROPY_EXT) || 1)); /* ground seen at a glancing angle stays crisp */
+          gl.activeTexture(gl.TEXTURE0); if (++GROUND.got === GROUND.files.length) GROUND.ready = true; } catch (err) { console.warn('ground picture ' + f + ': ' + err.message); } };
+      im.onerror = () => console.warn('ground picture not loaded: ' + f); im.src = where(f); });
+    gl.activeTexture(gl.TEXTURE0); }
+  function groundUniforms() { const on = GROUND.ready && GROUND.ok && state.groundArt !== false && state.groundHere; state.groundReady = GROUND.ready; state.groundGot = GROUND.got; gl.uniform1f(loc.uGT, on ? 1 : 0); if (!on) return;
+    for (let k = 0; k < 5; k++) { gl.activeTexture(gl.TEXTURE0 + GROUND.unit0 + k); gl.bindTexture(gl.TEXTURE_2D, GROUND.tex[k]); gl.uniform3fv(loc['uGM' + k], GROUND.mean[k]); } gl.activeTexture(gl.TEXTURE0); }
   function compile(vs, fs) {
     const p = gl.createProgram(); const graded = fs.indexOf('uGrade') >= 0;
     const gl2 = typeof WebGL2RenderingContext !== 'undefined' && gl instanceof WebGL2RenderingContext;
@@ -2652,6 +2682,8 @@ const R = (() => {
     if (!gl) { gl = cv.getContext('webgl', opts) || cv.getContext('experimental-webgl', opts); if (!gl) throw new Error('WebGL is not available'); if (!gl.getExtension('OES_element_index_uint')) throw new Error('32-bit indices unsupported'); }
     prog = compile(VS, FS);
     for (const n of ['aPos', 'aCol', 'aMat', 'aNorm']) loc[n] = gl.getAttribLocation(prog, n);
+    for (const n of ['uTG', 'uTS', 'uTR', 'uTE', 'uTW', 'uGT', 'uGM0', 'uGM1', 'uGM2', 'uGM3', 'uGM4']) loc[n] = gl.getUniformLocation(prog, n);
+    gl.useProgram(prog); ['uTG', 'uTS', 'uTR', 'uTE', 'uTW'].forEach((n, k) => { if (loc[n]) gl.uniform1i(loc[n], GROUND.unit0 + k); }); loadGround();
     for (const n of ['uPV', 'uModel', 'uTime', 'uWave', 'uCam', 'uDay', 'uFog', 'uFogNear', 'uFogFar', 'uAmbient', 'uLights', 'uLightR', 'uAlpha', 'uTint', 'uSkyMul', 'uSun', 'uSunCol', 'uZenith', 'uGrid', 'uSunAmt', 'uQuality', 'uPlayer', 'uBladeShade', 'uShadow', 'uLightPV', 'uShadowOn', 'uShadowTexel', 'uFogSky', 'uCoreGlow', 'uMist', 'uHM', 'uHMO', 'uSeason']) loc[n] = gl.getUniformLocation(prog, n);
     skyProg = compile(SVS, SFS); sloc.aPos = gl.getAttribLocation(skyProg, 'aPos'); for (const n of ['uKind', 'uFwd', 'uRight', 'uUp', 'uTan', 'uAspect', 'uHorizon', 'uZenith', 'uSun', 'uSunCol', 'uSunAmt', 'uTime', 'uClouds', 'uNight']) sloc[n] = gl.getUniformLocation(skyProg, n);
     initGrass(); initEntityProg(); initShadows();
@@ -4591,6 +4623,7 @@ const R = (() => {
     state.zenith = world.preset.airless ? sky.map(v => v * 0.6) : U.mixColor(sky.map(v => v * 0.75), world.preset.id === 'earth' ? [0.22, 0.48, 0.95] : [0.16, 0.38, 0.82], 0.45 * dayK * (world.preset.id === 'earth' ? 1 : 0.4));
     state.clouds = world.preset.airless ? 0 : (world.preset.id === 'earth' ? 0.55 : 0.3) + (wi > 0.02 && (wk === 'rain' || wk === 'storm') ? 0.45 * wi : 0);
     if (gl0 > 0.01) { state.zenith = U.mixColor(state.zenith, [0.28, 0.27, 0.32], gl0 * 0.85); state.clouds = Math.min(1, state.clouds + 0.45 * gl0); state.sunAmt *= 1 - 0.65 * gl0; state.sunCol = U.mixColor(state.sunCol, [0.75, 0.72, 0.8], gl0 * 0.6); }
+    state.groundHere = world.preset.id === 'earth'; /* the painted ground is Earth's so far: the Moon and the Halo get pictures of their own */
     state.grade = world.preset.airless ? 0 : (world.preset.id === 'earth' ? 1 : 0.6) * U.clamp(day * 1.4 - 0.2, 0, 1) * (1 - 0.6 * gl0); /* how much of the storybook light this frame has (the shared tonemap) */
     state.skyPass = true; state.night = 1 - day;
     sky = horizon;
@@ -4657,6 +4690,7 @@ const R = (() => {
     if (gloomK > 0.01) state.tint = [state.tint[0] * (1 - 0.52 * gloomK), state.tint[1] * (1 - 0.36 * gloomK), state.tint[2] * (1 - 0.42 * gloomK)];
     gl.uniform3fv(loc.uTint, state.tint); gl.uniform1f(loc.uSeason, seasonK);
     gl.uniform1f(loc.uSkyMul, 1);
+    groundUniforms();
     gl.uniform3fv(loc.uSun, state.sun || [0, 1, 0]); gl.uniform3fv(loc.uSunCol, state.sunCol || [1, 1, 1]); gl.uniform3fv(loc.uZenith, state.zenith || state.fogColor); gl.uniform1f(loc.uSunAmt, state.skyPass ? state.sunAmt : 0); gl.uniform1f(loc.uQuality, isMobile ? 0.6 : 1); gl.uniform1f(loc.uGrid, 1); gl.uniform3f(loc.uPlayer, player.x, player.y, player.z); gl.uniform1f(loc.uBladeShade, grassProg ? 1 : 0);
     // lights
     const L = new Float32Array(24), LR = new Float32Array(8);

@@ -607,6 +607,14 @@ His ask: "the world needs to be done". Measured against `art/style` (the village
 - What swapping the village over involves (not started): the houses are built of blocks with insides you walk into, so a model becomes the outside shell with its door lined up on the block doorway; trees can be felled, so a model tree has to hook into `felling.js`; one model is reused many times (turned, scaled, a few variants), so a village needs a kit of about sixteen, not a model a house.
 - Credits: 92 this round. Balance 1,934.5.
 
+## Painted ground live; the first village's kit made (Nov 22, late night)
+His go-ahead: the village kit, and "do the grass, the rock, the sand, the water" as generated art used over and over.
+- **Ground** (live on Earth): five painted pictures that repeat (`assets/g_grass|sand|rock|earth|water.jpg`, 1024, edges cross-faded to meet), on texture units 8 to 12, drawn by the terrain shader in place of the noise that stood for each material. `gpaint` keeps the land's own colour (biome tint, season) and takes the picture's brushwork and some of its colour; `gtex` reads the picture at two sizes that fade into each other so no grid shows. The grass blades take the painted meadow's colours where they stand (`GFS`), so field and blades are one picture. Water has the painted ripples as two layers sliding over each other. `R.state.groundArt = false` turns it off (test `t-ground.js` shoots both). Phones with fewer than 16 texture units keep the old ground. The Moon and the Halo keep theirs until they have pictures of their own (`state.groundHere`).
+- Why pictures and not modelled blocks: a picture repeats with no seam and no triangle cost; a field of modelled grass blocks would be millions of triangles. The models are the things that stand on the ground (rocks, bushes, trees).
+- **Kit** (made, inspected from every side, slimmed, in `art/models/world/`, pictures in `art/ref/kit/`): shop, long house, tiled house, cottage, windmill, fountain, market stall, barrels and crates, lamp post, stone wall, fence, planter, boulders, pine, oak, bush. All clean. Not yet in the game: the next job is swapping the first village's block-built houses, trees and props for these (each house model the shell round the block house's inside, door lined up; trees hooked into felling).
+- `slim.py` did not reach its budget on the planter (24k), bush (20k), wall (9k) and lamp (6k): to be forced lower before they ship.
+- Credits this round: 38 on 19 pictures, 616 on 14 models. Balance about 1,280.
+
 ## Still to do
 UI polish as feedback comes in. Card battle screen still used for scripted encounters (raids at the walls, thief, citadel duel, holds) and the snare mini-game; converting those to live is the next big step if wanted. (Old list: train/ships, combat animation, eggs, avatar hair/paint, buddy WEAR cosmetics, Silas and Finch, UI polish (item icons), quality toggles in settings (state.shadows, state.grassQuality, state.dprCap).
 

@@ -1,0 +1,12 @@
+// The painted ground: the meadow by the spawn, then the nearest shore (sand and water), then a rock face, with the pictures on and off.
+const { open } = require('./harness');
+(async () => { const h = await open(); const { page, ev } = h; await page.setViewportSize({ width: 844, height: 420 }); await h.newGame('look-3', 0); await h.calm();
+  await ev(() => { G.repelUntil = performance.now() + 9e7; G.stats.buddyOff = true; G.explain = () => {}; G.player.frozen = true; G.thirdPerson = false; G.world.time = 0.4; Weather.state.kind = 'clear'; Weather.state.intensity = 0;
+    document.querySelectorAll('body *').forEach(el => { if (el.tagName !== 'CANVAS' && !el.querySelector('canvas')) el.style.visibility = 'hidden'; }); });
+  await page.waitForTimeout(5000); console.log('ground', JSON.stringify(await ev(() => [R.state.groundReady, R.state.groundGot])));
+  const shore = await ev(() => { const p = G.player, w = G.world; let best = null; for (let r = 6; r < 220 && !best; r += 4) for (let a = 0; a < 24; a++) { const x = Math.floor(p.x + Math.cos(a / 24 * 6.283) * r), z = Math.floor(p.z + Math.sin(a / 24 * 6.283) * r); const y = w.groundY(x, z); if (y != null && w.getBlock(x, y, z) === B.SAND && w.getBlock(x, y + 1, z) === B.AIR) { best = [x, y, z, a / 24 * 6.283]; break; } } return best; });
+  console.log('shore', JSON.stringify(shore));
+  const shot = async (tag) => { await page.waitForTimeout(3500); await page.screenshot({ path: `/home/claude/scratch/ground-${tag}.png`, timeout: 200000 }); console.log('shot', tag); };
+  await ev(() => { G.player.pitch = -0.32; }); await shot('meadow-on'); await ev(() => { R.state.groundArt = false; }); await shot('meadow-off'); await ev(() => { R.state.groundArt = true; });
+  if (shore) { await ev((s) => { const p = G.player, w = G.world; p.x = s[0] + 0.5 - Math.cos(s[3]) * 3; p.z = s[2] + 0.5 - Math.sin(s[3]) * 3; p.y = (w.groundY(Math.floor(p.x), Math.floor(p.z)) || s[1]) + 1; p.yaw = Math.atan2(-Math.cos(s[3]), -Math.sin(s[3])); p.pitch = -0.3; w.ensureAround(Math.floor(p.x / CH), Math.floor(p.z / CH), 3, 99999); G.meshPass(9999); }, shore); await page.waitForTimeout(5000); await shot('shore-on'); await ev(() => { R.state.groundArt = false; }); await shot('shore-off'); }
+  console.log('ERRORS:', h.errors.slice(0, 3).join(' | ').slice(0, 400) || 'none', '| LOGS:', h.logs.filter(l => /ground|picture|WebGL: |INVALID/.test(l)).slice(0, 3).join(' | ').slice(0, 300)); await h.close(); })();

@@ -129,3 +129,27 @@ Alexander pointed at the games on Higgsfield's site: they look finished because 
 |---|---|---|
 | Thatched cottage | 88b46c8c-ad8e-4faa-8ee6-33972847e0b5 | 098e93e8-b01a-4c52-926f-22f1039ed22e |
 | Oak tree | adecda66-bfa8-4fed-942a-fcfd489ce290 | 433e15db-988d-4023-9508-2636f834c3d7 |
+
+# Village kit and ground (22 Nov, 22:10): Alexander's go-ahead, and "do the grass, the rock, the sand and the water too"
+Ground is five painted, tileable pictures laid over the land by the terrain shader (not modelled blocks: a texture repeats without seams or a triangle cost, and tufts, rocks and bushes are the models that stand on it). Pictures 2 each, models Meshy 7 ultra 44 each.
+| What | Picture job | Model job |
+|---|---|---|
+| grass texture | d2d23de4-78cc-4ccf-b597-f84ad379d2c5 | |
+| sand texture | 8b46bbe6-7665-454b-838e-534564229fb1 | |
+| rock texture | f2fc4257-cba7-4970-8505-d83783fa7a22 | |
+| earth texture | a7c65e00-ac0f-4eb0-afa2-a591675cd8b1 | |
+| water texture | e3ce01fa-167d-40eb-b810-34552074185a | |
+| shop (two storeys) | 67700a15-c85f-4c71-9104-426e3fecc2e0 | 04e46d0c-f3ec-46a9-b0b5-7ea9bf781668 |
+| long house | 967bec28-2546-440c-b4f5-150b7247da56 | 6fc514df-bce5-45f9-9b23-a822e3060189 |
+| tiled house | dff89283-97d9-46b2-aee1-41eb363add78 | 5cdcefbd-8285-4486-bcc4-65e704647c20 |
+| windmill | 0108b8dd-6dad-475f-ae2d-cb6d9e94eee2 | 46b02b7a-4a3a-4871-aeee-6d8136597ee2 |
+| fountain | 919d15a2-16fd-4bb7-af14-b1a8ab539d90 | f77e9bcc-3abd-4416-8d97-64401504fa47 |
+| market stall | 65af187d-2e8f-498e-a958-3ebb0af861ec | be87cfb3-4691-4f5c-b897-4e800f0036df |
+| barrels and crates | 9bdfb67e-2ea2-4b8d-83e3-7323ed48e94b | f5d13ca6-de91-471a-a7ba-44c55851b89f |
+| lamp post | aec7775e-a0d9-4a83-a90d-5cfbbe2945da | 65029361-9231-430c-82bf-de74df76ad83 |
+| stone wall | 698633a4-df85-4961-9098-8165cd38fe82 | 8f213bb0-b577-4640-ab3d-45821ef96cdf |
+| fence | 7b839925-d611-43de-85e4-38d18a22551f | 638009e8-82a5-4393-a1c2-84203069df91 |
+| planter | 8a79716d-862c-4020-9b2f-aad8f3f57d9b | 2aa576af-c00d-4850-b818-df867a55dcd4 |
+| boulders | 7394f4ce-8594-4bcf-999d-1094f1341e69 | b7dadb5a-2b3e-44e6-98e7-cbfa66ae78f3 |
+| pine | 87dc7bd3-7702-4d9f-9feb-a6bc2d3d559a | 2821ce24-c98e-4952-93b1-66362814a723 |
+| bush | 397c5a28-0c29-4e9b-8493-fd0e2780774e | c6810c88-ccbd-4108-b88b-f411dbc23ab5 |

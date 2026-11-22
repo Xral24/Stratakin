@@ -9,5 +9,10 @@
   "assets/maren.glb": "/_blob/caae2d718c245aa2e2855b5e777fd334",
   "assets/brannock.glb": "/_blob/d4a7e2b34aba8760d32f1b7d269ea3c6",
   "assets/keychain.glb": "/_blob/b1793dda1901693695afa6ee469643b8",
-  "assets/bigmouth.glb": "/_blob/b523a6ef1991df5de7f955816eccd2d2"
+  "assets/bigmouth.glb": "/_blob/b523a6ef1991df5de7f955816eccd2d2",
+  "assets/g_grass.jpg": "/_blob/37e4d5d580aed5f2f7658b48d01eca07",
+  "assets/g_sand.jpg": "/_blob/435e161112de3f82f54251c1a11df34c",
+  "assets/g_rock.jpg": "/_blob/08726865886eed5ee277eafb9deda3c4",
+  "assets/g_earth.jpg": "/_blob/298564c7263bf92e1132f269218fa3d3",
+  "assets/g_water.jpg": "/_blob/25696fb1fc1c03d2a2e47a65e20d18a8"
 }
