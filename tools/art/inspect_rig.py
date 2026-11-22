@@ -227,7 +227,8 @@ def main():
     span = max(hi - lo)
     size = 300
     rows = []
-    for vname, yaw in (('side', math.pi / 2), ('front', 0.0)):
+    views = (('side', math.pi / 2), ('front', 0.0)) if '--other' not in args else (('other side', -math.pi / 2), ('back', math.pi))
+    for vname, yaw in views:
         c, s = math.cos(yaw), math.sin(yaw)
         R = np.array([[c, 0, -s], [0, 1, 0], [s, 0, c]], float)
         Q = allp @ R.T

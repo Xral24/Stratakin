@@ -566,6 +566,7 @@ Scope (Alexander, 8 Nov evening): EVERYTHING visible goes to the same standard: 
 - Garrick's pickaxe was weighted to his arms and a boot heel; `rigid_prop.py` gives the pick to his chest (the region rule keeps clear of the heel and the seat of his trousers).
 - `glb.js`: an idle never turns the figure round. Varga's and Garrick's idle swings the hips through ninety degrees and Silas's is played half turned away; the turn about the upright is taken out of the hips every frame, so each faces where the game faces him (the twist above the hips stays). This replaces the averaged turn from the last round.
 - Only the first village's people (the three tyrants, Hask, Maren, Brannock) are fetched ahead of time; the others when first in view.
+- The Kinmaster's cape was weighted to his hands where it hangs past them, and flapped out like a wing when his arms moved. `tools/art/clean_arm_weights.py` takes an arm's weights off every vertex further than a reach from that arm's bones (the rest goes to the body), so capes and coat tails hang from the body.
 - New tool `tools/art/inspect_weights.py`: front and side views coloured by each vertex's strongest joint on a 0.1 grid, to pick the region for `rigid_prop.py`.
 - Credits this round: 14 for pictures, 54 for models, 56 for rigs (124). Balance 2,757.
 
