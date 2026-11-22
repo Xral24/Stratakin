@@ -600,6 +600,13 @@ His ask: "the world needs to be done". Measured against `art/style` (the village
 - Test `t-look2.js`: the village square and the open country, phone portrait, HUD hidden, `ROOT=` to shoot an older copy for a side by side.
 - Not yet done (next): tree leaves are still lime; plaster and timber could take more warmth and grime; flowers, stone walls and a proper fountain in the first village; painterly clouds; water; then the Moon and the Halo, which have their own pictures (`2-moon-town`, `4-halo-town`).
 
+## Faces clear of the words; the world as generated models, a proof (Nov 22, late)
+- His report: the speech box sat on Keychain's and Hask's faces. The talk camera centred the face on the screen and, on a phone held sideways, the dialogue box sits across the centre. Now the camera puts the face in the middle of the space ABOVE the box (it reads the box's real position), the face height comes from the model (`GLB.faceOf`, a `face` fraction per cast entry), and in landscape the box sits low over the hotbar. Test `t-talkface.js`.
+- **His main point, and he is right:** the games on Higgsfield's site look finished because every object is a generated asset (buildings, characters, props, textures), where ours still draws houses, trees, rocks and Kin in code. The tint pass does not answer that. Direction from here: the world's objects become generated models, the way the cast did. ART-PLAN step 6 ("everything else in code") is wrong and is to be rewritten once he confirms the split of credits.
+- Proof made: a thatched cottage and an oak (pictures in the style of the approved village and countryside, then Meshy 7 ultra, 92 credits in all), slimmed to 24k and 16k triangles, stood in the meadow beside the code-built trees (`t-glbclose.js NAMES=cottage:6.5,oak:8.5`). Files in `art/models/world/` (out of git), pictures `art/ref/20-cottage.png`, `21-oak.png`.
+- What swapping the village over involves (not started): the houses are built of blocks with insides you walk into, so a model becomes the outside shell with its door lined up on the block doorway; trees can be felled, so a model tree has to hook into `felling.js`; one model is reused many times (turned, scaled, a few variants), so a village needs a kit of about sixteen, not a model a house.
+- Credits: 92 this round. Balance 1,934.5.
+
 ## Still to do
 UI polish as feedback comes in. Card battle screen still used for scripted encounters (raids at the walls, thief, citadel duel, holds) and the snare mini-game; converting those to live is the next big step if wanted. (Old list: train/ships, combat animation, eggs, avatar hair/paint, buddy WEAR cosmetics, Silas and Finch, UI polish (item icons), quality toggles in settings (state.shadows, state.grassQuality, state.dprCap).
 

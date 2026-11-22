@@ -122,3 +122,10 @@ Alexander's pick (22 Nov, 20:18): Keychain A (the slim lizard, 6a937aa9) and Big
 | Keychain (lizard) | 316f7ff3-9af6-4c26-88d3-982e1372bc44 | Proud_Strut (114), idle to add |
 | Bigmouth (toad) | 4f5b5aa1-eee5-47d0-87f8-e86b95bd3b34 | Casual_Walk (30), idle to add |
 Idles for the two (stripped mesh re-rigged, 8 each): Keychain Idle_7 (247) job 021163b9-68b9-49c5-b641-60b69f17b296, Bigmouth Idle_15 (599) job d17a2f10-d1d8-4a7a-9b21-0b1f9cc7d116. The A-pose step dropped the big key and the spoon from both models; Keychain's tail was weighted to his legs and is given to the hips (`rigid_prop.py ... Hips "((z < -0.10) & (y < 0.85)) | ((abs(x) > 0.33) & (y < 0.6))"`).
+
+# World assets as generated models (22 Nov, night)
+Alexander pointed at the games on Higgsfield's site: they look finished because every object is a generated asset, where ours draws houses, trees and Kin in code. First two, as a proof to stand in the square beside the code-built ones. Pictures on Nano Banana with the approved village and countryside pictures as style references (2 each, `art/ref/20-cottage.png`, `21-oak.png`), models on Meshy 7 ultra, 50k, PBR, no rig (44 each).
+| What | Picture job | Model job |
+|---|---|---|
+| Thatched cottage | 88b46c8c-ad8e-4faa-8ee6-33972847e0b5 | 098e93e8-b01a-4c52-926f-22f1039ed22e |
+| Oak tree | adecda66-bfa8-4fed-942a-fcfd489ce290 | 433e15db-988d-4023-9508-2636f834c3d7 |

@@ -4,19 +4,19 @@ const { open } = require('./harness');
 const fs = require('fs');
 (async () => { const h = await open(); const { page, ev } = h;
   await page.setViewportSize({ width: +(process.env.W || 1000), height: +(process.env.H || 520) }); console.log('start'); await h.newGame('look-3', 0); await h.calm();
-  const names = (process.env.NAMES || 'finch,silas').split(',');
+  const spec = (process.env.NAMES || 'finch,silas').split(',').map(x => x.split(':')), names = spec.map(x => x[0]), heights = spec.map(x => +x[1] || 0); /* name or name:height for things that are not in the cast */
   const dir = process.env.DIR || '/home/claude/strata/assets';
   const files = names.map(n => fs.readFileSync(`${dir}/${n}.glb`).toString('base64'));
-  const info = await ev(([names, files, sp, dist]) => {
+  const info = await ev(([names, files, sp, dist, heights]) => {
     const p = G.player; G.repelUntil = performance.now() + 9e7; G.world.time = 0.40; G.thirdPerson = false; p.pitch = -0.04;
     document.querySelectorAll('body *').forEach(el => { if (el.tagName !== 'CANVAS' && !el.querySelector('canvas')) el.style.visibility = 'hidden'; });
     const f = [-Math.sin(p.yaw), 0, -Math.cos(p.yaw)], r = [Math.cos(p.yaw), 0, -Math.sin(p.yaw)], out = [], ents = [];
     const gy = G.world.groundY(Math.floor(p.x + f[0] * dist), Math.floor(p.z + f[2] * dist)) + 1;
     names.forEach((n, i) => { const raw = atob(files[i]), u8 = new Uint8Array(raw.length); for (let k = 0; k < raw.length; k++) u8[k] = raw.charCodeAt(k);
-      const c = GLB.CAST[n] || {}, m = GLB.fromBuffer(n, u8.buffer, { height: c.height || 2, turn: c.turn || 0, still: c.still }); if (!m) { out.push(n + ': failed'); return; }
+      const c = heights[i] ? { height: heights[i] } : (GLB.CAST[n] || {}), m = GLB.fromBuffer(n, u8.buffer, { height: c.height || 2, turn: c.turn || 0, still: c.still }); if (!m) { out.push(n + ': failed'); return; }
       const off = (i - (names.length - 1) / 2) * sp, x = p.x + f[0] * dist + r[0] * off, z = p.z + f[2] * dist + r[2] * off, y = gy;
-      const e = { x, y, z, yaw: Math.atan2(p.x - x, p.z - z), scale: 1, model: { height: c.height || 2, radius: 0.5 } }; GLB.dress(e, n, {}); ents.push(e); out.push(n + ' ' + m.tris); });
-    p.y = gy + 1.62 - 1.0; G.extraEnts = ents; window.__ents = ents; window.__yaw0 = ents.map(e => e.yaw); return out; }, [names, files, +(process.env.SP || 1.4), +(process.env.DIST || 3.2)]);
+      const e = { x, y, z, yaw: Math.atan2(p.x - x, p.z - z) + (+(window.__turn0 || 0)), scale: 1, model: { height: c.height || 2, radius: 0.5 } }; GLB.dress(e, n, {}); ents.push(e); out.push(n + ' ' + m.tris); });
+    p.y = gy + 1.62 - 1.0; G.extraEnts = ents; window.__ents = ents; window.__yaw0 = ents.map(e => e.yaw); return out; }, [names, files, +(process.env.SP || 1.4), +(process.env.DIST || 3.2), heights]);
   console.log('loaded', info.join(' | '));
   await page.waitForTimeout(2500);
   const tag = process.env.TAG || 'close';
