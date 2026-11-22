@@ -209,14 +209,14 @@ const GLB = (() => {
   /* the cast: who wears a model from a file, and where the file is. A name here with no file yet is ignored, so nothing is fetched that is not
      shipped. Each figure is dressed by its name as it is drawn; its own box model stays for portraits, collisions and everything else */
   const CAST = {
-    finch: { names: ['Professor Finch', 'Professor Aldous Finch'], file: 'assets/finch.glb', height: 1.95 }, /* rigged square to the front, with a calm idle of his own */
-    silas: { names: ['Silas Pennywise'], file: 'assets/silas.glb', height: 2.1 }, /* the hat is in the height; his idle is the patter of a man selling you something */
-    keychain: { names: ['Keychain'], pre: true, file: 'assets/keychain.glb', height: 2.35, still: ['RightShoulder', 'RightArm', 'RightForeArm', 'RightHand'] }, /* the three tyrants on Earth (village.js names them glbName) are Kin, not men: your Kin fights a Kin. Keychain is a lizard in his coat and crown of keys; the great key in his right hand is put back by tools/art/add_prop.py and that arm does not swing, so it stays upright */
-    stonewall: { names: ['Stonewall'], pre: true, file: 'assets/stonewall.glb', height: 2.9 },
-    bigmouth: { names: ['Bigmouth'], pre: true, file: 'assets/bigmouth.glb', height: 2.82, still: ['LeftShoulder', 'LeftArm', 'LeftForeArm', 'LeftHand'] }, /* a toad in his apron; the height counts the spoon in his left hand, which stands taller than he does */
-    kinmaster: { names: ['The Kinmaster'], file: 'assets/kinmaster.glb', height: 2.3 }, /* the rest of the main cast, made from their own pictures (art/ref 10 to 15) */
-    varga: { names: ['Pit Boss Varga'], file: 'assets/varga.glb', height: 2.0 },
-    hask: { names: ['Elder Hask'], pre: true, file: 'assets/hask.glb', height: 1.9 }, /* an idle and an old man's walk in one file: he wanders the square once it is free */
+    finch: { names: ['Professor Finch', 'Professor Aldous Finch'], file: 'assets/finch.glb', face: 0.9, height: 1.95 }, /* rigged square to the front, with a calm idle of his own */
+    silas: { names: ['Silas Pennywise'], file: 'assets/silas.glb', face: 0.74, height: 2.1 }, /* the hat is in the height; his idle is the patter of a man selling you something */
+    keychain: { names: ['Keychain'], pre: true, file: 'assets/keychain.glb', face: 0.84, height: 2.35, still: ['RightShoulder', 'RightArm', 'RightForeArm', 'RightHand'] }, /* the three tyrants on Earth (village.js names them glbName) are Kin, not men: your Kin fights a Kin. Keychain is a lizard in his coat and crown of keys; the great key in his right hand is put back by tools/art/add_prop.py and that arm does not swing, so it stays upright */
+    stonewall: { names: ['Stonewall'], pre: true, file: 'assets/stonewall.glb', face: 0.9, height: 2.9 },
+    bigmouth: { names: ['Bigmouth'], pre: true, file: 'assets/bigmouth.glb', face: 0.74, height: 2.82, still: ['LeftShoulder', 'LeftArm', 'LeftForeArm', 'LeftHand'] }, /* a toad in his apron; the height counts the spoon in his left hand, which stands taller than he does */
+    kinmaster: { names: ['The Kinmaster'], file: 'assets/kinmaster.glb', face: 0.86, height: 2.3 }, /* the rest of the main cast, made from their own pictures (art/ref 10 to 15) */
+    varga: { names: ['Pit Boss Varga'], file: 'assets/varga.glb', face: 0.88, height: 2.0 },
+    hask: { names: ['Elder Hask'], pre: true, file: 'assets/hask.glb', face: 0.82, height: 1.9 }, /* an idle and an old man's walk in one file: he wanders the square once it is free */
     garrick: { names: ['Foreman Garrick'], file: 'assets/garrick.glb', height: 1.95 },
     maren: { names: ['Maren'], pre: true, file: 'assets/maren.glb', height: 1.75 },
     brannock: { names: ['Old Brannock'], pre: true, file: 'assets/brannock.glb', height: 1.85 },
@@ -241,7 +241,7 @@ const GLB = (() => {
              snapping him the other way in one frame (that snapping, back and forth, was the shiver). Only how he is drawn: the game's own yaw is left alone (render.js draws st.ry) */
           const dtY = st.yt ? Math.min(0.1, (now - st.yt) / 1000) : 0; st.yt = now; const aim = e.yaw;
           if (st.ry == null || !dtY || dtY >= 0.1) st.ry = aim; else { const d = Math.atan2(Math.sin(aim - st.ry), Math.cos(aim - st.ry)); st.ry += d * Math.min(1, dtY * 7); } }
-        if (o.isBoss && o._glbH !== k) { o._glbH = k; o.sayH = registry.get(k).height * (o.scale || 1) + 0.35; } /* his words float over the model's head, not the old one's */
+        if (o._glbH !== k) { o._glbH = k; o.sayH = registry.get(k).height * (o.scale || 1) + 0.3; } /* his words float over the model's head, not the old one's */
         const md = registry.get(k); if (md.walk != null && md.v0 && o._glbPace !== k) { o._glbPace = k; const pace = md.v0 * (o.scale || 1); /* he goes about at the pace his walk was acted at, so his feet keep to the ground: Stonewall plods, Hask shuffles */
           if (o.patrol) { const p = o.patrol, span = Math.hypot(p.bx - p.ax, p.bz - p.az); if (span > 0.5) { p.period = Math.max(p.period, 2 * span / pace); p.rest = Math.max(p.rest || 0, 1.6); } }
           if (o.wander !== false && !o.isBoss) o.speed = Math.max(0.3, Math.min(1.6, pace)); } }
@@ -251,7 +251,10 @@ const GLB = (() => {
   function portrait(cv, name, size) { const m = registry.get(name); if (!m || !m.mesh || !m.mesh.texReady || typeof R === 'undefined' || !R.renderPortrait) return false;
     return R.renderPortrait(cv, m.mesh, { height: m.height }, size, { glb: { name, clip: false, at: 0, walk: false }, yaw: -0.35, pitch: -0.12 }); }
   const meshFor = (e) => { const m = e.glb && registry.get(e.glb.name); return m && m.mesh ? m.mesh : e.mesh; };
+  /* how high his face is above his feet, in a model from a file (null if he wears none): `face` in the cast entry is the fraction of the model's height
+     (a crown, a hat or a spoon taller than he is all sit above it); nine tenths if it does not say */
+  function faceOf(o) { const k = o && (o._glb ? o._glb.name : byName.get(o.glbName || o.name)), c = k && CAST[k], md = c && c.file ? registry.get(k) : null; return md && ready(k) ? md.height * (o.scale || 1) * (c.face || 0.9) : null; }
   /* how fast someone in a model from a file walks without his feet sliding (metres a second), or null if he has no such model or it has no walk */
   function pace(o) { const k = o && (o._glb ? o._glb.name : byName.get(o.glbName || o.name)), md = k && CAST[k] && CAST[k].file ? registry.get(k) : null; return md && md.walk != null && md.v0 ? md.v0 * (o.scale || 1) : null; }
-  return { parse, fromBuffer, load, get, dress, pose, dressAll, meshFor, portrait, pace, CAST, want, get list() { return [...registry.keys()]; } };
+  return { parse, fromBuffer, load, get, dress, pose, dressAll, meshFor, portrait, pace, faceOf, CAST, want, get list() { return [...registry.keys()]; } };
 })();

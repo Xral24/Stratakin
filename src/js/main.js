@@ -1329,7 +1329,8 @@ G.onChestBroken = function (x, y, z) {
 // ---------- the talk camera ----------
 G.talkCamera = function (cam, npc, k) {
   const p = this.player;
-  const fx = npc.x, fy = npc.y + (npc.faceY || 1.5 * (npc.model.scale || 1)), fz = npc.z, FD = npc.faceD || 2.6; // eye level of a villager, hats and feathers ignored; a tyrant says how tall he is
+  const gf = typeof GLB !== 'undefined' && GLB.faceOf ? GLB.faceOf(npc) : null; /* in a model from a file his face is where the model has it, not where the old shape had it */
+  const fx = npc.x, fy = npc.y + (gf != null ? gf : (npc.faceY || 1.5 * ((npc.model && npc.model.scale) || 1))), fz = npc.z, FD = npc.faceD || 2.6; // eye level of a villager, hats and feathers ignored; a tyrant says how tall he is
   let dx = p.x - npc.x, dz = p.z - npc.z; const d = Math.hypot(dx, dz) || 1; dx /= d; dz /= d;
   const sx = -dz, sz = dx; // to the side
   const w = this.world; const free = (x, y, z) => { const b = w.getBlock(Math.floor(x), Math.floor(y), Math.floor(z)); return !isSolid(b) || BLOCKS[b].partial; };
@@ -1338,7 +1339,12 @@ G.talkCamera = function (cam, npc, k) {
   for (let t = 1; t >= 0.25; t -= 0.1) { const x = fx + (dx * FD + sx * FD * 0.38) * t, z = fz + (dz * FD + sz * FD * 0.38) * t; if (free(x, cy, z) && free(x, cy - 0.5, z) && clear(x, cy, z)) { cx = x; cz = z; break; } } // back off until nothing stands between the camera and the face
   if (cx === fx && cz === fz) { for (let t = 1; t >= 0.25; t -= 0.1) { const x = fx + dx * FD * 0.85 * t, z = fz + dz * FD * 0.85 * t; if (free(x, cy, z) && clear(x, cy, z)) { cx = x; cz = z; break; } } } // straight on, if the side is blocked
   const lx = fx - cx, ly = fy - cy, lz = fz - cz; const hd = Math.hypot(lx, lz) || 1;
-  const yaw = Math.atan2(-lx, -lz), pitch = Math.atan2(ly, hd);
+  const yaw = Math.atan2(-lx, -lz); let pitch = Math.atan2(ly, hd);
+  { /* the face goes in the middle of the screen that is left ABOVE the words, not in the middle of the screen: on a phone held sideways the box of words sits right
+       across the centre and covered the face of whoever was speaking. Look down by the angle that lifts the face to that spot */
+    const el = document.getElementById('dialogue'), H = window.innerHeight || 1, r = el && el.offsetParent !== null ? el.getBoundingClientRect() : null;
+    const topY = r && r.height > 0 ? r.top : H * 0.62, want = U.clamp(topY * 0.5, H * 0.16, H * 0.5), ndc = 1 - 2 * want / H;
+    pitch -= Math.atan(ndc * Math.tan(55 * Math.PI / 360)); }
   let dy = yaw - cam.yaw; while (dy > Math.PI) dy -= Math.PI * 2; while (dy < -Math.PI) dy += Math.PI * 2;
   return { x: U.lerp(cam.x, cx, k), y: U.lerp(cam.y, cy, k), z: U.lerp(cam.z, cz, k), yaw: cam.yaw + dy * k, pitch: U.lerp(cam.pitch, pitch, k), fov: U.lerp(cam.fov, 55 * Math.PI / 180, k) };
 };
