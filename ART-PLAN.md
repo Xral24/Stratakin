@@ -22,6 +22,14 @@ Surface rule, all three worlds:
 5. **Headline 3D models** from Higgsfield: about 20 Kin (starters, the five dinos, Umbrarch, legends), about 12 main characters (Finch, Kinmaster, the three tyrants, Varga, Hask, Garrick and the cast), the house type of each world (Earth houses, Moon pods, Halo huts) and the Starlark.
 6. **Everything else in code** with the new textures and the reference pictures: every town on Earth, the Moon and Halo, the Starwell, the Pit, the Garrison, the Citadel, Atlantis, Highmere, the Skyroot, roads, rails, trees, rocks and props. The big landmarks are too large for image-to-3D, so they cost time, not credits.
 
+## Effects
+Sword slashes, hit sparks, element bursts (fire, water, light, void...), level-up and catch flashes, dust and splash: Higgsfield makes flat sprite sheets and soft textures for these (an image each, 1 to 2 credits), the code animates them as trails and particles. Added 22 Nov at Alexander's ask.
+
+## Real prices (checked 22 Nov with cost preflights)
+- Images: GPT Image 2.6 medium 1k is 1 credit; Nano Banana 2 is 1.5; Nano Banana Pro is 2.
+- 3D: Tripo H3.1 image-to-3D, textured, no PBR, 10k faces: **9 credits**. Hunyuan3D v3 LowPoly: 14. Tripo P2 game-ready: 34. Meshy 7 low-poly textured: 38.
+- So the budget below came in far cheaper than feared: a finished model is roughly 2 images plus 1 or 2 tries at 9, about 13 to 22 credits.
+
 ## Budget (credits, rough)
 | Item | Credits |
 |---|---|
