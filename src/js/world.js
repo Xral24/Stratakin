@@ -27,7 +27,7 @@ defBlock(B.AIR, 'Air', '#000000', '#000000', { solid: false, transparent: true }
 defBlock(B.BEDROCK, 'Mantle Rock', '#2a2630', '#2a2630', { hard: Infinity });
 defBlock(B.STONE, 'Stone', '#868a92', '#7c8088', { hard: 0.9, drop: 'stone' });
 defBlock(B.DIRT, 'Dirt', '#8a6240', '#7e583a', { hard: 0.35, drop: 'dirt' });
-defBlock(B.GRASS, 'Grass', '#5fae3f', '#7e583a', { hard: 0.4, drop: 'dirt' });
+defBlock(B.GRASS, 'Grass', '#86ad4c', '#7e583a', { hard: 0.4, drop: 'dirt' });
 defBlock(B.SAND, 'Sand', '#e4d6a2', '#d8c892', { hard: 0.35, drop: 'sand' });
 defBlock(B.WATER, 'Water', '#2f6fd6', '#2f6fd6', { solid: false, fluid: true, transparent: true });
 defBlock(B.LOG, 'Log', '#a07a44', '#75522c', { hard: 0.6, drop: 'wood' });
@@ -101,7 +101,7 @@ defBlock(B.PALMLOG, 'Palm Trunk', '#a08858', '#8a6e46', { hard: 0.6, drop: 'wood
 // the towns: pitched roofs (a wedge that leans toward the ridge), plastered and timbered walls, cobbles, lamp posts, flower boxes
 defBlock(B.TILES, 'Roof Tiles', '#c9623a', '#b25434', { hard: 0.5, drop: 'planks', transparent: true });
 defBlock(B.SLATE, 'Slate Roof', '#55606e', '#4a5462', { hard: 0.5, drop: 'planks', transparent: true });
-defBlock(B.THATCH, 'Thatch', '#d6b05a', '#b8964a', { hard: 0.3, drop: 'frond', transparent: true });
+defBlock(B.THATCH, 'Thatch', '#c39c54', '#a88847', { hard: 0.3, drop: 'frond', transparent: true });
 defBlock(B.HALFTIMBER, 'Timber-framed Wall', '#f3e3bd', '#eedbb0', { hard: 0.8, drop: 'planks' });
 defBlock(B.HALFTIMBER_O, 'Timber-framed Wall', '#ecd096', '#e6c88c', { hard: 0.8, drop: 'planks' });
 defBlock(B.HALFTIMBER_W, 'Timber-framed Wall', '#f8f2e4', '#f2ecdc', { hard: 0.8, drop: 'planks' });
@@ -115,7 +115,7 @@ defBlock(B.BRICK, 'Brick', '#ab6248', '#a45c43', { hard: 1.0, drop: 'stone' });
 defBlock(B.PLASTER, 'Plaster', '#f3e3bd', '#eedbb0', { hard: 0.6, drop: 'planks' });
 defBlock(B.BEAM, 'Timber Beam', '#4c3626', '#443022', { hard: 0.6, drop: 'planks' });
 defBlock(B.LAMP, 'Lamp Post', '#ffd36a', '#3a3a40', { solid: false, hard: 0.3, drop: 'torch', emissive: true, partial: true, transparent: true });
-defBlock(B.COBBLE, 'Cobbles', '#8a8680', '#7e7a74', { hard: 0.9, drop: 'stone' });
+defBlock(B.COBBLE, 'Cobbles', '#9a9080', '#8c8272', { hard: 0.9, drop: 'stone' });
 defBlock(B.PALISADE, 'Palisade', '#8a6a3c', '#6e5230', { hard: 0.7, drop: 'wood', transparent: true }); // two pointed posts per block
 defBlock(B.MASONRY, 'Dressed Stone', '#aaa59b', '#9e9990', { hard: 1.0, drop: 'stone' });
 defBlock(B.FOUNTAIN, 'Fountain', '#9aa0a8', '#8a9098', { hard: Infinity, partial: true, transparent: true }); // the centre block draws the whole fountain
@@ -363,12 +363,12 @@ class World {
     switch (biome) {
       case BIOME.DESERT: return [0.78, 0.74, 0.42];
       case BIOME.SNOW: return [0.55, 0.72, 0.6];
-      case BIOME.SWAMP: return [0.36, 0.55, 0.3];
-      case BIOME.FOREST: return [0.36 + moist * 0.1, 0.7 + temp * 0.1, 0.28];
+      case BIOME.SWAMP: return [0.42, 0.55, 0.3];
+      case BIOME.FOREST: return [0.5 + moist * 0.08, 0.68 + temp * 0.06, 0.26]; /* meadow green with the sun in it, not lawn green (art/style) */
       case BIOME.MOUNTAIN: return [0.5, 0.62, 0.42];
       case BIOME.MARE: return [0.52, 0.52, 0.56]; case BIOME.HIGHLANDS: return [0.66, 0.66, 0.7]; case BIOME.CRATER: return [0.44, 0.44, 0.5];
       case BIOME.DUNES: return [0.86, 0.74, 0.42]; case BIOME.FLATS: return [0.9, 0.86, 0.7]; case BIOME.MESA: return [0.7, 0.58, 0.36]; case BIOME.LOSTWORLD: return [0.22, 0.6, 0.2];
-      default: return [0.46 + temp * 0.25, 0.74, 0.3 + moist * 0.1];
+      default: return [0.58 + temp * 0.2, 0.72, 0.3 + moist * 0.08];
     }
   }
   treeAt(x, z, info) { const t = this.treeAt0(x, z, info); if (!t) return null; if (this.trailWear && this.trailWear(x, z) > 0.1) return null; if (this.trackAt) for (let a = -2; a <= 2; a++) for (let b = -2; b <= 2; b++) if (this.trackAt(x + a, z + b)) return null; return t; } // no tree grows in a footpath or beside the railway

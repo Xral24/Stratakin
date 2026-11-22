@@ -589,6 +589,17 @@ Scope (Alexander, 8 Nov evening): EVERYTHING visible goes to the same standard: 
 - **Keychain and Bigmouth are Kin** (his picks: lizard A, toad B). Meshy 7 ultra models, A-pose, walk in the call, idle added the usual way (107 + 16 credits). The A-pose step drew both empty-handed, so `tools/art/add_prop.py` puts the great key and the wooden spoon back as plain geometry on the hand joint, coloured from a small painted patch placed in an unused corner of the model's texture; that arm is `still`, so the prop stays upright. Keychain's tail was weighted to his legs and thrashed: `rigid_prop.py` gives it to the hips.
 - Credits this round: 123. Balance 2,026.5.
 
+## The world's look, first pass: storybook light (Nov 22, night)
+His ask: "the world needs to be done". Measured against `art/style` (the village and the countryside pictures) the game was too green, too blue and too hard: grass (0.29, 0.61, 0.15) against the picture's (0.6, 0.57, 0.33), a shadow on a roof at 0.36 of the lit side against about 0.65, cobbles neutral grey against warm sandstone.
+- **A grade in the one tonemap every shader shares** (`TONE` in `render.js`, uniform `uGrade`): shadows open and lean violet, lights go warm, the top end is held back. `state.grade` is 1 by day on Earth, 0.6 on the Halo, 0 on the airless Moon and at night, less under a hold's gloom. Every program that tonemaps is in `GRADED` and is told the value at the top of `render`.
+- **Softer sun, fuller shade**: by `uGrade`, the sky's fill light is up about a third and the sun down a little, in the terrain, entity and grass shaders. Shade to lit on a roof went from 0.36 to about 0.55.
+- **Sky**: a paler noon, a zenith that stays blue, and on Earth the horizon pales to warm cream instead of white-blue. Earth's high sun is honey (1, 0.93, 0.78).
+- **Grass**: the biome tints are meadow green with the sun in it (forest and plains moved from lawn green toward yellow-green); the grass block's own colour too.
+- **Thatch**: browner straw, rows whose butt ends shadow the row below (reads as layers from down the street), and patches of old brown and new gold.
+- **Cobbles**: sandstone and grey together, every stone its own, moss and grass in the joints in patches.
+- Test `t-look2.js`: the village square and the open country, phone portrait, HUD hidden, `ROOT=` to shoot an older copy for a side by side.
+- Not yet done (next): tree leaves are still lime; plaster and timber could take more warmth and grime; flowers, stone walls and a proper fountain in the first village; painterly clouds; water; then the Moon and the Halo, which have their own pictures (`2-moon-town`, `4-halo-town`).
+
 ## Still to do
 UI polish as feedback comes in. Card battle screen still used for scripted encounters (raids at the walls, thief, citadel duel, holds) and the snare mini-game; converting those to live is the next big step if wanted. (Old list: train/ships, combat animation, eggs, avatar hair/paint, buddy WEAR cosmetics, Silas and Finch, UI polish (item icons), quality toggles in settings (state.shadows, state.grassQuality, state.dprCap).
 

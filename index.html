@@ -883,7 +883,7 @@ defBlock(B.AIR, 'Air', '#000000', '#000000', { solid: false, transparent: true }
 defBlock(B.BEDROCK, 'Mantle Rock', '#2a2630', '#2a2630', { hard: Infinity });
 defBlock(B.STONE, 'Stone', '#868a92', '#7c8088', { hard: 0.9, drop: 'stone' });
 defBlock(B.DIRT, 'Dirt', '#8a6240', '#7e583a', { hard: 0.35, drop: 'dirt' });
-defBlock(B.GRASS, 'Grass', '#5fae3f', '#7e583a', { hard: 0.4, drop: 'dirt' });
+defBlock(B.GRASS, 'Grass', '#86ad4c', '#7e583a', { hard: 0.4, drop: 'dirt' });
 defBlock(B.SAND, 'Sand', '#e4d6a2', '#d8c892', { hard: 0.35, drop: 'sand' });
 defBlock(B.WATER, 'Water', '#2f6fd6', '#2f6fd6', { solid: false, fluid: true, transparent: true });
 defBlock(B.LOG, 'Log', '#a07a44', '#75522c', { hard: 0.6, drop: 'wood' });
@@ -957,7 +957,7 @@ defBlock(B.PALMLOG, 'Palm Trunk', '#a08858', '#8a6e46', { hard: 0.6, drop: 'wood
 // the towns: pitched roofs (a wedge that leans toward the ridge), plastered and timbered walls, cobbles, lamp posts, flower boxes
 defBlock(B.TILES, 'Roof Tiles', '#c9623a', '#b25434', { hard: 0.5, drop: 'planks', transparent: true });
 defBlock(B.SLATE, 'Slate Roof', '#55606e', '#4a5462', { hard: 0.5, drop: 'planks', transparent: true });
-defBlock(B.THATCH, 'Thatch', '#d6b05a', '#b8964a', { hard: 0.3, drop: 'frond', transparent: true });
+defBlock(B.THATCH, 'Thatch', '#c39c54', '#a88847', { hard: 0.3, drop: 'frond', transparent: true });
 defBlock(B.HALFTIMBER, 'Timber-framed Wall', '#f3e3bd', '#eedbb0', { hard: 0.8, drop: 'planks' });
 defBlock(B.HALFTIMBER_O, 'Timber-framed Wall', '#ecd096', '#e6c88c', { hard: 0.8, drop: 'planks' });
 defBlock(B.HALFTIMBER_W, 'Timber-framed Wall', '#f8f2e4', '#f2ecdc', { hard: 0.8, drop: 'planks' });
@@ -971,7 +971,7 @@ defBlock(B.BRICK, 'Brick', '#ab6248', '#a45c43', { hard: 1.0, drop: 'stone' });
 defBlock(B.PLASTER, 'Plaster', '#f3e3bd', '#eedbb0', { hard: 0.6, drop: 'planks' });
 defBlock(B.BEAM, 'Timber Beam', '#4c3626', '#443022', { hard: 0.6, drop: 'planks' });
 defBlock(B.LAMP, 'Lamp Post', '#ffd36a', '#3a3a40', { solid: false, hard: 0.3, drop: 'torch', emissive: true, partial: true, transparent: true });
-defBlock(B.COBBLE, 'Cobbles', '#8a8680', '#7e7a74', { hard: 0.9, drop: 'stone' });
+defBlock(B.COBBLE, 'Cobbles', '#9a9080', '#8c8272', { hard: 0.9, drop: 'stone' });
 defBlock(B.PALISADE, 'Palisade', '#8a6a3c', '#6e5230', { hard: 0.7, drop: 'wood', transparent: true }); // two pointed posts per block
 defBlock(B.MASONRY, 'Dressed Stone', '#aaa59b', '#9e9990', { hard: 1.0, drop: 'stone' });
 defBlock(B.FOUNTAIN, 'Fountain', '#9aa0a8', '#8a9098', { hard: Infinity, partial: true, transparent: true }); // the centre block draws the whole fountain
@@ -1219,12 +1219,12 @@ class World {
     switch (biome) {
       case BIOME.DESERT: return [0.78, 0.74, 0.42];
       case BIOME.SNOW: return [0.55, 0.72, 0.6];
-      case BIOME.SWAMP: return [0.36, 0.55, 0.3];
-      case BIOME.FOREST: return [0.36 + moist * 0.1, 0.7 + temp * 0.1, 0.28];
+      case BIOME.SWAMP: return [0.42, 0.55, 0.3];
+      case BIOME.FOREST: return [0.5 + moist * 0.08, 0.68 + temp * 0.06, 0.26]; /* meadow green with the sun in it, not lawn green (art/style) */
       case BIOME.MOUNTAIN: return [0.5, 0.62, 0.42];
       case BIOME.MARE: return [0.52, 0.52, 0.56]; case BIOME.HIGHLANDS: return [0.66, 0.66, 0.7]; case BIOME.CRATER: return [0.44, 0.44, 0.5];
       case BIOME.DUNES: return [0.86, 0.74, 0.42]; case BIOME.FLATS: return [0.9, 0.86, 0.7]; case BIOME.MESA: return [0.7, 0.58, 0.36]; case BIOME.LOSTWORLD: return [0.22, 0.6, 0.2];
-      default: return [0.46 + temp * 0.25, 0.74, 0.3 + moist * 0.1];
+      default: return [0.58 + temp * 0.2, 0.72, 0.3 + moist * 0.08];
     }
   }
   treeAt(x, z, info) { const t = this.treeAt0(x, z, info); if (!t) return null; if (this.trailWear && this.trailWear(x, z) > 0.1) return null; if (this.trackAt) for (let a = -2; a <= 2; a++) for (let b = -2; b <= 2; b++) if (this.trackAt(x + a, z + b)) return null; return t; } // no tree grows in a footpath or beside the railway
@@ -1955,7 +1955,8 @@ const R = (() => {
     vWorld = w.xyz; vCol = aCol;
     gl_Position = uPV * w;
   }`;
-  const TONE = `vec3 tonemap(vec3 c){ c = max(c, 0.0); vec3 s = min(c, 1.0); c += (s * s * (3.0 - 2.0 * s) - s) * 0.22; vec3 hi = 0.82 + (1.0 - exp(-(c - 0.82) * 2.6)) * 0.18; c = mix(c, hi, step(0.82, c)); float l = dot(c, vec3(0.3, 0.59, 0.11)); return clamp(mix(vec3(l), c, 1.1), 0.0, 1.0); }`; // a gentle S for contrast (on the 0..1 part only: above 1 the old smoothstep went negative and sun glitter on water came out black and magenta), a soft shoulder above 0.82 so bright things do not clip flat, a touch more colour
+  const GRADED = []; /* programs whose shader carries the shared tonemap: each is given the frame's grade (see render) */
+  const TONE = `uniform float uGrade; vec3 tonemap(vec3 c){ c = max(c, 0.0); vec3 s = min(c, 1.0); c += (s * s * (3.0 - 2.0 * s) - s) * 0.22; vec3 hi = 0.82 + (1.0 - exp(-(c - 0.82) * 2.6)) * 0.18; c = mix(c, hi, step(0.82, c)); float l = dot(c, vec3(0.3, 0.59, 0.11)); c = mix(vec3(l), c, 1.1); /* the storybook light (art/style): shadows open and lean a little violet, the lights go warm, and the top end is held back, so a wall in shade is soft colour and not a dark hole. uGrade is how much of it: all of it by day on Earth, none on the airless Moon, none at night */ float lg = dot(c, vec3(0.3, 0.59, 0.11)); vec3 g = c + vec3(0.085, 0.068, 0.115) * (1.0 - smoothstep(0.0, 0.5, lg)); g *= mix(vec3(1.0), vec3(1.035, 0.985, 0.9), smoothstep(0.25, 0.85, lg)); g = mix(g, g * 0.93 + 0.025, smoothstep(0.6, 1.0, lg)); return clamp(mix(c, g, uGrade), 0.0, 1.0); }`; // a gentle S for contrast (on the 0..1 part only: above 1 the old smoothstep went negative and sun glitter on water came out black and magenta), a soft shoulder above 0.82 so bright things do not clip flat, a touch more colour
   const FS = `
   #ifdef GL_FRAGMENT_PRECISION_HIGH
   precision highp float;
@@ -2031,7 +2032,8 @@ const R = (() => {
       float sh = lam > 0.001 ? shadowAt(vWorld, n) : 1.0;
       vec3 amb = vec3(0.78, 0.86, 1.05) * (0.4 + 0.3 * uDay) * (0.86 + 0.14 * n.y);
       amb += vec3(0.24, 0.18, 0.09) * uDay * uSunAmt * (1.0 - max(n.y, 0.0)) * (1.0 - 0.6 * lam * sh); // sunlight thrown back off the ground: walls in shade are warm, not grey-blue
-      vec3 light = skyL * (amb * (0.88 + 0.12 * sh) + uSunCol * lam * sh * 0.88 * uDay);
+      amb *= 1.0 + 0.32 * uGrade; /* storybook light: the sky fills the shade, the sun is a little gentler, so a shadow is cool colour and not a dark hole */
+      vec3 light = skyL * (amb * (0.88 + 0.12 * sh) + uSunCol * lam * sh * (0.88 - 0.12 * uGrade) * uDay);
       light = max(light, vec3(uAmbient)); light = max(light, vec3(1.0, 0.78, 0.52) * torch * 0.95);
       if (vWorld.y < 14.5 && uCoreGlow > 0.5) { // the Core: the lava sea lights everything from below, orange on the undersides, fading up toward the roof
         float up = clamp((vWorld.y - 3.5) / 9.0, 0.0, 1.0); float under = 0.55 - 0.45 * n.y;
@@ -2155,7 +2157,8 @@ const R = (() => {
           float straw = vn(vec2(along * 42.0, vWorld.y * 5.0)) * 0.6 + vn(vec2(along * 90.0 + 2.0, vWorld.y * 9.0)) * 0.4;
           straw = mix(0.5, straw, 1.0 - smoothstep(5.0, 16.0, dist)); // single straws are for close to: from down the street they are finer than the screen can draw, and the eaves flickered dark and light as you walked
           float row = fract(vWorld.y * 1.8 + vn(vec2(along * 1.5, 1.0)) * 0.3); float lip = smoothstep(0.0, 0.18, row) * (0.85 + 0.15 * smoothstep(0.7, 1.0, row));
-          col *= (0.72 + 0.4 * straw) * (0.8 + 0.2 * lip) * (0.94 + 0.1 * vn(vec2(along, vWorld.y) * 0.4 + 7.0));
+          float clump = vn(vec2(along * 0.8, vWorld.y * 1.1) + 3.0); col = mix(col * vec3(0.8, 0.72, 0.62), col * vec3(1.05, 1.0, 0.88), smoothstep(0.25, 0.75, clump)); /* older straw gone brown beside newer gold, in patches big enough to see from the square */
+          col *= (0.72 + 0.4 * straw) * (0.62 + 0.38 * lip) * (0.94 + 0.1 * vn(vec2(along, vWorld.y) * 0.4 + 7.0)); /* each row's butt end throws a real shadow on the row below: the roof reads as layers, not a yellow sheet */
         } else if (mat == 10) { // plaster: soft trowel marks, a little grime low down
           col *= 0.95 + 0.07 * vn(uv * 3.0 + 1.0) + 0.03 * vn(uv * 11.0);
         } else if (mat == 14) { // dressed stone: courses half a block tall, each offset half a stone, mortar between, every stone its own shade; flags on the tops
@@ -2207,7 +2210,9 @@ const R = (() => {
           vec2 q = uv * 3.2; vec2 ci = floor(q), cf = fract(q); float f1 = 9.0, f2 = 9.0, idc = 0.0;
           for (int i = -1; i <= 1; i++) for (int j = -1; j <= 1; j++) { vec2 g = vec2(float(i), float(j)); vec2 o = vec2(hash3(vec3(ci + g, 1.0)), hash3(vec3(ci + g, 2.0))) * 0.7 + 0.15; float d = length(g + o - cf); if (d < f1) { f2 = f1; f1 = d; idc = hash3(vec3(ci + g, 3.0)); } else if (d < f2) f2 = d; }
           float mortar = smoothstep(0.0, 0.16, f2 - f1); float dome = 1.0 - f1 * 0.35;
-          col *= mix(0.72, 1.0, mortar) * (0.88 + 0.24 * idc) * dome * (0.94 + 0.1 * vn(uv * 0.3 + 5.0));
+          vec3 stone = col * mix(vec3(0.9, 0.86, 0.8), vec3(1.14, 1.05, 0.9), idc) * (0.88 + 0.24 * idc) * dome; /* sandstone and grey together, every stone its own */
+          vec3 bed = mix(col * 0.66, vec3(0.3, 0.4, 0.17) * (0.8 + 0.4 * uDay), 0.6 * smoothstep(0.42, 0.7, vn(uv * 0.55 + 9.0)) * uGrade); /* grass and moss have taken the joints in patches */
+          col = mix(bed, stone, mortar) * (0.94 + 0.1 * vn(uv * 0.3 + 5.0));
         }
         if (gw > 0.002) col = mix(col, cg, gw);
       }
@@ -2273,7 +2278,8 @@ const R = (() => {
     float ramp = smoothstep(0.4, 0.5, hl) * 0.8 + smoothstep(0.74, 0.92, hl) * 0.2; /* one clean shadow edge, then a soft lift toward the light */
     float sh = shadowAt(vWorld, n); ramp *= mix(0.25, 1.0, sh);
     vec3 amb = vec3(0.86, 0.9, 1.02) * (0.42 + 0.24 * uDay) * (0.84 + 0.2 * n.y);
-    vec3 light = skyL * (amb * (0.88 + 0.12 * sh) + uSunCol * ramp * 0.78 * uDay);
+    amb *= 1.0 + 0.26 * uGrade;
+    vec3 light = skyL * (amb * (0.88 + 0.12 * sh) + uSunCol * ramp * (0.78 - 0.08 * uGrade) * uDay);
     light = max(light, vec3(uAmbient)); light = max(light, vec3(1.0, 0.78, 0.52) * torch * 0.95);
     if (vWorld.y < 14.5 && uCoreGlow > 0.5) { float up = clamp((vWorld.y - 3.5) / 9.0, 0.0, 1.0); light = max(light, vec3(1.0, 0.42, 0.1) * (1.0 - up * 0.75) * (0.55 - 0.45 * n.y) * 1.1 + vec3(0.6, 0.16, 0.05) * 0.45); }
     light = mix(light, vec3(1.0), emis);
@@ -2444,7 +2450,7 @@ const R = (() => {
   void main(){
     float dist = distance(vW, uCam); vec3 V = (uCam - vW) / max(dist, 0.001);
     float sh = shadowAt(vW, vec3(0.0, 1.0, 0.0));
-    vec3 light = vec3(0.78, 0.86, 1.05) * (0.42 + 0.26 * uDay) * (0.7 + 0.3 * vH) * (0.85 + 0.15 * sh) + uSunCol * uSunAmt * uDay * (0.4 + 0.45 * vH) * sh;
+    vec3 light = vec3(0.78, 0.86, 1.05) * (0.42 + 0.26 * uDay) * (1.0 + 0.3 * uGrade) * (0.7 + 0.3 * vH) * (0.85 + 0.15 * sh) + uSunCol * uSunAmt * uDay * (0.4 + 0.45 * vH) * (1.0 - 0.12 * uGrade) * sh;
     float back = pow(max(dot(-V, uSun), 0.0), 3.0) * uSunAmt * vH * sh; // sun through the blades
     float sheen = pow(max(dot(-V, uSun), 0.0), 14.0) * uSunAmt * vH * vH * sh; // the field shines toward the sun
     vec3 vS = uSeason < 0.5 ? mix(vC, vec3(0.56, 0.9, 0.34) * dot(vC, vec3(0.3, 0.6, 0.1)) / 0.72, 0.34) : uSeason < 1.5 ? vC : uSeason < 2.5 ? mix(vC, vec3(0.86, 0.74, 0.3) * dot(vC, vec3(0.3, 0.6, 0.1)) / 0.73, 0.55) : mix(mix(vC, vec3(0.8, 0.82, 0.76) * dot(vC, vec3(0.3, 0.6, 0.1)) / 0.81, 0.66), vec3(0.93, 0.95, 1.0) * (0.55 + dot(vC, vec3(0.3, 0.6, 0.1)) * 0.75), 0.85 * smoothstep(-0.35, -0.05, sin(vW.x * 0.31 + sin(vW.z * 0.23) * 1.7) * sin(vW.z * 0.29 + sin(vW.x * 0.19) * 1.9))); /* the blades turn with the year as the turf under them does */
@@ -2465,7 +2471,7 @@ const R = (() => {
     if (!(typeof WebGL2RenderingContext !== 'undefined' && gl instanceof WebGL2RenderingContext)) return;
     try {
       const mk = (t, src) => { const s = gl.createShader(t); gl.shaderSource(s, src); gl.compileShader(s); if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s)); return s; };
-      const p = gl.createProgram(); gl.attachShader(p, mk(gl.VERTEX_SHADER, GVS)); gl.attachShader(p, mk(gl.FRAGMENT_SHADER, GFS.replace('/*SHADOW*/', SHADOW_GLSL(true)))); gl.linkProgram(p); if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(p));
+      const p = gl.createProgram(); gl.attachShader(p, mk(gl.VERTEX_SHADER, GVS)); gl.attachShader(p, mk(gl.FRAGMENT_SHADER, GFS.replace('/*SHADOW*/', SHADOW_GLSL(true)))); gl.linkProgram(p); if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(p)); GRADED.push({ p, loc: gl.getUniformLocation(p, 'uGrade') });
       grassProg = p; gloc.aBlade = gl.getAttribLocation(p, 'aBlade');
       for (const n of ['uPV', 'uCam', 'uOrigin', 'uSpacing', 'uSide', 'uRIn', 'uROut', 'uScale', 'uWidth', 'uHM', 'uHMO', 'uTime', 'uFog', 'uFogNear', 'uFogFar', 'uSun', 'uSunCol', 'uSunAmt', 'uDay', 'uTint', 'uShadow', 'uLightPV', 'uShadowOn', 'uShadowTexel', 'uZenith', 'uFogSky', 'uMist', 'uSeason']) gloc[n] = gl.getUniformLocation(p, n);
       // a blade: two quads tapering to a point (5 vertices, a strip)
@@ -2572,7 +2578,7 @@ const R = (() => {
   function drawLife(world, player, pv, cam) {
     if (!grassProg || !hmCenter || !state.skyPass || lifeProg === false || world.preset.id !== 'earth' || state.underwater) return;
     if (!lifeProg) { try { const mk = (t, src) => { const sh = gl.createShader(t); gl.shaderSource(sh, src); gl.compileShader(sh); if (!gl.getShaderParameter(sh, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(sh)); return sh; };
-        const p = gl.createProgram(); gl.attachShader(p, mk(gl.VERTEX_SHADER, LIFE_VS)); gl.attachShader(p, mk(gl.FRAGMENT_SHADER, LIFE_FS)); gl.linkProgram(p); if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(p));
+        const p = gl.createProgram(); gl.attachShader(p, mk(gl.VERTEX_SHADER, LIFE_VS)); gl.attachShader(p, mk(gl.FRAGMENT_SHADER, LIFE_FS)); gl.linkProgram(p); if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(p)); GRADED.push({ p, loc: gl.getUniformLocation(p, 'uGrade') });
         lifeProg = p; lfloc.aQ = gl.getAttribLocation(p, 'aQ'); for (const n of ['uPV', 'uCam', 'uTime', 'uHM', 'uHMO', 'uKind', 'uBox', 'uSize', 'uLight']) lfloc[n] = gl.getUniformLocation(p, n);
         lifeBuf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, lifeBuf); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, 1, 1, -1, -1, 1, 1, -1, 1]), gl.STATIC_DRAW);
       } catch (e) { console.warn('small life off:', e.message); lifeProg = false; return; } }
@@ -2624,7 +2630,7 @@ const R = (() => {
   const LFS = `precision mediump float; uniform vec4 uColor; void main(){ gl_FragColor = uColor; }`;
 
   function compile(vs, fs) {
-    const p = gl.createProgram();
+    const p = gl.createProgram(); const graded = fs.indexOf('uGrade') >= 0;
     const gl2 = typeof WebGL2RenderingContext !== 'undefined' && gl instanceof WebGL2RenderingContext;
     fs = fs.replace('/*SHADOW*/', SHADOW_GLSL(gl2));
     if (gl2) { vs = '#version 300 es\n#define attribute in\n#define varying out\n' + vs; fs = '#version 300 es\n#define varying in\n#define texture2D texture\nout highp vec4 fragOut;\n#define gl_FragColor fragOut\n' + fs; }
@@ -2632,6 +2638,7 @@ const R = (() => {
     const mk = (t, src) => { const s = gl.createShader(t); gl.shaderSource(s, src); gl.compileShader(s); if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s)); return s; };
     gl.attachShader(p, mk(gl.VERTEX_SHADER, vs)); gl.attachShader(p, mk(gl.FRAGMENT_SHADER, fs)); gl.linkProgram(p);
     if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(p));
+    if (graded) GRADED.push({ p, loc: gl.getUniformLocation(p, 'uGrade') });
     return p;
   }
 
@@ -4556,7 +4563,7 @@ const R = (() => {
     const day = U.clamp((sun + 0.35) / 0.6, 0, 1);
     state.day = day;
     state.dayLight = 0.32 + 0.68 * day;
-    const night = world.preset.skyNight || [0.02, 0.03, 0.09], noon = world.preset.skyNoon || [0.55, 0.76, 0.98], dusk = world.preset.skyDusk || [0.95, 0.55, 0.3];
+    const night = world.preset.skyNight || [0.02, 0.03, 0.09], noon = world.preset.skyNoon || [0.6, 0.79, 0.97], dusk = world.preset.skyDusk || [0.95, 0.55, 0.3]; /* a paler, kinder noon than pure sky blue (art/style) */
     let sky = U.mixColor(night, noon, day);
     const duskAmt = Math.max(0, 1 - Math.abs(day - 0.45) / 0.35) * 0.6;
     sky = U.mixColor(sky, dusk, duskAmt);
@@ -4575,12 +4582,13 @@ const R = (() => {
     const ang = t * Math.PI * 2; let sd = [Math.sin(ang) * 0.75, -Math.cos(ang), 0.42]; const sl = Math.hypot(sd[0], sd[1], sd[2]); sd = sd.map(v => v / sl);
     if (world.preset.flatDay) sd = [0.35, 0.8, 0.45].map(v => v / Math.hypot(0.35, 0.8, 0.45));
     state.sun = sd; state.sunAmt = world.preset.flatDay ? 1 : U.clamp((sd[1] + 0.06) / 0.3, 0, 1);
-    const warm = U.clamp(sd[1] * 2.2, 0, 1); state.sunCol = U.mixColor([1.0, 0.55, 0.3], [1.0, 0.95, 0.86], warm);
+    const warm = U.clamp(sd[1] * 2.2, 0, 1); state.sunCol = U.mixColor([1.0, 0.55, 0.3], world.preset.id === 'earth' ? [1.0, 0.93, 0.78] : [1.0, 0.95, 0.86], warm); /* Earth's sun is honey, not white */
     const dayK = world.preset.flatDay ? 0.6 : day;
-    const horizon = U.mixColor(sky, [0.93, 0.95, 1.0], 0.32 * dayK * (1 - duskAmt));
-    state.zenith = world.preset.airless ? sky.map(v => v * 0.6) : U.mixColor(sky.map(v => v * 0.75), [0.16, 0.38, 0.82], 0.45 * dayK * (world.preset.id === 'earth' ? 1 : 0.4));
+    const earthSky = world.preset.id === 'earth' && !world.preset.flatDay, horizon = earthSky ? U.mixColor(sky, [1.0, 0.95, 0.84], 0.5 * dayK * (1 - duskAmt)) : U.mixColor(sky, [0.93, 0.95, 1.0], 0.32 * dayK * (1 - duskAmt)); /* on Earth the sky pales to warm cream at the horizon, as in the pictures */
+    state.zenith = world.preset.airless ? sky.map(v => v * 0.6) : U.mixColor(sky.map(v => v * 0.75), world.preset.id === 'earth' ? [0.22, 0.48, 0.95] : [0.16, 0.38, 0.82], 0.45 * dayK * (world.preset.id === 'earth' ? 1 : 0.4));
     state.clouds = world.preset.airless ? 0 : (world.preset.id === 'earth' ? 0.55 : 0.3) + (wi > 0.02 && (wk === 'rain' || wk === 'storm') ? 0.45 * wi : 0);
     if (gl0 > 0.01) { state.zenith = U.mixColor(state.zenith, [0.28, 0.27, 0.32], gl0 * 0.85); state.clouds = Math.min(1, state.clouds + 0.45 * gl0); state.sunAmt *= 1 - 0.65 * gl0; state.sunCol = U.mixColor(state.sunCol, [0.75, 0.72, 0.8], gl0 * 0.6); }
+    state.grade = world.preset.airless ? 0 : (world.preset.id === 'earth' ? 1 : 0.6) * U.clamp(day * 1.4 - 0.2, 0, 1) * (1 - 0.6 * gl0); /* how much of the storybook light this frame has (the shared tonemap) */
     state.skyPass = true; state.night = 1 - day;
     sky = horizon;
     state.skyColor = sky; state.fogColor = sky; state.ambient = 0.06; state.fogSky = true; { const wid = typeof G !== 'undefined' && G.world ? G.world.preset.id : 'earth'; state.rangeKind = wid === 'moon' ? 2 : wid === 'halo' ? 3 : 1; }
@@ -4617,6 +4625,7 @@ const R = (() => {
     resize();
     for (let i = 0; i < 8; i++) gl.disableVertexAttribArray(i); // nothing left switched on from the last frame: a chunk remeshed since then has had its buffers deleted, and the sky would refuse to draw with one still attached
     setEnv(world, player);
+    { const gr = state.grade || 0; for (const g of GRADED) if (g.loc) { gl.useProgram(g.p); gl.uniform1f(g.loc, gr); } } /* the storybook grade for this frame, to every shader that tonemaps */
     const sc = state.skyColor;
     gl.clearColor(sc[0], sc[1], sc[2], 1); gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
     const aspect = canvas.width / canvas.height;
