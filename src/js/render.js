@@ -949,7 +949,8 @@ const R = (() => {
   function glbUpload(d) {
     if (!gl || !d || !d.IX || !d.IX.length) return null; const mk = (arr, el) => { const b = gl.createBuffer(); gl.bindBuffer(el ? gl.ELEMENT_ARRAY_BUFFER : gl.ARRAY_BUFFER, b); gl.bufferData(el ? gl.ELEMENT_ARRAY_BUFFER : gl.ARRAY_BUFFER, arr, gl.STATIC_DRAW); return b; };
     const m = { vbo: mk(d.P), cbo: mk(d.C), nbo: mk(d.N), bbo: mk(d.bone), b2bo: mk(d.bone2), uvbo: mk(d.T), ibo: mk(d.IX, true), count: d.IX.length, tris: d.IX.length / 3, tex: null, texReady: false, glb: true };
-    if (d.image && typeof createImageBitmap !== 'undefined') {
+    m.texWait = !!(d.image && typeof createImageBitmap !== 'undefined'); /* a model with a picture is not shown until the picture is on the card: no white figure for a frame or two */
+    if (m.texWait) {
       const blob = new Blob([d.image.bytes], { type: d.image.mime || 'image/png' }), cap = d.maxTex || 1024;
       createImageBitmap(blob).then(bmp => { const big = Math.max(bmp.width, bmp.height); if (big <= cap) return bmp; const k = cap / big; return createImageBitmap(bmp, { resizeWidth: Math.max(1, Math.round(bmp.width * k)), resizeHeight: Math.max(1, Math.round(bmp.height * k)), resizeQuality: 'high' }); })
         .then(bmp => { const t = gl.createTexture(); gl.activeTexture(gl.TEXTURE3); gl.bindTexture(gl.TEXTURE_2D, t); gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, bmp);
@@ -957,7 +958,7 @@ const R = (() => {
           if (pot || gl2) { gl.generateMipmap(gl.TEXTURE_2D); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR); } else gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
           gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR); if (!pot && !gl2) { gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE); }
           gl.activeTexture(gl.TEXTURE0); m.tex = t; m.texReady = true; m.texW = bmp.width; m.texH = bmp.height; })
-        .catch(err => console.warn('GLB texture: ' + err.message));
+        .catch(err => { m.texFailed = true; console.warn('GLB texture: ' + err.message); });
     }
     return m;
   }

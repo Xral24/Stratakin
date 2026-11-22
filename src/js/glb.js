@@ -214,14 +214,16 @@ const GLB = (() => {
   /* each file is fetched the moment someone who wears it comes into view, and the people round the first village (pre) a moment after
      the game starts, so they are waiting before they are met. Until his file has arrived a figure is not drawn at all (a second at most), rather than
      shown in his old shape and swapped; if the file cannot be had, he keeps his old shape */
-  const want = (k) => { const c = CAST[k]; if (!c || !c.file || registry.has(k) || pending.has(k)) return; load(k, where(c.file), { height: c.height, turn: c.turn || 0, still: c.still }); };
+  const ready = (k) => { const m = registry.get(k); return !!(m && m.mesh && (!m.mesh.texWait || m.mesh.texReady || m.mesh.texFailed)); };
+  const since = new Map(); /* when each file was asked for: one that has not come in eight seconds shows the old shape until it does */
+  const want = (k) => { const c = CAST[k]; if (!c || !c.file || registry.has(k) || pending.has(k)) return; since.set(k, performance.now()); load(k, where(c.file), { height: c.height, turn: c.turn || 0, still: c.still }); };
   let preloadAt = 0;
   function dressAll(ents) {
     const now = performance.now(); if (!preloadAt) preloadAt = now + 2500; else if (preloadAt > 0 && now > preloadAt) { preloadAt = -1; for (const k of Object.keys(CAST)) if (CAST[k].pre) want(k); } /* only the first village's people ahead of time; the rest when they are first in view */
     let n = 0;
     for (let i = 0; i < ents.length; i++) { const e = ents[i]; if (!e) continue; const o = e.src || e, k = byName.get(o.glbName || o.name || e.name);
-      if (k && !registry.has(k)) { want(k); if (!failed.has(k)) continue; } /* on its way: not drawn yet */
-      if (k && registry.has(k)) { const c = CAST[k], st = o._glb || (o._glb = { name: k, t0: now - Math.random() * 5000, clip: c.clip, walk: c.walk }); st.nod = (o.talkOpen || 0) > 0.05 ? 1 : 0; /* talking: the head nods along with the words */ e.glb = st;
+      const ok = k && ready(k); if (k && !ok) { want(k); if (!failed.has(k) && now - (since.get(k) || now) < 8000) continue; } /* on its way (the file, or its picture): not drawn yet */
+      if (ok) { const c = CAST[k], st = o._glb || (o._glb = { name: k, t0: now - Math.random() * 5000, clip: c.clip, walk: c.walk }); st.nod = (o.talkOpen || 0) > 0.05 ? 1 : 0; /* talking: the head nods along with the words */ e.glb = st;
         if (o.isBoss && o._glbH !== k) { o._glbH = k; o.sayH = registry.get(k).height * (o.scale || 1) + 0.35; } } /* his words float over the model's head, not the old one's */
       ents[n++] = e; }
     ents.length = n; }

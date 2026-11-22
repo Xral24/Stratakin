@@ -2723,7 +2723,8 @@ const R = (() => {
   function glbUpload(d) {
     if (!gl || !d || !d.IX || !d.IX.length) return null; const mk = (arr, el) => { const b = gl.createBuffer(); gl.bindBuffer(el ? gl.ELEMENT_ARRAY_BUFFER : gl.ARRAY_BUFFER, b); gl.bufferData(el ? gl.ELEMENT_ARRAY_BUFFER : gl.ARRAY_BUFFER, arr, gl.STATIC_DRAW); return b; };
     const m = { vbo: mk(d.P), cbo: mk(d.C), nbo: mk(d.N), bbo: mk(d.bone), b2bo: mk(d.bone2), uvbo: mk(d.T), ibo: mk(d.IX, true), count: d.IX.length, tris: d.IX.length / 3, tex: null, texReady: false, glb: true };
-    if (d.image && typeof createImageBitmap !== 'undefined') {
+    m.texWait = !!(d.image && typeof createImageBitmap !== 'undefined'); /* a model with a picture is not shown until the picture is on the card: no white figure for a frame or two */
+    if (m.texWait) {
       const blob = new Blob([d.image.bytes], { type: d.image.mime || 'image/png' }), cap = d.maxTex || 1024;
       createImageBitmap(blob).then(bmp => { const big = Math.max(bmp.width, bmp.height); if (big <= cap) return bmp; const k = cap / big; return createImageBitmap(bmp, { resizeWidth: Math.max(1, Math.round(bmp.width * k)), resizeHeight: Math.max(1, Math.round(bmp.height * k)), resizeQuality: 'high' }); })
         .then(bmp => { const t = gl.createTexture(); gl.activeTexture(gl.TEXTURE3); gl.bindTexture(gl.TEXTURE_2D, t); gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, bmp);
@@ -2731,7 +2732,7 @@ const R = (() => {
           if (pot || gl2) { gl.generateMipmap(gl.TEXTURE_2D); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR); } else gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
           gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR); if (!pot && !gl2) { gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE); }
           gl.activeTexture(gl.TEXTURE0); m.tex = t; m.texReady = true; m.texW = bmp.width; m.texH = bmp.height; })
-        .catch(err => console.warn('GLB texture: ' + err.message));
+        .catch(err => { m.texFailed = true; console.warn('GLB texture: ' + err.message); });
     }
     return m;
   }
@@ -5034,14 +5035,16 @@ const GLB = (() => {
   /* each file is fetched the moment someone who wears it comes into view, and the people round the first village (pre) a moment after
      the game starts, so they are waiting before they are met. Until his file has arrived a figure is not drawn at all (a second at most), rather than
      shown in his old shape and swapped; if the file cannot be had, he keeps his old shape */
-  const want = (k) => { const c = CAST[k]; if (!c || !c.file || registry.has(k) || pending.has(k)) return; load(k, where(c.file), { height: c.height, turn: c.turn || 0, still: c.still }); };
+  const ready = (k) => { const m = registry.get(k); return !!(m && m.mesh && (!m.mesh.texWait || m.mesh.texReady || m.mesh.texFailed)); };
+  const since = new Map(); /* when each file was asked for: one that has not come in eight seconds shows the old shape until it does */
+  const want = (k) => { const c = CAST[k]; if (!c || !c.file || registry.has(k) || pending.has(k)) return; since.set(k, performance.now()); load(k, where(c.file), { height: c.height, turn: c.turn || 0, still: c.still }); };
   let preloadAt = 0;
   function dressAll(ents) {
     const now = performance.now(); if (!preloadAt) preloadAt = now + 2500; else if (preloadAt > 0 && now > preloadAt) { preloadAt = -1; for (const k of Object.keys(CAST)) if (CAST[k].pre) want(k); } /* only the first village's people ahead of time; the rest when they are first in view */
     let n = 0;
     for (let i = 0; i < ents.length; i++) { const e = ents[i]; if (!e) continue; const o = e.src || e, k = byName.get(o.glbName || o.name || e.name);
-      if (k && !registry.has(k)) { want(k); if (!failed.has(k)) continue; } /* on its way: not drawn yet */
-      if (k && registry.has(k)) { const c = CAST[k], st = o._glb || (o._glb = { name: k, t0: now - Math.random() * 5000, clip: c.clip, walk: c.walk }); st.nod = (o.talkOpen || 0) > 0.05 ? 1 : 0; /* talking: the head nods along with the words */ e.glb = st;
+      const ok = k && ready(k); if (k && !ok) { want(k); if (!failed.has(k) && now - (since.get(k) || now) < 8000) continue; } /* on its way (the file, or its picture): not drawn yet */
+      if (ok) { const c = CAST[k], st = o._glb || (o._glb = { name: k, t0: now - Math.random() * 5000, clip: c.clip, walk: c.walk }); st.nod = (o.talkOpen || 0) > 0.05 ? 1 : 0; /* talking: the head nods along with the words */ e.glb = st;
         if (o.isBoss && o._glbH !== k) { o._glbH = k; o.sayH = registry.get(k).height * (o.scale || 1) + 0.35; } } /* his words float over the model's head, not the old one's */
       ents[n++] = e; }
     ents.length = n; }
