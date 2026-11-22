@@ -149,7 +149,9 @@ const GLB = (() => {
   };
   const byName = new Map(); for (const [k, c] of Object.entries(CAST)) for (const n of c.names) byName.set(n, k);
   let booted = false;
-  function boot() { if (booted) return; booted = true; for (const [k, c] of Object.entries(CAST)) if (c.file) load(k, c.file, { height: c.height, turn: c.turn || 0 }); }
+  /* where a file is served: beside the page (GitHub Pages, the installed app), or at its asset address where the page is hosted as an artifact (the build writes that map) */
+  const where = (file) => (typeof window !== 'undefined' && window.STRATAKIN_ASSETS && window.STRATAKIN_ASSETS[file]) || file;
+  function boot() { if (booted) return; booted = true; for (const [k, c] of Object.entries(CAST)) if (c.file) load(k, where(c.file), { height: c.height, turn: c.turn || 0 }); }
   function dressAll(ents) { if (!booted) boot(); if (!registry.size) return;
     for (const e of ents) { if (!e) continue; const o = e.src || e, k = byName.get(o.name || e.name); if (!k || !registry.has(k)) continue;
       const st = o._glb || (o._glb = { name: k, t0: performance.now() - Math.random() * 5000, clip: CAST[k].clip }); st.nod = (o.talkOpen || 0) > 0.05 ? 1 : 0; /* talking: the head nods along with the words */ e.glb = st; } }
