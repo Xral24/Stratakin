@@ -121,10 +121,18 @@ const Avatar = (() => {
   function thirdCam(cam, p, world, back = 4.2, lift = 0) {
     const f = U.forwardVec(cam.yaw, cam.pitch); cam = Object.assign({}, cam, { y: cam.y + lift });
     const free = (x, y, z) => { const b = world.getBlock(Math.floor(x), Math.floor(y), Math.floor(z)); return !isSolid(b) && !R.under(world, x, y, z, 0.35); }; // clear of the blocks and of the smooth ground drawn over them: the camera never sits inside a bank looking out through it
+    /* a low roof over you (a mine gallery, a cave, a doorway): the camera comes in tight behind your shoulder and does not climb, or it ends up in the rock looking through it */
+    const ex = Math.floor(cam.x), ez = Math.floor(cam.z); let roof = 99; for (let y = Math.floor(cam.y - lift); y <= Math.floor(cam.y - lift) + 5; y++) if (isSolid(world.getBlock(ex, y, ez)) && !isLeaf(world.getBlock(ex, y, ez))) { roof = y - (cam.y - lift); break; }
+    const bore = !!(world.lost && world.inLostTunnel && world.inLostTunnel(p.x, p.y, p.z)); /* in the tunnel into the Lost World the walls are a drawn arch, not the blocks: the camera keeps inside the arch */
+    const tight = roof < 4 || bore; if (tight) { back = Math.min(back, 2.6); cam.y = cam.y - lift + Math.max(0, Math.min(lift, roof - 0.9)); }
+    const rise = tight ? 0 : 1;
+    const clear = (x, y, z) => { if (!free(x, y, z)) return false; if (bore && !world.inLostBore(x, y, z, 0.35)) return false; for (const [a, b, c] of [[0.3, 0, 0], [-0.3, 0, 0], [0, 0.3, 0], [0, -0.3, 0], [0, 0, 0.3], [0, 0, -0.3]]) if (isSolid(world.getBlock(Math.floor(x + a), Math.floor(y + b), Math.floor(z + c)))) return false; return true; }; /* room round the lens too, or the near edge of the view cuts into the wall and you see through it */
     let d = back;
-    for (let t = 0.3; t <= back; t += 0.25) { const x = cam.x - f[0] * t, y = cam.y - f[1] * t + 0.45 * (t / back), z = cam.z - f[2] * t; if (!free(x, y, z)) { d = Math.max(0.3, t - 0.3); break; } }
-    if (d < 1.3 && back > 2) return Object.assign({}, cam, { y: cam.y - lift, tooNear: true }); /* no room behind him (under an eave, back to a wall): look through his own eyes for now, not at the inside of his collar */
-    return Object.assign({}, cam, { x: cam.x - f[0] * d, y: cam.y - f[1] * d + 0.6 * (d / back), z: cam.z - f[2] * d });
+    for (let t = 0.3; t <= back; t += 0.2) { const x = cam.x - f[0] * t, y = cam.y - f[1] * t + 0.45 * rise * (t / back), z = cam.z - f[2] * t; if (!clear(x, y, z)) { d = Math.max(0.3, t - 0.3); break; } }
+    if (d < (tight ? 0.9 : 1.3) && back > 2 - (tight ? 0.6 : 0)) return Object.assign({}, cam, { y: cam.y - lift, tooNear: true }); /* no room behind him (under an eave, back to a wall): look through his own eyes for now, not at the inside of his collar */
+    const out = Object.assign({}, cam, { x: cam.x - f[0] * d, y: cam.y - f[1] * d + 0.6 * rise * (d / back), z: cam.z - f[2] * d });
+    if (tight) { const r = U.forwardVec(cam.yaw + Math.PI / 2, 0); for (const sd of [1, -1]) { let k = 0; for (let t = 0.15; t <= 0.6; t += 0.15) { if (!clear(out.x + r[0] * t * sd, out.y, out.z + r[2] * t * sd)) break; k = t; } if (k >= 0.3) { out.x += r[0] * k * sd; out.z += r[2] * k * sd; break; } } } /* close in, the camera moves over a shoulder, so he is at the side of the view and the way ahead is in the middle */
+    return out;
   }
   function portrait(cv, s, size) { KIN.portrait(cv, species(s), 2, size, model(s)); }
   return { init, SKINS, skin, unlocked, entity, thirdCam, portrait, model, mesh };

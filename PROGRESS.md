@@ -526,6 +526,15 @@ Scope (Alexander, 8 Nov evening): EVERYTHING visible goes to the same standard: 
 
 - 22 Nov, the test starts gave no pick (he could not mine copper for Garrick's quest on the Moon start). Both designer jumps now give the stone and iron picks, iron axe, hatchet and shovel, and mark Garrick's pick quest done. Waiting for Fable (his ask): Finch's moustache rises over his eyes when he talks; the ship's landed state looks half-finished (panels splayed, LAND button still up); raise Kin ceilings on the Moon and Halo to their world's level (a common Moon Kin caps at 18 to 43 against a level 90 world).
 
+## Landing, mines, camera, Lost World jump (Nov 22)
+- Ship: landing on a slope left the player at a fractional height and `groundY` read past the column (non-integer index), so the loop threw every frame after touchdown and the LAND button stuck. `groundY` floors its start height now. Parked ship sits on the highest ground under the hull (`G.parkY`), not half a block into it.
+- Garrick's mine: underground props were LOG blocks under planks, which the renderer drew as mangrove piles (bowed pole, splayed roots). They are BEAM now; old saves swap once near the mine (`c.mineBeams`). The mangrove pile only draws for a post standing in water.
+- Mine "pulled into the ceiling": the eye followed the smooth ground skin, which is the land's top surface. Underground on soil that lifted the eye by up to 3 blocks. The skin is ignored when it is more than 1.6 from your feet.
+- Third person in tight places (low roof within 4 blocks, or the Lost World tunnel): camera comes in to 2.6, does not climb, keeps 0.3 of clear air round the lens, and moves over a shoulder. In the tunnel it also stays inside the drawn arch (`world.inLostBore`). Same code on every world.
+- Lost World test jump: start screen button and ≡ menu. Halo kit and party at 150, story set just after Umbrarch shrugs your Kin off (`arena.sawKM`), quest on The Tyrant, set down on dry ground at the tunnel gateway facing in.
+- Craft button removed from the top bar (crafting is at a Fusion Table). Secure slots moved into the bag (tap the hotbar); Elder Hask's line says so.
+- Waiting for Fable (Alexander's call): Moon village houses (Zorim: pods not showing, posts and lamps standing on their own, cubes about), Finch's moustache, Moon and Halo Kin ceilings.
+
 ## Still to do
 UI polish as feedback comes in. Card battle screen still used for scripted encounters (raids at the walls, thief, citadel duel, holds) and the snare mini-game; converting those to live is the next big step if wanted. (Old list: train/ships, combat animation, eggs, avatar hair/paint, buddy WEAR cosmetics, Silas and Finch, UI polish (item icons), quality toggles in settings (state.shadows, state.grassQuality, state.dprCap).
 

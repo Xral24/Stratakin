@@ -45,7 +45,7 @@ button { font-family: var(--font); color: var(--ui); }
 .xpbar > div { height: 100%; background: var(--acc); }
 #where { font-size: 11px; font-weight: 700; color: var(--ui); white-space: normal !important; line-height: 1.25; }
 #where:empty, #weather:empty { display: none; }
-#buttons { display: grid; grid-template-columns: auto auto auto; gap: 5px; pointer-events: auto; justify-content: end; flex: 0 0 auto; }
+#buttons { display: grid; grid-template-columns: auto auto; gap: 5px; pointer-events: auto; justify-content: end; flex: 0 0 auto; }
 .hbtn { background: var(--bg); border: 1px solid rgba(255,255,255,.16); border-radius: 10px; padding: 7px 11px; font-weight: 800; font-size: 13px; backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px); box-shadow: 0 2px 8px rgba(0,0,0,.25); }
 .hbtn:active { background: rgba(242,181,68,.35); }
 .hbtn span { color: var(--acc); }
@@ -586,7 +586,6 @@ body.cine-on #hud, body.cine-on #crosshair, body.cine-on #compass, body.cine-on 
     </div>
     <div id="buttons">
       <button class="hbtn" data-panel="kin"><svg class="ico-s" viewBox="0 0 24 24"><circle cx="6.5" cy="9" r="2.2"/><circle cx="17.5" cy="9" r="2.2"/><circle cx="9.5" cy="4.8" r="2.1"/><circle cx="14.5" cy="4.8" r="2.1"/><path d="M12 10.5c3.4 0 6 2.7 6 5.4 0 2.2-1.6 3.6-3.4 3.6-1 0-1.8-.5-2.6-.5s-1.6.5-2.6.5C7.6 19.5 6 18.1 6 15.9c0-2.7 2.6-5.4 6-5.4z"/></svg>Kin <span id="kin-count"></span></button>
-      <button class="hbtn" data-panel="craft"><svg class="ico-s" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4l6 6-3 3-6-6z"/><path d="M11 7 4 14l3 3 7-7"/><path d="M3.5 20.5 7 17"/></svg>Craft</button>
       <button class="hbtn" data-panel="quest"><svg class="ico-s" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 21V4"/><path d="M5 4h11l-2.5 4L16 12H5"/></svg>Quests <span id="quest-dot" class="hidden">•</span></button>
       <button class="hbtn" data-panel="map"><svg class="ico-s" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2z"/><path d="M9 4v14M15 6v14"/></svg>Map</button>
       <button class="hbtn" data-panel="menu">≡</button>
@@ -1094,6 +1093,13 @@ class World {
   inLostTunnel(x, y, z) { const L = this.lost; if (!L) return false; const W = WORLD_W, dx = ((x - L.x) % W + W * 1.5) % W - W / 2, dz = ((z - L.z) % W + W * 1.5) % W - W / 2, d = Math.hypot(dx, dz); if (d < L.inner - 8 || d > L.rim + 12) return false;
     const T = this.lostTunnel(); if (!T) return false; const px = ((x - T.ax) % W + W * 1.5) % W - W / 2, pz = ((z - T.az) % W + W * 1.5) % W - W / 2, k = px * T.ix + pz * T.iz, lat = Math.abs(-px * T.iz + pz * T.ix); if (k < T.pa - 2.5 || k > T.pb + 2.5 || lat > 3.6) return false;
     const fy = T.ya + (T.yb - T.ya) * (k / T.len); return y > fy - 1.5 && y < fy + 8; }
+  /* whether a point is inside the arch the tunnel is drawn as (the drawn bore is narrower than the rock cut for it), with a margin. The same profile as the renderer's rings:
+     a flattened half-ellipse from a foot just under the floor to a crown four to six blocks up. Points outside the run of the tunnel are not judged here */
+  inLostBore(x, y, z, m = 0.3) { const T = this.lost && this.lostTunnel(); if (!T) return true; const W = WORLD_W, px = ((x - T.ax) % W + W * 1.5) % W - W / 2, pz = ((z - T.az) % W + W * 1.5) % W - W / 2, k = px * T.ix + pz * T.iz, lat = -px * T.iz + pz * T.ix;
+    if (k < T.pa - 1.5 || k > T.pb + 1.5 || Math.abs(lat) > 6) return true;
+    const ss = (a, b, v) => { const t = Math.max(0, Math.min(1, (v - a) / (b - a))); return t * t * (3 - 2 * t); }, f = T.ya + (T.yb - T.ya) * (k / T.len) + 1, w = ss(T.pa + 0.5, T.pa + 4.5, k) * (1 - ss(T.pb - 4.5, T.pb - 0.5, k)), crown = f + 4.4 + 1.4 * w, foot = f - 0.9;
+    const t = (y - foot) / (crown - foot); if (t <= 0 || t >= 1) return false; const sn = Math.pow(t, 1 / 0.72), half = Math.pow(Math.max(0, 1 - sn * sn), 0.25) * 3.12;
+    return Math.abs(lat) < half - m && y < crown - m; }
   // the Lost World is kept whole: the dome, everything inside it, the tunnel and its landing. No digging, no building
   lostKeep(x, z) { const L = this.lost; if (!L) return false; const W = WORLD_W, dx = ((x + 0.5 - L.x) % W + W * 1.5) % W - W / 2, dz = ((z + 0.5 - L.z) % W + W * 1.5) % W - W / 2, d = Math.hypot(dx, dz); if (d <= L.rim + 1) return true; if (d > L.rim + 30) return false;
     const T = this.lostTunnel(); if (!T) return false; const px = ((x + 0.5 - T.ax) % W + W * 1.5) % W - W / 2, pz = ((z + 0.5 - T.az) % W + W * 1.5) % W - W / 2, k = px * T.ix + pz * T.iz; return k > -9 && Math.abs(-px * T.iz + pz * T.ix) < 9; }
@@ -5430,8 +5436,8 @@ class Player {
         if (grade > 0.15) lean = U.clamp((grade - 0.15) * 0.42, 0, 0.42); else if (grade < -0.3) lean = U.clamp((grade + 0.3) * 0.12, -0.08, 0); }
       this.hillLean = (this.hillLean || 0) + (lean - (this.hillLean || 0)) * Math.min(1, dt * 6); }
     { let want = 0, floor = null; this.slopeK = 0; // the drawn ground is a smooth skin over the blocks: he stands on it, never in it
-      if (!this.inWater) { const sc = R.surfaceAt(w, this.x, this.z);
-        if (sc != null && this.onGround && R.isSoil(w.getBlock(Math.floor(this.x), Math.floor(this.y - 0.05), Math.floor(this.z)))) { let s = sc, lo = sc; for (const [ox, oz] of [[0.3, 0], [-0.3, 0], [0, 0.3], [0, -0.3]]) { const t = R.surfaceAt(w, this.x + ox, this.z + oz); if (t == null) continue; if (t > s) s = t; if (t < lo) lo = t; } this.slopeK = U.clamp((s - lo) * 2.5, 0, 1); want = U.clamp(s - this.y, -1.2, 3); floor = Math.min(3, sc - this.y); } // the highest of the ground under his boots, so a slope never swallows a foot (or a crouch)
+      if (!this.inWater) { let sc = R.surfaceAt(w, this.x, this.z); if (sc != null && Math.abs(sc - this.y) > 1.6) sc = null; /* the skin is the land's top: down a mine, under a roof or a ledge it is somewhere over your head, and following it used to lift the eye into the ceiling */
+        if (sc != null && this.onGround && R.isSoil(w.getBlock(Math.floor(this.x), Math.floor(this.y - 0.05), Math.floor(this.z)))) { let s = sc, lo = sc; for (const [ox, oz] of [[0.3, 0], [-0.3, 0], [0, 0.3], [0, -0.3]]) { const t = R.surfaceAt(w, this.x + ox, this.z + oz); if (t == null || Math.abs(t - this.y) > 1.6) continue; if (t > s) s = t; if (t < lo) lo = t; } this.slopeK = U.clamp((s - lo) * 2.5, 0, 1); want = U.clamp(s - this.y, -1.2, 3); floor = Math.min(3, sc - this.y); } // the highest of the ground under his boots, so a slope never swallows a foot (or a crouch)
         else if (sc != null && !this.onGround && R.under(w, this.x, this.y, this.z, 0)) { want = Math.min(3, sc - this.y); floor = want; } } // in the air over a bank (a jump, a step off a ledge): the bank still holds him up
       this.visLift = (this.visLift || 0) + (want - (this.visLift || 0)) * Math.min(1, dt * 14); if (floor != null && this.visLift < floor) this.visLift = floor; this.stepLag = (this.stepLag || 0) * Math.exp(-dt * 10); }
     const wasFalling = this.vy < 0;
@@ -18190,10 +18196,18 @@ const Avatar = (() => {
   function thirdCam(cam, p, world, back = 4.2, lift = 0) {
     const f = U.forwardVec(cam.yaw, cam.pitch); cam = Object.assign({}, cam, { y: cam.y + lift });
     const free = (x, y, z) => { const b = world.getBlock(Math.floor(x), Math.floor(y), Math.floor(z)); return !isSolid(b) && !R.under(world, x, y, z, 0.35); }; // clear of the blocks and of the smooth ground drawn over them: the camera never sits inside a bank looking out through it
+    /* a low roof over you (a mine gallery, a cave, a doorway): the camera comes in tight behind your shoulder and does not climb, or it ends up in the rock looking through it */
+    const ex = Math.floor(cam.x), ez = Math.floor(cam.z); let roof = 99; for (let y = Math.floor(cam.y - lift); y <= Math.floor(cam.y - lift) + 5; y++) if (isSolid(world.getBlock(ex, y, ez)) && !isLeaf(world.getBlock(ex, y, ez))) { roof = y - (cam.y - lift); break; }
+    const bore = !!(world.lost && world.inLostTunnel && world.inLostTunnel(p.x, p.y, p.z)); /* in the tunnel into the Lost World the walls are a drawn arch, not the blocks: the camera keeps inside the arch */
+    const tight = roof < 4 || bore; if (tight) { back = Math.min(back, 2.6); cam.y = cam.y - lift + Math.max(0, Math.min(lift, roof - 0.9)); }
+    const rise = tight ? 0 : 1;
+    const clear = (x, y, z) => { if (!free(x, y, z)) return false; if (bore && !world.inLostBore(x, y, z, 0.35)) return false; for (const [a, b, c] of [[0.3, 0, 0], [-0.3, 0, 0], [0, 0.3, 0], [0, -0.3, 0], [0, 0, 0.3], [0, 0, -0.3]]) if (isSolid(world.getBlock(Math.floor(x + a), Math.floor(y + b), Math.floor(z + c)))) return false; return true; }; /* room round the lens too, or the near edge of the view cuts into the wall and you see through it */
     let d = back;
-    for (let t = 0.3; t <= back; t += 0.25) { const x = cam.x - f[0] * t, y = cam.y - f[1] * t + 0.45 * (t / back), z = cam.z - f[2] * t; if (!free(x, y, z)) { d = Math.max(0.3, t - 0.3); break; } }
-    if (d < 1.3 && back > 2) return Object.assign({}, cam, { y: cam.y - lift, tooNear: true }); /* no room behind him (under an eave, back to a wall): look through his own eyes for now, not at the inside of his collar */
-    return Object.assign({}, cam, { x: cam.x - f[0] * d, y: cam.y - f[1] * d + 0.6 * (d / back), z: cam.z - f[2] * d });
+    for (let t = 0.3; t <= back; t += 0.2) { const x = cam.x - f[0] * t, y = cam.y - f[1] * t + 0.45 * rise * (t / back), z = cam.z - f[2] * t; if (!clear(x, y, z)) { d = Math.max(0.3, t - 0.3); break; } }
+    if (d < (tight ? 0.9 : 1.3) && back > 2 - (tight ? 0.6 : 0)) return Object.assign({}, cam, { y: cam.y - lift, tooNear: true }); /* no room behind him (under an eave, back to a wall): look through his own eyes for now, not at the inside of his collar */
+    const out = Object.assign({}, cam, { x: cam.x - f[0] * d, y: cam.y - f[1] * d + 0.6 * rise * (d / back), z: cam.z - f[2] * d });
+    if (tight) { const r = U.forwardVec(cam.yaw + Math.PI / 2, 0); for (const sd of [1, -1]) { let k = 0; for (let t = 0.15; t <= 0.6; t += 0.15) { if (!clear(out.x + r[0] * t * sd, out.y, out.z + r[2] * t * sd)) break; k = t; } if (k >= 0.3) { out.x += r[0] * k * sd; out.z += r[2] * k * sd; break; } } } /* close in, the camera moves over a shoulder, so he is at the side of the view and the way ahead is in the middle */
+    return out;
   }
   function portrait(cv, s, size) { KIN.portrait(cv, species(s), 2, size, model(s)); }
   return { init, SKINS, skin, unlocked, entity, thirdCam, portrait, model, mesh };
@@ -18801,12 +18815,12 @@ const UI = (() => {
     }
     const CATS = [['arms', 'Weapons and shields'], ['gear', 'Tools and gear'], ['tonics', 'Tonics'], ['blocks', 'Blocks'], ['builds', 'Buildings'], ['kin', 'Kin gear']];
     const catOf = (r) => r.cat || (r.out.startsWith('tonic_') ? 'tonics' : ITEMS[r.out].block ? 'blocks' : 'gear');
-    el['panel-body'].innerHTML = tableTabs('craft') + `<p class="note">No table needed for these. Ingredients come from mining, leaves, berries and essences. Kits raise a whole building where you tap; Kin gear is put on from a Kin's page.</p>` + CATS.map(([c, title]) => `<h4>${title}</h4>` + RECIPES.filter(r => catOf(r) === c && !(r.when && !r.when(G))).map(r => {
+    el['panel-body'].innerHTML = tableTabs('craft') + `<p class="note">Ingredients come from mining, leaves, berries and essences. Kits raise a whole building where you tap; Kin gear is put on from a Kin's page.</p>` + CATS.map(([c, title]) => `<h4>${title}</h4>` + RECIPES.filter(r => catOf(r) === c && !(r.when && !r.when(G))).map(r => {
       const owned = ITEMS[r.out].gear && p.has(r.out);
       const darkOff = G.darkRecipe(r) && !G.nearDarkTable();
       const can = !owned && !darkOff && Object.keys(r.needs).every(k => p.count(k) >= r.needs[k]);
       return `<div class="recipe ${can ? 'can' : ''}"><div class="ico big" style="${Icons.style(r.out)}"></div><div class="rinfo"><b>${ITEMS[r.out].name}${r.n > 1 ? ' ×' + r.n : ''}</b>${G.darkRecipe(r) ? ' <span class="darktag">Dark Table</span>' : ''}<div class="small">${ITEMS[r.out].desc}${p.gearPower[r.out] ? ' Marked by ' + p.gearPower[r.out].mark + ': +' + Math.round((p.gearPower[r.out].power - 1) * 100) + '%.' : ''}</div><div class="needs">${Object.keys(r.needs).map(k => `<span class="${p.count(k) >= r.needs[k] ? 'ok' : 'no'}">${ITEMS[k].name} ${p.count(k)}/${r.needs[k]}</span>`).join('')}</div></div><button class="btn" data-r="${r.id}" ${can ? '' : 'disabled'}>${owned ? 'Owned' : 'Craft'}</button></div>`;
-    }).join('')).join('') + secureHtml(); // the safe slots last: recipes are what you came for
+    }).join('')).join(''); // the safe slots are in the bag now
     el['panel-body'].querySelectorAll('button[data-r]').forEach(b => b.addEventListener('click', () => { if (!G.craft(b.dataset.r)) renderCraft(); }));
     wireTabs();
     el['panel-body'].querySelectorAll('[data-sec]').forEach(c => c.addEventListener('click', () => { if (Object.keys(G.secure).length >= 5) return; securePicking = true; renderCraft(); }));
@@ -18842,12 +18856,14 @@ const UI = (() => {
       <p class="small">Graphics: <b>full</b> is shadows, dense grass and a sharp picture; <b>balanced</b> thins the grass and the pixels; <b>light</b> drops the shadows and most of the grass for a steadier frame rate. The number in the corner of the screen is frames per second.</p>
       <div class="settings"><button class="btn ghost tog on" id="m-camera">Camera <span>${G.thirdPerson ? 'third person' : 'first person'}</span></button><button class="btn ghost tog on" id="m-skins">Skin <span>${Avatar.skin().name}</span></button></div>
       <h4>Designer shortcuts</h4>
-      <p class="small">For looking at new work without making the journey. These three move you, nothing else: no quest is skipped and nothing is given.</p>
-      <div class="settings"><button class="btn ghost" id="m-go-atl">Go to Atlantis</button><button class="btn ghost" id="m-go-lost">Go to the Lost World</button><button class="btn ghost" id="m-go-home">Back to the first village</button></div>
+      <p class="small">For looking at new work without making the journey. These two move you, nothing else: no quest is skipped and nothing is given.</p>
+      <div class="settings"><button class="btn ghost" id="m-go-atl">Go to Atlantis</button><button class="btn ghost" id="m-go-home">Back to the first village</button></div>
       <p class="small"><b>Land on the Moon</b> is different, because nobody lasts up there empty-handed: it gives you the Space Suit, the Starlark, six Kin at level 95, nets and tonics, and sets you down on the pad at the Starwell with Professor Finch's greeting still to come. <b>Four hearts</b> puts the Starwell's missing hearts in your bag, so you can seat them and light it without doing the four tests.</p>
       <div class="settings"><button class="btn" id="m-go-moon">Land on the Moon</button><button class="btn ghost" id="m-go-hearts">Four hearts</button></div>
       <p class="small"><b>Land on Halo</b> does the same for the last world: six Kin at level 150, the Breather Collar, the Starwell already lit behind you, and you are set down outside the Pit. <b>Banners and the Rex</b> hangs five banners so Varga will open every gate, and puts the Tyrannorex in your party for the ending.</p>
       <div class="settings"><button class="btn" id="m-go-halo">Land on Halo</button><button class="btn ghost" id="m-go-pit">Banners and the Rex</button></div>
+      <p class="small"><b>The Lost World</b> is where the story sends you after Umbrarch shrugs your Kin off: the same kit and party as Halo, the survey in your hand, and you are put down on Earth at the outside mouth of the tunnel, facing in.</p>
+      <div class="settings"><button class="btn" id="m-go-lost">Go to the Lost World</button></div>
       <h4>How to play</h4>
       <p class="small">${Controls.isTouch ? 'Left stick walks; drag anywhere on the right of the screen to turn the camera. <b>Hold</b> to mine, or to block when you hold a weapon; <b>tap</b> to place a block, swing, talk, or use a Fusion Table. ▲ jumps, ▼ crouches, hold ▲ in the air with a Glider to glide. In third person the camera orbits you: swing it round to see your face, or your Kin\'s.' : 'WASD to move, mouse to look, <b>hold left click</b> to mine or block, <b>right click</b> to place or use. Space jumps, Shift sneaks, 1-9 or the wheel pick an item. E opens Craft, Q opens Kin, J opens Quests, V switches the camera, F deploys a Kin or sets a snare. Esc releases the mouse.'}</p>
       <p class="small">Chests (Craft › Blocks) keep what you store in them through anything. Amulets come from the people by the fires on the road; nobody sells them. Third person shows your skin: unlock more by playing.</p>
@@ -18860,7 +18876,7 @@ const UI = (() => {
     </div>`;
     q('m-save').addEventListener('click', () => { toast(G.save() ? `Saved${G.gameName ? ' · ' + G.gameName : ''}.` : 'Saving is not available here.'); });
     q('m-games').addEventListener('click', () => G.toGames(false));
-    q('m-go-atl').addEventListener('click', () => G.designerJump('atlantis')); q('m-go-lost').addEventListener('click', () => G.designerJump('lost')); q('m-go-home').addEventListener('click', () => G.designerJump('home')); q('m-go-moon').addEventListener('click', () => G.designerMoon()); q('m-go-hearts').addEventListener('click', () => { closePanel(); Hub.giveAll(); }); q('m-go-halo').addEventListener('click', () => G.designerHalo()); q('m-go-pit').addEventListener('click', () => G.designerPit());
+    q('m-go-atl').addEventListener('click', () => G.designerJump('atlantis')); q('m-go-lost').addEventListener('click', () => G.designerLost()); q('m-go-home').addEventListener('click', () => G.designerJump('home')); q('m-go-moon').addEventListener('click', () => G.designerMoon()); q('m-go-hearts').addEventListener('click', () => { closePanel(); Hub.giveAll(); }); q('m-go-halo').addEventListener('click', () => G.designerHalo()); q('m-go-pit').addEventListener('click', () => G.designerPit());
     q('m-sound').addEventListener('click', () => { soundOn = !soundOn; if (!soundOn) Music.stop(); renderMenu(); });
     q('m-music').addEventListener('click', () => { Music.setEnabled(!Music.enabled); renderMenu(); });
     q('m-map').addEventListener('click', () => { setMinimap(!MM.on); renderMenu(); });
@@ -18874,6 +18890,13 @@ const UI = (() => {
   function renderBag() {
     setTitle('Bag');
     const p = G.player; const hb = p.hotbar(); const sel = p.selected();
+    if (securePicking) { /* the secure slots live in the bag now, where you can reach them anywhere, not only at a table */
+      const opts = [...p.inv.keys()].filter(k => ITEMS[k] && !ITEMS[k].gear && !ITEMS[k].keep && !G.secure[k]);
+      el['panel-body'].innerHTML = `<p class="note">Choose what to keep safe.</p><div class="ingr">${opts.map(k => `<span class="chip" data-pick="${k}" style="${Icons.style(k)}">${ITEMS[k].name} ×${p.count(k)}</span>`).join('') || '<span class="small">Nothing in the bag.</span>'}</div><button class="btn ghost" id="sec-cancel">Cancel</button>`;
+      el['panel-body'].querySelectorAll('[data-pick]').forEach(c => c.addEventListener('click', () => { G.secure[c.dataset.pick] = 10; securePicking = false; renderBag(); }));
+      q('sec-cancel').addEventListener('click', () => { securePicking = false; renderBag(); });
+      return;
+    }
     const groups = [
       ['Weapons and tools', k => ITEMS[k] && (ITEMS[k].light || ITEMS[k].snare || (!ITEMS[k].block && (/^(sw_|sp_|ax_|sh_|bow|pick|axe|rod)/.test(k) || ['hatchet', 'shovel', 'arrow'].includes(k) || ITEMS[k].weapon || ITEMS[k].shield)))],
       ['Food and tonics', k => ITEMS[k] && ITEMS[k].use],
@@ -18895,8 +18918,11 @@ const UI = (() => {
     if (amulets.length) { const A = G.amulet || {}; const now = performance.now(); const cd = A.cd > now ? Math.ceil((A.cd - now) / 1000) : 0; html += `<div class="bag-group"><h4>Amulets</h4><p class="small">One trick each. Any amulet used puts all of them to sleep for four minutes.${cd ? ' Asleep for ' + cd + 's.' : ''}${Npcs.hudText() ? ' Active:' + Npcs.hudText() : ''}</p>` + amulets.map(k => `<div class="bag-row"><div class="ico big" style="${Icons.style(k)}"></div><div class="rinfo"><b>${ITEMS[k].name}</b><div class="small">${ITEMS[k].desc}</div></div><div class="btns"><button class="use" data-amulet="${k}" ${cd ? 'disabled' : ''}>Activate</button></div></div>`).join('') + '</div>'; }
     const gear = Object.keys(ITEMS).filter(k => ITEMS[k].gear && !ITEMS[k].amulet && p.has(k));
     if (gear.length) html += `<div class="bag-group"><h4>Gear</h4>` + gear.map(k => `<div class="bag-row"><div class="ico big" style="${Icons.style(k)}"></div><div class="rinfo"><b>${ITEMS[k].name}${p.gearPower[k] ? ' · marked by ' + p.gearPower[k].mark : ''}</b><div class="small">${ITEMS[k].desc}</div></div></div>`).join('') + '</div>';
+    html += secureHtml();
     html += `<p class="small">Shards ◆ ${G.shards}</p>`;
     el['panel-body'].innerHTML = html;
+    el['panel-body'].querySelectorAll('[data-sec]').forEach(c => c.addEventListener('click', () => { if (Object.keys(G.secure).length >= 5) return; securePicking = true; renderBag(); }));
+    el['panel-body'].querySelectorAll('[data-unsec]').forEach(c => c.addEventListener('click', () => { delete G.secure[c.dataset.unsec]; renderBag(); }));
     el['panel-body'].querySelectorAll('[data-sel]').forEach(b => b.addEventListener('click', () => { p.sel = p.hotbar().indexOf(b.dataset.sel); renderHotbar(); closePanel(); toast(`${p.itemInfo(b.dataset.sel).name} in hand. Tap the world to use or place it.`); }));
     el['panel-body'].querySelectorAll('[data-equipgo]').forEach(b => b.addEventListener('click', () => { openPanel('kin'); toast('Pick the Kin, then Put on from its page.'); }));
     el['panel-body'].querySelectorAll('[data-use]').forEach(b => b.addEventListener('click', () => { const k = b.dataset.use; if (ITEMS[k].use === 'kin') { openPanel('kin'); toast('Pick the Kin to use it on.'); return; } if (G.useItem(k)) renderBag(); }));
@@ -19240,8 +19266,8 @@ const UI = (() => {
       const draw = () => {
         const sts = KIN.starters(seed);
         el.starters.innerHTML = `<button class="starter story" data-story="1" style="flex-basis:100%;padding:14px 10px"><b>Begin</b><small>You wake by a brook with no Kin. You will meet these three and choose one yourself.</small></button><div class="small" style="flex-basis:100%;opacity:.7;margin:6px 0 2px">Or skip the opening and take one now:</div>` + sts.map((sp, i) => `<button class="starter" data-i="${i}"><canvas width="96" height="96"></canvas><b>${sp.names[0]}</b><span class="badge" style="background:${ELEM_COLOR[KIN.dominant(sp.elem, 1)[0]]}">${KIN.dominant(sp.elem, 1)[0]}</span><small>${sp.shape}</small></button>`).join('');
-        el.starters.querySelector('[data-story]').insertAdjacentHTML('afterend', `<div class="small" style="flex-basis:100%;opacity:.7;margin:8px 0 2px">Or jump ahead to test (you get the kit and a full party):</div><button class="starter jump" data-jump="moon" style="flex:1 1 45%;padding:12px 8px"><b>Start on the Moon</b><small>The Starwell, Professor Finch, six Kin at level 95.</small></button><button class="starter jump" data-jump="halo" style="flex:1 1 45%;padding:12px 8px"><b>Start on Halo</b><small>Outside the Pit, six Kin at level 150.</small></button>`);
-        el.starters.querySelectorAll('[data-jump]').forEach(b => b.addEventListener('click', () => { const sb = q('s-build'); window.__pickBuild = sb ? sb.value : 'man'; window.__jump = b.dataset.jump; onNew(seed, 0, q('s-name').value || (b.dataset.jump === 'moon' ? 'Moon test' : 'Halo test')); }));
+        el.starters.querySelector('[data-story]').insertAdjacentHTML('afterend', `<div class="small" style="flex-basis:100%;opacity:.7;margin:8px 0 2px">Or jump ahead to test (you get the kit and a full party):</div><button class="starter jump" data-jump="moon" style="flex:1 1 45%;padding:12px 8px"><b>Start on the Moon</b><small>The Starwell, Professor Finch, six Kin at level 95.</small></button><button class="starter jump" data-jump="halo" style="flex:1 1 45%;padding:12px 8px"><b>Start on Halo</b><small>Outside the Pit, six Kin at level 150.</small></button><button class="starter jump" data-jump="lost" style="flex:1 1 100%;padding:12px 8px"><b>Start at the Lost World</b><small>The tunnel mouth on Earth, after Halo, six Kin at level 150.</small></button>`);
+        el.starters.querySelectorAll('[data-jump]').forEach(b => b.addEventListener('click', () => { const sb = q('s-build'); window.__pickBuild = sb ? sb.value : 'man'; window.__jump = b.dataset.jump; onNew(seed, 0, q('s-name').value || (b.dataset.jump === 'moon' ? 'Moon test' : b.dataset.jump === 'lost' ? 'Lost World test' : 'Halo test')); }));
         el.starters.querySelector('[data-story]').addEventListener('click', () => { const sb = q('s-build'); window.__pickBuild = sb ? sb.value : 'man'; onNew(seed, -1, q('s-name').value); });
         el.starters.querySelectorAll('.starter:not(.story):not(.jump)').forEach((b, i) => { KIN.portrait(b.querySelector('canvas'), sts[i], 1, 96); b.addEventListener('click', () => { const sb = q('s-build'); window.__pickBuild = sb ? sb.value : 'man'; onNew(seed, i, q('s-name').value); }); });
       };
@@ -22639,7 +22665,7 @@ G.newWorld = function (seed, starterIdx, name) {
     p.add('torch', 2); if (!story) { p.add('snare', 1); p.add('bread', 1); }
     this.start();
     if (starter) UI.toast(`Welcome to Stratakin. ${KIN.name(starter)} is with you.`, 'good');
-    const jump = typeof window !== 'undefined' && window.__jump; if (jump) { window.__jump = null; const f0 = this.frame || 0; const go = () => { if ((this.frame || 0) < f0 + 3) { setTimeout(go, 200); return; } /* wait until the world is actually running */ try { const t = document.getElementById('tutorial'); if (t) t.classList.add('hidden'); if (jump === 'moon') this.designerMoon(); else this.designerHalo(); } catch (e) { UI.toast('The jump failed: ' + e.message, 'bad'); } }; setTimeout(go, 400); } /* a test start chosen on the way in */
+    const jump = typeof window !== 'undefined' && window.__jump; if (jump) { window.__jump = null; const f0 = this.frame || 0; const go = () => { if ((this.frame || 0) < f0 + 3) { setTimeout(go, 200); return; } /* wait until the world is actually running */ try { const t = document.getElementById('tutorial'); if (t) t.classList.add('hidden'); if (jump === 'moon') this.designerMoon(); else if (jump === 'lost') this.designerLost(); else this.designerHalo(); } catch (e) { UI.toast('The jump failed: ' + e.message, 'bad'); } }; setTimeout(go, 400); } /* a test start chosen on the way in */
     else UI.showTutorial();
   }, 30);
 };
@@ -22809,6 +22835,30 @@ G.designerHalo = function () {
   p.mount = null; p.flying = false; p.gliding = false; p.vx = p.vy = p.vz = 0; p.fallStart = null; p.frozen = false; p.hp = p.maxHp;
   if (this.worldId !== 'halo') this.travel('halo'); const s = Arena.site(), w = this.world; if (s) { const x = s.x + 0.5 + Math.sin(s.ga) * (Arena.R + 12), z = s.z + 0.5 + Math.cos(s.ga) * (Arena.R + 12); w.ensureAround(Math.floor(x / CH), Math.floor(z / CH), 3, 9999); p.x = x; p.z = z; p.y = w.groundY(Math.floor(x), Math.floor(z)) + 1.2; p.yaw = Math.atan2(-(s.x - x), -(s.z - z)); }
   if (this.meshPass) this.meshPass(120); UI.renderHotbar(); UI.toast('Test jump: you are outside the Pit on Halo with the collar and six Kin at level 150. The gate is under the skull.', 'good');
+};
+/* the Lost World as the story reaches it: Halo done up to the night Umbrarch shrugged your Kin off, the Kinmaster's survey in your hand, the same kit and party as the Halo jump,
+   and you are set down on Earth at the outside mouth of the tunnel, facing in, so the way through is yours to walk */
+G.designerLost = function () {
+  if (Battle.active || Taming.active) return; const p = this.player, LV = 150; UI.closePanel(); if (typeof Cine !== 'undefined' && Cine.active()) Cine.stop(true);
+  for (const k of this.kin) { const lv = Math.max(LV, k.level || 1), t = KIN.create(k.sp, lv); k.level = lv; k.stage = t.stage; k.xp = 0; k.status = null; k.hp = KIN.stats(k).hp; }
+  const pool = KIN.dex('earth').filter(sp => !sp.mythic && !sp.legend && !sp.noFuse && !sp.fusion && !this.kin.some(k => k.sp === sp));
+  for (let i = 0; this.kin.length < 6 && i < 12 && pool.length; i++) { const sp = pool[Math.floor((i + 0.5) / 6 * pool.length) % pool.length]; if (this.kin.some(k => k.sp === sp)) continue; this.kin.push(KIN.create(sp, LV)); if (sp.dex) { if (!this.stats.dex) this.stats.dex = {}; this.stats.dex[sp.seed] = 'caught'; } }
+  for (const it of ['pick_stone', 'pick_iron', 'axe_iron', 'hatchet', 'shovel']) if (ITEMS[it] && !p.has(it)) p.add(it, 1); const cp = (this.stats.camp = this.stats.camp || {}); cp.pick = Math.max(cp.pick || 0, 2); cp.got_axe_iron = true;
+  for (const [it, n] of [['spacesuit', 1], ['collar', 1], ['ship', 1], ['glider', 1], ['raygun', 1], ['torch', 6], ['snare2', 30], ['tonic_heal', 12], ['tonic_revive', 6], ['bread', 10]]) if (ITEMS[it] && p.count(it) < n) p.add(it, n - p.count(it));
+  this.shards = Math.max(this.shards || 0, 2500); if (this.trainerXpFor) { this.xp = Math.max(this.xp || 0, this.trainerXpFor(60)); this.trainerLevel = this.trainerLevelFor(this.xp); }
+  this.stats.lightReturned = true; this.stats.citadel = Object.assign(this.stats.citadel || {}, { profFree: true, lark: true }); this.stats.reachedMoon = true; this.stats.garrison = Object.assign(this.stats.garrison || {}, { taken: true, fled: true }); this.stats.lostMap = true;
+  const hb = (this.stats.hub = this.stats.hub || {}); hb.greeted = true; hb.lit = true; hb.got = hb.got || {}; hb.in = { reg: true, coil: true, key: true, dust: true };
+  this.stats.arena = Object.assign(this.stats.arena || { won: 0 }, { sawKM: true }); /* he has been down the steps and Umbrarch has shrugged off your Kin: the only answer is in the valley */
+  if (Quests.skipTo) { Quests.skipTo({ main: 'halo', dark: 'laststand', old: 'rex' }); this.questState.focus = 'old'; }
+  p.mount = null; p.flying = false; p.gliding = false; p.vx = p.vy = p.vz = 0; p.fallStart = null; p.frozen = false; p.hp = p.maxHp;
+  if (this.worldId !== 'earth') this.travel('earth'); const w = this.world, T = w.lost && w.lostTunnel();
+  if (!T) { UI.toast('This Earth has no Lost World.', 'bad'); return; }
+  w.ensureAround(Math.floor(T.ax / CH), Math.floor(T.az / CH), 3, 9999); let spot = null;
+  for (let k = -6; k <= T.pa && !spot; k++) { const x = T.ax + 0.5 + T.ix * k, z = T.az + 0.5 + T.iz * k, yy = Math.round(T.ya + (T.yb - T.ya) * Math.max(0, k) / T.len); /* the first dry footing on the way in: some valleys are ringed by sea, and the mouth stands a step up out of it */
+    for (let dy = -3; dy <= 4; dy++) { const y = yy + dy, b0 = w.getBlock(Math.floor(x), y - 1, Math.floor(z)), b1 = w.getBlock(Math.floor(x), y, Math.floor(z)), b2 = w.getBlock(Math.floor(x), y + 1, Math.floor(z)); if (isSolid(b0) && b0 !== B.WATER && !isSolid(b1) && b1 !== B.WATER && !isSolid(b2) && b2 !== B.WATER) { spot = { x, y, z }; break; } } }
+  if (!spot) spot = { x: T.ax + 0.5, y: T.ya + 1.2, z: T.az + 0.5 };
+  p.x = spot.x; p.z = spot.z; p.y = spot.y + 0.02; p.yaw = Math.atan2(-T.ix, -T.iz); p.pitch = 0;
+  if (this.meshPass) this.meshPass(120); UI.renderHotbar(); UI.toast('Test jump: you are at the mouth of the tunnel into the Lost World with six Kin at level 150. The Tyrannorex is in the clearing at the middle.', 'good');
 };
 /* and what the Pit asks for, without the asking: five banners so Varga will open every gate, and the Tyrannorex for the day Umbrarch shrugs the others off */
 G.designerPit = function () { UI.closePanel(); if (this.worldId !== 'halo') { UI.toast('The Pit is on Halo. Use the Halo jump first.'); return; } const st = (this.stats.arena = this.stats.arena || { won: 0 }), names = (Village.planned ? Village.planned().map(v => v.name) : []).slice(0, 5); st.banners = (st.banners || []).slice(0, 5); for (const n of names) if (st.banners.length < 5 && !st.banners.includes(n)) st.banners.push(n);
@@ -23378,7 +23428,7 @@ G.loop = function (t) {
       Fishing.update(dt);
       if (this.village && this.worldId === 'earth') {
         const dv = Math.hypot(p.x - this.village.x, p.z - this.village.z);
-        if (this.stats.elderDone && !this.stats.securePrompt && dv > 18 && !Dialogue.active()) { this.stats.securePrompt = true; Dialogue.show('Elder Hask, calling after you', ['One more thing! If the wild beats you, you wake up at the last village you visited, and your bag is gone, all of it, except your gear and the five secure slots.', 'Set the secure slots in the Craft menu. Whatever you put there, you keep. Shards and Kin are safe too. Go well.']); }
+        if (this.stats.elderDone && !this.stats.securePrompt && dv > 18 && !Dialogue.active()) { this.stats.securePrompt = true; Dialogue.show('Elder Hask, calling after you', ['One more thing! If the wild beats you, you wake up at the last village you visited, and your bag is gone, all of it, except your gear and the five secure slots.', 'Set the secure slots in your bag: tap the bar at the bottom of the screen. Whatever you put there, you keep. Shards and Kin are safe too. Go well.']); }
       }
       if (w.regrow && w.regrow.length && (this.frame & 31) === 0) { const now = performance.now(); w.regrow = w.regrow.filter(r => { if (now < r.t) return true; if ((r.id === B.LOG || r.id === B.BIRCHLOG || r.id === B.PALMLOG || r.id === B.LEAVES) && !Felling.natural(r.x, r.y, r.z, r.id)) return false; /* a block you built and took away stays gone */ const b = w.getBlock(r.x, r.y, r.z); if (r.id != null) { if (b === B.AIR && !(Math.abs(r.x + 0.5 - p.x) < 0.8 && Math.abs(r.z + 0.5 - p.z) < 0.8 && r.y >= Math.floor(p.y) - 1 && r.y <= Math.floor(p.y) + 2)) { if (r.id === B.GLOWWORM && !isSolid(w.getBlock(r.x, r.y - 1, r.z))) return false; w.setBlock(r.x, r.y, r.z, r.id); } else if (b === B.AIR) { r.t = now + 15000; return true; } } else if (r.leaf) { if (b === B.LEAVES) w.setBlock(r.x, r.y, r.z, B.BERRYLEAF); } else if (b === B.AIR) w.setBlock(r.x, r.y, r.z, B.BERRY); return false; }); }
       const trig = (Dialogue.active() || Village.walking) ? null : Wild.update(dt, p, performance.now() / 1000, false);

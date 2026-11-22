@@ -444,12 +444,12 @@ const UI = (() => {
     }
     const CATS = [['arms', 'Weapons and shields'], ['gear', 'Tools and gear'], ['tonics', 'Tonics'], ['blocks', 'Blocks'], ['builds', 'Buildings'], ['kin', 'Kin gear']];
     const catOf = (r) => r.cat || (r.out.startsWith('tonic_') ? 'tonics' : ITEMS[r.out].block ? 'blocks' : 'gear');
-    el['panel-body'].innerHTML = tableTabs('craft') + `<p class="note">No table needed for these. Ingredients come from mining, leaves, berries and essences. Kits raise a whole building where you tap; Kin gear is put on from a Kin's page.</p>` + CATS.map(([c, title]) => `<h4>${title}</h4>` + RECIPES.filter(r => catOf(r) === c && !(r.when && !r.when(G))).map(r => {
+    el['panel-body'].innerHTML = tableTabs('craft') + `<p class="note">Ingredients come from mining, leaves, berries and essences. Kits raise a whole building where you tap; Kin gear is put on from a Kin's page.</p>` + CATS.map(([c, title]) => `<h4>${title}</h4>` + RECIPES.filter(r => catOf(r) === c && !(r.when && !r.when(G))).map(r => {
       const owned = ITEMS[r.out].gear && p.has(r.out);
       const darkOff = G.darkRecipe(r) && !G.nearDarkTable();
       const can = !owned && !darkOff && Object.keys(r.needs).every(k => p.count(k) >= r.needs[k]);
       return `<div class="recipe ${can ? 'can' : ''}"><div class="ico big" style="${Icons.style(r.out)}"></div><div class="rinfo"><b>${ITEMS[r.out].name}${r.n > 1 ? ' ×' + r.n : ''}</b>${G.darkRecipe(r) ? ' <span class="darktag">Dark Table</span>' : ''}<div class="small">${ITEMS[r.out].desc}${p.gearPower[r.out] ? ' Marked by ' + p.gearPower[r.out].mark + ': +' + Math.round((p.gearPower[r.out].power - 1) * 100) + '%.' : ''}</div><div class="needs">${Object.keys(r.needs).map(k => `<span class="${p.count(k) >= r.needs[k] ? 'ok' : 'no'}">${ITEMS[k].name} ${p.count(k)}/${r.needs[k]}</span>`).join('')}</div></div><button class="btn" data-r="${r.id}" ${can ? '' : 'disabled'}>${owned ? 'Owned' : 'Craft'}</button></div>`;
-    }).join('')).join('') + secureHtml(); // the safe slots last: recipes are what you came for
+    }).join('')).join(''); // the safe slots are in the bag now
     el['panel-body'].querySelectorAll('button[data-r]').forEach(b => b.addEventListener('click', () => { if (!G.craft(b.dataset.r)) renderCraft(); }));
     wireTabs();
     el['panel-body'].querySelectorAll('[data-sec]').forEach(c => c.addEventListener('click', () => { if (Object.keys(G.secure).length >= 5) return; securePicking = true; renderCraft(); }));
@@ -485,12 +485,14 @@ const UI = (() => {
       <p class="small">Graphics: <b>full</b> is shadows, dense grass and a sharp picture; <b>balanced</b> thins the grass and the pixels; <b>light</b> drops the shadows and most of the grass for a steadier frame rate. The number in the corner of the screen is frames per second.</p>
       <div class="settings"><button class="btn ghost tog on" id="m-camera">Camera <span>${G.thirdPerson ? 'third person' : 'first person'}</span></button><button class="btn ghost tog on" id="m-skins">Skin <span>${Avatar.skin().name}</span></button></div>
       <h4>Designer shortcuts</h4>
-      <p class="small">For looking at new work without making the journey. These three move you, nothing else: no quest is skipped and nothing is given.</p>
-      <div class="settings"><button class="btn ghost" id="m-go-atl">Go to Atlantis</button><button class="btn ghost" id="m-go-lost">Go to the Lost World</button><button class="btn ghost" id="m-go-home">Back to the first village</button></div>
+      <p class="small">For looking at new work without making the journey. These two move you, nothing else: no quest is skipped and nothing is given.</p>
+      <div class="settings"><button class="btn ghost" id="m-go-atl">Go to Atlantis</button><button class="btn ghost" id="m-go-home">Back to the first village</button></div>
       <p class="small"><b>Land on the Moon</b> is different, because nobody lasts up there empty-handed: it gives you the Space Suit, the Starlark, six Kin at level 95, nets and tonics, and sets you down on the pad at the Starwell with Professor Finch's greeting still to come. <b>Four hearts</b> puts the Starwell's missing hearts in your bag, so you can seat them and light it without doing the four tests.</p>
       <div class="settings"><button class="btn" id="m-go-moon">Land on the Moon</button><button class="btn ghost" id="m-go-hearts">Four hearts</button></div>
       <p class="small"><b>Land on Halo</b> does the same for the last world: six Kin at level 150, the Breather Collar, the Starwell already lit behind you, and you are set down outside the Pit. <b>Banners and the Rex</b> hangs five banners so Varga will open every gate, and puts the Tyrannorex in your party for the ending.</p>
       <div class="settings"><button class="btn" id="m-go-halo">Land on Halo</button><button class="btn ghost" id="m-go-pit">Banners and the Rex</button></div>
+      <p class="small"><b>The Lost World</b> is where the story sends you after Umbrarch shrugs your Kin off: the same kit and party as Halo, the survey in your hand, and you are put down on Earth at the outside mouth of the tunnel, facing in.</p>
+      <div class="settings"><button class="btn" id="m-go-lost">Go to the Lost World</button></div>
       <h4>How to play</h4>
       <p class="small">${Controls.isTouch ? 'Left stick walks; drag anywhere on the right of the screen to turn the camera. <b>Hold</b> to mine, or to block when you hold a weapon; <b>tap</b> to place a block, swing, talk, or use a Fusion Table. ▲ jumps, ▼ crouches, hold ▲ in the air with a Glider to glide. In third person the camera orbits you: swing it round to see your face, or your Kin\'s.' : 'WASD to move, mouse to look, <b>hold left click</b> to mine or block, <b>right click</b> to place or use. Space jumps, Shift sneaks, 1-9 or the wheel pick an item. E opens Craft, Q opens Kin, J opens Quests, V switches the camera, F deploys a Kin or sets a snare. Esc releases the mouse.'}</p>
       <p class="small">Chests (Craft › Blocks) keep what you store in them through anything. Amulets come from the people by the fires on the road; nobody sells them. Third person shows your skin: unlock more by playing.</p>
@@ -503,7 +505,7 @@ const UI = (() => {
     </div>`;
     q('m-save').addEventListener('click', () => { toast(G.save() ? `Saved${G.gameName ? ' · ' + G.gameName : ''}.` : 'Saving is not available here.'); });
     q('m-games').addEventListener('click', () => G.toGames(false));
-    q('m-go-atl').addEventListener('click', () => G.designerJump('atlantis')); q('m-go-lost').addEventListener('click', () => G.designerJump('lost')); q('m-go-home').addEventListener('click', () => G.designerJump('home')); q('m-go-moon').addEventListener('click', () => G.designerMoon()); q('m-go-hearts').addEventListener('click', () => { closePanel(); Hub.giveAll(); }); q('m-go-halo').addEventListener('click', () => G.designerHalo()); q('m-go-pit').addEventListener('click', () => G.designerPit());
+    q('m-go-atl').addEventListener('click', () => G.designerJump('atlantis')); q('m-go-lost').addEventListener('click', () => G.designerLost()); q('m-go-home').addEventListener('click', () => G.designerJump('home')); q('m-go-moon').addEventListener('click', () => G.designerMoon()); q('m-go-hearts').addEventListener('click', () => { closePanel(); Hub.giveAll(); }); q('m-go-halo').addEventListener('click', () => G.designerHalo()); q('m-go-pit').addEventListener('click', () => G.designerPit());
     q('m-sound').addEventListener('click', () => { soundOn = !soundOn; if (!soundOn) Music.stop(); renderMenu(); });
     q('m-music').addEventListener('click', () => { Music.setEnabled(!Music.enabled); renderMenu(); });
     q('m-map').addEventListener('click', () => { setMinimap(!MM.on); renderMenu(); });
@@ -517,6 +519,13 @@ const UI = (() => {
   function renderBag() {
     setTitle('Bag');
     const p = G.player; const hb = p.hotbar(); const sel = p.selected();
+    if (securePicking) { /* the secure slots live in the bag now, where you can reach them anywhere, not only at a table */
+      const opts = [...p.inv.keys()].filter(k => ITEMS[k] && !ITEMS[k].gear && !ITEMS[k].keep && !G.secure[k]);
+      el['panel-body'].innerHTML = `<p class="note">Choose what to keep safe.</p><div class="ingr">${opts.map(k => `<span class="chip" data-pick="${k}" style="${Icons.style(k)}">${ITEMS[k].name} ×${p.count(k)}</span>`).join('') || '<span class="small">Nothing in the bag.</span>'}</div><button class="btn ghost" id="sec-cancel">Cancel</button>`;
+      el['panel-body'].querySelectorAll('[data-pick]').forEach(c => c.addEventListener('click', () => { G.secure[c.dataset.pick] = 10; securePicking = false; renderBag(); }));
+      q('sec-cancel').addEventListener('click', () => { securePicking = false; renderBag(); });
+      return;
+    }
     const groups = [
       ['Weapons and tools', k => ITEMS[k] && (ITEMS[k].light || ITEMS[k].snare || (!ITEMS[k].block && (/^(sw_|sp_|ax_|sh_|bow|pick|axe|rod)/.test(k) || ['hatchet', 'shovel', 'arrow'].includes(k) || ITEMS[k].weapon || ITEMS[k].shield)))],
       ['Food and tonics', k => ITEMS[k] && ITEMS[k].use],
@@ -538,8 +547,11 @@ const UI = (() => {
     if (amulets.length) { const A = G.amulet || {}; const now = performance.now(); const cd = A.cd > now ? Math.ceil((A.cd - now) / 1000) : 0; html += `<div class="bag-group"><h4>Amulets</h4><p class="small">One trick each. Any amulet used puts all of them to sleep for four minutes.${cd ? ' Asleep for ' + cd + 's.' : ''}${Npcs.hudText() ? ' Active:' + Npcs.hudText() : ''}</p>` + amulets.map(k => `<div class="bag-row"><div class="ico big" style="${Icons.style(k)}"></div><div class="rinfo"><b>${ITEMS[k].name}</b><div class="small">${ITEMS[k].desc}</div></div><div class="btns"><button class="use" data-amulet="${k}" ${cd ? 'disabled' : ''}>Activate</button></div></div>`).join('') + '</div>'; }
     const gear = Object.keys(ITEMS).filter(k => ITEMS[k].gear && !ITEMS[k].amulet && p.has(k));
     if (gear.length) html += `<div class="bag-group"><h4>Gear</h4>` + gear.map(k => `<div class="bag-row"><div class="ico big" style="${Icons.style(k)}"></div><div class="rinfo"><b>${ITEMS[k].name}${p.gearPower[k] ? ' · marked by ' + p.gearPower[k].mark : ''}</b><div class="small">${ITEMS[k].desc}</div></div></div>`).join('') + '</div>';
+    html += secureHtml();
     html += `<p class="small">Shards ◆ ${G.shards}</p>`;
     el['panel-body'].innerHTML = html;
+    el['panel-body'].querySelectorAll('[data-sec]').forEach(c => c.addEventListener('click', () => { if (Object.keys(G.secure).length >= 5) return; securePicking = true; renderBag(); }));
+    el['panel-body'].querySelectorAll('[data-unsec]').forEach(c => c.addEventListener('click', () => { delete G.secure[c.dataset.unsec]; renderBag(); }));
     el['panel-body'].querySelectorAll('[data-sel]').forEach(b => b.addEventListener('click', () => { p.sel = p.hotbar().indexOf(b.dataset.sel); renderHotbar(); closePanel(); toast(`${p.itemInfo(b.dataset.sel).name} in hand. Tap the world to use or place it.`); }));
     el['panel-body'].querySelectorAll('[data-equipgo]').forEach(b => b.addEventListener('click', () => { openPanel('kin'); toast('Pick the Kin, then Put on from its page.'); }));
     el['panel-body'].querySelectorAll('[data-use]').forEach(b => b.addEventListener('click', () => { const k = b.dataset.use; if (ITEMS[k].use === 'kin') { openPanel('kin'); toast('Pick the Kin to use it on.'); return; } if (G.useItem(k)) renderBag(); }));
@@ -883,8 +895,8 @@ const UI = (() => {
       const draw = () => {
         const sts = KIN.starters(seed);
         el.starters.innerHTML = `<button class="starter story" data-story="1" style="flex-basis:100%;padding:14px 10px"><b>Begin</b><small>You wake by a brook with no Kin. You will meet these three and choose one yourself.</small></button><div class="small" style="flex-basis:100%;opacity:.7;margin:6px 0 2px">Or skip the opening and take one now:</div>` + sts.map((sp, i) => `<button class="starter" data-i="${i}"><canvas width="96" height="96"></canvas><b>${sp.names[0]}</b><span class="badge" style="background:${ELEM_COLOR[KIN.dominant(sp.elem, 1)[0]]}">${KIN.dominant(sp.elem, 1)[0]}</span><small>${sp.shape}</small></button>`).join('');
-        el.starters.querySelector('[data-story]').insertAdjacentHTML('afterend', `<div class="small" style="flex-basis:100%;opacity:.7;margin:8px 0 2px">Or jump ahead to test (you get the kit and a full party):</div><button class="starter jump" data-jump="moon" style="flex:1 1 45%;padding:12px 8px"><b>Start on the Moon</b><small>The Starwell, Professor Finch, six Kin at level 95.</small></button><button class="starter jump" data-jump="halo" style="flex:1 1 45%;padding:12px 8px"><b>Start on Halo</b><small>Outside the Pit, six Kin at level 150.</small></button>`);
-        el.starters.querySelectorAll('[data-jump]').forEach(b => b.addEventListener('click', () => { const sb = q('s-build'); window.__pickBuild = sb ? sb.value : 'man'; window.__jump = b.dataset.jump; onNew(seed, 0, q('s-name').value || (b.dataset.jump === 'moon' ? 'Moon test' : 'Halo test')); }));
+        el.starters.querySelector('[data-story]').insertAdjacentHTML('afterend', `<div class="small" style="flex-basis:100%;opacity:.7;margin:8px 0 2px">Or jump ahead to test (you get the kit and a full party):</div><button class="starter jump" data-jump="moon" style="flex:1 1 45%;padding:12px 8px"><b>Start on the Moon</b><small>The Starwell, Professor Finch, six Kin at level 95.</small></button><button class="starter jump" data-jump="halo" style="flex:1 1 45%;padding:12px 8px"><b>Start on Halo</b><small>Outside the Pit, six Kin at level 150.</small></button><button class="starter jump" data-jump="lost" style="flex:1 1 100%;padding:12px 8px"><b>Start at the Lost World</b><small>The tunnel mouth on Earth, after Halo, six Kin at level 150.</small></button>`);
+        el.starters.querySelectorAll('[data-jump]').forEach(b => b.addEventListener('click', () => { const sb = q('s-build'); window.__pickBuild = sb ? sb.value : 'man'; window.__jump = b.dataset.jump; onNew(seed, 0, q('s-name').value || (b.dataset.jump === 'moon' ? 'Moon test' : b.dataset.jump === 'lost' ? 'Lost World test' : 'Halo test')); }));
         el.starters.querySelector('[data-story]').addEventListener('click', () => { const sb = q('s-build'); window.__pickBuild = sb ? sb.value : 'man'; onNew(seed, -1, q('s-name').value); });
         el.starters.querySelectorAll('.starter:not(.story):not(.jump)').forEach((b, i) => { KIN.portrait(b.querySelector('canvas'), sts[i], 1, 96); b.addEventListener('click', () => { const sb = q('s-build'); window.__pickBuild = sb ? sb.value : 'man'; onNew(seed, i, q('s-name').value); }); });
       };

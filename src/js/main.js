@@ -90,7 +90,7 @@ G.newWorld = function (seed, starterIdx, name) {
     p.add('torch', 2); if (!story) { p.add('snare', 1); p.add('bread', 1); }
     this.start();
     if (starter) UI.toast(`Welcome to Stratakin. ${KIN.name(starter)} is with you.`, 'good');
-    const jump = typeof window !== 'undefined' && window.__jump; if (jump) { window.__jump = null; const f0 = this.frame || 0; const go = () => { if ((this.frame || 0) < f0 + 3) { setTimeout(go, 200); return; } /* wait until the world is actually running */ try { const t = document.getElementById('tutorial'); if (t) t.classList.add('hidden'); if (jump === 'moon') this.designerMoon(); else this.designerHalo(); } catch (e) { UI.toast('The jump failed: ' + e.message, 'bad'); } }; setTimeout(go, 400); } /* a test start chosen on the way in */
+    const jump = typeof window !== 'undefined' && window.__jump; if (jump) { window.__jump = null; const f0 = this.frame || 0; const go = () => { if ((this.frame || 0) < f0 + 3) { setTimeout(go, 200); return; } /* wait until the world is actually running */ try { const t = document.getElementById('tutorial'); if (t) t.classList.add('hidden'); if (jump === 'moon') this.designerMoon(); else if (jump === 'lost') this.designerLost(); else this.designerHalo(); } catch (e) { UI.toast('The jump failed: ' + e.message, 'bad'); } }; setTimeout(go, 400); } /* a test start chosen on the way in */
     else UI.showTutorial();
   }, 30);
 };
@@ -260,6 +260,30 @@ G.designerHalo = function () {
   p.mount = null; p.flying = false; p.gliding = false; p.vx = p.vy = p.vz = 0; p.fallStart = null; p.frozen = false; p.hp = p.maxHp;
   if (this.worldId !== 'halo') this.travel('halo'); const s = Arena.site(), w = this.world; if (s) { const x = s.x + 0.5 + Math.sin(s.ga) * (Arena.R + 12), z = s.z + 0.5 + Math.cos(s.ga) * (Arena.R + 12); w.ensureAround(Math.floor(x / CH), Math.floor(z / CH), 3, 9999); p.x = x; p.z = z; p.y = w.groundY(Math.floor(x), Math.floor(z)) + 1.2; p.yaw = Math.atan2(-(s.x - x), -(s.z - z)); }
   if (this.meshPass) this.meshPass(120); UI.renderHotbar(); UI.toast('Test jump: you are outside the Pit on Halo with the collar and six Kin at level 150. The gate is under the skull.', 'good');
+};
+/* the Lost World as the story reaches it: Halo done up to the night Umbrarch shrugged your Kin off, the Kinmaster's survey in your hand, the same kit and party as the Halo jump,
+   and you are set down on Earth at the outside mouth of the tunnel, facing in, so the way through is yours to walk */
+G.designerLost = function () {
+  if (Battle.active || Taming.active) return; const p = this.player, LV = 150; UI.closePanel(); if (typeof Cine !== 'undefined' && Cine.active()) Cine.stop(true);
+  for (const k of this.kin) { const lv = Math.max(LV, k.level || 1), t = KIN.create(k.sp, lv); k.level = lv; k.stage = t.stage; k.xp = 0; k.status = null; k.hp = KIN.stats(k).hp; }
+  const pool = KIN.dex('earth').filter(sp => !sp.mythic && !sp.legend && !sp.noFuse && !sp.fusion && !this.kin.some(k => k.sp === sp));
+  for (let i = 0; this.kin.length < 6 && i < 12 && pool.length; i++) { const sp = pool[Math.floor((i + 0.5) / 6 * pool.length) % pool.length]; if (this.kin.some(k => k.sp === sp)) continue; this.kin.push(KIN.create(sp, LV)); if (sp.dex) { if (!this.stats.dex) this.stats.dex = {}; this.stats.dex[sp.seed] = 'caught'; } }
+  for (const it of ['pick_stone', 'pick_iron', 'axe_iron', 'hatchet', 'shovel']) if (ITEMS[it] && !p.has(it)) p.add(it, 1); const cp = (this.stats.camp = this.stats.camp || {}); cp.pick = Math.max(cp.pick || 0, 2); cp.got_axe_iron = true;
+  for (const [it, n] of [['spacesuit', 1], ['collar', 1], ['ship', 1], ['glider', 1], ['raygun', 1], ['torch', 6], ['snare2', 30], ['tonic_heal', 12], ['tonic_revive', 6], ['bread', 10]]) if (ITEMS[it] && p.count(it) < n) p.add(it, n - p.count(it));
+  this.shards = Math.max(this.shards || 0, 2500); if (this.trainerXpFor) { this.xp = Math.max(this.xp || 0, this.trainerXpFor(60)); this.trainerLevel = this.trainerLevelFor(this.xp); }
+  this.stats.lightReturned = true; this.stats.citadel = Object.assign(this.stats.citadel || {}, { profFree: true, lark: true }); this.stats.reachedMoon = true; this.stats.garrison = Object.assign(this.stats.garrison || {}, { taken: true, fled: true }); this.stats.lostMap = true;
+  const hb = (this.stats.hub = this.stats.hub || {}); hb.greeted = true; hb.lit = true; hb.got = hb.got || {}; hb.in = { reg: true, coil: true, key: true, dust: true };
+  this.stats.arena = Object.assign(this.stats.arena || { won: 0 }, { sawKM: true }); /* he has been down the steps and Umbrarch has shrugged off your Kin: the only answer is in the valley */
+  if (Quests.skipTo) { Quests.skipTo({ main: 'halo', dark: 'laststand', old: 'rex' }); this.questState.focus = 'old'; }
+  p.mount = null; p.flying = false; p.gliding = false; p.vx = p.vy = p.vz = 0; p.fallStart = null; p.frozen = false; p.hp = p.maxHp;
+  if (this.worldId !== 'earth') this.travel('earth'); const w = this.world, T = w.lost && w.lostTunnel();
+  if (!T) { UI.toast('This Earth has no Lost World.', 'bad'); return; }
+  w.ensureAround(Math.floor(T.ax / CH), Math.floor(T.az / CH), 3, 9999); let spot = null;
+  for (let k = -6; k <= T.pa && !spot; k++) { const x = T.ax + 0.5 + T.ix * k, z = T.az + 0.5 + T.iz * k, yy = Math.round(T.ya + (T.yb - T.ya) * Math.max(0, k) / T.len); /* the first dry footing on the way in: some valleys are ringed by sea, and the mouth stands a step up out of it */
+    for (let dy = -3; dy <= 4; dy++) { const y = yy + dy, b0 = w.getBlock(Math.floor(x), y - 1, Math.floor(z)), b1 = w.getBlock(Math.floor(x), y, Math.floor(z)), b2 = w.getBlock(Math.floor(x), y + 1, Math.floor(z)); if (isSolid(b0) && b0 !== B.WATER && !isSolid(b1) && b1 !== B.WATER && !isSolid(b2) && b2 !== B.WATER) { spot = { x, y, z }; break; } } }
+  if (!spot) spot = { x: T.ax + 0.5, y: T.ya + 1.2, z: T.az + 0.5 };
+  p.x = spot.x; p.z = spot.z; p.y = spot.y + 0.02; p.yaw = Math.atan2(-T.ix, -T.iz); p.pitch = 0;
+  if (this.meshPass) this.meshPass(120); UI.renderHotbar(); UI.toast('Test jump: you are at the mouth of the tunnel into the Lost World with six Kin at level 150. The Tyrannorex is in the clearing at the middle.', 'good');
 };
 /* and what the Pit asks for, without the asking: five banners so Varga will open every gate, and the Tyrannorex for the day Umbrarch shrugs the others off */
 G.designerPit = function () { UI.closePanel(); if (this.worldId !== 'halo') { UI.toast('The Pit is on Halo. Use the Halo jump first.'); return; } const st = (this.stats.arena = this.stats.arena || { won: 0 }), names = (Village.planned ? Village.planned().map(v => v.name) : []).slice(0, 5); st.banners = (st.banners || []).slice(0, 5); for (const n of names) if (st.banners.length < 5 && !st.banners.includes(n)) st.banners.push(n);
@@ -829,7 +853,7 @@ G.loop = function (t) {
       Fishing.update(dt);
       if (this.village && this.worldId === 'earth') {
         const dv = Math.hypot(p.x - this.village.x, p.z - this.village.z);
-        if (this.stats.elderDone && !this.stats.securePrompt && dv > 18 && !Dialogue.active()) { this.stats.securePrompt = true; Dialogue.show('Elder Hask, calling after you', ['One more thing! If the wild beats you, you wake up at the last village you visited, and your bag is gone, all of it, except your gear and the five secure slots.', 'Set the secure slots in the Craft menu. Whatever you put there, you keep. Shards and Kin are safe too. Go well.']); }
+        if (this.stats.elderDone && !this.stats.securePrompt && dv > 18 && !Dialogue.active()) { this.stats.securePrompt = true; Dialogue.show('Elder Hask, calling after you', ['One more thing! If the wild beats you, you wake up at the last village you visited, and your bag is gone, all of it, except your gear and the five secure slots.', 'Set the secure slots in your bag: tap the bar at the bottom of the screen. Whatever you put there, you keep. Shards and Kin are safe too. Go well.']); }
       }
       if (w.regrow && w.regrow.length && (this.frame & 31) === 0) { const now = performance.now(); w.regrow = w.regrow.filter(r => { if (now < r.t) return true; if ((r.id === B.LOG || r.id === B.BIRCHLOG || r.id === B.PALMLOG || r.id === B.LEAVES) && !Felling.natural(r.x, r.y, r.z, r.id)) return false; /* a block you built and took away stays gone */ const b = w.getBlock(r.x, r.y, r.z); if (r.id != null) { if (b === B.AIR && !(Math.abs(r.x + 0.5 - p.x) < 0.8 && Math.abs(r.z + 0.5 - p.z) < 0.8 && r.y >= Math.floor(p.y) - 1 && r.y <= Math.floor(p.y) + 2)) { if (r.id === B.GLOWWORM && !isSolid(w.getBlock(r.x, r.y - 1, r.z))) return false; w.setBlock(r.x, r.y, r.z, r.id); } else if (b === B.AIR) { r.t = now + 15000; return true; } } else if (r.leaf) { if (b === B.LEAVES) w.setBlock(r.x, r.y, r.z, B.BERRYLEAF); } else if (b === B.AIR) w.setBlock(r.x, r.y, r.z, B.BERRY); return false; }); }
       const trig = (Dialogue.active() || Village.walking) ? null : Wild.update(dt, p, performance.now() / 1000, false);

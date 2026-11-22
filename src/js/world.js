@@ -237,6 +237,13 @@ class World {
   inLostTunnel(x, y, z) { const L = this.lost; if (!L) return false; const W = WORLD_W, dx = ((x - L.x) % W + W * 1.5) % W - W / 2, dz = ((z - L.z) % W + W * 1.5) % W - W / 2, d = Math.hypot(dx, dz); if (d < L.inner - 8 || d > L.rim + 12) return false;
     const T = this.lostTunnel(); if (!T) return false; const px = ((x - T.ax) % W + W * 1.5) % W - W / 2, pz = ((z - T.az) % W + W * 1.5) % W - W / 2, k = px * T.ix + pz * T.iz, lat = Math.abs(-px * T.iz + pz * T.ix); if (k < T.pa - 2.5 || k > T.pb + 2.5 || lat > 3.6) return false;
     const fy = T.ya + (T.yb - T.ya) * (k / T.len); return y > fy - 1.5 && y < fy + 8; }
+  /* whether a point is inside the arch the tunnel is drawn as (the drawn bore is narrower than the rock cut for it), with a margin. The same profile as the renderer's rings:
+     a flattened half-ellipse from a foot just under the floor to a crown four to six blocks up. Points outside the run of the tunnel are not judged here */
+  inLostBore(x, y, z, m = 0.3) { const T = this.lost && this.lostTunnel(); if (!T) return true; const W = WORLD_W, px = ((x - T.ax) % W + W * 1.5) % W - W / 2, pz = ((z - T.az) % W + W * 1.5) % W - W / 2, k = px * T.ix + pz * T.iz, lat = -px * T.iz + pz * T.ix;
+    if (k < T.pa - 1.5 || k > T.pb + 1.5 || Math.abs(lat) > 6) return true;
+    const ss = (a, b, v) => { const t = Math.max(0, Math.min(1, (v - a) / (b - a))); return t * t * (3 - 2 * t); }, f = T.ya + (T.yb - T.ya) * (k / T.len) + 1, w = ss(T.pa + 0.5, T.pa + 4.5, k) * (1 - ss(T.pb - 4.5, T.pb - 0.5, k)), crown = f + 4.4 + 1.4 * w, foot = f - 0.9;
+    const t = (y - foot) / (crown - foot); if (t <= 0 || t >= 1) return false; const sn = Math.pow(t, 1 / 0.72), half = Math.pow(Math.max(0, 1 - sn * sn), 0.25) * 3.12;
+    return Math.abs(lat) < half - m && y < crown - m; }
   // the Lost World is kept whole: the dome, everything inside it, the tunnel and its landing. No digging, no building
   lostKeep(x, z) { const L = this.lost; if (!L) return false; const W = WORLD_W, dx = ((x + 0.5 - L.x) % W + W * 1.5) % W - W / 2, dz = ((z + 0.5 - L.z) % W + W * 1.5) % W - W / 2, d = Math.hypot(dx, dz); if (d <= L.rim + 1) return true; if (d > L.rim + 30) return false;
     const T = this.lostTunnel(); if (!T) return false; const px = ((x + 0.5 - T.ax) % W + W * 1.5) % W - W / 2, pz = ((z + 0.5 - T.az) % W + W * 1.5) % W - W / 2, k = px * T.ix + pz * T.iz; return k > -9 && Math.abs(-px * T.iz + pz * T.ix) < 9; }
