@@ -229,12 +229,16 @@ const GLB = (() => {
      shown in his old shape and swapped; if the file cannot be had, he keeps his old shape */
   const ready = (k) => { const m = registry.get(k); return !!(m && m.mesh && (!m.mesh.texWait || m.mesh.texReady || m.mesh.texFailed)); };
   const since = new Map(); /* when each file was asked for: one that has not come in eight seconds shows the old shape until it does */
-  const want = (k) => { const c = CAST[k]; if (!c || !c.file || registry.has(k) || pending.has(k)) return; since.set(k, performance.now()); load(k, where(c.file), { height: c.height, turn: c.turn || 0, still: c.still }); };
+  /* THE CAST WEARS ITS CODE-BUILT SHAPES AGAIN (Alexander, 23 Nov 2026): the generated models looked AI-made and clashed with a world drawn in code.
+     One switch: with CAST_ON false nobody is dressed from a file, nothing is fetched, and faces, paces and portraits fall back to the old shapes.
+     The table, the loader and the tools all stay, and the files are kept in art/models/slim7 (not shipped). */
+  const CAST_ON = false;
+  const want = (k) => { const c = CAST[k]; if (!CAST_ON || !c || !c.file || registry.has(k) || pending.has(k)) return; since.set(k, performance.now()); load(k, where(c.file), { height: c.height, turn: c.turn || 0, still: c.still }); };
   let preloadAt = 0;
   function dressAll(ents) {
     const now = performance.now(); if (!preloadAt) preloadAt = now + 2500; else if (preloadAt > 0 && now > preloadAt) { preloadAt = -1; for (const k of Object.keys(CAST)) if (CAST[k].pre) want(k); } /* only the first village's people ahead of time; the rest when they are first in view */
     let n = 0;
-    for (let i = 0; i < ents.length; i++) { const e = ents[i]; if (!e) continue; const o = e.src || e, k0 = byName.get(o.glbName || o.name || e.name), k = k0 && CAST[k0].file ? k0 : null; /* a cast entry with no file yet: drawn as before */
+    for (let i = 0; i < ents.length; i++) { const e = ents[i]; if (!e) continue; const o = e.src || e, k0 = CAST_ON ? byName.get(o.glbName || o.name || e.name) : null, k = k0 && CAST[k0].file ? k0 : null; /* a cast entry with no file yet: drawn as before */
       const ok = k && ready(k); if (k && !ok) { want(k); if (!failed.has(k) && now - (since.get(k) || now) < 8000) continue; } /* on its way (the file, or its picture): not drawn yet */
       if (ok) { const c = CAST[k], st = o._glb || (o._glb = { name: k, t0: now - Math.random() * 5000, clip: c.clip, walk: c.walk }); st.nod = (o.talkOpen || 0) > 0.05 ? 1 : 0; /* talking: the head nods along with the words */ e.glb = st;
         { /* he turns like a person, not a weathervane: a patrol's about-turn, or a step round a post, swings him round over a third of a second instead of
@@ -253,8 +257,8 @@ const GLB = (() => {
   const meshFor = (e) => { const m = e.glb && registry.get(e.glb.name); return m && m.mesh ? m.mesh : e.mesh; };
   /* how high his face is above his feet, in a model from a file (null if he wears none): `face` in the cast entry is the fraction of the model's height
      (a crown, a hat or a spoon taller than he is all sit above it); nine tenths if it does not say */
-  function faceOf(o) { const k = o && (o._glb ? o._glb.name : byName.get(o.glbName || o.name)), c = k && CAST[k], md = c && c.file ? registry.get(k) : null; return md && ready(k) ? md.height * (o.scale || 1) * (c.face || 0.9) : null; }
+  function faceOf(o) { if (!CAST_ON) return null; const k = o && (o._glb ? o._glb.name : byName.get(o.glbName || o.name)), c = k && CAST[k], md = c && c.file ? registry.get(k) : null; return md && ready(k) ? md.height * (o.scale || 1) * (c.face || 0.9) : null; }
   /* how fast someone in a model from a file walks without his feet sliding (metres a second), or null if he has no such model or it has no walk */
-  function pace(o) { const k = o && (o._glb ? o._glb.name : byName.get(o.glbName || o.name)), md = k && CAST[k] && CAST[k].file ? registry.get(k) : null; return md && md.walk != null && md.v0 ? md.v0 * (o.scale || 1) : null; }
+  function pace(o) { if (!CAST_ON) return null; const k = o && (o._glb ? o._glb.name : byName.get(o.glbName || o.name)), md = k && CAST[k] && CAST[k].file ? registry.get(k) : null; return md && md.walk != null && md.v0 ? md.v0 * (o.scale || 1) : null; }
   return { parse, fromBuffer, load, get, dress, pose, dressAll, meshFor, portrait, pace, faceOf, CAST, want, get list() { return [...registry.keys()]; } };
 })();

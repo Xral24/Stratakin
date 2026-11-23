@@ -885,6 +885,27 @@ const R = (() => {
     gl.activeTexture(gl.TEXTURE0); }
   function groundUniforms() { const on = GROUND.ready && GROUND.ok && state.groundArt !== false && state.groundHere; state.groundReady = GROUND.ready; state.groundGot = GROUND.got; gl.uniform1f(loc.uGT, on ? 1 : 0); if (!on) return;
     for (let k = 0; k < 5; k++) { gl.activeTexture(gl.TEXTURE0 + GROUND.unit0 + k); gl.bindTexture(gl.TEXTURE_2D, GROUND.tex[k]); gl.uniform3fv(loc['uGM' + k], GROUND.mean[k]); } gl.activeTexture(gl.TEXTURE0); }
+  /* ---- painted effects (made on Higgsfield, assets/fx_*.jpg): a strip of frames on black, drawn on a square that faces the camera and ADDED to the scene, so black is nothing and flame is light ----
+     spriteAtlas(name, file, cols, rows, frames) fetches one; render() draws extras.sprites = [{ name, x, y, z, size, frame, alpha }] after the world. */
+  const SPR = { prog: null, loc: {}, buf: null, atlas: {} };
+  function spriteAtlas(name, file, cols, rows, frames) { if (SPR.atlas[name] || typeof Image === 'undefined') return; const a = SPR.atlas[name] = { tex: null, cols, rows, frames: frames || cols * rows, ready: false };
+    const im = new Image(); im.crossOrigin = 'anonymous'; im.onload = () => { try { a.tex = gl.createTexture(); gl.activeTexture(gl.TEXTURE0 + 6); gl.bindTexture(gl.TEXTURE_2D, a.tex); gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, im);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR); gl.activeTexture(gl.TEXTURE0); a.ready = true; } catch (err) { console.warn('effect ' + name + ': ' + err.message); } };
+    im.onerror = () => console.warn('effect picture not loaded: ' + file); im.src = (typeof window !== 'undefined' && window.STRATAKIN_ASSETS && window.STRATAKIN_ASSETS[file]) || file; }
+  const spriteReady = (name) => !!(SPR.atlas[name] && SPR.atlas[name].ready);
+  function drawSprites(list, pv, cam) {
+    if (!SPR.prog) { SPR.prog = compile(`attribute vec2 aQ; uniform mat4 uPV; uniform vec3 uC; uniform vec3 uR; uniform vec3 uU; uniform float uS; uniform vec4 uUV; varying vec2 vT;
+        void main(){ vT = uUV.xy + vec2(aQ.x * 0.5 + 0.5, 0.5 - aQ.y * 0.5) * uUV.zw; gl_Position = uPV * vec4(uC + (uR * aQ.x + uU * aQ.y) * uS, 1.0); }`,
+        `precision mediump float; uniform sampler2D uT; uniform float uA; varying vec2 vT; void main(){ gl_FragColor = vec4(texture2D(uT, vT).rgb * uA, 1.0); }`);
+      for (const n of ['uPV', 'uC', 'uR', 'uU', 'uS', 'uUV', 'uT', 'uA']) SPR.loc[n] = gl.getUniformLocation(SPR.prog, n); SPR.loc.aQ = gl.getAttribLocation(SPR.prog, 'aQ');
+      SPR.buf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, SPR.buf); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW); }
+    const L = SPR.loc, sy = Math.sin(cam.yaw), cy = Math.cos(cam.yaw), sp = Math.sin(cam.pitch), cp = Math.cos(cam.pitch);
+    gl.useProgram(SPR.prog); gl.uniformMatrix4fv(L.uPV, false, pv); gl.uniform3f(L.uR, cy, 0, -sy); gl.uniform3f(L.uU, sy * sp, cp, cy * sp); gl.uniform1i(L.uT, 6);
+    gl.bindBuffer(gl.ARRAY_BUFFER, SPR.buf); gl.enableVertexAttribArray(L.aQ); gl.vertexAttribPointer(L.aQ, 2, gl.FLOAT, false, 0, 0);
+    gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE); gl.depthMask(false); gl.disable(gl.CULL_FACE); gl.activeTexture(gl.TEXTURE0 + 6);
+    for (const q of list) { const a = SPR.atlas[q.name]; if (!a || !a.ready) continue; const f = Math.max(0, Math.min(a.frames - 1, Math.floor(q.frame))), cx = f % a.cols, cyy = Math.floor(f / a.cols);
+      gl.bindTexture(gl.TEXTURE_2D, a.tex); gl.uniform4f(L.uUV, cx / a.cols, cyy / a.rows, 1 / a.cols, 1 / a.rows); gl.uniform3f(L.uC, q.x, q.y, q.z); gl.uniform1f(L.uS, q.size); gl.uniform1f(L.uA, q.alpha == null ? 1 : q.alpha); gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4); }
+    gl.disableVertexAttribArray(L.aQ); gl.activeTexture(gl.TEXTURE0); gl.enable(gl.CULL_FACE); gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA); gl.depthMask(true); }
   function compile(vs, fs) {
     const p = gl.createProgram(); const graded = fs.indexOf('uGrade') >= 0;
     const gl2 = typeof WebGL2RenderingContext !== 'undefined' && gl instanceof WebGL2RenderingContext;
@@ -2969,6 +2990,7 @@ const R = (() => {
         gl.drawArrays(gl.LINES, 0, seg.data.length / 3);
       }
     }
+    if (extras.sprites && extras.sprites.length) drawSprites(extras.sprites, pv, cam); /* painted effects, as light over everything */
     gl.disable(gl.BLEND);
     drawHeld(extras.held, cam, aspect, L, LR);
   }
@@ -3083,5 +3105,5 @@ const R = (() => {
     return out;
   }
 
-  return { setGloom: (k) => { gloomK = k; }, setSeason: (k) => { seasonK = k; }, grassZone, init, resize, buildChunk, freeChunk, entityMesh, dropEntityMesh, glbUpload, renderPortrait, render, project, surfaceAt, standY, under, isSoil, boxLines, targetLines, ringLines, state, setQuality, QUALITY, get gl() { return gl; }, get scratch() { return scratchOpaque; } }; // scratch: the last chunk's solid mesh as it was built, for the tests to measure
+  return { spriteAtlas, spriteReady, setGloom: (k) => { gloomK = k; }, setSeason: (k) => { seasonK = k; }, grassZone, init, resize, buildChunk, freeChunk, entityMesh, dropEntityMesh, glbUpload, renderPortrait, render, project, surfaceAt, standY, under, isSoil, boxLines, targetLines, ringLines, state, setQuality, QUALITY, get gl() { return gl; }, get scratch() { return scratchOpaque; } }; // scratch: the last chunk's solid mesh as it was built, for the tests to measure
 })();

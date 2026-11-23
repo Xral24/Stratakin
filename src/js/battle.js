@@ -193,7 +193,7 @@ const Battle = (() => {
     if (target) target.hitT = r.crit ? 0.55 : 0.35; shakeT = Math.max(shakeT, move.tech ? 0.5 : r.crit || r.eff > 1.25 ? 0.4 : 0.22);
     { card.style.position = card.style.position || 'relative'; const pop = document.createElement('div'); pop.className = 'dmgpop' + (r.crit ? ' crit' : ''); pop.textContent = '-' + r.dmg; card.appendChild(pop); setTimeout(() => pop.remove(), 950); }
     log(`${an} uses ${move.name}: ${r.dmg} damage${r.crit ? ', critical!' : ''}${r.eff > 1.25 ? ' It hits hard!' : r.eff < 0.8 ? ' It barely lands.' : ''}${ailMsg}`, attIsMine ? 'good' : 'bad');
-    G.sfx(r.eff > 1.25 ? 'hit2' : 'hit'); refresh(); await sleep(700);
+    if (!soundDone) G.sfx(r.eff > 1.25 ? 'hit2' : 'hit'); refresh(); await sleep(700);
   }
   function wildChoose() {
     const mv = KIN.moves(wild); const st = KIN.stats(wild);
@@ -454,7 +454,7 @@ const Battle = (() => {
     stealth = false;
     if (camState) { G.player.yaw = camState.yaw; G.player.pitch = Math.max(-0.3, Math.min(0.1, camState.pitch)); }
     for (const L of lunges) { L.e.x = L.bx; L.e.z = L.bz; L.e.y = L.by; } lunges.length = 0; for (const F of faints) { F.e.scale = F.s0; F.e._fainting = false; } faints.length = 0; shakeT = 0;
-    active = false; busy = false; snareState = null; camState = null; fx.length = 0;
+    active = false; busy = false; snareState = null; camState = null; fx.length = 0; spr.length = 0;
     el.root.classList.add('hidden'); el.root.classList.remove('snaring');
     if (mine && mine.equip && mine.equip.charm && ITEMS[mine.equip.charm] && ITEMS[mine.equip.charm].relic) Relics.wear(mine.equip.charm, 0.01);
     if (result === 'won' && wildE && wildE.high) { G.player.add('feather', 2); UI.toast('Two Sky Feathers drift down.', 'good'); }
@@ -471,6 +471,24 @@ const Battle = (() => {
   const faints = [];
   function faintFx(e) { if (!e || !e.model || e._fainting) return; e._fainting = true; faints.push({ e, t: 0, s0: e.scale || 1 }); const C = ctr(e, 0.5); burst(C, WHITE, 18, 1.6, 0, 'ball', 0.14); for (let i = 0; i < 14; i++) { const o = [rnd(0.6), 0, rnd(0.6)]; Pt(0.1 + Math.random() * 0.4, 0.9, i % 2 ? WHITE : [0.8, 0.9, 1], 'ball', (u) => [C[0] + o[0] * (1 - u * 0.5), C[1] - 0.3 + u * 2.6, C[2] + o[2] * (1 - u * 0.5), 0.12 * (1 - u), 0]); } }
   function arriveFx(e, elem) { if (!e || !e.model) return; const col = U.hexToRgb(ELEM_COLOR[elem] || '#ffffff'), C = ctr(e, 0.1); ringOut(C, col, 16, 1.6, 0, 0.45, 0.16); ringOut([C[0], C[1] + 0.5, C[2]], WHITE, 12, 1.1, 0.08, 0.4, 0.12); for (let i = 0; i < 10; i++) { const a = i / 10 * 6.28; Pt(0, 0.5, i % 2 ? col : WHITE, 'ball', (u) => [C[0] + Math.cos(a + u * 4) * 0.8 * (1 - u), C[1] + u * 1.8, C[2] + Math.sin(a + u * 4) * 0.8 * (1 - u), 0.14 * (1 - u * 0.6), 0]); } }
+  /* ---- painted effects: a flipbook from a file in place of the balls and cubes (render.js draws them), and a recorded sound in place of the bleep ----
+     Sp(delay, dur, name, fn, fps) : fn(u) gives [x, y, z, size]; with fps the frames loop at that rate, without they play once across dur.
+     The first element done this way is Flame, as a trial (Alexander, 23 Nov 2026): the timing is the old effect's own. */
+  const spr = []; let artAsked = false;
+  function Sp(delay, dur, name, fn, fps) { if (spr.length < 60) spr.push({ t: -delay, dur, name, fn, fps: fps || 0 }); }
+  const FRAMES = { flame_ball: 12, flame_burst: 16 };
+  function fxSprites() { if (!spr.length) return null; const out = [];
+    for (const f of spr) { if (f.t < 0 || !R.spriteReady(f.name)) continue; const u = Math.min(1, f.t / f.dur), p = f.fn(u); if (!(p[3] > 0.01)) continue;
+      out.push({ name: f.name, x: p[0], y: p[1], z: p[2], size: p[3], frame: f.fps ? (f.t * f.fps) % FRAMES[f.name] : u * (FRAMES[f.name] - 0.01), alpha: p[4] == null ? 1 : p[4] }); } return out; }
+  function fxArt() { if (artAsked || typeof R === 'undefined' || !R.spriteAtlas) return; artAsked = true; R.spriteAtlas('flame_ball', 'assets/fx_flame_ball.jpg', 4, 3, 12); R.spriteAtlas('flame_burst', 'assets/fx_flame_burst.jpg', 4, 4, 16); if (UI.preload) UI.preload(['fx_flame_cast', 'fx_flame_hit']); }
+  const flameArt = () => typeof R !== 'undefined' && R.spriteReady && R.spriteReady('flame_ball') && R.spriteReady('flame_burst') && G.fxArt !== false;
+  let soundDone = false; /* the last effect played its own recorded sound: the caller's bleep is not wanted on top */
+  function flamePainted(S, D, k, col, hit) { const T = 0.42, big = Math.sqrt(k), hot = [1, 0.85, 0.3];
+    Sp(0, T, 'flame_ball', (u) => { const p = lerp3(S, D, u); return [p[0], p[1] + Math.sin(u * Math.PI) * 0.3, p[2], (0.34 + 0.2 * u) * big]; }, 18); /* the fireball, turning as it flies */
+    for (let i = 0; i < 6; i++) { const o = [rnd(0.2), rnd(0.2), rnd(0.2)], at = Math.min(1, 0.1 + i * 0.13); Pt(0.05 + i * 0.05, 0.3, i % 2 ? col : hot, 'ball', (u) => { const p = lerp3(S, D, at); return [p[0] + o[0], p[1] + o[1] + Math.sin(at * Math.PI) * 0.3 - u * 0.3, p[2] + o[2], 0.1 * (1 - u), u * 6]; }); } /* a few sparks dropped along the way */
+    Sp(T, 0.78, 'flame_burst', () => [D[0], D[1] + 0.1, D[2], 1.5 * big]); /* and it bursts on what it hits */
+    for (let i = 0; i < 8 * k; i++) { const a = Math.random() * 6.28, r = 0.2 + Math.random() * 0.5; Pt(T + 0.1 + Math.random() * 0.25, 0.6, i % 2 ? hot : col, 'ball', (u) => [D[0] + Math.cos(a) * r * (0.4 + u), D[1] - 0.2 + u * 1.8, D[2] + Math.sin(a) * r * (0.4 + u), 0.12 * (1 - u), a]); } /* embers going up */
+    const a1 = UI.sample && UI.sample('fx_flame_cast', 0, 0.45), a2 = UI.sample && UI.sample('fx_flame_hit', T, 0.6); soundDone = !!(a1 || a2); return T; }
   function Pt(delay, dur, col, shape, fn) { if (fx.length < 700) fx.push({ t: -delay, dur, col, shape, fn }); }
   function ctr(e, k) { return [e.x, e.y + (e.model.height || 1) * (e.model.scale || 1) * k, e.z]; }
   function burst(c, col, n, sp, delay, shape, size) { for (let i = 0; i < n; i++) { const v = [rnd(sp), Math.random() * sp * 1.2, rnd(sp)], sz = (size || 0.14) * (0.6 + Math.random() * 0.8), cc = Math.random() < 0.3 ? mixc(col, WHITE, 0.6) : col; Pt(delay, 0.4 + Math.random() * 0.25, cc, shape || 'cube', (u) => [c[0] + v[0] * u, c[1] + v[1] * u - 2.2 * u * u, c[2] + v[2] * u, sz * (1 - u), u * 9]); } }
@@ -542,6 +560,7 @@ const Battle = (() => {
   };
   // plays a move and returns the seconds until it lands. hit = false: it goes wide and nothing bursts on the target
   function playMove(src, dst, move, hit) {
+    fxArt(); soundDone = false;
     const col = U.hexToRgb(ELEM_COLOR[move.elem] || '#ffffff'), k = move.tech ? 1.6 : move.grown ? 1.2 : 1; const S = ctr(src, 0.6); let D = ctr(dst, 0.5);
     if (!hit) { const dx = D[0] - S[0], dz = D[2] - S[2], d = Math.hypot(dx, dz) || 1; D = [D[0] - dz / d * 1.6, D[1], D[2] + dx / d * 1.6]; }
     if (move.kind === 'phys') { const T = (PHYS[move.fx] || PHYS.slash)(src, dst, S, D, k, col, hit);
@@ -549,6 +568,7 @@ const Battle = (() => {
       if (hit) { burst(D, col, 12 * k, 1.8, T, ESHAPE[move.elem] || 'cube', 0.14); ringOut([D[0], D[1] - 0.4, D[2]], WHITE, 10, 1.2, T, 0.25, 0.1); }
       return T; }
     lunge(src, dst, 0.35, 0.3); const g = move.fx && move.fx !== 'own' ? GEN[move.fx] : null;
+    if (move.elem === 'Flame' && flameArt()) return flamePainted(S, D, k, col, hit); /* the trial: Flame in paint and sound */
     return g ? g(S, D, k, col, ESHAPE[move.elem] || 'ball', move.elem) : (ELFX[move.elem] || ELFX.Light)(S, D, k, col);
   }
   function playUtil(src, move) { /* an aura climbs round the user: green for healing, stone for a guard, white wind for speed */
@@ -604,6 +624,7 @@ const Battle = (() => {
   }
   function tick(dt) {
     for (let i = fx.length - 1; i >= 0; i--) { const f = fx[i]; f.t += dt; if (f.t > f.dur) fx.splice(i, 1); }
+    for (let i = spr.length - 1; i >= 0; i--) { const f = spr[i]; f.t += dt; if (f.t > f.dur) spr.splice(i, 1); }
     if (shakeT > 0) shakeT = Math.max(0, shakeT - dt);
     for (let i = faints.length - 1; i >= 0; i--) { const F = faints[i]; F.t += dt; const u = Math.min(1, F.t / 0.7); F.e.scale = F.s0 * (1 - u * u * 0.85); if (u >= 1) faints.splice(i, 1); }
     for (let i = lunges.length - 1; i >= 0; i--) { const L = lunges[i]; L.t += dt; const u = Math.min(1, L.t / L.dur), q = u < 0.35 ? u / 0.35 : 1 - (u - 0.35) / 0.65, e2 = q * q * (3 - 2 * q); L.e.x = L.bx + L.dx * e2; L.e.z = L.bz + L.dz * e2; if (L.hop) L.e.y = L.by + L.hop * Math.sin(Math.min(1, u / 0.4) * Math.PI); if (u >= 1) { L.e.x = L.bx; L.e.z = L.bz; L.e.y = L.by; lunges.splice(i, 1); } }
@@ -617,5 +638,5 @@ const Battle = (() => {
   function dodges(att, def) { att.buffs = att.buffs || buffs(); def.buffs = def.buffs || buffs(); return Math.random() > (move0(att).acc || 0.95) || Math.random() < dodgeChance(att, def); }
   function move0(k) { return KIN.moves(k)[0]; }
   function fxTest(elem, kind, tech, hit) { if (!mineE || !wildE) return -1; return kind === 'util' ? (playUtil(mineE, { name: elem }), 0) : playMove(mineE, wildE, { elem, kind, tech: tech === true, fx: typeof tech === 'string' ? tech : undefined }, hit !== false); } // test hook
-  return { get net() { return snareState && snareState.net; }, fxTest, init, start, tick, camera, fxEntities, spawnFx, calcDamage, dodges, abort, get active() { return active; }, get mineEntity() { return mineE; }, get wildEntity() { return wildE; } };
+  return { get net() { return snareState && snareState.net; }, fxTest, init, start, tick, camera, fxEntities, fxSprites, get fxSound() { return soundDone; }, spawnFx, calcDamage, dodges, abort, get active() { return active; }, get mineEntity() { return mineE; }, get wildEntity() { return wildE; } };
 })();

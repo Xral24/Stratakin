@@ -1,3 +1,5 @@
+# (Superseded in part on 23 Nov 2026: the people and the world's objects stay drawn in code; Higgsfield is used for sound, painted attack effects, a few story videos and flat artwork. See PROGRESS.md.)
+
 # Stratakin art plan (agreed with Alexander, 22 Nov 2026)
 
 Started 22 Nov: the ten reference pictures are approved and kept in `art/style/`, the GLB loader is in, and the main cast wear their own models, remade the same evening at the phone's ceiling on Meshy 7 ultra (Finch, Silas, Stonewall, the Kinmaster, Varga, Hask, Garrick, Maren, Brannock, and Keychain and Bigmouth as the Kin they are: a lizard and a toad). The Kindex is cut to about 150 forms (DEX-CUT.md), which is the list Kin art is made from. Credits and job ids: `art/ref/JOBS.md`.

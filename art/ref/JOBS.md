@@ -153,3 +153,12 @@ Ground is five painted, tileable pictures laid over the land by the terrain shad
 | boulders | 7394f4ce-8594-4bcf-999d-1094f1341e69 | b7dadb5a-2b3e-44e6-98e7-cbfa66ae78f3 |
 | pine | 87dc7bd3-7702-4d9f-9feb-a6bc2d3d559a | 2821ce24-c98e-4952-93b1-66362814a723 |
 | bush | 397c5a28-0c29-4e9b-8493-fd0e2780774e | c6810c88-ccbd-4108-b88b-f411dbc23ab5 |
+
+# Effects and sound (23 Nov): the Flame trial
+| What | Job | Cost |
+|---|---|---|
+| fire burst, GIF 16 frames | b9de1275-d8fb-47cf-b2ed-2cee7f68d9d5 | 0.75 |
+| fireball loop, GIF 12 frames | c7ab46a1-8e0e-45e4-a217-86bf4cfad42a | 0.75 |
+| whoosh and burst in one, 2 s (not used: one long roar) | c0d5965a-b651-45d5-bc1c-96ec20f98706 | 0.5 |
+| cast whoosh, 1 s | e23bab17-870e-43fb-bac8-941ff211c2e8 | 0.5 |
+| hit, 1.5 s | 9303d953-6a36-49c6-825d-9a0553961764 | 0.5 |

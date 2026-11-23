@@ -39,6 +39,18 @@ const UI = (() => {
   }
   // ---------- sounds ----------
   function audio() { try { if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); if (audioCtx.state === 'suspended') audioCtx.resume().catch(() => {}); return audioCtx; } catch (e) { return null; } }
+  /* ---- recorded sounds (made on Higgsfield, assets/*.mp3), beside the synthesised bleeps of sfx() ----
+     sample(name, delay, vol) plays one if it has been fetched and decoded and says so (true); the first call for a name starts the fetch and returns false,
+     so a caller can fall back to a bleep that once. preload(names) fetches ahead. Silent when sound is off. */
+  const SAMPLES = new Map(); let PACK = null; /* assets/sounds.json: every sound in one fetch ({ name: base64 mp3 }), packed by tools/art/pack_sounds.py */
+  function pack() { if (PACK) return PACK; const f = 'assets/sounds.json', url = (window.STRATAKIN_ASSETS && window.STRATAKIN_ASSETS[f]) || f; PACK = fetch(url).then(r => { if (!r.ok) throw new Error(r.status); return r.json(); }); PACK.catch(err => console.warn('sounds: ' + (err && err.message))); return PACK; }
+  function sampleLoad(name) { if (SAMPLES.has(name)) return SAMPLES.get(name); const rec = { buf: null, state: 'loading' }; SAMPLES.set(name, rec);
+    try { if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      pack().then(d => { const b64 = d[name]; if (!b64) throw new Error('not in the pack'); const raw = atob(b64), u8 = new Uint8Array(raw.length); for (let i = 0; i < raw.length; i++) u8[i] = raw.charCodeAt(i); return audioCtx.decodeAudioData(u8.buffer); }).then(buf => { rec.buf = buf; rec.state = 'ready'; }).catch(err => { rec.state = 'failed'; console.warn('sound ' + name + ': ' + (err && err.message)); });
+    } catch (e) { rec.state = 'failed'; } return rec; }
+  function sample(name, delay, vol) { const rec = sampleLoad(name); if (!soundOn) return rec.state === 'ready'; if (rec.state !== 'ready' || !audioCtx) return false;
+    try { if (audioCtx.state === 'suspended') audioCtx.resume().catch(() => {}); const src = audioCtx.createBufferSource(), g = audioCtx.createGain(); src.buffer = rec.buf; g.gain.value = vol == null ? 0.5 : vol; src.connect(g); g.connect(audioCtx.destination); src.start(audioCtx.currentTime + (delay || 0)); return true; } catch (e) { return false; } }
+  function preload(names) { for (const n of names) sampleLoad(n); }
   function sfx(name) {
     if (!soundOn) return;
     try {
@@ -987,5 +999,5 @@ const UI = (() => {
   function lookLabel(t) { const e = document.getElementById('look'); if (e.textContent !== t) e.textContent = t; }
   function hideStart() { el.start.classList.add('hidden'); el.hud.classList.remove('hidden'); document.body.classList.toggle('desktop', !Controls.isTouch); }
   function loading(v) { el.loading.classList.toggle('hidden', !v); }
-  return { init, sfx, audio, toast, explain, renderHud, renderMinimap, renderHotbar, openPanel, closePanel, showStart, hideStart, showTutorial, lookLabel, setButtons, renderSky, loading, floater, floatersTick, get panelOpen() { return panelOpen; }, get soundOn() { return soundOn; } };
+  return { init, sfx, sample, preload, audio, toast, explain, renderHud, renderMinimap, renderHotbar, openPanel, closePanel, showStart, hideStart, showTutorial, lookLabel, setButtons, renderSky, loading, floater, floatersTick, get panelOpen() { return panelOpen; }, get soundOn() { return soundOn; } };
 })();

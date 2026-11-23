@@ -2662,6 +2662,27 @@ const R = (() => {
     gl.activeTexture(gl.TEXTURE0); }
   function groundUniforms() { const on = GROUND.ready && GROUND.ok && state.groundArt !== false && state.groundHere; state.groundReady = GROUND.ready; state.groundGot = GROUND.got; gl.uniform1f(loc.uGT, on ? 1 : 0); if (!on) return;
     for (let k = 0; k < 5; k++) { gl.activeTexture(gl.TEXTURE0 + GROUND.unit0 + k); gl.bindTexture(gl.TEXTURE_2D, GROUND.tex[k]); gl.uniform3fv(loc['uGM' + k], GROUND.mean[k]); } gl.activeTexture(gl.TEXTURE0); }
+  /* ---- painted effects (made on Higgsfield, assets/fx_*.jpg): a strip of frames on black, drawn on a square that faces the camera and ADDED to the scene, so black is nothing and flame is light ----
+     spriteAtlas(name, file, cols, rows, frames) fetches one; render() draws extras.sprites = [{ name, x, y, z, size, frame, alpha }] after the world. */
+  const SPR = { prog: null, loc: {}, buf: null, atlas: {} };
+  function spriteAtlas(name, file, cols, rows, frames) { if (SPR.atlas[name] || typeof Image === 'undefined') return; const a = SPR.atlas[name] = { tex: null, cols, rows, frames: frames || cols * rows, ready: false };
+    const im = new Image(); im.crossOrigin = 'anonymous'; im.onload = () => { try { a.tex = gl.createTexture(); gl.activeTexture(gl.TEXTURE0 + 6); gl.bindTexture(gl.TEXTURE_2D, a.tex); gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, im);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR); gl.activeTexture(gl.TEXTURE0); a.ready = true; } catch (err) { console.warn('effect ' + name + ': ' + err.message); } };
+    im.onerror = () => console.warn('effect picture not loaded: ' + file); im.src = (typeof window !== 'undefined' && window.STRATAKIN_ASSETS && window.STRATAKIN_ASSETS[file]) || file; }
+  const spriteReady = (name) => !!(SPR.atlas[name] && SPR.atlas[name].ready);
+  function drawSprites(list, pv, cam) {
+    if (!SPR.prog) { SPR.prog = compile(`attribute vec2 aQ; uniform mat4 uPV; uniform vec3 uC; uniform vec3 uR; uniform vec3 uU; uniform float uS; uniform vec4 uUV; varying vec2 vT;
+        void main(){ vT = uUV.xy + vec2(aQ.x * 0.5 + 0.5, 0.5 - aQ.y * 0.5) * uUV.zw; gl_Position = uPV * vec4(uC + (uR * aQ.x + uU * aQ.y) * uS, 1.0); }`,
+        `precision mediump float; uniform sampler2D uT; uniform float uA; varying vec2 vT; void main(){ gl_FragColor = vec4(texture2D(uT, vT).rgb * uA, 1.0); }`);
+      for (const n of ['uPV', 'uC', 'uR', 'uU', 'uS', 'uUV', 'uT', 'uA']) SPR.loc[n] = gl.getUniformLocation(SPR.prog, n); SPR.loc.aQ = gl.getAttribLocation(SPR.prog, 'aQ');
+      SPR.buf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, SPR.buf); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW); }
+    const L = SPR.loc, sy = Math.sin(cam.yaw), cy = Math.cos(cam.yaw), sp = Math.sin(cam.pitch), cp = Math.cos(cam.pitch);
+    gl.useProgram(SPR.prog); gl.uniformMatrix4fv(L.uPV, false, pv); gl.uniform3f(L.uR, cy, 0, -sy); gl.uniform3f(L.uU, sy * sp, cp, cy * sp); gl.uniform1i(L.uT, 6);
+    gl.bindBuffer(gl.ARRAY_BUFFER, SPR.buf); gl.enableVertexAttribArray(L.aQ); gl.vertexAttribPointer(L.aQ, 2, gl.FLOAT, false, 0, 0);
+    gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE); gl.depthMask(false); gl.disable(gl.CULL_FACE); gl.activeTexture(gl.TEXTURE0 + 6);
+    for (const q of list) { const a = SPR.atlas[q.name]; if (!a || !a.ready) continue; const f = Math.max(0, Math.min(a.frames - 1, Math.floor(q.frame))), cx = f % a.cols, cyy = Math.floor(f / a.cols);
+      gl.bindTexture(gl.TEXTURE_2D, a.tex); gl.uniform4f(L.uUV, cx / a.cols, cyy / a.rows, 1 / a.cols, 1 / a.rows); gl.uniform3f(L.uC, q.x, q.y, q.z); gl.uniform1f(L.uS, q.size); gl.uniform1f(L.uA, q.alpha == null ? 1 : q.alpha); gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4); }
+    gl.disableVertexAttribArray(L.aQ); gl.activeTexture(gl.TEXTURE0); gl.enable(gl.CULL_FACE); gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA); gl.depthMask(true); }
   function compile(vs, fs) {
     const p = gl.createProgram(); const graded = fs.indexOf('uGrade') >= 0;
     const gl2 = typeof WebGL2RenderingContext !== 'undefined' && gl instanceof WebGL2RenderingContext;
@@ -4746,6 +4767,7 @@ const R = (() => {
         gl.drawArrays(gl.LINES, 0, seg.data.length / 3);
       }
     }
+    if (extras.sprites && extras.sprites.length) drawSprites(extras.sprites, pv, cam); /* painted effects, as light over everything */
     gl.disable(gl.BLEND);
     drawHeld(extras.held, cam, aspect, L, LR);
   }
@@ -4860,7 +4882,7 @@ const R = (() => {
     return out;
   }
 
-  return { setGloom: (k) => { gloomK = k; }, setSeason: (k) => { seasonK = k; }, grassZone, init, resize, buildChunk, freeChunk, entityMesh, dropEntityMesh, glbUpload, renderPortrait, render, project, surfaceAt, standY, under, isSoil, boxLines, targetLines, ringLines, state, setQuality, QUALITY, get gl() { return gl; }, get scratch() { return scratchOpaque; } }; // scratch: the last chunk's solid mesh as it was built, for the tests to measure
+  return { spriteAtlas, spriteReady, setGloom: (k) => { gloomK = k; }, setSeason: (k) => { seasonK = k; }, grassZone, init, resize, buildChunk, freeChunk, entityMesh, dropEntityMesh, glbUpload, renderPortrait, render, project, surfaceAt, standY, under, isSoil, boxLines, targetLines, ringLines, state, setQuality, QUALITY, get gl() { return gl; }, get scratch() { return scratchOpaque; } }; // scratch: the last chunk's solid mesh as it was built, for the tests to measure
 })();
 
 </script>
@@ -5096,12 +5118,16 @@ const GLB = (() => {
      shown in his old shape and swapped; if the file cannot be had, he keeps his old shape */
   const ready = (k) => { const m = registry.get(k); return !!(m && m.mesh && (!m.mesh.texWait || m.mesh.texReady || m.mesh.texFailed)); };
   const since = new Map(); /* when each file was asked for: one that has not come in eight seconds shows the old shape until it does */
-  const want = (k) => { const c = CAST[k]; if (!c || !c.file || registry.has(k) || pending.has(k)) return; since.set(k, performance.now()); load(k, where(c.file), { height: c.height, turn: c.turn || 0, still: c.still }); };
+  /* THE CAST WEARS ITS CODE-BUILT SHAPES AGAIN (Alexander, 23 Nov 2026): the generated models looked AI-made and clashed with a world drawn in code.
+     One switch: with CAST_ON false nobody is dressed from a file, nothing is fetched, and faces, paces and portraits fall back to the old shapes.
+     The table, the loader and the tools all stay, and the files are kept in art/models/slim7 (not shipped). */
+  const CAST_ON = false;
+  const want = (k) => { const c = CAST[k]; if (!CAST_ON || !c || !c.file || registry.has(k) || pending.has(k)) return; since.set(k, performance.now()); load(k, where(c.file), { height: c.height, turn: c.turn || 0, still: c.still }); };
   let preloadAt = 0;
   function dressAll(ents) {
     const now = performance.now(); if (!preloadAt) preloadAt = now + 2500; else if (preloadAt > 0 && now > preloadAt) { preloadAt = -1; for (const k of Object.keys(CAST)) if (CAST[k].pre) want(k); } /* only the first village's people ahead of time; the rest when they are first in view */
     let n = 0;
-    for (let i = 0; i < ents.length; i++) { const e = ents[i]; if (!e) continue; const o = e.src || e, k0 = byName.get(o.glbName || o.name || e.name), k = k0 && CAST[k0].file ? k0 : null; /* a cast entry with no file yet: drawn as before */
+    for (let i = 0; i < ents.length; i++) { const e = ents[i]; if (!e) continue; const o = e.src || e, k0 = CAST_ON ? byName.get(o.glbName || o.name || e.name) : null, k = k0 && CAST[k0].file ? k0 : null; /* a cast entry with no file yet: drawn as before */
       const ok = k && ready(k); if (k && !ok) { want(k); if (!failed.has(k) && now - (since.get(k) || now) < 8000) continue; } /* on its way (the file, or its picture): not drawn yet */
       if (ok) { const c = CAST[k], st = o._glb || (o._glb = { name: k, t0: now - Math.random() * 5000, clip: c.clip, walk: c.walk }); st.nod = (o.talkOpen || 0) > 0.05 ? 1 : 0; /* talking: the head nods along with the words */ e.glb = st;
         { /* he turns like a person, not a weathervane: a patrol's about-turn, or a step round a post, swings him round over a third of a second instead of
@@ -5120,9 +5146,9 @@ const GLB = (() => {
   const meshFor = (e) => { const m = e.glb && registry.get(e.glb.name); return m && m.mesh ? m.mesh : e.mesh; };
   /* how high his face is above his feet, in a model from a file (null if he wears none): `face` in the cast entry is the fraction of the model's height
      (a crown, a hat or a spoon taller than he is all sit above it); nine tenths if it does not say */
-  function faceOf(o) { const k = o && (o._glb ? o._glb.name : byName.get(o.glbName || o.name)), c = k && CAST[k], md = c && c.file ? registry.get(k) : null; return md && ready(k) ? md.height * (o.scale || 1) * (c.face || 0.9) : null; }
+  function faceOf(o) { if (!CAST_ON) return null; const k = o && (o._glb ? o._glb.name : byName.get(o.glbName || o.name)), c = k && CAST[k], md = c && c.file ? registry.get(k) : null; return md && ready(k) ? md.height * (o.scale || 1) * (c.face || 0.9) : null; }
   /* how fast someone in a model from a file walks without his feet sliding (metres a second), or null if he has no such model or it has no walk */
-  function pace(o) { const k = o && (o._glb ? o._glb.name : byName.get(o.glbName || o.name)), md = k && CAST[k] && CAST[k].file ? registry.get(k) : null; return md && md.walk != null && md.v0 ? md.v0 * (o.scale || 1) : null; }
+  function pace(o) { if (!CAST_ON) return null; const k = o && (o._glb ? o._glb.name : byName.get(o.glbName || o.name)), md = k && CAST[k] && CAST[k].file ? registry.get(k) : null; return md && md.walk != null && md.v0 ? md.v0 * (o.scale || 1) : null; }
   return { parse, fromBuffer, load, get, dress, pose, dressAll, meshFor, portrait, pace, faceOf, CAST, want, get list() { return [...registry.keys()]; } };
 })();
 
@@ -15865,7 +15891,7 @@ const Battle = (() => {
     if (target) target.hitT = r.crit ? 0.55 : 0.35; shakeT = Math.max(shakeT, move.tech ? 0.5 : r.crit || r.eff > 1.25 ? 0.4 : 0.22);
     { card.style.position = card.style.position || 'relative'; const pop = document.createElement('div'); pop.className = 'dmgpop' + (r.crit ? ' crit' : ''); pop.textContent = '-' + r.dmg; card.appendChild(pop); setTimeout(() => pop.remove(), 950); }
     log(`${an} uses ${move.name}: ${r.dmg} damage${r.crit ? ', critical!' : ''}${r.eff > 1.25 ? ' It hits hard!' : r.eff < 0.8 ? ' It barely lands.' : ''}${ailMsg}`, attIsMine ? 'good' : 'bad');
-    G.sfx(r.eff > 1.25 ? 'hit2' : 'hit'); refresh(); await sleep(700);
+    if (!soundDone) G.sfx(r.eff > 1.25 ? 'hit2' : 'hit'); refresh(); await sleep(700);
   }
   function wildChoose() {
     const mv = KIN.moves(wild); const st = KIN.stats(wild);
@@ -16126,7 +16152,7 @@ const Battle = (() => {
     stealth = false;
     if (camState) { G.player.yaw = camState.yaw; G.player.pitch = Math.max(-0.3, Math.min(0.1, camState.pitch)); }
     for (const L of lunges) { L.e.x = L.bx; L.e.z = L.bz; L.e.y = L.by; } lunges.length = 0; for (const F of faints) { F.e.scale = F.s0; F.e._fainting = false; } faints.length = 0; shakeT = 0;
-    active = false; busy = false; snareState = null; camState = null; fx.length = 0;
+    active = false; busy = false; snareState = null; camState = null; fx.length = 0; spr.length = 0;
     el.root.classList.add('hidden'); el.root.classList.remove('snaring');
     if (mine && mine.equip && mine.equip.charm && ITEMS[mine.equip.charm] && ITEMS[mine.equip.charm].relic) Relics.wear(mine.equip.charm, 0.01);
     if (result === 'won' && wildE && wildE.high) { G.player.add('feather', 2); UI.toast('Two Sky Feathers drift down.', 'good'); }
@@ -16143,6 +16169,24 @@ const Battle = (() => {
   const faints = [];
   function faintFx(e) { if (!e || !e.model || e._fainting) return; e._fainting = true; faints.push({ e, t: 0, s0: e.scale || 1 }); const C = ctr(e, 0.5); burst(C, WHITE, 18, 1.6, 0, 'ball', 0.14); for (let i = 0; i < 14; i++) { const o = [rnd(0.6), 0, rnd(0.6)]; Pt(0.1 + Math.random() * 0.4, 0.9, i % 2 ? WHITE : [0.8, 0.9, 1], 'ball', (u) => [C[0] + o[0] * (1 - u * 0.5), C[1] - 0.3 + u * 2.6, C[2] + o[2] * (1 - u * 0.5), 0.12 * (1 - u), 0]); } }
   function arriveFx(e, elem) { if (!e || !e.model) return; const col = U.hexToRgb(ELEM_COLOR[elem] || '#ffffff'), C = ctr(e, 0.1); ringOut(C, col, 16, 1.6, 0, 0.45, 0.16); ringOut([C[0], C[1] + 0.5, C[2]], WHITE, 12, 1.1, 0.08, 0.4, 0.12); for (let i = 0; i < 10; i++) { const a = i / 10 * 6.28; Pt(0, 0.5, i % 2 ? col : WHITE, 'ball', (u) => [C[0] + Math.cos(a + u * 4) * 0.8 * (1 - u), C[1] + u * 1.8, C[2] + Math.sin(a + u * 4) * 0.8 * (1 - u), 0.14 * (1 - u * 0.6), 0]); } }
+  /* ---- painted effects: a flipbook from a file in place of the balls and cubes (render.js draws them), and a recorded sound in place of the bleep ----
+     Sp(delay, dur, name, fn, fps) : fn(u) gives [x, y, z, size]; with fps the frames loop at that rate, without they play once across dur.
+     The first element done this way is Flame, as a trial (Alexander, 23 Nov 2026): the timing is the old effect's own. */
+  const spr = []; let artAsked = false;
+  function Sp(delay, dur, name, fn, fps) { if (spr.length < 60) spr.push({ t: -delay, dur, name, fn, fps: fps || 0 }); }
+  const FRAMES = { flame_ball: 12, flame_burst: 16 };
+  function fxSprites() { if (!spr.length) return null; const out = [];
+    for (const f of spr) { if (f.t < 0 || !R.spriteReady(f.name)) continue; const u = Math.min(1, f.t / f.dur), p = f.fn(u); if (!(p[3] > 0.01)) continue;
+      out.push({ name: f.name, x: p[0], y: p[1], z: p[2], size: p[3], frame: f.fps ? (f.t * f.fps) % FRAMES[f.name] : u * (FRAMES[f.name] - 0.01), alpha: p[4] == null ? 1 : p[4] }); } return out; }
+  function fxArt() { if (artAsked || typeof R === 'undefined' || !R.spriteAtlas) return; artAsked = true; R.spriteAtlas('flame_ball', 'assets/fx_flame_ball.jpg', 4, 3, 12); R.spriteAtlas('flame_burst', 'assets/fx_flame_burst.jpg', 4, 4, 16); if (UI.preload) UI.preload(['fx_flame_cast', 'fx_flame_hit']); }
+  const flameArt = () => typeof R !== 'undefined' && R.spriteReady && R.spriteReady('flame_ball') && R.spriteReady('flame_burst') && G.fxArt !== false;
+  let soundDone = false; /* the last effect played its own recorded sound: the caller's bleep is not wanted on top */
+  function flamePainted(S, D, k, col, hit) { const T = 0.42, big = Math.sqrt(k), hot = [1, 0.85, 0.3];
+    Sp(0, T, 'flame_ball', (u) => { const p = lerp3(S, D, u); return [p[0], p[1] + Math.sin(u * Math.PI) * 0.3, p[2], (0.34 + 0.2 * u) * big]; }, 18); /* the fireball, turning as it flies */
+    for (let i = 0; i < 6; i++) { const o = [rnd(0.2), rnd(0.2), rnd(0.2)], at = Math.min(1, 0.1 + i * 0.13); Pt(0.05 + i * 0.05, 0.3, i % 2 ? col : hot, 'ball', (u) => { const p = lerp3(S, D, at); return [p[0] + o[0], p[1] + o[1] + Math.sin(at * Math.PI) * 0.3 - u * 0.3, p[2] + o[2], 0.1 * (1 - u), u * 6]; }); } /* a few sparks dropped along the way */
+    Sp(T, 0.78, 'flame_burst', () => [D[0], D[1] + 0.1, D[2], 1.5 * big]); /* and it bursts on what it hits */
+    for (let i = 0; i < 8 * k; i++) { const a = Math.random() * 6.28, r = 0.2 + Math.random() * 0.5; Pt(T + 0.1 + Math.random() * 0.25, 0.6, i % 2 ? hot : col, 'ball', (u) => [D[0] + Math.cos(a) * r * (0.4 + u), D[1] - 0.2 + u * 1.8, D[2] + Math.sin(a) * r * (0.4 + u), 0.12 * (1 - u), a]); } /* embers going up */
+    const a1 = UI.sample && UI.sample('fx_flame_cast', 0, 0.45), a2 = UI.sample && UI.sample('fx_flame_hit', T, 0.6); soundDone = !!(a1 || a2); return T; }
   function Pt(delay, dur, col, shape, fn) { if (fx.length < 700) fx.push({ t: -delay, dur, col, shape, fn }); }
   function ctr(e, k) { return [e.x, e.y + (e.model.height || 1) * (e.model.scale || 1) * k, e.z]; }
   function burst(c, col, n, sp, delay, shape, size) { for (let i = 0; i < n; i++) { const v = [rnd(sp), Math.random() * sp * 1.2, rnd(sp)], sz = (size || 0.14) * (0.6 + Math.random() * 0.8), cc = Math.random() < 0.3 ? mixc(col, WHITE, 0.6) : col; Pt(delay, 0.4 + Math.random() * 0.25, cc, shape || 'cube', (u) => [c[0] + v[0] * u, c[1] + v[1] * u - 2.2 * u * u, c[2] + v[2] * u, sz * (1 - u), u * 9]); } }
@@ -16214,6 +16258,7 @@ const Battle = (() => {
   };
   // plays a move and returns the seconds until it lands. hit = false: it goes wide and nothing bursts on the target
   function playMove(src, dst, move, hit) {
+    fxArt(); soundDone = false;
     const col = U.hexToRgb(ELEM_COLOR[move.elem] || '#ffffff'), k = move.tech ? 1.6 : move.grown ? 1.2 : 1; const S = ctr(src, 0.6); let D = ctr(dst, 0.5);
     if (!hit) { const dx = D[0] - S[0], dz = D[2] - S[2], d = Math.hypot(dx, dz) || 1; D = [D[0] - dz / d * 1.6, D[1], D[2] + dx / d * 1.6]; }
     if (move.kind === 'phys') { const T = (PHYS[move.fx] || PHYS.slash)(src, dst, S, D, k, col, hit);
@@ -16221,6 +16266,7 @@ const Battle = (() => {
       if (hit) { burst(D, col, 12 * k, 1.8, T, ESHAPE[move.elem] || 'cube', 0.14); ringOut([D[0], D[1] - 0.4, D[2]], WHITE, 10, 1.2, T, 0.25, 0.1); }
       return T; }
     lunge(src, dst, 0.35, 0.3); const g = move.fx && move.fx !== 'own' ? GEN[move.fx] : null;
+    if (move.elem === 'Flame' && flameArt()) return flamePainted(S, D, k, col, hit); /* the trial: Flame in paint and sound */
     return g ? g(S, D, k, col, ESHAPE[move.elem] || 'ball', move.elem) : (ELFX[move.elem] || ELFX.Light)(S, D, k, col);
   }
   function playUtil(src, move) { /* an aura climbs round the user: green for healing, stone for a guard, white wind for speed */
@@ -16276,6 +16322,7 @@ const Battle = (() => {
   }
   function tick(dt) {
     for (let i = fx.length - 1; i >= 0; i--) { const f = fx[i]; f.t += dt; if (f.t > f.dur) fx.splice(i, 1); }
+    for (let i = spr.length - 1; i >= 0; i--) { const f = spr[i]; f.t += dt; if (f.t > f.dur) spr.splice(i, 1); }
     if (shakeT > 0) shakeT = Math.max(0, shakeT - dt);
     for (let i = faints.length - 1; i >= 0; i--) { const F = faints[i]; F.t += dt; const u = Math.min(1, F.t / 0.7); F.e.scale = F.s0 * (1 - u * u * 0.85); if (u >= 1) faints.splice(i, 1); }
     for (let i = lunges.length - 1; i >= 0; i--) { const L = lunges[i]; L.t += dt; const u = Math.min(1, L.t / L.dur), q = u < 0.35 ? u / 0.35 : 1 - (u - 0.35) / 0.65, e2 = q * q * (3 - 2 * q); L.e.x = L.bx + L.dx * e2; L.e.z = L.bz + L.dz * e2; if (L.hop) L.e.y = L.by + L.hop * Math.sin(Math.min(1, u / 0.4) * Math.PI); if (u >= 1) { L.e.x = L.bx; L.e.z = L.bz; L.e.y = L.by; lunges.splice(i, 1); } }
@@ -16289,7 +16336,7 @@ const Battle = (() => {
   function dodges(att, def) { att.buffs = att.buffs || buffs(); def.buffs = def.buffs || buffs(); return Math.random() > (move0(att).acc || 0.95) || Math.random() < dodgeChance(att, def); }
   function move0(k) { return KIN.moves(k)[0]; }
   function fxTest(elem, kind, tech, hit) { if (!mineE || !wildE) return -1; return kind === 'util' ? (playUtil(mineE, { name: elem }), 0) : playMove(mineE, wildE, { elem, kind, tech: tech === true, fx: typeof tech === 'string' ? tech : undefined }, hit !== false); } // test hook
-  return { get net() { return snareState && snareState.net; }, fxTest, init, start, tick, camera, fxEntities, spawnFx, calcDamage, dodges, abort, get active() { return active; }, get mineEntity() { return mineE; }, get wildEntity() { return wildE; } };
+  return { get net() { return snareState && snareState.net; }, fxTest, init, start, tick, camera, fxEntities, fxSprites, get fxSound() { return soundDone; }, spawnFx, calcDamage, dodges, abort, get active() { return active; }, get mineEntity() { return mineE; }, get wildEntity() { return wildE; } };
 })();
 
 </script>
@@ -18869,6 +18916,18 @@ const UI = (() => {
   }
   // ---------- sounds ----------
   function audio() { try { if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); if (audioCtx.state === 'suspended') audioCtx.resume().catch(() => {}); return audioCtx; } catch (e) { return null; } }
+  /* ---- recorded sounds (made on Higgsfield, assets/*.mp3), beside the synthesised bleeps of sfx() ----
+     sample(name, delay, vol) plays one if it has been fetched and decoded and says so (true); the first call for a name starts the fetch and returns false,
+     so a caller can fall back to a bleep that once. preload(names) fetches ahead. Silent when sound is off. */
+  const SAMPLES = new Map(); let PACK = null; /* assets/sounds.json: every sound in one fetch ({ name: base64 mp3 }), packed by tools/art/pack_sounds.py */
+  function pack() { if (PACK) return PACK; const f = 'assets/sounds.json', url = (window.STRATAKIN_ASSETS && window.STRATAKIN_ASSETS[f]) || f; PACK = fetch(url).then(r => { if (!r.ok) throw new Error(r.status); return r.json(); }); PACK.catch(err => console.warn('sounds: ' + (err && err.message))); return PACK; }
+  function sampleLoad(name) { if (SAMPLES.has(name)) return SAMPLES.get(name); const rec = { buf: null, state: 'loading' }; SAMPLES.set(name, rec);
+    try { if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      pack().then(d => { const b64 = d[name]; if (!b64) throw new Error('not in the pack'); const raw = atob(b64), u8 = new Uint8Array(raw.length); for (let i = 0; i < raw.length; i++) u8[i] = raw.charCodeAt(i); return audioCtx.decodeAudioData(u8.buffer); }).then(buf => { rec.buf = buf; rec.state = 'ready'; }).catch(err => { rec.state = 'failed'; console.warn('sound ' + name + ': ' + (err && err.message)); });
+    } catch (e) { rec.state = 'failed'; } return rec; }
+  function sample(name, delay, vol) { const rec = sampleLoad(name); if (!soundOn) return rec.state === 'ready'; if (rec.state !== 'ready' || !audioCtx) return false;
+    try { if (audioCtx.state === 'suspended') audioCtx.resume().catch(() => {}); const src = audioCtx.createBufferSource(), g = audioCtx.createGain(); src.buffer = rec.buf; g.gain.value = vol == null ? 0.5 : vol; src.connect(g); g.connect(audioCtx.destination); src.start(audioCtx.currentTime + (delay || 0)); return true; } catch (e) { return false; } }
+  function preload(names) { for (const n of names) sampleLoad(n); }
   function sfx(name) {
     if (!soundOn) return;
     try {
@@ -19817,7 +19876,7 @@ const UI = (() => {
   function lookLabel(t) { const e = document.getElementById('look'); if (e.textContent !== t) e.textContent = t; }
   function hideStart() { el.start.classList.add('hidden'); el.hud.classList.remove('hidden'); document.body.classList.toggle('desktop', !Controls.isTouch); }
   function loading(v) { el.loading.classList.toggle('hidden', !v); }
-  return { init, sfx, audio, toast, explain, renderHud, renderMinimap, renderHotbar, openPanel, closePanel, showStart, hideStart, showTutorial, lookLabel, setButtons, renderSky, loading, floater, floatersTick, get panelOpen() { return panelOpen; }, get soundOn() { return soundOn; } };
+  return { init, sfx, sample, preload, audio, toast, explain, renderHud, renderMinimap, renderHotbar, openPanel, closePanel, showStart, hideStart, showTutorial, lookLabel, setButtons, renderSky, loading, floater, floatersTick, get panelOpen() { return panelOpen; }, get soundOn() { return soundOn; } };
 })();
 
 </script>
@@ -24032,7 +24091,7 @@ G.loop = function (t) {
   }
   for (const e of ents) if (e.isStatue || e.isFx || e.isMount || e.isBuddy || e.isFoe || !e.model) { /* static */ } else if (e.chase || e.dazed > 0 || e.stunT > 0 || e.flee > 0) { /* the live fight sets its own stance */ } else if (e.hitT > 0) { e.hover = (e.model.hover || 0) + Math.sin(e.hitT * 60) * 0.08; } else if (e.breach == null) e.hover = e.model.hover + (e.flying ? Math.sin((e.bob || 0) * 2) * 0.08 : 0);
   const held = (!inBattle && !this.thirdPerson && !p.mount && !p.flying && this.talkK <= 0 && !this.grassCamOn) ? Held.describe(p, dt, input) : null; if (held) { const top = w.topAt(Math.floor(p.x), Math.floor(p.z)); held.skyMul = eye.y >= top ? 1 : Math.max(0.2, 1 - (top - eye.y) * 0.11); }
-  R.render(w, p, ents, cam, { lights, lines, held });
+  R.render(w, p, ents, cam, { lights, lines, held, sprites: Battle.fxSprites ? Battle.fxSprites() : null });
   if ((this.frame & 3) === 0) UI.renderHud(dt);
   UI.floatersTick(dt);
   if ((this.frame & 31) === 0 && !inBattle) UI.renderMinimap(p);

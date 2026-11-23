@@ -969,7 +969,7 @@ G.loop = function (t) {
   }
   for (const e of ents) if (e.isStatue || e.isFx || e.isMount || e.isBuddy || e.isFoe || !e.model) { /* static */ } else if (e.chase || e.dazed > 0 || e.stunT > 0 || e.flee > 0) { /* the live fight sets its own stance */ } else if (e.hitT > 0) { e.hover = (e.model.hover || 0) + Math.sin(e.hitT * 60) * 0.08; } else if (e.breach == null) e.hover = e.model.hover + (e.flying ? Math.sin((e.bob || 0) * 2) * 0.08 : 0);
   const held = (!inBattle && !this.thirdPerson && !p.mount && !p.flying && this.talkK <= 0 && !this.grassCamOn) ? Held.describe(p, dt, input) : null; if (held) { const top = w.topAt(Math.floor(p.x), Math.floor(p.z)); held.skyMul = eye.y >= top ? 1 : Math.max(0.2, 1 - (top - eye.y) * 0.11); }
-  R.render(w, p, ents, cam, { lights, lines, held });
+  R.render(w, p, ents, cam, { lights, lines, held, sprites: Battle.fxSprites ? Battle.fxSprites() : null });
   if ((this.frame & 3) === 0) UI.renderHud(dt);
   UI.floatersTick(dt);
   if ((this.frame & 31) === 0 && !inBattle) UI.renderMinimap(p);
