@@ -625,6 +625,10 @@ His go-ahead: the village kit, and "do the grass, the rock, the sand, the water"
 - Next, if he likes the trial: the other eight elements the same way (bright ones first; smoke, rock and Void may stay in code with only a sound), then hit, miss, faint and win sounds, then music. Prices checked: a GIF 0.75, a sound 0.5. Music and video not yet priced (the estimate call for music did not return).
 - Credits: about 5 this round. Balance about 1,275.
 
+## "Finish it" strikes a blow (Nov 23)
+- Alexander: at the net moment, tapping Finish it (or letting the four seconds run out) ended the fight with no attack at all. Now `finishBlow()` in `battle.js` plays your Kin's last used attack (or its hardest one), the damage number pops, then the wild one falls. Test `t-finish.js`.
+- He passed the painted Flame attack and its sound ("very cool"). Next: the other eight elements, then **signature attacks**: every legendary and every fused Kin gets one attack that is only its own, with its own painted effect (his ask, 23 Nov).
+
 ## Still to do
 UI polish as feedback comes in. Card battle screen still used for scripted encounters (raids at the walls, thief, citadel duel, holds) and the snare mini-game; converting those to live is the next big step if wanted. (Old list: train/ships, combat animation, eggs, avatar hair/paint, buddy WEAR cosmetics, Silas and Finch, UI polish (item icons), quality toggles in settings (state.shadows, state.grassQuality, state.dprCap).
 

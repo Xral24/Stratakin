@@ -18,7 +18,7 @@ const Battle = (() => {
   function buffs() { return { guard: false, focus: false, coil: false, dash: false, ail: null }; }
   function start(e, isAmbush, opts = {}) {
     if (active) return;
-    stunUsed = false; stunned = false; if (stunTimer) { clearInterval(stunTimer); stunTimer = null; }
+    stunUsed = false; stunned = false; lastMine = null; if (stunTimer) { clearInterval(stunTimer); stunTimer = null; }
     const party = G.healthyKin();
     if (!party.length) { G.toast('All your Kin are down. Revive them at the Voodoo Hut or with a tonic.'); e.alert = 0; e.wait = 4; if (!e.chase) e.cool = 6; return; }
     if (e.chase) { Wild.disengage(e, 0); e.alert = 1; }
@@ -180,7 +180,7 @@ const Battle = (() => {
       { const src = attIsMine ? mineE : wildE; if (src) playUtil(src, move); }
       G.sfx('util'); refresh(); await sleep(800); return;
     }
-    const src = attIsMine ? mineE : wildE, target = attIsMine ? wildE : mineE;
+    const src = attIsMine ? mineE : wildE, target = attIsMine ? wildE : mineE; if (attIsMine) lastMine = move;
     if (Math.random() > move.acc || Math.random() < dodgeChance(att, def)) { log(`${an} uses ${move.name}… ${dn} slips aside!`); if (src && target) { const T = playMove(src, target, move, false); await sleep(T * 1000); } G.sfx('miss'); await sleep(450); return; }
     if (src && target) { const T = playMove(src, target, move, true); await sleep(T * 1000); } /* the blow lands when the picture says it does */
     const r = damage(att, def, move);
@@ -297,7 +297,7 @@ const Battle = (() => {
     if (wild.sp.mythic || wild.sp.legend) c = frac < 0.15 ? Math.min(c, 0.5) : Math.min(c, 0.12);
     return { chance: U.clamp(c, gap > 1.2 ? 0.002 : 0.04, 0.9), item, gap, grip };
   }
-  let stunUsed = false, stunTimer = null;
+  let stunUsed = false, stunTimer = null, lastMine = null;
   // what your Kin's hardest move would do to it, without a lucky crit (the best of a few rolls)
   function strongestHit() {
     let best = 0; for (const m of KIN.moves(mine)) { if (m.kind === 'util' || !m.power) continue; for (let i = 0; i < 4; i++) { const r = calcDamage(mine, wild, m); if (!r.crit) best = Math.max(best, r.dmg); } }
@@ -310,12 +310,31 @@ const Battle = (() => {
     const what = !can ? rule.why : cc.hopeless ? `too strong to hold yet (Lv ${wild.level}; raise your trainer level)` : `${ITEMS[rule.list[0]].name} · about ${Math.max(1, Math.round(Math.min(1, cc.chance * (bossKin() ? 1 : 1.8)) * 100))}%${bossKin() ? ' · one chance' : ''}`;
     el.actions.innerHTML = `<button class="act snare stun" data-a="stunsnare" ${can && !cc.hopeless ? '' : 'disabled'}><b>Net it!</b><small>${what} · <span id="stun-left">4</span>s</small><i class="stunbar"><i id="stun-fill"></i></i></button><button class="act" data-a="finish"><b>Finish it</b><small>win the fight</small></button>`;
     const fill = document.getElementById('stun-fill');
-    const done = (snare) => { if (!stunned) return; stunned = false; clearInterval(stunTimer); stunTimer = null; if (snare) { busy = false; beginSnare(); } else { wild.hp = 0; refresh(); log(`${KIN.name(wild)} is defeated!`, 'good'); faintFx(wildE); G.sfx('win'); end('won'); } };
+    const done = (snare) => { if (!stunned) return; stunned = false; clearInterval(stunTimer); stunTimer = null; if (snare) { busy = false; beginSnare(); } else finishBlow(); };
     el.actions.querySelector('[data-a="stunsnare"]').addEventListener('click', () => done(true));
     el.actions.querySelector('[data-a="finish"]').addEventListener('click', () => done(false));
     stunTimer = setInterval(() => { left -= 0.1; if (fill) fill.style.width = Math.max(0, left / 4 * 100) + '%'; const s = document.getElementById('stun-left'); if (s) s.textContent = Math.max(0, Math.ceil(left)); if (left <= 0) done(false); }, 100);
   }
   let stunned = false;
+  // "Finish it" (or the net moment running out): your Kin strikes the last blow where you can see it, with the move it last used, and then the
+  // wild one falls. It used to drop with nothing happening at all.
+  async function finishBlow() {
+    busy = true; el.actions.querySelectorAll('button').forEach(b => b.disabled = true);
+    const mv = KIN.moves(mine).filter(m => m.kind !== 'util' && m.power);
+    let move = lastMine ? mv.find(m => m.name === lastMine.name) || null : null;
+    if (!move) { let best = -1; for (const m of mv) { const d = calcDamage(mine, wild, m).dmg; if (d > best) { best = d; move = m; } } }
+    const left = Math.max(1, Math.round(wild.hp));
+    if (move && mineE && wildE) {
+      log(`${KIN.name(mine)} uses ${move.name}!`, 'good');
+      const T = playMove(mineE, wildE, move, true); await sleep(T * 1000);
+      el.wild.classList.add('shake'); setTimeout(() => el.wild.classList.remove('shake'), 400);
+      wildE.hitT = 0.55; shakeT = Math.max(shakeT, 0.4);
+      { el.wild.style.position = el.wild.style.position || 'relative'; const pop = document.createElement('div'); pop.className = 'dmgpop crit'; pop.textContent = '-' + left; el.wild.appendChild(pop); setTimeout(() => pop.remove(), 950); }
+      if (!soundDone) G.sfx('hit2');
+    }
+    wild.hp = 0; refresh(); await sleep(move ? 550 : 0);
+    log(`${KIN.name(wild)} is defeated!`, 'good'); faintFx(wildE); G.sfx('win'); await sleep(600); end('won');
+  }
   function beginSnare() {
     if (!snareRule().list.length) { log(snareRule().why + '.', 'bad'); renderActions(); busy = false; return; }
     const { chance, item, gap, grip, hopeless } = catchChance();
