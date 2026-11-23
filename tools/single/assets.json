@@ -6,5 +6,20 @@
   "assets/g_water.jpg": "/_blob/25696fb1fc1c03d2a2e47a65e20d18a8",
   "assets/fx_flame_ball.jpg": "/_blob/93a767171f45279ab6f17d39174cb951",
   "assets/fx_flame_burst.jpg": "/_blob/ec811b745ae2af9d79714411f07d384b",
-  "assets/sounds.json": "/_blob/029ef5a1e049db4a9649a0827125f449"
+  "assets/sounds.json": "/_blob/332dd0ea73e4e1a5b38c8d88c2e50e94",
+  "assets/fx_bloom_ball.jpg": "/_blob/f7cca9820809032d14d53832181a2b39",
+  "assets/fx_bloom_burst.jpg": "/_blob/08013a6c491ff0240e3b820e00d54bb6",
+  "assets/fx_frost_ball.jpg": "/_blob/b9f869ef5a4d81ea496ddec1eb501356",
+  "assets/fx_frost_burst.jpg": "/_blob/393bbe6be5669aaec03e15f18995a819",
+  "assets/fx_gale_ball.jpg": "/_blob/b64cd63f9823020213e1da3faf79bc8c",
+  "assets/fx_gale_burst.jpg": "/_blob/cbff7c0d19a89b665fffe4d1033954f2",
+  "assets/fx_light_burst.jpg": "/_blob/d33dbfea92934d878ce9f0917dc65acb",
+  "assets/fx_light_pillar.jpg": "/_blob/04190875416dfde71eba303b597e5b6c",
+  "assets/fx_spark_bolt.jpg": "/_blob/09af128566e181884f2e27718aac7560",
+  "assets/fx_spark_burst.jpg": "/_blob/25b02d015019bb27edcf26228cd30a2a",
+  "assets/fx_stone_burst.jpg": "/_blob/e0c1bd6bc560ebffbebda131b0d0ca01",
+  "assets/fx_tide_ball.jpg": "/_blob/37cf9ae7b337b7314ffc77b109b1cd5d",
+  "assets/fx_tide_burst.jpg": "/_blob/940d8254cecf0d16c1d360f5c7ad4f0e",
+  "assets/fx_void_ball.jpg": "/_blob/859e4645d031a4583c49f83895f9370f",
+  "assets/fx_void_burst.jpg": "/_blob/30b01e54bf68cdfae83a84e6352f6db5"
 }

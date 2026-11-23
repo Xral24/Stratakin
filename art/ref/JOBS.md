@@ -162,3 +162,7 @@ Ground is five painted, tileable pictures laid over the land by the terrain shad
 | whoosh and burst in one, 2 s (not used: one long roar) | c0d5965a-b651-45d5-bc1c-96ec20f98706 | 0.5 |
 | cast whoosh, 1 s | e23bab17-870e-43fb-bac8-941ff211c2e8 | 0.5 |
 | hit, 1.5 s | 9303d953-6a36-49c6-825d-9a0553961764 | 0.5 |
+
+# The other eight elements (23 Nov): GIFs gpt_image_2_6 0.75 each, sounds mirelo 0.5 each
+tide_ball 40d6157e · tide_burst afbe0dbf · bloom_ball ceed9805 · bloom_burst d50ff379 · stone_burst 70fb0f45 · gale_ball c4db903b · gale_burst 2027b317 · frost_ball 47c4a8f8 · frost_burst a08f4897 · spark_bolt f993846e · spark_burst 8c17c701 · light_pillar 5055c3f3 · light_burst 5419c5c8 · void_ball afa253a9 · void_burst 766f71bc
+Sources kept in art/fx/*.gif and art/sounds/*.mp3 (shaped).

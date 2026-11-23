@@ -122,6 +122,7 @@ const Battle = (() => {
     return { list: ['snare2', 'snare'].filter(s => p.has(s)), why: 'No nets' };
   }
   function renderActions() {
+    fxArtFor(mine); fxArtFor(wild);
     const mv = KIN.moves(mine);
     const rule = snareRule(); const snares = rule.list;
     const bagFull = false; // a full party sends new catches to storage
@@ -495,19 +496,62 @@ const Battle = (() => {
      The first element done this way is Flame, as a trial (Alexander, 23 Nov 2026): the timing is the old effect's own. */
   const spr = []; let artAsked = false;
   function Sp(delay, dur, name, fn, fps) { if (spr.length < 60) spr.push({ t: -delay, dur, name, fn, fps: fps || 0 }); }
-  const FRAMES = { flame_ball: 12, flame_burst: 16 };
+  // the painted effects: flipbooks made as animated pictures on black (tools/art/gif_atlas.py). name: [columns, rows, frames, how solid]
+  const ATL = { flame_ball: [4, 3, 12, 0], flame_burst: [4, 4, 16, 0], tide_ball: [4, 3, 12, 0.9], tide_burst: [4, 4, 16, 0.9], bloom_ball: [4, 3, 12, 1.6], bloom_burst: [4, 4, 16, 1.6], stone_burst: [4, 4, 16, 2.4],
+    gale_ball: [4, 3, 12, 0.5], gale_burst: [4, 4, 16, 0.6], frost_ball: [4, 3, 12, 1], frost_burst: [4, 4, 16, 0.8], spark_bolt: [4, 3, 12, 0], spark_burst: [4, 4, 16, 0], light_pillar: [4, 3, 12, 0], light_burst: [4, 4, 16, 0], void_ball: [4, 3, 12, 1.4], void_burst: [4, 4, 16, 1] };
+  const ART = { Flame: ['flame_ball', 'flame_burst'], Tide: ['tide_ball', 'tide_burst'], Bloom: ['bloom_ball', 'bloom_burst'], Stone: ['stone_burst'], Gale: ['gale_ball', 'gale_burst'], Frost: ['frost_ball', 'frost_burst'], Spark: ['spark_bolt', 'spark_burst'], Light: ['light_pillar', 'light_burst'], Void: ['void_ball', 'void_burst'] };
   function fxSprites() { if (!spr.length) return null; const out = [];
-    for (const f of spr) { if (f.t < 0 || !R.spriteReady(f.name)) continue; const u = Math.min(1, f.t / f.dur), p = f.fn(u); if (!(p[3] > 0.01)) continue;
-      out.push({ name: f.name, x: p[0], y: p[1], z: p[2], size: p[3], frame: f.fps ? (f.t * f.fps) % FRAMES[f.name] : u * (FRAMES[f.name] - 0.01), alpha: p[4] == null ? 1 : p[4] }); } return out; }
-  function fxArt() { if (artAsked || typeof R === 'undefined' || !R.spriteAtlas) return; artAsked = true; R.spriteAtlas('flame_ball', 'assets/fx_flame_ball.jpg', 4, 3, 12); R.spriteAtlas('flame_burst', 'assets/fx_flame_burst.jpg', 4, 4, 16); if (UI.preload) UI.preload(['fx_flame_cast', 'fx_flame_hit']); }
-  const flameArt = () => typeof R !== 'undefined' && R.spriteReady && R.spriteReady('flame_ball') && R.spriteReady('flame_burst') && G.fxArt !== false;
+    for (const f of spr) { if (f.t < 0 || !R.spriteReady(f.name)) continue; const u = Math.min(1, f.t / f.dur), p = f.fn(u); if (!(p[3] > 0.01)) continue; const n = ATL[f.name][2];
+      out.push({ name: f.name, x: p[0], y: p[1], z: p[2], size: p[3], frame: f.fps ? (f.t * f.fps) % n : u * (n - 0.01), alpha: p[4] == null ? 1 : p[4] }); } return out; }
+  // an element's pictures and sounds are fetched the first time a Kin that can use it is in a fight, so they are there by the time it attacks
+  const asked = new Set();
+  function fxArt(elem) { if (!elem || !ART[elem] || asked.has(elem) || typeof R === 'undefined' || !R.spriteAtlas) return; asked.add(elem);
+    for (const n of ART[elem]) R.spriteAtlas(n, 'assets/fx_' + n + '.jpg', ATL[n][0], ATL[n][1], ATL[n][2], ATL[n][3]);
+    const e = elem.toLowerCase(); if (UI.preload) UI.preload(['fx_' + e + '_cast', 'fx_' + e + '_hit']); }
+  function fxArtFor(k) { if (!k) return; try { for (const m of KIN.moves(k)) if (m.kind !== 'util') fxArt(m.elem); } catch (err) { /* a Kin with no moves yet */ } }
+  const artReady = (elem) => typeof R !== 'undefined' && R.spriteReady && G.fxArt !== false && !!ART[elem] && ART[elem].every(n => R.spriteReady(n));
   let soundDone = false; /* the last effect played its own recorded sound: the caller's bleep is not wanted on top */
-  function flamePainted(S, D, k, col, hit) { const T = 0.42, big = Math.sqrt(k), hot = [1, 0.85, 0.3];
-    Sp(0, T, 'flame_ball', (u) => { const p = lerp3(S, D, u); return [p[0], p[1] + Math.sin(u * Math.PI) * 0.3, p[2], (0.34 + 0.2 * u) * big]; }, 18); /* the fireball, turning as it flies */
-    for (let i = 0; i < 6; i++) { const o = [rnd(0.2), rnd(0.2), rnd(0.2)], at = Math.min(1, 0.1 + i * 0.13); Pt(0.05 + i * 0.05, 0.3, i % 2 ? col : hot, 'ball', (u) => { const p = lerp3(S, D, at); return [p[0] + o[0], p[1] + o[1] + Math.sin(at * Math.PI) * 0.3 - u * 0.3, p[2] + o[2], 0.1 * (1 - u), u * 6]; }); } /* a few sparks dropped along the way */
-    Sp(T, 0.78, 'flame_burst', () => [D[0], D[1] + 0.1, D[2], 1.5 * big]); /* and it bursts on what it hits */
-    for (let i = 0; i < 8 * k; i++) { const a = Math.random() * 6.28, r = 0.2 + Math.random() * 0.5; Pt(T + 0.1 + Math.random() * 0.25, 0.6, i % 2 ? hot : col, 'ball', (u) => [D[0] + Math.cos(a) * r * (0.4 + u), D[1] - 0.2 + u * 1.8, D[2] + Math.sin(a) * r * (0.4 + u), 0.12 * (1 - u), a]); } /* embers going up */
-    const a1 = UI.sample && UI.sample('fx_flame_cast', 0, 0.45), a2 = UI.sample && UI.sample('fx_flame_hit', T, 0.6); soundDone = !!(a1 || a2); return T; }
+  function fxSound(elem, T) { const e = elem.toLowerCase(), a1 = UI.sample && UI.sample('fx_' + e + '_cast', 0, 0.45), a2 = UI.sample && UI.sample('fx_' + e + '_hit', T, 0.6); soundDone = !!(a1 || a2); }
+  const fly = (name, S, D, T, big, s0, s1, arc, fps) => Sp(0, T, name, (u) => { const p = lerp3(S, D, u); return [p[0], p[1] + Math.sin(u * Math.PI) * arc, p[2], (s0 + (s1 - s0) * u) * big]; }, fps || 18);
+  const PAINT = {
+    Flame(S, D, k, col) { const T = 0.42, big = Math.sqrt(k), hot = [1, 0.85, 0.3];
+      fly('flame_ball', S, D, T, big, 0.34, 0.54, 0.3); /* the fireball, turning as it flies */
+      for (let i = 0; i < 6; i++) { const o = [rnd(0.2), rnd(0.2), rnd(0.2)], at = Math.min(1, 0.1 + i * 0.13); Pt(0.05 + i * 0.05, 0.3, i % 2 ? col : hot, 'ball', (u) => { const p = lerp3(S, D, at); return [p[0] + o[0], p[1] + o[1] + Math.sin(at * Math.PI) * 0.3 - u * 0.3, p[2] + o[2], 0.1 * (1 - u), u * 6]; }); } /* a few sparks dropped along the way */
+      Sp(T, 0.78, 'flame_burst', () => [D[0], D[1] + 0.1, D[2], 1.5 * big]); /* and it bursts on what it hits */
+      for (let i = 0; i < 8 * k; i++) { const a = Math.random() * 6.28, r = 0.2 + Math.random() * 0.5; Pt(T + 0.1 + Math.random() * 0.25, 0.6, i % 2 ? hot : col, 'ball', (u) => [D[0] + Math.cos(a) * r * (0.4 + u), D[1] - 0.2 + u * 1.8, D[2] + Math.sin(a) * r * (0.4 + u), 0.12 * (1 - u), a]); } /* embers going up */
+      return T; },
+    Tide(S, D, k, col) { const T = 0.5, big = Math.sqrt(k), foam = [0.9, 0.97, 1];
+      fly('tide_ball', S, D, T, big, 0.4, 0.6, 0.45, 16); /* a ball of water with a wave rolling round it */
+      for (let i = 0; i < 7; i++) { const o = [rnd(0.2), rnd(0.15), rnd(0.2)], at = Math.min(1, 0.1 + i * 0.12); Pt(0.04 + i * 0.05, 0.4, i % 2 ? col : foam, 'ball', (u) => { const p = lerp3(S, D, at); return [p[0] + o[0], p[1] + o[1] + Math.sin(at * Math.PI) * 0.45 - u * u * 1.2, p[2] + o[2], 0.09 * (1 - u), 0]; }); } /* drops falling off it */
+      Sp(T, 0.85, 'tide_burst', () => [D[0], D[1] + 0.25, D[2], 1.6 * big]); ringOut([D[0], D[1] - 0.5, D[2]], foam, 12, 1.7 * k, T, 0.5, 0.12); burst(D, foam, 8 * k, 1.6, T, 'ball', 0.1); return T; },
+    Bloom(S, D, k, col) { const T = 0.5, big = Math.sqrt(k), petal = [1, 0.6, 0.8];
+      Sp(0, T, 'bloom_ball', (u) => { const p = lerp3(S, D, u), r = 0.25 * Math.sin(u * Math.PI); return [p[0] + Math.cos(u * 9) * r, p[1] + Math.sin(u * 9) * r + 0.1, p[2] + Math.sin(u * 9) * r * 0.5, (0.44 + 0.22 * u) * big]; }, 16); /* a whorl of leaves, corkscrewing over */
+      for (let i = 0; i < 6; i++) { const o = [rnd(0.25), rnd(0.2), rnd(0.25)], at = Math.min(1, 0.12 + i * 0.13); Pt(0.05 + i * 0.06, 0.5, i % 2 ? petal : col, 'cube', (u) => { const p = lerp3(S, D, at); return [p[0] + o[0], p[1] + o[1] - u * 0.5, p[2] + o[2], 0.08 * (1 - u), u * 7]; }); }
+      Sp(T, 0.85, 'bloom_burst', () => [D[0], D[1] + 0.1, D[2], 1.55 * big]); burst(D, petal, 10 * k, 1.5, T + 0.08, 'cube', 0.09); return T; },
+    Stone(S, D, k, col) { const T = ELFX.Stone(S, D, k, col), big = Math.sqrt(k); /* the rocks stay blocks, like the world: paint is the dust and the shatter */
+      Sp(T - 0.03, 0.8, 'stone_burst', () => [D[0], D[1] + 0.05, D[2], 1.6 * big]); return T; },
+    Gale(S, D, k, col) { const T = 0.34, big = Math.sqrt(k);
+      fly('gale_ball', S, D, T, big, 0.4, 0.62, 0.1, 22); for (let i = 0; i < 5; i++) { const o = rnd(0.4); Pt(i * 0.04, 0.26, WHITE, 'shard', (u) => { const p = lerp3(S, D, u); return [p[0], p[1] + o + Math.sin(u * 6 + i) * 0.12, p[2], 0.16, Math.atan2(D[0] - S[0], D[2] - S[2])]; }); }
+      Sp(T, 0.9, 'gale_burst', () => [D[0], D[1] + 0.75, D[2], 1.75 * big]); /* and a whirlwind stands up where it lands */
+      for (let i = 0; i < 12 * k; i++) { const a0 = Math.random() * 6.28, h0 = Math.random(); Pt(T + Math.random() * 0.2, 0.7, i % 3 ? col : WHITE, 'shard', (u) => { const h = (h0 + u * 0.8) % 1, r = (0.3 + h * 0.8) * big; return [D[0] + Math.cos(a0 + u * 14) * r, D[1] - 0.6 + h * 2.4, D[2] + Math.sin(a0 + u * 14) * r, 0.1 * (1 - u * 0.6), a0 + u * 14]; }); } return T; },
+    Frost(S, D, k, col) { const T = 0.36, big = Math.sqrt(k);
+      fly('frost_ball', S, D, T, big, 0.44, 0.64, 0.12, 14); for (let i = 0; i < 6; i++) { const o = [rnd(0.2), rnd(0.2), rnd(0.2)], at = Math.min(1, 0.1 + i * 0.14); Pt(0.03 + i * 0.045, 0.35, i % 2 ? col : WHITE, 'cube', (u) => { const p = lerp3(S, D, at); return [p[0] + o[0], p[1] + o[1] - u * 0.4, p[2] + o[2], 0.07 * (1 - u), u * 5]; }); } /* frost shed along the way */
+      Sp(T, 0.85, 'frost_burst', () => [D[0], D[1] + 0.1, D[2], 1.6 * big]); burst(D, WHITE, 10 * k, 1.4, T, 'cube', 0.08); return T; },
+    Spark(S, D, k, col) { const T = 0.3, big = Math.sqrt(k);
+      for (let i = 0; i < 10; i++) { const a = Math.random() * 6.28; Pt(Math.random() * 0.2, 0.2, col, 'shard', (u) => [S[0] + Math.cos(a) * 0.7 * (1 - u), S[1] + rnd(0.5), S[2] + Math.sin(a) * 0.7 * (1 - u), 0.12, a]); } /* charge gathers */
+      Sp(T - 0.1, 0.55, 'spark_bolt', () => [D[0], D[1] + 2.0, D[2], 2.6 * big, 0.85]); /* the bolt comes down out of the sky */
+      Sp(T + 0.02, 0.7, 'spark_burst', () => [D[0], D[1] + 0.1, D[2], 1.45 * big]); ringOut([D[0], D[1] - 0.5, D[2]], WHITE, 10, 1.3, T, 0.25, 0.1); burst(D, col, 8 * k, 2.2, T + 0.02, 'shard', 0.1); return T; },
+    Light(S, D, k, col) { const T = 0.32, big = Math.sqrt(k);
+      for (let i = 0; i < 8; i++) { const a = i / 8 * 6.28; Pt(0, 0.3, col, 'ball', (u) => [S[0] + Math.cos(a + u * 4) * 0.6 * (1 - u), S[1] + u * 1.2, S[2] + Math.sin(a + u * 4) * 0.6 * (1 - u), 0.12, a]); }
+      Sp(T - 0.12, 0.7, 'light_pillar', () => [D[0], D[1] + 2.0, D[2], 2.6 * big, 0.65]); /* a pillar of light drops on it */
+      Sp(T + 0.05, 0.8, 'light_burst', () => [D[0], D[1] + 0.1, D[2], 1.3 * big, 0.85]);
+      for (let i = 0; i < 10 * k; i++) { const o = [rnd(0.8), 0, rnd(0.8)]; Pt(T + Math.random() * 0.3, 0.6, WHITE, 'cube', (u) => [D[0] + o[0], D[1] - 0.4 + u * 2.2, D[2] + o[2], 0.07 * (1 - u), u * 5]); } return T; },
+    Void(S, D, k, col) { const T = 0.5, big = Math.sqrt(k), dark = [0.06, 0.02, 0.1];
+      for (let i = 0; i < 10 * k; i++) { const a = Math.random() * 6.28, b = Math.random() * 3.14 - 1.57, r = 2.2; const o = [Math.cos(a) * Math.cos(b) * r, Math.sin(b) * r * 0.7 + 0.4, Math.sin(a) * Math.cos(b) * r]; Pt(Math.random() * 0.15, 0.42, col, 'ball', (u) => [D[0] + o[0] * (1 - u), D[1] + o[1] * (1 - u), D[2] + o[2] * (1 - u), 0.09 * (1 - u * 0.5), 0]); } /* the dark is drawn in from all round */
+      Sp(0, T + 0.06, 'void_ball', (u) => [D[0], D[1] + 0.1, D[2], (0.3 + 1.0 * Math.sin(u * Math.PI * 0.6)) * big], 16); /* a hole opens on the target itself */
+      Pt(0.06, T, dark, 'ball', (u) => [D[0], D[1] + 0.1, D[2], 0.62 * big * Math.sin(u * Math.PI * 0.6), 0]);
+      Sp(T, 0.8, 'void_burst', () => [D[0], D[1] + 0.1, D[2], 1.7 * big]); burst(D, col, 8 * k, 1.6, T + 0.3, 'cube', 0.1); return T; },
+  };
   function Pt(delay, dur, col, shape, fn) { if (fx.length < 700) fx.push({ t: -delay, dur, col, shape, fn }); }
   function ctr(e, k) { return [e.x, e.y + (e.model.height || 1) * (e.model.scale || 1) * k, e.z]; }
   function burst(c, col, n, sp, delay, shape, size) { for (let i = 0; i < n; i++) { const v = [rnd(sp), Math.random() * sp * 1.2, rnd(sp)], sz = (size || 0.14) * (0.6 + Math.random() * 0.8), cc = Math.random() < 0.3 ? mixc(col, WHITE, 0.6) : col; Pt(delay, 0.4 + Math.random() * 0.25, cc, shape || 'cube', (u) => [c[0] + v[0] * u, c[1] + v[1] * u - 2.2 * u * u, c[2] + v[2] * u, sz * (1 - u), u * 9]); } }
@@ -579,7 +623,7 @@ const Battle = (() => {
   };
   // plays a move and returns the seconds until it lands. hit = false: it goes wide and nothing bursts on the target
   function playMove(src, dst, move, hit) {
-    fxArt(); soundDone = false;
+    fxArt(move.elem); soundDone = false;
     const col = U.hexToRgb(ELEM_COLOR[move.elem] || '#ffffff'), k = move.tech ? 1.6 : move.grown ? 1.2 : 1; const S = ctr(src, 0.6); let D = ctr(dst, 0.5);
     if (!hit) { const dx = D[0] - S[0], dz = D[2] - S[2], d = Math.hypot(dx, dz) || 1; D = [D[0] - dz / d * 1.6, D[1], D[2] + dx / d * 1.6]; }
     if (move.kind === 'phys') { const T = (PHYS[move.fx] || PHYS.slash)(src, dst, S, D, k, col, hit);
@@ -587,7 +631,7 @@ const Battle = (() => {
       if (hit) { burst(D, col, 12 * k, 1.8, T, ESHAPE[move.elem] || 'cube', 0.14); ringOut([D[0], D[1] - 0.4, D[2]], WHITE, 10, 1.2, T, 0.25, 0.1); }
       return T; }
     lunge(src, dst, 0.35, 0.3); const g = move.fx && move.fx !== 'own' ? GEN[move.fx] : null;
-    if (move.elem === 'Flame' && flameArt()) return flamePainted(S, D, k, col, hit); /* the trial: Flame in paint and sound */
+    if (PAINT[move.elem] && artReady(move.elem)) { const T = PAINT[move.elem](S, D, k, col); fxSound(move.elem, T); return T; } /* in paint, with its own recorded sound */
     return g ? g(S, D, k, col, ESHAPE[move.elem] || 'ball', move.elem) : (ELFX[move.elem] || ELFX.Light)(S, D, k, col);
   }
   function playUtil(src, move) { /* an aura climbs round the user: green for healing, stone for a guard, white wind for speed */
@@ -642,8 +686,9 @@ const Battle = (() => {
     return { x: camState.x + rnd(sk), y: camState.y + rnd(sk), z: camState.z + rnd(sk), yaw: camState.yaw + rnd(sk * 0.05), pitch: camState.pitch + rnd(sk * 0.05) };
   }
   function tick(dt) {
-    for (let i = fx.length - 1; i >= 0; i--) { const f = fx[i]; f.t += dt; if (f.t > f.dur) fx.splice(i, 1); }
-    for (let i = spr.length - 1; i >= 0; i--) { const f = spr[i]; f.t += dt; if (f.t > f.dur) spr.splice(i, 1); }
+    const fdt = G.fxHold != null ? 0 : dt; /* a test can stop the pictures to look at them: Battle.fxAt(seconds) */
+    for (let i = fx.length - 1; i >= 0; i--) { const f = fx[i]; f.t += fdt; if (f.t > f.dur) fx.splice(i, 1); }
+    for (let i = spr.length - 1; i >= 0; i--) { const f = spr[i]; f.t += fdt; if (f.t > f.dur) spr.splice(i, 1); }
     if (shakeT > 0) shakeT = Math.max(0, shakeT - dt);
     for (let i = faints.length - 1; i >= 0; i--) { const F = faints[i]; F.t += dt; const u = Math.min(1, F.t / 0.7); F.e.scale = F.s0 * (1 - u * u * 0.85); if (u >= 1) faints.splice(i, 1); }
     for (let i = lunges.length - 1; i >= 0; i--) { const L = lunges[i]; L.t += dt; const u = Math.min(1, L.t / L.dur), q = u < 0.35 ? u / 0.35 : 1 - (u - 0.35) / 0.65, e2 = q * q * (3 - 2 * q); L.e.x = L.bx + L.dx * e2; L.e.z = L.bz + L.dz * e2; if (L.hop) L.e.y = L.by + L.hop * Math.sin(Math.min(1, u / 0.4) * Math.PI); if (u >= 1) { L.e.x = L.bx; L.e.z = L.bz; L.e.y = L.by; lunges.splice(i, 1); } }
@@ -656,6 +701,7 @@ const Battle = (() => {
   function calcDamage(att, def, move) { att.buffs = att.buffs || buffs(); def.buffs = def.buffs || buffs(); return damage(att, def, move); }
   function dodges(att, def) { att.buffs = att.buffs || buffs(); def.buffs = def.buffs || buffs(); return Math.random() > (move0(att).acc || 0.95) || Math.random() < dodgeChance(att, def); }
   function move0(k) { return KIN.moves(k)[0]; }
+  function fxAt(elem, t, k) { fx.length = 0; spr.length = 0; G.fxHold = null; if (elem == null) return; playMove(mineE, wildE, { elem, kind: 'spec', tech: k === true }, true); for (const L of [fx, spr]) for (let i = L.length - 1; i >= 0; i--) { L[i].t += t; if (L[i].t > L[i].dur) L.splice(i, 1); } G.fxHold = 1; } /* test: an element's attack, stopped t seconds in */
   function fxTest(elem, kind, tech, hit) { if (!mineE || !wildE) return -1; return kind === 'util' ? (playUtil(mineE, { name: elem }), 0) : playMove(mineE, wildE, { elem, kind, tech: tech === true, fx: typeof tech === 'string' ? tech : undefined }, hit !== false); } // test hook
-  return { get net() { return snareState && snareState.net; }, fxTest, init, start, tick, camera, fxEntities, fxSprites, get fxSound() { return soundDone; }, spawnFx, calcDamage, dodges, abort, get active() { return active; }, get mineEntity() { return mineE; }, get wildEntity() { return wildE; } };
+  return { get net() { return snareState && snareState.net; }, fxTest, init, start, tick, camera, fxEntities, fxSprites, artReady, fxAt, get fxSound() { return soundDone; }, spawnFx, calcDamage, dodges, abort, get active() { return active; }, get mineEntity() { return mineE; }, get wildEntity() { return wildE; } };
 })();

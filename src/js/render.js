@@ -827,7 +827,7 @@ const R = (() => {
     const go = (kind, box, size, n) => { gl.uniform1f(lfloc.uKind, kind); gl.uniform1f(lfloc.uBox, box); gl.uniform1f(lfloc.uSize, size); gl.drawArraysInstanced(gl.TRIANGLES, 0, 6, n); };
     gl.disable(gl.CULL_FACE);
     if (day > 0.6 && !rain) { go(0, 34, 0.22, isMobile ? 20 : 30); go(2, 200, 0.95, 7); }
-    if (night > 0.55 && !rain) { gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE); gl.depthMask(false); go(1, 30, 0.55, isMobile ? 30 : 46); gl.depthMask(true); gl.disable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA); }
+    if (night > 0.55 && !rain) { gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA); gl.depthMask(false); go(1, 30, 0.55, isMobile ? 30 : 46); gl.depthMask(true); gl.disable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA); }
     gl.disableVertexAttribArray(lfloc.aQ);
   }
   // ---- the sky: gradient, the sun and its glow, drifting clouds ----
@@ -888,7 +888,7 @@ const R = (() => {
   /* ---- painted effects (made on Higgsfield, assets/fx_*.jpg): a strip of frames on black, drawn on a square that faces the camera and ADDED to the scene, so black is nothing and flame is light ----
      spriteAtlas(name, file, cols, rows, frames) fetches one; render() draws extras.sprites = [{ name, x, y, z, size, frame, alpha }] after the world. */
   const SPR = { prog: null, loc: {}, buf: null, atlas: {} };
-  function spriteAtlas(name, file, cols, rows, frames) { if (SPR.atlas[name] || typeof Image === 'undefined') return; const a = SPR.atlas[name] = { tex: null, cols, rows, frames: frames || cols * rows, ready: false };
+  function spriteAtlas(name, file, cols, rows, frames, solid) { if (SPR.atlas[name] || typeof Image === 'undefined') return; const a = SPR.atlas[name] = { tex: null, cols, rows, frames: frames || cols * rows, ready: false, solid: solid || 0 }; /* solid 0: pure light, added to the scene (fire, lightning). Above 0 the bright parts also cover what is behind them, so leaves, water and rock have body against a bright sky */
     const im = new Image(); im.crossOrigin = 'anonymous'; im.onload = () => { try { a.tex = gl.createTexture(); gl.activeTexture(gl.TEXTURE0 + 6); gl.bindTexture(gl.TEXTURE_2D, a.tex); gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, im);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR); gl.activeTexture(gl.TEXTURE0); a.ready = true; } catch (err) { console.warn('effect ' + name + ': ' + err.message); } };
     im.onerror = () => console.warn('effect picture not loaded: ' + file); im.src = (typeof window !== 'undefined' && window.STRATAKIN_ASSETS && window.STRATAKIN_ASSETS[file]) || file; }
@@ -896,15 +896,15 @@ const R = (() => {
   function drawSprites(list, pv, cam) {
     if (!SPR.prog) { SPR.prog = compile(`attribute vec2 aQ; uniform mat4 uPV; uniform vec3 uC; uniform vec3 uR; uniform vec3 uU; uniform float uS; uniform vec4 uUV; varying vec2 vT;
         void main(){ vT = uUV.xy + vec2(aQ.x * 0.5 + 0.5, 0.5 - aQ.y * 0.5) * uUV.zw; gl_Position = uPV * vec4(uC + (uR * aQ.x + uU * aQ.y) * uS, 1.0); }`,
-        `precision mediump float; uniform sampler2D uT; uniform float uA; varying vec2 vT; void main(){ gl_FragColor = vec4(texture2D(uT, vT).rgb * uA, 1.0); }`);
-      for (const n of ['uPV', 'uC', 'uR', 'uU', 'uS', 'uUV', 'uT', 'uA']) SPR.loc[n] = gl.getUniformLocation(SPR.prog, n); SPR.loc.aQ = gl.getAttribLocation(SPR.prog, 'aQ');
+        `precision mediump float; uniform sampler2D uT; uniform float uA; uniform float uK; varying vec2 vT; void main(){ vec3 c = texture2D(uT, vT).rgb * uA; gl_FragColor = vec4(c, clamp(max(c.r, max(c.g, c.b)) * uK, 0.0, 1.0)); }`);
+      for (const n of ['uPV', 'uC', 'uR', 'uU', 'uS', 'uUV', 'uT', 'uA', 'uK']) SPR.loc[n] = gl.getUniformLocation(SPR.prog, n); SPR.loc.aQ = gl.getAttribLocation(SPR.prog, 'aQ');
       SPR.buf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, SPR.buf); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW); }
     const L = SPR.loc, sy = Math.sin(cam.yaw), cy = Math.cos(cam.yaw), sp = Math.sin(cam.pitch), cp = Math.cos(cam.pitch);
     gl.useProgram(SPR.prog); gl.uniformMatrix4fv(L.uPV, false, pv); gl.uniform3f(L.uR, cy, 0, -sy); gl.uniform3f(L.uU, sy * sp, cp, cy * sp); gl.uniform1i(L.uT, 6);
     gl.bindBuffer(gl.ARRAY_BUFFER, SPR.buf); gl.enableVertexAttribArray(L.aQ); gl.vertexAttribPointer(L.aQ, 2, gl.FLOAT, false, 0, 0);
-    gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE); gl.depthMask(false); gl.disable(gl.CULL_FACE); gl.activeTexture(gl.TEXTURE0 + 6);
+    gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA); gl.depthMask(false); gl.disable(gl.CULL_FACE); gl.activeTexture(gl.TEXTURE0 + 6);
     for (const q of list) { const a = SPR.atlas[q.name]; if (!a || !a.ready) continue; const f = Math.max(0, Math.min(a.frames - 1, Math.floor(q.frame))), cx = f % a.cols, cyy = Math.floor(f / a.cols);
-      gl.bindTexture(gl.TEXTURE_2D, a.tex); gl.uniform4f(L.uUV, cx / a.cols, cyy / a.rows, 1 / a.cols, 1 / a.rows); gl.uniform3f(L.uC, q.x, q.y, q.z); gl.uniform1f(L.uS, q.size); gl.uniform1f(L.uA, q.alpha == null ? 1 : q.alpha); gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4); }
+      gl.bindTexture(gl.TEXTURE_2D, a.tex); gl.uniform4f(L.uUV, cx / a.cols, cyy / a.rows, 1 / a.cols, 1 / a.rows); gl.uniform3f(L.uC, q.x, q.y, q.z); gl.uniform1f(L.uS, q.size); gl.uniform1f(L.uA, q.alpha == null ? 1 : q.alpha); gl.uniform1f(L.uK, a.solid); gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4); }
     gl.disableVertexAttribArray(L.aQ); gl.activeTexture(gl.TEXTURE0); gl.enable(gl.CULL_FACE); gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA); gl.depthMask(true); }
   function compile(vs, fs) {
     const p = gl.createProgram(); const graded = fs.indexOf('uGrade') >= 0;
@@ -2785,7 +2785,7 @@ const R = (() => {
       e._d2 = d2; list.push(e); }
     const seeThru = [], glow = []; for (const e of list) { if (e.additive) glow.push(e); else if (e.alpha != null && e.alpha < 1) seeThru.push(e); else drawOne(e, false); }
     if (seeThru.length) { gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA); gl.depthMask(false); for (const e of seeThru) drawOne(e, false); gl.depthMask(true); gl.disable(gl.BLEND); }
-    if (glow.length) { gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE); gl.depthMask(false); for (const e of glow) drawOne(e, false); gl.depthMask(true); gl.disable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA); } /* light that adds: a blade's trail, a spell */
+    if (glow.length) { gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA); gl.depthMask(false); for (const e of glow) drawOne(e, false); gl.depthMask(true); gl.disable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA); } /* light that adds: a blade's trail, a spell */
     if (outlineW > 0) { gl.enable(gl.CULL_FACE); gl.cullFace(gl.FRONT); for (const e of list) { if (e.isFx || e.noOutline || e._d2 > 1600) continue; drawOne(e, true); } gl.disable(gl.CULL_FACE); }
     gl.uniform1f(eloc.uOutline, 0); gl.uniform1f(eloc.uSkyMul, 1); gl.uniform1f(eloc.uAlpha, 1);
   }
