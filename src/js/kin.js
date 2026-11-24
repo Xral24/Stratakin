@@ -650,6 +650,23 @@ const KIN = (() => {
     { name: 'Judgement', elem: 'Light', kind: 'spec', power: 92, acc: 0.9, pierce: true, fx: 'rain', desc: 'Goes through Guard.' },
   ];
   const TECH = {}; for (const t of TECHLIST) TECH[t.name] = t;
+  // signature attacks: one move that only this Kin has, with its own painted effect and sound (battle.js SIGFX). The legendaries first; keyed by the body they wear.
+  const SIGS = {
+    l_core: { name: 'Anvil Fall', elem: 'Stone', power: 114, acc: 0.9, crit: true, desc: 'Its hammer comes down. Crits often.' },
+    l_sky: { name: 'Sky Spout', elem: 'Gale', power: 110, acc: 0.94, pierce: true, desc: 'A spout from under you. Goes through Guard.' },
+    l_amber: { name: 'Amber Tomb', elem: 'Stone', power: 112, acc: 0.92, pierce: true, desc: 'Sealed in amber, then broken. Goes through Guard.' },
+    lm_crater: { name: 'Starfall', elem: 'Spark', power: 118, acc: 0.86, ail: 'shock', ailP: 0.5, desc: 'It lets the star drop. May shock.' },
+    lm_core: { name: 'Orbit Crush', elem: 'Stone', power: 114, acc: 0.9, crit: true, desc: 'Its three rings close. Crits often.' },
+    lm_sky: { name: 'Crescent Decree', elem: 'Light', power: 108, acc: 0.95, drain: true, desc: 'Two crescents cross. Heals a third of the damage dealt.' },
+    lh_core: { name: 'Ring of Cinders', elem: 'Flame', power: 114, acc: 0.9, ail: 'burn', ailP: 0.6, desc: 'Fire up through a brass ring. May burn.' },
+    lh_sky: { name: 'Loosed Storm', elem: 'Spark', power: 116, acc: 0.88, ail: 'shock', ailP: 0.5, desc: 'It lets the storm out. May shock.' },
+    lw_selenaut: { name: 'Moons in Tow', elem: 'Light', power: 112, acc: 0.92, crit: true, desc: 'Its little moons, one after another. Crits often.' },
+    lw_ring: { name: 'Closing Ring', elem: 'Spark', power: 112, acc: 0.92, pierce: true, desc: 'The two halves of the ring meet. Goes through Guard.' },
+    x_mantle: { name: 'Mantle Breach', elem: 'Void', power: 116, acc: 0.88, ail: 'curse', ailP: 0.5, desc: 'The ground opens. May curse.' },
+    x_rex: { name: 'Ember Maw', elem: 'Flame', power: 120, acc: 0.86, ail: 'burn', ailP: 0.5, desc: 'Jaws of fire. May burn.' },
+    x_mosa: { name: 'Drowning Deep', elem: 'Tide', power: 112, acc: 0.92, drain: true, desc: 'A whirlpool, then the sea itself. Heals a third of the damage dealt.' },
+  };
+  function sigFor(sp) { const id = sp ? nativeId(sp) : null, g = id && SIGS[id]; return g ? Object.assign({ kind: 'spec', fx: 'own', sig: id }, g) : null; }
   function techFor(k) { const el = dominant(k.sp.elem, 1)[0]; const mine = TECHLIST.filter(t => t.elem === el); return mine[((k.sp.seed >>> 7) % 997) % mine.length].name; }
   function techByName(nm) { return TECH[nm] || null; }
   function castMove(el, idx, st, bonus) { const c = CAST[el][idx % 4]; const m = { name: c[0], elem: el, kind: 'spec', power: Math.round((58 + 10 * st + (bonus || 0)) * c[2]), acc: c[3], fx: c[1] }; if (c[4]) { if (AILS[c[4]]) { m.ail = c[4]; m.ailP = 0.5; } else m[c[4]] = true; m.desc = FLAGDESC[c[4]]; }
@@ -669,6 +686,7 @@ const KIN = (() => {
     const out = [strike, castMove(e2, ci, st), { name: UTIL[k.sp.shape], kind: 'util', desc: UTIL_DESC[UTIL[k.sp.shape]] }];
     if (st >= 2 || rar >= 3) { let gi = 1 + (seed >>> 9) % 3; if (e1 === e2 && gi === ci) gi = 1 + gi % 3; const g = Object.assign(castMove(e1, gi, st, st >= 3 ? 14 : 6), { grown: true }); if (st >= 3 && !g.crit && !g.drain && !g.pierce && !g.ail) { g.crit = true; g.desc = FLAGDESC.crit; } out.push(g); }
     if (k.tech) { const t = techByName(k.tech); if (t) out.push(Object.assign({}, t, { power: t.power ? t.power + 8 * st : undefined, tech: true })); }
+    const sg = sigFor(k.sp); if (sg) { sg.power += 8 * st; out.push(sg); } /* the one that is only its own */
     return out;
   }
   function effectiveness(moveElem, defender) {

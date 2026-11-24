@@ -639,6 +639,20 @@ His go-ahead: the village kit, and "do the grass, the rock, the sand, the water"
 - Known: every special move of an element shows the same painted picture now; the old generic shapes (beam, rain, orb) only play while art is loading. Signature attacks are where variety comes back.
 - Credits: 15 GIFs (11.25) and 16 sounds (8).
 
+## Signature attacks: the legendaries (Nov 24)
+- Alexander: "the legendary Kin and everything, the ones that you fuse, they need to have their own unique attack... visually too". Legendaries first, as a batch for him to judge; the 105 fused Kin after.
+- **Thirteen signature moves**, one per legendary, keyed by the body it wears (`SIGS` in `kin.js`, `sigFor(sp)` via `nativeId`). `KIN.moves` adds it last, flagged `sig: '<id>'`, power 108 to 120 plus 8 a stage: the strongest thing it has, known from the start, wild or yours.
+  - Earth: Anvil Fall (the Core's furnace-smith, l_core), Sky Spout (the cloud whale, l_sky), Amber Tomb (the Lost World's amber serpent, l_amber), Mantle Breach (Mantlewyrm), Ember Maw (Tyrannorex), Drowning Deep (Abyssaurus).
+  - Moon: Starfall (the Crater's star-bearer, lm_crater: it finally drops it), Orbit Crush (the crystal heart, lm_core), Crescent Decree (the herald, lm_sky), Moons in Tow (the Selenaut).
+  - Halo: Ring of Cinders (the fire spirit in its brass ring, lh_core), Loosed Storm (the storm-bearer, lh_sky), Closing Ring (the Ringwarden).
+- **Each has two painted flipbooks of its own and one recorded sound** (`assets/sig_<id>_a.jpg`, `_b.jpg`, `sig_<id>` in sounds.json). `battle.js`: `SIGFX[id] = [staging, solidity of a, of b, the moment in its sound that belongs on the hit, its own time to land (optional)]`. Seven stagings in `STAGE`: `drop` (comes down on them), `rise` (comes up from under), `close` (shuts round them), `fall` (out of the sky, tail up), `pair` (two, round either side), `volley` (three, one after another), `pool` (opens under them, then goes up). A new signature is a row in `SIGS`, a row in `SIGFX`, two GIFs and a sound: no new code unless it needs a new staging.
+- The sound is slid so its loud moment lands on the hit (`UI.sample(name, delay, vol, from)` can now start part-way into a recording). The loud moments were read off each waveform by script; I cannot hear them.
+- Shown as **★** with a pink edge on the battle button and a "signature" tag on the Kin's page.
+- **It rests two turns after use**, yours and the wild one's alike (`sigAt`, `sigWait`, `SIG_REST` in `battle.js`; the button reads "Gathering: 2 more turns"). Without that it is simply the best move every turn, and a wild legendary threw it three turns in four.
+- Pictures load only when a Kin that has the move is in the fight. sounds.json is one file and is now 450 KB with 31 sounds: **before the 105 fused Kin get theirs, split it** (one small file per signature, fetched like the pictures), or the first fight downloads megabytes.
+- Tests: `t-sig.js` (each signature stopped twice in a battle; three ids a run), `t-sigplay.js` (a Tyrannorex of your own: the button, its picture and sound in a real turn, the two turns of rest). `Battle.sigArt(id)`, `Battle.sigReady(id)`, `Battle.fxAt('<sig id>', seconds)`.
+- Credits: 26 GIFs (19.5) and 13 sounds (6.5).
+
 ## Still to do
 UI polish as feedback comes in. Card battle screen still used for scripted encounters (raids at the walls, thief, citadel duel, holds) and the snare mini-game; converting those to live is the next big step if wanted. (Old list: train/ships, combat animation, eggs, avatar hair/paint, buddy WEAR cosmetics, Silas and Finch, UI polish (item icons), quality toggles in settings (state.shadows, state.grassQuality, state.dprCap).
 

@@ -18,7 +18,7 @@ const Battle = (() => {
   function buffs() { return { guard: false, focus: false, coil: false, dash: false, ail: null }; }
   function start(e, isAmbush, opts = {}) {
     if (active) return;
-    stunUsed = false; stunned = false; lastMine = null; if (stunTimer) { clearInterval(stunTimer); stunTimer = null; }
+    stunUsed = false; stunned = false; lastMine = null; sigAt.m = sigAt.w = -9; if (stunTimer) { clearInterval(stunTimer); stunTimer = null; }
     const party = G.healthyKin();
     if (!party.length) { G.toast('All your Kin are down. Revive them at the Voodoo Hut or with a tonic.'); e.alert = 0; e.wait = 4; if (!e.chase) e.cool = 6; return; }
     if (e.chase) { Wild.disengage(e, 0); e.alert = 1; }
@@ -131,7 +131,8 @@ const Battle = (() => {
       const eff = m.kind === 'util' ? null : KIN.effectiveness(m.elem, wild);
       const tag = eff == null ? '' : eff > 1.25 ? '<i class="eff good">strong</i>' : eff < 0.8 ? '<i class="eff bad">weak</i>' : '';
       const col = m.kind === 'util' ? '#8899aa' : ELEM_COLOR[m.elem];
-      html += `<button class="act move ${m.tech ? 'tech' : ''}" data-i="${i}" style="--c:${col}"><b>${m.name}${m.tech ? ' ✦' : ''}</b><small>${m.kind === 'util' ? m.desc : m.kind + ' · ' + m.power + (m.desc ? ' · ' + m.desc : '')}</small>${tag}</button>`;
+      const rest = m.sig ? sigWait('m') : 0; /* the turn counter moves on before the next choice, so this is how many more turns */
+      html += `<button class="act move ${m.sig ? 'sig' : m.tech ? 'tech' : ''}" data-i="${i}" style="--c:${col}" ${rest ? 'disabled' : ''}><b>${m.name}${m.sig ? ' ★' : m.tech ? ' ✦' : ''}</b><small>${rest ? 'Gathering: ' + rest + (rest === 1 ? ' more turn' : ' more turns') : m.kind === 'util' ? m.desc : m.kind + ' · ' + m.power + (m.desc ? ' · ' + m.desc : '')}</small>${rest ? '' : tag}</button>`;
     });
     const snareLabel = snares.length ? `${ITEMS[snares[0]].name} ×${G.player.count(snares[0])}` : rule.why;
     html += `<button class="act snare" data-a="snare" ${(!snares.length || bagFull) ? 'disabled' : ''}><b>Net</b><small>${bagFull ? 'Bag full (20). Fuse first.' : snareLabel}</small></button>`;
@@ -145,7 +146,7 @@ const Battle = (() => {
   function onAction(ev) {
     if (busy || !active) return;
     const b = ev.currentTarget;
-    if (b.dataset.i != null) doTurn({ type: 'move', move: KIN.moves(mine)[+b.dataset.i] });
+    if (b.dataset.i != null) { const mvv = KIN.moves(mine)[+b.dataset.i]; if (mvv.sig) { if (sigWait('m')) return; sigAt.m = turn + 1; } doTurn({ type: 'move', move: mvv }); }
     else if (b.dataset.a === 'snare') beginSnare();
     else if (b.dataset.a === 'tonic') doTurn({ type: 'tonic' });
     else if (b.dataset.a === 'swap') showSwap();
@@ -191,18 +192,21 @@ const Battle = (() => {
     let ailMsg = ''; if (move.ail && def.hp > 0 && !def.buffs.ail && Math.random() < (move.ailP || 0.45)) { def.buffs.ail = { type: move.ail, turns: AIL[move.ail].turns, n: 0 }; ailMsg = ` ${dn} ${AIL[move.ail].word}!`; }
     const card = attIsMine ? el.wild : el.mine;
     card.classList.add('shake'); setTimeout(() => card.classList.remove('shake'), 400);
-    if (target) target.hitT = r.crit ? 0.55 : 0.35; shakeT = Math.max(shakeT, move.tech ? 0.5 : r.crit || r.eff > 1.25 ? 0.4 : 0.22);
+    if (target) target.hitT = r.crit ? 0.55 : 0.35; shakeT = Math.max(shakeT, move.sig ? 0.65 : move.tech ? 0.5 : r.crit || r.eff > 1.25 ? 0.4 : 0.22);
     { card.style.position = card.style.position || 'relative'; const pop = document.createElement('div'); pop.className = 'dmgpop' + (r.crit ? ' crit' : ''); pop.textContent = '-' + r.dmg; card.appendChild(pop); setTimeout(() => pop.remove(), 950); }
     log(`${an} uses ${move.name}: ${r.dmg} damage${r.crit ? ', critical!' : ''}${r.eff > 1.25 ? ' It hits hard!' : r.eff < 0.8 ? ' It barely lands.' : ''}${ailMsg}`, attIsMine ? 'good' : 'bad');
     if (!soundDone) G.sfx(r.eff > 1.25 ? 'hit2' : 'hit'); refresh(); await sleep(700);
   }
+  // A signature attack is thrown, then has to gather again: two turns before it can be used a second time, for you and for the wild one. Otherwise it
+  // is simply the best move every turn and the rest of a legendary's moves never get seen.
+  const sigAt = { m: -9, w: -9 }, SIG_REST = 2; const sigWait = (who) => Math.max(0, SIG_REST - (turn - sigAt[who]) + (who === 'w' ? 1 : 0)); /* yours is asked between turns, the wild one's during its turn: both come to two turns of rest */
   function wildChoose() {
-    const mv = KIN.moves(wild); const st = KIN.stats(wild);
+    const mv = KIN.moves(wild).filter(m => !m.sig || !sigWait('w')); const st = KIN.stats(wild);
     if (wild.hp < st.hp * 0.35 && mv[2].name === 'Mend' && Math.random() < 0.5) return mv[2];
     if (Math.random() < 0.15) return mv[2];
     const score = (m) => m.kind === 'util' ? 0 : m.power * KIN.effectiveness(m.elem, mine);
     const atk = mv.filter(m => m.kind !== 'util').sort((a, b) => score(b) - score(a));
-    return Math.random() < 0.75 ? atk[0] : atk[1];
+    const pick = Math.random() < 0.75 ? atk[0] : atk[1]; if (pick.sig) sigAt.w = turn; return pick;
   }
   async function doTurn(action) {
     busy = true; turn++;
@@ -508,11 +512,37 @@ const Battle = (() => {
   function fxArt(elem) { if (!elem || !ART[elem] || asked.has(elem) || typeof R === 'undefined' || !R.spriteAtlas) return; asked.add(elem);
     for (const n of ART[elem]) R.spriteAtlas(n, 'assets/fx_' + n + '.jpg', ATL[n][0], ATL[n][1], ATL[n][2], ATL[n][3]);
     const e = elem.toLowerCase(); if (UI.preload) UI.preload(['fx_' + e + '_cast', 'fx_' + e + '_hit']); }
-  function fxArtFor(k) { if (!k) return; try { for (const m of KIN.moves(k)) if (m.kind !== 'util') fxArt(m.elem); } catch (err) { /* a Kin with no moves yet */ } }
+  function fxArtFor(k) { if (!k) return; try { for (const m of KIN.moves(k)) if (m.kind !== 'util') { fxArt(m.elem); if (m.sig) sigArt(m.sig); } } catch (err) { /* a Kin with no moves yet */ } }
   const artReady = (elem) => typeof R !== 'undefined' && R.spriteReady && G.fxArt !== false && !!ART[elem] && ART[elem].every(n => R.spriteReady(n));
   let soundDone = false; /* the last effect played its own recorded sound: the caller's bleep is not wanted on top */
   function fxSound(elem, T) { const e = elem.toLowerCase(), a1 = UI.sample && UI.sample('fx_' + e + '_cast', 0, 0.45), a2 = UI.sample && UI.sample('fx_' + e + '_hit', T, 0.6); soundDone = !!(a1 || a2); }
   const fly = (name, S, D, T, big, s0, s1, arc, fps) => Sp(0, T, name, (u) => { const p = lerp3(S, D, u); return [p[0], p[1] + Math.sin(u * Math.PI) * arc, p[2], (s0 + (s1 - s0) * u) * big]; }, fps || 18);
+  // Signature attacks: a legendary's own move, with two painted flipbooks of its own (a: the thing itself, b: what it does where it lands) and one
+  // recorded sound. id (the body it wears): [how it is staged, how solid a is, how solid b is]. Frames: a loop is 12, a play-once is 16.
+  const SIGFX = { l_core: ['drop', 1.2, 0, 0.05], l_sky: ['rise', 0.8, 0.8, 0.3], l_amber: ['close', 1.6, 1.4, 1.35, 1.15], lm_crater: ['fall', 0, 0, 1.1], lm_core: ['close', 1.4, 1, 0.4], lm_sky: ['pair', 0.3, 0, 1.5], lh_core: ['rise', 0.4, 1.6, 0.3],
+    lh_sky: ['drop', 1, 0, 0.3], lw_selenaut: ['volley', 1, 0, 0.05], lw_ring: ['close', 0, 0, 0.03], x_mantle: ['rise', 0.6, 1.8, 0.8], x_rex: ['close', 0, 0.3, 0.5, 0.5], x_mosa: ['pool', 1.6, 1, 0.03] }; /* then: the moment in its sound that belongs on the hit, and (some) its own time to land */
+  const SIGLOOP = { fall: 1, pair: 1, volley: 1, pool: 1 };
+  function sigArt(id) { const g = SIGFX[id]; if (!g || asked.has('sig:' + id) || typeof R === 'undefined' || !R.spriteAtlas) return; asked.add('sig:' + id);
+    const a = 'sig_' + id + '_a', b = 'sig_' + id + '_b', loop = SIGLOOP[g[0]]; ATL[a] = [4, loop ? 3 : 4, loop ? 12 : 16, g[1]]; ATL[b] = [4, 4, 16, g[2]];
+    R.spriteAtlas(a, 'assets/' + a + '.jpg', 4, ATL[a][1], ATL[a][2], g[1]); R.spriteAtlas(b, 'assets/' + b + '.jpg', 4, 4, 16, g[2]); if (UI.preload) UI.preload(['sig_' + id]); }
+  const sigReady = (id) => !!SIGFX[id] && typeof R !== 'undefined' && R.spriteReady && G.fxArt !== false && R.spriteReady('sig_' + id + '_a') && R.spriteReady('sig_' + id + '_b');
+  const tail = (u) => u > 0.82 ? (1 - u) / 0.18 : 1; /* a picture that plays once thins out at the end, whatever its last frame holds */
+  const STAGE = { // each returns the moment it lands
+    drop(a, b, S, D, T) { T = T || 0.36; Sp(0, 0.8, a, (u) => [D[0], D[1] + 1.75, D[2], 2.3, tail(u)]); Sp(T, 0.9, b, () => [D[0], D[1] + 0.1, D[2], 2]); return T; }, /* it comes down on them from above */
+    rise(a, b, S, D, T) { T = T || 0.3; Sp(0, 0.95, a, (u) => [D[0], D[1] + 1.75, D[2], 2.3, tail(u)]); Sp(T + 0.2, 0.9, b, () => [D[0], D[1] + 0.2, D[2], 2]); return T; }, /* it comes up from under them */
+    close(a, b, S, D, T) { T = T || 0.6; Sp(0, T + 0.04, a, () => [D[0], D[1] + 0.25, D[2], 2.1]); Sp(T, 0.9, b, () => [D[0], D[1] + 0.25, D[2], 2.2]); return T; }, /* it shuts round them */
+    fall(a, b, S, D, T) { T = T || 0.55; const H = 7; Sp(0, T, a, (u) => [D[0], D[1] + 1.45 + H * (1 - u) * (1 - u), D[2], 1.7], 20); Sp(T, 0.9, b, () => [D[0], D[1] + 0.2, D[2], 2.3]); return T; }, /* out of the sky, tail up */
+    pair(a, b, S, D, T) { T = T || 0.55; const dx = D[0] - S[0], dz = D[2] - S[2], L = Math.hypot(dx, dz) || 1, px = -dz / L, pz = dx / L;
+      for (const sd of [-1, 1]) Sp(0, T, a, (u) => { const p = lerp3(S, D, u), w = Math.sin(u * Math.PI) * 1.5 * sd; return [p[0] + px * w, p[1] + 0.3 + Math.sin(u * Math.PI) * 0.4, p[2] + pz * w, 0.75 + 0.2 * u]; }, 24);
+      Sp(T, 0.9, b, () => [D[0], D[1] + 0.2, D[2], 2]); return T; }, /* two of them, round either side, crossing on the target */
+    volley(a, b, S, D, T) { T = T || 0.45; for (let i = 0; i < 3; i++) { const o = [(i - 1) * 1.1, 1.6 + (i % 2) * 0.5, (i - 1) * 0.4], d = i * 0.17, e = [(i - 1) * 0.3, 0, 0];
+        Sp(d, T, a, (u) => { const from = [S[0] + o[0], S[1] + o[1], S[2] + o[2]], p = lerp3(from, D, u * u); return [p[0] + e[0], p[1] + Math.sin(u * Math.PI) * 0.5, p[2], 0.5]; }, 12);
+        Sp(d + T, 0.6, b, () => [D[0] + e[0], D[1] + 0.2, D[2], 1.25 + i * 0.25]); } return T; }, /* three, one after another */
+    pool(a, b, S, D, T) { T = T || 0.7; Sp(0, T + 0.25, a, (u) => [D[0], D[1] - 0.25, D[2], 0.5 + 1.5 * Math.min(1, u * 1.6), u > 0.8 ? (1 - u) * 5 : 1], 14); Sp(T, 0.95, b, (u) => [D[0], D[1] + 1.75, D[2], 2.3, tail(u)]); return T; }, /* it opens under them, then goes up */
+  };
+  function sigPlay(id, S, D, col) { const g = SIGFX[id], T = STAGE[g[0]]('sig_' + id + '_a', 'sig_' + id + '_b', S, D, g[4]);
+    burst(D, col, 14, 2.4, T, 'ball', 0.12); burst(D, WHITE, 8, 1.8, T + 0.05, 'cube', 0.09); ringOut([D[0], D[1] - 0.5, D[2]], col, 16, 2.4, T, 0.5, 0.13);
+    const d = T - (g[3] || 0); soundDone = !!(UI.sample && UI.sample('sig_' + id, Math.max(0, d), 0.7, Math.max(0, -d))); return T; } /* the sound is slid so its big moment falls on the hit */
   const PAINT = {
     Flame(S, D, k, col) { const T = 0.42, big = Math.sqrt(k), hot = [1, 0.85, 0.3];
       fly('flame_ball', S, D, T, big, 0.34, 0.54, 0.3); /* the fireball, turning as it flies */
@@ -624,13 +654,14 @@ const Battle = (() => {
   // plays a move and returns the seconds until it lands. hit = false: it goes wide and nothing bursts on the target
   function playMove(src, dst, move, hit) {
     fxArt(move.elem); soundDone = false;
-    const col = U.hexToRgb(ELEM_COLOR[move.elem] || '#ffffff'), k = move.tech ? 1.6 : move.grown ? 1.2 : 1; const S = ctr(src, 0.6); let D = ctr(dst, 0.5);
+    const col = U.hexToRgb(ELEM_COLOR[move.elem] || '#ffffff'), k = move.sig ? 1.8 : move.tech ? 1.6 : move.grown ? 1.2 : 1; const S = ctr(src, 0.6); let D = ctr(dst, 0.5);
     if (!hit) { const dx = D[0] - S[0], dz = D[2] - S[2], d = Math.hypot(dx, dz) || 1; D = [D[0] - dz / d * 1.6, D[1], D[2] + dx / d * 1.6]; }
     if (move.kind === 'phys') { const T = (PHYS[move.fx] || PHYS.slash)(src, dst, S, D, k, col, hit);
       for (let i = 0; i < 8; i++) Pt(i * 0.015, 0.25, i % 2 ? col : WHITE, 'ball', (u) => { const p = lerp3(S, D, Math.min(1, 0.1 + i * 0.09)); return [p[0], p[1] + rnd(0.1), p[2], 0.18 * (1 - u), 0]; });
       if (hit) { burst(D, col, 12 * k, 1.8, T, ESHAPE[move.elem] || 'cube', 0.14); ringOut([D[0], D[1] - 0.4, D[2]], WHITE, 10, 1.2, T, 0.25, 0.1); }
       return T; }
     lunge(src, dst, 0.35, 0.3); const g = move.fx && move.fx !== 'own' ? GEN[move.fx] : null;
+    if (move.sig) { sigArt(move.sig); if (sigReady(move.sig)) return sigPlay(move.sig, S, D, col); } /* a signature attack: its own picture and sound */
     if (PAINT[move.elem] && artReady(move.elem)) { const T = PAINT[move.elem](S, D, k, col); fxSound(move.elem, T); return T; } /* in paint, with its own recorded sound */
     return g ? g(S, D, k, col, ESHAPE[move.elem] || 'ball', move.elem) : (ELFX[move.elem] || ELFX.Light)(S, D, k, col);
   }
@@ -701,7 +732,7 @@ const Battle = (() => {
   function calcDamage(att, def, move) { att.buffs = att.buffs || buffs(); def.buffs = def.buffs || buffs(); return damage(att, def, move); }
   function dodges(att, def) { att.buffs = att.buffs || buffs(); def.buffs = def.buffs || buffs(); return Math.random() > (move0(att).acc || 0.95) || Math.random() < dodgeChance(att, def); }
   function move0(k) { return KIN.moves(k)[0]; }
-  function fxAt(elem, t, k) { fx.length = 0; spr.length = 0; G.fxHold = null; if (elem == null) return; playMove(mineE, wildE, { elem, kind: 'spec', tech: k === true }, true); for (const L of [fx, spr]) for (let i = L.length - 1; i >= 0; i--) { L[i].t += t; if (L[i].t > L[i].dur) L.splice(i, 1); } G.fxHold = 1; } /* test: an element's attack, stopped t seconds in */
+  function fxAt(elem, t, k) { fx.length = 0; spr.length = 0; G.fxHold = null; if (elem == null) return; playMove(mineE, wildE, SIGFX[elem] ? { elem: 'Light', kind: 'spec', sig: elem } : { elem, kind: 'spec', tech: k === true }, true); for (const L of [fx, spr]) for (let i = L.length - 1; i >= 0; i--) { L[i].t += t; if (L[i].t > L[i].dur) L.splice(i, 1); } G.fxHold = 1; } /* test: an element's attack, stopped t seconds in */
   function fxTest(elem, kind, tech, hit) { if (!mineE || !wildE) return -1; return kind === 'util' ? (playUtil(mineE, { name: elem }), 0) : playMove(mineE, wildE, { elem, kind, tech: tech === true, fx: typeof tech === 'string' ? tech : undefined }, hit !== false); } // test hook
-  return { get net() { return snareState && snareState.net; }, fxTest, init, start, tick, camera, fxEntities, fxSprites, artReady, fxAt, get fxSound() { return soundDone; }, spawnFx, calcDamage, dodges, abort, get active() { return active; }, get mineEntity() { return mineE; }, get wildEntity() { return wildE; } };
+  return { get net() { return snareState && snareState.net; }, fxTest, init, start, tick, camera, fxEntities, fxSprites, artReady, sigReady, sigArt, fxAt, get fxSound() { return soundDone; }, spawnFx, calcDamage, dodges, abort, get active() { return active; }, get mineEntity() { return mineE; }, get wildEntity() { return wildE; } };
 })();

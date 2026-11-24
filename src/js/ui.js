@@ -48,8 +48,8 @@ const UI = (() => {
     try { if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
       pack().then(d => { const b64 = d[name]; if (!b64) throw new Error('not in the pack'); const raw = atob(b64), u8 = new Uint8Array(raw.length); for (let i = 0; i < raw.length; i++) u8[i] = raw.charCodeAt(i); return audioCtx.decodeAudioData(u8.buffer); }).then(buf => { rec.buf = buf; rec.state = 'ready'; }).catch(err => { rec.state = 'failed'; console.warn('sound ' + name + ': ' + (err && err.message)); });
     } catch (e) { rec.state = 'failed'; } return rec; }
-  function sample(name, delay, vol) { const rec = sampleLoad(name); if (!soundOn) return rec.state === 'ready'; if (rec.state !== 'ready' || !audioCtx) return false;
-    try { if (audioCtx.state === 'suspended') audioCtx.resume().catch(() => {}); const src = audioCtx.createBufferSource(), g = audioCtx.createGain(); src.buffer = rec.buf; g.gain.value = vol == null ? 0.5 : vol; src.connect(g); g.connect(audioCtx.destination); src.start(audioCtx.currentTime + (delay || 0)); return true; } catch (e) { return false; } }
+  function sample(name, delay, vol, from) { /* from: start this many seconds into the recording */ const rec = sampleLoad(name); if (!soundOn) return rec.state === 'ready'; if (rec.state !== 'ready' || !audioCtx) return false;
+    try { if (audioCtx.state === 'suspended') audioCtx.resume().catch(() => {}); const src = audioCtx.createBufferSource(), g = audioCtx.createGain(); src.buffer = rec.buf; g.gain.value = vol == null ? 0.5 : vol; src.connect(g); g.connect(audioCtx.destination); src.start(audioCtx.currentTime + (delay || 0), Math.max(0, from || 0)); return true; } catch (e) { return false; } }
   function preload(names) { for (const n of names) sampleLoad(n); }
   function sfx(name) {
     if (!soundOn) return;
@@ -350,7 +350,7 @@ const UI = (() => {
   function moveCard(m, extra = '') {
     const col = m.kind === 'util' ? '#8899aa' : ELEM_COLOR[m.elem];
     const pills = m.kind === 'util' ? `<em>${m.desc}</em>` : `<i style="background:${col}">${m.elem}</i><i>${m.kind === 'phys' ? 'contact' : m.kind}</i><i>power ${m.power}</i><i>${Math.round(m.acc * 100)}%</i>${m.drain ? '<i>drains</i>' : ''}${m.prio ? '<i>first</i>' : ''}`;
-    return `<div class="moverow" style="--c:${col}"><b>${m.name}${extra}</b><span>${pills}</span></div>`;
+    return `<div class="moverow${m.sig ? ' sig' : ''}" style="--c:${col}"><b>${m.name}${m.sig ? ' ★ <span class="tag">signature</span>' : ''}${extra}</b><span>${pills}</span></div>`; /* a signature attack is the one move only this Kin has */
   }
   function renderDetail(k) {
     setTitle(KIN.name(k));

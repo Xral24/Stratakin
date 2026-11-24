@@ -331,6 +331,8 @@ body.desktop #joy, body.desktop #btn-jump, body.desktop #btn-sneak { display: no
 .starter.skin.sel { border-color: var(--acc); background: rgba(242,181,68,.14); }
 .starter.skin.locked { opacity: .45; }
 .act.move.tech { border-color: #ffd25a; }
+.moverow.sig { box-shadow: 0 0 0 1px #ff7ad9 inset; }
+.act.move.sig { border-color: #ff7ad9; box-shadow: 0 0 0 1px #ff7ad9 inset, 0 0 12px rgba(255, 122, 217, 0.35); } /* a signature attack: the one move that is only this Kin's */
 
 /* Kindex */
 .dexgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 6px; }

@@ -166,3 +166,6 @@ Ground is five painted, tileable pictures laid over the land by the terrain shad
 # The other eight elements (23 Nov): GIFs gpt_image_2_6 0.75 each, sounds mirelo 0.5 each
 tide_ball 40d6157e · tide_burst afbe0dbf · bloom_ball ceed9805 · bloom_burst d50ff379 · stone_burst 70fb0f45 · gale_ball c4db903b · gale_burst 2027b317 · frost_ball 47c4a8f8 · frost_burst a08f4897 · spark_bolt f993846e · spark_burst 8c17c701 · light_pillar 5055c3f3 · light_burst 5419c5c8 · void_ball afa253a9 · void_burst 766f71bc
 Sources kept in art/fx/*.gif and art/sounds/*.mp3 (shaped).
+
+# Legendary signature attacks (24 Nov): 26 GIFs (gpt_image_2_6, 0.75) and 13 sounds (mirelo 2 s, 0.5)
+Sources in art/fx/sig_<id>_a.gif and _b.gif, art/sounds/sig_<id>.mp3. Ids: l_core l_sky l_amber lm_crater lm_core lm_sky lh_core lh_sky lw_selenaut lw_ring x_mantle x_rex x_mosa.
