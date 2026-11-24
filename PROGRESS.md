@@ -693,6 +693,15 @@ His go-ahead: the village kit, and "do the grass, the rock, the sand, the water"
 - Not given one: the road lieutenants (ordinary guards) and Thunderhoof.
 - Credits: 10 GIFs and 5 sounds, 10.
 
+## Recorded music: five tracks (Nov 24)
+- Alexander's "Go" on music. Five 90-second instrumentals (ElevenLabs Music v2.5 on Higgsfield, 13 credits each): **earth, moon, halo** for being out and about on each world, **battle**, and **boss** (a tyrant, a legendary, the Kinmaster's, a warlord, a warden, the lab's thing: `Battle.bossFight`).
+- **The game already had music**: `music.js` generates about 25 moods from oscillators. The recorded tracks take over the common ones. `G.updateMusic` still works out the mood, then also names a track: any fight, or one of the walking-about moods (land, night, rain, cold, sky, village, ride, fly, swim, water, moon, alien, halo) on that world. `Music.update(mood, track)`. **Where there is no track the generated mood plays as before**: the Mines, the Core, deep water, the Lost World, a chase, the films. So the soundtrack is half recorded and half generated for now, and the join will be heard going into a cave. Finishing the set (night, village, underground, Lost World, chase) is five more tracks, about 65 credits.
+- **How a track plays** (`REC` in `music.js`): fetched the first time it is wanted (the generated mood covers until it lands), then through an `<audio>` element fed from a blob, wired into the same `master` gain as the generated music so ducking and the on/off switch just work. If the page refuses to let an element play (the artifact frame only promises audio from a tap), the track is decoded whole and looped as a buffer instead, which is how the sound effects already play. A track you come back to picks up where it left off.
+- **Files**: `assets/music_<key>.mp4`, AAC 128k stereo in an mp4 (the host takes no .mp3), levelled to about -16 LUFS, with a two-second fade at the end and a short one at the start so the loop breathes instead of clicking. Sources in `art/music/`.
+- **Testing**: this headless browser has no AAC, so `t-music.js` runs against a copy of the game with the same tracks as Opus (`ROOT=/home/claude/strata-mt`, made by copying `strata` and re-encoding the five). It passes: world track in, battle, boss, back to the world track past where it left, a special place hands back to the generated mood, the buffer fallback, the off switch. Real AAC playback on the phone is unproven from here.
+- I cannot hear any of it. The prompts asked for steady, loopable instrumentals; the levels are steady by measurement (the Earth one builds from quieter to fuller over its first minute).
+- Credits: 65.
+
 ## Still to do
 UI polish as feedback comes in. Card battle screen still used for scripted encounters (raids at the walls, thief, citadel duel, holds) and the snare mini-game; converting those to live is the next big step if wanted. (Old list: train/ships, combat animation, eggs, avatar hair/paint, buddy WEAR cosmetics, Silas and Finch, UI polish (item icons), quality toggles in settings (state.shadows, state.grassQuality, state.dprCap).
 

@@ -1235,7 +1235,10 @@ G.updateMusic = function (inBattle) {
   else if (wet) mood = 'rain';
   else if (night) mood = 'night';
   else mood = 'land';
-  Music.update(mood);
+  /* a recorded track where there is one: the fight, or simply being out and about on this world. The special places keep their generated moods. */
+  const OUT = { land: 1, night: 1, rain: 1, cold: 1, sky: 1, village: 1, ride: 1, fly: 1, swim: 1, water: 1, moon: 1, alien: 1, halo: 1 };
+  const track = inBattle ? (Battle.bossFight ? 'boss' : 'battle') : OUT[mood] ? (this.worldId === 'earth' || this.worldId === 'moon' || this.worldId === 'halo' ? this.worldId : null) : null;
+  Music.update(mood, track);
   Music.duck(!!UI.panelOpen || this.paused);
 };
 

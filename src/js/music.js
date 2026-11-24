@@ -1,5 +1,5 @@
 'use strict';
-// Generative background music. No audio files: everything is oscillators and filtered noise, sequenced ahead of time.
+// Background music. Most moods are generated: oscillators and filtered noise, sequenced ahead of time. Five are recorded tracks (see REC below).
 // One mood per situation (open land, night, rain, cold, water, under water, the Mines, fire, battle, sky, Moon, village),
 // cross-faded when the situation changes. Toggle from the menu.
 const Music = (() => {
@@ -142,10 +142,41 @@ const Music = (() => {
     const t = ctx.currentTime; cur.bus.gain.setValueAtTime(0.0001, t); cur.bus.gain.exponentialRampToValueAtTime(MOODS[name].vol, t + 1.8);
     if (!timer) timer = setInterval(tick, 90);
   }
-  function stop() { if (cur) { fadeOut(cur, 0.8); cur = null; } if (timer) { clearInterval(timer); timer = null; } }
-  function update(name) { want = name; if (enabled && name && (!cur || cur.name !== name)) play(name); }
-  function setEnabled(v) { enabled = !!v; try { localStorage.setItem('stratakin-music', enabled ? '1' : '0'); } catch (e) {} if (!enabled) stop(); else if (want) play(want); }
+  /* ---- recorded music (made on Higgsfield, assets/music_<key>.mp4: AAC in an mp4, because the page's host takes no .mp3) ----
+     Five tracks so far: earth, moon, halo (walking about each world), battle, boss. update(mood, key) says which one the moment wants; where there is
+     none (the Mines, the Core, the Lost World, a chase, a film) the generated mood plays as before. A track is fetched the first time it is wanted and
+     the generated mood covers until it has arrived. Played through an <audio> element fed from a blob (it streams, so it costs almost no memory);
+     if the page will not let an element play, the whole track is decoded and looped as a buffer instead, which is how the sound effects already play.
+     Either way it goes through `master`, so the menu's ducking and the on/off switch work on it. */
+  const REC = {}, RECVOL = 1.3; /* through master (0.22): a finished recording is far quieter than a pile of raw oscillators */ let rec = null, wantRec = null, forceDecode = false;
+  function recLoad(key) { let r = REC[key]; if (r) return r; r = REC[key] = { key, state: 'loading', blob: null, el: null, node: null, gain: null, buf: null, src: null, at: 0, t0: 0, mode: null };
+    const f = 'assets/music_' + key + '.mp4', url = (typeof window !== 'undefined' && window.STRATAKIN_ASSETS && window.STRATAKIN_ASSETS[f]) || f;
+    fetch(url).then(x => { if (!x.ok) throw new Error(x.status); return x.arrayBuffer(); }).then(ab => { r.blob = new Blob([ab], { type: 'audio/mp4' }); r.state = 'ready'; if (wantRec === key && enabled) recPlay(key); }).catch(err => { r.state = 'failed'; console.warn('music ' + key + ': ' + (err && err.message)); });
+    return r; }
+  function ramp(g, to, secs) { const t = ctx.currentTime; g.gain.cancelScheduledValues(t); g.gain.setValueAtTime(g.gain.value, t); g.gain.linearRampToValueAtTime(to, t + secs); }
+  function recStart(r) { /* r.gain exists and is at 0: bring it up, and let the generated mood go */
+    ramp(r.gain, RECVOL, 1.6); if (cur) { fadeOut(cur, 1.6); cur = null; } if (timer) { clearInterval(timer); timer = null; } }
+  function recDecoded(r) { const go = () => { if (rec !== r) return; try { r.src = ctx.createBufferSource(); r.src.buffer = r.buf; r.src.loop = true; r.src.connect(r.gain); r.at = r.at % r.buf.duration; r.t0 = ctx.currentTime - r.at; r.src.start(0, r.at); r.mode = 'buffer'; recStart(r); } catch (e) { r.state = 'failed'; } };
+    if (r.buf) return go(); r.blob.arrayBuffer().then(ab => ctx.decodeAudioData(ab)).then(buf => { r.buf = buf; for (const k in REC) if (REC[k] !== r && REC[k] !== rec && REC[k].buf && !REC[k].src) REC[k].buf = null; /* keep one spare decoded at most */ go(); }).catch(() => { r.state = 'failed'; }); }
+  function recPlay(key) { const r = recLoad(key); if (r.state !== 'ready' || !ensure()) return false; if (rec === r) return true;
+    if (ctx.state === 'suspended') ctx.resume().catch(() => {});
+    if (rec) recPause(rec, 1.2); rec = r;
+    if (!r.gain) { r.gain = ctx.createGain(); r.gain.gain.value = 0; r.gain.connect(master); }
+    if (forceDecode || r.mode === 'buffer' || typeof Audio === 'undefined') { recDecoded(r); return true; }
+    try { if (!r.el) { r.el = new Audio(); r.el.loop = true; r.el.preload = 'auto'; r.el.src = URL.createObjectURL(r.blob); r.node = ctx.createMediaElementSource(r.el); r.node.connect(r.gain); }
+      const pr = r.el.play(); r.mode = 'element';
+      if (pr && pr.then) pr.then(() => { if (rec === r) recStart(r); else r.el.pause(); }).catch(() => { r.mode = 'buffer'; if (rec === r) recDecoded(r); }); else recStart(r);
+    } catch (e) { r.mode = 'buffer'; recDecoded(r); }
+    return true; }
+  function recPause(r, secs) { if (!r || !r.gain) return; ramp(r.gain, 0, secs); const el = r.el, src = r.src; if (src) { r.at = ctx.currentTime - r.t0; r.src = null; }
+    setTimeout(() => { try { if (src) { src.stop(); src.disconnect(); } if (el && r.mode === 'element' && rec !== r) el.pause(); /* unless it was asked for again meanwhile */ } catch (e) { /* already stopped */ } }, secs * 1000 + 80); if (rec === r) rec = null; }
+  function stop() { if (cur) { fadeOut(cur, 0.8); cur = null; } if (timer) { clearInterval(timer); timer = null; } if (rec) recPause(rec, 0.8); }
+  function update(name, key) { want = name; wantRec = key || null; if (!enabled) return;
+    if (key) { const r = recLoad(key); if (r.state === 'ready') { recPlay(key); return; } if (r.state === 'loading' && rec) return; /* still fetching: the track that is playing carries on */ }
+    if (rec) recPause(rec, 1.4);
+    if (name && (!cur || cur.name !== name)) play(name); }
+  function setEnabled(v) { enabled = !!v; try { localStorage.setItem('stratakin-music', enabled ? '1' : '0'); } catch (e) {} if (!enabled) stop(); else if (want || wantRec) update(want, wantRec); }
   function duck(on) { if (!master) return; const t = ctx.currentTime; master.gain.cancelScheduledValues(t); master.gain.setValueAtTime(master.gain.value, t); master.gain.linearRampToValueAtTime(on ? 0.1 : 0.22, t + 0.5); }
   try { enabled = localStorage.getItem('stratakin-music') !== '0'; } catch (e) {}
-  return { update, play, stop, setEnabled, duck, get enabled() { return enabled; }, get current() { return cur ? cur.name : null; }, get notes() { return notes; }, get state() { return ctx ? ctx.state : 'none'; }, MOODS };
+  return { update, play, stop, setEnabled, duck, get enabled() { return enabled; }, get current() { return cur ? cur.name : null; }, get notes() { return notes; }, get state() { return ctx ? ctx.state : 'none'; }, get track() { return rec ? rec.key : null; }, get trackInfo() { return rec ? { key: rec.key, mode: rec.mode, vol: rec.gain ? rec.gain.gain.value : 0, t: rec.el ? rec.el.currentTime : rec.src ? ctx.currentTime - rec.t0 : 0 } : null; }, set forceDecode(v) { forceDecode = !!v; }, REC, MOODS };
 })();

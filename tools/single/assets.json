@@ -163,5 +163,10 @@
   "assets/sig_x_gravemaw.json": "/_blob/5eb8777a37d35a8fdc63b8382a2ada63",
   "assets/sig_x_warden.json": "/_blob/c8145781bef655b27be925fd1efc8f45",
   "assets/sig_x_warlord.json": "/_blob/53da1db07df7ba4a2eafa8fac4f44eb0",
-  "assets/sig_x_splice.json": "/_blob/b55489d998fb8d3b99d19888b9525d3a"
+  "assets/sig_x_splice.json": "/_blob/b55489d998fb8d3b99d19888b9525d3a",
+  "assets/music_earth.mp4": "/_blob/d528ad7548ddab9f1080bd021bdfc1f0",
+  "assets/music_moon.mp4": "/_blob/7c1e83d9063f03db174532f877137874",
+  "assets/music_halo.mp4": "/_blob/1bdd81b9a5502d80526c9ae20989f56d",
+  "assets/music_battle.mp4": "/_blob/c5bb749f343b2487f8857f14b17ac64e",
+  "assets/music_boss.mp4": "/_blob/e8fe38afe9d563a2f82324c17683f4e0"
 }
