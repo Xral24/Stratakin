@@ -1,0 +1,62 @@
+[
+ {
+  "id": "x_tyr_liz",
+  "name": "Lock and Key",
+  "flag": "pierce",
+  "stage": "close",
+  "solid": 1.4,
+  "a": "A big golden padlock comes together: its heavy body rises from the bottom edge of the frame and its curved shackle drops from the top edge, they meet in the centre and snap shut, and a golden key turns in the keyhole with a flash.",
+  "b": "A burst of golden keys and broken chain links flying outward",
+  "snd": "a ring of keys jangling, then a heavy padlock snapping shut with a metallic clunk"
+ },
+ {
+  "id": "x_tyr_toad",
+  "name": "Belly Laugh",
+  "flag": "drain",
+  "stage": "shout",
+  "solid": 0.8,
+  "a": "A huge wide-open grinning toad mouth seen from the front, with a fat pink tongue and no teeth, shaking with laughter; thick rings of yellow sound waves pulse outward from it, bigger and bigger. Only the mouth, no body.",
+  "b": "Rings of yellow sound waves slam inward on the centre and burst, with wobbling musical notes and small stars thrown outward",
+  "snd": "a huge deep booming belly laugh from a giant toad, croaky and gurgling, echoing"
+ },
+ {
+  "id": "x_tyrant",
+  "name": "Boulder Clap",
+  "flag": "crit",
+  "stage": "close",
+  "solid": 1.6,
+  "a": "Two huge fists of rough grey rock, with cracks of violet light across the knuckles, come in from the left and right edges of the frame and slam together in the centre. Only the fists, no body.",
+  "b": "A burst of grey rock chunks and dust with one violet shock ring",
+  "snd": "two enormous boulders smashing together with a deep crack, then rubble falling"
+ },
+ {
+  "id": "x_tyr_moon",
+  "name": "Glass Sting",
+  "flag": "shock",
+  "stage": "drop",
+  "solid": 0.8,
+  "a": "Long trailing jellyfish arms of pale glass with glowing blue-white tips drop from the top edge of the frame down to the bottom centre, sway, and pulse with light all at once.",
+  "b": "A burst of pale blue light and glass splinters with one thin ring",
+  "snd": "glassy tendrils whipping down with an eerie chime, then a sharp electric sting"
+ },
+ {
+  "id": "x_tyr_halo",
+  "name": "Cinder Stampede",
+  "flag": "burn",
+  "stage": "fly",
+  "solid": 1.4,
+  "a": "A charging bison's head seen from the front, made of black lava crust split with glowing orange cracks, horns out sideways, snorting cinders, shaking as it charges in place.",
+  "b": "A burst of lava chunks, black crust shards and embers",
+  "snd": "heavy hooves thundering closer with a snort, then a crashing fiery impact"
+ },
+ {
+  "id": "x_tyr_sea",
+  "name": "Reef Coil",
+  "flag": "pierce",
+  "stage": "close",
+  "solid": 1.4,
+  "a": "The long body of a spotted moray eel, olive and yellow with a lit blue fin along its back, coils in from the edges of the frame, winding round and round, and tightens to a knot in the centre.",
+  "b": "A burst of sea water, bubbles and long thin spines",
+  "snd": "something huge and wet coiling tight underwater, then a crushing snap and a rush of bubbles"
+ }
+]
