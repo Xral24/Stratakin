@@ -4,3 +4,4 @@ dist-single/
 art/ref/*.png
 art/models/
 tools/art/__pycache__/
+art/fx/fused/

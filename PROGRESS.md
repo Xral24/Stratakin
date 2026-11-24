@@ -643,7 +643,7 @@ His go-ahead: the village kit, and "do the grass, the rock, the sand, the water"
 - Alexander: "the legendary Kin and everything, the ones that you fuse, they need to have their own unique attack... visually too". Legendaries first, as a batch for him to judge; the 105 fused Kin after.
 - **Thirteen signature moves**, one per legendary, keyed by the body it wears (`SIGS` in `kin.js`, `sigFor(sp)` via `nativeId`). `KIN.moves` adds it last, flagged `sig: '<id>'`, power 108 to 120 plus 8 a stage: the strongest thing it has, known from the start, wild or yours.
   - Earth: Anvil Fall (the Core's furnace-smith, l_core), Sky Spout (the cloud whale, l_sky), Amber Tomb (the Lost World's amber serpent, l_amber), Mantle Breach (Mantlewyrm), Ember Maw (Tyrannorex), Drowning Deep (Abyssaurus).
-  - Moon: Starfall (the Crater's star-bearer, lm_crater: it finally drops it), Orbit Crush (the crystal heart, lm_core), Crescent Decree (the herald, lm_sky), Moons in Tow (the Selenaut).
+  - Moon: Fallen Star (the Crater's star-bearer, lm_crater: it finally drops it), Orbit Crush (the crystal heart, lm_core), Crescent Decree (the herald, lm_sky), Moons in Tow (the Selenaut).
   - Halo: Ring of Cinders (the fire spirit in its brass ring, lh_core), Loosed Storm (the storm-bearer, lh_sky), Closing Ring (the Ringwarden).
 - **Each has two painted flipbooks of its own and one recorded sound** (`assets/sig_<id>_a.jpg`, `_b.jpg`, `sig_<id>` in sounds.json). `battle.js`: `SIGFX[id] = [staging, solidity of a, of b, the moment in its sound that belongs on the hit, its own time to land (optional)]`. Seven stagings in `STAGE`: `drop` (comes down on them), `rise` (comes up from under), `close` (shuts round them), `fall` (out of the sky, tail up), `pair` (two, round either side), `volley` (three, one after another), `pool` (opens under them, then goes up). A new signature is a row in `SIGS`, a row in `SIGFX`, two GIFs and a sound: no new code unless it needs a new staging.
 - The sound is slid so its loud moment lands on the hit (`UI.sample(name, delay, vol, from)` can now start part-way into a recording). The loud moments were read off each waveform by script; I cannot hear them.
@@ -652,6 +652,24 @@ His go-ahead: the village kit, and "do the grass, the rock, the sand, the water"
 - Pictures load only when a Kin that has the move is in the fight. sounds.json is one file and is now 450 KB with 31 sounds: **before the 105 fused Kin get theirs, split it** (one small file per signature, fetched like the pictures), or the first fight downloads megabytes.
 - Tests: `t-sig.js` (each signature stopped twice in a battle; three ids a run), `t-sigplay.js` (a Tyrannorex of your own: the button, its picture and sound in a real turn, the two turns of rest). `Battle.sigArt(id)`, `Battle.sigReady(id)`, `Battle.fxAt('<sig id>', seconds)`.
 - Credits: 26 GIFs (19.5) and 13 sounds (6.5).
+
+## Signature attacks: all 105 fused Kin (Nov 24)
+- Every recipe's Kin, on all three planets and both paths of each fork, has a signature attack built from its two parents: its own name, two painted flipbooks and one recorded sound. 116 signatures in all with the legendaries.
+- **Where they are written.** `tools/art/sigs/earth.txt`, `moon.txt`, `halo.txt`: one line a Kin (`id | name | what it does besides damage | staging | solidity | picture a | picture b | sound`). That table is the source for everything: the prompts, the names in the game, the staging. Ids are `f_<e|m|h><recipe number>`, with `d` for a fork's dark path (`f_e3d`).
+- **In the game.** `kin.js` `FSIG` (name and effect) and `battle.js` `SIGFX` rows are WRITTEN by `tools/art/sig_data.py` between the `FSIG-START/END` and `FSIGFX-START/END` marks: change the table and rerun, never edit those blocks. `fusedSig(sp)`: the element is the Kin's own, power 88 / 92 / 96 / 100 by how deep the recipe sits (0-9, 10-19, 20-26, 27-29) plus 8 a stage, so a grown one lands at 112 to 124 and a legendary's still leads. An eighth staging, `fly` (thrown across).
+- **One small file a Kin.** `assets/sig_<id>.json` holds both atlases as JPEG data and the sound (about 190 KB; 20 MB for all 105). A fight fetches only the bundles of the Kin in it (`sigArt` in `battle.js`; `UI.sampleData`). The legendaries keep their separate pictures and their place in sounds.json.
+- **The pipeline, for the next batch** (all in `tools/art/`):
+  1. `sig_requests.py <planet>`: the table to request files, eight to a file, and a manifest. Commit and push them: the repository is public, and the Higgsfield sandbox fetches them from raw.githubusercontent.com (`sandbox_exec` with curl into `~/sig`), so each batch is submitted as `{"ref": "sandbox:~/sig/<file>#/requests"}` and the prompts are typed once.
+  2. `sig_probe.py <planet>` with `index jobid` lines on stdin: waits for the jobs and fetches them by trying every second since the submit (a result's address holds the second it finished, which the submit does not say). Saves reading a status table per batch. Eight jobs at a time is the account's limit; a "busy" 503 on submit just needs that item sent again (jq it out of the request file in the sandbox).
+  3. `sig_pack.py <planet>`: GIFs to atlases, the sound cut and levelled and its loud moment found, one bundle a Kin, `<planet>_sync.json`.
+  4. `sig_data.py`: writes the two blocks into the game.
+  5. Upload the bundles as artifact assets (ten a call) and map them in `tools/single/assets.json`.
+- Ten sounds were very quiet at source and are boosted over 19 dB: f_e0, f_e14, f_e20, f_m2, f_m20, f_m22, f_h5, f_h9, f_h14, f_h19. Those are the first to redo if any sound rough. I cannot hear any of them.
+- The legendary Crater signature is now **Fallen Star**: "Starfall" was already an ordinary Light move.
+- Not covered: a Kin fused OUTSIDE the recipes has no signature (there is nothing to key it by).
+- Tests: `t-fsig.js <ids>` (bundles arrive, attack shown stopped in a battle), `t-sigplay.js f_m3d` (a fused Kin of your own: button, picture, sound, two turns of rest). Node check: all 105 have one, no natural Kin does, no name clashes with an ordinary move.
+- Source GIFs are in `art/fx/fused/` (44 MB, not in git: the bundles are the product). Sounds in `art/sounds/sig/`.
+- Credits: 210 GIFs and 105 sounds, plus three resubmits: about 212.
 
 ## Still to do
 UI polish as feedback comes in. Card battle screen still used for scripted encounters (raids at the walls, thief, citadel duel, holds) and the snare mini-game; converting those to live is the next big step if wanted. (Old list: train/ships, combat animation, eggs, avatar hair/paint, buddy WEAR cosmetics, Silas and Finch, UI polish (item icons), quality toggles in settings (state.shadows, state.grassQuality, state.dprCap).

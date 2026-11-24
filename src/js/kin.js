@@ -655,7 +655,7 @@ const KIN = (() => {
     l_core: { name: 'Anvil Fall', elem: 'Stone', power: 114, acc: 0.9, crit: true, desc: 'Its hammer comes down. Crits often.' },
     l_sky: { name: 'Sky Spout', elem: 'Gale', power: 110, acc: 0.94, pierce: true, desc: 'A spout from under you. Goes through Guard.' },
     l_amber: { name: 'Amber Tomb', elem: 'Stone', power: 112, acc: 0.92, pierce: true, desc: 'Sealed in amber, then broken. Goes through Guard.' },
-    lm_crater: { name: 'Starfall', elem: 'Spark', power: 118, acc: 0.86, ail: 'shock', ailP: 0.5, desc: 'It lets the star drop. May shock.' },
+    lm_crater: { name: 'Fallen Star', elem: 'Spark', power: 118, acc: 0.86, ail: 'shock', ailP: 0.5, desc: 'It lets the star drop. May shock.' },
     lm_core: { name: 'Orbit Crush', elem: 'Stone', power: 114, acc: 0.9, crit: true, desc: 'Its three rings close. Crits often.' },
     lm_sky: { name: 'Crescent Decree', elem: 'Light', power: 108, acc: 0.95, drain: true, desc: 'Two crescents cross. Heals a third of the damage dealt.' },
     lh_core: { name: 'Ring of Cinders', elem: 'Flame', power: 114, acc: 0.9, ail: 'burn', ailP: 0.6, desc: 'Fire up through a brass ring. May burn.' },
@@ -666,7 +666,43 @@ const KIN = (() => {
     x_rex: { name: 'Ember Maw', elem: 'Flame', power: 120, acc: 0.86, ail: 'burn', ailP: 0.5, desc: 'Jaws of fire. May burn.' },
     x_mosa: { name: 'Drowning Deep', elem: 'Tide', power: 112, acc: 0.92, drain: true, desc: 'A whirlpool, then the sea itself. Heals a third of the damage dealt.' },
   };
-  function sigFor(sp) { const id = sp ? nativeId(sp) : null, g = id && SIGS[id]; return g ? Object.assign({ kind: 'spec', fx: 'own', sig: id }, g) : null; }
+  // ...and the fused Kin: every recipe's Kin has one too, made from its two parents. id 'f_<planet's first letter><recipe number>', with a 'd' for the dark path of a fork.
+  // name and what it does besides damage; the element is the Kin's own, the power rises with how deep in the recipes it sits.
+  /*FSIG-START (written by tools/art/sig_data.py from tools/art/sigs/*.json: do not edit by hand)*/
+  const FSIG = {
+    f_e0: ["Moonroot Tide", 'drain'], f_e1: ["Horn Tide", 'shock'], f_e2: ["Blizzard Spout", 'frost'], f_e3: ["Summit Beam", 'crit'],
+    f_e3d: ["Hollow Mountain", 'curse'], f_e4: ["Glacier Fist", 'crit'], f_e5: ["Frozen Tide", 'frost'], f_e6: ["Boulder Surf", 'pierce'],
+    f_e7: ["Fire Whirl", 'burn'], f_e8: ["Acorn Squall", 'crit'], f_e9: ["Dawn Pyre", 'drain'], f_e9d: ["Ash Mountain", 'curse'],
+    f_e10: ["Spore Gale", 'poison'], f_e11: ["Antler Blaze", 'burn'], f_e12: ["Frozen Strings", 'frost'], f_e13: ["Spore Stampede", 'poison'],
+    f_e14: ["Old Growth", 'drain'], f_e15: ["Three-Eyed Volt", 'shock'], f_e15d: ["Murder of Sparks", 'curse'], f_e16: ["Stone Broadside", 'pierce'],
+    f_e17: ["Frostcap Bite", 'frost'], f_e18: ["Marionette Mountain", 'crit'], f_e19: ["Cinder Crown", 'burn'], f_e20: ["Tidepool Bloom", 'drain'],
+    f_e21: ["Seraph Current", 'shock'], f_e22: ["Aurora Howl", 'crit'], f_e22d: ["Black Ice", 'curse'], f_e23: ["Lightning Rod", 'pierce'],
+    f_e24: ["Avalanche Sail", 'crit'], f_e25: ["Ice Age", 'frost'], f_e26: ["Iceberg Crash", 'pierce'], f_e27: ["Sandstone Cyclone", 'crit'],
+    f_e28: ["Heartwood Light", 'drain'], f_e28d: ["Eclipse Oak", 'curse'], f_e29: ["Thunder Forge", 'crit'], f_m0: ["Lantern Quake", 'shock'],
+    f_m1: ["Glowtrail", 'poison'], f_m2: ["Low-Gravity Stomp", 'crit'], f_m3: ["Shell Flare", 'burn'], f_m3d: ["Crater Claw", 'curse'],
+    f_m4: ["Moss Leap", 'drain'], f_m5: ["Caldera", 'burn'], f_m6: ["Spark Hop", 'shock'], f_m7: ["Ray Crater", 'burn'],
+    f_m8: ["Afterburner", 'burn'], f_m9: ["Lichen Halo", 'drain'], f_m9d: ["Hollow Shell", 'curse'], f_m10: ["Geode Gust", 'pierce'],
+    f_m11: ["Phase Horns", 'frost'], f_m12: ["String of Fire", 'burn'], f_m13: ["New Moon Cut", 'crit'], f_m14: ["Druse Spark", 'shock'],
+    f_m15: ["Full Geode", 'crit'], f_m15d: ["Dark Side", 'curse'], f_m16: ["Mochi Pound", 'burn'], f_m17: ["Diving Bell", 'pierce'],
+    f_m18: ["False Dawn", 'burn'], f_m19: ["Ice Knight", 'frost'], f_m20: ["Garden Crater", 'poison'], f_m21: ["Wyrm Circuit", 'shock'],
+    f_m22: ["Moonflower", 'drain'], f_m22d: ["Night Mallet", 'curse'], f_m23: ["Ember Spiral", 'burn'], f_m24: ["Bubble Stream", 'drain'],
+    f_m25: ["Wide-Eyed Dark", 'curse'], f_m26: ["Lamp Tide", 'drain'], f_m27: ["Eclipse Crab", 'curse'], f_m28: ["Sickle Dawn", 'crit'],
+    f_m28d: ["Sickle Dusk", 'curse'], f_m29: ["Moons of Its Own", 'crit'], f_h0: ["Barchan Bloom", 'poison'], f_h1: ["Spine Roller", 'crit'],
+    f_h2: ["Brine Blossom", 'drain'], f_h3: ["Mirror Salt", 'drain'], f_h3d: ["Dead Sea", 'curse'], f_h4: ["Nimbus Wade", 'drain'],
+    f_h5: ["Salt Sun", 'pierce'], f_h6: ["Shell and Stilt", 'crit'], f_h7: ["Salt Wind", 'pierce'], f_h8: ["Regent's Rings", 'pierce'],
+    f_h9: ["Glass Dune", 'crit'], f_h9d: ["Buried Sun", 'curse'], f_h10: ["Year Rings", 'crit'], f_h11: ["Ringtail Bolt", 'shock'],
+    f_h12: ["False Sun Flower", 'drain'], f_h13: ["Crystal Hump", 'burn'], f_h14: ["Pool Current", 'shock'], f_h15: ["Parhelion", 'shock'],
+    f_h15d: ["Black Sun Dog", 'curse'], f_h16: ["Brass Saguaro", 'crit'], f_h17: ["Heat Shimmer", 'burn'], f_h18: ["Corona Frill", 'shock'],
+    f_h19: ["Ring Runner", 'shock'], f_h20: ["Fulgurite Garden", 'poison'], f_h21: ["Gilded Barrel", 'crit'], f_h22: ["Dawn Darner", 'shock'],
+    f_h22d: ["Dusk Darner", 'curse'], f_h23: ["Storm Feelers", 'shock'], f_h24: ["Stilt Spark", 'shock'], f_h25: ["Oasis That Isn't", 'curse'],
+    f_h26: ["Lake Lightning", 'shock'], f_h27: ["Hot Air", 'curse'], f_h28: ["Sprint Tide", 'drain'], f_h28d: ["Undertow", 'curse'],
+    f_h29: ["False Oasis", 'curse'] };
+  /*FSIG-END*/
+  const FSIG_DESC = { crit: 'Crits often.', pierce: 'Goes through Guard.', drain: 'Heals a third of the damage dealt.', burn: 'May burn.', poison: 'May poison.', frost: 'May frostbite.', shock: 'May shock.', curse: 'May curse.' };
+  function fusedSig(sp) { const rc = sp && sp.fusion && sp.recipe; if (!rc || rc.body == null) return null; const id = 'f_' + rc.body[0] + rc.i + (rc.fork ? 'd' : ''), g = FSIG[id]; if (!g) return null;
+    const fl = g[1], m = { name: g[0], elem: dominant(sp.elem, 1)[0], kind: 'spec', fx: 'own', sig: id, power: rc.i < 10 ? 88 : rc.i < 20 ? 92 : rc.i < 27 ? 96 : 100, acc: fl === 'crit' ? 0.88 : fl === 'pierce' || fl === 'drain' ? 0.92 : 0.9, desc: 'Its own. ' + FSIG_DESC[fl] };
+    if (fl === 'crit' || fl === 'pierce' || fl === 'drain') m[fl] = true; else { m.ail = fl; m.ailP = 0.45; } return m; }
+  function sigFor(sp) { const id = sp ? nativeId(sp) : null, g = id && SIGS[id]; return g ? Object.assign({ kind: 'spec', fx: 'own', sig: id }, g) : fusedSig(sp); }
   function techFor(k) { const el = dominant(k.sp.elem, 1)[0]; const mine = TECHLIST.filter(t => t.elem === el); return mine[((k.sp.seed >>> 7) % 997) % mine.length].name; }
   function techByName(nm) { return TECH[nm] || null; }
   function castMove(el, idx, st, bonus) { const c = CAST[el][idx % 4]; const m = { name: c[0], elem: el, kind: 'spec', power: Math.round((58 + 10 * st + (bonus || 0)) * c[2]), acc: c[3], fx: c[1] }; if (c[4]) { if (AILS[c[4]]) { m.ail = c[4]; m.ailP = 0.5; } else m[c[4]] = true; m.desc = FLAGDESC[c[4]]; }

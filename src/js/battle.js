@@ -521,9 +521,42 @@ const Battle = (() => {
   // recorded sound. id (the body it wears): [how it is staged, how solid a is, how solid b is]. Frames: a loop is 12, a play-once is 16.
   const SIGFX = { l_core: ['drop', 1.2, 0, 0.05], l_sky: ['rise', 0.8, 0.8, 0.3], l_amber: ['close', 1.6, 1.4, 1.35, 1.15], lm_crater: ['fall', 0, 0, 1.1], lm_core: ['close', 1.4, 1, 0.4], lm_sky: ['pair', 0.3, 0, 1.5], lh_core: ['rise', 0.4, 1.6, 0.3],
     lh_sky: ['drop', 1, 0, 0.3], lw_selenaut: ['volley', 1, 0, 0.05], lw_ring: ['close', 0, 0, 0.03], x_mantle: ['rise', 0.6, 1.8, 0.8], x_rex: ['close', 0, 0.3, 0.5, 0.5], x_mosa: ['pool', 1.6, 1, 0.03] }; /* then: the moment in its sound that belongs on the hit, and (some) its own time to land */
-  const SIGLOOP = { fall: 1, pair: 1, volley: 1, pool: 1 };
+  /*FSIGFX-START (written by tools/art/sig_data.py from tools/art/sigs/*.json: do not edit by hand)*/
+  Object.assign(SIGFX, {
+    f_e0: ['rise', 1, 0.7, 0.1], f_e1: ['fly', 0.6, 0.42, 0.4], f_e2: ['rise', 0.8, 0.56, 0.1], f_e3: ['drop', 0.5, 0.35, 1.8],
+    f_e3d: ['close', 1.8, 1.26, 1], f_e4: ['drop', 1.4, 0.98, 0.4], f_e5: ['close', 1.2, 0.84, 0.3], f_e6: ['fly', 1.4, 0.98, 0.2],
+    f_e7: ['rise', 0, 0, 0.23], f_e8: ['volley', 1.6, 1.12, 1], f_e9: ['rise', 0, 0, 0.1], f_e9d: ['fall', 1.6, 1.12, 0.7],
+    f_e10: ['fly', 1, 0.7, 0.2], f_e11: ['close', 0, 0, 0.9], f_e12: ['drop', 1, 0.7, 0.1], f_e13: ['pair', 1, 0.7, 0.7],
+    f_e14: ['rise', 1.6, 1.12, 0], f_e15: ['drop', 0, 0, 1.1], f_e15d: ['volley', 1.4, 0.98, 1.9], f_e16: ['volley', 1.6, 1.12, 0.33],
+    f_e17: ['close', 1.2, 0.84, 1.6], f_e18: ['drop', 1.6, 1.12, 0.5], f_e19: ['fall', 0.8, 0.56, 1.9], f_e20: ['pool', 1.2, 0.84, 1.3],
+    f_e21: ['close', 0.8, 0.56, 1.7], f_e22: ['rise', 0, 0, 1.2], f_e22d: ['pool', 1.8, 1.26, 0], f_e23: ['drop', 0.4, 0.28, 0.83],
+    f_e24: ['fall', 1.4, 0.98, 1.4], f_e25: ['close', 1.2, 0.84, 0], f_e26: ['drop', 1.4, 0.98, 0.7], f_e27: ['rise', 1.2, 0.84, 0.6],
+    f_e28: ['rise', 0.4, 0.28, 1.4], f_e28d: ['drop', 1.6, 1.12, 0.1], f_e29: ['drop', 1.2, 0.84, 0.4], f_m0: ['drop', 1.2, 0.84, 1.8],
+    f_m1: ['pool', 1, 0.7, 1.9], f_m2: ['fall', 1.4, 0.98, 0], f_m3: ['fly', 0.4, 0.28, 0], f_m3d: ['close', 1.6, 1.12, 1.2],
+    f_m4: ['volley', 1.2, 0.84, 1], f_m5: ['rise', 0.8, 0.56, 0.9], f_m6: ['volley', 0, 0, 0], f_m7: ['drop', 0.6, 0.42, 1.6],
+    f_m8: ['fly', 0, 0, 1.4], f_m9: ['close', 0.8, 0.56, 0.5], f_m9d: ['pool', 1.8, 1.26, 1.7], f_m10: ['fly', 1.2, 0.84, 1.4],
+    f_m11: ['close', 1, 0.7, 1.6], f_m12: ['pair', 0.4, 0.28, 0], f_m13: ['pair', 0.6, 0.42, 1.6], f_m14: ['fall', 0.4, 0.28, 0.1],
+    f_m15: ['close', 1, 0.7, 0.23], f_m15d: ['drop', 1.6, 1.12, 0.1], f_m16: ['drop', 1.2, 0.84, 0.9], f_m17: ['close', 1, 0.7, 0.63],
+    f_m18: ['rise', 0, 0, 1.73], f_m19: ['drop', 1, 0.7, 0.5], f_m20: ['pool', 1.4, 0.98, 0.1], f_m21: ['pair', 0.4, 0.28, 1.6],
+    f_m22: ['rise', 0.8, 0.56, 1.9], f_m22d: ['drop', 1.6, 1.12, 1.2], f_m23: ['fly', 0.4, 0.28, 1.2], f_m24: ['volley', 0.8, 0.56, 0.2],
+    f_m25: ['close', 1.6, 1.12, 0.5], f_m26: ['rise', 0.8, 0.56, 0.6], f_m27: ['fall', 1.4, 0.98, 0.3], f_m28: ['pair', 0, 0, 0.4],
+    f_m28d: ['pair', 1.4, 0.98, 0.13], f_m29: ['volley', 1, 0.7, 0], f_h0: ['rise', 1.2, 0.84, 0], f_h1: ['fly', 1.6, 1.12, 0],
+    f_h2: ['pool', 1, 0.7, 1.8], f_h3: ['drop', 0.6, 0.42, 0.6], f_h3d: ['pool', 1.8, 1.26, 0], f_h4: ['rise', 0.8, 0.56, 0.53],
+    f_h5: ['fly', 1, 0.7, 1.6], f_h6: ['drop', 1.2, 0.84, 0], f_h7: ['fly', 0.8, 0.56, 0.4], f_h8: ['close', 0.8, 0.56, 0.13],
+    f_h9: ['drop', 0.6, 0.42, 0], f_h9d: ['close', 1.6, 1.12, 0.6], f_h10: ['close', 1.4, 0.98, 1], f_h11: ['pair', 0.4, 0.28, 0.4],
+    f_h12: ['rise', 0.4, 0.28, 0], f_h13: ['drop', 1, 0.7, 0.1], f_h14: ['pool', 0.8, 0.56, 0], f_h15: ['drop', 0, 0, 0],
+    f_h15d: ['drop', 1.4, 0.98, 0.4], f_h16: ['rise', 1.4, 0.98, 0.3], f_h17: ['fly', 0, 0, 1.4], f_h18: ['close', 0.4, 0.28, 0],
+    f_h19: ['volley', 0, 0, 0], f_h20: ['rise', 1, 0.7, 1.53], f_h21: ['fall', 1.2, 0.84, 1.1], f_h22: ['pair', 0, 0, 0.23],
+    f_h22d: ['pair', 1.4, 0.98, 0], f_h23: ['drop', 0.4, 0.28, 1.9], f_h24: ['drop', 0.6, 0.42, 0.03], f_h25: ['pool', 1.6, 1.12, 0.4],
+    f_h26: ['rise', 0.6, 0.42, 1.6], f_h27: ['rise', 1.2, 0.84, 1.8], f_h28: ['fly', 0.8, 0.56, 1.7], f_h28d: ['pool', 1.8, 1.26, 0.2],
+    f_h29: ['close', 1.4, 0.98, 0.2] });
+  /*FSIGFX-END*/
+  const SIGLOOP = { fly: 1, fall: 1, pair: 1, volley: 1, pool: 1 };
   function sigArt(id) { const g = SIGFX[id]; if (!g || asked.has('sig:' + id) || typeof R === 'undefined' || !R.spriteAtlas) return; asked.add('sig:' + id);
     const a = 'sig_' + id + '_a', b = 'sig_' + id + '_b', loop = SIGLOOP[g[0]]; ATL[a] = [4, loop ? 3 : 4, loop ? 12 : 16, g[1]]; ATL[b] = [4, 4, 16, g[2]];
+    if (id[0] === 'f') { /* a fused Kin's: one small file holding both pictures and the sound (tools/art/sig_pack.py), so a fight fetches only its own */
+      const f = 'assets/sig_' + id + '.json', url = (typeof window !== 'undefined' && window.STRATAKIN_ASSETS && window.STRATAKIN_ASSETS[f]) || f;
+      fetch(url).then(r => { if (!r.ok) throw new Error(r.status); return r.json(); }).then(d => { R.spriteAtlas(a, d.a, 4, ATL[a][1], ATL[a][2], g[1]); R.spriteAtlas(b, d.b, 4, 4, 16, g[2]); if (d.s && UI.sampleData) UI.sampleData('sig_' + id, d.s); }).catch(err => { asked.delete('sig:' + id); console.warn('signature ' + id + ': ' + (err && err.message)); }); return; }
     R.spriteAtlas(a, 'assets/' + a + '.jpg', 4, ATL[a][1], ATL[a][2], g[1]); R.spriteAtlas(b, 'assets/' + b + '.jpg', 4, 4, 16, g[2]); if (UI.preload) UI.preload(['sig_' + id]); }
   const sigReady = (id) => !!SIGFX[id] && typeof R !== 'undefined' && R.spriteReady && G.fxArt !== false && R.spriteReady('sig_' + id + '_a') && R.spriteReady('sig_' + id + '_b');
   const tail = (u) => u > 0.82 ? (1 - u) / 0.18 : 1; /* a picture that plays once thins out at the end, whatever its last frame holds */
@@ -531,6 +564,7 @@ const Battle = (() => {
     drop(a, b, S, D, T) { T = T || 0.36; Sp(0, 0.8, a, (u) => [D[0], D[1] + 1.75, D[2], 2.3, tail(u)]); Sp(T, 0.9, b, () => [D[0], D[1] + 0.1, D[2], 2]); return T; }, /* it comes down on them from above */
     rise(a, b, S, D, T) { T = T || 0.3; Sp(0, 0.95, a, (u) => [D[0], D[1] + 1.75, D[2], 2.3, tail(u)]); Sp(T + 0.2, 0.9, b, () => [D[0], D[1] + 0.2, D[2], 2]); return T; }, /* it comes up from under them */
     close(a, b, S, D, T) { T = T || 0.6; Sp(0, T + 0.04, a, () => [D[0], D[1] + 0.25, D[2], 2.1]); Sp(T, 0.9, b, () => [D[0], D[1] + 0.25, D[2], 2.2]); return T; }, /* it shuts round them */
+    fly(a, b, S, D, T) { T = T || 0.5; Sp(0, T, a, (u) => { const p = lerp3(S, D, u); return [p[0], p[1] + 0.2 + Math.sin(u * Math.PI) * 0.5, p[2], 0.7 + 0.35 * u]; }, 18); Sp(T, 0.9, b, () => [D[0], D[1] + 0.2, D[2], 2.1]); return T; }, /* thrown across */
     fall(a, b, S, D, T) { T = T || 0.55; const H = 7; Sp(0, T, a, (u) => [D[0], D[1] + 1.45 + H * (1 - u) * (1 - u), D[2], 1.7], 20); Sp(T, 0.9, b, () => [D[0], D[1] + 0.2, D[2], 2.3]); return T; }, /* out of the sky, tail up */
     pair(a, b, S, D, T) { T = T || 0.55; const dx = D[0] - S[0], dz = D[2] - S[2], L = Math.hypot(dx, dz) || 1, px = -dz / L, pz = dx / L;
       for (const sd of [-1, 1]) Sp(0, T, a, (u) => { const p = lerp3(S, D, u), w = Math.sin(u * Math.PI) * 1.5 * sd; return [p[0] + px * w, p[1] + 0.3 + Math.sin(u * Math.PI) * 0.4, p[2] + pz * w, 0.75 + 0.2 * u]; }, 24);
@@ -542,7 +576,8 @@ const Battle = (() => {
   };
   function sigPlay(id, S, D, col) { const g = SIGFX[id], T = STAGE[g[0]]('sig_' + id + '_a', 'sig_' + id + '_b', S, D, g[4]);
     burst(D, col, 14, 2.4, T, 'ball', 0.12); burst(D, WHITE, 8, 1.8, T + 0.05, 'cube', 0.09); ringOut([D[0], D[1] - 0.5, D[2]], col, 16, 2.4, T, 0.5, 0.13);
-    const d = T - (g[3] || 0); soundDone = !!(UI.sample && UI.sample('sig_' + id, Math.max(0, d), 0.7, Math.max(0, -d))); return T; } /* the sound is slid so its big moment falls on the hit */
+    let d = T - (g[3] || 0); if (d < -0.7) d = 0; /* its loud moment is right at the end: play it from the start rather than cut most of it away */
+    soundDone = !!(UI.sample && UI.sample('sig_' + id, Math.max(0, d), 0.7, Math.max(0, -d))); return T; } /* the sound is slid so its big moment falls on the hit */
   const PAINT = {
     Flame(S, D, k, col) { const T = 0.42, big = Math.sqrt(k), hot = [1, 0.85, 0.3];
       fly('flame_ball', S, D, T, big, 0.34, 0.54, 0.3); /* the fireball, turning as it flies */

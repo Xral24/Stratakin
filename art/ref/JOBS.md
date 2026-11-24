@@ -169,3 +169,6 @@ Sources kept in art/fx/*.gif and art/sounds/*.mp3 (shaped).
 
 # Legendary signature attacks (24 Nov): 26 GIFs (gpt_image_2_6, 0.75) and 13 sounds (mirelo 2 s, 0.5)
 Sources in art/fx/sig_<id>_a.gif and _b.gif, art/sounds/sig_<id>.mp3. Ids: l_core l_sky l_amber lm_crater lm_core lm_sky lh_core lh_sky lw_selenaut lw_ring x_mantle x_rex x_mosa.
+
+# Fused Kin signature attacks (24 Nov): 210 GIFs, 105 sounds
+Request files (with every prompt) are in tools/art/sigs/req/; job ids were not kept beyond the fetch. Sources: art/fx/fused/ (not in git), art/sounds/sig/.

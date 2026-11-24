@@ -7123,7 +7123,7 @@ const KIN = (() => {
     l_core: { name: 'Anvil Fall', elem: 'Stone', power: 114, acc: 0.9, crit: true, desc: 'Its hammer comes down. Crits often.' },
     l_sky: { name: 'Sky Spout', elem: 'Gale', power: 110, acc: 0.94, pierce: true, desc: 'A spout from under you. Goes through Guard.' },
     l_amber: { name: 'Amber Tomb', elem: 'Stone', power: 112, acc: 0.92, pierce: true, desc: 'Sealed in amber, then broken. Goes through Guard.' },
-    lm_crater: { name: 'Starfall', elem: 'Spark', power: 118, acc: 0.86, ail: 'shock', ailP: 0.5, desc: 'It lets the star drop. May shock.' },
+    lm_crater: { name: 'Fallen Star', elem: 'Spark', power: 118, acc: 0.86, ail: 'shock', ailP: 0.5, desc: 'It lets the star drop. May shock.' },
     lm_core: { name: 'Orbit Crush', elem: 'Stone', power: 114, acc: 0.9, crit: true, desc: 'Its three rings close. Crits often.' },
     lm_sky: { name: 'Crescent Decree', elem: 'Light', power: 108, acc: 0.95, drain: true, desc: 'Two crescents cross. Heals a third of the damage dealt.' },
     lh_core: { name: 'Ring of Cinders', elem: 'Flame', power: 114, acc: 0.9, ail: 'burn', ailP: 0.6, desc: 'Fire up through a brass ring. May burn.' },
@@ -7134,7 +7134,43 @@ const KIN = (() => {
     x_rex: { name: 'Ember Maw', elem: 'Flame', power: 120, acc: 0.86, ail: 'burn', ailP: 0.5, desc: 'Jaws of fire. May burn.' },
     x_mosa: { name: 'Drowning Deep', elem: 'Tide', power: 112, acc: 0.92, drain: true, desc: 'A whirlpool, then the sea itself. Heals a third of the damage dealt.' },
   };
-  function sigFor(sp) { const id = sp ? nativeId(sp) : null, g = id && SIGS[id]; return g ? Object.assign({ kind: 'spec', fx: 'own', sig: id }, g) : null; }
+  // ...and the fused Kin: every recipe's Kin has one too, made from its two parents. id 'f_<planet's first letter><recipe number>', with a 'd' for the dark path of a fork.
+  // name and what it does besides damage; the element is the Kin's own, the power rises with how deep in the recipes it sits.
+  /*FSIG-START (written by tools/art/sig_data.py from tools/art/sigs/*.json: do not edit by hand)*/
+  const FSIG = {
+    f_e0: ["Moonroot Tide", 'drain'], f_e1: ["Horn Tide", 'shock'], f_e2: ["Blizzard Spout", 'frost'], f_e3: ["Summit Beam", 'crit'],
+    f_e3d: ["Hollow Mountain", 'curse'], f_e4: ["Glacier Fist", 'crit'], f_e5: ["Frozen Tide", 'frost'], f_e6: ["Boulder Surf", 'pierce'],
+    f_e7: ["Fire Whirl", 'burn'], f_e8: ["Acorn Squall", 'crit'], f_e9: ["Dawn Pyre", 'drain'], f_e9d: ["Ash Mountain", 'curse'],
+    f_e10: ["Spore Gale", 'poison'], f_e11: ["Antler Blaze", 'burn'], f_e12: ["Frozen Strings", 'frost'], f_e13: ["Spore Stampede", 'poison'],
+    f_e14: ["Old Growth", 'drain'], f_e15: ["Three-Eyed Volt", 'shock'], f_e15d: ["Murder of Sparks", 'curse'], f_e16: ["Stone Broadside", 'pierce'],
+    f_e17: ["Frostcap Bite", 'frost'], f_e18: ["Marionette Mountain", 'crit'], f_e19: ["Cinder Crown", 'burn'], f_e20: ["Tidepool Bloom", 'drain'],
+    f_e21: ["Seraph Current", 'shock'], f_e22: ["Aurora Howl", 'crit'], f_e22d: ["Black Ice", 'curse'], f_e23: ["Lightning Rod", 'pierce'],
+    f_e24: ["Avalanche Sail", 'crit'], f_e25: ["Ice Age", 'frost'], f_e26: ["Iceberg Crash", 'pierce'], f_e27: ["Sandstone Cyclone", 'crit'],
+    f_e28: ["Heartwood Light", 'drain'], f_e28d: ["Eclipse Oak", 'curse'], f_e29: ["Thunder Forge", 'crit'], f_m0: ["Lantern Quake", 'shock'],
+    f_m1: ["Glowtrail", 'poison'], f_m2: ["Low-Gravity Stomp", 'crit'], f_m3: ["Shell Flare", 'burn'], f_m3d: ["Crater Claw", 'curse'],
+    f_m4: ["Moss Leap", 'drain'], f_m5: ["Caldera", 'burn'], f_m6: ["Spark Hop", 'shock'], f_m7: ["Ray Crater", 'burn'],
+    f_m8: ["Afterburner", 'burn'], f_m9: ["Lichen Halo", 'drain'], f_m9d: ["Hollow Shell", 'curse'], f_m10: ["Geode Gust", 'pierce'],
+    f_m11: ["Phase Horns", 'frost'], f_m12: ["String of Fire", 'burn'], f_m13: ["New Moon Cut", 'crit'], f_m14: ["Druse Spark", 'shock'],
+    f_m15: ["Full Geode", 'crit'], f_m15d: ["Dark Side", 'curse'], f_m16: ["Mochi Pound", 'burn'], f_m17: ["Diving Bell", 'pierce'],
+    f_m18: ["False Dawn", 'burn'], f_m19: ["Ice Knight", 'frost'], f_m20: ["Garden Crater", 'poison'], f_m21: ["Wyrm Circuit", 'shock'],
+    f_m22: ["Moonflower", 'drain'], f_m22d: ["Night Mallet", 'curse'], f_m23: ["Ember Spiral", 'burn'], f_m24: ["Bubble Stream", 'drain'],
+    f_m25: ["Wide-Eyed Dark", 'curse'], f_m26: ["Lamp Tide", 'drain'], f_m27: ["Eclipse Crab", 'curse'], f_m28: ["Sickle Dawn", 'crit'],
+    f_m28d: ["Sickle Dusk", 'curse'], f_m29: ["Moons of Its Own", 'crit'], f_h0: ["Barchan Bloom", 'poison'], f_h1: ["Spine Roller", 'crit'],
+    f_h2: ["Brine Blossom", 'drain'], f_h3: ["Mirror Salt", 'drain'], f_h3d: ["Dead Sea", 'curse'], f_h4: ["Nimbus Wade", 'drain'],
+    f_h5: ["Salt Sun", 'pierce'], f_h6: ["Shell and Stilt", 'crit'], f_h7: ["Salt Wind", 'pierce'], f_h8: ["Regent's Rings", 'pierce'],
+    f_h9: ["Glass Dune", 'crit'], f_h9d: ["Buried Sun", 'curse'], f_h10: ["Year Rings", 'crit'], f_h11: ["Ringtail Bolt", 'shock'],
+    f_h12: ["False Sun Flower", 'drain'], f_h13: ["Crystal Hump", 'burn'], f_h14: ["Pool Current", 'shock'], f_h15: ["Parhelion", 'shock'],
+    f_h15d: ["Black Sun Dog", 'curse'], f_h16: ["Brass Saguaro", 'crit'], f_h17: ["Heat Shimmer", 'burn'], f_h18: ["Corona Frill", 'shock'],
+    f_h19: ["Ring Runner", 'shock'], f_h20: ["Fulgurite Garden", 'poison'], f_h21: ["Gilded Barrel", 'crit'], f_h22: ["Dawn Darner", 'shock'],
+    f_h22d: ["Dusk Darner", 'curse'], f_h23: ["Storm Feelers", 'shock'], f_h24: ["Stilt Spark", 'shock'], f_h25: ["Oasis That Isn't", 'curse'],
+    f_h26: ["Lake Lightning", 'shock'], f_h27: ["Hot Air", 'curse'], f_h28: ["Sprint Tide", 'drain'], f_h28d: ["Undertow", 'curse'],
+    f_h29: ["False Oasis", 'curse'] };
+  /*FSIG-END*/
+  const FSIG_DESC = { crit: 'Crits often.', pierce: 'Goes through Guard.', drain: 'Heals a third of the damage dealt.', burn: 'May burn.', poison: 'May poison.', frost: 'May frostbite.', shock: 'May shock.', curse: 'May curse.' };
+  function fusedSig(sp) { const rc = sp && sp.fusion && sp.recipe; if (!rc || rc.body == null) return null; const id = 'f_' + rc.body[0] + rc.i + (rc.fork ? 'd' : ''), g = FSIG[id]; if (!g) return null;
+    const fl = g[1], m = { name: g[0], elem: dominant(sp.elem, 1)[0], kind: 'spec', fx: 'own', sig: id, power: rc.i < 10 ? 88 : rc.i < 20 ? 92 : rc.i < 27 ? 96 : 100, acc: fl === 'crit' ? 0.88 : fl === 'pierce' || fl === 'drain' ? 0.92 : 0.9, desc: 'Its own. ' + FSIG_DESC[fl] };
+    if (fl === 'crit' || fl === 'pierce' || fl === 'drain') m[fl] = true; else { m.ail = fl; m.ailP = 0.45; } return m; }
+  function sigFor(sp) { const id = sp ? nativeId(sp) : null, g = id && SIGS[id]; return g ? Object.assign({ kind: 'spec', fx: 'own', sig: id }, g) : fusedSig(sp); }
   function techFor(k) { const el = dominant(k.sp.elem, 1)[0]; const mine = TECHLIST.filter(t => t.elem === el); return mine[((k.sp.seed >>> 7) % 997) % mine.length].name; }
   function techByName(nm) { return TECH[nm] || null; }
   function castMove(el, idx, st, bonus) { const c = CAST[el][idx % 4]; const m = { name: c[0], elem: el, kind: 'spec', power: Math.round((58 + 10 * st + (bonus || 0)) * c[2]), acc: c[3], fx: c[1] }; if (c[4]) { if (AILS[c[4]]) { m.ail = c[4]; m.ailP = 0.5; } else m[c[4]] = true; m.desc = FLAGDESC[c[4]]; }
@@ -16239,9 +16275,42 @@ const Battle = (() => {
   // recorded sound. id (the body it wears): [how it is staged, how solid a is, how solid b is]. Frames: a loop is 12, a play-once is 16.
   const SIGFX = { l_core: ['drop', 1.2, 0, 0.05], l_sky: ['rise', 0.8, 0.8, 0.3], l_amber: ['close', 1.6, 1.4, 1.35, 1.15], lm_crater: ['fall', 0, 0, 1.1], lm_core: ['close', 1.4, 1, 0.4], lm_sky: ['pair', 0.3, 0, 1.5], lh_core: ['rise', 0.4, 1.6, 0.3],
     lh_sky: ['drop', 1, 0, 0.3], lw_selenaut: ['volley', 1, 0, 0.05], lw_ring: ['close', 0, 0, 0.03], x_mantle: ['rise', 0.6, 1.8, 0.8], x_rex: ['close', 0, 0.3, 0.5, 0.5], x_mosa: ['pool', 1.6, 1, 0.03] }; /* then: the moment in its sound that belongs on the hit, and (some) its own time to land */
-  const SIGLOOP = { fall: 1, pair: 1, volley: 1, pool: 1 };
+  /*FSIGFX-START (written by tools/art/sig_data.py from tools/art/sigs/*.json: do not edit by hand)*/
+  Object.assign(SIGFX, {
+    f_e0: ['rise', 1, 0.7, 0.1], f_e1: ['fly', 0.6, 0.42, 0.4], f_e2: ['rise', 0.8, 0.56, 0.1], f_e3: ['drop', 0.5, 0.35, 1.8],
+    f_e3d: ['close', 1.8, 1.26, 1], f_e4: ['drop', 1.4, 0.98, 0.4], f_e5: ['close', 1.2, 0.84, 0.3], f_e6: ['fly', 1.4, 0.98, 0.2],
+    f_e7: ['rise', 0, 0, 0.23], f_e8: ['volley', 1.6, 1.12, 1], f_e9: ['rise', 0, 0, 0.1], f_e9d: ['fall', 1.6, 1.12, 0.7],
+    f_e10: ['fly', 1, 0.7, 0.2], f_e11: ['close', 0, 0, 0.9], f_e12: ['drop', 1, 0.7, 0.1], f_e13: ['pair', 1, 0.7, 0.7],
+    f_e14: ['rise', 1.6, 1.12, 0], f_e15: ['drop', 0, 0, 1.1], f_e15d: ['volley', 1.4, 0.98, 1.9], f_e16: ['volley', 1.6, 1.12, 0.33],
+    f_e17: ['close', 1.2, 0.84, 1.6], f_e18: ['drop', 1.6, 1.12, 0.5], f_e19: ['fall', 0.8, 0.56, 1.9], f_e20: ['pool', 1.2, 0.84, 1.3],
+    f_e21: ['close', 0.8, 0.56, 1.7], f_e22: ['rise', 0, 0, 1.2], f_e22d: ['pool', 1.8, 1.26, 0], f_e23: ['drop', 0.4, 0.28, 0.83],
+    f_e24: ['fall', 1.4, 0.98, 1.4], f_e25: ['close', 1.2, 0.84, 0], f_e26: ['drop', 1.4, 0.98, 0.7], f_e27: ['rise', 1.2, 0.84, 0.6],
+    f_e28: ['rise', 0.4, 0.28, 1.4], f_e28d: ['drop', 1.6, 1.12, 0.1], f_e29: ['drop', 1.2, 0.84, 0.4], f_m0: ['drop', 1.2, 0.84, 1.8],
+    f_m1: ['pool', 1, 0.7, 1.9], f_m2: ['fall', 1.4, 0.98, 0], f_m3: ['fly', 0.4, 0.28, 0], f_m3d: ['close', 1.6, 1.12, 1.2],
+    f_m4: ['volley', 1.2, 0.84, 1], f_m5: ['rise', 0.8, 0.56, 0.9], f_m6: ['volley', 0, 0, 0], f_m7: ['drop', 0.6, 0.42, 1.6],
+    f_m8: ['fly', 0, 0, 1.4], f_m9: ['close', 0.8, 0.56, 0.5], f_m9d: ['pool', 1.8, 1.26, 1.7], f_m10: ['fly', 1.2, 0.84, 1.4],
+    f_m11: ['close', 1, 0.7, 1.6], f_m12: ['pair', 0.4, 0.28, 0], f_m13: ['pair', 0.6, 0.42, 1.6], f_m14: ['fall', 0.4, 0.28, 0.1],
+    f_m15: ['close', 1, 0.7, 0.23], f_m15d: ['drop', 1.6, 1.12, 0.1], f_m16: ['drop', 1.2, 0.84, 0.9], f_m17: ['close', 1, 0.7, 0.63],
+    f_m18: ['rise', 0, 0, 1.73], f_m19: ['drop', 1, 0.7, 0.5], f_m20: ['pool', 1.4, 0.98, 0.1], f_m21: ['pair', 0.4, 0.28, 1.6],
+    f_m22: ['rise', 0.8, 0.56, 1.9], f_m22d: ['drop', 1.6, 1.12, 1.2], f_m23: ['fly', 0.4, 0.28, 1.2], f_m24: ['volley', 0.8, 0.56, 0.2],
+    f_m25: ['close', 1.6, 1.12, 0.5], f_m26: ['rise', 0.8, 0.56, 0.6], f_m27: ['fall', 1.4, 0.98, 0.3], f_m28: ['pair', 0, 0, 0.4],
+    f_m28d: ['pair', 1.4, 0.98, 0.13], f_m29: ['volley', 1, 0.7, 0], f_h0: ['rise', 1.2, 0.84, 0], f_h1: ['fly', 1.6, 1.12, 0],
+    f_h2: ['pool', 1, 0.7, 1.8], f_h3: ['drop', 0.6, 0.42, 0.6], f_h3d: ['pool', 1.8, 1.26, 0], f_h4: ['rise', 0.8, 0.56, 0.53],
+    f_h5: ['fly', 1, 0.7, 1.6], f_h6: ['drop', 1.2, 0.84, 0], f_h7: ['fly', 0.8, 0.56, 0.4], f_h8: ['close', 0.8, 0.56, 0.13],
+    f_h9: ['drop', 0.6, 0.42, 0], f_h9d: ['close', 1.6, 1.12, 0.6], f_h10: ['close', 1.4, 0.98, 1], f_h11: ['pair', 0.4, 0.28, 0.4],
+    f_h12: ['rise', 0.4, 0.28, 0], f_h13: ['drop', 1, 0.7, 0.1], f_h14: ['pool', 0.8, 0.56, 0], f_h15: ['drop', 0, 0, 0],
+    f_h15d: ['drop', 1.4, 0.98, 0.4], f_h16: ['rise', 1.4, 0.98, 0.3], f_h17: ['fly', 0, 0, 1.4], f_h18: ['close', 0.4, 0.28, 0],
+    f_h19: ['volley', 0, 0, 0], f_h20: ['rise', 1, 0.7, 1.53], f_h21: ['fall', 1.2, 0.84, 1.1], f_h22: ['pair', 0, 0, 0.23],
+    f_h22d: ['pair', 1.4, 0.98, 0], f_h23: ['drop', 0.4, 0.28, 1.9], f_h24: ['drop', 0.6, 0.42, 0.03], f_h25: ['pool', 1.6, 1.12, 0.4],
+    f_h26: ['rise', 0.6, 0.42, 1.6], f_h27: ['rise', 1.2, 0.84, 1.8], f_h28: ['fly', 0.8, 0.56, 1.7], f_h28d: ['pool', 1.8, 1.26, 0.2],
+    f_h29: ['close', 1.4, 0.98, 0.2] });
+  /*FSIGFX-END*/
+  const SIGLOOP = { fly: 1, fall: 1, pair: 1, volley: 1, pool: 1 };
   function sigArt(id) { const g = SIGFX[id]; if (!g || asked.has('sig:' + id) || typeof R === 'undefined' || !R.spriteAtlas) return; asked.add('sig:' + id);
     const a = 'sig_' + id + '_a', b = 'sig_' + id + '_b', loop = SIGLOOP[g[0]]; ATL[a] = [4, loop ? 3 : 4, loop ? 12 : 16, g[1]]; ATL[b] = [4, 4, 16, g[2]];
+    if (id[0] === 'f') { /* a fused Kin's: one small file holding both pictures and the sound (tools/art/sig_pack.py), so a fight fetches only its own */
+      const f = 'assets/sig_' + id + '.json', url = (typeof window !== 'undefined' && window.STRATAKIN_ASSETS && window.STRATAKIN_ASSETS[f]) || f;
+      fetch(url).then(r => { if (!r.ok) throw new Error(r.status); return r.json(); }).then(d => { R.spriteAtlas(a, d.a, 4, ATL[a][1], ATL[a][2], g[1]); R.spriteAtlas(b, d.b, 4, 4, 16, g[2]); if (d.s && UI.sampleData) UI.sampleData('sig_' + id, d.s); }).catch(err => { asked.delete('sig:' + id); console.warn('signature ' + id + ': ' + (err && err.message)); }); return; }
     R.spriteAtlas(a, 'assets/' + a + '.jpg', 4, ATL[a][1], ATL[a][2], g[1]); R.spriteAtlas(b, 'assets/' + b + '.jpg', 4, 4, 16, g[2]); if (UI.preload) UI.preload(['sig_' + id]); }
   const sigReady = (id) => !!SIGFX[id] && typeof R !== 'undefined' && R.spriteReady && G.fxArt !== false && R.spriteReady('sig_' + id + '_a') && R.spriteReady('sig_' + id + '_b');
   const tail = (u) => u > 0.82 ? (1 - u) / 0.18 : 1; /* a picture that plays once thins out at the end, whatever its last frame holds */
@@ -16249,6 +16318,7 @@ const Battle = (() => {
     drop(a, b, S, D, T) { T = T || 0.36; Sp(0, 0.8, a, (u) => [D[0], D[1] + 1.75, D[2], 2.3, tail(u)]); Sp(T, 0.9, b, () => [D[0], D[1] + 0.1, D[2], 2]); return T; }, /* it comes down on them from above */
     rise(a, b, S, D, T) { T = T || 0.3; Sp(0, 0.95, a, (u) => [D[0], D[1] + 1.75, D[2], 2.3, tail(u)]); Sp(T + 0.2, 0.9, b, () => [D[0], D[1] + 0.2, D[2], 2]); return T; }, /* it comes up from under them */
     close(a, b, S, D, T) { T = T || 0.6; Sp(0, T + 0.04, a, () => [D[0], D[1] + 0.25, D[2], 2.1]); Sp(T, 0.9, b, () => [D[0], D[1] + 0.25, D[2], 2.2]); return T; }, /* it shuts round them */
+    fly(a, b, S, D, T) { T = T || 0.5; Sp(0, T, a, (u) => { const p = lerp3(S, D, u); return [p[0], p[1] + 0.2 + Math.sin(u * Math.PI) * 0.5, p[2], 0.7 + 0.35 * u]; }, 18); Sp(T, 0.9, b, () => [D[0], D[1] + 0.2, D[2], 2.1]); return T; }, /* thrown across */
     fall(a, b, S, D, T) { T = T || 0.55; const H = 7; Sp(0, T, a, (u) => [D[0], D[1] + 1.45 + H * (1 - u) * (1 - u), D[2], 1.7], 20); Sp(T, 0.9, b, () => [D[0], D[1] + 0.2, D[2], 2.3]); return T; }, /* out of the sky, tail up */
     pair(a, b, S, D, T) { T = T || 0.55; const dx = D[0] - S[0], dz = D[2] - S[2], L = Math.hypot(dx, dz) || 1, px = -dz / L, pz = dx / L;
       for (const sd of [-1, 1]) Sp(0, T, a, (u) => { const p = lerp3(S, D, u), w = Math.sin(u * Math.PI) * 1.5 * sd; return [p[0] + px * w, p[1] + 0.3 + Math.sin(u * Math.PI) * 0.4, p[2] + pz * w, 0.75 + 0.2 * u]; }, 24);
@@ -16260,7 +16330,8 @@ const Battle = (() => {
   };
   function sigPlay(id, S, D, col) { const g = SIGFX[id], T = STAGE[g[0]]('sig_' + id + '_a', 'sig_' + id + '_b', S, D, g[4]);
     burst(D, col, 14, 2.4, T, 'ball', 0.12); burst(D, WHITE, 8, 1.8, T + 0.05, 'cube', 0.09); ringOut([D[0], D[1] - 0.5, D[2]], col, 16, 2.4, T, 0.5, 0.13);
-    const d = T - (g[3] || 0); soundDone = !!(UI.sample && UI.sample('sig_' + id, Math.max(0, d), 0.7, Math.max(0, -d))); return T; } /* the sound is slid so its big moment falls on the hit */
+    let d = T - (g[3] || 0); if (d < -0.7) d = 0; /* its loud moment is right at the end: play it from the start rather than cut most of it away */
+    soundDone = !!(UI.sample && UI.sample('sig_' + id, Math.max(0, d), 0.7, Math.max(0, -d))); return T; } /* the sound is slid so its big moment falls on the hit */
   const PAINT = {
     Flame(S, D, k, col) { const T = 0.42, big = Math.sqrt(k), hot = [1, 0.85, 0.3];
       fly('flame_ball', S, D, T, big, 0.34, 0.54, 0.3); /* the fireball, turning as it flies */
@@ -19043,6 +19114,10 @@ const UI = (() => {
     } catch (e) { rec.state = 'failed'; } return rec; }
   function sample(name, delay, vol, from) { /* from: start this many seconds into the recording */ const rec = sampleLoad(name); if (!soundOn) return rec.state === 'ready'; if (rec.state !== 'ready' || !audioCtx) return false;
     try { if (audioCtx.state === 'suspended') audioCtx.resume().catch(() => {}); const src = audioCtx.createBufferSource(), g = audioCtx.createGain(); src.buffer = rec.buf; g.gain.value = vol == null ? 0.5 : vol; src.connect(g); g.connect(audioCtx.destination); src.start(audioCtx.currentTime + (delay || 0), Math.max(0, from || 0)); return true; } catch (e) { return false; } }
+  // a sound handed over as data (the fused Kin's signature attacks carry their own, in one small file with their pictures)
+  function sampleData(name, b64) { if (SAMPLES.has(name) && SAMPLES.get(name).state !== 'failed') return; const rec = { buf: null, state: 'loading' }; SAMPLES.set(name, rec);
+    try { if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); const raw = atob(b64), u8 = new Uint8Array(raw.length); for (let i = 0; i < raw.length; i++) u8[i] = raw.charCodeAt(i);
+      audioCtx.decodeAudioData(u8.buffer).then(buf => { rec.buf = buf; rec.state = 'ready'; }).catch(() => { rec.state = 'failed'; }); } catch (e) { rec.state = 'failed'; } }
   function preload(names) { for (const n of names) sampleLoad(n); }
   function sfx(name) {
     if (!soundOn) return;
@@ -19992,7 +20067,7 @@ const UI = (() => {
   function lookLabel(t) { const e = document.getElementById('look'); if (e.textContent !== t) e.textContent = t; }
   function hideStart() { el.start.classList.add('hidden'); el.hud.classList.remove('hidden'); document.body.classList.toggle('desktop', !Controls.isTouch); }
   function loading(v) { el.loading.classList.toggle('hidden', !v); }
-  return { init, sfx, sample, preload, audio, toast, explain, renderHud, renderMinimap, renderHotbar, openPanel, closePanel, showStart, hideStart, showTutorial, lookLabel, setButtons, renderSky, loading, floater, floatersTick, get panelOpen() { return panelOpen; }, get soundOn() { return soundOn; } };
+  return { init, sfx, sample, sampleData, preload, audio, toast, explain, renderHud, renderMinimap, renderHotbar, openPanel, closePanel, showStart, hideStart, showTutorial, lookLabel, setButtons, renderSky, loading, floater, floatersTick, get panelOpen() { return panelOpen; }, get soundOn() { return soundOn; } };
 })();
 
 </script>

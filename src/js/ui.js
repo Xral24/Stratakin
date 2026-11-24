@@ -50,6 +50,10 @@ const UI = (() => {
     } catch (e) { rec.state = 'failed'; } return rec; }
   function sample(name, delay, vol, from) { /* from: start this many seconds into the recording */ const rec = sampleLoad(name); if (!soundOn) return rec.state === 'ready'; if (rec.state !== 'ready' || !audioCtx) return false;
     try { if (audioCtx.state === 'suspended') audioCtx.resume().catch(() => {}); const src = audioCtx.createBufferSource(), g = audioCtx.createGain(); src.buffer = rec.buf; g.gain.value = vol == null ? 0.5 : vol; src.connect(g); g.connect(audioCtx.destination); src.start(audioCtx.currentTime + (delay || 0), Math.max(0, from || 0)); return true; } catch (e) { return false; } }
+  // a sound handed over as data (the fused Kin's signature attacks carry their own, in one small file with their pictures)
+  function sampleData(name, b64) { if (SAMPLES.has(name) && SAMPLES.get(name).state !== 'failed') return; const rec = { buf: null, state: 'loading' }; SAMPLES.set(name, rec);
+    try { if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); const raw = atob(b64), u8 = new Uint8Array(raw.length); for (let i = 0; i < raw.length; i++) u8[i] = raw.charCodeAt(i);
+      audioCtx.decodeAudioData(u8.buffer).then(buf => { rec.buf = buf; rec.state = 'ready'; }).catch(() => { rec.state = 'failed'; }); } catch (e) { rec.state = 'failed'; } }
   function preload(names) { for (const n of names) sampleLoad(n); }
   function sfx(name) {
     if (!soundOn) return;
@@ -999,5 +1003,5 @@ const UI = (() => {
   function lookLabel(t) { const e = document.getElementById('look'); if (e.textContent !== t) e.textContent = t; }
   function hideStart() { el.start.classList.add('hidden'); el.hud.classList.remove('hidden'); document.body.classList.toggle('desktop', !Controls.isTouch); }
   function loading(v) { el.loading.classList.toggle('hidden', !v); }
-  return { init, sfx, sample, preload, audio, toast, explain, renderHud, renderMinimap, renderHotbar, openPanel, closePanel, showStart, hideStart, showTutorial, lookLabel, setButtons, renderSky, loading, floater, floatersTick, get panelOpen() { return panelOpen; }, get soundOn() { return soundOn; } };
+  return { init, sfx, sample, sampleData, preload, audio, toast, explain, renderHud, renderMinimap, renderHotbar, openPanel, closePanel, showStart, hideStart, showTutorial, lookLabel, setButtons, renderSky, loading, floater, floatersTick, get panelOpen() { return panelOpen; }, get soundOn() { return soundOn; } };
 })();

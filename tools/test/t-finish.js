@@ -9,7 +9,7 @@ const { open } = require('./harness');
       F.polls++; if (Battle.fxEntities().length + (Battle.fxSprites() || []).length > 0) F.fx++; }, 60); });
   let st = null; const t0 = Date.now(); let shot = false;
   while (Date.now() - t0 < 400000) { st = await ev(() => { const F = window.__fin; return { clicked: F.clicked, moves: F.moves, fx: F.fx, polls: F.polls, over: F.over, dt: Math.round(F.tOver - F.tClick), a: Battle.active }; });
-    if (st.clicked && st.fx > 0 && !shot) { shot = true; await page.screenshot({ path: '/home/claude/scratch/finish-blow.png' }); }
+    if (st.clicked && st.fx > 0 && !shot) { shot = true; try { await page.screenshot({ path: '/home/claude/scratch/finish-blow.png', timeout: 20000 }); } catch (e) { /* the picture is a nicety: the headless browser is sometimes too slow for it */ } }
     if (st.over || (!st.a && !st.clicked)) break; await page.waitForTimeout(300); }
   console.log(JSON.stringify(st));
   console.log(st.clicked && st.fx > 0 && st.over && st.dt > 900 ? 'PASS' : 'FAIL'); console.log('errors', JSON.stringify(h.errors || []));
