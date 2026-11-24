@@ -671,6 +671,19 @@ His go-ahead: the village kit, and "do the grass, the rock, the sand, the water"
 - Source GIFs are in `art/fx/fused/` (44 MB, not in git: the bundles are the product). Sounds in `art/sounds/sig/`.
 - Credits: 210 GIFs and 105 sounds, plus three resubmits: about 212.
 
+## The tyrants: no more teleporting, and an attack each of their own (Nov 24)
+- **"They just kind of jump from one place to another."** A contact move sends the attacker all the way to its target and back in half a second (`lunge` in `battle.js`). On a small Kin that is a dart; on a tyrant the size of a hay cart it read as teleporting, and it was NOT only the generated models: the code bodies did it too. Now anything big (`heavy(e)`: a boss, a legendary, an apex, the keep and final bosses, the Kinmaster's, or any body over 2.6 tall) takes ONE heavy step of at most a block and a half, 30% slower, and barely leaves the ground. The strike's own effect still lands on the target. Not seen in motion: the headless browser gives a frame every three seconds.
+- **Six tyrant signatures** (his idea: "tailored to them, like Bigmouth, something that laughs"), keyed by the body, in `SIGS` (`kin.js`) with no element of their own (a tyrant's is whatever his village made him: `sigFor` fills it in):
+  - Keychain's kind (x_tyr_liz): **Lock and Key**, a gold padlock shuts round you and the key turns. Goes through Guard.
+  - Bigmouth's kind (x_tyr_toad): **Belly Laugh**, he laughs at you in rings of sound and feels better for it (drain). A new staging, `shout`: the picture comes out of the ATTACKER and the hit is felt over there.
+  - The rock apes, Stonewall among them (x_tyrant): **Boulder Clap**, two fists of rock with you between. Crits.
+  - The Moon's glass jellyfish (x_tyr_moon): **Glass Sting**. The Halo's lava bison (x_tyr_halo): **Cinder Stampede**. The moray of Atlantis (x_tyr_sea): **Reef Coil**.
+- Power 78 to 84 plus 8 a stage: about a quarter harder than their best ordinary move, with the same two turns of rest. Deliberately well under the legendaries: the first village's tyrant is a new player's first real fight.
+- Made with the fused Kin's pipeline (`tools/art/sigs/tyrant.txt`, bundles `assets/sig_x_ty*.json`). The first laughing-mouth prompt was refused by the picture model's safety filter (a wide open mouth with a tongue); a "friendly round cartoon toad face, laughing" went through.
+- Test `t-tyrsig.js`. `first`, `boss`, `holdup2`, `tyrant` pass.
+- Not done: the Kinmaster and his own Kin, the keep and citadel bosses, the Warden. They have no signatures yet.
+- Credits: 13 GIFs and 6 sounds, about 13.
+
 ## Still to do
 UI polish as feedback comes in. Card battle screen still used for scripted encounters (raids at the walls, thief, citadel duel, holds) and the snare mini-game; converting those to live is the next big step if wanted. (Old list: train/ships, combat animation, eggs, avatar hair/paint, buddy WEAR cosmetics, Silas and Finch, UI polish (item icons), quality toggles in settings (state.shadows, state.grassQuality, state.dprCap).
 

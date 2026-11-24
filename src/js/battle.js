@@ -549,12 +549,13 @@ const Battle = (() => {
     f_h19: ['volley', 0, 0, 0], f_h20: ['rise', 1, 0.7, 1.53], f_h21: ['fall', 1.2, 0.84, 1.1], f_h22: ['pair', 0, 0, 0.23],
     f_h22d: ['pair', 1.4, 0.98, 0], f_h23: ['drop', 0.4, 0.28, 1.9], f_h24: ['drop', 0.6, 0.42, 0.03], f_h25: ['pool', 1.6, 1.12, 0.4],
     f_h26: ['rise', 0.6, 0.42, 1.6], f_h27: ['rise', 1.2, 0.84, 1.8], f_h28: ['fly', 0.8, 0.56, 1.7], f_h28d: ['pool', 1.8, 1.26, 0.2],
-    f_h29: ['close', 1.4, 0.98, 0.2] });
+    f_h29: ['close', 1.4, 0.98, 0.2], x_tyr_liz: ['close', 1.4, 0.98, 0.6], x_tyr_toad: ['shout', 0.8, 0.56, 0.4], x_tyrant: ['close', 1.6, 1.12, 0],
+    x_tyr_moon: ['drop', 0.8, 0.56, 1.9], x_tyr_halo: ['fly', 1.4, 0.98, 1.8], x_tyr_sea: ['close', 1.4, 0.98, 0] });
   /*FSIGFX-END*/
   const SIGLOOP = { fly: 1, fall: 1, pair: 1, volley: 1, pool: 1 };
   function sigArt(id) { const g = SIGFX[id]; if (!g || asked.has('sig:' + id) || typeof R === 'undefined' || !R.spriteAtlas) return; asked.add('sig:' + id);
     const a = 'sig_' + id + '_a', b = 'sig_' + id + '_b', loop = SIGLOOP[g[0]]; ATL[a] = [4, loop ? 3 : 4, loop ? 12 : 16, g[1]]; ATL[b] = [4, 4, 16, g[2]];
-    if (id[0] === 'f') { /* a fused Kin's: one small file holding both pictures and the sound (tools/art/sig_pack.py), so a fight fetches only its own */
+    if (id[0] === 'f' || id.indexOf('x_ty') === 0) { /* a fused Kin's: one small file holding both pictures and the sound (tools/art/sig_pack.py), so a fight fetches only its own */
       const f = 'assets/sig_' + id + '.json', url = (typeof window !== 'undefined' && window.STRATAKIN_ASSETS && window.STRATAKIN_ASSETS[f]) || f;
       fetch(url).then(r => { if (!r.ok) throw new Error(r.status); return r.json(); }).then(d => { R.spriteAtlas(a, d.a, 4, ATL[a][1], ATL[a][2], g[1]); R.spriteAtlas(b, d.b, 4, 4, 16, g[2]); if (d.s && UI.sampleData) UI.sampleData('sig_' + id, d.s); }).catch(err => { asked.delete('sig:' + id); console.warn('signature ' + id + ': ' + (err && err.message)); }); return; }
     R.spriteAtlas(a, 'assets/' + a + '.jpg', 4, ATL[a][1], ATL[a][2], g[1]); R.spriteAtlas(b, 'assets/' + b + '.jpg', 4, 4, 16, g[2]); if (UI.preload) UI.preload(['sig_' + id]); }
@@ -564,6 +565,7 @@ const Battle = (() => {
     drop(a, b, S, D, T) { T = T || 0.36; Sp(0, 0.8, a, (u) => [D[0], D[1] + 1.75, D[2], 2.3, tail(u)]); Sp(T, 0.9, b, () => [D[0], D[1] + 0.1, D[2], 2]); return T; }, /* it comes down on them from above */
     rise(a, b, S, D, T) { T = T || 0.3; Sp(0, 0.95, a, (u) => [D[0], D[1] + 1.75, D[2], 2.3, tail(u)]); Sp(T + 0.2, 0.9, b, () => [D[0], D[1] + 0.2, D[2], 2]); return T; }, /* it comes up from under them */
     close(a, b, S, D, T) { T = T || 0.6; Sp(0, T + 0.04, a, () => [D[0], D[1] + 0.25, D[2], 2.1]); Sp(T, 0.9, b, () => [D[0], D[1] + 0.25, D[2], 2.2]); return T; }, /* it shuts round them */
+    shout(a, b, S, D, T) { T = T || 0.55; Sp(0, 0.8, a, (u) => [S[0], S[1] + 0.5, S[2], 1.3 + 0.9 * u, tail(u)]); Sp(T, 0.9, b, () => [D[0], D[1] + 0.2, D[2], 2.2]); return T; }, /* it comes out of the attacker, and is felt over there */
     fly(a, b, S, D, T) { T = T || 0.5; Sp(0, T, a, (u) => { const p = lerp3(S, D, u); return [p[0], p[1] + 0.2 + Math.sin(u * Math.PI) * 0.5, p[2], 0.7 + 0.35 * u]; }, 18); Sp(T, 0.9, b, () => [D[0], D[1] + 0.2, D[2], 2.1]); return T; }, /* thrown across */
     fall(a, b, S, D, T) { T = T || 0.55; const H = 7; Sp(0, T, a, (u) => [D[0], D[1] + 1.45 + H * (1 - u) * (1 - u), D[2], 1.7], 20); Sp(T, 0.9, b, () => [D[0], D[1] + 0.2, D[2], 2.3]); return T; }, /* out of the sky, tail up */
     pair(a, b, S, D, T) { T = T || 0.55; const dx = D[0] - S[0], dz = D[2] - S[2], L = Math.hypot(dx, dz) || 1, px = -dz / L, pz = dx / L;
@@ -621,7 +623,12 @@ const Battle = (() => {
   function ctr(e, k) { return [e.x, e.y + (e.model.height || 1) * (e.model.scale || 1) * k, e.z]; }
   function burst(c, col, n, sp, delay, shape, size) { for (let i = 0; i < n; i++) { const v = [rnd(sp), Math.random() * sp * 1.2, rnd(sp)], sz = (size || 0.14) * (0.6 + Math.random() * 0.8), cc = Math.random() < 0.3 ? mixc(col, WHITE, 0.6) : col; Pt(delay, 0.4 + Math.random() * 0.25, cc, shape || 'cube', (u) => [c[0] + v[0] * u, c[1] + v[1] * u - 2.2 * u * u, c[2] + v[2] * u, sz * (1 - u), u * 9]); } }
   function ringOut(c, col, n, rad, delay, dur, size) { for (let i = 0; i < n; i++) { const a = i / n * Math.PI * 2; Pt(delay, dur, col, 'ball', (u) => { const r = rad * (1 - (1 - u) * (1 - u)); return [c[0] + Math.cos(a) * r, c[1], c[2] + Math.sin(a) * r, (size || 0.16) * (1 - u * 0.8), a]; }); } }
-  function lunge(e, to, dist, dur, hop) { const dx = to.x - e.x, dz = to.z - e.z, d = Math.hypot(dx, dz) || 1; lunges.push({ e, t: 0, dur, hop: hop || 0, bx: e.x, bz: e.z, by: e.y, dx: dx / d * Math.min(dist, d - 0.6), dz: dz / d * Math.min(dist, d - 0.6) }); }
+  // A contact move sends the attacker to its target and back in half a second. On a small Kin that is a dart; on a tyrant the size of a hay cart it
+  // was a body teleporting across the square and back (Alexander: "they just kind of jump from one place to another"). The big ones now put their
+  // weight into ONE heavy step towards you, slower, hardly leaving the ground: the strike's own effect still lands on the target.
+  const heavy = (e) => !!e && (e.isBoss || e.isLegend || e.isApex || e.keepBoss || e.finalBoss || e.kinmaster || ((e.model && e.model.height) || 1) * (e.scale || 1) > 2.6);
+  function lunge(e, to, dist, dur, hop) { if (heavy(e)) { dist = Math.min(dist, 1.5); dur = Math.max(dur, 0.6) * 1.3; hop = (hop || 0) * 0.25; }
+    const dx = to.x - e.x, dz = to.z - e.z, d = Math.hypot(dx, dz) || 1; lunges.push({ e, t: 0, dur, hop: hop || 0, bx: e.x, bz: e.z, by: e.y, dx: dx / d * Math.min(dist, d - 0.6), dz: dz / d * Math.min(dist, d - 0.6) }); }
   const ELFX = {
     Flame(S, D, k, col) { const hot = [1, 0.85, 0.3]; for (let i = 0; i < 14 * k; i++) { const o = [rnd(0.25), rnd(0.25), rnd(0.25)], sz = 0.14 + i * 0.012; Pt(i * 0.022, 0.36, i % 3 ? col : hot, 'ball', (u) => { const p = lerp3(S, D, u); return [p[0] + o[0] * u * 2, p[1] + o[1] * u * 2 + Math.sin(u * Math.PI) * 0.3, p[2] + o[2] * u * 2, sz * (0.6 + u), u * 6]; }); }
       const T = 0.42; burst(D, col, 16 * k, 1.8, T, 'ball', 0.2); for (let i = 0; i < 12 * k; i++) { const a = Math.random() * 6.28, r = Math.random() * 0.5; Pt(T + Math.random() * 0.25, 0.55, i % 2 ? hot : col, 'ball', (u) => [D[0] + Math.cos(a + u * 3) * r * (1 - u), D[1] - 0.4 + u * 2.4, D[2] + Math.sin(a + u * 3) * r * (1 - u), 0.3 * (1 - u), a]); } return T; },

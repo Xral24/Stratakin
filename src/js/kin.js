@@ -664,6 +664,13 @@ const KIN = (() => {
     lw_ring: { name: 'Closing Ring', elem: 'Spark', power: 112, acc: 0.92, pierce: true, desc: 'The two halves of the ring meet. Goes through Guard.' },
     x_mantle: { name: 'Mantle Breach', elem: 'Void', power: 116, acc: 0.88, ail: 'curse', ailP: 0.5, desc: 'The ground opens. May curse.' },
     x_rex: { name: 'Ember Maw', elem: 'Flame', power: 120, acc: 0.86, ail: 'burn', ailP: 0.5, desc: 'Jaws of fire. May burn.' },
+    // the tyrants: not yours to have, but each kind fights like itself. No element of their own here: a tyrant's is whatever his village made him.
+    x_tyr_liz: { name: 'Lock and Key', power: 80, acc: 0.9, pierce: true, desc: 'Keychain locks you in. Goes through Guard.' },
+    x_tyr_toad: { name: 'Belly Laugh', power: 78, acc: 0.92, drain: true, desc: 'Bigmouth laughs at you, and feels better for it. Heals a third of the damage dealt.' },
+    x_tyrant: { name: 'Boulder Clap', power: 84, acc: 0.86, crit: true, desc: 'Two fists of rock, with you between. Crits often.' },
+    x_tyr_moon: { name: 'Glass Sting', power: 80, acc: 0.9, ail: 'shock', ailP: 0.5, desc: 'Its long arms come down. May shock.' },
+    x_tyr_halo: { name: 'Cinder Stampede', power: 84, acc: 0.86, ail: 'burn', ailP: 0.5, desc: 'It lowers its head and comes. May burn.' },
+    x_tyr_sea: { name: 'Reef Coil', power: 80, acc: 0.9, pierce: true, desc: 'It winds round you and tightens. Goes through Guard.' },
     x_mosa: { name: 'Drowning Deep', elem: 'Tide', power: 112, acc: 0.92, drain: true, desc: 'A whirlpool, then the sea itself. Heals a third of the damage dealt.' },
   };
   // ...and the fused Kin: every recipe's Kin has one too, made from its two parents. id 'f_<planet's first letter><recipe number>', with a 'd' for the dark path of a fork.
@@ -702,7 +709,7 @@ const KIN = (() => {
   function fusedSig(sp) { const rc = sp && sp.fusion && sp.recipe; if (!rc || rc.body == null) return null; const id = 'f_' + rc.body[0] + rc.i + (rc.fork ? 'd' : ''), g = FSIG[id]; if (!g) return null;
     const fl = g[1], m = { name: g[0], elem: dominant(sp.elem, 1)[0], kind: 'spec', fx: 'own', sig: id, power: rc.i < 10 ? 88 : rc.i < 20 ? 92 : rc.i < 27 ? 96 : 100, acc: fl === 'crit' ? 0.88 : fl === 'pierce' || fl === 'drain' ? 0.92 : 0.9, desc: 'Its own. ' + FSIG_DESC[fl] };
     if (fl === 'crit' || fl === 'pierce' || fl === 'drain') m[fl] = true; else { m.ail = fl; m.ailP = 0.45; } return m; }
-  function sigFor(sp) { const id = sp ? nativeId(sp) : null, g = id && SIGS[id]; return g ? Object.assign({ kind: 'spec', fx: 'own', sig: id }, g) : fusedSig(sp); }
+  function sigFor(sp) { const id = sp ? nativeId(sp) : null, g = id && SIGS[id]; return g ? Object.assign({ kind: 'spec', fx: 'own', sig: id, elem: dominant(sp.elem, 1)[0] }, g) : fusedSig(sp); }
   function techFor(k) { const el = dominant(k.sp.elem, 1)[0]; const mine = TECHLIST.filter(t => t.elem === el); return mine[((k.sp.seed >>> 7) % 997) % mine.length].name; }
   function techByName(nm) { return TECH[nm] || null; }
   function castMove(el, idx, st, bonus) { const c = CAST[el][idx % 4]; const m = { name: c[0], elem: el, kind: 'spec', power: Math.round((58 + 10 * st + (bonus || 0)) * c[2]), acc: c[3], fx: c[1] }; if (c[4]) { if (AILS[c[4]]) { m.ail = c[4]; m.ailP = 0.5; } else m[c[4]] = true; m.desc = FLAGDESC[c[4]]; }

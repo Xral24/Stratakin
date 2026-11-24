@@ -152,5 +152,11 @@
   "assets/sig_f_m27.json": "/_blob/a11f6104acad5be5775c59e2b432d518",
   "assets/sig_f_m28.json": "/_blob/d70c91878d278f07be26435c85322aaa",
   "assets/sig_f_m28d.json": "/_blob/1e0c4f178e9c9664c5c5d59d80498af7",
-  "assets/sig_f_m29.json": "/_blob/05cedb571c8ea2a757906280568e7782"
+  "assets/sig_f_m29.json": "/_blob/05cedb571c8ea2a757906280568e7782",
+  "assets/sig_x_tyr_halo.json": "/_blob/d396df6766abb9fca6f0020e73daaabd",
+  "assets/sig_x_tyr_liz.json": "/_blob/0dfed3662c07bebc8393f6a53568ec86",
+  "assets/sig_x_tyr_moon.json": "/_blob/16dc3001a487d670417a53b87329f938",
+  "assets/sig_x_tyr_sea.json": "/_blob/b4d0daeb180baa5dee9783482055cc67",
+  "assets/sig_x_tyr_toad.json": "/_blob/bfe5803a188e758d658cf2484f940307",
+  "assets/sig_x_tyrant.json": "/_blob/bbea790962d77c3025e751f0dad465ce"
 }
