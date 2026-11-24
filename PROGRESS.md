@@ -684,6 +684,15 @@ His go-ahead: the village kit, and "do the grass, the rock, the sand, the water"
 - Not done: the Kinmaster and his own Kin, the keep and citadel bosses, the Warden. They have no signatures yet.
 - Credits: 13 GIFs and 6 sounds, about 13.
 
+## The other bosses' signatures (Nov 24)
+- Five more, on Alexander's "Go": the Kinmaster's Vexmaw (**Twelve Chains**, one for every hold he took; curse), his first, Gravemaw (**Grave Fire**; burn), the Core Wardens (**Basalt Cage**; crits), a hold's warlord (**Warlord's Standard**; goes through Guard) and the thing in the lab (**Unstable Splice**; poison).
+- **Three ways a signature is keyed now** (`sigFor(sp, k)` in `kin.js`): `k.sigId` on one Kin (the warlord: his Kin is an ordinary species, so the attack sits on that one Kin, set in `keeps.js`), `sp.sigId` on a species built in code (Vexmaw in `campaign.js`, Gravemaw in `citadel.js`, the lab's in `lab.js`), or the body it wears (`nativeId`: legendaries, tyrants, wardens).
+- Powers are lower in the table than they look in play: these Kin grow through three stages and 8 is added a stage (Vexmaw 100 in the table, 124 in the fight).
+- `battle.js` `SIGOWN` lists the first thirteen (separate pictures, sounds.json); everything else is fetched as one bundle. `heavy()` now takes in the wardens, the lab's thing and the Kinmaster's first.
+- Table `tools/art/sigs/boss.txt`. Total signatures: 13 legendary, 105 fused, 6 tyrant, 5 boss = 129.
+- Not given one: the road lieutenants (ordinary guards) and Thunderhoof.
+- Credits: 10 GIFs and 5 sounds, 10.
+
 ## Still to do
 UI polish as feedback comes in. Card battle screen still used for scripted encounters (raids at the walls, thief, citadel duel, holds) and the snare mini-game; converting those to live is the next big step if wanted. (Old list: train/ships, combat animation, eggs, avatar hair/paint, buddy WEAR cosmetics, Silas and Finch, UI polish (item icons), quality toggles in settings (state.shadows, state.grassQuality, state.dprCap).
 

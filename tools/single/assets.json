@@ -158,5 +158,10 @@
   "assets/sig_x_tyr_moon.json": "/_blob/16dc3001a487d670417a53b87329f938",
   "assets/sig_x_tyr_sea.json": "/_blob/b4d0daeb180baa5dee9783482055cc67",
   "assets/sig_x_tyr_toad.json": "/_blob/bfe5803a188e758d658cf2484f940307",
-  "assets/sig_x_tyrant.json": "/_blob/bbea790962d77c3025e751f0dad465ce"
+  "assets/sig_x_tyrant.json": "/_blob/bbea790962d77c3025e751f0dad465ce",
+  "assets/sig_x_vexmaw.json": "/_blob/4b1e6805c0f4ffce13582c6b5ee119b8",
+  "assets/sig_x_gravemaw.json": "/_blob/5eb8777a37d35a8fdc63b8382a2ada63",
+  "assets/sig_x_warden.json": "/_blob/c8145781bef655b27be925fd1efc8f45",
+  "assets/sig_x_warlord.json": "/_blob/53da1db07df7ba4a2eafa8fac4f44eb0",
+  "assets/sig_x_splice.json": "/_blob/b55489d998fb8d3b99d19888b9525d3a"
 }

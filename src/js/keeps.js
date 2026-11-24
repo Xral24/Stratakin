@@ -186,7 +186,7 @@ const Keeps = (() => {
           const sp = warlordSpecies(k); if (!sp) continue;
           const zl = Wild.zoneLevel(k.x, k.y + 1, k.z, { layer: 'Surface' }, G.trainerLevel || 1);
           const nT = sites().filter(h => taken(h.id)).length, lv = Math.min(72, 56 + nT * 4); /* the holds come after the cities on the ladder: 56 for the first you take, then 60, 64, 68, 72 */
-          const e = tw ? Wild.makeEntity(sp, lv, k.x + 0.5, k.y + 16, k.z + 4.5, { senseR: 6 }) : Wild.makeEntity(sp, lv, k.x + 0.5, k.y + 1, k.z - 1 + 0.5, { senseR: 6 }); e.keepBoss = k.id; e.elite = true; e.speed = 0; e.patrol = tw ? { ax: k.x - 1.5, az: k.z + 4.5, bx: k.x + 2.5, bz: k.z + 4.5, period: 10, phase: 0 } : { ax: k.x - 3.5, az: k.z - 1.5, bx: k.x + 4.5, bz: k.z - 1.5, period: 10, phase: 0 };
+          const e = tw ? Wild.makeEntity(sp, lv, k.x + 0.5, k.y + 16, k.z + 4.5, { senseR: 6 }) : Wild.makeEntity(sp, lv, k.x + 0.5, k.y + 1, k.z - 1 + 0.5, { senseR: 6 }); e.keepBoss = k.id; e.kin.sigId = 'x_warlord'; /* the warlord's Kin is an ordinary one: the attack is his, so it sits on this Kin and not on its kind */ e.elite = true; e.speed = 0; e.patrol = tw ? { ax: k.x - 1.5, az: k.z + 4.5, bx: k.x + 2.5, bz: k.z + 4.5, period: 10, phase: 0 } : { ax: k.x - 3.5, az: k.z - 1.5, bx: k.x + 4.5, bz: k.z - 1.5, period: 10, phase: 0 };
           Wild.list.push(e); bosses[k.id] = e; if (!tw && Combat.forHold(k.id).length) UI.toast('His warriors are down. The warlord comes off the dais with his Kin.', 'bad');
           if (!s['seen_' + k.id]) { s['seen_' + k.id] = true; UI.toast(`${k.name}: one of the Kinmaster's keeps. His warlord holds the Dark Fusion Table inside.`, 'bad'); }
         }

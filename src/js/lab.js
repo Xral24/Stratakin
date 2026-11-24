@@ -91,7 +91,7 @@ const Lab = (() => {
     const st = story(); const seed = U.combine(world.seed, 0x1AB0);
     const sp = KIN.species(seed, st.elems, 6, { primary: st.elems[0], shape: st.shape, total: 540, size: 1.7, evolveAt: [9999, 9999], neon: world.preset.id !== 'earth' });
     const e = new Array(9).fill(0.02); for (const el of st.elems) e[KIN.EI[el]] = 0.3; sp.elem = e.map(v => v / e.reduce((a, b) => a + b, 0));
-    sp.names = [st.bossName, st.bossName, st.bossName]; sp.feat = { horns: true, wings: st.shape !== 'bird', spikes: true, tail: true, ears: true, crest: true, bigEyes: true, stripes: true, spots: false, armor: true, bigTail: true }; sp.rarity = 3; sp.splice = true;
+    sp.names = [st.bossName, st.bossName, st.bossName]; sp.feat = { horns: true, wings: st.shape !== 'bird', spikes: true, tail: true, ears: true, crest: true, bigEyes: true, stripes: true, spots: false, armor: true, bigTail: true }; sp.rarity = 3; sp.splice = true; sp.sigId = 'x_splice';
     if (world.preset.id === 'earth') sp.colors = { body: '#3a2a4a', belly: '#c45cff', accent: '#ffe24a', dark: '#1a1020', eye: '#ff6a1f' };
     return sp;
   }

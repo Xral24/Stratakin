@@ -125,7 +125,7 @@ const Citadel = (() => {
   function talk(n, say) {
     return Cine.tell('The Kinmaster', n, { 2: [{ flash: ['Isla rode before she could walk.', 'The seabed dropped in the night. The city went with it.', 'Skerry came back to the ring. Isla did not.', 'So he bent the Concord until it stopped asking.'], mood: 'memory' }] }, ['So. You put my crystal back together. Do you know how long it took me to break it?', 'Twelve holds. Twelve. Even the one in the Core. And every one of those fools I bound, free again, singing about you in their villages.', 'They will have told you about Isla, under the sea. They tell everyone. They never say what it is to trust a thing, and have it turn over in its sleep.', 'No more puzzles, no more warlords. Just me, and what I have left.'], () => {
       const t = C().throne; const lv = 92; /* his first comes out ten under this, at 82 */
-      const first = KIN.species(U.combine(0x0BAD, 2), ['Void'], 0, { primary: 'Flame', shape: 'quadruped', total: 680, rarity: 4 }); first.names = ['Gravemaw', 'Gravemaw', 'Gravemaw']; first.noFuse = true; first.colors = { body: '#2a0a10', belly: '#ff5a1f', accent: '#ff9f2a', dark: '#120408', eye: '#ffe08a' };
+      const first = KIN.species(U.combine(0x0BAD, 2), ['Void'], 0, { primary: 'Flame', shape: 'quadruped', total: 680, rarity: 4 }); first.names = ['Gravemaw', 'Gravemaw', 'Gravemaw']; first.noFuse = true; first.sigId = 'x_gravemaw'; first.colors = { body: '#2a0a10', belly: '#ff5a1f', accent: '#ff9f2a', dark: '#120408', eye: '#ffe08a' };
       const e1 = Wild.makeEntity(first, lv - 10, t.x - 5 + 0.5, t.y, t.z + 0.5, { senseR: 12, elite: true }); e1.citadelFirst = true; e1.kinmaster = false; Wild.list.push(e1);
       Battle.start(e1, false);
     });

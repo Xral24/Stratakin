@@ -550,12 +550,14 @@ const Battle = (() => {
     f_h22d: ['pair', 1.4, 0.98, 0], f_h23: ['drop', 0.4, 0.28, 1.9], f_h24: ['drop', 0.6, 0.42, 0.03], f_h25: ['pool', 1.6, 1.12, 0.4],
     f_h26: ['rise', 0.6, 0.42, 1.6], f_h27: ['rise', 1.2, 0.84, 1.8], f_h28: ['fly', 0.8, 0.56, 1.7], f_h28d: ['pool', 1.8, 1.26, 0.2],
     f_h29: ['close', 1.4, 0.98, 0.2], x_tyr_liz: ['close', 1.4, 0.98, 0.6], x_tyr_toad: ['shout', 0.8, 0.56, 0.4], x_tyrant: ['close', 1.6, 1.12, 0],
-    x_tyr_moon: ['drop', 0.8, 0.56, 1.9], x_tyr_halo: ['fly', 1.4, 0.98, 1.8], x_tyr_sea: ['close', 1.4, 0.98, 0] });
+    x_tyr_moon: ['drop', 0.8, 0.56, 1.9], x_tyr_halo: ['fly', 1.4, 0.98, 1.8], x_tyr_sea: ['close', 1.4, 0.98, 0], x_vexmaw: ['close', 1.2, 0.84, 0],
+    x_gravemaw: ['rise', 0.6, 0.42, 1.7], x_warden: ['rise', 1.6, 1.12, 0], x_warlord: ['drop', 1.4, 0.98, 1.9], x_splice: ['fly', 0.8, 0.56, 0.2] });
   /*FSIGFX-END*/
+  const SIGOWN = { l_core: 1, l_sky: 1, l_amber: 1, lm_crater: 1, lm_core: 1, lm_sky: 1, lh_core: 1, lh_sky: 1, lw_selenaut: 1, lw_ring: 1, x_mantle: 1, x_rex: 1, x_mosa: 1 }; /* the first thirteen keep their separate pictures and their place in sounds.json; everything since is one bundle a Kin */
   const SIGLOOP = { fly: 1, fall: 1, pair: 1, volley: 1, pool: 1 };
   function sigArt(id) { const g = SIGFX[id]; if (!g || asked.has('sig:' + id) || typeof R === 'undefined' || !R.spriteAtlas) return; asked.add('sig:' + id);
     const a = 'sig_' + id + '_a', b = 'sig_' + id + '_b', loop = SIGLOOP[g[0]]; ATL[a] = [4, loop ? 3 : 4, loop ? 12 : 16, g[1]]; ATL[b] = [4, 4, 16, g[2]];
-    if (id[0] === 'f' || id.indexOf('x_ty') === 0) { /* a fused Kin's: one small file holding both pictures and the sound (tools/art/sig_pack.py), so a fight fetches only its own */
+    if (!SIGOWN[id]) { /* a fused Kin's: one small file holding both pictures and the sound (tools/art/sig_pack.py), so a fight fetches only its own */
       const f = 'assets/sig_' + id + '.json', url = (typeof window !== 'undefined' && window.STRATAKIN_ASSETS && window.STRATAKIN_ASSETS[f]) || f;
       fetch(url).then(r => { if (!r.ok) throw new Error(r.status); return r.json(); }).then(d => { R.spriteAtlas(a, d.a, 4, ATL[a][1], ATL[a][2], g[1]); R.spriteAtlas(b, d.b, 4, 4, 16, g[2]); if (d.s && UI.sampleData) UI.sampleData('sig_' + id, d.s); }).catch(err => { asked.delete('sig:' + id); console.warn('signature ' + id + ': ' + (err && err.message)); }); return; }
     R.spriteAtlas(a, 'assets/' + a + '.jpg', 4, ATL[a][1], ATL[a][2], g[1]); R.spriteAtlas(b, 'assets/' + b + '.jpg', 4, 4, 16, g[2]); if (UI.preload) UI.preload(['sig_' + id]); }
@@ -626,7 +628,7 @@ const Battle = (() => {
   // A contact move sends the attacker to its target and back in half a second. On a small Kin that is a dart; on a tyrant the size of a hay cart it
   // was a body teleporting across the square and back (Alexander: "they just kind of jump from one place to another"). The big ones now put their
   // weight into ONE heavy step towards you, slower, hardly leaving the ground: the strike's own effect still lands on the target.
-  const heavy = (e) => !!e && (e.isBoss || e.isLegend || e.isApex || e.keepBoss || e.finalBoss || e.kinmaster || ((e.model && e.model.height) || 1) * (e.scale || 1) > 2.6);
+  const heavy = (e) => !!e && (e.isBoss || e.isLegend || e.isApex || e.keepBoss || e.finalBoss || e.kinmaster || e.citadelFirst || e.isWarden || e.isLabBoss || ((e.model && e.model.height) || 1) * (e.scale || 1) > 2.6);
   function lunge(e, to, dist, dur, hop) { if (heavy(e)) { dist = Math.min(dist, 1.5); dur = Math.max(dur, 0.6) * 1.3; hop = (hop || 0) * 0.25; }
     const dx = to.x - e.x, dz = to.z - e.z, d = Math.hypot(dx, dz) || 1; lunges.push({ e, t: 0, dur, hop: hop || 0, bx: e.x, bz: e.z, by: e.y, dx: dx / d * Math.min(dist, d - 0.6), dz: dz / d * Math.min(dist, d - 0.6) }); }
   const ELFX = {

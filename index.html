@@ -7139,6 +7139,12 @@ const KIN = (() => {
     x_tyr_moon: { name: 'Glass Sting', power: 80, acc: 0.9, ail: 'shock', ailP: 0.5, desc: 'Its long arms come down. May shock.' },
     x_tyr_halo: { name: 'Cinder Stampede', power: 84, acc: 0.86, ail: 'burn', ailP: 0.5, desc: 'It lowers its head and comes. May burn.' },
     x_tyr_sea: { name: 'Reef Coil', power: 80, acc: 0.9, pierce: true, desc: 'It winds round you and tightens. Goes through Guard.' },
+    // the other bosses (these Kin grow through three stages, so 8 a stage is added three times: the numbers here are low on purpose). x_vexmaw and x_gravemaw are the Kinmaster's two (sp.sigId), x_splice the thing in the lab (sp.sigId), x_warlord a hold's warlord (kin.sigId), x_warden by its body.
+    x_vexmaw: { name: 'Twelve Chains', power: 100, acc: 0.9, ail: 'curse', ailP: 0.6, desc: 'One for every hold he took. May curse.' },
+    x_gravemaw: { name: 'Grave Fire', power: 92, acc: 0.9, ail: 'burn', ailP: 0.5, desc: 'Hands of fire out of the ground. May burn.' },
+    x_warden: { name: 'Basalt Cage', power: 88, acc: 0.88, crit: true, desc: 'The columns stand up round you. Crits often.' },
+    x_warlord: { name: "Warlord's Standard", power: 84, acc: 0.92, pierce: true, desc: 'He plants his banner in you. Goes through Guard.' },
+    x_splice: { name: 'Unstable Splice', power: 90, acc: 0.9, ail: 'poison', ailP: 0.5, desc: 'It should not hold together, and does not. May poison.' },
     x_mosa: { name: 'Drowning Deep', elem: 'Tide', power: 112, acc: 0.92, drain: true, desc: 'A whirlpool, then the sea itself. Heals a third of the damage dealt.' },
   };
   // ...and the fused Kin: every recipe's Kin has one too, made from its two parents. id 'f_<planet's first letter><recipe number>', with a 'd' for the dark path of a fork.
@@ -7177,7 +7183,7 @@ const KIN = (() => {
   function fusedSig(sp) { const rc = sp && sp.fusion && sp.recipe; if (!rc || rc.body == null) return null; const id = 'f_' + rc.body[0] + rc.i + (rc.fork ? 'd' : ''), g = FSIG[id]; if (!g) return null;
     const fl = g[1], m = { name: g[0], elem: dominant(sp.elem, 1)[0], kind: 'spec', fx: 'own', sig: id, power: rc.i < 10 ? 88 : rc.i < 20 ? 92 : rc.i < 27 ? 96 : 100, acc: fl === 'crit' ? 0.88 : fl === 'pierce' || fl === 'drain' ? 0.92 : 0.9, desc: 'Its own. ' + FSIG_DESC[fl] };
     if (fl === 'crit' || fl === 'pierce' || fl === 'drain') m[fl] = true; else { m.ail = fl; m.ailP = 0.45; } return m; }
-  function sigFor(sp) { const id = sp ? nativeId(sp) : null, g = id && SIGS[id]; return g ? Object.assign({ kind: 'spec', fx: 'own', sig: id, elem: dominant(sp.elem, 1)[0] }, g) : fusedSig(sp); }
+  function sigFor(sp, k) { const id = sp ? (k && k.sigId) || sp.sigId || nativeId(sp) : null, g = id && SIGS[id]; return g ? Object.assign({ kind: 'spec', fx: 'own', sig: id, elem: dominant(sp.elem, 1)[0] }, g) : fusedSig(sp); }
   function techFor(k) { const el = dominant(k.sp.elem, 1)[0]; const mine = TECHLIST.filter(t => t.elem === el); return mine[((k.sp.seed >>> 7) % 997) % mine.length].name; }
   function techByName(nm) { return TECH[nm] || null; }
   function castMove(el, idx, st, bonus) { const c = CAST[el][idx % 4]; const m = { name: c[0], elem: el, kind: 'spec', power: Math.round((58 + 10 * st + (bonus || 0)) * c[2]), acc: c[3], fx: c[1] }; if (c[4]) { if (AILS[c[4]]) { m.ail = c[4]; m.ailP = 0.5; } else m[c[4]] = true; m.desc = FLAGDESC[c[4]]; }
@@ -7197,7 +7203,7 @@ const KIN = (() => {
     const out = [strike, castMove(e2, ci, st), { name: UTIL[k.sp.shape], kind: 'util', desc: UTIL_DESC[UTIL[k.sp.shape]] }];
     if (st >= 2 || rar >= 3) { let gi = 1 + (seed >>> 9) % 3; if (e1 === e2 && gi === ci) gi = 1 + gi % 3; const g = Object.assign(castMove(e1, gi, st, st >= 3 ? 14 : 6), { grown: true }); if (st >= 3 && !g.crit && !g.drain && !g.pierce && !g.ail) { g.crit = true; g.desc = FLAGDESC.crit; } out.push(g); }
     if (k.tech) { const t = techByName(k.tech); if (t) out.push(Object.assign({}, t, { power: t.power ? t.power + 8 * st : undefined, tech: true })); }
-    const sg = sigFor(k.sp); if (sg) { sg.power += 8 * st; out.push(sg); } /* the one that is only its own */
+    const sg = sigFor(k.sp, k); if (sg) { sg.power += 8 * st; out.push(sg); } /* the one that is only its own */
     return out;
   }
   function effectiveness(moveElem, defender) {
@@ -16311,12 +16317,14 @@ const Battle = (() => {
     f_h22d: ['pair', 1.4, 0.98, 0], f_h23: ['drop', 0.4, 0.28, 1.9], f_h24: ['drop', 0.6, 0.42, 0.03], f_h25: ['pool', 1.6, 1.12, 0.4],
     f_h26: ['rise', 0.6, 0.42, 1.6], f_h27: ['rise', 1.2, 0.84, 1.8], f_h28: ['fly', 0.8, 0.56, 1.7], f_h28d: ['pool', 1.8, 1.26, 0.2],
     f_h29: ['close', 1.4, 0.98, 0.2], x_tyr_liz: ['close', 1.4, 0.98, 0.6], x_tyr_toad: ['shout', 0.8, 0.56, 0.4], x_tyrant: ['close', 1.6, 1.12, 0],
-    x_tyr_moon: ['drop', 0.8, 0.56, 1.9], x_tyr_halo: ['fly', 1.4, 0.98, 1.8], x_tyr_sea: ['close', 1.4, 0.98, 0] });
+    x_tyr_moon: ['drop', 0.8, 0.56, 1.9], x_tyr_halo: ['fly', 1.4, 0.98, 1.8], x_tyr_sea: ['close', 1.4, 0.98, 0], x_vexmaw: ['close', 1.2, 0.84, 0],
+    x_gravemaw: ['rise', 0.6, 0.42, 1.7], x_warden: ['rise', 1.6, 1.12, 0], x_warlord: ['drop', 1.4, 0.98, 1.9], x_splice: ['fly', 0.8, 0.56, 0.2] });
   /*FSIGFX-END*/
+  const SIGOWN = { l_core: 1, l_sky: 1, l_amber: 1, lm_crater: 1, lm_core: 1, lm_sky: 1, lh_core: 1, lh_sky: 1, lw_selenaut: 1, lw_ring: 1, x_mantle: 1, x_rex: 1, x_mosa: 1 }; /* the first thirteen keep their separate pictures and their place in sounds.json; everything since is one bundle a Kin */
   const SIGLOOP = { fly: 1, fall: 1, pair: 1, volley: 1, pool: 1 };
   function sigArt(id) { const g = SIGFX[id]; if (!g || asked.has('sig:' + id) || typeof R === 'undefined' || !R.spriteAtlas) return; asked.add('sig:' + id);
     const a = 'sig_' + id + '_a', b = 'sig_' + id + '_b', loop = SIGLOOP[g[0]]; ATL[a] = [4, loop ? 3 : 4, loop ? 12 : 16, g[1]]; ATL[b] = [4, 4, 16, g[2]];
-    if (id[0] === 'f' || id.indexOf('x_ty') === 0) { /* a fused Kin's: one small file holding both pictures and the sound (tools/art/sig_pack.py), so a fight fetches only its own */
+    if (!SIGOWN[id]) { /* a fused Kin's: one small file holding both pictures and the sound (tools/art/sig_pack.py), so a fight fetches only its own */
       const f = 'assets/sig_' + id + '.json', url = (typeof window !== 'undefined' && window.STRATAKIN_ASSETS && window.STRATAKIN_ASSETS[f]) || f;
       fetch(url).then(r => { if (!r.ok) throw new Error(r.status); return r.json(); }).then(d => { R.spriteAtlas(a, d.a, 4, ATL[a][1], ATL[a][2], g[1]); R.spriteAtlas(b, d.b, 4, 4, 16, g[2]); if (d.s && UI.sampleData) UI.sampleData('sig_' + id, d.s); }).catch(err => { asked.delete('sig:' + id); console.warn('signature ' + id + ': ' + (err && err.message)); }); return; }
     R.spriteAtlas(a, 'assets/' + a + '.jpg', 4, ATL[a][1], ATL[a][2], g[1]); R.spriteAtlas(b, 'assets/' + b + '.jpg', 4, 4, 16, g[2]); if (UI.preload) UI.preload(['sig_' + id]); }
@@ -16387,7 +16395,7 @@ const Battle = (() => {
   // A contact move sends the attacker to its target and back in half a second. On a small Kin that is a dart; on a tyrant the size of a hay cart it
   // was a body teleporting across the square and back (Alexander: "they just kind of jump from one place to another"). The big ones now put their
   // weight into ONE heavy step towards you, slower, hardly leaving the ground: the strike's own effect still lands on the target.
-  const heavy = (e) => !!e && (e.isBoss || e.isLegend || e.isApex || e.keepBoss || e.finalBoss || e.kinmaster || ((e.model && e.model.height) || 1) * (e.scale || 1) > 2.6);
+  const heavy = (e) => !!e && (e.isBoss || e.isLegend || e.isApex || e.keepBoss || e.finalBoss || e.kinmaster || e.citadelFirst || e.isWarden || e.isLabBoss || ((e.model && e.model.height) || 1) * (e.scale || 1) > 2.6);
   function lunge(e, to, dist, dur, hop) { if (heavy(e)) { dist = Math.min(dist, 1.5); dur = Math.max(dur, 0.6) * 1.3; hop = (hop || 0) * 0.25; }
     const dx = to.x - e.x, dz = to.z - e.z, d = Math.hypot(dx, dz) || 1; lunges.push({ e, t: 0, dur, hop: hop || 0, bx: e.x, bz: e.z, by: e.y, dx: dx / d * Math.min(dist, d - 0.6), dz: dz / d * Math.min(dist, d - 0.6) }); }
   const ELFX = {
@@ -17699,7 +17707,7 @@ const Campaign = (() => {
     for (let i = people.length - 1; i >= 0; i--) if (Math.hypot(wd(people[i].x - p.x), wd(people[i].z - p.z)) > 110) people.splice(i, 1);
   }
   let rogueSp = null; let zooDino = null; let bossRef = null; let kmSp = null;
-  function kinmasterSpecies() { if (kmSp) return kmSp; const sp = KIN.species(U.combine(0x0BAD, 1), ['Void'], 0, { primary: 'Void', shape: 'biped', total: 760, rarity: 4 }); sp.names = ['Vexmaw', 'Vexmaw', 'Vexmaw']; sp.noFuse = true; sp.colors = { body: '#2a1038', belly: '#b026ff', accent: '#ff3a3a', dark: '#0a0410', eye: '#ff3a3a' }; sp.feat.horns = true; sp.feat.spikes = true; sp.feat.crest = true; sp.cap = 200; kmSp = sp; return sp; }
+  function kinmasterSpecies() { if (kmSp) return kmSp; const sp = KIN.species(U.combine(0x0BAD, 1), ['Void'], 0, { primary: 'Void', shape: 'biped', total: 760, rarity: 4 }); sp.names = ['Vexmaw', 'Vexmaw', 'Vexmaw']; sp.noFuse = true; sp.colors = { body: '#2a1038', belly: '#b026ff', accent: '#ff3a3a', dark: '#0a0410', eye: '#ff3a3a' }; sp.feat.horns = true; sp.feat.spikes = true; sp.feat.crest = true; sp.cap = 200; sp.sigId = 'x_vexmaw'; kmSp = sp; return sp; }
   function onBoss(result) { const c = C(); c.kinmaster = true; bossRef = null; const i = people.findIndex(x => x.id === 'kinmaster'); if (i >= 0) people.splice(i, 1); setTimeout(() => { const F = (sites() || {}).fort, P = G.player, tx = F && F.throne ? F.throne.x : P.x + 3, tz = F && F.throne ? F.throne.z : P.z; Cine.tell('The Kinmaster', { x: tx, y: P.y, z: tz, faceY: 2, faceD: 4.5 }, { 1: [{ orbit: { x: tx, y: P.y, z: tz, r: [6, 16], h: [3, 9], a: [P.yaw + 2.6, P.yaw + 3.9], ly: 2 }, secs: 6.5, glow: 'violet', shake: 0.8, mood: 'free', title: 'Thornhold is yours', sfx: 'quest' }, { flash: ['He is gone, down into the earth.', 'The Core. The Heart. The thing that sleeps on the Starmetal.', 'You have not finished him. You have made him hurry.'], mood: 'dread' }] }, ['Enough! You have not won anything. You have only made me hurry.', 'The Core, the Heart, the thing that sleeps on the Starmetal: I will have it before you can follow.'], () => { UI.toast('He is gone, down into the earth. The Core. The Mantlewyrm.', 'bad'); if (!G.player.has('voidshard')) setTimeout(() => Dialogue.show('A prisoner from his cells', ['You beat him in his own hall. Look, his table cracked when he ran: a splinter of it came off in my hand.', 'Keep it on you. The old tables in the villages lost the knack for dark work when he came; with this in your pocket, any of them will take Void for you again. Consider it a thank you from all of us.'], () => { G.player.add('voidshard', 1); UI.sfx('quest'); UI.toast('Void Shard: every Fusion Table now takes dark materials while you carry it.', 'good'); }), 900); }); }, 1200); }
   function rogueSpecies() {
     if (rogueSp) return rogueSp;
@@ -18666,7 +18674,7 @@ const Lab = (() => {
     const st = story(); const seed = U.combine(world.seed, 0x1AB0);
     const sp = KIN.species(seed, st.elems, 6, { primary: st.elems[0], shape: st.shape, total: 540, size: 1.7, evolveAt: [9999, 9999], neon: world.preset.id !== 'earth' });
     const e = new Array(9).fill(0.02); for (const el of st.elems) e[KIN.EI[el]] = 0.3; sp.elem = e.map(v => v / e.reduce((a, b) => a + b, 0));
-    sp.names = [st.bossName, st.bossName, st.bossName]; sp.feat = { horns: true, wings: st.shape !== 'bird', spikes: true, tail: true, ears: true, crest: true, bigEyes: true, stripes: true, spots: false, armor: true, bigTail: true }; sp.rarity = 3; sp.splice = true;
+    sp.names = [st.bossName, st.bossName, st.bossName]; sp.feat = { horns: true, wings: st.shape !== 'bird', spikes: true, tail: true, ears: true, crest: true, bigEyes: true, stripes: true, spots: false, armor: true, bigTail: true }; sp.rarity = 3; sp.splice = true; sp.sigId = 'x_splice';
     if (world.preset.id === 'earth') sp.colors = { body: '#3a2a4a', belly: '#c45cff', accent: '#ffe24a', dark: '#1a1020', eye: '#ff6a1f' };
     return sp;
   }
@@ -20880,7 +20888,7 @@ const Keeps = (() => {
           const sp = warlordSpecies(k); if (!sp) continue;
           const zl = Wild.zoneLevel(k.x, k.y + 1, k.z, { layer: 'Surface' }, G.trainerLevel || 1);
           const nT = sites().filter(h => taken(h.id)).length, lv = Math.min(72, 56 + nT * 4); /* the holds come after the cities on the ladder: 56 for the first you take, then 60, 64, 68, 72 */
-          const e = tw ? Wild.makeEntity(sp, lv, k.x + 0.5, k.y + 16, k.z + 4.5, { senseR: 6 }) : Wild.makeEntity(sp, lv, k.x + 0.5, k.y + 1, k.z - 1 + 0.5, { senseR: 6 }); e.keepBoss = k.id; e.elite = true; e.speed = 0; e.patrol = tw ? { ax: k.x - 1.5, az: k.z + 4.5, bx: k.x + 2.5, bz: k.z + 4.5, period: 10, phase: 0 } : { ax: k.x - 3.5, az: k.z - 1.5, bx: k.x + 4.5, bz: k.z - 1.5, period: 10, phase: 0 };
+          const e = tw ? Wild.makeEntity(sp, lv, k.x + 0.5, k.y + 16, k.z + 4.5, { senseR: 6 }) : Wild.makeEntity(sp, lv, k.x + 0.5, k.y + 1, k.z - 1 + 0.5, { senseR: 6 }); e.keepBoss = k.id; e.kin.sigId = 'x_warlord'; /* the warlord's Kin is an ordinary one: the attack is his, so it sits on this Kin and not on its kind */ e.elite = true; e.speed = 0; e.patrol = tw ? { ax: k.x - 1.5, az: k.z + 4.5, bx: k.x + 2.5, bz: k.z + 4.5, period: 10, phase: 0 } : { ax: k.x - 3.5, az: k.z - 1.5, bx: k.x + 4.5, bz: k.z - 1.5, period: 10, phase: 0 };
           Wild.list.push(e); bosses[k.id] = e; if (!tw && Combat.forHold(k.id).length) UI.toast('His warriors are down. The warlord comes off the dais with his Kin.', 'bad');
           if (!s['seen_' + k.id]) { s['seen_' + k.id] = true; UI.toast(`${k.name}: one of the Kinmaster's keeps. His warlord holds the Dark Fusion Table inside.`, 'bad'); }
         }
@@ -21100,7 +21108,7 @@ const Citadel = (() => {
   function talk(n, say) {
     return Cine.tell('The Kinmaster', n, { 2: [{ flash: ['Isla rode before she could walk.', 'The seabed dropped in the night. The city went with it.', 'Skerry came back to the ring. Isla did not.', 'So he bent the Concord until it stopped asking.'], mood: 'memory' }] }, ['So. You put my crystal back together. Do you know how long it took me to break it?', 'Twelve holds. Twelve. Even the one in the Core. And every one of those fools I bound, free again, singing about you in their villages.', 'They will have told you about Isla, under the sea. They tell everyone. They never say what it is to trust a thing, and have it turn over in its sleep.', 'No more puzzles, no more warlords. Just me, and what I have left.'], () => {
       const t = C().throne; const lv = 92; /* his first comes out ten under this, at 82 */
-      const first = KIN.species(U.combine(0x0BAD, 2), ['Void'], 0, { primary: 'Flame', shape: 'quadruped', total: 680, rarity: 4 }); first.names = ['Gravemaw', 'Gravemaw', 'Gravemaw']; first.noFuse = true; first.colors = { body: '#2a0a10', belly: '#ff5a1f', accent: '#ff9f2a', dark: '#120408', eye: '#ffe08a' };
+      const first = KIN.species(U.combine(0x0BAD, 2), ['Void'], 0, { primary: 'Flame', shape: 'quadruped', total: 680, rarity: 4 }); first.names = ['Gravemaw', 'Gravemaw', 'Gravemaw']; first.noFuse = true; first.sigId = 'x_gravemaw'; first.colors = { body: '#2a0a10', belly: '#ff5a1f', accent: '#ff9f2a', dark: '#120408', eye: '#ffe08a' };
       const e1 = Wild.makeEntity(first, lv - 10, t.x - 5 + 0.5, t.y, t.z + 0.5, { senseR: 12, elite: true }); e1.citadelFirst = true; e1.kinmaster = false; Wild.list.push(e1);
       Battle.start(e1, false);
     });
