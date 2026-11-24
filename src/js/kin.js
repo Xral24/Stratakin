@@ -4488,7 +4488,7 @@ const KIN = (() => {
           for (const [y, w, z] of [[1.455, 0.036, 0.18], [1.42, 0.024, 0.178]]) blob(sd * 0.15 - w, y - 0.013, z, sd * 0.15 + w, y + 0.013, z + 0.022, 0.9, glowc, { emis: true, n: 2 }); } /* two bands of light under each eye, like strata in a cliff */
         ball(0, 1.475, 0.268, 0.024, skin2, { n: 2 }); // a small nose
         tube([[-0.05, 1.402, 0.245], [0, 1.385, 0.262], [0.05, 1.402, 0.245]], [0.008, 0.012, 0.008], hexMix(skin, '#5a1a1a', 0.6), { cap0: 'round', cap1: 'round', segs: 5 });
-        B(10, 'mouth', [0, 1.39, 0.255]); blob(-0.042, 1.352, 0.236, 0.042, 1.404, 0.27, 1, '#3a1016', { n: 2 }); blob(-0.024, 1.354, 0.25, 0.024, 1.372, 0.272, 1, '#d0506a', { n: 1 }); bone = 1; /* the open mouth, and the tongue in it: shut to nothing until they speak */
+        B(13, 'mouth', [0, 1.39, 0.255]); blob(-0.042, 1.352, 0.236, 0.042, 1.404, 0.27, 1, '#3a1016', { n: 2 }); blob(-0.024, 1.354, 0.25, 0.024, 1.372, 0.272, 1, '#d0506a', { n: 1 }); bone = 1; /* the open mouth, and the tongue in it: shut to nothing until they speak */
         for (const sd of [-1, 1]) { B(sd < 0 ? 7 : 8, 'ear', [sd * 0.27, 1.6, 0], { side: sd, phase: sd });
           for (let i = 0; i < 3; i++) { const k2 = 1 - i * 0.24, y = 1.69 - i * 0.085; const t0 = parts.length; plate([[sd * 0.245, y + 0.035, 0.05], [sd * (0.3 + 0.13 * k2), y + 0.07, -0.01], [sd * (0.29 + 0.2 * k2), y + 0.05, -0.1 - 0.08 * k2], [sd * (0.27 + 0.08 * k2), y - 0.02, -0.12 * k2 - 0.02], [sd * 0.25, y - 0.035, -0.02]], 0.028, skin, { edge: i === 0 ? glowc : skin2 }); for (let q = t0; q < parts.length; q++) parts[q].tag = 'ear'; } } /* three fins, each smaller than the one above */
         B(1, 'head', [0, 1.3, 0]); bone = 0;

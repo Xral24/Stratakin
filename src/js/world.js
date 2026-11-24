@@ -654,7 +654,7 @@ class World {
           if (along < T.pa) { const nat = infos[(lx + 2) * 20 + (lz + 2)].h, sy = fy - Math.round(Math.max(0, dd - 2.2) * 1.4);
             if (sy > nat) for (let y = nat + 1; y <= sy; y++) blocks[base + y] = y < sy ? B.STONE : U.hash3(x, 39, z, s + 973) < 0.3 ? B.GRAVEL : B.SAND; }
           if (dd > 4.4 || t <= 0) continue;
-          const gate = along === T.pa - 2 || along === T.pa - 1 || along === T.pb + 1 || along === T.pb + 2; // a gateway just outside each end: two standing stones and a third laid across. Solid, and drawn whole by the mesher
+          const gate = px * ix + pz * iz <= len + 0.5 && (along === T.pa - 2 || along === T.pa - 1 || along === T.pb + 1 || along === T.pb + 2); /* never past the inner end: there every column counts as the last step of the way, and the stones used to close round the mouth in a half ring nobody could see or cross */ // a gateway just outside each end: two standing stones and a third laid across. Solid, and drawn whole by the mesher
           const bore = along >= T.pa && along <= T.pb, nat = infos[(lx + 2) * 20 + (lz + 2)].h;
           // under the hill the rock round the way through is still there to walk into, but it is not drawn as blocks: the mesher lines the whole bore with one skin of rock. The top block of the hill is left alone, so the land over it is whole
           if (dd > 2.2) { if (gate && dd <= 3.7) for (let y = fy + 1; y <= fy + 7; y++) blocks[base + y] = B.MEGA; else if (bore) for (let y = fy + 1; y <= fy + 7 && y < nat; y++) if (blocks[base + y] !== B.WATER) blocks[base + y] = B.MEGA; continue; }

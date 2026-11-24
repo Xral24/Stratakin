@@ -726,6 +726,11 @@ His go-ahead: the village kit, and "do the grass, the rock, the sand, the water"
 - Sources in `art/film/` (va, vb, ka, kb). Phone playback still unproven from here.
 - Credits: 83 (four stills, four clips).
 
+## Two bugs from play (Nov 24, late)
+- **Faces**: a person's eyelids and mouth were both given bone 10 (the eyes take 10 to 12 for lids and brows; the mouth was added later on 10 as well). So the lids were drawn as part of the mouth: squashed flat at the lips when silent, stretching up and down the face when talking. The mouth is now bone 13. Fourteen bones is the shader's limit, so people have none spare.
+- **The Lost World tunnel**: columns past the inner end all counted as the last step of the way, which on some seeds (when `pb` is two short of the length) is a gateway row. The standing stones were set in a half ring round the mouth, never drawn, and closed it. A gate stone is now only set within the run of the tunnel. `tools/test/t-tunsim.js <seed> <lat>` walks the player out of the mouth by stepping `player.update` directly (real walking is too slow headless).
+- He also asked whether a red screen at the start was normal. Not reproduced in three kinds of start; he said it was all right after all.
+
 ## Still to do
 UI polish as feedback comes in. Card battle screen still used for scripted encounters (raids at the walls, thief, citadel duel, holds) and the snare mini-game; converting those to live is the next big step if wanted. (Old list: train/ships, combat animation, eggs, avatar hair/paint, buddy WEAR cosmetics, Silas and Finch, UI polish (item icons), quality toggles in settings (state.shadows, state.grassQuality, state.dprCap).
 
