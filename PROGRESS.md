@@ -731,6 +731,13 @@ His go-ahead: the village kit, and "do the grass, the rock, the sand, the water"
 - **The Lost World tunnel**: columns past the inner end all counted as the last step of the way, which on some seeds (when `pb` is two short of the length) is a gateway row. The standing stones were set in a half ring round the mouth, never drawn, and closed it. A gate stone is now only set within the run of the tunnel. `tools/test/t-tunsim.js <seed> <lat>` walks the player out of the mouth by stepping `player.update` directly (real walking is too slow headless).
 - He also asked whether a red screen at the start was normal. Not reproduced in three kinds of start; he said it was all right after all.
 
+## The view in a fight with something huge, and in the Lost World (Nov 25)
+- He fought and netted the Tyrannorex and saw sky during the fight and leaves during the net.
+- **Sky**: `Battle.camera` worked out heights as `model.height * model.scale`, but a model's height already has its size in it (`e.scale` is the multiplier, and it is 1 for nearly everything). Fine for ordinary Kin, where model.scale is near 1; for the Tyrannorex (4.9) the point looked at was forty blocks up. Now `e.scale`, as `camAt` always did. The same slip in three effect helpers (`ctr` and two heights) is fixed too, so effects on the giants land on them.
+- **Leaves**: nothing in the Lost World's foliage is a block (banana plants, tree ferns, crowns are drawn whole by the mesher), so every sight test passed straight through it. `inFronds(x, y, z, margin)` in battle.js answers from the trees' own places and the sizes the mesher draws; `sight`, `camSees` and the net's lens use it. The net's side is now chosen by `netClear`, which tests the very spot the lens will stand on (`netLens`), not a line at flank height.
+- `tools/test/t-rexcam.js [seed] [net]` starts the fight and photographs it.
+- He found the net easy on the Tyrannorex after a hard fight. Not changed; asked him.
+
 ## Still to do
 UI polish as feedback comes in. Card battle screen still used for scripted encounters (raids at the walls, thief, citadel duel, holds) and the snare mini-game; converting those to live is the next big step if wanted. (Old list: train/ships, combat animation, eggs, avatar hair/paint, buddy WEAR cosmetics, Silas and Finch, UI polish (item icons), quality toggles in settings (state.shadows, state.grassQuality, state.dprCap).
 

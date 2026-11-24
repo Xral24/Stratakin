@@ -1,0 +1,9 @@
+const { open } = require('./harness');
+(async () => { const h = await open(); const { ev, page } = h;
+  await page.click('#s-new'); await page.fill('#s-seed', process.argv[2] || 'gal-1'); await page.waitForTimeout(150); await page.click('[data-jump="lost"]'); for (let i = 0; i < 40; i++) { await page.waitForTimeout(1500); if (await ev(() => !!G.stats.lostMap)) break; } await page.waitForTimeout(1500);
+  const r = await ev(() => { if (!G.stats.lostMap) G.designerLost(); const p = G.player, w = G.world, L = w.lost; const tx = L.x, tz = L.z - 12; w.ensureAround(Math.floor(tx / 16), Math.floor(tz / 16), 3, 9999); p.x = tx + 0.5; p.z = tz + 0.5; p.y = w.groundY(Math.floor(tx), Math.floor(tz)) + 1.1; p.vx = p.vy = p.vz = 0; G.meshPass(200); return { x: p.x, y: p.y, z: p.z }; });
+  await page.waitForTimeout(5000);
+  const s = await ev(() => { Wild.ensureApex(G.player); const e = Wild.list.find(e => e.isApex || e.apex || (e.kin && e.kin.sp.apex)) || Wild.list.find(e => e.kin && e.kin.sp.apex); if (!e) return { none: Wild.list.length, kinds: Wild.list.slice(0, 5).map(e => KIN.name(e.kin)) }; const p = G.player; Battle.start(e, false); return { name: KIN.name(e.kin), d: Math.hypot(e.x - p.x, e.z - p.z), mh: e.model.height, sc: e.scale, msc: e.model.scale }; });
+  console.log(JSON.stringify(s)); await page.waitForTimeout(6000);
+  console.log(JSON.stringify(await ev(() => ({ active: Battle.active, cam: G.lastCam || null }))));
+  await page.screenshot({ path: '/home/claude/scratch/rexcam.png' }); if (process.argv[3]) { await ev(() => { const b = [...document.querySelectorAll('#battle .act, #battle button')].find(b => /^Net/.test(b.textContent.trim())); if (b) b.click(); }); await page.waitForTimeout(6000); await page.screenshot({ path: '/home/claude/scratch/rexnet.png' }); } console.log('errors', JSON.stringify(h.errors)); await h.close(); })().catch(e => { console.log('ERR', e.message); process.exit(1); });
