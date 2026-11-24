@@ -702,6 +702,14 @@ His go-ahead: the village kit, and "do the grass, the rock, the sand, the water"
 - I cannot hear any of it. The prompts asked for steady, loopable instrumentals; the levels are steady by measurement (the Earth one builds from quieter to fuller over its first minute).
 - Credits: 65.
 
+## The soundtrack finished: ten recorded tracks (Nov 24)
+- He left the choice to me ("whichever you recommend"); the half-recorded, half-generated join was the one broken thing, so the five missing tracks came before any video: **night, village, under** (the Mines, the Core, volcanoes, deep water), **jungle** (the Lost World), **chase**.
+- `G.updateMusic` now names a track for every mood in play: a fight (battle or boss), a chase, the Lost World, anywhere dark and deep, a freed village (Earth's and the Halo's), night, otherwise the world you are on. **Only the story films still use the generated moods.**
+- `tools/art/music_pack.py <indir> [outdir] [keys]` is the processing as a tool (cut a finished ending, fade both ends, level to -16 LUFS, AAC in mp4). Sources `art/music/*.mp3`.
+- By measurement: village is level throughout; jungle and under start quiet and build over the first half minute; chase starts a little under its full level. Not heard.
+- `t-music.js` covers all ten (against the Opus copy, as before). It takes about nine minutes.
+- Credits: 65. Music in all: 130.
+
 ## Still to do
 UI polish as feedback comes in. Card battle screen still used for scripted encounters (raids at the walls, thief, citadel duel, holds) and the snare mini-game; converting those to live is the next big step if wanted. (Old list: train/ships, combat animation, eggs, avatar hair/paint, buddy WEAR cosmetics, Silas and Finch, UI polish (item icons), quality toggles in settings (state.shadows, state.grassQuality, state.dprCap).
 

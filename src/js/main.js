@@ -1235,9 +1235,11 @@ G.updateMusic = function (inBattle) {
   else if (wet) mood = 'rain';
   else if (night) mood = 'night';
   else mood = 'land';
-  /* a recorded track where there is one: the fight, or simply being out and about on this world. The special places keep their generated moods. */
-  const OUT = { land: 1, night: 1, rain: 1, cold: 1, sky: 1, village: 1, ride: 1, fly: 1, swim: 1, water: 1, moon: 1, alien: 1, halo: 1 };
-  const track = inBattle ? (Battle.bossFight ? 'boss' : 'battle') : OUT[mood] ? (this.worldId === 'earth' || this.worldId === 'moon' || this.worldId === 'halo' ? this.worldId : null) : null;
+  /* a recorded track for the moment (assets/music_<key>.mp4). Ten of them: a fight or a boss, a chase, the Lost World, anywhere dark and deep,
+     a freed village, night, and otherwise the world you are on. Only the films keep the generated moods now. */
+  const OUT = { land: 1, rain: 1, cold: 1, sky: 1, ride: 1, fly: 1, swim: 1, water: 1, moon: 1, alien: 1, halo: 1 }, UNDER = { mines: 1, fire: 1, volcano: 1, deep: 1 };
+  const track = inBattle ? (Battle.bossFight ? 'boss' : 'battle') : mood === 'danger' ? 'chase' : mood === 'jungle' ? 'jungle' : UNDER[mood] ? 'under' : mood === 'village' ? 'village' : mood === 'night' ? 'night'
+    : OUT[mood] && (this.worldId === 'earth' || this.worldId === 'moon' || this.worldId === 'halo') ? this.worldId : null;
   Music.update(mood, track);
   Music.duck(!!UI.panelOpen || this.paused);
 };

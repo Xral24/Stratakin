@@ -19075,8 +19075,8 @@ const Music = (() => {
     if (!timer) timer = setInterval(tick, 90);
   }
   /* ---- recorded music (made on Higgsfield, assets/music_<key>.mp4: AAC in an mp4, because the page's host takes no .mp3) ----
-     Five tracks so far: earth, moon, halo (walking about each world), battle, boss. update(mood, key) says which one the moment wants; where there is
-     none (the Mines, the Core, the Lost World, a chase, a film) the generated mood plays as before. A track is fetched the first time it is wanted and
+     Ten tracks: earth, moon, halo (walking about each world), night, village, under (mines, the Core, deep water), jungle (the Lost World), chase,
+     battle, boss. update(mood, key) says which one the moment wants; where there is none (a film) the generated mood plays as before. A track is fetched the first time it is wanted and
      the generated mood covers until it has arrived. Played through an <audio> element fed from a blob (it streams, so it costs almost no memory);
      if the page will not let an element play, the whole track is decoded and looped as a buffer instead, which is how the sound effects already play.
      Either way it goes through `master`, so the menu's ducking and the on/off switch work on it. */
@@ -24601,9 +24601,11 @@ G.updateMusic = function (inBattle) {
   else if (wet) mood = 'rain';
   else if (night) mood = 'night';
   else mood = 'land';
-  /* a recorded track where there is one: the fight, or simply being out and about on this world. The special places keep their generated moods. */
-  const OUT = { land: 1, night: 1, rain: 1, cold: 1, sky: 1, village: 1, ride: 1, fly: 1, swim: 1, water: 1, moon: 1, alien: 1, halo: 1 };
-  const track = inBattle ? (Battle.bossFight ? 'boss' : 'battle') : OUT[mood] ? (this.worldId === 'earth' || this.worldId === 'moon' || this.worldId === 'halo' ? this.worldId : null) : null;
+  /* a recorded track for the moment (assets/music_<key>.mp4). Ten of them: a fight or a boss, a chase, the Lost World, anywhere dark and deep,
+     a freed village, night, and otherwise the world you are on. Only the films keep the generated moods now. */
+  const OUT = { land: 1, rain: 1, cold: 1, sky: 1, ride: 1, fly: 1, swim: 1, water: 1, moon: 1, alien: 1, halo: 1 }, UNDER = { mines: 1, fire: 1, volcano: 1, deep: 1 };
+  const track = inBattle ? (Battle.bossFight ? 'boss' : 'battle') : mood === 'danger' ? 'chase' : mood === 'jungle' ? 'jungle' : UNDER[mood] ? 'under' : mood === 'village' ? 'village' : mood === 'night' ? 'night'
+    : OUT[mood] && (this.worldId === 'earth' || this.worldId === 'moon' || this.worldId === 'halo') ? this.worldId : null;
   Music.update(mood, track);
   Music.duck(!!UI.panelOpen || this.paused);
 };

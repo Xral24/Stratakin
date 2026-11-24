@@ -168,5 +168,10 @@
   "assets/music_moon.mp4": "/_blob/7c1e83d9063f03db174532f877137874",
   "assets/music_halo.mp4": "/_blob/1bdd81b9a5502d80526c9ae20989f56d",
   "assets/music_battle.mp4": "/_blob/c5bb749f343b2487f8857f14b17ac64e",
-  "assets/music_boss.mp4": "/_blob/e8fe38afe9d563a2f82324c17683f4e0"
+  "assets/music_boss.mp4": "/_blob/e8fe38afe9d563a2f82324c17683f4e0",
+  "assets/music_night.mp4": "/_blob/70fdaa0028289cc808d6fe2761be08b1",
+  "assets/music_village.mp4": "/_blob/bd22eebeb5a72fd43e846c7e806e2aaa",
+  "assets/music_under.mp4": "/_blob/1ffd8c5a949ceee9a23508b3824103e3",
+  "assets/music_jungle.mp4": "/_blob/4e6310345eff5bf31a98a8956fc037c5",
+  "assets/music_chase.mp4": "/_blob/79e6a09eb6db9bf0bfa326d1b259e63f"
 }

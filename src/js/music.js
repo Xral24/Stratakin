@@ -143,8 +143,8 @@ const Music = (() => {
     if (!timer) timer = setInterval(tick, 90);
   }
   /* ---- recorded music (made on Higgsfield, assets/music_<key>.mp4: AAC in an mp4, because the page's host takes no .mp3) ----
-     Five tracks so far: earth, moon, halo (walking about each world), battle, boss. update(mood, key) says which one the moment wants; where there is
-     none (the Mines, the Core, the Lost World, a chase, a film) the generated mood plays as before. A track is fetched the first time it is wanted and
+     Ten tracks: earth, moon, halo (walking about each world), night, village, under (mines, the Core, deep water), jungle (the Lost World), chase,
+     battle, boss. update(mood, key) says which one the moment wants; where there is none (a film) the generated mood plays as before. A track is fetched the first time it is wanted and
      the generated mood covers until it has arrived. Played through an <audio> element fed from a blob (it streams, so it costs almost no memory);
      if the page will not let an element play, the whole track is decoded and looped as a buffer instead, which is how the sound effects already play.
      Either way it goes through `master`, so the menu's ducking and the on/off switch work on it. */
