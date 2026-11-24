@@ -718,6 +718,14 @@ His go-ahead: the village kit, and "do the grass, the rock, the sand, the water"
 - Sources in `art/film/`. If he likes it, the next two are freeing the first village and meeting the Kinmaster, about 40 credits each made this way.
 - Credits: about 42 (two stills, two clips).
 
+## The other two films (Nov 24)
+- He said go after the opening one. Made the same way (two stills, two Kling clips, cross-faded, 720p, nine seconds each).
+- **free** (`film_free.mp4`): the banner comes down in a village at dawn with people watching from doorways, then the same square in sun with people and Kin walking back in. Plays once, from `village.js` `filmTick`, the first time a village is freed. Village track.
+- **kinmaster** (`film_kinmaster.mp4`): him from behind before the chained crystal, then an empty shore at sunset with a saddled sea Kin and a child's sandal in the wash. Plays once, from the first talk with him in `campaign.js`. Night track. The three lines tell his story.
+- `Film.once(id)` remembers what has been shown in `G.stats.films`. Same rule as before: never a gate.
+- Sources in `art/film/` (va, vb, ka, kb). Phone playback still unproven from here.
+- Credits: 83 (four stills, four clips).
+
 ## Still to do
 UI polish as feedback comes in. Card battle screen still used for scripted encounters (raids at the walls, thief, citadel duel, holds) and the snare mini-game; converting those to live is the next big step if wanted. (Old list: train/ships, combat animation, eggs, avatar hair/paint, buddy WEAR cosmetics, Silas and Finch, UI polish (item icons), quality toggles in settings (state.shadows, state.grassQuality, state.dprCap).
 

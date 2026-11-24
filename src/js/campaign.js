@@ -467,7 +467,7 @@ const Campaign = (() => {
     }
     if (n.job === 'kinmaster') {
       if (c.kinmaster) return;
-      const f = sites().fort;
+      const f = sites().fort; if (typeof Film !== 'undefined') Film.once('kinmaster'); /* who he was, the first time you stand in front of him */
       return say(['So you are the one freeing my villages. Keychain wrote to me about you, before you sent him packing.', 'Every tyrant was mine. Every square, every wall. And under all of it, in the Core, something older than both of us is waking. I mean to be the one it obeys.', 'You came all this way through my little puzzles. Let us see if your Kin are as clever as you.'], () => { if (bossRef && Wild.list.includes(bossRef)) { Battle.start(bossRef, false); return; } const sp = kinmasterSpecies(); const e = Wild.makeEntity(sp, 36, f.throne.x - 3 + 0.5, f.floorY + 1, f.throne.z + 0.5, { senseR: 12, elite: true }); e.kinmaster = true; bossRef = e; Wild.list.push(e); Battle.start(e, false); });
     }
     if (n.job === 'keeper') {

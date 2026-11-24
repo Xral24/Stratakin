@@ -4,7 +4,11 @@
 const Film = (() => {
   const FILMS = {
     intro: { file: 'assets/film_intro.mp4', track: 'night', lines: [[0.4, 'Once, a crystal called the Concord let people and Kin understand each other.'], [4.2, 'Then its keeper bent it, so that it no longer asked. It only told.'], [7.6, 'Now every village has its tyrant. Yours is where it starts.']] },
+    free: { file: 'assets/film_free.mp4', track: 'village', lines: [[0.4, 'The banner comes down.'], [4.2, 'Doors open. The Kin come back into the square.'], [7.0, 'One village free. There are more.']] },
+    kinmaster: { file: 'assets/film_kinmaster.mp4', track: 'night', lines: [[0.4, 'He was a keeper once. It was a job, like baker or teacher.'], [4.2, 'Then the sea took his daughter, and her Kin came home alone.'], [7.0, 'So he made the crystal stop asking.']] },
   };
+  // once(id): a film that belongs to one moment of the story is shown the first time that moment comes, and remembered in the save
+  function once(id, done) { try { const st = G.stats || (G.stats = {}); st.films = st.films || {}; if (st.films[id]) { if (done) done(false); return false; } st.films[id] = 1; } catch (e) { /* no save yet */ } play(id, done); return true; }
   let box = null, cur = null;
   function close(done) { const c = cur; cur = null; if (!c) return; clearTimeout(c.guard); try { c.v.pause(); } catch (e) { /* not started */ } if (c.url) URL.revokeObjectURL(c.url);
     if (box) { box.classList.remove('on'); setTimeout(() => { if (!cur && box) box.style.display = 'none'; }, 700); } document.body.classList.remove('film-on'); if (c.done) c.done(done); }
@@ -20,5 +24,5 @@ const Film = (() => {
       const pr = v.play(); const go = () => { if (cur !== c) return; c.started = true; box.style.display = 'block'; requestAnimationFrame(() => box.classList.add('on')); document.body.classList.add('film-on'); if (F.track && typeof Music !== 'undefined' && UI.soundOn !== false) Music.update(null, F.track); };
       if (pr && pr.then) pr.then(go).catch(() => { if (cur === c) close(false); }); else go();
     }).catch(() => { if (cur === c) close(false); }); }
-  return { play, skip: () => close(false), get playing() { return !!(cur && cur.started); }, FILMS };
+  return { play, once, skip: () => close(false), get playing() { return !!(cur && cur.started); }, FILMS };
 })();
