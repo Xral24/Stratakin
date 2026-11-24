@@ -57,7 +57,7 @@ G.setupWorld = function (seed, presetId) {
   Quests.init(this);
 };
 G.newWorld = function (seed, starterIdx, name) {
-  UI.loading(true);
+  UI.loading(true); if (typeof Film !== 'undefined') Film.play('intro'); /* the opening film plays over the wait while the world is made (started here, inside the tap, so the page lets it play) */
   const slot = Saves.create(name); this.SAVE_KEY = slot.key; this.gameId = slot.id; this.gameName = slot.name;
   setTimeout(() => {
     this.stats = freshStats(); this.questState = null; this.xp = 0; this.trainerLevel = 1; this.mythicCaught = false; this.kin = []; this.box = []; this.eggs = []; this.activeIdx = 0; this.shards = 0; this.village = null; this.secure = {}; this.respawnPoint = null; this.worlds = {}; this.worldId = 'earth';
@@ -1206,6 +1206,7 @@ G.load = function () {
 // ---------- music: one mood per situation ----------
 G.updateMusic = function (inBattle) {
   if (!UI.soundOn || !Music.enabled) return;
+  if (typeof Film !== 'undefined' && Film.playing) return; /* a story film has its own track on */
   if (this.filmMood) { Music.update(this.filmMood); return; } /* a film is playing: it has its own music */
   const p = this.player, w = this.world;
   let mood;

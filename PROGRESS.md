@@ -710,6 +710,14 @@ His go-ahead: the village kit, and "do the grass, the rock, the sand, the water"
 - `t-music.js` covers all ten (against the Opus copy, as before). It takes about nine minutes.
 - Credits: 65. Music in all: 130.
 
+## The opening film, as a trial (Nov 24)
+- Story videos were the last thing on the Higgsfield list. One made first, for him to judge, because video is the dearest thing there and the likeliest place for "it looks AI" to come back.
+- **How it is made, so it does not look AI**: two painted stills (gpt_image_2_6, storybook gouache, people only from behind, no faces), each brought to life for five seconds with Kling 4.0 image-to-video (18.75 credits each, 1080p), then cross-faded into one nine-second film: the Concord gold over the old city with people and Kin watching, then cracked and violet over a land of banners. 720p H.264, 1.6 MB, no sound of its own.
+- **In the game**: `js/film.js`, `Film.play('intro')`, called from `G.newWorld` inside the tap, so it plays over the wait while the world is made. Three lines of story come up under it, the night track plays, and there is a Skip. **A film is never a gate**: nine seconds to arrive, any error or refusal to play, and it is simply not shown.
+- Test `t-film.js` proves only that last part (this browser has no H.264): the game starts with nothing left on screen. Real playback on the phone is unproven from here.
+- Sources in `art/film/`. If he likes it, the next two are freeing the first village and meeting the Kinmaster, about 40 credits each made this way.
+- Credits: about 42 (two stills, two clips).
+
 ## Still to do
 UI polish as feedback comes in. Card battle screen still used for scripted encounters (raids at the walls, thief, citadel duel, holds) and the snare mini-game; converting those to live is the next big step if wanted. (Old list: train/ships, combat animation, eggs, avatar hair/paint, buddy WEAR cosmetics, Silas and Finch, UI polish (item icons), quality toggles in settings (state.shadows, state.grassQuality, state.dprCap).
 
