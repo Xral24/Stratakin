@@ -1,0 +1,352 @@
+[
+ {
+  "id": "f_e0",
+  "name": "Moonroot Tide",
+  "flag": "drain",
+  "stage": "rise",
+  "solid": 1.0,
+  "a": "Thick green tree roots burst up from the bottom centre and twist upward, lifting a glowing pale blue full moon wrapped in a ring of sea water at the top.",
+  "b": "A splash ring of blue sea water mixed with green leaves bursting outward",
+  "snd": "roots creaking up through earth, then a bright splash of water"
+ },
+ {
+  "id": "f_e1",
+  "name": "Horn Tide",
+  "flag": "shock",
+  "stage": "fly",
+  "solid": 0.6,
+  "a": "A ball of blue sea water held between two curved beetle horns of yellow lightning, arcs jumping across it, turning in place.",
+  "b": "An electric water burst: a blue splash thrown outward with forks of yellow lightning",
+  "snd": "a rushing wave of water crackling with electricity, then a wet electric burst"
+ },
+ {
+  "id": "f_e2",
+  "name": "Blizzard Spout",
+  "flag": "frost",
+  "stage": "rise",
+  "solid": 0.8,
+  "a": "A twisting waterspout of white snow and pale blue ice shards spinning up from the bottom centre to the top of the frame.",
+  "b": "A burst of snow puffs and ice shards flung outward by curling wind",
+  "snd": "a howling icy whirlwind spinning up, with crackling ice"
+ },
+ {
+  "id": "f_e3",
+  "name": "Summit Beam",
+  "flag": "crit",
+  "stage": "drop",
+  "solid": 0.5,
+  "a": "A shaft of golden-white sunlight breaks down from the top of the frame onto a small grey mountain peak at the bottom centre, and the peak glows and cracks with light.",
+  "b": "A burst of golden light with flying pale stone chips",
+  "snd": "a bright rising shimmer then a heavy crack of stone"
+ },
+ {
+  "id": "f_e3d",
+  "name": "Hollow Mountain",
+  "flag": "curse",
+  "stage": "close",
+  "solid": 1.8,
+  "a": "Dark purple-black rock slabs with glowing violet cracks rise at the left and right edges of the frame and slam together in the centre like a cave mouth closing.",
+  "b": "An implosion of violet light with dark rock shards and purple dust thrown outward",
+  "snd": "two huge stone slabs grinding and slamming shut with a deep hollow boom"
+ },
+ {
+  "id": "f_e4",
+  "name": "Glacier Fist",
+  "flag": "crit",
+  "stage": "drop",
+  "solid": 1.4,
+  "a": "A giant fist of grey rock coated in blue ice punches straight down from the top of the frame to the bottom centre, with frost trailing behind it.",
+  "b": "A ring of ice spikes and rock chunks bursting from an impact, with frosty mist",
+  "snd": "a heavy icy punch landing, a deep thud with cracking ice"
+ },
+ {
+  "id": "f_e5",
+  "name": "Frozen Tide",
+  "flag": "frost",
+  "stage": "close",
+  "solid": 1.2,
+  "a": "Two waves of blue sea water curl up from the left and right edges of the frame towards the centre and freeze solid mid-curl into a cage of ice, white frost spreading over them.",
+  "b": "A frozen wave shatters into ice shards and cold water spray",
+  "snd": "a wave rushing in and freezing with a sharp crackle, then ice shattering"
+ },
+ {
+  "id": "f_e6",
+  "name": "Boulder Surf",
+  "flag": "pierce",
+  "stage": "fly",
+  "solid": 1.4,
+  "a": "A big grey boulder riding inside a rolling ball of blue wave water with white foam, turning in place.",
+  "b": "A splash of blue water and grey stone chunks thrown outward",
+  "snd": "a rolling wave carrying a heavy rock, then a crashing stony splash"
+ },
+ {
+  "id": "f_e7",
+  "name": "Fire Whirl",
+  "flag": "burn",
+  "stage": "rise",
+  "solid": 0.0,
+  "a": "A whirling tornado of orange flame with feathers of fire spiralling up from the bottom centre to the top of the frame.",
+  "b": "A burst of burning feathers and embers scattering on the wind",
+  "snd": "a roaring whirl of fire spinning up, with a bird-like screech in the flames"
+ },
+ {
+  "id": "f_e8",
+  "name": "Acorn Squall",
+  "flag": "crit",
+  "stage": "volley",
+  "solid": 1.6,
+  "a": "A glossy brown acorn with one green leaf, spinning in a small swirl of pale wind.",
+  "b": "A small burst of green leaves, wind streaks and bits of acorn shell",
+  "snd": "three quick woody knocks in a row with gusts of wind and rustling leaves"
+ },
+ {
+  "id": "f_e9",
+  "name": "Dawn Pyre",
+  "flag": "drain",
+  "stage": "rise",
+  "solid": 0.0,
+  "a": "A phoenix wing of white-gold light unfolds upward from a cracked stone at the bottom centre, its feathers of light fanning out to the top of the frame.",
+  "b": "A sunrise burst: golden rays and glowing feathers thrown outward",
+  "snd": "a warm rising whoosh of flame and a bright bird cry, glowing and hopeful"
+ },
+ {
+  "id": "f_e9d",
+  "name": "Ash Mountain",
+  "flag": "curse",
+  "stage": "fall",
+  "solid": 1.6,
+  "a": "A chunk of black volcanic rock seen falling straight down: the rock at the bottom centre of the frame, with violet flames and ash streaming straight up behind it to the top of the frame, flickering.",
+  "b": "An impact of black ash cloud with violet embers and rock shards",
+  "snd": "a burning rock falling with a low roar, then a heavy ashy impact"
+ },
+ {
+  "id": "f_e10",
+  "name": "Spore Gale",
+  "flag": "poison",
+  "stage": "fly",
+  "solid": 1.0,
+  "a": "A spinning cloud of glowing yellow-green mushroom spores carried in a swirl of wind, with small mushroom caps tumbling in it, turning in place.",
+  "b": "A puff of yellow-green spores bursting outward with small mushrooms popping",
+  "snd": "a soft whooshing gust full of fine dust, then a muffled puffing burst"
+ },
+ {
+  "id": "f_e11",
+  "name": "Antler Blaze",
+  "flag": "burn",
+  "stage": "close",
+  "solid": 0.0,
+  "a": "Two great stag antlers made of white-gold fire grow in from the left and right edges of the frame and lock together in the centre.",
+  "b": "A burst of white-gold fire with glowing sparks",
+  "snd": "two blazing antlers clashing together with a crackling fiery clack"
+ },
+ {
+  "id": "f_e12",
+  "name": "Frozen Strings",
+  "flag": "frost",
+  "stage": "drop",
+  "solid": 1.0,
+  "a": "A wooden puppet cross-bar at the top of the frame drops thin strings of pale blue ice straight down; they pull tight and frost creeps down them to one point at the bottom centre.",
+  "b": "The strings snap: a burst of ice needles and dark violet wisps",
+  "snd": "thin icy strings pulling taut with a creak, then snapping in a tinkling crack"
+ },
+ {
+  "id": "f_e13",
+  "name": "Spore Stampede",
+  "flag": "poison",
+  "stage": "pair",
+  "solid": 1.0,
+  "a": "A horseshoe of bright green light spinning in place, trailing spores and small leaves.",
+  "b": "A hoofprint-shaped burst of green spores and wind",
+  "snd": "galloping hooves rushing past, then a soft thump and puff of dust"
+ },
+ {
+  "id": "f_e14",
+  "name": "Old Growth",
+  "flag": "drain",
+  "stage": "rise",
+  "solid": 1.6,
+  "a": "A great oak tree grows in seconds from a seed at the bottom centre: trunk, branches, then a full green crown, with glowing mushrooms on the trunk, until it fills the frame.",
+  "b": "A tree crown bursts into a shower of green leaves and glowing spores",
+  "snd": "wood creaking and stretching as a tree grows fast, then a great rustle of leaves"
+ },
+ {
+  "id": "f_e15",
+  "name": "Three-Eyed Volt",
+  "flag": "shock",
+  "stage": "drop",
+  "solid": 0.0,
+  "a": "Three glowing white eyes open in a triangle at the top of the frame, and each fires a straight beam of yellow-white lightning down to one point at the bottom centre.",
+  "b": "A white-gold electric burst with small feather-shaped sparks",
+  "snd": "three sharp electric zaps in quick succession with a raven caw"
+ },
+ {
+  "id": "f_e15d",
+  "name": "Murder of Sparks",
+  "flag": "curse",
+  "stage": "volley",
+  "solid": 1.4,
+  "a": "A small raven made of black-violet shadow with wings of crackling violet lightning, seen from the front, flapping in place.",
+  "b": "A burst of black feathers and violet lightning",
+  "snd": "ravens cawing and wings flapping, with three crackling electric hits"
+ },
+ {
+  "id": "f_e16",
+  "name": "Stone Broadside",
+  "flag": "pierce",
+  "stage": "volley",
+  "solid": 1.6,
+  "a": "A round grey stone cannonball spinning in place, with a swirl of wind round it and a wisp of white smoke.",
+  "b": "An impact puff of dust, stone chips and wind streaks",
+  "snd": "three cannon shots booming one after another with whistling stone"
+ },
+ {
+  "id": "f_e17",
+  "name": "Frostcap Bite",
+  "flag": "frost",
+  "stage": "close",
+  "solid": 1.2,
+  "a": "Wolf jaws made of blue ice with small frosted mushrooms growing along the teeth: an upper and a lower row of fangs starting at the top and bottom edges of the frame and snapping shut together in the centre. Only the fangs, no head.",
+  "b": "A burst of ice shards, snow and pale blue mushroom spores",
+  "snd": "a wolf snarl and icy jaws snapping shut with a crunch of ice"
+ },
+ {
+  "id": "f_e18",
+  "name": "Marionette Mountain",
+  "flag": "crit",
+  "stage": "drop",
+  "solid": 1.6,
+  "a": "A huge grey boulder hangs on dark violet puppet strings from the top of the frame; the strings are cut and the boulder drops to the bottom centre.",
+  "b": "A burst of dust and rock with snapped violet strings whipping outward",
+  "snd": "strings snapping with a twang, then a boulder crashing down"
+ },
+ {
+  "id": "f_e19",
+  "name": "Cinder Crown",
+  "flag": "burn",
+  "stage": "fall",
+  "solid": 0.8,
+  "a": "A black iron crown seen falling straight down: the crown at the bottom centre of the frame, burning, with violet and orange flames streaming straight up behind it to the top of the frame.",
+  "b": "A burst of violet and orange fire with black feathers and cinders",
+  "snd": "a burning metal crown falling with a fiery whoosh and a ringing clang"
+ },
+ {
+  "id": "f_e20",
+  "name": "Tidepool Bloom",
+  "flag": "drain",
+  "stage": "pool",
+  "solid": 1.2,
+  "a": "A tide pool seen from above at a slant, as a wide ellipse: clear blue water ringed with glowing mushrooms and sea anemones, its ripples slowly turning.",
+  "b": "A fountain of water, petals and glowing spores bursting straight up from the bottom centre to the top of the frame",
+  "snd": "gentle bubbling water swelling into a splashing fountain with a soft chime"
+ },
+ {
+  "id": "f_e21",
+  "name": "Seraph Current",
+  "flag": "shock",
+  "stage": "close",
+  "solid": 0.8,
+  "a": "Six wings made of deep blue water edged with crackling yellow lightning unfold from the edges of the frame and fold shut over the centre.",
+  "b": "A burst of deep-sea blue water and lightning with glowing cyan specks",
+  "snd": "great wet wings sweeping shut underwater with an electric surge"
+ },
+ {
+  "id": "f_e22",
+  "name": "Aurora Howl",
+  "flag": "crit",
+  "stage": "rise",
+  "solid": 0.0,
+  "a": "Ribbons of aurora light in green, pink and pale blue rise from the bottom centre and wave upward to the top of the frame like curtains, with drifting snowflakes.",
+  "b": "A burst of aurora-coloured light with snow crystals",
+  "snd": "a long wolf howl with a shimmering, glassy rising tone"
+ },
+ {
+  "id": "f_e22d",
+  "name": "Black Ice",
+  "flag": "curse",
+  "stage": "pool",
+  "solid": 1.8,
+  "a": "A patch of black ice seen from above at a slant, as a wide ellipse: glossy, with violet reflections and bright violet cracks slowly spreading and turning across it.",
+  "b": "Black ice spikes with bright violet edges stab straight up from the bottom centre to the top of the frame, then crumble",
+  "snd": "ice creaking and cracking underfoot, then sharp spikes stabbing up with a dark hiss"
+ },
+ {
+  "id": "f_e23",
+  "name": "Lightning Rod",
+  "flag": "pierce",
+  "stage": "drop",
+  "solid": 0.4,
+  "a": "A tall iron rod stands on a stone at the bottom centre; a thick yellow-white lightning bolt slams down the frame into it from the top edge and the stone glows hot.",
+  "b": "A burst of electric arcs along the ground with hot stone chips",
+  "snd": "a huge lightning strike hitting metal with a ringing electric crack"
+ },
+ {
+  "id": "f_e24",
+  "name": "Avalanche Sail",
+  "flag": "crit",
+  "stage": "fall",
+  "solid": 1.4,
+  "a": "A mass of snow, ice and boulders seen falling straight down: the mass at the bottom centre of the frame, with a torn white sail and snow spray streaming straight up behind it to the top of the frame.",
+  "b": "An avalanche impact: a wide burst of snow cloud with rocks",
+  "snd": "an avalanche rumbling down fast and crashing with a deep whump"
+ },
+ {
+  "id": "f_e25",
+  "name": "Ice Age",
+  "flag": "frost",
+  "stage": "close",
+  "solid": 1.2,
+  "a": "A ring of spiral ammonite fossils made of blue ice starts at the edges of the frame and spirals inward, closing to the centre, with frost spreading behind it.",
+  "b": "A burst of ice shards and fossil shell fragments with frost mist",
+  "snd": "deep ancient ice groaning and closing in, then a brittle shatter"
+ },
+ {
+  "id": "f_e26",
+  "name": "Iceberg Crash",
+  "flag": "pierce",
+  "stage": "drop",
+  "solid": 1.4,
+  "a": "An iceberg, white on top and deep blue beneath, drops from the top of the frame into a line of sea water at the bottom centre.",
+  "b": "A great splash of sea water with chunks of ice",
+  "snd": "a massive block of ice plunging into the sea with a huge splash"
+ },
+ {
+  "id": "f_e27",
+  "name": "Sandstone Cyclone",
+  "flag": "crit",
+  "stage": "rise",
+  "solid": 1.2,
+  "a": "A cyclone of tan sand and small fossil shells spinning up from the bottom centre to the top of the frame, with hot orange glints in it.",
+  "b": "A burst of sand cloud and fossil fragments thrown out in a ring",
+  "snd": "a gritty sandstorm whirling up with rattling stones"
+ },
+ {
+  "id": "f_e28",
+  "name": "Heartwood Light",
+  "flag": "drain",
+  "stage": "rise",
+  "solid": 0.4,
+  "a": "A white stag's antlers grow upward from the bottom centre like a tree of light, budding green leaves and white blossoms at their tips, up to the top of the frame.",
+  "b": "A burst of white blossoms and golden light",
+  "snd": "a gentle rising chime with soft rustling leaves and a warm glow"
+ },
+ {
+  "id": "f_e28d",
+  "name": "Eclipse Oak",
+  "flag": "curse",
+  "stage": "drop",
+  "solid": 1.6,
+  "a": "A black tree hangs upside down from the top of the frame, its crown a dark disc with a thin ring of white light round it like a solar eclipse; a beam of pale light drops from it to the bottom centre.",
+  "b": "A ring of white light with dark violet leaves bursting outward",
+  "snd": "an eerie low hum swelling, then a hollow ringing strike"
+ },
+ {
+  "id": "f_e29",
+  "name": "Thunder Forge",
+  "flag": "crit",
+  "stage": "drop",
+  "solid": 1.2,
+  "a": "A giant mechanical piston of brass and stone hammers straight down from the top of the frame to the bottom centre, with lightning arcing round it.",
+  "b": "A burst of electric arcs, hot rivets and stone chips with a shock ring",
+  "snd": "a huge machine piston slamming down with a metallic boom and electric crackle"
+ }
+]
