@@ -1,0 +1,352 @@
+[
+ {
+  "id": "f_m0",
+  "name": "Lantern Quake",
+  "flag": "shock",
+  "stage": "drop",
+  "solid": 1.2,
+  "a": "A round paper lantern glowing electric yellow hangs at the top of the frame, then drops straight down and smashes on grey moon rock at the bottom centre with a flash.",
+  "b": "A burst of yellow sparks and grey moon dust thrown outward in a ring",
+  "snd": "a glass lantern dropping and smashing with an electric pop and a dusty thud"
+ },
+ {
+  "id": "f_m1",
+  "name": "Glowtrail",
+  "flag": "poison",
+  "stage": "pool",
+  "solid": 1.0,
+  "a": "A glowing snail trail seen from above at a slant, as a wide ellipse: a spiral of bright green-yellow slime on dark ground with small sparks running round it, slowly turning.",
+  "b": "A column of green-yellow sparks and small glowing lichen flakes bursting straight up from the bottom centre to the top of the frame",
+  "snd": "a wet fizzing sizzle spreading, then a crackling burst of sparks"
+ },
+ {
+  "id": "f_m2",
+  "name": "Low-Gravity Stomp",
+  "flag": "crit",
+  "stage": "fall",
+  "solid": 1.4,
+  "a": "A big round grey moon boulder seen falling straight down: the boulder at the bottom centre of the frame, with pale dust and wind streaks streaming straight up behind it to the top of the frame.",
+  "b": "A slow wide ring of grey moon dust with pebbles floating upward",
+  "snd": "a long descending whistle, then a soft heavy thump with dust hissing"
+ },
+ {
+  "id": "f_m3",
+  "name": "Shell Flare",
+  "flag": "burn",
+  "stage": "fly",
+  "solid": 0.4,
+  "a": "A spiral snail shell made of white-gold light with a bright orange flame burning inside it, spinning in place.",
+  "b": "A burst of white-gold light and orange flame in a spiral",
+  "snd": "a bright flare igniting with a rising shimmer and a fiery puff"
+ },
+ {
+  "id": "f_m3d",
+  "name": "Crater Claw",
+  "flag": "curse",
+  "stage": "close",
+  "solid": 1.6,
+  "a": "Two huge crab claws of dark rock with glowing violet-orange cracks reach in from the left and right edges of the frame and snap shut together in the centre. Only the claws, no body.",
+  "b": "A burst of dark rock shards with violet-orange embers",
+  "snd": "two great stone claws snapping shut with a deep crack and a hiss"
+ },
+ {
+  "id": "f_m4",
+  "name": "Moss Leap",
+  "flag": "drain",
+  "stage": "volley",
+  "solid": 1.2,
+  "a": "A small tuft of green moss and tiny white flowers rolled into a ball, spinning in a puff of pale wind.",
+  "b": "A small burst of green moss flecks, white petals and wind streaks",
+  "snd": "three soft bouncy hops in a row, each with a leafy puff"
+ },
+ {
+  "id": "f_m5",
+  "name": "Caldera",
+  "flag": "burn",
+  "stage": "rise",
+  "solid": 0.8,
+  "a": "A grey moon crater at the bottom centre of the frame fills with glowing orange lava and erupts, throwing a column of lava and hot rock up to the top of the frame.",
+  "b": "A burst of glowing lava drops and grey rock chunks",
+  "snd": "a deep rumble building into a lava eruption with a roar"
+ },
+ {
+  "id": "f_m6",
+  "name": "Spark Hop",
+  "flag": "shock",
+  "stage": "volley",
+  "solid": 0.0,
+  "a": "A small ball of yellow lightning with two long wind streaks curling behind it like ears, bouncing in place.",
+  "b": "A small electric pop: a burst of yellow sparks with a puff of wind",
+  "snd": "three quick springy electric zaps one after another"
+ },
+ {
+  "id": "f_m7",
+  "name": "Ray Crater",
+  "flag": "burn",
+  "stage": "drop",
+  "solid": 0.6,
+  "a": "A crater ring at the bottom centre of the frame; bright orange and yellow rays of fire and lightning shoot down into it from the top edge, and it flares.",
+  "b": "A star-shaped burst of orange fire and yellow lightning rays",
+  "snd": "a fierce beam striking down with a crackling fiery blast"
+ },
+ {
+  "id": "f_m8",
+  "name": "Afterburner",
+  "flag": "burn",
+  "stage": "fly",
+  "solid": 0.0,
+  "a": "A small comet of orange and blue jet flame with a round glowing head, burning hard, flickering in place.",
+  "b": "A fiery burst with curling wind streaks and orange embers",
+  "snd": "a jet of flame roaring past, then a hot whooshing burst"
+ },
+ {
+  "id": "f_m9",
+  "name": "Lichen Halo",
+  "flag": "drain",
+  "stage": "close",
+  "solid": 0.8,
+  "a": "A ring of pale golden light with tiny glowing lichen flakes along it starts wide at the edges of the frame and shrinks inward until it closes on the centre with a soft flash.",
+  "b": "A soft burst of golden light with drifting pale green lichen flakes",
+  "snd": "a gentle rising hum closing in, then a soft bright chime"
+ },
+ {
+  "id": "f_m9d",
+  "name": "Hollow Shell",
+  "flag": "curse",
+  "stage": "pool",
+  "solid": 1.8,
+  "a": "A dark spiral seen from above at a slant, as a wide ellipse: a snail-shell spiral of black-violet stone turning slowly round a pitch black centre, with thin violet glow lines.",
+  "b": "A column of dark violet smoke and grey stone flakes rising straight up from the bottom centre to the top of the frame",
+  "snd": "a low hollow drone circling down, then a dark breathy rush"
+ },
+ {
+  "id": "f_m10",
+  "name": "Geode Gust",
+  "flag": "pierce",
+  "stage": "fly",
+  "solid": 1.2,
+  "a": "A split grey geode, its inside lined with bright lilac crystals, spinning in place in a swirl of pale wind.",
+  "b": "A burst of lilac crystal shards carried outward on wind streaks",
+  "snd": "a sharp gust of wind with tinkling crystals, then a glassy burst"
+ },
+ {
+  "id": "f_m11",
+  "name": "Phase Horns",
+  "flag": "frost",
+  "stage": "close",
+  "solid": 1.0,
+  "a": "Two curved ibex horns of blue-white ice start at the left and right edges of the frame as thin crescents and grow inward until they meet in the centre as one full ring.",
+  "b": "A burst of ice shards and pale blue frost in a ring",
+  "snd": "ice creaking as it grows, then two horns clacking together with a cold ring"
+ },
+ {
+  "id": "f_m12",
+  "name": "String of Fire",
+  "flag": "burn",
+  "stage": "pair",
+  "solid": 0.4,
+  "a": "A string of round moonstone beads glowing orange-hot, curled into a ring and turning in place, with small flames on each bead.",
+  "b": "A burst of glowing orange beads and flame scattering outward",
+  "snd": "beads rattling fast like a chain, then a fiery snap"
+ },
+ {
+  "id": "f_m13",
+  "name": "New Moon Cut",
+  "flag": "crit",
+  "stage": "pair",
+  "solid": 0.6,
+  "a": "A thin crescent blade of pale silver wind spinning in place like a boomerang, with a few grey stone flecks.",
+  "b": "A burst of two crossed silver slash marks with grey stone chips",
+  "snd": "two sharp blades slicing the air in quick succession with a stony chip"
+ },
+ {
+  "id": "f_m14",
+  "name": "Druse Spark",
+  "flag": "shock",
+  "stage": "fall",
+  "solid": 0.4,
+  "a": "A cluster of bright yellow crystals seen falling straight down: the cluster at the bottom centre of the frame, with yellow lightning streaming straight up behind it to the top of the frame.",
+  "b": "A burst of yellow lightning arcs with crystal shards",
+  "snd": "a crackling bolt falling, then a sharp crystalline electric crack"
+ },
+ {
+  "id": "f_m15",
+  "name": "Full Geode",
+  "flag": "crit",
+  "stage": "close",
+  "solid": 1.0,
+  "a": "A plain grey moon rock in the centre cracks open along bright seams of golden-white light, wider and wider, until it stands fully open and blazing with crystals.",
+  "b": "A burst of golden-white light with crystal shards and grey rock chips",
+  "snd": "stone cracking open slowly, then a bright ringing burst of crystal"
+ },
+ {
+  "id": "f_m15d",
+  "name": "Dark Side",
+  "flag": "curse",
+  "stage": "drop",
+  "solid": 1.6,
+  "a": "A dark moon with a thin bright violet rim descends from the top of the frame to the bottom centre, its shadow falling ahead of it.",
+  "b": "A burst of violet light round a black disc, with grey dust",
+  "snd": "a deep slow descending tone, then a muffled heavy boom"
+ },
+ {
+  "id": "f_m16",
+  "name": "Mochi Pound",
+  "flag": "burn",
+  "stage": "drop",
+  "solid": 1.2,
+  "a": "A big wooden mallet swings down from the top of the frame onto a soft white rice cake at the bottom centre, which squashes and glows orange-hot.",
+  "b": "A burst of soft white rice cake blobs, green leaf flecks and orange embers",
+  "snd": "a wooden mallet thumping down on something soft and sticky, with a sizzle"
+ },
+ {
+  "id": "f_m17",
+  "name": "Diving Bell",
+  "flag": "pierce",
+  "stage": "close",
+  "solid": 1.0,
+  "a": "A big clear bubble of air with blue water rippling round it starts wide at the edges of the frame and shrinks inward until it closes tight on the centre.",
+  "b": "A burst of water droplets and small air bubbles with grey pebbles",
+  "snd": "a bubble squeezing shut underwater with a deep gulp and a pop"
+ },
+ {
+  "id": "f_m18",
+  "name": "False Dawn",
+  "flag": "burn",
+  "stage": "rise",
+  "solid": 0.0,
+  "a": "A small sun of white-gold light rises from the bottom centre of the frame to the top, growing as it climbs, with orange flames licking round its edge.",
+  "b": "A burst of white-gold sunrays with orange flame",
+  "snd": "a warm swelling roar of light rising, bright and brassy"
+ },
+ {
+  "id": "f_m19",
+  "name": "Ice Knight",
+  "flag": "frost",
+  "stage": "drop",
+  "solid": 1.0,
+  "a": "A lance of blue-white ice with a thin stream of water spiralling round it thrusts straight down from the top of the frame to the bottom centre.",
+  "b": "A burst of ice shards and cold water spray",
+  "snd": "a spear of ice driving down with a sharp crack and a splash"
+ },
+ {
+  "id": "f_m20",
+  "name": "Garden Crater",
+  "flag": "poison",
+  "stage": "pool",
+  "solid": 1.4,
+  "a": "A moon crater seen from above at a slant, as a wide ellipse, filled with green moss, small white flowers and glowing yellow lantern lights, slowly turning.",
+  "b": "A fountain of green leaves, white petals and yellow glowing motes bursting straight up from the bottom centre to the top of the frame",
+  "snd": "soft rustling growth and tiny bells, then a leafy bursting rush"
+ },
+ {
+  "id": "f_m21",
+  "name": "Wyrm Circuit",
+  "flag": "shock",
+  "stage": "pair",
+  "solid": 0.4,
+  "a": "A chain of round beads joined by crackling yellow lightning, curled into a ring and turning in place, each bead glowing orange.",
+  "b": "A burst of yellow lightning and orange sparks in a ring",
+  "snd": "electricity running fast along a chain, then a snapping crack"
+ },
+ {
+  "id": "f_m22",
+  "name": "Moonflower",
+  "flag": "drain",
+  "stage": "rise",
+  "solid": 0.8,
+  "a": "A pale flower of white-gold light grows from the bottom centre of the frame on a green stem and opens its petals wide at the top, shedding glowing pollen.",
+  "b": "A burst of white-gold petals and soft green leaves",
+  "snd": "a soft rising chime as a flower opens, with a gentle shimmer"
+ },
+ {
+  "id": "f_m22d",
+  "name": "Night Mallet",
+  "flag": "curse",
+  "stage": "drop",
+  "solid": 1.6,
+  "a": "A heavy black mallet with a glowing violet band swings down from the top of the frame to the bottom centre, trailing dark purple smoke.",
+  "b": "A burst of dark purple smoke with violet sparks and green leaf flecks",
+  "snd": "a heavy dark mallet whooshing down and landing with a dull, echoing thud"
+ },
+ {
+  "id": "f_m23",
+  "name": "Ember Spiral",
+  "flag": "burn",
+  "stage": "fly",
+  "solid": 0.4,
+  "a": "A spiral of glowing orange beads and small green leaves winding round a bright flame, turning in place.",
+  "b": "A burst of orange flame, glowing beads and burning leaves",
+  "snd": "a crackling fire spinning past, then a bright fiery pop"
+ },
+ {
+  "id": "f_m24",
+  "name": "Bubble Stream",
+  "flag": "drain",
+  "stage": "volley",
+  "solid": 0.8,
+  "a": "A clear shining bubble with a little swirl of blue water inside, wobbling in place, with a wisp of pale wind.",
+  "b": "A small pop: a ring of water droplets and wind streaks",
+  "snd": "three soft bubbly pops in a row with a breath of wind"
+ },
+ {
+  "id": "f_m25",
+  "name": "Wide-Eyed Dark",
+  "flag": "curse",
+  "stage": "close",
+  "solid": 1.6,
+  "a": "Two huge round eyes glowing violet open in the dark at the left and right of the frame, then drift together and merge into one black disc with a violet ring in the centre, like an eclipse.",
+  "b": "A burst of violet light round a black disc, with grey stone flakes",
+  "snd": "an eerie rising whine, then a deep hollow thump"
+ },
+ {
+  "id": "f_m26",
+  "name": "Lamp Tide",
+  "flag": "drain",
+  "stage": "rise",
+  "solid": 0.8,
+  "a": "A fountain of blue water rises from the bottom centre to the top of the frame, carrying glowing yellow lantern lights up with it on curling wind.",
+  "b": "A burst of water droplets, yellow lights and wind streaks",
+  "snd": "water rushing up in a fountain with small glassy chimes"
+ },
+ {
+  "id": "f_m27",
+  "name": "Eclipse Crab",
+  "flag": "curse",
+  "stage": "fall",
+  "solid": 1.4,
+  "a": "A black disc with a blazing violet-orange corona seen falling straight down: the disc at the bottom centre of the frame, with violet and orange flames streaming straight up behind it to the top of the frame.",
+  "b": "A burst of violet-orange fire round a black disc, with dark rock shards",
+  "snd": "a dark fireball falling with a low roar and a heavy crunching impact"
+ },
+ {
+  "id": "f_m28",
+  "name": "Sickle Dawn",
+  "flag": "crit",
+  "stage": "pair",
+  "solid": 0.0,
+  "a": "A crescent blade of white-gold light spinning in place like a boomerang, with a short flame along its edge.",
+  "b": "A burst of two crossed white-gold slash marks with wind streaks",
+  "snd": "two bright blades of light slicing past with a clean ringing shing"
+ },
+ {
+  "id": "f_m28d",
+  "name": "Sickle Dusk",
+  "flag": "curse",
+  "stage": "pair",
+  "solid": 1.4,
+  "a": "A crescent blade of black with a thin bright violet edge spinning in place like a boomerang, trailing dark smoke.",
+  "b": "A burst of two crossed violet slash marks with dark smoke",
+  "snd": "two dark blades slicing past with a low hiss and a cut"
+ },
+ {
+  "id": "f_m29",
+  "name": "Moons of Its Own",
+  "flag": "crit",
+  "stage": "volley",
+  "solid": 1.0,
+  "a": "A little full moon of pale gold with a calm sleeping face, glowing softly, slowly turning in place with one tiny moon orbiting it.",
+  "b": "A small burst of pale gold light with grey moon dust",
+  "snd": "three soft deep chimes in a row, each with a dusty thud"
+ }
+]

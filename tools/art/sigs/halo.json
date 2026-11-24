@@ -1,0 +1,352 @@
+[
+ {
+  "id": "f_h0",
+  "name": "Barchan Bloom",
+  "flag": "poison",
+  "stage": "rise",
+  "solid": 1.2,
+  "a": "A crescent sand dune at the bottom centre of the frame sprouts a tall green cactus that shoots up to the top of the frame and bursts into pink flowers.",
+  "b": "A burst of pink cactus flowers, green spines and tan sand",
+  "snd": "sand hissing, a quick woody stretch, then a soft bursting pop"
+ },
+ {
+  "id": "f_h1",
+  "name": "Spine Roller",
+  "flag": "crit",
+  "stage": "fly",
+  "solid": 1.6,
+  "a": "A ball of green cactus covered in long pale spines, rolling in place like a dung ball, with a few tan pebbles stuck in it.",
+  "b": "A burst of pale cactus spines flying outward with tan stone chips",
+  "snd": "a heavy prickly ball rolling fast, then a sharp burst of needles"
+ },
+ {
+  "id": "f_h2",
+  "name": "Brine Blossom",
+  "flag": "drain",
+  "stage": "pool",
+  "solid": 1.0,
+  "a": "A salt pool seen from above at a slant, as a wide ellipse: pale turquoise water with a white salt crust rim and pink cactus flowers floating on it, slowly turning.",
+  "b": "A fountain of turquoise water, white salt crystals and pink petals bursting straight up from the bottom centre to the top of the frame",
+  "snd": "salty water bubbling and fizzing, then a splashing fountain"
+ },
+ {
+  "id": "f_h3",
+  "name": "Mirror Salt",
+  "flag": "drain",
+  "stage": "drop",
+  "solid": 0.6,
+  "a": "A beam of golden-white light drops from the top of the frame onto a flat mirror of shallow water at the bottom centre, which flashes and throws the light back up.",
+  "b": "A burst of golden-white light with white salt crystals and water drops",
+  "snd": "a bright shimmering beam striking still water with a glassy ring"
+ },
+ {
+  "id": "f_h3d",
+  "name": "Dead Sea",
+  "flag": "curse",
+  "stage": "pool",
+  "solid": 1.8,
+  "a": "A black salt lake seen from above at a slant, as a wide ellipse: dark water with a violet sheen and a rim of grey salt, turning slowly round a pitch black centre.",
+  "b": "A column of dark water with violet glints and grey salt flakes bursting straight up from the bottom centre to the top of the frame",
+  "snd": "a slow thick dark gurgle sinking, then a heavy wet surge"
+ },
+ {
+  "id": "f_h4",
+  "name": "Nimbus Wade",
+  "flag": "drain",
+  "stage": "rise",
+  "solid": 0.8,
+  "a": "A flamingo's wing made of pink glass and salt water unfolds upward from the bottom centre to the top of the frame, with green leaves and a soft pale nimbus of light behind it.",
+  "b": "A burst of pink glassy feathers, water drops and green leaves",
+  "snd": "a great wing opening with a wet whoosh and soft glassy chimes"
+ },
+ {
+  "id": "f_h5",
+  "name": "Salt Sun",
+  "flag": "pierce",
+  "stage": "fly",
+  "solid": 1.0,
+  "a": "A ball of white salt crystal with a turquoise watery glow inside, rolling in place, bright as a small sun.",
+  "b": "A burst of white salt shards and turquoise water spray",
+  "snd": "a crunchy crystalline ball rolling fast, then a sharp salty shatter"
+ },
+ {
+  "id": "f_h6",
+  "name": "Shell and Stilt",
+  "flag": "crit",
+  "stage": "drop",
+  "solid": 1.2,
+  "a": "A long thin leg of pink glass with a clawed foot stamps straight down from the top of the frame to the bottom centre into shallow water over stone.",
+  "b": "A burst of water spray and tan stone chips in a ring",
+  "snd": "one sharp stamping step into shallow water with a crack of stone"
+ },
+ {
+  "id": "f_h7",
+  "name": "Salt Wind",
+  "flag": "pierce",
+  "stage": "fly",
+  "solid": 0.8,
+  "a": "A swirl of white salt crystals and pink feathers carried in a spinning gust of pale wind, turning in place.",
+  "b": "A burst of salt spray, pink feathers and wind streaks",
+  "snd": "a stinging gust of gritty wind rushing past, then a dry hissing burst"
+ },
+ {
+  "id": "f_h8",
+  "name": "Regent's Rings",
+  "flag": "pierce",
+  "stage": "close",
+  "solid": 0.8,
+  "a": "Two ringed feelers of turquoise water with bright bands start at the left and right edges of the frame, curl inward and wind together into a tight spiral in the centre.",
+  "b": "A burst of turquoise water rings spreading outward with droplets",
+  "snd": "two streams of water winding together fast, then a ringing splash"
+ },
+ {
+  "id": "f_h9",
+  "name": "Glass Dune",
+  "flag": "crit",
+  "stage": "drop",
+  "solid": 0.6,
+  "a": "A jagged branch of golden lightning glass drops from the top of the frame and stabs into a tan sand dune at the bottom centre, glowing white-gold.",
+  "b": "A burst of golden glass shards, light and tan sand",
+  "snd": "a bolt hitting sand with a crack and a glassy tinkle"
+ },
+ {
+  "id": "f_h9d",
+  "name": "Buried Sun",
+  "flag": "curse",
+  "stage": "close",
+  "solid": 1.6,
+  "a": "Dark sand pours in from the left and right edges of the frame and closes over a dim violet sun in the centre until only a thin ring of light is left.",
+  "b": "A burst of dark sand with a ring of violet light",
+  "snd": "sand pouring and closing in with a low smothering rumble"
+ },
+ {
+  "id": "f_h10",
+  "name": "Year Rings",
+  "flag": "crit",
+  "stage": "close",
+  "solid": 1.4,
+  "a": "Concentric rings of polished brass and tan stone, like the rings of a tortoise shell, start wide at the edges of the frame and close inward one after another to the centre.",
+  "b": "A burst of brass ring fragments and tan stone chips",
+  "snd": "heavy brass rings clanging shut one after another, then a deep knock"
+ },
+ {
+  "id": "f_h11",
+  "name": "Ringtail Bolt",
+  "flag": "shock",
+  "stage": "pair",
+  "solid": 0.4,
+  "a": "A ring of brass with yellow lightning crackling round it and two small glass dragonfly wings, spinning in place.",
+  "b": "A burst of yellow lightning and brass ring fragments",
+  "snd": "a buzzing electric whirr darting past, then a metallic zap"
+ },
+ {
+  "id": "f_h12",
+  "name": "False Sun Flower",
+  "flag": "drain",
+  "stage": "rise",
+  "solid": 0.4,
+  "a": "A tall cactus of white-gold light rises from the bottom centre to the top of the frame and opens a flower of light at its tip, with two small mock suns either side of it.",
+  "b": "A burst of white-gold petals and light with green spines",
+  "snd": "a warm rising shimmer opening into a bright soft chord"
+ },
+ {
+  "id": "f_h13",
+  "name": "Crystal Hump",
+  "flag": "burn",
+  "stage": "drop",
+  "solid": 1.0,
+  "a": "A great orange crystal, glowing hot from inside, drops from the top of the frame onto a brass-ringed stone dome at the bottom centre and splits.",
+  "b": "A burst of hot orange crystal shards and brass sparks",
+  "snd": "a heavy crystal dropping and cracking apart with a hot hiss"
+ },
+ {
+  "id": "f_h14",
+  "name": "Pool Current",
+  "flag": "shock",
+  "stage": "pool",
+  "solid": 0.8,
+  "a": "A shallow pool seen from above at a slant, as a wide ellipse: turquoise water with yellow lightning running round it in rings, slowly turning.",
+  "b": "A column of water and yellow lightning bursting straight up from the bottom centre to the top of the frame",
+  "snd": "water crackling with electricity, building into a snapping surge"
+ },
+ {
+  "id": "f_h15",
+  "name": "Parhelion",
+  "flag": "shock",
+  "stage": "drop",
+  "solid": 0.0,
+  "a": "Three suns in a row at the top of the frame, a bright one between two fainter mock suns joined by a thin halo arc; all three fire beams of white-gold light and yellow lightning down to one point at the bottom centre.",
+  "b": "A burst of white-gold light and yellow lightning rays",
+  "snd": "three bright beams striking at once with an electric shimmer"
+ },
+ {
+  "id": "f_h15d",
+  "name": "Black Sun Dog",
+  "flag": "curse",
+  "stage": "drop",
+  "solid": 1.4,
+  "a": "A black sun with a violet halo at the top of the frame, between two small dark mock suns; violet lightning forks down from it to the bottom centre.",
+  "b": "A burst of violet lightning round a black disc",
+  "snd": "a deep dark hum, then a harsh violet electric crack"
+ },
+ {
+  "id": "f_h16",
+  "name": "Brass Saguaro",
+  "flag": "crit",
+  "stage": "rise",
+  "solid": 1.4,
+  "a": "A tall saguaro cactus with two arms, banded in polished brass rings and tan stone, thrusts up from the bottom centre to the top of the frame.",
+  "b": "A burst of brass bands, green spines and tan stone chips",
+  "snd": "something heavy thrusting up through stone with a brassy clang"
+ },
+ {
+  "id": "f_h17",
+  "name": "Heat Shimmer",
+  "flag": "burn",
+  "stage": "fly",
+  "solid": 0.0,
+  "a": "A wavering ball of orange heat haze with yellow sparks, and two small glass dragonfly wings of flame, flickering in place.",
+  "b": "A burst of orange flame and yellow sparks with heat ripples",
+  "snd": "a dry hot buzzing rush, then a fiery crackling pop"
+ },
+ {
+  "id": "f_h18",
+  "name": "Corona Frill",
+  "flag": "shock",
+  "stage": "close",
+  "solid": 0.4,
+  "a": "A lizard's frill made of yellow lightning and turquoise water opens wide into a full disc filling the frame, then snaps shut to the centre.",
+  "b": "A burst of yellow lightning rays and water spray, like a sun's corona",
+  "snd": "a sudden crackling fan snapping open and shut with an electric splash"
+ },
+ {
+  "id": "f_h19",
+  "name": "Ring Runner",
+  "flag": "shock",
+  "stage": "volley",
+  "solid": 0.0,
+  "a": "A ring of white-gold light with yellow sparks trailing from it and a streak of wind, rolling in place.",
+  "b": "A small burst of yellow sparks and wind streaks",
+  "snd": "three fast zipping passes with small electric cracks"
+ },
+ {
+  "id": "f_h20",
+  "name": "Fulgurite Garden",
+  "flag": "poison",
+  "stage": "rise",
+  "solid": 1.0,
+  "a": "Branches of golden lightning glass grow up from tan sand at the bottom centre to the top of the frame, budding small green cactus pads and pink flowers.",
+  "b": "A burst of golden glass shards, green pads and pink petals",
+  "snd": "glass crackling as it grows, then a bright tinkling shatter"
+ },
+ {
+  "id": "f_h21",
+  "name": "Gilded Barrel",
+  "flag": "crit",
+  "stage": "fall",
+  "solid": 1.2,
+  "a": "A barrel cactus banded in gold, glowing white-gold, seen falling straight down: the cactus at the bottom centre of the frame, with golden light and tan dust streaming straight up behind it to the top of the frame.",
+  "b": "A burst of golden light, pale spines and tan stone chips",
+  "snd": "something heavy falling with a bright whistle and landing with a prickly crunch"
+ },
+ {
+  "id": "f_h22",
+  "name": "Dawn Darner",
+  "flag": "shock",
+  "stage": "pair",
+  "solid": 0.0,
+  "a": "A dragonfly shape made of white-gold light with four glass wings, seen from above, wings beating fast in place, with small yellow sparks.",
+  "b": "A burst of white-gold light and yellow sparks",
+  "snd": "a bright buzzing dart past, then a sparkling electric chime"
+ },
+ {
+  "id": "f_h22d",
+  "name": "Dusk Darner",
+  "flag": "curse",
+  "stage": "pair",
+  "solid": 1.4,
+  "a": "A dragonfly shape of black with thin violet lightning along its four wings, seen from above, wings beating fast in place.",
+  "b": "A burst of violet lightning and dark smoke",
+  "snd": "a dark buzzing dart past, then a harsh crackling snap"
+ },
+ {
+  "id": "f_h23",
+  "name": "Storm Feelers",
+  "flag": "shock",
+  "stage": "drop",
+  "solid": 0.4,
+  "a": "Two long ringed feelers of yellow lightning whip down from the top of the frame, crossing, and strike one point at the bottom centre, with curling wind.",
+  "b": "A burst of yellow lightning arcs and wind streaks",
+  "snd": "two whips of lightning cracking down one after the other"
+ },
+ {
+  "id": "f_h24",
+  "name": "Stilt Spark",
+  "flag": "shock",
+  "stage": "drop",
+  "solid": 0.6,
+  "a": "A long thin leg of pink glass crackling with yellow lightning stamps straight down from the top of the frame to the bottom centre, where green leaves scatter.",
+  "b": "A burst of yellow sparks, pink glass slivers and green leaves",
+  "snd": "one sharp electric stamp with a glassy crack"
+ },
+ {
+  "id": "f_h25",
+  "name": "Oasis That Isn't",
+  "flag": "curse",
+  "stage": "pool",
+  "solid": 1.6,
+  "a": "A mirage pool seen from above at a slant, as a wide ellipse: shimmering dark water with a faint upside-down palm reflection and violet heat haze, slowly turning.",
+  "b": "A column of violet haze and tan sand rising straight up from the bottom centre to the top of the frame, wavering",
+  "snd": "a wavering dreamy shimmer, then a hollow rushing collapse"
+ },
+ {
+  "id": "f_h26",
+  "name": "Lake Lightning",
+  "flag": "shock",
+  "stage": "rise",
+  "solid": 0.6,
+  "a": "A fountain of turquoise salt water rises from the bottom centre to the top of the frame with yellow lightning climbing up through it.",
+  "b": "A burst of water spray and yellow lightning",
+  "snd": "water surging up with crackling electricity and a sharp snap"
+ },
+ {
+  "id": "f_h27",
+  "name": "Hot Air",
+  "flag": "curse",
+  "stage": "rise",
+  "solid": 1.2,
+  "a": "A wavering pillar of violet heat haze rises from the bottom centre to the top of the frame, with pink feathers and wind streaks spiralling up inside it.",
+  "b": "A burst of violet haze, pink feathers and wind",
+  "snd": "hot wind rising with an eerie wavering whistle"
+ },
+ {
+  "id": "f_h28",
+  "name": "Sprint Tide",
+  "flag": "drain",
+  "stage": "fly",
+  "solid": 0.8,
+  "a": "A wheel of white-gold light with turquoise water spraying off its rim, spinning fast in place.",
+  "b": "A burst of water spray and white-gold light",
+  "snd": "a fast spinning wheel rushing through water, then a bright splash"
+ },
+ {
+  "id": "f_h28d",
+  "name": "Undertow",
+  "flag": "curse",
+  "stage": "pool",
+  "solid": 1.8,
+  "a": "A dark whirl seen from above at a slant, as a wide ellipse: black water with violet streaks spinning fast round a pitch black centre, with grey salt foam.",
+  "b": "A column of black water with violet glints bursting straight up from the bottom centre to the top of the frame",
+  "snd": "a fast dark whirlpool sucking down, then a heavy wet surge"
+ },
+ {
+  "id": "f_h29",
+  "name": "False Oasis",
+  "flag": "curse",
+  "stage": "close",
+  "solid": 1.4,
+  "a": "A shimmering oasis of palm trees and water appears across the frame in violet heat haze, then folds in from both sides like a closing book and vanishes to a point in the centre.",
+  "b": "A burst of violet haze and wind with tan sand",
+  "snd": "a shimmering mirage wavering, then snapping shut with a hollow whoosh"
+ }
+]
