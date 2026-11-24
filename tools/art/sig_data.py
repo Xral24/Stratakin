@@ -4,7 +4,7 @@
 import sys, os, json, re
 here = os.path.dirname(os.path.abspath(__file__)); game = sys.argv[1] if len(sys.argv) > 1 else '/home/claude/strata'
 fs, fx = [], []
-for planet in ('earth', 'moon', 'halo', 'tyrant'):  # the tyrants' names live in kin.js SIGS by hand: only their staging is written from here
+for planet in ('earth', 'moon', 'halo', 'tyrant', 'boss'):  # the tyrants' names live in kin.js SIGS by hand: only their staging is written from here
     t, y = f'{here}/sigs/{planet}.json', f'{here}/sigs/{planet}_sync.json'
     if not (os.path.exists(t) and os.path.exists(y)): continue
     sync = json.load(open(y))

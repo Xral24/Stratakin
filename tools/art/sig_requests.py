@@ -4,7 +4,7 @@
    Each row makes three jobs: picture a (the thing itself), picture b (where it lands), and one sound. The request files are fetched by the
    Higgsfield sandbox straight from this repository, so the prompts are written once."""
 import sys, json, os
-planet = sys.argv[1]; here = os.path.dirname(os.path.abspath(__file__)); base = {'earth': 1000, 'moon': 2000, 'halo': 3000, 'tyrant': 4000}[planet]
+planet = sys.argv[1]; here = os.path.dirname(os.path.abspath(__file__)); base = {'earth': 1000, 'moon': 2000, 'halo': 3000, 'tyrant': 4000, 'boss': 5000}[planet]
 LOOP = {'fly', 'pair', 'volley', 'fall', 'pool'}
 HEAD = 'Game VFX sprite animation, %s, on a pure black background. Hand-painted stylised cartoon look. '
 TAIL = ' No text, no character, no creature, no ground, nothing else.'

@@ -1,0 +1,52 @@
+[
+ {
+  "id": "x_vexmaw",
+  "name": "Twelve Chains",
+  "flag": "curse",
+  "stage": "close",
+  "solid": 1.2,
+  "a": "Twelve chains of glowing violet light with red-hot links shoot in from all the edges of the frame towards the centre and lock together there in a tight knot.",
+  "b": "A knot of chains bursts: broken violet chain links and red sparks thrown outward with a dark violet shock ring",
+  "snd": "many heavy chains rattling in fast from all sides and locking with a deep metallic slam"
+ },
+ {
+  "id": "x_gravemaw",
+  "name": "Grave Fire",
+  "flag": "burn",
+  "stage": "rise",
+  "solid": 0.6,
+  "a": "The ground at the bottom of the frame cracks, and ghostly flames, violet at the root and orange at the tips, rise out of it up to the top of the frame, shaped like long reaching clawed hands.",
+  "b": "A burst of violet and orange ghost fire with drifting ash",
+  "snd": "a low ghostly moan rising into a roar of flame"
+ },
+ {
+  "id": "x_warden",
+  "name": "Basalt Cage",
+  "flag": "crit",
+  "stage": "rise",
+  "solid": 1.6,
+  "a": "Six-sided columns of black basalt thrust up from the bottom of the frame one after another in a ring, to different heights, with furnace-orange light glowing in the gaps between them.",
+  "b": "A burst of black basalt chunks with furnace-orange light and sparks",
+  "snd": "stone columns thrusting up through the ground one after another with heavy grinding thuds"
+ },
+ {
+  "id": "x_warlord",
+  "name": "Warlord's Standard",
+  "flag": "pierce",
+  "stage": "drop",
+  "solid": 1.4,
+  "a": "A heavy black war spear flying a torn dark violet banner drops point first from the top of the frame and drives into the ground at the bottom centre, the banner snapping.",
+  "b": "A shock ring of dust and violet light with scraps of torn dark cloth",
+  "snd": "a heavy spear whistling down and thudding deep into the ground, cloth snapping in the wind"
+ },
+ {
+  "id": "x_splice",
+  "name": "Unstable Splice",
+  "flag": "poison",
+  "stage": "fly",
+  "solid": 0.8,
+  "a": "A twisting double helix of two strands, one acid green and one magenta, joined by glowing rungs, spinning in place and flickering as if about to come apart, with small bubbles.",
+  "b": "A double helix comes apart: a burst of acid green and magenta strands, bubbles and sparks",
+  "snd": "bubbling liquid and a rising unstable electric whine, then a wet bursting pop"
+ }
+]
