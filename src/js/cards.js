@@ -77,11 +77,49 @@ const Cards = (() => {
     for (let i = 0; i < w * h / 900 * strength; i++) { const sx = x + R() * w, sy = y + R() * h, s = 0.8 + R() * 2.6; c.globalAlpha = 0.35 + R() * 0.6; c.fillStyle = R() < 0.5 ? '#ffffff' : cols[Math.floor(R() * cols.length)]; c.beginPath(); c.moveTo(sx, sy - s * 2); c.lineTo(sx + s * 0.5, sy); c.lineTo(sx, sy + s * 2); c.lineTo(sx - s * 0.5, sy); c.closePath(); c.moveTo(sx - s * 2, sy); c.lineTo(sx, sy + s * 0.5); c.lineTo(sx + s * 2, sy); c.lineTo(sx, sy - s * 0.5); c.closePath(); c.fill(); }
     c.restore(); }
   const MARK = ['●', '◆', '★', '★★', '★★★'];
+  /* a printing, as on real cards the same creature comes in several: how its name is printed, and what the art is printed on. Rolled when it is caught, and nothing to do with how rare the Kin itself is */
+  const FINISH = {
+    normal: { name: '', foil: null, art: null },
+    rare: { name: 'Rare', foil: 'silver', art: null },
+    super: { name: 'Super Rare', foil: null, art: 'holo' },
+    ultra: { name: 'Ultra Rare', foil: 'gold', art: 'holo' },
+    secret: { name: 'Secret Rare', foil: 'prism', art: 'secret' },
+  };
+  const FOIL = { silver: ['#6d7680', '#f4f7fa', '#9aa3ad', '#ffffff', '#7a838e', '#e6ebf0'], gold: ['#7a4c08', '#ffe9a0', '#b07a1c', '#fff6cc', '#8a5a0e', '#f2c95a'], prism: ['#c9d6e6', '#ffffff', '#d8c9f2', '#ffffff', '#c6ecdf', '#ffffff'] };
+  /* text printed in foil: a metal that changes along the letters, a bright glint where the light catches, a thin dark edge so it reads on any plate */
+  function foilText(c, text, x, y, font, kind, tilt, seed) {
+    c.font = font; const m = c.measureText(text), w = Math.ceil(m.width) + 8, h = 80, oc = document.createElement('canvas'); oc.width = w; oc.height = h; const o = oc.getContext('2d');
+    o.font = font; o.textBaseline = 'middle'; o.fillStyle = '#000'; o.fillText(text, 4, h / 2);
+    o.globalCompositeOperation = 'source-in'; const g = o.createLinearGradient(-tilt * 160, 0, w + 80 - tilt * 160, h * 0.6); FOIL[kind].forEach((col, i) => g.addColorStop(i / (FOIL[kind].length - 1), col)); o.fillStyle = g; o.fillRect(0, 0, w, h);
+    if (kind === 'prism') { o.globalCompositeOperation = 'color'; const pg = o.createLinearGradient(-tilt * 200, 0, w * 1.2, h); ['#ff7aa8', '#ffd97a', '#8affc0', '#7ad8ff', '#c79aff', '#ff7aa8'].forEach((col, i) => pg.addColorStop(i / 5, col)); o.globalAlpha = 0.55; o.fillStyle = pg; o.fillRect(0, 0, w, h); o.globalAlpha = 1; }
+    o.globalCompositeOperation = 'source-atop'; const gx = (0.15 + tilt * 0.7) * w, gl = o.createLinearGradient(gx - 40, 0, gx + 40, h); gl.addColorStop(0, 'rgba(255,255,255,0)'); gl.addColorStop(0.5, 'rgba(255,255,255,0.95)'); gl.addColorStop(1, 'rgba(255,255,255,0)'); o.fillStyle = gl; o.fillRect(0, 0, w, h); // the glint
+    const R = rng(seed); for (let i = 0; i < w / 6; i++) { o.fillStyle = 'rgba(255,255,255,' + (0.3 + R() * 0.7) + ')'; o.fillRect(R() * w, R() * h, 1.4, 1.4); } // grain of the foil
+    o.globalCompositeOperation = 'destination-in'; o.globalAlpha = 1; o.fillStyle = '#000'; o.fillText(text, 4, h / 2); // nothing outside the letters
+    c.save(); c.fillStyle = 'rgba(0,0,0,0.65)'; c.textBaseline = 'middle'; c.fillText(text, x + 1.5, y + 2); c.restore(); // its edge
+    c.drawImage(oc, x - 4, y - h / 2);
+  }
+  /* secret rare: the art printed on a fine prismatic weave that sparkles in rows */
+  function secretFoil(c, x, y, w, h, seed, tilt) {
+    c.save(); c.globalCompositeOperation = 'color-dodge'; const off = tilt * w;
+    const g = c.createLinearGradient(x - off, y + h, x + w * 1.4 - off, y); ['#ff8ab0', '#ffe08a', '#a0ffc8', '#8ad8ff', '#c8a0ff', '#ff8ab0', '#ffe08a'].forEach((col, i) => g.addColorStop(i / 6, col));
+    c.globalAlpha = 0.28; c.strokeStyle = g; c.lineWidth = 1.2;
+    for (let d = -h; d < w + h; d += 4) { c.beginPath(); c.moveTo(x + d, y); c.lineTo(x + d - h, y + h); c.stroke(); c.beginPath(); c.moveTo(x + d - h, y); c.lineTo(x + d, y + h); c.stroke(); }
+    c.globalCompositeOperation = 'screen'; const R = rng(seed);
+    for (let i = 0; i < 260; i++) { const t = R(), sx = x + R() * w, sy = y + ((t * h + (sx - x) * 0.5) % h), a = 0.25 + 0.6 * Math.max(0, Math.sin((sx - x) / w * 6 + tilt * 6)); c.globalAlpha = a; c.fillStyle = '#fff'; c.fillRect(sx, sy, 2, 2); c.fillRect(sx - 3, sy + 0.5, 8, 1); c.fillRect(sx + 0.5, sy - 3, 1, 8); }
+    c.restore(); }
+  /* the scene at the hour it was caught: the same painting, by day, at dusk or by night */
+  function grade(c, x, y, w, h, time, seed) {
+    if (time === 'dusk') { c.save(); c.globalCompositeOperation = 'multiply'; const g = c.createLinearGradient(0, y, 0, y + h); g.addColorStop(0, '#ffc49a'); g.addColorStop(0.6, '#f2a8b8'); g.addColorStop(1, '#a890c0'); c.fillStyle = g; c.fillRect(x, y, w, h); c.globalCompositeOperation = 'screen'; c.globalAlpha = 0.25; const s = c.createRadialGradient(x + w * 0.75, y + h * 0.35, 5, x + w * 0.75, y + h * 0.35, w * 0.5); s.addColorStop(0, '#ffd08a'); s.addColorStop(1, 'rgba(0,0,0,0)'); c.fillStyle = s; c.fillRect(x, y, w, h); c.restore(); }
+    else if (time === 'night') { c.save(); c.globalCompositeOperation = 'multiply'; c.fillStyle = '#2a3a7a'; c.fillRect(x, y, w, h); c.globalCompositeOperation = 'multiply'; c.fillStyle = '#6a7ab0'; c.fillRect(x, y, w, h); c.globalCompositeOperation = 'screen'; const R = rng(seed); for (let i = 0; i < 90; i++) { c.globalAlpha = 0.3 + R() * 0.7; c.fillStyle = '#fff'; const sx = x + R() * w, sy = y + R() * h * 0.45, r = R() * 1.6 + 0.4; c.beginPath(); c.arc(sx, sy, r, 0, 6.3); c.fill(); }
+      c.globalAlpha = 0.9; const mx = x + w * 0.22, my = y + h * 0.16, mg = c.createRadialGradient(mx, my, 4, mx, my, 70); mg.addColorStop(0, 'rgba(230,240,255,0.9)'); mg.addColorStop(0.25, 'rgba(200,215,255,0.35)'); mg.addColorStop(1, 'rgba(0,0,0,0)'); c.fillStyle = mg; c.fillRect(x, y, w, h); c.fillStyle = '#eef3ff'; c.beginPath(); c.arc(mx, my, 16, 0, 6.3); c.fill(); c.restore(); }
+  }
 
+  /* eight digits printed in the corner, as on a real card: the same for every card of one kind of Kin, so a code is enough to tell which it is */
+  function passcode(k) { let h = (k.sp.seed >>> 0) ^ 0x5bd1e995; h = Math.imul(h ^ (h >>> 15), 0x2c1b3c6d) >>> 0; return 10000000 + (h % 90000000); }
   /* draws the card for Kin k onto canvas cv (750 x 1050). opts.where: a line saying where it was caught. opts.tilt: where the holo shine sits, 0 to 1 */
   function draw(cv, k, opts = {}) {
     cv.width = W; cv.height = H; const c = cv.getContext('2d');
-    const rar = U.clamp(k.sp.rarity || 0, 0, 4), M = METAL[rar], holo = !!(k.holo || opts.holo), shiny = !!k.shiny, tilt = opts.tilt != null ? opts.tilt : 0.45;
+    const rar = U.clamp(k.sp.rarity || 0, 0, 4), M = METAL[rar], fin = FINISH[opts.finish || k.finish || (k.holo ? 'ultra' : 'normal')] || FINISH.normal, holo = !!fin.art, shiny = !!k.shiny, tilt = opts.tilt != null ? opts.tilt : 0.45, time = opts.time || k.time || 'day';
     const seed = (k.id || 1) >>> 0;
     const elems = k.sp.elem.map((w, i) => ({ e: KIN.E[i], w })).filter(x => x.w > 0.12).sort((a, b) => b.w - a.w).slice(0, 2);
     const e0 = elems[0] ? elems[0].e : 'Stone', ec = ELEM_COL[e0] || '#888';
@@ -95,8 +133,8 @@ const Cards = (() => {
     filigree(c, 30, 30, 34, 1, 1, M.trim); filigree(c, W - 30, 30, 34, -1, 1, M.trim); filigree(c, 30, H - 30, 34, 1, -1, M.trim); filigree(c, W - 30, H - 30, 34, -1, -1, M.trim);
     // name plate
     rr(c, 44, 36, W - 88, 80, 14); metal(c, 44, 36, W - 88, 80, M, 14, -0.6); bevel(c, 44, 36, W - 88, 80, 14, 3, 'rgba(255,255,255,0.8)', 'rgba(0,0,0,0.5)');
-    c.textBaseline = 'middle'; c.textAlign = 'left'; c.font = `700 46px ${SERIF}`; engrave(c, KIN.name(k).replace('✦ ', ''), 70, 78, M);
-    if (shiny) { const nm = KIN.name(k).replace('✦ ', ''), tw = c.measureText(nm).width, rg = c.createLinearGradient(70 - tilt * 120, 50, 70 + tw, 106); ['#ff6a9a', '#ffd36a', '#8affb0', '#6ad8ff', '#c08aff'].forEach((col, i) => rg.addColorStop(i / 4, col)); c.fillStyle = rg; c.fillText(nm, 70, 78); } /* a shining one's name is written in rainbow foil */
+    c.textBaseline = 'middle'; c.textAlign = 'left'; const nm = KIN.name(k).replace('✦ ', ''), nf = `700 46px ${SERIF}`; c.font = nf; if (fin.foil) foilText(c, nm, 70, 78, nf, fin.foil, tilt, seed + 5); else engrave(c, nm, 70, 78, M);
+    
     c.textAlign = 'right'; c.font = `700 22px ${SANS}`; engrave(c, 'LV', W - 150, 80, M); c.font = `800 40px ${SERIF}`; engrave(c, String(k.level), W - 132 + 66, 80, M);
     // the art, in a dark recess
     const ax = 58, ay = 132, aw = W - 116, ah = 500;
@@ -106,7 +144,7 @@ const Cards = (() => {
     if (oim) { const s = Math.max(aw / oim.naturalWidth, ah / oim.naturalHeight), iw = oim.naturalWidth * s, ih = oim.naturalHeight * s; c.drawImage(oim, ax + (aw - iw) * (opts.fx != null ? opts.fx : 0.7), ay, iw, ih); } // own paintings keep their top: the head is up there
     else {
       const bim = img(BG[bgKey(k)]);
-      if (bim) cover(c, bim, ax, ay, aw, ah); else { const bg = c.createRadialGradient(W / 2, ay + ah * 0.6, 40, W / 2, ay + ah * 0.5, aw); bg.addColorStop(0, ec); bg.addColorStop(1, '#0c1016'); c.fillStyle = bg; c.fillRect(ax, ay, aw, ah); }
+      if (bim) { cover(c, bim, ax, ay, aw, ah); grade(c, ax, ay, aw, ah, time, seed); } else { const bg = c.createRadialGradient(W / 2, ay + ah * 0.6, 40, W / 2, ay + ah * 0.5, aw); bg.addColorStop(0, ec); bg.addColorStop(1, '#0c1016'); c.fillStyle = bg; c.fillRect(ax, ay, aw, ah); }
       const fog = c.createLinearGradient(0, ay, 0, ay + ah); fog.addColorStop(0, 'rgba(255,255,255,0)'); fog.addColorStop(0.55, 'rgba(255,255,255,0.12)'); fog.addColorStop(1, 'rgba(0,0,0,0.25)'); c.fillStyle = fog; c.fillRect(ax, ay, aw, ah); // a little air between the scene and the Kin
       const sh = c.createRadialGradient(W / 2, ay + ah * 0.88, 10, W / 2, ay + ah * 0.88, aw * 0.4); sh.addColorStop(0, 'rgba(0,0,0,0.5)'); sh.addColorStop(1, 'rgba(0,0,0,0)'); c.fillStyle = sh; c.fillRect(ax, ay + ah * 0.68, aw, ah * 0.32);
       const pc = document.createElement('canvas'), m = KIN.model(k.sp, k.stage);
@@ -114,15 +152,18 @@ const Cards = (() => {
       if (R.renderPortrait(pc, mesh, m, 320, opts.yaw != null ? { yaw: opts.yaw, pitch: -0.1 } : {})) { // a rim of the element's light round the Kin, then the Kin
         const S = ah * 1.06, px = ax + (aw - S) / 2, py = ay - ah * 0.01; c.save(); c.shadowColor = ec; c.shadowBlur = 28; c.drawImage(pc, px, py, S, S); c.restore(); c.drawImage(pc, px, py, S, S); }
     }
-    if (holo) holoFoil(c, ax, ay, aw, ah, seed, tilt, oim ? 0.32 : 0.5); /* light on a painting, or it drowns the colours */
+    if (fin.art === 'holo') holoFoil(c, ax, ay, aw, ah, seed, tilt, oim ? 0.32 : 0.4); /* light on a painting, or it drowns the colours */ else if (fin.art === 'secret') secretFoil(c, ax, ay, aw, ah, seed, tilt);
     const vg = c.createRadialGradient(W / 2, ay + ah / 2, ah * 0.4, W / 2, ay + ah / 2, ah * 0.9); vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,0.3)'); c.fillStyle = vg; c.fillRect(ax, ay, aw, ah);
     c.restore(); c.lineWidth = 2; c.strokeStyle = M.trim; rr(c, ax, ay, aw, ah, 6); c.stroke();
+    // under the art, as on a real card: the edition on the left, the set code on the right
+    c.font = `700 17px ${SERIF}`; c.textBaseline = 'middle'; const setCode = (k.sp.dino ? 'LW' : 'EA') + '-' + String(((k.sp.seed >>> 0) % 997) + 1).padStart(3, '0');
+    if (opts.first || k.first) { c.textAlign = 'left'; engrave(c, '1st Edition', 62, ay + ah + 20, M); } c.textAlign = 'right'; engrave(c, setCode + (fin.name ? '  ' + fin.name : ''), W - 62, ay + ah + 20, M);
     // the type line: rarity in words and its mark, the element medallions
-    const sy = ay + ah + 16; rr(c, 44, sy, W - 88, 52, 10); metal(c, 44, sy, W - 88, 52, M, 10, -0.6); bevel(c, 44, sy, W - 88, 52, 10, 2, 'rgba(255,255,255,0.7)', 'rgba(0,0,0,0.45)');
-    c.textAlign = 'left'; c.font = `italic 700 26px ${SERIF}`; engrave(c, (holo ? 'Holo ' : '') + (shiny ? 'Shining ' : '') + M.name + '  ' + MARK[rar], 66, sy + 27, M);
+    const sy = ay + ah + 36; rr(c, 44, sy, W - 88, 52, 10); metal(c, 44, sy, W - 88, 52, M, 10, -0.6); bevel(c, 44, sy, W - 88, 52, 10, 2, 'rgba(255,255,255,0.7)', 'rgba(0,0,0,0.45)');
+    c.textAlign = 'left'; c.font = `italic 700 26px ${SERIF}`; engrave(c, (shiny ? 'Shining ' : '') + M.name + '  ' + MARK[rar], 66, sy + 27, M);
     let mx = W - 82; for (const el of elems.slice().reverse()) { medal(c, el.e, mx, sy + 26, 22); mx -= 52; }
     // the text box: card stock in the colour of its element
-    const ty = sy + 66, th = 214; rr(c, 44, ty, W - 88, th, 10); paper(c, 44, ty, W - 88, th, PAPER[e0] || '#eee', seed + 7); c.lineWidth = 2; c.strokeStyle = 'rgba(60,40,10,0.45)'; rr(c, 44, ty, W - 88, th, 10); c.stroke();
+    const ty = sy + 64, th = 200; rr(c, 44, ty, W - 88, th, 10); paper(c, 44, ty, W - 88, th, PAPER[e0] || '#eee', seed + 7); c.lineWidth = 2; c.strokeStyle = 'rgba(60,40,10,0.45)'; rr(c, 44, ty, W - 88, th, 10); c.stroke();
     const mv = KIN.moves(k), sig = mv.find(m => m.sig) || mv[mv.length - 1];
     if (sig) { c.textAlign = 'left'; c.fillStyle = '#2a1d0c'; c.font = `700 32px ${SERIF}`; c.fillText((sig.sig ? '✦ ' : '') + sig.name, 68, ty + 38); c.textAlign = 'right'; c.font = `800 34px ${SERIF}`; c.fillText(String(sig.power || ''), W - 68, ty + 38);
       c.strokeStyle = 'rgba(60,40,10,0.35)'; c.lineWidth = 1.5; c.beginPath(); c.moveTo(68, ty + 62); c.lineTo(W - 68, ty + 62); c.stroke();
@@ -133,12 +174,12 @@ const Cards = (() => {
     keys.forEach(([n, v], i) => { const bx = 68 + i * ((W - 136) / 4); c.textAlign = 'left'; c.fillStyle = '#6a5636'; c.font = `700 17px ${SANS}`; c.fillText(n, bx, by + 14); c.fillStyle = '#2a1d0c'; c.font = `800 28px ${SERIF}`; c.fillText(String(v != null ? v : '?'), bx, by + 40); });
     // where it came from, and the set line
     c.textAlign = 'center'; c.textBaseline = 'middle'; c.font = `italic 400 22px ${SERIF}`; engrave(c, opts.where || k.where || 'Caught in the wild', W / 2, H - 66, M);
-    c.font = `700 14px ${SANS}`; c.textAlign = 'left'; engrave(c, 'STRATAKIN', 62, H - 34, M); c.textAlign = 'right'; engrave(c, 'No. ' + String(((k.sp.seed >>> 0) % 997) + 1).padStart(3, '0') + '  ' + MARK[rar], W - 62, H - 34, M);
+    c.font = `700 14px ${SANS}`; c.textAlign = 'left'; engrave(c, String(passcode(k)), 62, H - 34, M); c.textAlign = 'right'; engrave(c, 'STRATAKIN', W - 62, H - 34, M);
     // the great ones are foil all over; holos also catch the light on the frame
-    if (holo && rar >= 3) { c.save(); rr(c, 0, 0, W, H, 34); c.clip(); c.beginPath(); c.rect(0, 0, W, H); rr(c, 44, ty, W - 88, th, 10); c.clip('evenodd'); holoFoil(c, 0, 0, W, H, seed + 11, tilt, 0.45); c.restore(); }
+    if (fin.art && rar >= 3 && fin.art === 'holo') { c.save(); rr(c, 0, 0, W, H, 34); c.clip(); c.beginPath(); c.rect(0, 0, W, H); rr(c, 44, ty, W - 88, th, 10); c.clip('evenodd'); holoFoil(c, 0, 0, W, H, seed + 11, tilt, 0.45); c.restore(); }
     // a sheen across the plate, as if lit from the top left
     c.save(); rr(c, 0, 0, W, H, 34); c.clip(); const gl = c.createLinearGradient(0, 0, W, H); gl.addColorStop(0, 'rgba(255,255,255,0.18)'); gl.addColorStop(0.35, 'rgba(255,255,255,0)'); gl.addColorStop(1, 'rgba(0,0,0,0.12)'); c.fillStyle = gl; c.fillRect(0, 0, W, H); c.restore();
     return cv;
   }
-  return { W, H, draw, preload, BG, OWN };
+  return { W, H, draw, preload, BG, OWN, FINISH, passcode };
 })();
