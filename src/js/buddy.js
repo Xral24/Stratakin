@@ -109,6 +109,15 @@ const Buddy = (() => {
     const M = mood ? MOOD[mood] : sneakK > 0.5 ? MOOD.sneak : null; if (!M) { e.face = null; e._face = null; return; } const q = Math.min(1, dt * 9); f.bl += (M.b - f.bl) * q; f.br += (M.b + (M.one || 0) - f.br) * q; f.tl += (M.t - f.tl) * q; f.tr += (M.t - f.tr) * q; f.lid += (M.lid - f.lid) * q; e.face = f; }
   const PET = { steady: ['stands a little closer', 'leans its whole weight on your leg', 'will not leave your side now'], shy: ['flinches, then lets you', 'hides behind your leg and peeks out', 'climbs half into your coat and stays there'], cross: ['puts up with it', 'pretends not to like it', 'pushes its head under your hand and glares at anyone looking'],
     bright: ['bounces at your feet', 'spins on the spot', 'cannot keep still for joy'], drowsy: ['yawns at you', 'yawns and leans on you', 'falls asleep against your boot, trusting you to stand still'] };
+  /* the bond shine. Keep one Kin out with you long enough, doing things together, and its coat turns: gold running to rose and sea-green, for good. Only time spent moving or fighting side by side counts, and only once it trusts you; idling counts for nothing. The game never says how long: about ten hours of it. A Kin left in the bag cools, slowly, and never all the way back */
+  const SHINE_T = 36000; let shineCd = 1, glintT = 60;
+  function shine(dt, p, k, fighting) { if (k.bonded) return; const moving = Math.hypot(p.vx, p.vz) > 0.6;
+    if ((fighting || moving) && (k.bond || 0) >= 0.5) k.bondT = (k.bondT || 0) + dt * (fighting ? 1.5 : 1);
+    if ((shineCd -= dt) <= 0) { shineCd = 5; for (const o of G.kin) if (o !== k && o.bondT > 0 && !o.bonded) o.bondT = Math.max(0, o.bondT - 5 * 0.15); }
+    const f = (k.bondT || 0) / SHINE_T;
+    if (f > 0.75 && (glintT -= dt) <= 0) { glintT = 70 + Math.random() * 80; emote('✦', '#ffe08a'); } // nearly there: now and then it catches the light
+    if (f >= 1 && (k.bond || 0) >= 0.9 && !fighting) { k.bonded = true; hopT = 1.4; feel('joy', 6, '✦', '#ffe08a'); UI.sfx('gift'); UI.toast(`${KIN.name(k)} shakes itself, and its coat catches fire with light. It is bonded to you, for good.`, 'good');
+      G.explain && G.explain('Bonded', `You and ${KIN.name(k)} have been through enough together that it has changed. Its coat shines, and its cartridge has turned with it. Nothing undoes this: not time apart, not fusion, not a trade, because a bonded Kin cannot be traded.`); } }
   const BONDS = ['It hardly knows you yet', 'It is getting used to you', 'It trusts you', 'It would follow you anywhere'];
   function update(dt, p) {
     const k = lead();
@@ -118,6 +127,7 @@ const Buddy = (() => {
     if (e.away) { e.away = false; place(p, true); }
     e.bob += dt;
     const inFight = fight(dt, p, k); heart(dt, p, k, inFight);
+    shine(dt, p, k, inFight);
     if (inFight) { e.y += ((e.flying ? p.y + 1.0 : ground(e.x, e.z, Math.max(p.y, e.y))) - e.y) * Math.min(1, dt * 10); return; }
     const s = spot(p); const dx = s.x - e.x, dz = s.z - e.z, d = Math.hypot(dx, dz);
     const gliding = p.gliding;
@@ -164,7 +174,7 @@ const Buddy = (() => {
     const tp = temper(k), bd = k.bond || 0, lv = bd < 0.15 ? 0 : bd < 0.5 ? 1 : 2; if (petT <= 0) { petT = 25; bond(k, 0.008); } // making a fuss of it counts, though not if you do nothing else
     if (hp < 35) { feel('worry', 4, null); UI.toast(`${KIN.name(k)}, Lv ${k.level} · ${hp}% health. It is hurt and leans on you.`); return; }
     feel('joy', 3.5, lv === 2 ? '♥' : lv === 1 ? '♪' : null, lv === 2 ? '#ff7a9a' : '#ffe27a');
-    UI.toast(`${KIN.name(k)}, Lv ${k.level} · ${hp}% health. A ${tp} one: it ${PET[tp][lv]}. ${BONDS[bd < 0.15 ? 0 : bd < 0.5 ? 1 : bd < 0.9 ? 2 : 3]}.`);
+    UI.toast(`${KIN.name(k)}, Lv ${k.level} · ${hp}% health. A ${tp} one: it ${PET[tp][lv]}. ${k.bonded ? 'Bonded to you, for good' : BONDS[bd < 0.15 ? 0 : bd < 0.5 ? 1 : bd < 0.9 ? 2 : 3]}.`);
   }
   return { init, update, entities, pick, tap, current, hurt, rally, get entity() { return e; } };
 })();

@@ -493,7 +493,7 @@ const R = (() => {
   varying vec4 vCol; varying vec3 vWorld; varying vec3 vNorm; varying vec3 vLocal; varying vec2 vUV; uniform sampler2D uTex; uniform float uUseTex;
   uniform vec3 uCam; uniform float uDay; uniform vec3 uFog; uniform float uFogNear; uniform float uFogFar; uniform float uAmbient; uniform float uFogSky; uniform float uCoreGlow; uniform vec4 uMist;
   uniform vec3 uLights[8]; uniform float uLightR[8]; uniform float uAlpha; uniform vec3 uTint; uniform float uSkyMul;
-  uniform vec3 uSun; uniform vec3 uSunCol; uniform vec3 uZenith; uniform float uSunAmt; uniform float uOutline; uniform float uFlash;
+  uniform vec3 uSun; uniform vec3 uSunCol; uniform vec3 uZenith; uniform float uSunAmt; uniform float uOutline; uniform float uFlash; uniform vec2 uBond;
   ${MIST_GLSL}
   float hash3(vec3 p){ p = fract(p * vec3(0.1031, 0.1030, 0.0973)); p += dot(p, p.yxz + 33.33); return fract((p.x + p.y) * p.z); }
   
@@ -527,6 +527,8 @@ const R = (() => {
     col += (uZenith * 0.5 + vc * 0.5 + vec3(0.1)) * rim;
     vec3 H = normalize(uSun + V); float spec = smoothstep(0.55, 0.75, pow(max(dot(n, H), 0.0), 48.0)) * uSunAmt * uDay * 0.1 * skyL * (1.0 - emis) * sh; col += (vc * 0.5 + uSunCol * 0.5) * spec;
     col = mix(col, vec3(1.0, 0.95, 0.9), uFlash);
+    if (uBond.x > 0.5) { float bb = fract(dot(vLocal, vec3(0.45, 0.9, 0.3)) - uBond.y * 0.18); vec3 coat = mix(vec3(1.0, 0.8, 0.34), vec3(1.0, 0.56, 0.74), smoothstep(0.3, 0.6, bb)); coat = mix(coat, vec3(0.5, 0.92, 1.0), smoothstep(0.65, 0.92, bb)); float fr = pow(1.0 - max(dot(n, V), 0.0), 2.2); float band = smoothstep(0.06, 0.0, abs(fract(dot(vLocal, vec3(0.3, 1.0, 0.2)) - uBond.y * 0.4) - 0.5)); /* the bond shine: a coat of gold that runs to rose and sea-green, brightest at the edges, with a band of light climbing it */
+      col = mix(col, coat * max(light, vec3(0.55)) * (0.85 + 0.7 * fr), 0.38 + 0.3 * fr) + vec3(1.0, 0.95, 0.8) * band * 0.35; }
     float toward = pow(max(dot(-V, uSun), 0.0), 6.0) * uSunAmt;
     if (uMist.y > 0.001) col = mix(col, vec3(0.8, 0.89, 0.85) * uMist.w, mistAt(vWorld, dist) * 0.8);
     vec3 haze = mix(skyFog(-V), uSunCol, toward * 0.45); // far things fade into the sky behind them, whatever its colour up there
@@ -619,7 +621,7 @@ const R = (() => {
   function initEntityProg() {
     eprog = compile(EVS, EFS);
     for (const n of ['aPos', 'aCol', 'aNorm', 'aBone', 'aUV', 'aBone2']) eloc[n] = gl.getAttribLocation(eprog, n);
-    for (const n of ['uPV', 'uModel', 'uBones', 'uOutline', 'uSway', 'uTime', 'uCam', 'uDay', 'uFog', 'uFogNear', 'uFogFar', 'uAmbient', 'uLights', 'uLightR', 'uAlpha', 'uTint', 'uSkyMul', 'uSun', 'uSunCol', 'uZenith', 'uSunAmt', 'uFlash', 'uShadow', 'uLightPV', 'uShadowOn', 'uShadowTexel', 'uFogSky', 'uCoreGlow', 'uMist', 'uHM', 'uHMO', 'uTex', 'uUseTex']) eloc[n] = gl.getUniformLocation(eprog, n);
+    for (const n of ['uPV', 'uModel', 'uBones', 'uOutline', 'uBond', 'uSway', 'uTime', 'uCam', 'uDay', 'uFog', 'uFogNear', 'uFogFar', 'uAmbient', 'uLights', 'uLightR', 'uAlpha', 'uTint', 'uSkyMul', 'uSun', 'uSunCol', 'uZenith', 'uSunAmt', 'uFlash', 'uShadow', 'uLightPV', 'uShadowOn', 'uShadowTexel', 'uFogSky', 'uCoreGlow', 'uMist', 'uHM', 'uHMO', 'uTex', 'uUseTex']) eloc[n] = gl.getUniformLocation(eprog, n);
   }
   // ---- the meadow: one blade shape drawn tens of thousands of times around you (WebGL2 instancing) ----
   const GVS = `#version 300 es
@@ -2762,7 +2764,7 @@ const R = (() => {
     gl.uniform4fv(eloc.uMist, state.mist || MIST0); bindHM(eloc, state.mist && state.mist[1] > 0); gl.uniform3f(eloc.uCam, cam.x, cam.y, cam.z); gl.uniform1f(eloc.uDay, state.dayLight); gl.uniform3fv(eloc.uFog, state.fogColor); gl.uniform1f(eloc.uFogSky, state.fogSky ? (state.rangeKind || 1) : 0); gl.uniform1f(eloc.uCoreGlow, state.coreGlow ? 1 : 0);
     gl.uniform1f(eloc.uFogNear, state.fogNear); gl.uniform1f(eloc.uFogFar, state.fogFar); gl.uniform1f(eloc.uAmbient, state.ambient); gl.uniform3fv(eloc.uTint, state.tint);
     gl.uniform3fv(eloc.uSun, state.sun || [0, 1, 0]); gl.uniform3fv(eloc.uSunCol, state.sunCol || [1, 1, 1]); gl.uniform3fv(eloc.uZenith, state.zenith || state.fogColor); gl.uniform1f(eloc.uSunAmt, state.skyPass ? state.sunAmt : 0);
-    gl.uniform3fv(eloc.uLights, lightsL); gl.uniform1fv(eloc.uLightR, lightsR); gl.uniform1f(eloc.uAlpha, 1); gl.uniform1f(eloc.uSkyMul, 1); gl.uniform1f(eloc.uOutline, 0); gl.uniform4f(eloc.uSway, 0, 0, 0, 0); gl.uniform1f(eloc.uFlash, 0);
+    gl.uniform3fv(eloc.uLights, lightsL); gl.uniform1fv(eloc.uLightR, lightsR); gl.uniform1f(eloc.uAlpha, 1); gl.uniform1f(eloc.uSkyMul, 1); gl.uniform1f(eloc.uOutline, 0); gl.uniform4f(eloc.uSway, 0, 0, 0, 0); gl.uniform1f(eloc.uFlash, 0); gl.uniform2f(eloc.uBond, 0, 0);
     bindShadow(eloc, 1);
   }
   function drawEntities(entities, cam, now) {
@@ -2774,7 +2776,7 @@ const R = (() => {
       if (pose) { gl.uniformMatrix4fv(eloc.uBones, false, pose.mats); bonesId = false; gl.uniform4fv(eloc.uSway, pose.sway); }
       else { if (!bonesId) { gl.uniformMatrix4fv(eloc.uBones, false, IDENT_BONES); bonesId = true; } gl.uniform4f(eloc.uSway, 0, 0, 0, 0); }
       gl.uniform1f(eloc.uSkyMul, e.skyMul == null ? 1 : e.skyMul);
-      gl.uniform1f(eloc.uFlash, e.hitT > 0 ? Math.max(0, Math.min(0.7, e.hitT * 2.5)) : (e.kin && e.kin.shiny) ? 0.14 + 0.42 * Math.pow(Math.max(0, Math.sin(performance.now() / 420 + (e.kin.id % 97))), 8) : 0); /* a shining Kin carries a sheen and glints every couple of seconds */
+      gl.uniform2f(eloc.uBond, e.kin && e.kin.bonded ? 1 : 0, (performance.now() / 1000) % 1000); gl.uniform1f(eloc.uFlash, e.hitT > 0 ? Math.max(0, Math.min(0.7, e.hitT * 2.5)) : (e.kin && e.kin.shiny) ? 0.14 + 0.42 * Math.pow(Math.max(0, Math.sin(performance.now() / 420 + (e.kin.id % 97))), 8) : 0); /* a shining Kin carries a sheen and glints every couple of seconds */
       gl.uniform1f(eloc.uAlpha, e.alpha == null ? 1 : e.alpha);
       gl.uniform1f(eloc.uOutline, outline ? outlineW * (e.outlineMul || 1) : 0);
       drawEntityMesh(meshOf(e));

@@ -60,6 +60,7 @@ const Cards = (() => {
     { name: 'Epic', stops: ['#2a1450', '#6a3fb0', '#3a1d6c', '#9b74e0', '#2c1652'], trim: '#e2d2ff', ink: '#f6f0ff', glow: '#b48cff' },        // violet enamel
     { name: 'Legendary', stops: ['#7a4c0a', '#f7d77a', '#a8701a', '#fff2b8', '#83530c'], trim: '#fff6d0', ink: '#2a1a04', glow: '#ffd36a' },   // gold
   ];
+  const BOND = { name: 'Bonded', stops: ['#6a3410', '#ffe08a', '#c8708e', '#fff4d0', '#5fb8c8', '#f2c95a'], trim: '#fff4d0', ink: '#2a1404', glow: '#ffe08a' }; // the bond shine: gold that runs to rose and sea-green, never one colour twice
   const PAPER = { Flame: '#f3dcc4', Tide: '#d6e6f2', Bloom: '#dcebd0', Stone: '#e6dccb', Spark: '#f4ebc4', Frost: '#e2f0f6', Gale: '#dff0e6', Shade: '#ddd4ea', Glow: '#f6efd2' };
   function rng(seed) { let a = seed >>> 0 || 1; return () => { a ^= a << 13; a >>>= 0; a ^= a >> 17; a ^= a << 5; a >>>= 0; return a / 4294967296; }; }
   function metal(c, x, y, w, h, M, r, ang = 0.35) { // a metal plate: banded light, fine brushing, and a bevel
@@ -230,7 +231,7 @@ const Cards = (() => {
   const SCR = { x: 64, y: 146, w: 622, h: 520 };
   function cartCtx(k, opts) { const rar = U.clamp(k.sp.rarity || 0, 0, 4), fin = FINISH[opts.finish || (k.holo ? 'ultra' : 'normal')] || FINISH.normal, seed = (k.id || 1) >>> 0;
     const elems = k.sp.elem.map((w, i) => ({ e: KIN.E[i], w })).filter(x => x.w > 0.12).sort((a, b) => b.w - a.w).slice(0, 2), e0 = elems[0] ? elems[0].e : 'Stone';
-    return { rar, M: METAL[rar], fin, seed, elems, e0, ec: ELEM_COL[e0] || '#888', tilt: opts.tilt != null ? opts.tilt : 0.45, time: opts.time || 'day' }; }
+    return { rar, M: k.bonded ? BOND : METAL[rar], fin, seed, elems, e0, ec: ELEM_COL[e0] || '#888', tilt: opts.tilt != null ? opts.tilt : 0.45, time: opts.time || 'day' }; }
   function shell(c) { const r = 30, cut = 74; c.beginPath(); c.moveTo(r, 0); c.lineTo(W - cut, 0); c.lineTo(W, cut); c.lineTo(W, H - r); c.arcTo(W, H, W - r, H, r); c.lineTo(r, H); c.arcTo(0, H, 0, H - r, r); c.lineTo(0, r); c.arcTo(0, 0, r, 0, r); c.closePath(); }
   function lcd(c, x, y, w, h, r, tint) { rr(c, x, y, w, h, r); const g = c.createLinearGradient(0, y, 0, y + h); g.addColorStop(0, '#05080c'); g.addColorStop(1, '#0d141c'); c.fillStyle = g; c.fill(); c.save(); rr(c, x, y, w, h, r); c.clip(); const gl = c.createRadialGradient(x + w / 2, y + h / 2, 10, x + w / 2, y + h / 2, w * 0.7); gl.addColorStop(0, tint); gl.addColorStop(1, 'rgba(0,0,0,0)'); c.globalAlpha = 0.16; c.fillStyle = gl; c.fillRect(x, y, w, h); c.globalAlpha = 0.12; c.fillStyle = '#000'; for (let yy = y; yy < y + h; yy += 4) c.fillRect(x, yy, w, 1.5); c.restore(); c.lineWidth = 3; c.strokeStyle = 'rgba(0,0,0,0.8)'; rr(c, x, y, w, h, r); c.stroke(); c.lineWidth = 1.5; c.strokeStyle = 'rgba(255,255,255,0.25)'; rr(c, x + 2, y + 2, w - 4, h - 4, r); c.stroke(); }
   function glow(c, text, x, y, col, font) { c.font = font; c.save(); c.shadowColor = col; c.shadowBlur = 12; c.fillStyle = col; c.fillText(text, x, y); c.restore(); c.fillStyle = '#ffffff'; c.globalAlpha = 0.55; c.fillText(text, x, y); c.globalAlpha = 1; }
@@ -249,7 +250,7 @@ const Cards = (() => {
     c.save(); c.translate(W - 46, 46); c.rotate(Math.PI / 4); c.fillStyle = M.ink; c.globalAlpha = 0.7; c.beginPath(); c.moveTo(0, -18); c.lineTo(12, 0); c.lineTo(-12, 0); c.closePath(); c.fill(); c.restore();
     // the label: a strip of dark glass with the name lit in it
     lcd(c, 56, 40, 566, 84, 12, ec); c.textBaseline = 'middle'; c.textAlign = 'left';
-    const nm = KIN.name(k).replace('✦ ', '').toUpperCase(), ncol = fin.foil === 'gold' ? '#ffd76a' : fin.foil === 'prism' ? '#d8f4ff' : fin.foil === 'silver' ? '#e8eef5' : hslHex(hexHsl(ec)[0], 0.9, 0.7);
+    const nm = KIN.name(k).replace('✦ ', '').toUpperCase(), ncol = k.bonded ? '#ffe08a' : fin.foil === 'gold' ? '#ffd76a' : fin.foil === 'prism' ? '#d8f4ff' : fin.foil === 'silver' ? '#e8eef5' : hslHex(hexHsl(ec)[0], 0.9, 0.7);
     let fs = 44; c.font = `700 ${fs}px ${MONO}`; while (c.measureText(nm).width > 380 && fs > 24) { fs -= 2; c.font = `700 ${fs}px ${MONO}`; }
     if (fin.foil === 'prism') { const pg = c.createLinearGradient(76, 0, 460, 0); ['#ff9ac0', '#ffe39a', '#a8ffd0', '#9ae0ff', '#d0b0ff'].forEach((col, i) => pg.addColorStop(i / 4, col)); c.save(); c.shadowColor = '#ffffff'; c.shadowBlur = 14; c.fillStyle = pg; c.fillText(nm, 78, 83); c.restore(); } else glow(c, nm, 78, 83, ncol, `700 ${fs}px ${MONO}`);
     c.textAlign = 'right'; glow(c, 'LV' + k.level, 604, 83, '#9fb4c8', `700 28px ${MONO}`);
@@ -257,7 +258,7 @@ const Cards = (() => {
     rr(c, SCR.x - 18, SCR.y - 18, SCR.w + 36, SCR.h + 36, 22); c.fillStyle = '#07090c'; c.fill(); bevel(c, SCR.x - 18, SCR.y - 18, SCR.w + 36, SCR.h + 36, 22, 5, 'rgba(0,0,0,0.85)', 'rgba(255,255,255,0.55)');
     if (fin.foil) { c.lineWidth = 3; c.strokeStyle = fin.foil === 'gold' ? '#ffd76a' : fin.foil === 'silver' ? '#eef2f6' : '#c8f0ff'; rr(c, SCR.x - 7, SCR.y - 7, SCR.w + 14, SCR.h + 14, 12); c.stroke(); }
     // status strip: lights for how rare it is, the printing, its elements
-    const sy = SCR.y + SCR.h + 30; for (let i = 0; i < 5; i++) { const on = i <= rar, lx = 66 + i * 30; c.beginPath(); c.arc(lx, sy + 20, 9, 0, 6.3); c.fillStyle = on ? (M.glow || '#bfe6c8') : '#1a1d22'; if (on) { c.save(); c.shadowColor = M.glow || '#bfe6c8'; c.shadowBlur = 14; c.fill(); c.restore(); } else c.fill(); c.lineWidth = 2; c.strokeStyle = 'rgba(0,0,0,0.6)'; c.stroke(); }
+    const sy = SCR.y + SCR.h + 30; for (let i = 0; i < 5; i++) { const on = k.bonded || i <= rar, lx = 66 + i * 30; c.beginPath(); c.arc(lx, sy + 20, 9, 0, 6.3); c.fillStyle = on ? (M.glow || '#bfe6c8') : '#1a1d22'; if (on) { c.save(); c.shadowColor = M.glow || '#bfe6c8'; c.shadowBlur = 14; c.fill(); c.restore(); } else c.fill(); c.lineWidth = 2; c.strokeStyle = 'rgba(0,0,0,0.6)'; c.stroke(); }
     c.textAlign = 'left'; c.font = `700 21px ${MONO}`; engrave(c, ((SKINS[opts.skin] || {}).name ? SKINS[opts.skin].name.toUpperCase() + ' ' : '') + M.name.toUpperCase() + (fin.name ? ' / ' + fin.name.toUpperCase() : ''), 222, sy + 21, M);
     let mx = W - 62; for (const el of elems.slice().reverse()) { medal(c, el.e, mx, sy + 20, 20); mx -= 48; }
     // the readout
@@ -270,7 +271,7 @@ const Cards = (() => {
     // etched into the shell: where it was caught, the edition, the serial
     c.textAlign = 'center'; c.font = `400 19px ${MONO}`; engrave(c, (opts.where || 'CAUGHT IN THE WILD').toUpperCase().slice(0, 52), W / 2, ty + th + 22, M);
     const setCode = (k.sp.dino ? 'LW' : 'EA') + '-' + String(((k.sp.seed >>> 0) % 997) + 1).padStart(3, '0');
-    c.font = `700 15px ${MONO}`; c.textAlign = 'left'; engrave(c, 'S/N ' + passcode(k) + (opts.first ? '  1ST EDITION' : ''), 60, 962, M); c.textAlign = 'right'; engrave(c, 'STRATAKIN  ' + setCode, W - 60, 962, M);
+    c.font = `700 15px ${MONO}`; c.textAlign = 'left'; engrave(c, 'S/N ' + passcode(k) + (opts.first ? '  1ST EDITION' : '') + (k.bonded ? '  UNBREAKABLE' : ''), 60, 962, M); c.textAlign = 'right'; engrave(c, 'STRATAKIN  ' + setCode, W - 60, 962, M);
     // the contacts
     rr(c, 96, 978, W - 192, 72, 6); c.fillStyle = '#0c2a1c'; c.fill(); c.strokeStyle = 'rgba(0,0,0,0.7)'; c.lineWidth = 2; c.stroke();
     for (let i = 0; i < 18; i++) { const px = 110 + i * ((W - 220) / 18), pw = (W - 220) / 18 - 7; const pg = c.createLinearGradient(px, 0, px + pw, 0); pg.addColorStop(0, '#8a6412'); pg.addColorStop(0.45, '#ffe59a'); pg.addColorStop(1, '#a87a1c'); c.fillStyle = pg; c.fillRect(px, 986, pw, i % 5 === 2 ? 46 : 58); }
@@ -293,12 +294,20 @@ const Cards = (() => {
     const gl = c.createLinearGradient(x, y, x + w, y + h); gl.addColorStop(0, 'rgba(255,255,255,0.20)'); gl.addColorStop(0.3 + X.tilt * 0.2, 'rgba(255,255,255,0.02)'); gl.addColorStop(0.5 + X.tilt * 0.2, 'rgba(255,255,255,0.10)'); gl.addColorStop(0.62 + X.tilt * 0.2, 'rgba(255,255,255,0)'); c.fillStyle = gl; c.fillRect(x, y, w, h);
     const vg = c.createRadialGradient(x + w / 2, y + h / 2, h * 0.45, x + w / 2, y + h / 2, h * 0.95); vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,0.45)'); c.fillStyle = vg; c.fillRect(x, y, w, h);
     c.restore(); }
-  function cartridge(cv, k, opts = {}) { casing(cv, k, opts); screen(cv.getContext('2d'), k, opts); return cv; }
+  /* a bonded cartridge never sits still: colour runs over the shell, gold to rose to sea-green, with a glint chasing it. Drawn over the casing every frame, never over the screen */
+  function bondSheen(c, now) { const t = (now || 0) / 1000; c.save(); shell(c); rr(c, SCR.x - 18, SCR.y - 18, SCR.w + 36, SCR.h + 36, 22); c.clip('evenodd');
+    const sh = ((t * 0.12) % 1) * (W + H) * 2 - (W + H) * 0.5; const g = c.createLinearGradient(sh - W, 0, sh + W, H);
+    ['#ffd36a', '#ff9ac0', '#8fe8ff', '#ffe08a', '#c8a0ff', '#ffd36a'].forEach((col, i) => g.addColorStop(i / 5, col));
+    c.globalCompositeOperation = 'soft-light'; c.globalAlpha = 0.85; c.fillStyle = g; c.fillRect(0, 0, W, H);
+    c.globalCompositeOperation = 'lighter'; const gx = ((t * 0.35) % 1.6 - 0.3) * (W + H); const gg = c.createLinearGradient(gx - 60, 0, gx + 60, 0); gg.addColorStop(0, 'rgba(255,255,255,0)'); gg.addColorStop(0.5, 'rgba(255,246,214,0.35)'); gg.addColorStop(1, 'rgba(255,255,255,0)');
+    c.setTransform(c.getTransform().multiply(new DOMMatrix([1, 0, -0.6, 1, 0, 0]))); c.globalAlpha = 1; c.fillStyle = gg; c.fillRect(-W, 0, W * 3, H);
+    c.restore(); c.save(); shell(c); c.clip(); c.globalCompositeOperation = 'lighter'; const R = rng(Math.floor(t * 4) + 7); for (let i = 0; i < 6; i++) { const x = R() * W, y = R() * H, a = 0.6 * Math.sin((t * 4 % 1) * Math.PI); if (x > SCR.x - 20 && x < SCR.x + SCR.w + 20 && y > SCR.y - 20 && y < SCR.y + SCR.h + 20) continue; c.fillStyle = `rgba(255,240,200,${a})`; c.beginPath(); c.moveTo(x, y - 10); c.lineTo(x + 2.5, y); c.lineTo(x, y + 10); c.lineTo(x - 2.5, y); c.closePath(); c.fill(); c.beginPath(); c.moveTo(x - 10, y); c.lineTo(x, y + 2.5); c.lineTo(x + 10, y); c.lineTo(x, y - 2.5); c.closePath(); c.fill(); } c.restore(); }
+  function cartridge(cv, k, opts = {}) { casing(cv, k, opts); const c = cv.getContext('2d'); screen(c, k, opts); if (k.bonded) bondSheen(c, opts.now || 0); return cv; }
   /* a Kin by itself on a clear canvas, for the device's viewfinder */
   function kinCanvas(k, size, o = {}) { const pc = document.createElement('canvas'), m = KIN.model(k.sp, k.stage), mesh = R.entityMesh('card:' + KIN.meshKey(k.sp, k.stage) + ':plain', (mb) => KIN.buildMesh(mb, m)); R.renderPortrait(pc, mesh, m, size || 160, { yaw: o.yaw != null ? o.yaw : -0.62, pitch: -0.15, anim: Object.assign({ ph: 0, mv: 0, air: 0, seed: 0, lt: 0 }, o.anim) }); return pc; }
   /* what a catch is stamped with: its printing, now and then other colours, the hour, the place. Everything else about its picture comes from its own number */
   function roll(k, ctx = {}) { const r = Math.random(), finish = r < 0.01 ? 'secret' : r < 0.04 ? 'ultra' : r < 0.11 ? 'super' : r < 0.26 ? 'rare' : 'normal'; const names = Object.keys(SKINS).filter(n => n !== 'plain');
     const firsts = (typeof G !== 'undefined' && G.stats) ? (G.stats.cardFirsts || (G.stats.cardFirsts = {})) : {}; const key = String(k.sp.seed >>> 0), first = !firsts[key]; firsts[key] = 1;
     const card = { finish, time: ctx.time || 'day', where: ctx.where || 'Caught in the wild', first }; if (Math.random() < 0.12) card.skin = names[Math.floor(Math.random() * names.length)]; return card; }
-  return { W, H, draw, preload, BG, OWN, FINISH, SKINS, SCENES, POSES, passcode, cartridge, casing, screen, screenBack, kinCanvas, roll, SCR, ELEM_COL };
+  return { bondSheen, W, H, draw, preload, BG, OWN, FINISH, SKINS, SCENES, POSES, passcode, cartridge, casing, screen, screenBack, kinCanvas, roll, SCR, ELEM_COL };
 })();

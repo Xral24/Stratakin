@@ -1,0 +1,10 @@
+const { open } = require('./harness'); const fs = require('fs');
+(async () => { const h = await open(); const { ev, page } = h; await h.newGame('gal-1'); await h.calm();
+  await ev(() => { const k = G.activeKin(); k.bond = 0.95; k.bondT = 35999.98; });
+  await page.keyboard.down('w'); await page.waitForTimeout(9000); await page.keyboard.up('w'); await page.waitForTimeout(1500);
+  const r1 = await ev(() => { const k = G.activeKin(); return { bonded: !!k.bonded, t: Math.round(k.bondT), ser: KIN.serialize(k).bonded }; });
+  console.log('after', JSON.stringify(r1));
+  const url = await ev(() => { const k = G.activeKin(); k.bonded = true; const cv = document.createElement('canvas'); Cards.cartridge(cv, k, { now: 1200 }); return cv.toDataURL('image/png'); });
+  fs.writeFileSync('/home/claude/scratch/bond_cart.png', Buffer.from(url.split(',')[1], 'base64'));
+  await ev(() => { G.player.yaw += Math.PI; }); await page.waitForTimeout(2500); await page.screenshot({ path: '/home/claude/scratch/bond_world.png' });
+  console.log('errors', JSON.stringify(h.errors)); await h.close(); })().catch(e => { console.log('ERR', e.message); process.exit(1); });
