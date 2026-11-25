@@ -19635,7 +19635,7 @@ const Device = (() => {
         } else {
           st.tx += (0.5 - st.tx) * dt * 3; st.ty += (0.3 + 0.3 * st.prog - st.ty) * dt * 3;
           // it surges: a warning, then it heaves, and the beam will not take a pull through that
-          st.sT -= dt; if (live && st.sT <= 0) { if (st.mode === 'calm') { st.mode = 'warn'; st.sT = 0.6 + 0.6 * (1 - d); } else if (st.mode === 'warn') { st.mode = 'surge'; st.sT = 0.5 + 0.7 * d; } else { st.mode = 'calm'; st.sT = 2.2 - 1.0 * d + Math.random() * 0.8; } } }
+          st.sT -= dt; if (live && st.sT <= 0) { if (st.mode === 'calm') { st.mode = 'warn'; st.sT = 0.6 + 0.6 * (1 - d); } else if (st.mode === 'warn') { st.mode = 'surge'; st.sT = 0.5 + 0.7 * d; } else { st.mode = 'calm'; st.sT = 2.2 - 1.0 * d + Math.random() * 0.8; } }
           const hold = A ? st.mode === 'calm' : ptr.down;
           if (live) { if (hold) { st.prog += dt / (2.2 + 2.6 * d); if (st.mode === 'surge') st.tens += dt * (0.55 + 1.5 * d); else st.tens -= dt * 0.3; } else { st.tens -= dt * 1.2; /* holding through a whole surge snaps a legendary's beam; a common's takes nearly two seconds of it */ if (st.mode !== 'surge') st.prog -= dt * 0.1; } }
           st.prog = U.clamp(st.prog, 0, 1); st.tens = U.clamp(st.tens, 0, 1); st.maxTens = Math.max(st.maxTens, st.tens);
