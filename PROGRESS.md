@@ -783,3 +783,4 @@ Keep one Kin out with you, moving and fighting together once it trusts you (bond
 
 ## Older than the Loom
 Kin are woven, written out of the Loom; the Lost World's beasts never were. In `Battle.damage`, a woven attacker hitting a dino does 0.7x, and 0.45x against the apex pair (Tyrannorex, Abyssaurus). Dino on dino and dino on Kin are unchanged. First time it happens, an explainer. Test t-old.js: a Lv 60 Kin does about 96 a hit to a Lv 60 Tyrannorex against about 549 to its own kind. This is why the Tyrannorex can stand up to Umbrarch. Watch: wild dinos in the Lost World are now harder to wear down for a link.
+- Both ways now: a dino hitting a woven Kin does 0.45x, the apex pair 0.25x, so a raised Tyrannorex can't bully the woven world. `sp.ancient` (set on Umbrarch, one of the Loom's first batch) switches the rule off both ways. Test: Lv 60 Tyrannorex does about 613 to a Kin (a Kin does about 470 to its own kind) and about 2,200 to Umbrarch.
