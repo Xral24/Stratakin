@@ -19583,7 +19583,7 @@ const Device = (() => {
   /* ---- catching. cfg: { kin, rar, hpFrac, agi, lull, chance }. Resolves { ok, quality, failed } once the three stages are over; the fight then says whether it held and calls result() ---- */
   function capture(cfg) {
     return new Promise((done) => {
-      const k = cfg.kin, rar = cfg.rar || 0, d = U.clamp(0.22 + rar * 0.15 + (cfg.hpFrac || 0) * 0.32 - (cfg.lull > 1 ? 0.18 : 0) + U.clamp(((cfg.agi || 60) - 60) / 400, 0, 0.15), 0.08, 1);
+      const k = cfg.kin, rar = cfg.rar || 0, d = U.clamp(([0.02, 0.1, 0.2, 0.32, 0.42][rar] || 0) + (cfg.hpFrac || 0) * 0.1 - (cfg.lull > 1 ? 0.08 : 0) + U.clamp(((cfg.agi || 60) - 60) / 800, 0, 0.05), 0.02, 0.56); /* he found a fresh common too hard: that speed is now a legendary's, and a common drifts */
       const el = k.sp.elem.map((w, i) => ({ e: KIN.E[i], w })).sort((a, b) => b.w - a.w)[0].e, col = Cards.ELEM_COL[el] || '#7fd6f0';
       const stages = rar >= 2 ? ['lock', 'tune', 'pull'] : ['lock', 'pull'];
       let pic = null; try { pic = Cards.kinCanvas(k, 150); } catch (_) {}
@@ -19606,11 +19606,11 @@ const Device = (() => {
         const live = st.intro <= 0;
         if (stage === 'lock') {
           // it will not keep still: a wandering path, and now and then it darts
-          const sp = 0.5 + 1.5 * d; st.ph += dt * sp; st.tx = 0.5 + 0.3 * Math.sin(st.ph * 1.3) + 0.1 * Math.sin(st.ph * 3.1 + 1); st.ty = 0.44 + 0.2 * Math.sin(st.ph * 1.7 + 2) + 0.08 * Math.cos(st.ph * 2.9);
+          const sp = 0.3 + 1.8 * d; st.ph += dt * sp; st.tx = 0.5 + 0.3 * Math.sin(st.ph * 1.3) + 0.1 * Math.sin(st.ph * 3.1 + 1); st.ty = 0.44 + 0.2 * Math.sin(st.ph * 1.7 + 2) + 0.08 * Math.cos(st.ph * 2.9);
           if (A) { st.rx += (st.tx - st.rx) * Math.min(1, dt * 10); st.ry += (st.ty - st.ry) * Math.min(1, dt * 10); }
           else if (ptr.down) { st.rx = U.clamp((ptr.x - scr.x) / scr.w, 0, 1); st.ry = U.clamp((ptr.y - 56 - scr.y) / scr.h, 0, 1); } // the reticle rides above the thumb, so the thumb does not hide it
-          const R = scr.w * (0.17 - 0.06 * d), px = scr.x + scr.w * st.rx, py = scr.y + scr.h * st.ry, on = Math.hypot(px - kx, py - ky) < R;
-          if (live) st.fill = U.clamp(st.fill + (on ? dt / 1.5 : -dt * 0.45), 0, 1);
+          const R = scr.w * (0.2 - 0.09 * d), px = scr.x + scr.w * st.rx, py = scr.y + scr.h * st.ry, on = Math.hypot(px - kx, py - ky) < R;
+          if (live) st.fill = U.clamp(st.fill + (on ? dt / 1.3 : -dt * (0.15 + 0.5 * d)), 0, 1);
           drawKin(1);
           c.strokeStyle = on ? '#5dff9a' : '#ffffff'; c.lineWidth = 3; c.beginPath(); c.arc(px, py, R, 0, 6.3); c.stroke(); c.beginPath(); c.arc(px, py, R + 8, -Math.PI / 2, -Math.PI / 2 + st.fill * Math.PI * 2); c.strokeStyle = '#5dff9a'; c.lineWidth = 6; c.stroke();
           c.lineWidth = 2; c.strokeStyle = on ? '#5dff9a' : 'rgba(255,255,255,0.7)'; for (const [ax, ay] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { c.beginPath(); c.moveTo(px + ax * R * 0.55, py + ay * R * 0.55); c.lineTo(px + ax * (R + 16), py + ay * (R + 16)); c.stroke(); }
