@@ -12821,6 +12821,8 @@ const Village = (() => {
     const out = []; const n = parade ? 6 : 4; const PR = [150, 420, 1600, 6500];
     for (let i = 0; i < n * 4 && out.length < n; i++) { const sp = pool[r.int(pool.length)]; const rar = sp.rarity || 0; if (!parade && rar > 1) continue; if (parade && i < 2 && rar < 2) continue; if (out.some(o => o.seed === sp.seed)) continue;
       const lv = Math.max(2, Math.min(KIN.capOf(sp), Math.round((G.trainerLevel || 1) * (0.6 + r() * 0.5)))); out.push({ service: 'kin', seed: sp.seed, level: lv, name: `${sp.names[0]}, Lv ${lv} · ${KIN.RARITY[rar].name} · from the ${sp.home.layer === 'Surface' ? sp.home.biome : sp.home.layer}`, price: Math.round(PR[rar] * (1 + lv / 40)) }); }
+    const sd = (G.stats.sealedDay === day); /* one sealed cartridge a day: nobody knows what is on it until it goes in the Link */
+    out.unshift({ service: 'sealed', icon: 'snare', name: 'Sealed cartridge', sub: sd ? 'Sold. Briggs only gets one a day.' : 'Nobody knows what is on it. One a day. Odds on the wall: common 72%, uncommon 25%, rare 3%.', price: 900, btn: sd ? 'Sold' : 'Buy', locked: sd });
     return out;
   }
   // ---- every town has its own game and its own champion, and you play them for shards. The stake goes down before the first move; the winner takes both ----
@@ -15713,6 +15715,12 @@ const Village = (() => {
       return true; }
     if (entry.service === 'meal') { if (G.shards < price) { UI.toast('Not enough Shards.', 'bad'); return false; } G.shards -= price; G.addBuff(entry.buff, entry.amt, entry.mins); UI.sfx('caught'); UI.toast(entry.name.split(':')[0] + '. ' + entry.name.split(':')[1].trim() + '.', 'good'); return true; }
     if (entry.service === 'teach') { const k = G.kin[G.activeIdx]; if (!k) return false; if (k.tech) { UI.toast(`${KIN.name(k)} already knows ${k.tech}.`); return false; } const pr = 60 + k.level * 12; if (G.shards < pr) { UI.toast(`Teaching ${KIN.name(k)} costs ${pr} shards.`, 'bad'); return false; } G.shards -= pr; k.tech = KIN.techFor(k); UI.sfx('quest'); UI.toast(`${KIN.name(k)} learned ${k.tech}.`, 'good'); return true; }
+    if (entry.service === 'sealed') { const day = G.dayCount || 0; if (G.stats.sealedDay === day) { UI.toast('One a day. Come back tomorrow.'); return false; } if (G.shards < price) { UI.toast('Not enough Shards.', 'bad'); return false; }
+      const r = Math.random(), rar = r < 0.03 ? 2 : r < 0.28 ? 1 : 0; const pool = KIN.dex('earth').filter(sp => !sp.fusion && sp.home && sp.home.layer !== 'Core' && !sp.legend && !sp.mythic && !sp.dino && (sp.rarity || 0) === rar);
+      if (!pool.length) return false; G.shards -= price; G.stats.sealedDay = day; const sp = pool[Math.floor(Math.random() * pool.length)]; const lv = Math.max(3, Math.min(KIN.capOf(sp), Math.round((G.trainerLevel || 1) * (0.5 + Math.random() * 0.4))));
+      const k = KIN.create(sp, lv); try { k.card = Cards.roll(k, { time: 'day', where: 'Sealed cartridge, Kin Sale Yard, day ' + (day + 1) }); } catch (e) {} G.addKin(k); if (G.seenDex) G.seenDex(k.sp, 'caught'); UI.sfx('caught');
+      const LINE = ['Briggs shrugs. "Every one\'s somebody\'s favourite."', 'Briggs whistles. "Not bad at all."', 'Briggs drops his pencil. "Well I never. Don\'t tell the others where you got that."'];
+      UI.toast(`The Link reads the cartridge: ${KIN.name(k)}, ${KIN.RARITY[rar].name}. ${LINE[rar]}`, rar ? 'good' : undefined); UI.closePanel(); if (typeof Device !== 'undefined' && Device.view) setTimeout(() => { try { Device.view(k, { eject: true }); } catch (e) {} }, 400); if (G.save) G.save(); return true; }
     if (entry.service === 'kin') { if (G.shards < price) { UI.toast('Not enough Shards.', 'bad'); return false; } const sp = KIN.bySeed(entry.seed); if (!sp) return false; const st0 = G.stats.boughtKin || (G.stats.boughtKin = {}); const key = (G.dayCount || 0) + ':' + entry.seed; if (st0[key]) { UI.toast('Sold already. Come back tomorrow.'); return false; } G.shards -= price; st0[key] = true; const k = KIN.create(sp, entry.level); const where = G.addKin(k); G.seenDex(k.sp, 'caught'); UI.sfx('caught'); UI.toast(`${KIN.name(k)} is yours${where === 'party' ? '' : ' (sent to storage: your party is full)'}.`, 'good'); return true; }
     if (entry.service === 'show') return Village.enterShow(active);
     if (entry.service === 'mend') return Combat.mend(entry.what);

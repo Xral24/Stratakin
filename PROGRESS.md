@@ -793,3 +793,6 @@ art/turnarounds/<line>_<stage>.jpg: 98 sheets, one per form (41 lines: commons a
 - Kilnip and Pebblub lines redone so each stage transforms (art/concepts/set/*_v4.png), with new turnarounds for stages 2 and 3.
 - Moon set (12 lines, 30 forms) and Halo set (12 lines, 30 forms) designed in the doc and drawn: art/concepts/moonhalo/. Turnarounds and heroes for those wait for Dude's approval.
 - Moon and Halo: Strayling and Dunehop redesigned (no longer goat and fennec). Turnarounds for all 60 Moon and Halo forms in art/turnarounds_moonhalo/, hero paintings for all 24 lines in art/heroes_moonhalo/ (Moon scenes with Earth in the sky, Halo under the ring).
+
+## Sealed cartridge (25 Nov)
+The Kin Sale Yard now sells one sealed cartridge a day at 900 shards (G.stats.sealedDay). Odds shown on the row: common 72%, uncommon 25%, rare 3%; never legendary, mythic or dinosaur. The Kin goes to the party (or storage), gets a printing roll, Briggs has a line per rarity, and the Kin-Link plays its eject. Test t-sealed.js. Dinosaurs stay linkable for now, because the current story still asks you to link the Tyrannorex; that changes with the egg rework.
