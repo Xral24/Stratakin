@@ -49,6 +49,10 @@ const Icons = (() => {
   function berries(g, col) { const c = rgb(col); g.strokeStyle = '#3f8a33'; g.lineWidth = 2; g.beginPath(); g.moveTo(32, 12); g.lineTo(30, 30); g.stroke(); for (const [x, y] of [[24, 36], [40, 34], [32, 46], [22, 48], [42, 48]]) { g.fillStyle = css(c); g.beginPath(); g.arc(x, y, 8, 0, 6.3); g.fill(); g.fillStyle = 'rgba(255,255,255,0.4)'; g.beginPath(); g.arc(x - 3, y - 3, 2.5, 0, 6.3); g.fill(); } }
   function worm(g, col) { const c = rgb(col); g.strokeStyle = css(c, 0.8); g.lineWidth = 9; g.lineCap = 'round'; g.beginPath(); g.moveTo(14, 40); g.quadraticCurveTo(24, 20, 34, 36); g.quadraticCurveTo(44, 52, 52, 30); g.stroke(); g.fillStyle = css(c, 1.4); for (const [x, y] of [[22, 30], [34, 36], [46, 38]]) { g.beginPath(); g.arc(x, y, 3, 0, 6.3); g.fill(); } g.fillStyle = '#222'; g.beginPath(); g.arc(52, 29, 1.5, 0, 6.3); g.fill(); }
   function ingot(g, col) { const c = rgb(col); g.fillStyle = css(c, 0.75); g.beginPath(); g.moveTo(12, 44); g.lineTo(20, 30); g.lineTo(52, 30); g.lineTo(44, 44); g.closePath(); g.fill(); g.fillStyle = css(c); g.beginPath(); g.moveTo(20, 30); g.lineTo(28, 20); g.lineTo(56, 20); g.lineTo(52, 30); g.closePath(); g.fill(); g.fillStyle = css(c, 1.25); g.fillRect(14, 44, 30, 8); }
+  /* a blank cartridge: a little metal shell with its corner cut, a screen in the item's colour, gold contacts along the bottom */
+  function cart(g, col) { const c = rgb(col); g.beginPath(); g.moveTo(16, 8); g.lineTo(42, 8); g.lineTo(50, 16); g.lineTo(50, 56); g.lineTo(14, 56); g.lineTo(14, 10); g.closePath(); const m = g.createLinearGradient(14, 8, 50, 56); m.addColorStop(0, '#e4e8ee'); m.addColorStop(0.5, '#8d96a2'); m.addColorStop(1, '#c9d0d8'); g.fillStyle = m; g.fill(); g.lineWidth = 1.5; g.strokeStyle = '#3a414b'; g.stroke();
+    g.fillStyle = '#0b1016'; g.fillRect(19, 14, 26, 24); const sc = g.createRadialGradient(32, 26, 2, 32, 26, 16); sc.addColorStop(0, css(c, 1.5)); sc.addColorStop(1, css(c, 0.6)); g.fillStyle = sc; g.fillRect(21, 16, 22, 20); g.fillStyle = 'rgba(255,255,255,0.35)'; g.fillRect(21, 16, 22, 4);
+    g.fillStyle = '#0c2a1c'; g.fillRect(19, 44, 26, 9); g.fillStyle = '#e8c45a'; for (let i = 0; i < 6; i++) g.fillRect(20.5 + i * 4.2, 45, 2.6, 7); }
   function cage(g, col) { const c = rgb(col); g.strokeStyle = css(c); g.lineWidth = 2.5; g.strokeRect(14, 14, 36, 36); g.beginPath(); g.moveTo(32, 14); g.lineTo(32, 50); g.moveTo(14, 32); g.lineTo(50, 32); g.stroke(); g.fillStyle = css(c, 1.4); g.globalAlpha = 0.35; g.fillRect(14, 14, 36, 36); g.globalAlpha = 1; }
   function charm(g, col) { const c = rgb(col); g.strokeStyle = '#b89a5a'; g.lineWidth = 3; g.beginPath(); g.arc(32, 22, 12, 0.6, 2.54, true); g.stroke(); gem(g, col); g.fillStyle = css(c, 1.4); g.beginPath(); g.arc(28, 28, 3, 0, 6.3); g.fill(); }
   function fang(g, col) { const c = rgb(col); g.fillStyle = css(c); g.beginPath(); g.moveTo(20, 10); g.quadraticCurveTo(44, 14, 46, 54); g.quadraticCurveTo(26, 34, 20, 10); g.fill(); g.fillStyle = css(c, 1.4); g.beginPath(); g.moveTo(24, 14); g.quadraticCurveTo(34, 20, 36, 34); g.quadraticCurveTo(28, 24, 24, 14); g.fill(); }
@@ -98,14 +102,14 @@ const Icons = (() => {
     if (key.startsWith('rod') || key === 'reel') { tool(g, 'rod', col); return; }
     if (key === 'bow') { tool(g, 'bow', col); return; }
     if (key.startsWith('arrow')) { tool(g, 'arrow', col); return; }
-    if (key.startsWith('tonic') || key === 'broth' || key === 'draught' || key === 'smoothie') { bottle(g, col); return; }
+    if (key.startsWith('tonic') || key === 'broth' || key.startsWith('draught') || key === 'smoothie') { bottle(g, col); return; }
     if (key.startsWith('bait')) { berries(g, col); return; }
     if (key.startsWith('egg')) { egg(g, col); return; }
     if (key === 'frond') { leaf(g, col); return; }
     if (key === 'berry') { berries(g, col); return; }
     if (key === 'glowworm') { worm(g, col); return; }
     if (key === 'copper' || key === 'iron' || key === 'tycho') { ingot(g, col); return; }
-    if (key.startsWith('snare')) { cage(g, col); return; }
+    if (key.startsWith('snare')) { cart(g, col); return; }
     if (item.kinGear === 'weapon') { fang(g, col); return; }
     if (item.kinGear === 'armor') { vest(g, col); return; }
     if (item.kinGear === 'charm' || key.startsWith('amulet')) { charm(g, col); return; }

@@ -565,7 +565,7 @@ const Wild = (() => {
   function daze(e, k) {
     e.kin.hp = 1; e.dazed = 10; disengage(e, 0); e.cool = 0; e.alert = 0; e.stunT = 0;
     G.knockout(e.x, e.y, e.z);
-    UI.sfx('win'); UI.toast(`${KIN.name(e.kin)} goes down, dazed. Walk up and tap it to net it, or let it be.`, 'good');
+    UI.sfx('win'); UI.toast(`${KIN.name(e.kin)} goes down, dazed. Walk up and tap it to link it, or let it be.`, 'good');
     if (!cageable(e) && !(scripted(e) && snareable(e))) rewardWin(e, k || null); else e.cageWin = k || true; // a story Kin left in the dirt still counts as beaten when the daze runs out G.stats.liveWins = (G.stats.liveWins || 0) + 1;
     const dom = KIN.dominant(e.kin.sp.elem, 1)[0]; if (Math.random() < 0.35) { G.player.add('ess_' + dom, 1); UI.toast(`${dom} Essence collected.`); }
   }

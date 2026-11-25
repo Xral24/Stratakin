@@ -218,7 +218,7 @@ const Npcs = (() => {
     if (A.cd > now) { UI.toast(`The amulets are spent. ${Math.ceil((A.cd - now) / 1000)}s before any of them answers again.`); return false; }
     if (a.amulet === 'mender') { if (!G.kin.some(k => k.hp < KIN.stats(k).hp)) { UI.toast('Your Kin are already whole.'); return false; } for (const k of G.kin) k.hp = KIN.stats(k).hp; UI.toast('The amulet warms. Every Kin wakes, whole.', 'good'); }
     else if (a.amulet === 'shadow') { G.repelUntil = now + a.dur * 1000; UI.toast('You go unnoticed for a minute.', 'good'); }
-    else if (a.charges) { A.kind = a.amulet; A.charges = a.charges; A.until = 0; UI.toast(`${a.name}: ${a.charges} ${a.amulet === 'focus' ? 'fights' : 'snares'}.`, 'good'); }
+    else if (a.charges) { A.kind = a.amulet; A.charges = a.charges; A.until = 0; UI.toast(`${a.name}: ${a.charges} ${a.amulet === 'focus' ? 'fights' : 'links'}.`, 'good'); }
     else { A.kind = a.amulet; A.until = now + a.dur * 1000; A.charges = 0; UI.toast(`${a.name} for ${a.dur} seconds.`, 'good'); }
     A.cd = now + 240000; UI.sfx('util');
     return true;

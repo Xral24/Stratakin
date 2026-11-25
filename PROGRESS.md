@@ -764,6 +764,13 @@ His go-ahead: the village kit, and "do the grass, the rock, the sand, the water"
 - Nobody has played the three stages by hand: the feel is untested. Tests: t-card.js, t-device.js.
 - Credits: 26 on art (13 images). About 740 left.
 
+## The game reframed around the Kin-Link (Nov 25)
+- He decided the cartridge and device replace nets for good, and that a fresh game is fine for everything that follows.
+- Every player-facing mention of nets now speaks of the Kin-Link and cartridges (about 100 strings in 20 files, `scratch/reframe.py` style exact replacements): items Cartridge / Void Cartridge / Sky Cartridge (ids still snare, snare2, snare_sky), Maren is the weaver who winds hushweave into cartridges and gives you her father's Kin-Link, the Cartridge Stall, quests say "link", the Pit says no Kin-Links, the lariat wire and Bobbinlegs widen the lock ring, the Weaver's Seal makes the beam take surges longer. Fishing nets stay nets.
+- Item icon for cartridges (icons.js `cart`); draught icons now bottles.
+- The old net minigame code is still in battle.js, reached only when `window.__noDevice` is set (tests).
+- Next, agreed order: base set on paper (doc "Stratakin Base Set" in his Docs), concept sheets about 2 credits each in the field-guide style (Husklet is done), then after Sunday with Fable: models, swapping out generated Kin, fusion-only evolution, cap 50, fresh game.
+
 ## Still to do
 UI polish as feedback comes in. Card battle screen still used for scripted encounters (raids at the walls, thief, citadel duel, holds) and the snare mini-game; converting those to live is the next big step if wanted. (Old list: train/ships, combat animation, eggs, avatar hair/paint, buddy WEAR cosmetics, Silas and Finch, UI polish (item icons), quality toggles in settings (state.shadows, state.grassQuality, state.dprCap).
 

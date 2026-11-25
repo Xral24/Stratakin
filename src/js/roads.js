@@ -19,7 +19,7 @@ const Roads = (() => {
       [() => !(G.stats.legends || {}).moon, () => 'The fire-people know where the Selenaut sleeps. Three favours and they will say.'],
       [() => !G.player.has('raygun'), () => 'The Exchange in any dome will sell you a ray gun. A trooper will give you one for nothing, if you ask hard enough.']],
     halo: [
-      [() => pitWon() < 1, () => 'Outside the nearest city there is a ring under a dead thing\'s ribs. Five animals, each worse than the last. No nets. The purse is good.'],
+      [() => pitWon() < 1, () => 'Outside the nearest city there is a ring under a dead thing\'s ribs. Five animals, each worse than the last. No Kin-Links. The purse is good.'],
       [() => pitWon() >= 1 && pitWon() < 5, () => 'I had money on you in the Pit. Do not stop at ' + pitWon() + '. Nobody remembers who won ' + pitWon() + '.'],
       [() => pitWon() >= 5 && !G.stats.kmEnded && !(G.stats.arena || {}).sawKM, () => 'There is a man in black in the top row of the Pit. He does not bet and he does not sit down.'],
       [() => (G.stats.arena || {}).sawKM && !G.stats.kmEnded, () => 'I was in the Pit the day your Kin bounced off that black thing. Look at the ribs over the ring. The animal you want is that size, and they say one still walks on Earth.'],
@@ -37,7 +37,7 @@ const Roads = (() => {
     return out; }
   /* what people on the road know. Each line is only said while it is still news to you, so nobody tells you about a place you have been or a thing you already carry. Two a meeting, never the same two running */
   const HINTS_E = [
-    [() => !G.stats.woodSeen && typeof Wood !== 'undefined' && Wood.site(), () => 'There is an old wood out past the hills where the light goes green. Things live in it that live nowhere else. The net-maker by the brook knows the way.'],
+    [() => !G.stats.woodSeen && typeof Wood !== 'undefined' && Wood.site(), () => 'There is an old wood out past the hills where the light goes green. Things live in it that live nowhere else. The weaver by the brook knows the way.'],
     [() => G.stats.woodSeen && !Wood.has('hare'), () => 'If you go back into the dark wood, watch for threads between the trunks. Thin as breath. Walk into one and something comes down for you, and that is the end of it.'],
     [() => G.stats.woodSeen && !Wood.has('hare'), () => 'They say a hare with shears for ears lives in that wood. Keep one by you and no web will hold you. It cuts you out before she arrives.'],
     [() => G.stats.woodSeen && !Wood.has('toad'), () => 'A toad with a lantern on its back. I am not joking. Carry it and you can see the webs from twice as far, and you never need a torch in your hand again.'],
@@ -52,7 +52,7 @@ const Roads = (() => {
     [() => true, () => 'One Kin in fifty shines. Same creature, a sixth better at everything. If you hear something glint, drop what you are doing.'],
     [() => true, () => 'The tall trees are no good for fronds any more. Pick the low bushes, or fell the tree and take them off the crown.'],
     [() => Object.keys(G.stats.stonesRead || {}).length < 14, () => `The standing stones have fourteen lines between them and they read in order whichever you find. You have ${Object.keys(G.stats.stonesRead || {}).length}. The last one tells you where a city went.`],
-    [() => !G.stats.boardsDone, () => 'Out in the desert there are eight old boards from a town that is not there any more. Read them all and there is a lariat in it. Makes your net half as wide again.'],
+    [() => !G.stats.boardsDone, () => 'Out in the desert there are eight old boards from a town that is not there any more. Read them all and there is a lariat in it. Makes your Kin-Link\'s ring half as wide again.'],
     [() => true, () => 'Every fourth day is market. The farmer drives his cart in at dawn and seed is half what I would charge. Sow in spring, pick in autumn, and he pays you for the day.'],
     [() => true, () => 'Wheat is no use raw. Take it to any fire and it bakes into bread.'],
     [() => !G.stats.lostMap && (G.stats.garrison || {}).taken, () => 'Two halves of a map are going about in two different pockets. Put them together and they show a valley nobody has walked out of. There are people camped at the door of it.'],

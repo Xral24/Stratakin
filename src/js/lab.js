@@ -7,7 +7,7 @@ const Lab = (() => {
   const wd = (d) => U.mod(d + WORLD_W / 2, WORLD_W) - WORLD_W / 2;
   const STORY = {
     earth: { who: 'Dr Vexley', kid: 'Pim Vexley', place: 'the lab', bossName: 'Chimera Nine', elems: ['Void', 'Spark', 'Flame'], shape: 'quadruped',
-      ask: ['My father splices Kin. Eight of them went wrong and he fed them to the ninth, and the ninth is not wrong at all. It is very, very right.', 'It has him in the lab under the hill. The hatch will not open from inside. I have marked it for you: ⚗ on your compass. Beat it or net it. Please.'],
+      ask: ['My father splices Kin. Eight of them went wrong and he fed them to the ninth, and the ninth is not wrong at all. It is very, very right.', 'It has him in the lab under the hill. The hatch will not open from inside. I have marked it for you: ⚗ on your compass. Beat it or link it. Please.'],
       wait: ['Not now! It is right behind you!'], thanks: ['You… it is done? It is done. I have been under the bench for two days.', 'The incubator at the back: it hatches eggs, three at a time, and much faster than carrying them about. It keeps them warm while you are off doing whatever you do. It is yours; I am going outside to look at the sky.'] },
     moon: { who: 'Archivist Oon', kid: 'Probe Vel-9', place: 'the vault', bossName: 'Splice-Null', elems: ['Light', 'Void', 'Frost'], shape: 'floater',
       ask: ['The Archivist kept the old Kin in the vault and tried to make a new one from all of them. It made itself instead.', 'It has sealed the vault with the Archivist inside. The way down is marked: ⚗. End it, earth-walker, or cage it.'],
@@ -129,7 +129,7 @@ const Lab = (() => {
     } else { scientist = null; if (bossRef && dh > 90) { Wild.remove(bossRef); bossRef = null; } }
   }
   /* the thanks and what comes with them, the same whether he reaches you or you go over and speak to him first. (Speaking to him first used to pay out but never count the quest as done) */
-  function thank(sc) { const L = S(); if (L.thanked) return; L.thanked = true; G.talkNpc = sc; Dialogue.show(story().who, story().thanks, () => { G.shards += 60; G.player.add('snare2', 2); UI.sfx('quest'); UI.toast('+60 Shards and two Void Nets. The incubator is yours.', 'good'); G.stats.labDone = (G.stats.labDone || 0) + 1; if (world.preset.id === 'earth' && !G.stats.lostMap && (G.stats.garrison || {}).taken) setTimeout(() => G.giveLostMap(story().who), 600); }); }
+  function thank(sc) { const L = S(); if (L.thanked) return; L.thanked = true; G.talkNpc = sc; Dialogue.show(story().who, story().thanks, () => { G.shards += 60; G.player.add('snare2', 2); UI.sfx('quest'); UI.toast('+60 Shards and two Void Cartridges. The incubator is yours.', 'good'); G.stats.labDone = (G.stats.labDone || 0) + 1; if (world.preset.id === 'earth' && !G.stats.lostMap && (G.stats.garrison || {}).taken) setTimeout(() => G.giveLostMap(story().who), 600); }); }
   function onBossBeaten() { const L = S(); L.rescued = true; bossRef = null; UI.toast(`${story().bossName} is down. ${story().who} crawls out from under the bench.`, 'good'); }
   function talk(n) {
     const L = S(); G.talkNpc = n;

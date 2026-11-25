@@ -142,8 +142,8 @@ G.stealthTarget = function () {
 };
 G.stealthSnare = function () {
   const e = this.stealthTarget(); if (!e || Battle.active) return;
-  if (!this.player.has('snare') && !this.player.has('snare2')) { UI.toast('No nets. Craft one: 2 wood, 2 stone.'); return; }
-  if (!this.healthyKin().length) { UI.toast('You need an awake Kin with you to set a snare.'); return; }
+  if (!this.player.has('snare') && !this.player.has('snare2')) { UI.toast('No cartridges. Craft one: 2 wood, 2 stone.'); return; }
+  if (!this.healthyKin().length) { UI.toast('You need an awake Kin with you to link one.'); return; }
   Battle.start(e, true, { stealth: true });
 };
 // ---------- deploy: send your Kin in against the one that is on you ----------
@@ -629,7 +629,7 @@ G.onBattleEnd = function (result, wildE, wild, mine, ambush) {
     if (result === 'won') {
       const dom = KIN.dominant(wild.sp.elem, 1)[0];
       if (Math.random() < ((wild.sp.rarity || 0) >= 2 || wildE.elite ? 1 : 0.6)) { p.add('ess_' + dom, 1); UI.toast(`${dom} Essence collected.`); }
-      if (st) { this.stats.mythicDone = true; UI.toast('The Mantlewyrm sinks back into the Starmetal. Next time, bring Void Nets.', 'good'); }
+      if (st) { this.stats.mythicDone = true; UI.toast('The Mantlewyrm sinks back into the Starmetal. Next time, bring Void Cartridges.', 'good'); }
     } else {
       wild.buffs = null; wild.hp = Math.max(1, wild.hp);
       this.stats.caught++; this.seenDex(wild.sp, "caught");
@@ -878,7 +878,7 @@ G.loop = function (t) {
         this.questTimer = 0;
         for (const ev of Quests.update()) {
           if (ev.type === 'quest') { UI.sfx('quest'); UI.toast(`Quest complete: ${ev.q.title}`, 'good'); document.getElementById('quest-dot').classList.remove('hidden'); }
-          if (ev.type === 'bounty') { UI.sfx('quest'); UI.toast(`Bounty ${ev.round - 1} paid: a Cast Net and XP.`, 'good'); }
+          if (ev.type === 'bounty') { UI.sfx('quest'); UI.toast(`Bounty ${ev.round - 1} paid: a Cartridge and XP.`, 'good'); }
         }
       }
       Battle.tick(dt); // particle effects outside fights (guards at the walls)
@@ -984,7 +984,7 @@ G.loop = function (t) {
     const st = this.stealthTarget();
     const lead = this.activeKin();
     const eng = Wild.engagedNear(p);
-    if (!this.stats.netTold && (p.has('snare') || p.has('snare2')) && ((eng && eng.dazed > 0) || (st && !eng))) { this.stats.netTold = true; this.explain('Now: the net', (eng && eng.dazed > 0 ? 'It is down and dazed for about ten seconds. ' : 'It has not seen you. ') + 'Tap it, or tap the Net button. Then hold your finger on the ring and draw circles to swing the net open, flick up at the Kin to throw, and as it lands swirl the other way to draw it shut.'); }
+    if (!this.stats.netTold && (p.has('snare') || p.has('snare2')) && ((eng && eng.dazed > 0) || (st && !eng))) { this.stats.netTold = true; this.explain('Now: the Kin-Link', (eng && eng.dazed > 0 ? 'It is down and dazed for about ten seconds. ' : 'It has not seen you. ') + 'Tap it, or tap the Link button. Drag to keep the ring on it until it locks, then hold your thumb down to draw it in. When it turns red, lift off, or the beam snaps.'); }
     UI.setButtons({ deployLabel: this.kin.some(k => k.hp > 0) ? 'Deploy Kin' : 'No Kin fit · go and heal', deploy: !!eng && !(eng.dazed > 0) && !p.flying, snare: !!st && (p.has('snare') || p.has('snare2')) && !(eng && !(eng.dazed > 0)), ride: !p.flying && (!!p.mount || !!(this._rideable = this.rideable())), rideLabel: p.mount ? 'Off' : (this._rideable ? this._rideable.label : 'Ride'), riding: !!p.mount, ship: p.has('ship') && (p.flying || this.world.layerAt(Math.floor(p.y), Math.floor(p.x), Math.floor(p.z)) !== 'Mines'), flying: p.flying, canLand: p.flying && (p.autoLand || this.landHeight() <= G.LAND_REACH) });
     if (p.mount && !Taming.active && !p.mount.borrowed && (p.mount.hp <= 0 || !this.kin.includes(p.mount))) { p.mount = null; UI.toast('Your mount is down.', 'bad'); } /* while you are breaking one in, it is not yours yet (Thunderhoof, the seahorse in the ring) */
     if (p.mount && !Taming.active && p.mountMode === 'water' && !p.inWater && p.onGround) { p.mount = null; UI.toast('It cannot follow you onto land.'); }
@@ -1023,7 +1023,7 @@ G.onTap = function () {
   // with a weapon in hand, a tap on something you use (the camp fire, a table, a door, a chest, a bed) still uses it; anything else is a swing
   const usable = hit && !e && (hit.id === B.CAMPFIRE || hit.id === B.FUSION || hit.id === B.DARKTABLE || hit.id === B.STARMETAL || hit.id === B.PORTAL || hit.id === B.DOOR || hit.id === B.DOOR_OPEN || hit.id === B.CHEST || hit.id === B.BOOKS || hit.id === B.INCUBATOR || hit.id === B.BED || hit.id === B.THORN || hit.id === B.DEADGATE || hit.id === B.RUBBLE);
   if (Combat.weapon() && !usable && !(e && e.rogue) && !(e && e.dazed > 0)) { Combat.swing(); return; }
-  if (e && e.dazed > 0) { if (p.has('snare') || p.has('snare2')) { this.stealthSnare(); } else UI.toast('It is dazed. A net would take it now: 2 wood, 2 stone.'); return; }
+  if (e && e.dazed > 0) { if (p.has('snare') || p.has('snare2')) { this.stealthSnare(); } else UI.toast('It is dazed. A cartridge would take it now: 2 wood, 2 stone.'); return; }
   if (e && e.rogue) { const c = Campaign.C(); if (c.ranch !== 2) { UI.toast('Thunderhoof flattens his ears at you. Talk to Dusty Hale first.'); return; } const k = KIN.create(e.kin.sp, e.kin.level); Taming.start(k, { hard: true, ent: e, onDone: (kk) => { kk.tamed = true; this.addKin(kk); Campaign.onRogueTamed(kk); UI.toast('Thunderhoof is yours, and you can ride now. Every Kin still has to be broken in once: press Ride and hold on.', 'good'); } }); return; }
   if (e && (!hit || Math.hypot(e.x - p.x, e.z - p.z, e.y - p.y) < hit.dist + 0.5)) {
     if (e.cool > 0) e.cool = 0;
@@ -1035,10 +1035,10 @@ G.onTap = function () {
   const interactable = hit && (hit.id === B.CAMPFIRE || hit.id === B.FUSION || hit.id === B.DARKTABLE || hit.id === B.STARMETAL || hit.id === B.PORTAL || hit.id === B.DOOR || hit.id === B.DOOR_OPEN || hit.id === B.CHEST || hit.id === B.INCUBATOR || hit.id === B.BOOKS);
   if (!interactable && selInfo && selInfo.rod) { Fishing.cast(); return; }
   if (!interactable && selInfo && selInfo.use) { this.useItem(p.selected()); return; }
-  if (!interactable && selInfo && selInfo.snare) { if (this.stealthTarget()) { this.stealthSnare(); } else UI.toast('Snares work in a fight, or sneak up close behind an unaware Kin and press Throw net.'); return; }
+  if (!interactable && selInfo && selInfo.snare) { if (this.stealthTarget()) { this.stealthSnare(); } else UI.toast('Cartridges work in a fight, or sneak up close behind an unaware Kin and press Link.'); return; }
   const ev = p.place();
   if (!ev) return;
-  if (ev.interact === 'fusion') { if (ev.dark && !Keeps.tableOpen(ev.x, ev.z)) { UI.toast('The warlord\'s table. It will not answer you until this place is yours.', 'bad'); return; } if (!ev.dark && Village.tableChallenge()) return; if (ev.dark && !this.stats.darkTold) { this.stats.darkTold = true; this.explain('The Dark Fusion Table', 'The Kinmaster\'s own table. It is the only one that takes dark materials: Void Crystal, Void Essence and Void Stones. Every fusion that needs a Void Stone, the Void Net, and anything else made with Void has to be made here.'); } UI.openPanel('fusion', { table: { x: ev.x, y: ev.y, z: ev.z }, dark: !!ev.dark }); if (!ev.dark) UI.openPanel('table', { table: { x: ev.x, y: ev.y, z: ev.z } }); return; } // tapping a table asks what you came for: crafting or Kin
+  if (ev.interact === 'fusion') { if (ev.dark && !Keeps.tableOpen(ev.x, ev.z)) { UI.toast('The warlord\'s table. It will not answer you until this place is yours.', 'bad'); return; } if (!ev.dark && Village.tableChallenge()) return; if (ev.dark && !this.stats.darkTold) { this.stats.darkTold = true; this.explain('The Dark Fusion Table', 'The Kinmaster\'s own table. It is the only one that takes dark materials: Void Crystal, Void Essence and Void Stones. Every fusion that needs a Void Stone, the Void Cartridge, and anything else made with Void has to be made here.'); } UI.openPanel('fusion', { table: { x: ev.x, y: ev.y, z: ev.z }, dark: !!ev.dark }); if (!ev.dark) UI.openPanel('table', { table: { x: ev.x, y: ev.y, z: ev.z } }); return; } // tapping a table asks what you came for: crafting or Kin
   if (ev.interact === 'portal') { const r = Village.portalHere(ev.x, ev.z); if (r.err) { UI.toast(r.err, 'bad'); return; } UI.openPanel('portal', r.v); return; }
   if (ev.interact === 'chest') { UI.openPanel('chest', { x: ev.x, y: ev.y, z: ev.z }); return; }
   if (ev.interact === 'books') { Books.open('atlantis'); return; }
@@ -1074,7 +1074,7 @@ G.chooseDestination = function (id) {
 G.shipTravel = function (target) {
   const p = this.player, from = this.worldId, NAME = { earth: 'Earth', moon: 'the Moon', halo: 'Halo' }, fl = (this.stats.flown = this.stats.flown || {}), firstOut = !fl['out:' + from], firstIn = !fl['in:' + target]; fl['out:' + from] = true; fl['in:' + target] = true;
   const OUT = { earth: ['Below you the lamps are coming on in every town you opened.', 'The Citadel is a dark tooth on the edge of the world, and already small.', 'Ahead there is one black ship, and a whole sky he means to take.'], moon: ['The domes shrink to beads of light on the grey.', 'He said there is nowhere past Halo.', 'You are about to find out.'], halo: ['The ring turns under you, slow as a mill wheel.', 'The Pit is a scratch in the sand from up here.'] };
-  const IN = { moon: ['Grey to the edge of everything, and no sound at all.', 'Glass domes with people in them who glow.', 'And one white post where the lights are the wrong colour.'], halo: ['The ring fills half the sky.', 'Rust and sand, and tracks that run out to yards you cannot see.', 'This is where the road stops.'], earth: ['It is greener than you remembered.', 'Somebody down there is mending a net.'] };
+  const IN = { moon: ['Grey to the edge of everything, and no sound at all.', 'Glass domes with people in them who glow.', 'And one white post where the lights are the wrong colour.'], halo: ['The ring fills half the sky.', 'Rust and sand, and tracks that run out to yards you cannot see.', 'This is where the road stops.'], earth: ['It is greener than you remembered.', 'Somebody down there is mending a fishing net.'] };
   const arr = { orbit: { x: p.x, y: p.y, z: p.z, r: [46, 11], h: [26, 4], a: [0.4, 2.2], ly: 0.5 }, plain: true, secs: firstIn ? 10 : 3.5, title: firstIn ? NAME[target][0].toUpperCase() + NAME[target].slice(1) : null, glow: 'gold', sfx: 'quest', flash: firstIn ? IN[target] : null };
   if (from === 'moon' && this.world.pad && Hub.site()) { const pd = this.world.pad; this.world.ensureAround(Math.floor(pd.x / CH), Math.floor(pd.z / CH), 5, 99999); p.x = pd.x; p.z = pd.z; p.y = pd.y + 3.2; if (this.meshPass) this.meshPass(999); } /* she leaves the Moon from the pad at the Starwell, wherever you climbed aboard */
   p.flying = true; p.vx = p.vy = p.vz = 0;

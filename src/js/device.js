@@ -71,7 +71,7 @@ const Device = (() => {
           const sp = 0.3 + 1.8 * d; st.ph += dt * sp; st.tx = 0.5 + 0.3 * Math.sin(st.ph * 1.3) + 0.1 * Math.sin(st.ph * 3.1 + 1); st.ty = 0.44 + 0.2 * Math.sin(st.ph * 1.7 + 2) + 0.08 * Math.cos(st.ph * 2.9);
           if (A) { st.rx += (st.tx - st.rx) * Math.min(1, dt * 10); st.ry += (st.ty - st.ry) * Math.min(1, dt * 10); }
           else if (ptr.down) { st.rx = U.clamp((ptr.x - scr.x) / scr.w, 0, 1); st.ry = U.clamp((ptr.y - 56 - scr.y) / scr.h, 0, 1); } // the reticle rides above the thumb, so the thumb does not hide it
-          const R = scr.w * (0.2 - 0.09 * d), px = scr.x + scr.w * st.rx, py = scr.y + scr.h * st.ry, on = Math.hypot(px - kx, py - ky) < R;
+          const R = scr.w * (0.2 - 0.09 * d) * Math.min(1.8, cfg.ring || 1), px = scr.x + scr.w * st.rx, py = scr.y + scr.h * st.ry, on = Math.hypot(px - kx, py - ky) < R;
           if (live) st.fill = U.clamp(st.fill + (on ? dt / 1.3 : -dt * (0.15 + 0.5 * d)), 0, 1);
           drawKin(1);
           c.strokeStyle = on ? '#5dff9a' : '#ffffff'; c.lineWidth = 3; c.beginPath(); c.arc(px, py, R, 0, 6.3); c.stroke(); c.beginPath(); c.arc(px, py, R + 8, -Math.PI / 2, -Math.PI / 2 + st.fill * Math.PI * 2); c.strokeStyle = '#5dff9a'; c.lineWidth = 6; c.stroke();
@@ -99,7 +99,7 @@ const Device = (() => {
           // it surges: a warning, then it heaves, and the beam will not take a pull through that
           st.sT -= dt; if (live && st.sT <= 0) { if (st.mode === 'calm') { st.mode = 'warn'; st.sT = 0.6 + 0.6 * (1 - d); } else if (st.mode === 'warn') { st.mode = 'surge'; st.sT = 0.5 + 0.7 * d; } else { st.mode = 'calm'; st.sT = 2.2 - 1.0 * d + Math.random() * 0.8; } }
           const hold = A ? st.mode === 'calm' : ptr.down;
-          if (live) { if (hold) { st.prog += dt / (2.2 + 2.6 * d); if (st.mode === 'surge') st.tens += dt * (0.55 + 1.5 * d); else st.tens -= dt * 0.3; } else { st.tens -= dt * 1.2; /* holding through a whole surge snaps a legendary's beam; a common's takes nearly two seconds of it */ if (st.mode !== 'surge') st.prog -= dt * 0.1; } }
+          if (live) { if (hold) { st.prog += dt / (2.2 + 2.6 * d); if (st.mode === 'surge') st.tens += dt * (0.55 + 1.5 * d) * (cfg.seal ? 0.8 : 1); /* the weavers' knot: the beam takes a surge a little longer */ else st.tens -= dt * 0.3; } else { st.tens -= dt * 1.2; /* holding through a whole surge snaps a legendary's beam; a common's takes nearly two seconds of it */ if (st.mode !== 'surge') st.prog -= dt * 0.1; } }
           st.prog = U.clamp(st.prog, 0, 1); st.tens = U.clamp(st.tens, 0, 1); st.maxTens = Math.max(st.maxTens, st.tens);
           const bc = st.mode === 'surge' ? '#ff5a5a' : st.mode === 'warn' ? '#ffb84a' : col, bxm = scr.x + scr.w / 2, bym = scr.y + scr.h;
           const shake = st.mode === 'surge' ? Math.sin(now / 18) * 5 : 0;

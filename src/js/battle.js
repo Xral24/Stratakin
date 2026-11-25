@@ -46,7 +46,7 @@ const Battle = (() => {
     if (wildE.finalBoss) log(`${n}, left behind to hold you. Lv ${wild.level}. Beat it, or cage a legend.`, 'bad');
     camState = null;
     stealth = !!opts.stealth;
-    if (stealth) { el.log.innerHTML = ''; log(`${n} has not seen you. Set the net before it does.`, 'good'); renderActions(); busy = false; beginSnare(); return; }
+    if (stealth) { el.log.innerHTML = ''; log(`${n} has not seen you. Link it before it does.`, 'good'); renderActions(); busy = false; beginSnare(); return; }
     renderActions();
     busy = false;
   }
@@ -125,11 +125,11 @@ const Battle = (() => {
   // which net this Kin takes: the high flyers only a Flight Net thrown from the air, the water Kin none at all (that is the rod's job)
   function snareRule() {
     const p = G.player;
-    if (wildE && wildE.isBoss) return { list: [], why: 'A tyrant cannot be caged. Beat him and he runs' };
-    if (wildE && wildE.finalBoss) return { list: [], why: 'Not this one. This one you end' }; if (wildE && wildE.kmLast) return { list: [], why: 'Not this one. It is his to keep' }; if (wildE && wildE.pit) return { list: [], why: 'No nets in the Pit. Its beasts belong to the Pit' }; // the last fight only; the Kinmaster's own Kin and his warlords' can be caught
+    if (wildE && wildE.isBoss) return { list: [], why: 'A tyrant cannot be linked. Beat him and he runs' };
+    if (wildE && wildE.finalBoss) return { list: [], why: 'Not this one. This one you end' }; if (wildE && wildE.kmLast) return { list: [], why: 'Not this one. It is his to keep' }; if (wildE && wildE.pit) return { list: [], why: 'No linking in the Pit. Its beasts belong to the Pit' }; // the last fight only; the Kinmaster's own Kin and his warlords' can be caught
     if (wildE && wildE.aquatic && !wildE.isApex) return { list: [], why: 'Water Kin slip any cage. Fish them with a rod.' };
-    if (wildE && wildE.high) { const air = p.gliding || p.mountMode === 'air'; if (!air) return { list: [], why: 'Only from the air' }; return { list: p.has('snare_sky') ? ['snare_sky'] : [], why: 'Needs a Flight Net' }; }
-    return { list: ['snare2', 'snare'].filter(s => p.has(s)), why: 'No nets' };
+    if (wildE && wildE.high) { const air = p.gliding || p.mountMode === 'air'; if (!air) return { list: [], why: 'Only from the air' }; return { list: p.has('snare_sky') ? ['snare_sky'] : [], why: 'Needs a Sky Cartridge' }; }
+    return { list: ['snare2', 'snare'].filter(s => p.has(s)), why: 'No cartridges' };
   }
   function renderActions() {
     fxArtFor(mine); fxArtFor(wild);
@@ -145,10 +145,10 @@ const Battle = (() => {
       html += `<button class="act move ${m.sig ? 'sig' : m.tech ? 'tech' : ''}" data-i="${i}" style="--c:${col}" ${rest ? 'disabled' : ''}><b>${m.name}${m.sig ? ' ★' : m.tech ? ' ✦' : ''}</b><small>${rest ? 'Gathering: ' + rest + (rest === 1 ? ' more turn' : ' more turns') : m.kind === 'util' ? m.desc : m.kind + ' · ' + m.power + (m.desc ? ' · ' + m.desc : '')}</small>${rest ? '' : tag}</button>`;
     });
     const snareLabel = snares.length ? `${ITEMS[snares[0]].name} ×${G.player.count(snares[0])}` : rule.why;
-    html += `<button class="act snare" data-a="snare" ${(!snares.length || bagFull) ? 'disabled' : ''}><b>Net</b><small>${bagFull ? 'Bag full (20). Fuse first.' : snareLabel}</small></button>`;
+    html += `<button class="act snare" data-a="snare" ${(!snares.length || bagFull) ? 'disabled' : ''}><b>Link</b><small>${bagFull ? 'Bag full (20). Fuse first.' : snareLabel}</small></button>`;
     const th = G.player.count('tonic_heal');
     html += `<button class="act" data-a="tonic" ${th ? '' : 'disabled'}><b>Tonic</b><small>${th ? 'Heal Tonic ×' + th + ' · costs the turn' : 'no Heal Tonic'}</small></button>`;
-    { const dr = draughtOf(), boss = bossKin(), full = lullN >= 2; html += `<button class="act" data-a="draught" ${dr && !boss && !full ? '' : 'disabled'}><b>Draught</b><small>${boss ? 'it will not take one' : full ? 'it has had two' : dr ? ITEMS[dr].name + ' ×' + G.player.count(dr) + ' · easier to net' : 'none · craft under Tonics'}</small></button>`; }
+    { const dr = draughtOf(), boss = bossKin(), full = lullN >= 2; html += `<button class="act" data-a="draught" ${dr && !boss && !full ? '' : 'disabled'}><b>Draught</b><small>${boss ? 'it will not take one' : full ? 'it has had two' : dr ? ITEMS[dr].name + ' ×' + G.player.count(dr) + ' · easier to link' : 'none · craft under Tonics'}</small></button>`; }
     html += `<button class="act" data-a="swap"><b>Swap</b><small>${G.healthyKin().length - 1} ready</small></button>`;
     html += `<button class="act" data-a="run"><b>Run</b><small>leave</small></button>`;
     el.actions.innerHTML = html;
@@ -333,11 +333,11 @@ const Battle = (() => {
     return best;
   }
   function stunWindow() {
-    log(`${KIN.name(wild)} staggers, stunned! Net it now, or let it fall.`, 'good'); G.sfx('win'); if (G.knockout) G.knockout();
+    log(`${KIN.name(wild)} staggers, stunned! Link it now, or let it fall.`, 'good'); G.sfx('win'); if (G.knockout) G.knockout();
     stunned = true; let left = 4.0;
     const rule = snareRule(); const can = rule.list.length > 0; const cc = can ? catchChance() : null;
     const what = !can ? rule.why : cc.hopeless ? `too strong to hold yet (Lv ${wild.level}; raise your trainer level)` : `${ITEMS[rule.list[0]].name} · about ${Math.max(1, Math.round(Math.min(1, cc.chance * (bossKin() ? 1 : 1.8)) * 100))}%${bossKin() ? ' · one chance' : ''}`;
-    el.actions.innerHTML = `<button class="act snare stun" data-a="stunsnare" ${can && !cc.hopeless ? '' : 'disabled'}><b>Net it!</b><small>${what} · <span id="stun-left">4</span>s</small><i class="stunbar"><i id="stun-fill"></i></i></button><button class="act" data-a="finish"><b>Finish it</b><small>win the fight</small></button>`;
+    el.actions.innerHTML = `<button class="act snare stun" data-a="stunsnare" ${can && !cc.hopeless ? '' : 'disabled'}><b>Link it!</b><small>${what} · <span id="stun-left">4</span>s</small><i class="stunbar"><i id="stun-fill"></i></i></button><button class="act" data-a="finish"><b>Finish it</b><small>win the fight</small></button>`;
     const fill = document.getElementById('stun-fill');
     const done = (snare) => { if (!stunned) return; stunned = false; clearInterval(stunTimer); stunTimer = null; if (snare) { busy = false; beginSnare(); } else finishBlow(); };
     el.actions.querySelector('[data-a="stunsnare"]').addEventListener('click', () => done(true));
@@ -384,8 +384,8 @@ const Battle = (() => {
     el.snare.classList.remove('hidden'); el.root.classList.add('snaring'); el.root.scrollTop = 0;
     const pct = chance === 0 ? '0%' : chance < 0.01 ? 'under 1%' : Math.round(chance * 100) + '%';
     log(`You shake out a ${ITEMS[item].name}${stealth ? ', quietly' : ''}. Swing it open and throw. Catch chance ${pct} with a good throw.`);
-    if (hopeless) log(`${KIN.name(wild)} is more than twice your net strength (${grip}, twice your trainer level). No net made will hold it. Beat it, or come back stronger.`, 'bad');
-    else if (gap > 1.2) log(`${KIN.name(wild)} is far above your net strength (${grip}). It will fight the net hard.`, 'bad');
+    if (hopeless) log(`${KIN.name(wild)} is more than twice your link strength (${grip}, twice your trainer level). No cartridge made will hold it. Beat it, or come back stronger.`, 'bad');
+    else if (gap > 1.2) log(`${KIN.name(wild)} is far above your link strength (${grip}). It will fight the beam hard.`, 'bad');
     G.sfx('snare');
     requestAnimationFrame(snareFrame);
   }
@@ -394,7 +394,8 @@ const Battle = (() => {
     busy = true; el.actions.querySelectorAll('button').forEach(b => b.disabled = true);
     const st = KIN.stats(wild), rar = wild.sp.rarity || 0;
     log(`You raise the Kin-Link${stealth ? ', quietly' : ''}. ${hopeless ? 'It can barely read this one.' : 'Lock on, and draw it in.'}`); G.sfx('snare');
-    const r = await Device.capture({ kin: wild, rar, hpFrac: wild.hp / st.hp, agi: st.agi, lull, chance });
+    const ring = (G.player.has('lariat') ? 1.5 : 1) * (typeof Wood !== 'undefined' && Wood.has('spider') ? 1.3 : 1) * ((G.stats.caught || 0) < 1 ? 1.2 : 1); /* the lariat wire and Bobbinlegs widen the lock ring, as they widened the net */
+    const r = await Device.capture({ kin: wild, rar, hpFrac: wild.hp / st.hp, agi: st.agi, lull, chance, ring, seal: G.player.has('seal') });
     const pHold = U.clamp(chance * (0.7 + 0.7 * (r.quality || 0)), hopeless ? 0 : 0.02, 0.97), roll = (typeof window !== 'undefined' && window.__netRoll != null) ? window.__netRoll : Math.random(), held = r.ok && roll < pHold;
     if (held) {
       const dl = R.state.dayLight != null ? R.state.dayLight : 1, hud = (document.getElementById('where') || {}).textContent || '', place = hud.split(' · y ')[0].split(' · ').filter(x => x && !/fps|wild/.test(x)).slice(-2).join(', ');

@@ -242,7 +242,7 @@ const Builds = (() => {
   function progressOf(q) { return q.kind === 'archery' ? archeryProgress(q) : q.kind === 'build' ? (q.built ? 1 : 0) : q.caught ? 1 : 0; }
   function needText(q) {
     if (q.kind === 'archery') return archeryNeed(q);
-    if (q.kind === 'night') return `${q.lurker} is still out there. It only comes up in the dead of night (around midnight). Follow ⌖, and bring snares: beaten does not count.`;
+    if (q.kind === 'night') return `${q.lurker} is still out there. It only comes up in the dead of night (around midnight). Follow ⌖, and bring cartridges: beaten does not count.`;
     if (q.built) return '';
     const pct = q.prog ? ` You are about ${Math.round(q.prog * 100)}% there.` : ' Follow ⌖ to the posts.';
     const K = KINDS[q.what];
