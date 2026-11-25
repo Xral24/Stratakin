@@ -191,6 +191,7 @@ const UI = (() => {
     el['panel-body'].scrollTop = 0;
     if (name === 'kin') { swapIn = null; renderKin(); }
     else if (name === 'kindex') renderKindex(data);
+    else if (name === 'rack') renderRack();
     else if (name === 'craft') renderCraft();
     else if (name === 'quest') renderQuests();
     else if (name === 'menu') renderMenu();
@@ -302,6 +303,18 @@ const UI = (() => {
     return `<button class="kheal" data-heal="${item}" ${have ? '' : 'disabled'}>${k.hp <= 0 ? 'Revive' : 'Heal'}${have ? ' ×' + have : ' (none)'}</button>`;
   }
   let swapIn = null;
+  /* the rack: every cartridge you hold, the party first and then the stored ones, drawn small. Tap one to take it out and look at it */
+  function renderRack() {
+    const all = G.kin.map(k => ({ k, where: 'party' })).concat(G.box.map(d => ({ k: KIN.deserialize(d), where: 'stored' })));
+    setTitle(`Cartridges · ${all.length}`);
+    const body = el['panel-body'];
+    body.innerHTML = `<p class="note">Everything you have linked. Tap one to take it out and look at it.</p><div class="rack">${all.map((r, i) => `<button class="cartslot" data-i="${i}"><canvas width="150" height="210"></canvas><small>${KIN.name(r.k)}${r.where === 'stored' ? ' · stored' : ''}</small></button>`).join('')}</div><div class="row"><button class="btn ghost" id="r-back">Back</button></div>`;
+    q('r-back').addEventListener('click', () => openPanel('kin'));
+    const big = document.createElement('canvas'); let i = 0;
+    const next = () => { if (panelOpen !== 'rack' || i >= all.length) return; const slot = body.querySelector(`.cartslot[data-i="${i}"] canvas`); try { Cards.cartridge(big, all[i].k, { now: 0 }); const c = slot.getContext('2d'); c.imageSmoothingQuality = 'high'; c.clearRect(0, 0, 150, 210); c.drawImage(big, 0, 0, 150, 210); } catch (e) { console.error(e); } i++; setTimeout(next, 30); }; /* one at a time, so the panel opens at once */
+    Cards.preload(Object.values(Cards.BG).concat(Object.values(Cards.OWN))).then(next);
+    body.querySelectorAll('.cartslot').forEach(b => b.addEventListener('click', () => { const r = all[+b.dataset.i]; if (r && typeof Device !== 'undefined') Device.view(r.k); }));
+  }
   function renderKin() {
     setTitle(`Your party · ${G.kin.length + G.eggs.length}/${G.MAX_KIN}`);
     const body = el['panel-body'];
@@ -315,9 +328,10 @@ const UI = (() => {
     const swapNote = swapIn != null ? `<div class="swapbar"><b>Bringing ${nm(G.box[swapIn])}.</b> Who goes into storage? Tap Swap on one. <button class="btn ghost" id="k-swapx">Cancel</button></div>` : '';
     const tableNote = atTable && swapIn == null ? '<p class="note"><b>You are at a table.</b> Store sends a Kin to storage. Take or Swap in brings one back, and if you are full it asks who to trade.</p>' : '';
     const storeBtn = (k) => !atTable || G.kin.length <= 1 ? '' : swapIn != null ? `<button class="kstore swap" data-swapout="${k.id}">Swap</button>` : `<button class="kstore" data-store="${k.id}">Store</button>`;
-    body.innerHTML = swapNote + tableNote + `<p class="note">You carry eight, and an egg takes a slot. Everyone awake learns a little from every win; the one that fights learns most.<br>${tonics}</p><div class="row"><button class="btn" id="k-dex">Kindex</button></div>` + G.kin.map(k => kinCard(k, healButton(k) + storeBtn(k))).join('') + eggs + box;
+    body.innerHTML = swapNote + tableNote + `<p class="note">You carry eight, and an egg takes a slot. Everyone awake learns a little from every win; the one that fights learns most.<br>${tonics}</p><div class="row"><button class="btn" id="k-dex">Kindex</button><button class="btn" id="k-rack">Cartridges</button></div>` + G.kin.map(k => kinCard(k, healButton(k) + storeBtn(k))).join('') + eggs + box;
     drawPortraits(body);
     q('k-dex').addEventListener('click', () => openPanel('kindex'));
+    q('k-rack').addEventListener('click', () => openPanel('rack'));
     const stash = (k) => { G.returnGear([k]); G.kin = G.kin.filter(x => x !== k); G.box.push(KIN.serialize(k)); };
     body.querySelectorAll('[data-store]').forEach(b => b.addEventListener('click', (ev) => { ev.stopPropagation(); const k = G.kin.find(x => x.id == b.dataset.store); if (!k || G.kin.length <= 1) return; stash(k); G.activeIdx = U.clamp(G.activeIdx, 0, G.kin.length - 1); sfx('place'); renderKin(); }));
     body.querySelectorAll('[data-swapout]').forEach(b => b.addEventListener('click', (ev) => { ev.stopPropagation(); const k = G.kin.find(x => x.id == b.dataset.swapout); if (!k || swapIn == null) return; const d = G.box.splice(swapIn, 1)[0]; swapIn = null; const at = G.kin.indexOf(k); stash(k); G.kin.splice(at, 0, KIN.deserialize(d)); G.activeIdx = U.clamp(G.activeIdx, 0, G.kin.length - 1); sfx('place'); toast(`${nm(d)} joins you. ${KIN.name(k)} waits in storage.`); renderKin(); }));

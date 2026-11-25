@@ -769,6 +769,7 @@ His go-ahead: the village kit, and "do the grass, the rock, the sand, the water"
 - Every player-facing mention of nets now speaks of the Kin-Link and cartridges (about 100 strings in 20 files, `scratch/reframe.py` style exact replacements): items Cartridge / Void Cartridge / Sky Cartridge (ids still snare, snare2, snare_sky), Maren is the weaver who winds hushweave into cartridges and gives you her father's Kin-Link, the Cartridge Stall, quests say "link", the Pit says no Kin-Links, the lariat wire and Bobbinlegs widen the lock ring, the Weaver's Seal makes the beam take surges longer. Fishing nets stay nets.
 - Item icon for cartridges (icons.js `cart`); draught icons now bottles.
 - The old net minigame code is still in battle.js, reached only when `window.__noDevice` is set (tests).
+- Cartridge rack: Kin panel › Cartridges, every Kin you hold (party and stored) drawn small; tap to view. `t-rack.js`.
 - Next, agreed order: base set on paper (doc "Stratakin Base Set" in his Docs), concept sheets about 2 credits each in the field-guide style (Husklet is done), then after Sunday with Fable: models, swapping out generated Kin, fusion-only evolution, cap 50, fresh game.
 
 ## Still to do
