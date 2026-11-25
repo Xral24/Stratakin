@@ -787,3 +787,8 @@ Kin are woven, written out of the Loom; the Lost World's beasts never were. In `
 
 ## Turnaround sheets for the base set (25 Nov)
 art/turnarounds/<line>_<stage>.jpg: 98 sheets, one per form (41 lines: commons and uncommons 3 stages, rares and epics 2, legendaries and the starter 1). Each shows front, three-quarter, side and back in the field-guide style, made from that line's approved concept sheet (art/concepts/set, newest version of each). These are the modelling reference for rebuilding the Kin after Sunday. Gallery of the concept sheets is in the "Stratakin Base Set" doc.
+
+## Hero paintings, Moon and Halo sets (25 Nov)
+- art/heroes/<line>.jpg: a 3:4 painted card illustration of each line's final form in its habitat (41). Twelve were repainted at believable size after Dude pointed out Drizzlet was bigger than the lake: rule now in the doc (stage 1 cat-sized, stage 2 big dog or deer, final horse or bear, at most an elephant; scale cues in every painting).
+- Kilnip and Pebblub lines redone so each stage transforms (art/concepts/set/*_v4.png), with new turnarounds for stages 2 and 3.
+- Moon set (12 lines, 30 forms) and Halo set (12 lines, 30 forms) designed in the doc and drawn: art/concepts/moonhalo/. Turnarounds and heroes for those wait for Dude's approval.
