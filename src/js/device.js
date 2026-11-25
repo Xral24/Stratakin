@@ -49,7 +49,7 @@ const Device = (() => {
       const el = k.sp.elem.map((w, i) => ({ e: KIN.E[i], w })).sort((a, b) => b.w - a.w)[0].e, col = Cards.ELEM_COL[el] || '#7fd6f0';
       const stages = rar >= 2 ? ['lock', 'tune', 'pull'] : ['lock', 'pull'];
       let pic = null; try { pic = Cards.kinCanvas(k, 150); } catch (_) {}
-      const st = { i: 0, t: 0, fill: 0, scores: [], msgT: 0, tx: 0.5, ty: 0.45, rx: 0.5, ry: 0.7, ph: Math.random() * 9, ft: 0.3 + Math.random() * 0.4, fp: 0.5, jump: 2, prog: 0, tens: 0, maxTens: 0, surge: 1.4, sT: 0, mode: 'calm', intro: 1.1, over: null, parts: [] };
+      const st = { i: 0, t: 0, fill: 0, scores: [], msgT: 0, tx: 0.5, ty: 0.45, rx: 0.5, ry: 0.7, ph: Math.random() * 9, ft: 0.3 + Math.random() * 0.4, fp: 0.5, jump: 2, prog: 0, tens: 0, maxTens: 0, surge: 1.4, sT: 1.8, /* a moment to get the feel of pulling before the first surge */ mode: 'calm', intro: 1.1, over: null, parts: [] };
       const lightsOf = () => ['lock', 'tune', 'pull'].map(n => { const ix = stages.indexOf(n); return ix < 0 ? 'skip' : st.over === 'fail' && ix === st.i ? 'fail' : ix < st.i || st.over === 'ok' ? 'done' : ix === st.i ? 'on' : 'off'; });
       const next = (score) => { st.scores.push(U.clamp(score, 0, 1)); st.i++; st.t = 0; st.fill = 0; st.intro = 0.9; if (typeof G !== 'undefined' && G.sfx) G.sfx('util'); if (st.i >= stages.length) { st.over = 'ok'; st.t = 0; } };
       const fail = () => { if (st.over) return; st.over = 'fail'; st.t = 0; if (typeof G !== 'undefined' && G.sfx) G.sfx('miss'); };
@@ -97,9 +97,9 @@ const Device = (() => {
         } else {
           st.tx += (0.5 - st.tx) * dt * 3; st.ty += (0.3 + 0.3 * st.prog - st.ty) * dt * 3;
           // it surges: a warning, then it heaves, and the beam will not take a pull through that
-          st.sT -= dt; if (live && st.sT <= 0) { if (st.mode === 'calm') { st.mode = 'warn'; st.sT = 0.5; } else if (st.mode === 'warn') { st.mode = 'surge'; st.sT = 0.7 + 0.6 * d; } else { st.mode = 'calm'; st.sT = 1.9 - 0.9 * d + Math.random() * 0.8; } }
+          st.sT -= dt; if (live && st.sT <= 0) { if (st.mode === 'calm') { st.mode = 'warn'; st.sT = 0.6 + 0.6 * (1 - d); } else if (st.mode === 'warn') { st.mode = 'surge'; st.sT = 0.5 + 0.7 * d; } else { st.mode = 'calm'; st.sT = 2.2 - 1.0 * d + Math.random() * 0.8; } } }
           const hold = A ? st.mode === 'calm' : ptr.down;
-          if (live) { if (hold) { st.prog += dt / (2.2 + 2.6 * d); if (st.mode === 'surge') st.tens += dt * 1.7; else st.tens -= dt * 0.25; } else { st.tens -= dt * 0.9; if (st.mode !== 'surge') st.prog -= dt * 0.1; } }
+          if (live) { if (hold) { st.prog += dt / (2.2 + 2.6 * d); if (st.mode === 'surge') st.tens += dt * (0.55 + 1.5 * d); else st.tens -= dt * 0.3; } else { st.tens -= dt * 1.2; /* holding through a whole surge snaps a legendary's beam; a common's takes nearly two seconds of it */ if (st.mode !== 'surge') st.prog -= dt * 0.1; } }
           st.prog = U.clamp(st.prog, 0, 1); st.tens = U.clamp(st.tens, 0, 1); st.maxTens = Math.max(st.maxTens, st.tens);
           const bc = st.mode === 'surge' ? '#ff5a5a' : st.mode === 'warn' ? '#ffb84a' : col, bxm = scr.x + scr.w / 2, bym = scr.y + scr.h;
           const shake = st.mode === 'surge' ? Math.sin(now / 18) * 5 : 0;
@@ -108,7 +108,7 @@ const Device = (() => {
           c.save(); c.translate(shake, 0); drawKin(1 - st.prog * 0.55, 1 - st.prog * 0.35); c.restore();
           if (st.mode === 'warn') text('!', kx, ky - ks * 0.4, `800 34px ${MONO}`, '#ffb84a', 'center', '#ffb84a'); if (st.mode === 'surge') text('LET GO', scr.x + scr.w / 2, scr.y + scr.h * 0.12, `800 22px ${MONO}`, '#ff6a6a', 'center', '#ff5a5a');
           endScreen(scr);
-          text(st.mode === 'surge' ? 'It is surging: let go!' : 'Hold to draw it in', ctl.x + ctl.w / 2, ctl.y + 16, `600 17px system-ui, sans-serif`, st.mode === 'surge' ? '#ff8a8a' : '#d6e2ee');
+          text(st.mode === 'surge' ? 'Red! Lift your thumb off' : st.mode === 'warn' ? 'It is about to fight…' : 'Keep your thumb pressed down', ctl.x + ctl.w / 2, ctl.y + 16, `600 17px system-ui, sans-serif`, st.mode === 'surge' ? '#ff8a8a' : '#d6e2ee');
           bar(ctl.x + 20, ctl.y + 36, ctl.w - 40, 22, st.prog, '#5dff9a', 'DRAWN IN ' + Math.round(st.prog * 100) + '%'); bar(ctl.x + 20, ctl.y + 66, ctl.w - 40, 16, st.tens, '#ff5a5a', 'STRAIN');
           const by2 = ctl.y + 96, bh2 = Math.max(44, Math.min(90, ctl.h - 104)); rr(ctl.x + 20, by2, ctl.w - 40, bh2, 16); const gg = c.createLinearGradient(0, by2, 0, by2 + bh2); gg.addColorStop(0, hold ? '#1f6a45' : '#3a4753'); gg.addColorStop(1, hold ? '#134a2f' : '#232c35'); c.fillStyle = gg; c.fill(); c.lineWidth = 2; c.strokeStyle = hold ? '#5dff9a' : '#5d6b7a'; c.stroke(); text(hold ? 'PULLING' : 'HOLD', ctl.x + ctl.w / 2, by2 + bh2 / 2, `800 20px ${MONO}`, '#fff');
           if (st.tens >= 1) fail(); else if (st.prog >= 1) next(1 - st.maxTens * 0.8); else if (st.t > 40) fail();
