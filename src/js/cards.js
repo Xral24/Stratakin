@@ -144,7 +144,7 @@ const Cards = (() => {
     if (oim) { const s = Math.max(aw / oim.naturalWidth, ah / oim.naturalHeight), iw = oim.naturalWidth * s, ih = oim.naturalHeight * s; c.drawImage(oim, ax + (aw - iw) * (opts.fx != null ? opts.fx : 0.7), ay, iw, ih); } // own paintings keep their top: the head is up there
     else {
       const bim = img(BG[bgKey(k)]);
-      if (bim) { cover(c, bim, ax, ay, aw, ah); grade(c, ax, ay, aw, ah, time, seed); } else { const bg = c.createRadialGradient(W / 2, ay + ah * 0.6, 40, W / 2, ay + ah * 0.5, aw); bg.addColorStop(0, ec); bg.addColorStop(1, '#0c1016'); c.fillStyle = bg; c.fillRect(ax, ay, aw, ah); }
+      if (bim) { cover(c, bim, ax, ay, aw, ah); grade(c, ax, ay, aw, ah, time, seed); if (fin.art === 'holo') holoFoil(c, ax, ay, aw, ah, seed, tilt, 0.85); else if (fin.art === 'secret') { secretFoil(c, ax, ay, aw, ah, seed, tilt); secretFoil(c, ax, ay, aw, ah, seed + 1, tilt); } } else { /* the scene behind is printed on foil, the Kin in front of it is not, so it stands out of the shine */ const bg = c.createRadialGradient(W / 2, ay + ah * 0.6, 40, W / 2, ay + ah * 0.5, aw); bg.addColorStop(0, ec); bg.addColorStop(1, '#0c1016'); c.fillStyle = bg; c.fillRect(ax, ay, aw, ah); }
       const fog = c.createLinearGradient(0, ay, 0, ay + ah); fog.addColorStop(0, 'rgba(255,255,255,0)'); fog.addColorStop(0.55, 'rgba(255,255,255,0.12)'); fog.addColorStop(1, 'rgba(0,0,0,0.25)'); c.fillStyle = fog; c.fillRect(ax, ay, aw, ah); // a little air between the scene and the Kin
       const sh = c.createRadialGradient(W / 2, ay + ah * 0.88, 10, W / 2, ay + ah * 0.88, aw * 0.4); sh.addColorStop(0, 'rgba(0,0,0,0.5)'); sh.addColorStop(1, 'rgba(0,0,0,0)'); c.fillStyle = sh; c.fillRect(ax, ay + ah * 0.68, aw, ah * 0.32);
       const pc = document.createElement('canvas'), m = KIN.model(k.sp, k.stage);
@@ -152,7 +152,7 @@ const Cards = (() => {
       if (R.renderPortrait(pc, mesh, m, 320, opts.yaw != null ? { yaw: opts.yaw, pitch: -0.1 } : {})) { // a rim of the element's light round the Kin, then the Kin
         const S = ah * 1.06, px = ax + (aw - S) / 2, py = ay - ah * 0.01; c.save(); c.shadowColor = ec; c.shadowBlur = 28; c.drawImage(pc, px, py, S, S); c.restore(); c.drawImage(pc, px, py, S, S); }
     }
-    if (fin.art === 'holo') holoFoil(c, ax, ay, aw, ah, seed, tilt, oim ? 0.32 : 0.4); /* light on a painting, or it drowns the colours */ else if (fin.art === 'secret') secretFoil(c, ax, ay, aw, ah, seed, tilt);
+    if (oim) { if (fin.art === 'holo') holoFoil(c, ax, ay, aw, ah, seed, tilt, 0.32); else if (fin.art === 'secret') secretFoil(c, ax, ay, aw, ah, seed, tilt); } /* a painting has no separate background, so its foil is kept light or it drowns the colours */
     const vg = c.createRadialGradient(W / 2, ay + ah / 2, ah * 0.4, W / 2, ay + ah / 2, ah * 0.9); vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,0.3)'); c.fillStyle = vg; c.fillRect(ax, ay, aw, ah);
     c.restore(); c.lineWidth = 2; c.strokeStyle = M.trim; rr(c, ax, ay, aw, ah, 6); c.stroke();
     // under the art, as on a real card: the edition on the left, the set code on the right
@@ -176,7 +176,7 @@ const Cards = (() => {
     c.textAlign = 'center'; c.textBaseline = 'middle'; c.font = `italic 400 22px ${SERIF}`; engrave(c, opts.where || k.where || 'Caught in the wild', W / 2, H - 66, M);
     c.font = `700 14px ${SANS}`; c.textAlign = 'left'; engrave(c, String(passcode(k)), 62, H - 34, M); c.textAlign = 'right'; engrave(c, 'STRATAKIN', W - 62, H - 34, M);
     // the great ones are foil all over; holos also catch the light on the frame
-    if (fin.art && rar >= 3 && fin.art === 'holo') { c.save(); rr(c, 0, 0, W, H, 34); c.clip(); c.beginPath(); c.rect(0, 0, W, H); rr(c, 44, ty, W - 88, th, 10); c.clip('evenodd'); holoFoil(c, 0, 0, W, H, seed + 11, tilt, 0.45); c.restore(); }
+    if (fin.foil === 'gold' || fin.foil === 'prism') { /* ultra and secret: the frame catches the light too */ c.save(); rr(c, 0, 0, W, H, 34); c.clip(); c.beginPath(); c.rect(0, 0, W, H); rr(c, 44, ty, W - 88, th, 10); c.clip('evenodd'); if (fin.foil === 'prism') secretFoil(c, 0, 0, W, H, seed + 11, tilt); else holoFoil(c, 0, 0, W, H, seed + 11, tilt, 0.4); c.restore(); }
     // a sheen across the plate, as if lit from the top left
     c.save(); rr(c, 0, 0, W, H, 34); c.clip(); const gl = c.createLinearGradient(0, 0, W, H); gl.addColorStop(0, 'rgba(255,255,255,0.18)'); gl.addColorStop(0.35, 'rgba(255,255,255,0)'); gl.addColorStop(1, 'rgba(0,0,0,0.12)'); c.fillStyle = gl; c.fillRect(0, 0, W, H); c.restore();
     return cv;
