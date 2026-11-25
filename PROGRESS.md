@@ -754,6 +754,16 @@ His go-ahead: the village kit, and "do the grass, the rock, the sand, the water"
 - Tests: t-dino.js, t-rail.js (step heights along the line), t-rail2.js, t-rexpic.js (a Kin's model from any side).
 - Not seen moving by me: only measured.
 
+## Cards, then cartridges and the Kin-Link (Nov 25)
+- Long design talk with him: what made Pokemon and Yu-Gi-Oh cards fun was owning a rare one and being asked where you got it. Decided: every caught Kin is a collectable, the same Kin comes in different printings, skins, poses and scenes, and (his idea) it is a digital cartridge, caught with a device, not a paper card or a net.
+- `js/cards.js`: `Cards.draw` (the paper card, kept), `Cards.cartridge` / `casing` / `screen` / `screenBack` (the cartridge: metal shell by rarity, cut corner, LCD label, live screen, readout, contacts), `art` (scene + Kin; 12 painted scenes in assets/card_bg_*.jpg picked by element, or a drawn swirl/rays; pose, angle, skin from the Kin's id), printings `FINISH` (normal, rare, super, ultra, secret), `SKINS`, `POSES`, `roll(k, ctx)` stamps `k.card = { finish, time, where, first, skin? }` (saved by `KIN.serialize`). `passcode(k)` is per species.
+- `js/device.js`: `Device.capture(cfg)` runs LOCK (drag the ring onto the Kin), TUNE (slide to match its wave; rare and above only), PULL (hold, let go when it surges or the strain snaps the beam); `Device.result`, `Device.view(k)` (cartridge with the Kin alive on its screen; drag or tip the phone to move the light). `window.__deviceAuto` plays it by itself for tests.
+- battle.js `deviceCatch`: replaces the thrown net when Device exists. Holds with `chance * (0.7 + 0.7 * quality)`. The old net code is still there and is what the tests use (`window.__noDevice`, set by the harness unless `open({ device: true })`).
+- Kin detail has a Cartridge button.
+- Not done: binder/rack, skins on the Kin in the world, summon animation, NPC traders, variants by moon/weekday, real-clock moon. Agreed rules for those: hours are game time, weekday and moon are real; nets cost pride not property if raids ever come.
+- Nobody has played the three stages by hand: the feel is untested. Tests: t-card.js, t-device.js.
+- Credits: 26 on art (13 images). About 740 left.
+
 ## Still to do
 UI polish as feedback comes in. Card battle screen still used for scripted encounters (raids at the walls, thief, citadel duel, holds) and the snare mini-game; converting those to live is the next big step if wanted. (Old list: train/ships, combat animation, eggs, avatar hair/paint, buddy WEAR cosmetics, Silas and Finch, UI polish (item icons), quality toggles in settings (state.shadows, state.grassQuality, state.dprCap).
 

@@ -577,6 +577,11 @@ body.cine-on #hud, body.cine-on #crosshair, body.cine-on #compass, body.cine-on 
 #film .film-line.on { opacity: 1; }
 #film .film-skip { position: absolute; right: calc(14px + env(safe-area-inset-right)); top: calc(12px + env(safe-area-inset-top)); padding: 8px 16px; border-radius: 18px; border: 1px solid rgba(255,255,255,.35); background: rgba(10,12,18,.55); color: #fff; font-weight: 800; font-size: 14px; }
 
+/* the Kin-Link: the catching device and the cartridge viewer, one canvas over everything */
+#device { display: none; position: fixed; inset: 0; z-index: 9500; touch-action: none; user-select: none; -webkit-user-select: none; }
+#device.on { display: block; }
+#device canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+
 </style>
 </head>
 <body>
@@ -11536,7 +11541,7 @@ const KIN = (() => {
     if (!R.renderPortrait(cv, mesh, m, size)) { const ctx = cv.getContext('2d'); cv.width = cv.height = size; ctx.fillStyle = sp.colors.body; ctx.beginPath(); ctx.arc(size / 2, size / 2, size * 0.3, 0, Math.PI * 2); ctx.fill(); }
   }
 
-  function serialize(k) { return { id: k.id, sp: k.sp, level: k.level, xp: k.xp, iv: k.iv, stage: k.stage, hp: k.hp, nick: k.nick, shiny: k.shiny || undefined, equip: k.equip || null, tech: k.tech || null, wear: k.wear || null, trust: k.trust || 0, bond: k.bond || 0, tamed: k.tamed || false }; }
+  function serialize(k) { return { id: k.id, sp: k.sp, level: k.level, xp: k.xp, iv: k.iv, stage: k.stage, hp: k.hp, nick: k.nick, shiny: k.shiny || undefined, equip: k.equip || null, tech: k.tech || null, wear: k.wear || null, trust: k.trust || 0, bond: k.bond || 0, tamed: k.tamed || false, card: k.card || undefined }; }
   function deserialize(d) { return Object.assign({ status: null }, d); }
 
   return { NATIVE, NAT_STEM, nativeLine, nativeColors, nativeId, nativize, childify, formName, LINES, lineOf, maxStage, lookOf, formOf, partHelpers, dress, tyrSuit, landmarks, wearKey, E, EI, CHART, STAT_KEYS, STAT_NAMES, growth, xpToNext, dominant, species, speciesForContext, dex, bySeed, keptFor, migrateKin, migrateSeed, lives, KEPT, habitat, HABITATS, capOf, recipes, findRecipe, fuseRecipe, mythicSpecies, legendSpecies, apexSpecies, woodSpecies, WOODKIN, wardenSpecies, MAX_LEVEL, TECH, techFor, techByName, temperOf, starters, create, stats, name, moves, effectiveness, gainXp, fuse, fusionLevel, TRAITS, RARITY, roster, buildUniverse, decorate, makeStatue, statueModel, shardsFor, model, buildMesh, meshKey, portrait, serialize, deserialize, UTIL_DESC, eggModel, eggPortrait };
@@ -16163,6 +16168,7 @@ const Battle = (() => {
     const { chance, item, gap, grip, hopeless } = catchChance();
     if (!G.player.take(item, 1)) return;
     if (typeof Npcs !== 'undefined' && Npcs.active('hunter')) Npcs.useCharge('hunter');
+    if (typeof Device !== 'undefined' && typeof Cards !== 'undefined' && !(typeof window !== 'undefined' && window.__noDevice)) return deviceCatch(item, chance, hopeless);
     busy = true;
     el.actions.querySelectorAll('button').forEach(b => b.disabled = true);
     const st = KIN.stats(wild);
@@ -16181,6 +16187,25 @@ const Battle = (() => {
     else if (gap > 1.2) log(`${KIN.name(wild)} is far above your net strength (${grip}). It will fight the net hard.`, 'bad');
     G.sfx('snare');
     requestAnimationFrame(snareFrame);
+  }
+  /* catching with the Kin-Link instead of a thrown net: the same catch chance underneath, but the three things the device has to do are yours to do, and doing them well is what a good throw was */
+  async function deviceCatch(item, chance, hopeless) {
+    busy = true; el.actions.querySelectorAll('button').forEach(b => b.disabled = true);
+    const st = KIN.stats(wild), rar = wild.sp.rarity || 0;
+    log(`You raise the Kin-Link${stealth ? ', quietly' : ''}. ${hopeless ? 'It can barely read this one.' : 'Lock on, and draw it in.'}`); G.sfx('snare');
+    const r = await Device.capture({ kin: wild, rar, hpFrac: wild.hp / st.hp, agi: st.agi, lull, chance });
+    const pHold = U.clamp(chance * (0.7 + 0.7 * (r.quality || 0)), hopeless ? 0 : 0.02, 0.97), roll = (typeof window !== 'undefined' && window.__netRoll != null) ? window.__netRoll : Math.random(), held = r.ok && roll < pHold;
+    if (held) {
+      const dl = R.state.dayLight != null ? R.state.dayLight : 1, hud = (document.getElementById('where') || {}).textContent || '', place = hud.split(' · y ')[0].split(' · ').filter(x => x && !/fps|wild/.test(x)).slice(-2).join(', ');
+      wild.card = Cards.roll(wild, { time: dl > 0.75 ? 'day' : dl < 0.3 ? 'night' : 'dusk', where: `Caught in ${place || 'the wild'}, day ${(G.dayCount || 0) + 1}` });
+      log(`The signal holds. ${KIN.name(wild)} is yours!`, 'good'); G.sfx('caught');
+      await Device.result(true, wild); return end('caught');
+    }
+    await Device.result(false, wild, r.ok ? 'The link was made, but it would not hold.' : r.failed === 'pull' ? 'The beam snapped.' : 'It slipped the ' + (r.failed || 'lock') + '.');
+    if (bossKin()) { log(`${KIN.name(wild)} tears free of the beam, and the effort finishes it. It falls. One chance, and it is gone.`, 'bad'); G.sfx('miss'); wild.hp = 0; refresh(); await sleep(1100); return end('won'); }
+    G.player.add(item, 1); // a missed catch does not use the net up, as before
+    log(r.ok ? `The link is made, and ${KIN.name(wild)} wrenches out of it! ${lullN ? 'Wear it down further.' : 'Wear it down, or give it a draught.'}` : `${KIN.name(wild)} breaks the beam${stealth ? ' and turns on you' : ''}.`, 'bad'); stealth = false;
+    await sleep(400); await useMove(wild, mine, wildChoose(), false); afterTurn();
   }
   function cancelSnare() {
     if (!snareState || snareState.done) return;
@@ -19205,6 +19230,468 @@ const Film = (() => {
 </script>
 <script>
 'use strict';
+/* Kin cards: every Kin you hold can be drawn as a trading card. The creature is its own 3D model, posed and lit, standing in front of a painted scene
+   for its element or home; the great ones (legendaries, tyrants, bosses) have a painting of their own instead. The frame says how rare it is. */
+const Cards = (() => {
+  const W = 750, H = 1050;
+  const FRAME = [ // by rarity: outer, inner, text on the bars
+    { name: 'Common', a: '#5a6472', b: '#3a414b', ink: '#f2f4f7', line: '#8b95a3' },
+    { name: 'Uncommon', a: '#3f7d5a', b: '#284f3a', ink: '#f2fbf5', line: '#7fc49b' },
+    { name: 'Rare', a: '#c9d2dc', b: '#7c8896', ink: '#1b2430', line: '#ffffff' },
+    { name: 'Epic', a: '#7a4fc4', b: '#432a73', ink: '#f6f0ff', line: '#c9a8ff' },
+    { name: 'Legendary', a: '#e8b84a', b: '#8a5a12', ink: '#2a1a04', line: '#fff0b8' },
+  ];
+  const ELEM_COL = { Flame: '#ff6a2a', Tide: '#2f8fe6', Bloom: '#4fbf4a', Stone: '#a0865a', Spark: '#f2c81e', Frost: '#7fd6f0', Gale: '#9fe0c0', Shade: '#6a4fa0', Glow: '#ffe08a' };
+  /* the painted scenes, by key; any not loaded yet fall back to a soft gradient in the element's colour */
+  const BG = {}; for (const n of ['lost', 'meadow', 'forest', 'river', 'beach', 'peaks', 'dunes', 'snow', 'swamp', 'lava', 'crystal', 'storm']) BG[n] = 'assets/card_bg_' + n + '.jpg';
+  /* which scenes suit which element: a card picks one of its element's scenes, so two cards of the same Kin seldom share one */
+  const SCENES = { Flame: ['lava', 'dunes', 'meadow', 'peaks'], Tide: ['beach', 'river', 'swamp', 'storm'], Bloom: ['forest', 'meadow', 'swamp', 'river'], Stone: ['peaks', 'dunes', 'crystal', 'forest'], Spark: ['storm', 'peaks', 'meadow', 'dunes'], Frost: ['snow', 'peaks', 'crystal', 'river'], Gale: ['storm', 'peaks', 'meadow', 'beach'], Shade: ['swamp', 'crystal', 'forest', 'snow'], Glow: ['crystal', 'meadow', 'beach', 'forest'] };
+  /* skins: the same creature in other colours. 'plain' is how its kind looks; the rest turn up now and then and are named on the card */
+  const SKINS = { plain: null, dusk: { name: 'Dusk', hue: 0, sat: 0.55, light: -0.32, accent: '#f2c14a' }, pale: { name: 'Pale', hue: 0, sat: 0.35, light: 0.28, accent: null }, ember: { name: 'Ember', hue: 35, sat: 1.15, light: 0, accent: null }, tide: { name: 'Tidal', hue: 180, sat: 1, light: 0, accent: null }, verdant: { name: 'Verdant', hue: 95, sat: 1, light: 0, accent: null }, gilded: { name: 'Gilded', hue: 0, sat: 0.3, light: -0.05, accent: '#ffd36a', body: '#c9a046' } };
+  /* poses: the same body held differently on each card. Read by the same animation code that moves it in the world */
+  const POSES = {
+    stand: { },
+    stride: { ph: 0.9, mv: 1 },
+    roar: { jaw: 1, nod: -0.45, lean: -0.12 },
+    crouch: { crouch: 0.7, nod: 0.3, lean: 0.18 },
+    pounce: { ph: 2.4, mv: 1, lean: 0.22, nod: 0.15, jaw: 0.6 },
+    glance: { look: 0.65, nod: -0.1 },
+    soar: { air: 1, nod: -0.2, jaw: 0.4 },
+  };
+  /* the backgrounds that are not places: a whirl of the element's colour, rays from behind, as the old cards had */
+  function aura(c, x, y, w, h, kind, col, R) {
+    const cx = x + w * (0.4 + R() * 0.2), cy = y + h * (0.4 + R() * 0.2), [hh, ss, ll] = hexHsl(col), dark = hslHex(hh, ss * 0.8, 0.12), mid = hslHex(hh, ss, 0.32), lite = hslHex(hh + 20, ss, 0.62);
+    const g = c.createRadialGradient(cx, cy, 10, cx, cy, Math.max(w, h) * 0.8); g.addColorStop(0, lite); g.addColorStop(0.45, mid); g.addColorStop(1, dark); c.fillStyle = g; c.fillRect(x, y, w, h);
+    c.save(); c.translate(cx, cy); c.globalCompositeOperation = 'screen';
+    if (kind === 'swirl') { for (let r = 0; r < 26; r++) { c.globalAlpha = 0.08 + R() * 0.08; c.strokeStyle = r % 2 ? lite : hslHex(hh - 25, ss, 0.5); c.lineWidth = 6 + R() * 10; c.beginPath(); const a0 = R() * 6.3; for (let q = 0; q < 70; q++) { const a = a0 + q * 0.09, rad = 20 + r * 16 + q * 2.2; const px = Math.cos(a) * rad, py = Math.sin(a) * rad * 0.8; q ? c.lineTo(px, py) : c.moveTo(px, py); } c.stroke(); } }
+    else { for (let r = 0; r < 36; r++) { const a = r / 36 * Math.PI * 2 + R() * 0.05, wd = 0.03 + R() * 0.04; c.globalAlpha = 0.06 + R() * 0.1; c.fillStyle = lite; c.beginPath(); c.moveTo(0, 0); c.lineTo(Math.cos(a - wd) * 900, Math.sin(a - wd) * 900); c.lineTo(Math.cos(a + wd) * 900, Math.sin(a + wd) * 900); c.closePath(); c.fill(); } }
+    c.globalAlpha = 0.5; for (let i = 0; i < 60; i++) { c.fillStyle = '#fff'; const px = (R() - 0.5) * w, py = (R() - 0.5) * h, r = R() * 2 + 0.5; c.beginPath(); c.arc(px, py, r, 0, 6.3); c.fill(); }
+    c.restore(); }
+  function hexHsl(h) { const n = parseInt(h.slice(1), 16), r = (n >> 16 & 255) / 255, g = (n >> 8 & 255) / 255, b = (n & 255) / 255, mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2; let H = 0, S = 0; if (mx !== mn) { const d = mx - mn; S = l > 0.5 ? d / (2 - mx - mn) : d / (mx + mn); H = mx === r ? (g - b) / d + (g < b ? 6 : 0) : mx === g ? (b - r) / d + 2 : (r - g) / d + 4; H *= 60; } return [H, S, l]; }
+  function hslHex(H, S, L) { H = ((H % 360) + 360) % 360; S = U.clamp(S, 0, 1); L = U.clamp(L, 0, 1); const c = (1 - Math.abs(2 * L - 1)) * S, x = c * (1 - Math.abs((H / 60) % 2 - 1)), m = L - c / 2; const [r, g, b] = H < 60 ? [c, x, 0] : H < 120 ? [x, c, 0] : H < 180 ? [0, c, x] : H < 240 ? [0, x, c] : H < 300 ? [x, 0, c] : [c, 0, x]; return '#' + [r, g, b].map(v => Math.round((v + m) * 255).toString(16).padStart(2, '0')).join(''); }
+  function skinColors(C, sk) { const out = {}; for (const key in C) { const v = C[key]; if (typeof v !== 'string' || v[0] !== '#' || v.length !== 7) { out[key] = v; continue; } const [h, s2, l] = hexHsl(v); out[key] = hslHex(h + sk.hue, s2 * sk.sat, l + sk.light * (key === 'eye' ? 0 : 1)); }
+    if (sk.accent) out.accent = sk.accent; if (sk.body) out.body = sk.body; return out; }
+  const OWN = { x_rex: 'assets/card_x_rex.jpg' };
+  const imgs = {};
+  function img(file) { if (!file) return null; if (imgs[file]) return imgs[file].complete && imgs[file].naturalWidth ? imgs[file] : null; const im = new Image(); im.src = (window.STRATAKIN_ASSETS && window.STRATAKIN_ASSETS[file]) || file; imgs[file] = im; return null; }
+  function preload(files) { return Promise.all(files.map(f => new Promise(res => { img(f); const im = imgs[f]; if (im.complete) res(); else { im.onload = im.onerror = () => res(); } }))); }
+
+  function bgKey(k, e0, R) { const sp = k.sp; if (sp.dino || sp.home === 'lost') return 'lost'; const list = SCENES[e0] || ['meadow']; return list[Math.floor(R() * list.length)]; }
+  function ownArt(k) { const id = (typeof KIN !== 'undefined' && KIN.nativeId) ? (k.sigId || k.sp.sigId || KIN.nativeId(k.sp)) : null; return id && OWN[id] ? OWN[id] : null; }
+
+  function rr(c, x, y, w, h, r) { c.beginPath(); c.moveTo(x + r, y); c.arcTo(x + w, y, x + w, y + h, r); c.arcTo(x + w, y + h, x, y + h, r); c.arcTo(x, y + h, x, y, r); c.arcTo(x, y, x + w, y, r); c.closePath(); }
+  function cover(c, im, x, y, w, h) { const s = Math.max(w / im.naturalWidth, h / im.naturalHeight), iw = im.naturalWidth * s, ih = im.naturalHeight * s; c.drawImage(im, x + (w - iw) / 2, y + (h - ih) / 2, iw, ih); }
+  function wrap(c, text, x, y, maxW, lh, maxLines) { const words = String(text).split(' '); let line = '', n = 0; for (let i = 0; i < words.length; i++) { const t = line ? line + ' ' + words[i] : words[i]; if (c.measureText(t).width > maxW && line) { c.fillText(line, x, y + n * lh); n++; line = words[i]; if (n >= maxLines) return; } else line = t; } if (line && n < maxLines) c.fillText(line, x, y + n * lh); }
+
+  /* ---- the materials: everything is drawn, nothing is a picture, so a card stays sharp and every one is a little different ---- */
+  const METAL = [ // by rarity: stops for the plate, the trim, the ink engraved into it
+    { name: 'Common', stops: ['#4b5058', '#9aa1aa', '#5d636c', '#c3c9d0', '#50565e'], trim: '#d7dce2', ink: '#1a1d22', glow: null },          // brushed pewter
+    { name: 'Uncommon', stops: ['#5a3a1c', '#c08a52', '#7a4e26', '#e0b07a', '#5e3c1c'], trim: '#f3cf9e', ink: '#2a1608', glow: null },        // bronze
+    { name: 'Rare', stops: ['#7d8794', '#eef2f6', '#a3adb8', '#ffffff', '#8792a0'], trim: '#ffffff', ink: '#1b2430', glow: '#cfe8ff' },        // polished silver
+    { name: 'Epic', stops: ['#2a1450', '#6a3fb0', '#3a1d6c', '#9b74e0', '#2c1652'], trim: '#e2d2ff', ink: '#f6f0ff', glow: '#b48cff' },        // violet enamel
+    { name: 'Legendary', stops: ['#7a4c0a', '#f7d77a', '#a8701a', '#fff2b8', '#83530c'], trim: '#fff6d0', ink: '#2a1a04', glow: '#ffd36a' },   // gold
+  ];
+  const PAPER = { Flame: '#f3dcc4', Tide: '#d6e6f2', Bloom: '#dcebd0', Stone: '#e6dccb', Spark: '#f4ebc4', Frost: '#e2f0f6', Gale: '#dff0e6', Shade: '#ddd4ea', Glow: '#f6efd2' };
+  function rng(seed) { let a = seed >>> 0 || 1; return () => { a ^= a << 13; a >>>= 0; a ^= a >> 17; a ^= a << 5; a >>>= 0; return a / 4294967296; }; }
+  function metal(c, x, y, w, h, M, r, ang = 0.35) { // a metal plate: banded light, fine brushing, and a bevel
+    const g = c.createLinearGradient(x, y, x + w * Math.cos(ang) + h * Math.sin(ang), y + h);
+    M.stops.forEach((col, i) => g.addColorStop(i / (M.stops.length - 1), col)); c.fillStyle = g; c.fill();
+    c.save(); c.clip(); const R = rng(Math.floor(x * 7 + y * 13 + w));
+    for (let yy = y; yy < y + h; yy += 1.5) { c.globalAlpha = 0.04 + R() * 0.08; c.fillStyle = R() < 0.5 ? '#ffffff' : '#000000'; c.fillRect(x, yy, w, 0.8 + R()); }
+    c.globalAlpha = 1; c.restore();
+  }
+  function bevel(c, x, y, w, h, r, lw, light, dark) { c.lineWidth = lw; const g = c.createLinearGradient(x, y, x + w, y + h); g.addColorStop(0, light); g.addColorStop(0.5, 'rgba(255,255,255,0.15)'); g.addColorStop(1, dark); c.strokeStyle = g; rr(c, x + lw / 2, y + lw / 2, w - lw, h - lw, r); c.stroke(); }
+  function paper(c, x, y, w, h, col, seed) { c.fillStyle = col; c.fill(); c.save(); c.clip(); const R = rng(seed); for (let i = 0; i < w * h / 140; i++) { c.globalAlpha = 0.05 + R() * 0.07; c.fillStyle = R() < 0.6 ? '#6a5a40' : '#ffffff'; c.fillRect(x + R() * w, y + R() * h, 1 + R() * 1.6, 1 + R() * 1.6); } c.globalAlpha = 1; const ig = c.createRadialGradient(x + w / 2, y + h / 2, Math.min(w, h) * 0.3, x + w / 2, y + h / 2, Math.max(w, h) * 0.75); ig.addColorStop(0, 'rgba(0,0,0,0)'); ig.addColorStop(1, 'rgba(60,40,10,0.22)'); c.fillStyle = ig; c.fillRect(x, y, w, h); c.restore(); }
+  function engrave(c, text, x, y, M) { c.fillStyle = 'rgba(255,255,255,0.45)'; c.fillText(text, x + 1, y + 1.5); c.fillStyle = 'rgba(0,0,0,0.5)'; c.fillText(text, x - 0.5, y - 1); c.fillStyle = M.ink; c.fillText(text, x, y); }
+  function filigree(c, cx, cy, s, sx, sy, col) { // a little scroll in a corner
+    c.save(); c.translate(cx, cy); c.scale(sx, sy); c.strokeStyle = col; c.lineWidth = 2.2; c.lineCap = 'round';
+    c.beginPath(); c.moveTo(0, s); c.quadraticCurveTo(0, 0, s, 0); c.stroke();
+    c.beginPath(); c.moveTo(s * 0.25, s * 0.95); c.quadraticCurveTo(s * 0.3, s * 0.3, s * 0.95, s * 0.25); c.stroke();
+    c.beginPath(); c.arc(s * 0.42, s * 0.42, s * 0.12, 0, Math.PI * 2); c.stroke();
+    c.fillStyle = col; c.beginPath(); c.arc(s, 0, 2.6, 0, Math.PI * 2); c.arc(0, s, 2.6, 0, Math.PI * 2); c.fill(); c.restore(); }
+  /* the element's mark, drawn: a flame, a drop, a leaf and so on */
+  function glyph(c, e, x, y, r) { c.save(); c.translate(x, y); c.fillStyle = '#fff'; c.strokeStyle = '#fff'; c.lineWidth = r * 0.16; c.lineJoin = 'round'; c.lineCap = 'round'; c.beginPath();
+    if (e === 'Flame') { c.moveTo(0, r * 0.6); c.bezierCurveTo(-r * 0.6, r * 0.5, -r * 0.5, -r * 0.1, 0, -r * 0.7); c.bezierCurveTo(r * 0.1, -r * 0.2, r * 0.6, -r * 0.1, r * 0.45, r * 0.25); c.bezierCurveTo(r * 0.4, r * 0.5, r * 0.2, r * 0.6, 0, r * 0.6); c.fill(); }
+    else if (e === 'Tide' || e === 'Frost' && false) { c.moveTo(0, -r * 0.7); c.bezierCurveTo(r * 0.55, -r * 0.05, r * 0.5, r * 0.6, 0, r * 0.6); c.bezierCurveTo(-r * 0.5, r * 0.6, -r * 0.55, -r * 0.05, 0, -r * 0.7); c.fill(); }
+    else if (e === 'Bloom') { c.moveTo(-r * 0.5, r * 0.55); c.bezierCurveTo(-r * 0.6, -r * 0.3, r * 0.2, -r * 0.7, r * 0.6, -r * 0.6); c.bezierCurveTo(r * 0.6, 0, r * 0.1, r * 0.5, -r * 0.5, r * 0.55); c.fill(); }
+    else if (e === 'Stone') { c.moveTo(-r * 0.6, r * 0.45); c.lineTo(-r * 0.35, -r * 0.4); c.lineTo(r * 0.2, -r * 0.6); c.lineTo(r * 0.6, -r * 0.05); c.lineTo(r * 0.4, r * 0.5); c.closePath(); c.fill(); }
+    else if (e === 'Spark') { c.moveTo(r * 0.15, -r * 0.7); c.lineTo(-r * 0.4, r * 0.08); c.lineTo(0, r * 0.08); c.lineTo(-r * 0.15, r * 0.7); c.lineTo(r * 0.42, -r * 0.1); c.lineTo(0, -r * 0.1); c.closePath(); c.fill(); }
+    else if (e === 'Frost') { for (let i = 0; i < 3; i++) { const a = i * Math.PI / 3; c.moveTo(Math.cos(a) * r * 0.65, Math.sin(a) * r * 0.65); c.lineTo(-Math.cos(a) * r * 0.65, -Math.sin(a) * r * 0.65); } c.stroke(); }
+    else if (e === 'Gale') { c.moveTo(-r * 0.6, -r * 0.2); c.bezierCurveTo(0, -r * 0.2, r * 0.5, -r * 0.3, r * 0.3, -r * 0.55); c.moveTo(-r * 0.6, r * 0.1); c.lineTo(r * 0.5, r * 0.1); c.moveTo(-r * 0.4, r * 0.4); c.bezierCurveTo(0, r * 0.4, r * 0.4, r * 0.5, r * 0.2, r * 0.7); c.stroke(); }
+    else if (e === 'Shade') { c.arc(0, 0, r * 0.6, Math.PI * 0.3, Math.PI * 1.7); c.bezierCurveTo(-r * 0.1, -r * 0.3, -r * 0.1, r * 0.3, Math.cos(Math.PI * 0.3) * r * 0.6, Math.sin(Math.PI * 0.3) * r * 0.6); c.fill(); }
+    else { for (let i = 0; i < 8; i++) { const a = i * Math.PI / 4, q = i % 2 ? 0.3 : 0.7; c.lineTo(Math.cos(a) * r * q, Math.sin(a) * r * q); } c.closePath(); c.fill(); }
+    c.restore(); }
+  function medal(c, e, x, y, r) { const col = ELEM_COL[e] || '#888'; c.beginPath(); c.arc(x, y, r, 0, Math.PI * 2); const g = c.createRadialGradient(x - r * 0.3, y - r * 0.3, r * 0.1, x, y, r); g.addColorStop(0, '#ffffff'); g.addColorStop(0.25, col); g.addColorStop(1, '#1a1a1a'); c.fillStyle = g; c.fill(); c.lineWidth = 3; c.strokeStyle = 'rgba(255,255,255,0.8)'; c.stroke(); glyph(c, e, x, y, r * 0.8); }
+  /* holo: a rainbow that runs in bands across the surface, fine lines through it, and glitter. tilt (0 to 1) moves the bands: in the game it follows the phone */
+  function holoFoil(c, x, y, w, h, seed, tilt, strength) {
+    c.save(); c.globalCompositeOperation = 'color-dodge'; c.globalAlpha = 0.55 * strength;
+    const off = tilt * w * 1.6; const g = c.createLinearGradient(x - w + off, y, x + off + w * 0.6, y + h);
+    const cols = ['#ff3d7f', '#ffb03d', '#f9ff3d', '#3dff8e', '#3dd5ff', '#6a3dff', '#ff3dd5', '#ff3d7f'];
+    for (let k = 0; k < 3; k++) cols.forEach((col, i) => g.addColorStop(Math.min(1, (k * cols.length + i) / (3 * cols.length - 1)), col));
+    c.fillStyle = g; c.fillRect(x, y, w, h);
+    c.globalCompositeOperation = 'overlay'; c.globalAlpha = 0.18 * strength; c.strokeStyle = '#ffffff'; c.lineWidth = 1;
+    for (let d = -h; d < w; d += 6) { c.beginPath(); c.moveTo(x + d, y + h); c.lineTo(x + d + h * 0.6, y); c.stroke(); }
+    c.globalCompositeOperation = 'screen'; const R = rng(seed);
+    for (let i = 0; i < w * h / 900 * strength; i++) { const sx = x + R() * w, sy = y + R() * h, s = 0.8 + R() * 2.6; c.globalAlpha = 0.35 + R() * 0.6; c.fillStyle = R() < 0.5 ? '#ffffff' : cols[Math.floor(R() * cols.length)]; c.beginPath(); c.moveTo(sx, sy - s * 2); c.lineTo(sx + s * 0.5, sy); c.lineTo(sx, sy + s * 2); c.lineTo(sx - s * 0.5, sy); c.closePath(); c.moveTo(sx - s * 2, sy); c.lineTo(sx, sy + s * 0.5); c.lineTo(sx + s * 2, sy); c.lineTo(sx, sy - s * 0.5); c.closePath(); c.fill(); }
+    c.restore(); }
+  const MARK = ['●', '◆', '★', '★★', '★★★'];
+  /* a printing, as on real cards the same creature comes in several: how its name is printed, and what the art is printed on. Rolled when it is caught, and nothing to do with how rare the Kin itself is */
+  const FINISH = {
+    normal: { name: '', foil: null, art: null },
+    rare: { name: 'Rare', foil: 'silver', art: null },
+    super: { name: 'Super Rare', foil: null, art: 'holo' },
+    ultra: { name: 'Ultra Rare', foil: 'gold', art: 'holo' },
+    secret: { name: 'Secret Rare', foil: 'prism', art: 'secret' },
+  };
+  const FOIL = { silver: ['#6d7680', '#f4f7fa', '#9aa3ad', '#ffffff', '#7a838e', '#e6ebf0'], gold: ['#7a4c08', '#ffe9a0', '#b07a1c', '#fff6cc', '#8a5a0e', '#f2c95a'], prism: ['#c9d6e6', '#ffffff', '#d8c9f2', '#ffffff', '#c6ecdf', '#ffffff'] };
+  /* text printed in foil: a metal that changes along the letters, a bright glint where the light catches, a thin dark edge so it reads on any plate */
+  function foilText(c, text, x, y, font, kind, tilt, seed) {
+    c.font = font; const m = c.measureText(text), w = Math.ceil(m.width) + 8, h = 80, oc = document.createElement('canvas'); oc.width = w; oc.height = h; const o = oc.getContext('2d');
+    o.font = font; o.textBaseline = 'middle'; o.fillStyle = '#000'; o.fillText(text, 4, h / 2);
+    o.globalCompositeOperation = 'source-in'; const g = o.createLinearGradient(-tilt * 160, 0, w + 80 - tilt * 160, h * 0.6); FOIL[kind].forEach((col, i) => g.addColorStop(i / (FOIL[kind].length - 1), col)); o.fillStyle = g; o.fillRect(0, 0, w, h);
+    if (kind === 'prism') { o.globalCompositeOperation = 'color'; const pg = o.createLinearGradient(-tilt * 200, 0, w * 1.2, h); ['#ff7aa8', '#ffd97a', '#8affc0', '#7ad8ff', '#c79aff', '#ff7aa8'].forEach((col, i) => pg.addColorStop(i / 5, col)); o.globalAlpha = 0.55; o.fillStyle = pg; o.fillRect(0, 0, w, h); o.globalAlpha = 1; }
+    o.globalCompositeOperation = 'source-atop'; const gx = (0.15 + tilt * 0.7) * w, gl = o.createLinearGradient(gx - 40, 0, gx + 40, h); gl.addColorStop(0, 'rgba(255,255,255,0)'); gl.addColorStop(0.5, 'rgba(255,255,255,0.95)'); gl.addColorStop(1, 'rgba(255,255,255,0)'); o.fillStyle = gl; o.fillRect(0, 0, w, h); // the glint
+    const R = rng(seed); for (let i = 0; i < w / 6; i++) { o.fillStyle = 'rgba(255,255,255,' + (0.3 + R() * 0.7) + ')'; o.fillRect(R() * w, R() * h, 1.4, 1.4); } // grain of the foil
+    o.globalCompositeOperation = 'destination-in'; o.globalAlpha = 1; o.fillStyle = '#000'; o.fillText(text, 4, h / 2); // nothing outside the letters
+    c.save(); c.fillStyle = 'rgba(0,0,0,0.65)'; c.textBaseline = 'middle'; c.fillText(text, x + 1.5, y + 2); c.restore(); // its edge
+    c.drawImage(oc, x - 4, y - h / 2);
+  }
+  /* secret rare: the art printed on a fine prismatic weave that sparkles in rows */
+  function secretFoil(c, x, y, w, h, seed, tilt) {
+    c.save(); c.globalCompositeOperation = 'color-dodge'; const off = tilt * w;
+    const g = c.createLinearGradient(x - off, y + h, x + w * 1.4 - off, y); ['#ff8ab0', '#ffe08a', '#a0ffc8', '#8ad8ff', '#c8a0ff', '#ff8ab0', '#ffe08a'].forEach((col, i) => g.addColorStop(i / 6, col));
+    c.globalAlpha = 0.28; c.strokeStyle = g; c.lineWidth = 1.2;
+    for (let d = -h; d < w + h; d += 4) { c.beginPath(); c.moveTo(x + d, y); c.lineTo(x + d - h, y + h); c.stroke(); c.beginPath(); c.moveTo(x + d - h, y); c.lineTo(x + d, y + h); c.stroke(); }
+    c.globalCompositeOperation = 'screen'; const R = rng(seed);
+    for (let i = 0; i < 260; i++) { const t = R(), sx = x + R() * w, sy = y + ((t * h + (sx - x) * 0.5) % h), a = 0.25 + 0.6 * Math.max(0, Math.sin((sx - x) / w * 6 + tilt * 6)); c.globalAlpha = a; c.fillStyle = '#fff'; c.fillRect(sx, sy, 2, 2); c.fillRect(sx - 3, sy + 0.5, 8, 1); c.fillRect(sx + 0.5, sy - 3, 1, 8); }
+    c.restore(); }
+  /* the scene at the hour it was caught: the same painting, by day, at dusk or by night */
+  function grade(c, x, y, w, h, time, seed) {
+    if (time === 'dusk') { c.save(); c.globalCompositeOperation = 'multiply'; const g = c.createLinearGradient(0, y, 0, y + h); g.addColorStop(0, '#ffc49a'); g.addColorStop(0.6, '#f2a8b8'); g.addColorStop(1, '#a890c0'); c.fillStyle = g; c.fillRect(x, y, w, h); c.globalCompositeOperation = 'screen'; c.globalAlpha = 0.25; const s = c.createRadialGradient(x + w * 0.75, y + h * 0.35, 5, x + w * 0.75, y + h * 0.35, w * 0.5); s.addColorStop(0, '#ffd08a'); s.addColorStop(1, 'rgba(0,0,0,0)'); c.fillStyle = s; c.fillRect(x, y, w, h); c.restore(); }
+    else if (time === 'night') { c.save(); c.globalCompositeOperation = 'multiply'; c.fillStyle = '#2a3a7a'; c.fillRect(x, y, w, h); c.globalCompositeOperation = 'multiply'; c.fillStyle = '#6a7ab0'; c.fillRect(x, y, w, h); c.globalCompositeOperation = 'screen'; const R = rng(seed); for (let i = 0; i < 90; i++) { c.globalAlpha = 0.3 + R() * 0.7; c.fillStyle = '#fff'; const sx = x + R() * w, sy = y + R() * h * 0.45, r = R() * 1.6 + 0.4; c.beginPath(); c.arc(sx, sy, r, 0, 6.3); c.fill(); }
+      c.globalAlpha = 0.9; const mx = x + w * 0.22, my = y + h * 0.16, mg = c.createRadialGradient(mx, my, 4, mx, my, 70); mg.addColorStop(0, 'rgba(230,240,255,0.9)'); mg.addColorStop(0.25, 'rgba(200,215,255,0.35)'); mg.addColorStop(1, 'rgba(0,0,0,0)'); c.fillStyle = mg; c.fillRect(x, y, w, h); c.fillStyle = '#eef3ff'; c.beginPath(); c.arc(mx, my, 16, 0, 6.3); c.fill(); c.restore(); }
+  }
+
+  /* the picture: the scene (or the Kin's own painting) and the Kin standing in it. opts.noKin draws only what is behind, opts.kinOnly only the Kin, opts.live draws it small and quick for a screen that moves */
+  function art(c, k, opts, ax, ay, aw, ah, X) {
+    const { seed, e0, ec, fin, tilt, time } = X;
+    const own = ownArt(k), oim = own && img(own);
+    if (oim) { if (opts.kinOnly) return; const s = Math.max(aw / oim.naturalWidth, ah / oim.naturalHeight), iw = oim.naturalWidth * s, ih = oim.naturalHeight * s; c.drawImage(oim, ax + (aw - iw) * (opts.fx != null ? opts.fx : 0.7), ay, iw, ih); } // own paintings keep their top: the head is up there
+    else {
+      const PR = rng(seed * 2654435761 + 17), scene = opts.scene || k.scene || bgKey(k, e0, PR), flip = PR() < 0.5, zoomBg = 1 + PR() * 0.35, panX = PR(), panY = PR() * 0.5;
+      const abstract = !opts.scene && !k.scene && !(k.sp.dino || k.sp.home === 'lost') && PR() < 0.35, bim = abstract ? null : img(BG[scene]);
+      if (!opts.kinOnly) {
+      if (abstract) { aura(c, ax, ay, aw, ah, PR() < 0.5 ? 'swirl' : 'rays', ec, PR); if (fin.art === 'holo') holoFoil(c, ax, ay, aw, ah, seed, tilt, 0.85); else if (fin.art === 'secret') { secretFoil(c, ax, ay, aw, ah, seed, tilt); secretFoil(c, ax, ay, aw, ah, seed + 1, tilt); } }
+      else if (bim) { c.save(); if (flip) { c.translate(ax * 2 + aw, 0); c.scale(-1, 1); } const sc = Math.max(aw / bim.naturalWidth, ah / bim.naturalHeight) * zoomBg, iw = bim.naturalWidth * sc, ih = bim.naturalHeight * sc; c.drawImage(bim, ax + (aw - iw) * panX, ay + (ah - ih) * (0.3 + panY), iw, ih); c.restore(); grade(c, ax, ay, aw, ah, time, seed); if (fin.art === 'holo') holoFoil(c, ax, ay, aw, ah, seed, tilt, 0.85); else if (fin.art === 'secret') { secretFoil(c, ax, ay, aw, ah, seed, tilt); secretFoil(c, ax, ay, aw, ah, seed + 1, tilt); } } else { /* the scene behind is printed on foil, the Kin in front of it is not, so it stands out of the shine */ const bg = c.createRadialGradient((ax + aw / 2), ay + ah * 0.6, 40, (ax + aw / 2), ay + ah * 0.5, aw); bg.addColorStop(0, ec); bg.addColorStop(1, '#0c1016'); c.fillStyle = bg; c.fillRect(ax, ay, aw, ah); }
+      const fog = c.createLinearGradient(0, ay, 0, ay + ah); fog.addColorStop(0, 'rgba(255,255,255,0)'); fog.addColorStop(0.55, 'rgba(255,255,255,0.12)'); fog.addColorStop(1, 'rgba(0,0,0,0.25)'); c.fillStyle = fog; c.fillRect(ax, ay, aw, ah); // a little air between the scene and the Kin
+      const sh = c.createRadialGradient((ax + aw / 2), ay + ah * 0.88, 10, (ax + aw / 2), ay + ah * 0.88, aw * 0.4); sh.addColorStop(0, 'rgba(0,0,0,0.5)'); sh.addColorStop(1, 'rgba(0,0,0,0)'); c.fillStyle = sh; c.fillRect(ax, ay + ah * 0.68, aw, ah * 0.32);
+      }
+      if (opts.noKin) return; const PK = rng(seed * 40503 + 99);
+      const skinId = opts.skin || k.skin || 'plain', sk = SKINS[skinId], spx = sk ? Object.assign({}, k.sp, { colors: skinColors(k.sp.colors, sk) }) : k.sp;
+      const pc = document.createElement('canvas'), m = KIN.model(spx, k.stage);
+      const mesh = R.entityMesh('card:' + KIN.meshKey(k.sp, k.stage) + ':' + skinId, (mb) => KIN.buildMesh(mb, m));
+      /* how it stands on this card: turned one way or the other, a little nearer or further, off to one side */
+      const YAWS = [-0.62, -0.35, -0.95, -1.35, 0.62, 0.35, 0.95], yaw = opts.yaw != null ? opts.yaw : YAWS[Math.floor(PK() * YAWS.length)], pitch = -0.08 - PK() * 0.22, size = 0.92 + PK() * 0.22, shift = (PK() - 0.5) * 0.16;
+      const PN = Object.keys(POSES), poseId = opts.pose || k.pose || PN[Math.floor(PK() * PN.length)], P = POSES[poseId] || {}; const anim = Object.assign({ ph: 0, mv: 0, air: 0, seed: 0, lt: 0 }, P);
+      if (P.air && !(m.flyer || (k.sp.feat || {}).wings)) anim.air = 0;
+      if (R.renderPortrait(pc, mesh, m, opts.live ? 110 : 320, { yaw, pitch, anim })) { // a rim of the element's light round the Kin, then the Kin
+        const S = ah * 1.06 * size, px = ax + (aw - S) / 2 + shift * aw, py = ay + ah - S * 0.98; if (!opts.live) { c.save(); c.shadowColor = ec; c.shadowBlur = 28; c.drawImage(pc, px, py, S, S); c.restore(); } c.drawImage(pc, px, py, S, S); }
+    }
+    if (oim) { if (fin.art === 'holo') holoFoil(c, ax, ay, aw, ah, seed, tilt, 0.32); else if (fin.art === 'secret') secretFoil(c, ax, ay, aw, ah, seed, tilt); } /* a painting has no separate background, so its foil is kept light or it drowns the colours */
+  }
+  /* eight digits printed in the corner, as on a real card: the same for every card of one kind of Kin, so a code is enough to tell which it is */
+  function passcode(k) { let h = (k.sp.seed >>> 0) ^ 0x5bd1e995; h = Math.imul(h ^ (h >>> 15), 0x2c1b3c6d) >>> 0; return 10000000 + (h % 90000000); }
+  /* draws the card for Kin k onto canvas cv (750 x 1050). opts.where: a line saying where it was caught. opts.tilt: where the holo shine sits, 0 to 1 */
+  function draw(cv, k, opts = {}) {
+    opts = Object.assign({}, k.card, opts);
+    cv.width = W; cv.height = H; const c = cv.getContext('2d');
+    const rar = U.clamp(k.sp.rarity || 0, 0, 4), M = METAL[rar], fin = FINISH[opts.finish || k.finish || (k.holo ? 'ultra' : 'normal')] || FINISH.normal, holo = !!fin.art, shiny = !!k.shiny, tilt = opts.tilt != null ? opts.tilt : 0.45, time = opts.time || k.time || 'day';
+    const seed = (k.id || 1) >>> 0;
+    const elems = k.sp.elem.map((w, i) => ({ e: KIN.E[i], w })).filter(x => x.w > 0.12).sort((a, b) => b.w - a.w).slice(0, 2);
+    const e0 = elems[0] ? elems[0].e : 'Stone', ec = ELEM_COL[e0] || '#888';
+    const SERIF = 'Georgia, "Times New Roman", serif', SANS = 'system-ui, "Segoe UI", Roboto, sans-serif';
+    // the plate
+    rr(c, 0, 0, W, H, 34); metal(c, 0, 0, W, H, M, 34);
+    if (rar >= 1) { c.save(); rr(c, 0, 0, W, H, 34); c.clip(); c.globalAlpha = 0.07; c.strokeStyle = M.ink; c.lineWidth = 1; for (let d = -H; d < W + H; d += 9) { c.beginPath(); c.moveTo(d, 0); c.lineTo(d - H * 0.5, H); c.stroke(); } c.restore(); } // engraved cross-hatch on all but commons
+    bevel(c, 0, 0, W, H, 34, 6, 'rgba(255,255,255,0.75)', 'rgba(0,0,0,0.55)');
+    rr(c, 18, 18, W - 36, H - 36, 22); c.lineWidth = 2; c.strokeStyle = M.trim; c.stroke();
+    // corner scrolls
+    filigree(c, 30, 30, 34, 1, 1, M.trim); filigree(c, W - 30, 30, 34, -1, 1, M.trim); filigree(c, 30, H - 30, 34, 1, -1, M.trim); filigree(c, W - 30, H - 30, 34, -1, -1, M.trim);
+    // name plate
+    rr(c, 44, 36, W - 88, 80, 14); metal(c, 44, 36, W - 88, 80, M, 14, -0.6); bevel(c, 44, 36, W - 88, 80, 14, 3, 'rgba(255,255,255,0.8)', 'rgba(0,0,0,0.5)');
+    c.textBaseline = 'middle'; c.textAlign = 'left'; const nm = KIN.name(k).replace('✦ ', ''), nf = `700 46px ${SERIF}`; c.font = nf; if (fin.foil) foilText(c, nm, 70, 78, nf, fin.foil, tilt, seed + 5); else engrave(c, nm, 70, 78, M);
+    
+    c.textAlign = 'right'; c.font = `700 22px ${SANS}`; engrave(c, 'LV', W - 150, 80, M); c.font = `800 40px ${SERIF}`; engrave(c, String(k.level), W - 132 + 66, 80, M);
+    // the art, in a dark recess
+    const ax = 58, ay = 132, aw = W - 116, ah = 500;
+    rr(c, ax - 8, ay - 8, aw + 16, ah + 16, 12); c.fillStyle = 'rgba(0,0,0,0.55)'; c.fill(); bevel(c, ax - 8, ay - 8, aw + 16, ah + 16, 12, 4, 'rgba(0,0,0,0.6)', 'rgba(255,255,255,0.6)');
+    c.save(); rr(c, ax, ay, aw, ah, 6); c.clip();
+    art(c, k, opts, ax, ay, aw, ah, { seed, e0, ec, fin, tilt, time });
+    const vg = c.createRadialGradient(W / 2, ay + ah / 2, ah * 0.4, W / 2, ay + ah / 2, ah * 0.9); vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,0.3)'); c.fillStyle = vg; c.fillRect(ax, ay, aw, ah);
+    c.restore(); c.lineWidth = 2; c.strokeStyle = M.trim; rr(c, ax, ay, aw, ah, 6); c.stroke();
+    // under the art, as on a real card: the edition on the left, the set code on the right
+    c.font = `700 17px ${SERIF}`; c.textBaseline = 'middle'; const setCode = (k.sp.dino ? 'LW' : 'EA') + '-' + String(((k.sp.seed >>> 0) % 997) + 1).padStart(3, '0');
+    if (opts.first || k.first) { c.textAlign = 'left'; engrave(c, '1st Edition', 62, ay + ah + 20, M); } c.textAlign = 'right'; engrave(c, setCode + (fin.name ? '  ' + fin.name : ''), W - 62, ay + ah + 20, M);
+    // the type line: rarity in words and its mark, the element medallions
+    const sy = ay + ah + 36; rr(c, 44, sy, W - 88, 52, 10); metal(c, 44, sy, W - 88, 52, M, 10, -0.6); bevel(c, 44, sy, W - 88, 52, 10, 2, 'rgba(255,255,255,0.7)', 'rgba(0,0,0,0.45)');
+    c.textAlign = 'left'; c.font = `italic 700 26px ${SERIF}`; engrave(c, (shiny ? 'Shining ' : '') + ((SKINS[opts.skin || k.skin] || {}).name ? SKINS[opts.skin || k.skin].name + ' ' : '') + M.name + '  ' + MARK[rar], 66, sy + 27, M);
+    let mx = W - 82; for (const el of elems.slice().reverse()) { medal(c, el.e, mx, sy + 26, 22); mx -= 52; }
+    // the text box: card stock in the colour of its element
+    const ty = sy + 64, th = 200; rr(c, 44, ty, W - 88, th, 10); paper(c, 44, ty, W - 88, th, PAPER[e0] || '#eee', seed + 7); c.lineWidth = 2; c.strokeStyle = 'rgba(60,40,10,0.45)'; rr(c, 44, ty, W - 88, th, 10); c.stroke();
+    const mv = KIN.moves(k), sig = mv.find(m => m.sig) || mv[mv.length - 1];
+    if (sig) { c.textAlign = 'left'; c.fillStyle = '#2a1d0c'; c.font = `700 32px ${SERIF}`; c.fillText((sig.sig ? '✦ ' : '') + sig.name, 68, ty + 38); c.textAlign = 'right'; c.font = `800 34px ${SERIF}`; c.fillText(String(sig.power || ''), W - 68, ty + 38);
+      c.strokeStyle = 'rgba(60,40,10,0.35)'; c.lineWidth = 1.5; c.beginPath(); c.moveTo(68, ty + 62); c.lineTo(W - 68, ty + 62); c.stroke();
+      c.textAlign = 'left'; c.fillStyle = '#3d2f1a'; c.font = `italic 400 25px ${SERIF}`; wrap(c, sig.desc || '', 68, ty + 92, W - 136, 31, 2); }
+    // stats along the bottom of the text box
+    const st = KIN.stats(k), keys = [['HP', st.hp], ['ATK', st.atk], ['POW', st.pow], ['SPD', st.spd]], by = ty + th - 54;
+    c.strokeStyle = 'rgba(60,40,10,0.35)'; c.beginPath(); c.moveTo(68, by - 8); c.lineTo(W - 68, by - 8); c.stroke();
+    keys.forEach(([n, v], i) => { const bx = 68 + i * ((W - 136) / 4); c.textAlign = 'left'; c.fillStyle = '#6a5636'; c.font = `700 17px ${SANS}`; c.fillText(n, bx, by + 14); c.fillStyle = '#2a1d0c'; c.font = `800 28px ${SERIF}`; c.fillText(String(v != null ? v : '?'), bx, by + 40); });
+    // where it came from, and the set line
+    c.textAlign = 'center'; c.textBaseline = 'middle'; c.font = `italic 400 22px ${SERIF}`; engrave(c, opts.where || k.where || 'Caught in the wild', W / 2, H - 66, M);
+    c.font = `700 14px ${SANS}`; c.textAlign = 'left'; engrave(c, String(passcode(k)), 62, H - 34, M); c.textAlign = 'right'; engrave(c, 'STRATAKIN', W - 62, H - 34, M);
+    // the great ones are foil all over; holos also catch the light on the frame
+    if (fin.foil === 'gold' || fin.foil === 'prism') { /* ultra and secret: the frame catches the light too */ c.save(); rr(c, 0, 0, W, H, 34); c.clip(); c.beginPath(); c.rect(0, 0, W, H); rr(c, 44, ty, W - 88, th, 10); c.clip('evenodd'); if (fin.foil === 'prism') secretFoil(c, 0, 0, W, H, seed + 11, tilt); else holoFoil(c, 0, 0, W, H, seed + 11, tilt, 0.4); c.restore(); }
+    // a sheen across the plate, as if lit from the top left
+    c.save(); rr(c, 0, 0, W, H, 34); c.clip(); const gl = c.createLinearGradient(0, 0, W, H); gl.addColorStop(0, 'rgba(255,255,255,0.18)'); gl.addColorStop(0.35, 'rgba(255,255,255,0)'); gl.addColorStop(1, 'rgba(0,0,0,0.12)'); c.fillStyle = gl; c.fillRect(0, 0, W, H); c.restore();
+    return cv;
+  }
+
+  /* ---------- the cartridge: the same card as a piece of hardware. A metal casing with a cut corner, a screen with the Kin alive on it, a readout, and contacts along the bottom ---------- */
+  const MONO = 'ui-monospace, "SF Mono", Menlo, Consolas, monospace';
+  const SCR = { x: 64, y: 146, w: 622, h: 520 };
+  function cartCtx(k, opts) { const rar = U.clamp(k.sp.rarity || 0, 0, 4), fin = FINISH[opts.finish || (k.holo ? 'ultra' : 'normal')] || FINISH.normal, seed = (k.id || 1) >>> 0;
+    const elems = k.sp.elem.map((w, i) => ({ e: KIN.E[i], w })).filter(x => x.w > 0.12).sort((a, b) => b.w - a.w).slice(0, 2), e0 = elems[0] ? elems[0].e : 'Stone';
+    return { rar, M: METAL[rar], fin, seed, elems, e0, ec: ELEM_COL[e0] || '#888', tilt: opts.tilt != null ? opts.tilt : 0.45, time: opts.time || 'day' }; }
+  function shell(c) { const r = 30, cut = 74; c.beginPath(); c.moveTo(r, 0); c.lineTo(W - cut, 0); c.lineTo(W, cut); c.lineTo(W, H - r); c.arcTo(W, H, W - r, H, r); c.lineTo(r, H); c.arcTo(0, H, 0, H - r, r); c.lineTo(0, r); c.arcTo(0, 0, r, 0, r); c.closePath(); }
+  function lcd(c, x, y, w, h, r, tint) { rr(c, x, y, w, h, r); const g = c.createLinearGradient(0, y, 0, y + h); g.addColorStop(0, '#05080c'); g.addColorStop(1, '#0d141c'); c.fillStyle = g; c.fill(); c.save(); rr(c, x, y, w, h, r); c.clip(); const gl = c.createRadialGradient(x + w / 2, y + h / 2, 10, x + w / 2, y + h / 2, w * 0.7); gl.addColorStop(0, tint); gl.addColorStop(1, 'rgba(0,0,0,0)'); c.globalAlpha = 0.16; c.fillStyle = gl; c.fillRect(x, y, w, h); c.globalAlpha = 0.12; c.fillStyle = '#000'; for (let yy = y; yy < y + h; yy += 4) c.fillRect(x, yy, w, 1.5); c.restore(); c.lineWidth = 3; c.strokeStyle = 'rgba(0,0,0,0.8)'; rr(c, x, y, w, h, r); c.stroke(); c.lineWidth = 1.5; c.strokeStyle = 'rgba(255,255,255,0.25)'; rr(c, x + 2, y + 2, w - 4, h - 4, r); c.stroke(); }
+  function glow(c, text, x, y, col, font) { c.font = font; c.save(); c.shadowColor = col; c.shadowBlur = 12; c.fillStyle = col; c.fillText(text, x, y); c.restore(); c.fillStyle = '#ffffff'; c.globalAlpha = 0.55; c.fillText(text, x, y); c.globalAlpha = 1; }
+  function screw(c, x, y) { c.beginPath(); c.arc(x, y, 9, 0, 6.3); const g = c.createRadialGradient(x - 3, y - 3, 1, x, y, 9); g.addColorStop(0, '#f2f2f2'); g.addColorStop(1, '#4a4f57'); c.fillStyle = g; c.fill(); c.strokeStyle = 'rgba(0,0,0,0.6)'; c.lineWidth = 1.5; c.stroke(); c.beginPath(); c.moveTo(x - 5, y - 3); c.lineTo(x + 5, y + 3); c.moveTo(x - 3, y + 5); c.lineTo(x + 3, y - 5); c.lineWidth = 2; c.stroke(); }
+  /* everything but the picture on the screen: drawn once and kept */
+  function casing(cv, k, opts = {}) {
+    opts = Object.assign({}, k.card, opts); cv.width = W; cv.height = H; const c = cv.getContext('2d'), X = cartCtx(k, opts), { M, rar, fin, seed, elems, ec } = X;
+    c.clearRect(0, 0, W, H); shell(c); metal(c, 0, 0, W, H, M, 30);
+    c.save(); shell(c); c.clip(); c.lineWidth = 12; const eg = c.createLinearGradient(0, 0, W, H); eg.addColorStop(0, 'rgba(255,255,255,0.7)'); eg.addColorStop(0.5, 'rgba(255,255,255,0.05)'); eg.addColorStop(1, 'rgba(0,0,0,0.6)'); c.strokeStyle = eg; shell(c); c.stroke();
+    // grip ridges down both sides, and a parting line where the two halves of the shell meet
+    for (const gx of [10, W - 30]) for (let gy = 700; gy < 930; gy += 14) { c.fillStyle = 'rgba(0,0,0,0.4)'; c.fillRect(gx, gy, 20, 6); c.fillStyle = 'rgba(255,255,255,0.35)'; c.fillRect(gx, gy + 6, 20, 2); }
+    c.strokeStyle = 'rgba(0,0,0,0.35)'; c.lineWidth = 2; c.beginPath(); c.moveTo(0, 946); c.lineTo(W, 946); c.stroke(); c.strokeStyle = 'rgba(255,255,255,0.3)'; c.beginPath(); c.moveTo(0, 948); c.lineTo(W, 948); c.stroke();
+    c.restore();
+    screw(c, 30, 30); screw(c, 30, H - 82); screw(c, W - 30, H - 82);
+    // the cut corner: which way it goes in
+    c.save(); c.translate(W - 46, 46); c.rotate(Math.PI / 4); c.fillStyle = M.ink; c.globalAlpha = 0.7; c.beginPath(); c.moveTo(0, -18); c.lineTo(12, 0); c.lineTo(-12, 0); c.closePath(); c.fill(); c.restore();
+    // the label: a strip of dark glass with the name lit in it
+    lcd(c, 56, 40, 566, 84, 12, ec); c.textBaseline = 'middle'; c.textAlign = 'left';
+    const nm = KIN.name(k).replace('✦ ', '').toUpperCase(), ncol = fin.foil === 'gold' ? '#ffd76a' : fin.foil === 'prism' ? '#d8f4ff' : fin.foil === 'silver' ? '#e8eef5' : hslHex(hexHsl(ec)[0], 0.9, 0.7);
+    let fs = 44; c.font = `700 ${fs}px ${MONO}`; while (c.measureText(nm).width > 380 && fs > 24) { fs -= 2; c.font = `700 ${fs}px ${MONO}`; }
+    if (fin.foil === 'prism') { const pg = c.createLinearGradient(76, 0, 460, 0); ['#ff9ac0', '#ffe39a', '#a8ffd0', '#9ae0ff', '#d0b0ff'].forEach((col, i) => pg.addColorStop(i / 4, col)); c.save(); c.shadowColor = '#ffffff'; c.shadowBlur = 14; c.fillStyle = pg; c.fillText(nm, 78, 83); c.restore(); } else glow(c, nm, 78, 83, ncol, `700 ${fs}px ${MONO}`);
+    c.textAlign = 'right'; glow(c, 'LV' + k.level, 604, 83, '#9fb4c8', `700 28px ${MONO}`);
+    // the screen's bezel
+    rr(c, SCR.x - 18, SCR.y - 18, SCR.w + 36, SCR.h + 36, 22); c.fillStyle = '#07090c'; c.fill(); bevel(c, SCR.x - 18, SCR.y - 18, SCR.w + 36, SCR.h + 36, 22, 5, 'rgba(0,0,0,0.85)', 'rgba(255,255,255,0.55)');
+    if (fin.foil) { c.lineWidth = 3; c.strokeStyle = fin.foil === 'gold' ? '#ffd76a' : fin.foil === 'silver' ? '#eef2f6' : '#c8f0ff'; rr(c, SCR.x - 7, SCR.y - 7, SCR.w + 14, SCR.h + 14, 12); c.stroke(); }
+    // status strip: lights for how rare it is, the printing, its elements
+    const sy = SCR.y + SCR.h + 30; for (let i = 0; i < 5; i++) { const on = i <= rar, lx = 66 + i * 30; c.beginPath(); c.arc(lx, sy + 20, 9, 0, 6.3); c.fillStyle = on ? (M.glow || '#bfe6c8') : '#1a1d22'; if (on) { c.save(); c.shadowColor = M.glow || '#bfe6c8'; c.shadowBlur = 14; c.fill(); c.restore(); } else c.fill(); c.lineWidth = 2; c.strokeStyle = 'rgba(0,0,0,0.6)'; c.stroke(); }
+    c.textAlign = 'left'; c.font = `700 21px ${MONO}`; engrave(c, ((SKINS[opts.skin] || {}).name ? SKINS[opts.skin].name.toUpperCase() + ' ' : '') + M.name.toUpperCase() + (fin.name ? ' / ' + fin.name.toUpperCase() : ''), 222, sy + 21, M);
+    let mx = W - 62; for (const el of elems.slice().reverse()) { medal(c, el.e, mx, sy + 20, 20); mx -= 48; }
+    // the readout
+    const ty = sy + 50, th = 168; lcd(c, 46, ty, W - 92, th, 12, ec);
+    const mv = KIN.moves(k), sig = mv.find(m => m.sig) || mv[mv.length - 1], hi = hslHex(hexHsl(ec)[0], 0.85, 0.72);
+    if (sig) { c.textAlign = 'left'; glow(c, (sig.sig ? '★ ' : '> ') + sig.name.toUpperCase(), 68, ty + 34, hi, `700 26px ${MONO}`); c.textAlign = 'right'; glow(c, String(sig.power || ''), W - 68, ty + 34, '#ffffff', `700 28px ${MONO}`);
+      c.textAlign = 'left'; c.fillStyle = '#8fa3b5'; c.font = `400 20px ${MONO}`; wrap(c, sig.desc || '', 68, ty + 68, W - 136, 25, 2); }
+    const st = KIN.stats(k), keys = [['HP', st.hp], ['ATK', st.atk], ['POW', st.pow], ['SPD', st.spd]];
+    keys.forEach(([n, v], i) => { const bx = 68 + i * ((W - 136) / 4); c.textAlign = 'left'; c.fillStyle = '#5f7386'; c.font = `700 16px ${MONO}`; c.fillText(n, bx, ty + th - 44); glow(c, String(v), bx, ty + th - 20, '#d6e6f2', `700 24px ${MONO}`); });
+    // etched into the shell: where it was caught, the edition, the serial
+    c.textAlign = 'center'; c.font = `400 19px ${MONO}`; engrave(c, (opts.where || 'CAUGHT IN THE WILD').toUpperCase().slice(0, 52), W / 2, ty + th + 22, M);
+    const setCode = (k.sp.dino ? 'LW' : 'EA') + '-' + String(((k.sp.seed >>> 0) % 997) + 1).padStart(3, '0');
+    c.font = `700 15px ${MONO}`; c.textAlign = 'left'; engrave(c, 'S/N ' + passcode(k) + (opts.first ? '  1ST EDITION' : ''), 60, 962, M); c.textAlign = 'right'; engrave(c, 'STRATAKIN  ' + setCode, W - 60, 962, M);
+    // the contacts
+    rr(c, 96, 978, W - 192, 72, 6); c.fillStyle = '#0c2a1c'; c.fill(); c.strokeStyle = 'rgba(0,0,0,0.7)'; c.lineWidth = 2; c.stroke();
+    for (let i = 0; i < 18; i++) { const px = 110 + i * ((W - 220) / 18), pw = (W - 220) / 18 - 7; const pg = c.createLinearGradient(px, 0, px + pw, 0); pg.addColorStop(0, '#8a6412'); pg.addColorStop(0.45, '#ffe59a'); pg.addColorStop(1, '#a87a1c'); c.fillStyle = pg; c.fillRect(px, 986, pw, i % 5 === 2 ? 46 : 58); }
+    return cv;
+  }
+  /* what is on the screen. bg: a canvas holding the scene, made once with screenBack */
+  function screenBack(k, opts = {}) { opts = Object.assign({}, k.card, opts); const X = cartCtx(k, opts), cv = document.createElement('canvas'); cv.width = SCR.w; cv.height = SCR.h; art(cv.getContext('2d'), k, Object.assign({}, opts, { noKin: true }), 0, 0, SCR.w, SCR.h, X); return cv; }
+  function screen(c, k, opts = {}, bg) { opts = Object.assign({}, k.card, opts); const X = cartCtx(k, opts), { x, y, w, h } = SCR, t = (opts.now || 0) / 1000;
+    c.save(); rr(c, x, y, w, h, 8); c.clip();
+    if (bg) c.drawImage(bg, x, y); else art(c, k, Object.assign({}, opts, { noKin: true }), x, y, w, h, X);
+    art(c, k, Object.assign({}, opts, { kinOnly: true }), x, y, w, h, X);
+    if (X.fin.art === 'holo') { c.save(); c.globalAlpha = 0.5; holoFoil(c, x, y, w, h, X.seed + 21, X.tilt, 0.25); c.restore(); }
+    // it is a screen: fine lines, a line that rolls down it, brackets and a little status text in the corners, light on the glass
+    c.fillStyle = 'rgba(0,0,0,0.13)'; for (let yy = y; yy < y + h; yy += 4) c.fillRect(x, yy, w, 1.4);
+    const ry = y + ((t * 60) % (h + 80)) - 40; const rg = c.createLinearGradient(0, ry, 0, ry + 40); rg.addColorStop(0, 'rgba(255,255,255,0)'); rg.addColorStop(0.5, 'rgba(255,255,255,0.07)'); rg.addColorStop(1, 'rgba(255,255,255,0)'); c.fillStyle = rg; c.fillRect(x, ry, w, 40);
+    c.strokeStyle = 'rgba(255,255,255,0.75)'; c.lineWidth = 3; const b = 26, m = 14; for (const [cx, cy, sx, sy2] of [[x + m, y + m, 1, 1], [x + w - m, y + m, -1, 1], [x + m, y + h - m, 1, -1], [x + w - m, y + h - m, -1, -1]]) { c.beginPath(); c.moveTo(cx + sx * b, cy); c.lineTo(cx, cy); c.lineTo(cx, cy + sy2 * b); c.stroke(); }
+    c.textBaseline = 'middle'; c.textAlign = 'left'; c.font = `700 17px ${MONO}`; c.fillStyle = (Math.floor(t * 1.5) % 2) ? '#ff5a5a' : 'rgba(255,90,90,0.25)'; c.beginPath(); c.arc(x + 34, y + 34, 6, 0, 6.3); c.fill(); c.fillStyle = 'rgba(255,255,255,0.85)'; c.fillText('LIVE', x + 48, y + 35);
+    c.textAlign = 'right'; c.fillText(opts.time === 'night' ? 'NIGHT' : opts.time === 'dusk' ? 'DUSK' : 'DAY', x + w - 30, y + 35);
+    for (let i = 0; i < 4; i++) { c.fillStyle = i < 1 + Math.round(2.5 + 1.4 * Math.sin(t * 2 + i)) ? 'rgba(255,255,255,0.85)' : 'rgba(255,255,255,0.25)'; c.fillRect(x + 28 + i * 9, y + h - 28 - i * 5, 6, 8 + i * 5); }
+    const gl = c.createLinearGradient(x, y, x + w, y + h); gl.addColorStop(0, 'rgba(255,255,255,0.20)'); gl.addColorStop(0.3 + X.tilt * 0.2, 'rgba(255,255,255,0.02)'); gl.addColorStop(0.5 + X.tilt * 0.2, 'rgba(255,255,255,0.10)'); gl.addColorStop(0.62 + X.tilt * 0.2, 'rgba(255,255,255,0)'); c.fillStyle = gl; c.fillRect(x, y, w, h);
+    const vg = c.createRadialGradient(x + w / 2, y + h / 2, h * 0.45, x + w / 2, y + h / 2, h * 0.95); vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,0.45)'); c.fillStyle = vg; c.fillRect(x, y, w, h);
+    c.restore(); }
+  function cartridge(cv, k, opts = {}) { casing(cv, k, opts); screen(cv.getContext('2d'), k, opts); return cv; }
+  /* a Kin by itself on a clear canvas, for the device's viewfinder */
+  function kinCanvas(k, size, o = {}) { const pc = document.createElement('canvas'), m = KIN.model(k.sp, k.stage), mesh = R.entityMesh('card:' + KIN.meshKey(k.sp, k.stage) + ':plain', (mb) => KIN.buildMesh(mb, m)); R.renderPortrait(pc, mesh, m, size || 160, { yaw: o.yaw != null ? o.yaw : -0.62, pitch: -0.15, anim: Object.assign({ ph: 0, mv: 0, air: 0, seed: 0, lt: 0 }, o.anim) }); return pc; }
+  /* what a catch is stamped with: its printing, now and then other colours, the hour, the place. Everything else about its picture comes from its own number */
+  function roll(k, ctx = {}) { const r = Math.random(), finish = r < 0.01 ? 'secret' : r < 0.04 ? 'ultra' : r < 0.11 ? 'super' : r < 0.26 ? 'rare' : 'normal'; const names = Object.keys(SKINS).filter(n => n !== 'plain');
+    const firsts = (typeof G !== 'undefined' && G.stats) ? (G.stats.cardFirsts || (G.stats.cardFirsts = {})) : {}; const key = String(k.sp.seed >>> 0), first = !firsts[key]; firsts[key] = 1;
+    const card = { finish, time: ctx.time || 'day', where: ctx.where || 'Caught in the wild', first }; if (Math.random() < 0.12) card.skin = names[Math.floor(Math.random() * names.length)]; return card; }
+  return { W, H, draw, preload, BG, OWN, FINISH, SKINS, SCENES, POSES, passcode, cartridge, casing, screen, screenBack, kinCanvas, roll, SCR, ELEM_COL };
+})();
+
+</script>
+<script>
+'use strict';
+/* The Kin-Link: the device you catch with, and look at your cartridges on. To catch, it has to find the Kin (keep the reticle on it), tune to it
+   (match its signal) and draw it in (pull, and ease off when it surges). Then it ejects a cartridge with the Kin on it.
+   Everything is drawn on one canvas over the game. */
+const Device = (() => {
+  let root, cv, c, W = 0, H = 0, dpr = 1, raf = 0, S = null;
+  const ptr = { down: false, x: 0, y: 0, dx: 0 };
+  const MONO = 'ui-monospace, "SF Mono", Menlo, Consolas, monospace';
+  const auto = () => typeof window !== 'undefined' && window.__deviceAuto;
+  function mount() {
+    if (root) return; root = document.createElement('div'); root.id = 'device'; cv = document.createElement('canvas'); root.appendChild(cv); document.body.appendChild(root); c = cv.getContext('2d');
+    const pos = (e) => { const r = cv.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
+    cv.addEventListener('pointerdown', (e) => { e.preventDefault(); const [x, y] = pos(e); ptr.down = true; ptr.dx = 0; ptr.x = x; ptr.y = y; if (S && S.tap) S.tap(x, y); try { cv.setPointerCapture(e.pointerId); } catch (_) {} });
+    cv.addEventListener('pointermove', (e) => { const [x, y] = pos(e); if (ptr.down) ptr.dx += x - ptr.x; ptr.x = x; ptr.y = y; });
+    const up = () => { ptr.down = false; }; cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up);
+    window.addEventListener('deviceorientation', (e) => { if (S && e.gamma != null) S.tiltIn = U.clamp(0.5 + e.gamma / 50, 0, 1); });
+    window.addEventListener('resize', size);
+  }
+  function size() { if (!root) return; dpr = Math.min(2, window.devicePixelRatio || 1); W = root.clientWidth || window.innerWidth; H = root.clientHeight || window.innerHeight; cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); cv.style.width = W + 'px'; cv.style.height = H + 'px'; }
+  function show() { mount(); root.classList.add('on'); size(); cancelAnimationFrame(raf); let last = performance.now(); const loop = (now) => { if (!S) return; const dt = Math.min(0.05, (now - last) / 1000); last = now; c.setTransform(dpr, 0, 0, dpr, 0, 0); try { S.frame(dt, now); } catch (err) { console.error(err); const d = S.done; hide(); if (d) d({ ok: false, error: true }); return; } raf = requestAnimationFrame(loop); }; raf = requestAnimationFrame(loop); }
+  function hide() { S = null; cancelAnimationFrame(raf); if (root) root.classList.remove('on'); }
+  const rr = (x, y, w, h, r) => { c.beginPath(); c.moveTo(x + r, y); c.arcTo(x + w, y, x + w, y + h, r); c.arcTo(x + w, y + h, x, y + h, r); c.arcTo(x, y + h, x, y, r); c.arcTo(x, y, x + w, y, r); c.closePath(); };
+  const text = (t, x, y, font, col, align = 'center', glow) => { c.font = font; c.textAlign = align; c.textBaseline = 'middle'; if (glow) { c.save(); c.shadowColor = glow; c.shadowBlur = 12; c.fillStyle = col; c.fillText(t, x, y); c.restore(); } else { c.fillStyle = col; c.fillText(t, x, y); } };
+
+  /* the body of the device: a slot along the top, a big screen, a row of stage lights, and the control under the thumb. Returns where the screen and the control are */
+  function body(now, lights, stage, slotGlow) {
+    c.clearRect(0, 0, W, H); c.fillStyle = 'rgba(4,7,10,0.94)'; c.fillRect(0, 0, W, H);
+    const bw = Math.min(W - 16, 520), bx = (W - bw) / 2, by = Math.max(8, H * 0.02), bh = H - by * 2;
+    rr(bx, by, bw, bh, 34); const g = c.createLinearGradient(bx, by, bx + bw, by + bh); g.addColorStop(0, '#39424d'); g.addColorStop(0.5, '#1d232b'); g.addColorStop(1, '#2b333d'); c.fillStyle = g; c.fill(); c.lineWidth = 3; c.strokeStyle = '#5d6b7a'; c.stroke(); c.lineWidth = 1; c.strokeStyle = 'rgba(0,0,0,0.6)'; rr(bx + 5, by + 5, bw - 10, bh - 10, 30); c.stroke();
+    // the slot
+    const sw = bw * 0.62, sx = bx + (bw - sw) / 2; rr(sx, by + 12, sw, 14, 5); c.fillStyle = '#05070a'; c.fill(); if (slotGlow) { c.save(); c.shadowColor = slotGlow; c.shadowBlur = 18; c.strokeStyle = slotGlow; c.lineWidth = 2; rr(sx, by + 12, sw, 14, 5); c.stroke(); c.restore(); }
+    text('KIN-LINK', bx + 26, by + 44, `700 13px ${MONO}`, '#8fa3b5', 'left'); text('MK II', bx + bw - 26, by + 44, `700 13px ${MONO}`, '#5f7386', 'right');
+    const scr = { x: bx + 18, y: by + 60, w: bw - 36, h: Math.min(bh * 0.56, (bw - 36) * 1.05) };
+    rr(scr.x - 8, scr.y - 8, scr.w + 16, scr.h + 16, 16); c.fillStyle = '#05070a'; c.fill(); c.lineWidth = 2; c.strokeStyle = '#000'; c.stroke();
+    const ly = scr.y + scr.h + 30, names = ['LOCK', 'TUNE', 'PULL'];
+    names.forEach((n, i) => { const lx = bx + bw * (0.2 + i * 0.3), st = lights[i]; const col = st === 'done' ? '#5dff9a' : st === 'on' ? '#ffd35a' : st === 'skip' ? '#2a323b' : st === 'fail' ? '#ff5a5a' : '#3b4651'; c.beginPath(); c.arc(lx - 34, ly, 7, 0, 6.3); c.fillStyle = col; if (st === 'on' || st === 'done' || st === 'fail') { c.save(); c.shadowColor = col; c.shadowBlur = 12; c.fill(); c.restore(); } else c.fill(); text(n, lx - 20, ly, `700 14px ${MONO}`, st === 'skip' ? '#3b4651' : '#b8c6d4', 'left'); });
+    const ctl = { x: bx + 18, y: ly + 26, w: bw - 36, h: by + bh - (ly + 26) - 18 };
+    return { scr, ctl, bx, by, bw, bh };
+  }
+  function viewfinder(scr, col, now) { c.save(); rr(scr.x, scr.y, scr.w, scr.h, 10); c.clip(); const g = c.createRadialGradient(scr.x + scr.w / 2, scr.y + scr.h / 2, 20, scr.x + scr.w / 2, scr.y + scr.h / 2, scr.w); g.addColorStop(0, '#12303a'); g.addColorStop(1, '#040a0e'); c.fillStyle = g; c.fillRect(scr.x, scr.y, scr.w, scr.h);
+    c.strokeStyle = 'rgba(120,220,255,0.10)'; c.lineWidth = 1; const step = scr.w / 10, off = (now / 60) % step; for (let x = scr.x - step + off; x < scr.x + scr.w; x += step) { c.beginPath(); c.moveTo(x, scr.y); c.lineTo(x, scr.y + scr.h); c.stroke(); } for (let y = scr.y; y < scr.y + scr.h; y += step) { c.beginPath(); c.moveTo(scr.x, y); c.lineTo(scr.x + scr.w, y); c.stroke(); } }
+  function endScreen(scr) { c.fillStyle = 'rgba(0,0,0,0.14)'; for (let y = scr.y; y < scr.y + scr.h; y += 3) c.fillRect(scr.x, y, scr.w, 1); c.restore(); }
+  function bar(x, y, w, h, v, col, label) { rr(x, y, w, h, h / 2); c.fillStyle = '#0a0e13'; c.fill(); c.strokeStyle = '#000'; c.lineWidth = 1.5; c.stroke(); if (v > 0.01) { rr(x + 2, y + 2, Math.max(h - 4, (w - 4) * U.clamp(v, 0, 1)), h - 4, (h - 4) / 2); c.save(); c.shadowColor = col; c.shadowBlur = 10; c.fillStyle = col; c.fill(); c.restore(); } if (label) text(label, x + w / 2, y + h / 2 + 0.5, `700 ${Math.max(10, h * 0.55)}px ${MONO}`, '#fff'); }
+
+  /* ---- catching. cfg: { kin, rar, hpFrac, agi, lull, chance }. Resolves { ok, quality, failed } once the three stages are over; the fight then says whether it held and calls result() ---- */
+  function capture(cfg) {
+    return new Promise((done) => {
+      const k = cfg.kin, rar = cfg.rar || 0, d = U.clamp(0.22 + rar * 0.15 + (cfg.hpFrac || 0) * 0.32 - (cfg.lull > 1 ? 0.18 : 0) + U.clamp(((cfg.agi || 60) - 60) / 400, 0, 0.15), 0.08, 1);
+      const el = k.sp.elem.map((w, i) => ({ e: KIN.E[i], w })).sort((a, b) => b.w - a.w)[0].e, col = Cards.ELEM_COL[el] || '#7fd6f0';
+      const stages = rar >= 2 ? ['lock', 'tune', 'pull'] : ['lock', 'pull'];
+      let pic = null; try { pic = Cards.kinCanvas(k, 150); } catch (_) {}
+      const st = { i: 0, t: 0, fill: 0, scores: [], msgT: 0, tx: 0.5, ty: 0.45, rx: 0.5, ry: 0.7, ph: Math.random() * 9, ft: 0.3 + Math.random() * 0.4, fp: 0.5, jump: 2, prog: 0, tens: 0, maxTens: 0, surge: 1.4, sT: 0, mode: 'calm', intro: 1.1, over: null, parts: [] };
+      const lightsOf = () => ['lock', 'tune', 'pull'].map(n => { const ix = stages.indexOf(n); return ix < 0 ? 'skip' : st.over === 'fail' && ix === st.i ? 'fail' : ix < st.i || st.over === 'ok' ? 'done' : ix === st.i ? 'on' : 'off'; });
+      const next = (score) => { st.scores.push(U.clamp(score, 0, 1)); st.i++; st.t = 0; st.fill = 0; st.intro = 0.9; if (typeof G !== 'undefined' && G.sfx) G.sfx('util'); if (st.i >= stages.length) { st.over = 'ok'; st.t = 0; } };
+      const fail = () => { if (st.over) return; st.over = 'fail'; st.t = 0; if (typeof G !== 'undefined' && G.sfx) G.sfx('miss'); };
+      S = { done, tiltIn: 0.5, frame(dt, now) {
+        const L = body(now, lightsOf(), st.i, st.over === 'ok' ? '#5dff9a' : null), { scr, ctl } = L, stage = stages[st.i]; st.t += dt;
+        viewfinder(scr, col, now);
+        const kx = scr.x + scr.w * st.tx, ky = scr.y + scr.h * st.ty, ks = scr.w * 0.46;
+        const drawKin = (alpha, sc = 1) => { if (!pic) { c.globalAlpha = alpha; c.fillStyle = col; c.beginPath(); c.arc(kx, ky, ks * 0.3 * sc, 0, 6.3); c.fill(); c.globalAlpha = 1; return; } c.globalAlpha = alpha; c.drawImage(pic, kx - ks * sc / 2, ky - ks * sc / 2 + Math.sin(now / 300) * 3, ks * sc, ks * sc); c.globalAlpha = 1; };
+        if (st.over) { // the last moment: it goes into the device, or it breaks away
+          if (st.over === 'ok') { const u = Math.min(1, st.t / 0.9); drawKin(1 - u, 1 - u * 0.6); for (let i = 0; i < 40; i++) { const a = i * 2.4 + now / 200, r = (1 - u) * scr.w * 0.4 * ((i % 7) / 7 + 0.3); c.fillStyle = i % 3 ? col : '#fff'; c.globalAlpha = 0.8; c.fillRect(kx + Math.cos(a) * r, ky + Math.sin(a) * r + u * (scr.y + scr.h - ky) * 0.8, 3, 3); } c.globalAlpha = 1; text('SIGNAL HELD', scr.x + scr.w / 2, scr.y + scr.h * 0.86, `700 20px ${MONO}`, '#5dff9a', 'center', '#5dff9a'); }
+          else { drawKin(1, 1 + Math.sin(st.t * 40) * 0.04); c.fillStyle = `rgba(255,60,60,${0.35 * (1 - Math.min(1, st.t / 0.9))})`; c.fillRect(scr.x, scr.y, scr.w, scr.h); text('BEAM LOST', scr.x + scr.w / 2, scr.y + scr.h * 0.86, `700 22px ${MONO}`, '#ff6a6a', 'center', '#ff5a5a'); }
+          endScreen(scr); text(st.over === 'ok' ? 'Reading it in…' : 'It broke away.', ctl.x + ctl.w / 2, ctl.y + ctl.h * 0.4, `600 17px system-ui, sans-serif`, '#d6e2ee');
+          if (st.t > 1.0) { const q = st.scores.length ? st.scores.reduce((a, b) => a + b, 0) / st.scores.length : 0, ok = st.over === 'ok'; S.frame = (dt2, now2) => { body(now2, lightsOf(), st.i, null); }; done({ ok, quality: ok ? q : 0, failed: ok ? null : stage }); }
+          return; }
+        const A = auto(); if (st.intro > 0) st.intro -= dt;
+        const live = st.intro <= 0;
+        if (stage === 'lock') {
+          // it will not keep still: a wandering path, and now and then it darts
+          const sp = 0.5 + 1.5 * d; st.ph += dt * sp; st.tx = 0.5 + 0.3 * Math.sin(st.ph * 1.3) + 0.1 * Math.sin(st.ph * 3.1 + 1); st.ty = 0.44 + 0.2 * Math.sin(st.ph * 1.7 + 2) + 0.08 * Math.cos(st.ph * 2.9);
+          if (A) { st.rx += (st.tx - st.rx) * Math.min(1, dt * 10); st.ry += (st.ty - st.ry) * Math.min(1, dt * 10); }
+          else if (ptr.down) { st.rx = U.clamp((ptr.x - scr.x) / scr.w, 0, 1); st.ry = U.clamp((ptr.y - 56 - scr.y) / scr.h, 0, 1); } // the reticle rides above the thumb, so the thumb does not hide it
+          const R = scr.w * (0.17 - 0.06 * d), px = scr.x + scr.w * st.rx, py = scr.y + scr.h * st.ry, on = Math.hypot(px - kx, py - ky) < R;
+          if (live) st.fill = U.clamp(st.fill + (on ? dt / 1.5 : -dt * 0.45), 0, 1);
+          drawKin(1);
+          c.strokeStyle = on ? '#5dff9a' : '#ffffff'; c.lineWidth = 3; c.beginPath(); c.arc(px, py, R, 0, 6.3); c.stroke(); c.beginPath(); c.arc(px, py, R + 8, -Math.PI / 2, -Math.PI / 2 + st.fill * Math.PI * 2); c.strokeStyle = '#5dff9a'; c.lineWidth = 6; c.stroke();
+          c.lineWidth = 2; c.strokeStyle = on ? '#5dff9a' : 'rgba(255,255,255,0.7)'; for (const [ax, ay] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { c.beginPath(); c.moveTo(px + ax * R * 0.55, py + ay * R * 0.55); c.lineTo(px + ax * (R + 16), py + ay * (R + 16)); c.stroke(); }
+          endScreen(scr);
+          text('Keep the ring on it', ctl.x + ctl.w / 2, ctl.y + 16, `600 17px system-ui, sans-serif`, '#d6e2ee'); text('drag on the screen', ctl.x + ctl.w / 2, ctl.y + 40, `400 13px system-ui, sans-serif`, '#7f93a6');
+          bar(ctl.x + 20, ctl.y + 62, ctl.w - 40, 22, st.fill, '#5dff9a', 'LOCK ' + Math.round(st.fill * 100) + '%'); bar(ctl.x + 20, ctl.y + 94, ctl.w - 40, 8, 1 - st.t / 16, '#5f7386');
+          if (st.fill >= 1) next(1 - (st.t - 1.5) / 14); else if (st.t > 16) fail();
+        } else if (stage === 'tune') {
+          st.tx += (0.5 - st.tx) * dt * 3; st.ty += (0.36 - st.ty) * dt * 3; drawKin(1);
+          // its signal drifts, and a restless one jumps
+          st.jump -= dt; if (st.jump <= 0) { st.jump = 2.8 - 1.7 * d + Math.random(); st.ft = U.clamp(st.ft + (Math.random() - 0.5) * 0.7 * (0.3 + d), 0.08, 0.92); }
+          st.ft = U.clamp(st.ft + Math.sin(now / 700 + st.ph) * dt * 0.05 * (0.3 + d), 0.08, 0.92);
+          if (A) st.fp += (st.ft - st.fp) * Math.min(1, dt * 6); else if (ptr.down) { st.fp = U.clamp(st.fp + ptr.dx / (ctl.w * 0.9), 0, 1); } ptr.dx = 0;
+          const tol = 0.075 - 0.03 * d, on = Math.abs(st.fp - st.ft) < tol; if (live) st.fill = U.clamp(st.fill + (on ? dt / 1.5 : -dt * 0.4), 0, 1);
+          const wy = scr.y + scr.h * 0.78, amp = scr.h * 0.09, wave = (f, colr, lw, ph) => { c.beginPath(); for (let x = 0; x <= scr.w; x += 4) { const y = wy + Math.sin(x / scr.w * (4 + f * 22) + ph) * amp; x ? c.lineTo(scr.x + x, y) : c.moveTo(scr.x + x, y); } c.strokeStyle = colr; c.lineWidth = lw; c.stroke(); };
+          wave(st.ft, col, 5, now / 250); wave(st.fp, on ? '#5dff9a' : '#ffffff', 2.5, now / 250);
+          endScreen(scr);
+          text('Match its signal', ctl.x + ctl.w / 2, ctl.y + 16, `600 17px system-ui, sans-serif`, '#d6e2ee'); text('slide left and right', ctl.x + ctl.w / 2, ctl.y + 40, `400 13px system-ui, sans-serif`, '#7f93a6');
+          const dx = ctl.x + 20, dw = ctl.w - 40, dy = ctl.y + 62; rr(dx, dy, dw, 26, 13); c.fillStyle = '#0a0e13'; c.fill(); c.fillStyle = col; c.globalAlpha = 0.5; c.fillRect(dx + dw * (st.ft - tol), dy + 3, dw * tol * 2, 20); c.globalAlpha = 1; c.fillStyle = on ? '#5dff9a' : '#fff'; rr(dx + dw * st.fp - 5, dy - 4, 10, 34, 4); c.fill();
+          bar(dx, dy + 40, dw, 18, st.fill, '#5dff9a', 'TUNED ' + Math.round(st.fill * 100) + '%'); bar(dx, dy + 66, dw, 8, 1 - st.t / 16, '#5f7386');
+          if (st.fill >= 1) next(1 - (st.t - 1.5) / 14); else if (st.t > 16) fail();
+        } else {
+          st.tx += (0.5 - st.tx) * dt * 3; st.ty += (0.3 + 0.3 * st.prog - st.ty) * dt * 3;
+          // it surges: a warning, then it heaves, and the beam will not take a pull through that
+          st.sT -= dt; if (live && st.sT <= 0) { if (st.mode === 'calm') { st.mode = 'warn'; st.sT = 0.5; } else if (st.mode === 'warn') { st.mode = 'surge'; st.sT = 0.7 + 0.6 * d; } else { st.mode = 'calm'; st.sT = 1.9 - 0.9 * d + Math.random() * 0.8; } }
+          const hold = A ? st.mode === 'calm' : ptr.down;
+          if (live) { if (hold) { st.prog += dt / (2.2 + 2.6 * d); if (st.mode === 'surge') st.tens += dt * 1.7; else st.tens -= dt * 0.25; } else { st.tens -= dt * 0.9; if (st.mode !== 'surge') st.prog -= dt * 0.1; } }
+          st.prog = U.clamp(st.prog, 0, 1); st.tens = U.clamp(st.tens, 0, 1); st.maxTens = Math.max(st.maxTens, st.tens);
+          const bc = st.mode === 'surge' ? '#ff5a5a' : st.mode === 'warn' ? '#ffb84a' : col, bxm = scr.x + scr.w / 2, bym = scr.y + scr.h;
+          const shake = st.mode === 'surge' ? Math.sin(now / 18) * 5 : 0;
+          c.save(); c.globalAlpha = 0.25 + (hold ? 0.35 : 0); c.fillStyle = bc; c.beginPath(); c.moveTo(bxm - 16, bym); c.lineTo(kx - ks * 0.32 + shake, ky); c.lineTo(kx + ks * 0.32 + shake, ky); c.lineTo(bxm + 16, bym); c.closePath(); c.fill(); c.restore();
+          if (hold) for (let i = 0; i < 14; i++) { const u = ((now / 500 + i / 14) % 1); c.fillStyle = i % 2 ? '#fff' : bc; c.fillRect(kx + (bxm - kx) * u + Math.sin(i * 9 + now / 90) * 14 * (1 - u), ky + (bym - ky) * u, 3, 3); }
+          c.save(); c.translate(shake, 0); drawKin(1 - st.prog * 0.55, 1 - st.prog * 0.35); c.restore();
+          if (st.mode === 'warn') text('!', kx, ky - ks * 0.4, `800 34px ${MONO}`, '#ffb84a', 'center', '#ffb84a'); if (st.mode === 'surge') text('LET GO', scr.x + scr.w / 2, scr.y + scr.h * 0.12, `800 22px ${MONO}`, '#ff6a6a', 'center', '#ff5a5a');
+          endScreen(scr);
+          text(st.mode === 'surge' ? 'It is surging: let go!' : 'Hold to draw it in', ctl.x + ctl.w / 2, ctl.y + 16, `600 17px system-ui, sans-serif`, st.mode === 'surge' ? '#ff8a8a' : '#d6e2ee');
+          bar(ctl.x + 20, ctl.y + 36, ctl.w - 40, 22, st.prog, '#5dff9a', 'DRAWN IN ' + Math.round(st.prog * 100) + '%'); bar(ctl.x + 20, ctl.y + 66, ctl.w - 40, 16, st.tens, '#ff5a5a', 'STRAIN');
+          const by2 = ctl.y + 96, bh2 = Math.max(44, Math.min(90, ctl.h - 104)); rr(ctl.x + 20, by2, ctl.w - 40, bh2, 16); const gg = c.createLinearGradient(0, by2, 0, by2 + bh2); gg.addColorStop(0, hold ? '#1f6a45' : '#3a4753'); gg.addColorStop(1, hold ? '#134a2f' : '#232c35'); c.fillStyle = gg; c.fill(); c.lineWidth = 2; c.strokeStyle = hold ? '#5dff9a' : '#5d6b7a'; c.stroke(); text(hold ? 'PULLING' : 'HOLD', ctl.x + ctl.w / 2, by2 + bh2 / 2, `800 20px ${MONO}`, '#fff');
+          if (st.tens >= 1) fail(); else if (st.prog >= 1) next(1 - st.maxTens * 0.8); else if (st.t > 40) fail();
+        }
+        if (st.intro > 0) { c.fillStyle = `rgba(0,0,0,${Math.min(0.6, st.intro)})`; c.fillRect(scr.x, scr.y, scr.w, scr.h); text(stage.toUpperCase(), scr.x + scr.w / 2, scr.y + scr.h / 2, `800 40px ${MONO}`, '#ffd35a', 'center', '#ffd35a'); }
+      } };
+      show();
+    });
+  }
+  /* after the fight has said whether it held. Held: the cartridge comes up out of the slot, and can be looked at. Not held: the device says so and closes */
+  function result(ok, k, msg) {
+    return new Promise((done) => {
+      if (!ok) { let t = 0; S = { frame(dt, now) { t += dt; const L = body(now, ['off', 'off', 'fail'], 0, null), scr = L.scr; viewfinder(scr, '#ff5a5a', now); c.fillStyle = 'rgba(255,60,60,0.18)'; c.fillRect(scr.x, scr.y, scr.w, scr.h); text('IT SHOOK FREE', scr.x + scr.w / 2, scr.y + scr.h * 0.45, `800 24px ${MONO}`, '#ff6a6a', 'center', '#ff5a5a'); text(msg || '', scr.x + scr.w / 2, scr.y + scr.h * 0.58, `400 14px system-ui, sans-serif`, '#d6e2ee'); endScreen(scr); if (t > 1.3 || auto()) { hide(); done(); } } }; show(); return; }
+      view(k, { eject: true }).then(done);
+    });
+  }
+  /* a cartridge, big, with its Kin alive on the screen. Drag (or tip the phone) to move the light across it */
+  function view(k, o = {}) {
+    return new Promise((done) => {
+      const shellCv = document.createElement('canvas'), cart = document.createElement('canvas'); cart.width = Cards.W; cart.height = Cards.H; const cc = cart.getContext('2d');
+      let bg = null, t = 0, tilt = 0.45, lastDraw = -1, lastTilt = -1, closing = false;
+      const build = () => { Cards.casing(shellCv, k, { tilt }); bg = Cards.screenBack(k, { tilt }); lastTilt = tilt; };
+      Cards.preload(Object.values(Cards.BG).concat(Object.values(Cards.OWN))).then(() => { try { build(); } catch (e) { console.error(e); } });
+      try { build(); } catch (e) { console.error(e); }
+      S = { tiltIn: null, tap(x, y) { if (t > (o.eject ? 1.6 : 0.3) && y > H - 84) closing = true; }, frame(dt, now) {
+        t += dt; if (ptr.down && ptr.y < H - 84) { tilt = U.clamp(tilt + ptr.dx / 300, 0, 1); } ptr.dx = 0; if (S.tiltIn != null && !ptr.down) tilt += (S.tiltIn - tilt) * Math.min(1, dt * 5);
+        if (Math.abs(tilt - lastTilt) > 0.04 && (k.card && k.card.finish && k.card.finish !== 'normal')) { try { bg = Cards.screenBack(k, { tilt }); lastTilt = tilt; } catch (_) {} }
+        if (now - lastDraw > 80) { lastDraw = now; cc.clearRect(0, 0, cart.width, cart.height); cc.drawImage(shellCv, 0, 0); try { Cards.screen(cc, k, { tilt, now, live: true }, bg); } catch (e) { if (!S.err) { S.err = 1; console.error(e); } } }
+        const u = o.eject ? U.clamp((t - 0.25) / 1.1, 0, 1) : 1, e = 1 - Math.pow(1 - u, 3);
+        const ch = Math.min(H - 150, (W - 36) * Cards.H / Cards.W), cw = ch * Cards.W / Cards.H, cx = (W - cw) / 2, cyEnd = (H - 84 - ch) / 2 + 6;
+        if (o.eject && u < 1) { const sc = 0.6, w2 = cw * sc, h2 = ch * sc, off = e * h2 * 0.92; c.clearRect(0, 0, W, H); c.fillStyle = 'rgba(4,7,10,0.96)'; c.fillRect(0, 0, W, H); c.save(); c.translate(0, off); /* the device sinks as the cartridge comes up out of it */ const L = body(now, ['done', 'done', 'done'], 3, '#5dff9a'); const sy = L.by + 18; c.save(); c.beginPath(); c.rect(0, -off, W, off + sy + 2); c.clip(); c.drawImage(cart, (W - w2) / 2, sy - h2 * e, w2, h2); c.restore(); text('CARTRIDGE WRITTEN', L.scr.x + L.scr.w / 2, L.scr.y + L.scr.h / 2, `800 20px ${MONO}`, '#5dff9a', 'center', '#5dff9a'); c.restore(); }
+        else { c.clearRect(0, 0, W, H); c.fillStyle = 'rgba(4,7,10,0.96)'; c.fillRect(0, 0, W, H); const a = o.eject ? U.clamp((t - 1.35) / 0.4, 0, 1) : U.clamp(t / 0.25, 0, 1), rot = (tilt - 0.5) * 0.10;
+          c.save(); c.globalAlpha = a; c.translate(W / 2, cyEnd + ch / 2 + (1 - a) * -40); c.rotate(rot * 0.3); c.transform(1, 0, rot * 0.5, 1, 0, 0); c.shadowColor = 'rgba(0,0,0,0.7)'; c.shadowBlur = 30; c.shadowOffsetY = 12; c.drawImage(cart, -cw / 2, -ch / 2, cw, ch); c.restore();
+          const bw = Math.min(260, W - 60); rr((W - bw) / 2, H - 66, bw, 46, 14); c.fillStyle = '#2b3743'; c.fill(); c.strokeStyle = '#6d7f91'; c.lineWidth = 2; c.stroke(); text(o.eject ? 'Keep it' : 'Close', W / 2, H - 43, `700 17px system-ui, sans-serif`, '#fff'); if (t < 6) text('drag to catch the light', W / 2, H - 80, `400 12px system-ui, sans-serif`, '#7f93a6'); }
+        if (closing || (auto() && t > (window.__deviceHold || 2.2))) { hide(); done(); }
+      } };
+      show();
+    });
+  }
+  return { capture, result, view, get open() { return !!S; } };
+})();
+
+</script>
+<script>
+'use strict';
 // HUD, panels (Kin, Fusion, Craft, Quests, Menu), start screen, toasts and tiny synth sounds.
 const UI = (() => {
   let G = null; const el = {};
@@ -19583,13 +20070,14 @@ const UI = (() => {
     <h4>Gear</h4><div class="small">${['weapon', 'armor', 'charm'].map(slot => { const it = k.equip && k.equip[slot]; return `<span class="chip" ${it ? `data-uneq="${slot}" style="${Icons.style(it)}"` : 'style="opacity:.6"'}>${slot}: ${it ? ITEMS[it].name + (ITEMS[it].relic ? ' ' + Math.round(Relics.cond(it) * 100) + '%' : '') + ' ✕' : 'none'}</span>`; }).join(' ')}</div>
     ${(() => { const have = [...G.player.inv.keys()].filter(x => ITEMS[x] && ITEMS[x].kinGear); return have.length ? `<div class="usebar">${have.map(x => `<button class="btn ghost" data-equip="${x}">Put on ${ITEMS[x].name} ×${G.player.count(x)}</button>`).join('')}</div>` : '<div class="small">Craft Kin gear under Craft › Kin gear, then put it on here.</div>'; })()}
     ${['tonic_revive', 'tonic_heal', 'tonic_vigor', 'tonic_might', 'tonic_swift'].some(t => G.player.has(t)) ? `<h4>Tonics</h4><div class="usebar">${['tonic_revive', 'tonic_heal', 'tonic_vigor', 'tonic_might', 'tonic_swift'].filter(t => G.player.has(t)).map(t => `<button class="btn ghost" data-tonic="${t}">${ITEMS[t].name} ×${G.player.count(t)}</button>`).join('')}</div>` : ''}
-    <div class="row"><button class="btn" id="d-active" ${k === G.activeKin() || k.hp <= 0 ? 'disabled' : ''}>Make lead</button><button class="btn ghost" id="d-rename">Rename</button>${Village.active && G.villageState[Village.active.id] && G.villageState[Village.active.id].freed ? `<button class="btn ghost" id="d-guard" ${k.hp <= 0 ? 'disabled' : ''}>Station as guard</button>` : ''}<button class="btn ghost" id="d-back">Back</button></div>`;
+    <div class="row"><button class="btn" id="d-active" ${k === G.activeKin() || k.hp <= 0 ? 'disabled' : ''}>Make lead</button><button class="btn ghost" id="d-rename">Rename</button><button class="btn ghost" id="d-cart">Cartridge</button>${Village.active && G.villageState[Village.active.id] && G.villageState[Village.active.id].freed ? `<button class="btn ghost" id="d-guard" ${k.hp <= 0 ? 'disabled' : ''}>Station as guard</button>` : ''}<button class="btn ghost" id="d-back">Back</button></div>`;
     drawPortraits(el['panel-body']);
     q('d-active').addEventListener('click', () => { G.setActive(k); renderDetail(k); });
     el['panel-body'].querySelectorAll('[data-tonic]').forEach(b => b.addEventListener('click', () => { G.useTonic(b.dataset.tonic, k); renderDetail(k); }));
     el['panel-body'].querySelectorAll('[data-equip]').forEach(b => b.addEventListener('click', () => { if (G.equipKin(k, b.dataset.equip)) renderDetail(k); }));
     el['panel-body'].querySelectorAll('[data-uneq]').forEach(b => b.addEventListener('click', () => { if (G.unequipKin(k, b.dataset.uneq)) renderDetail(k); }));
     q('d-back').addEventListener('click', () => openPanel('kin'));
+    q('d-cart').addEventListener('click', () => { if (typeof Device !== 'undefined') Device.view(k); });
     const dg = q('d-guard'); if (dg) dg.addEventListener('click', () => { if (G.stationGuard(k)) openPanel('village', Village.active); });
     q('d-rename').addEventListener('click', () => {
       const box = document.createElement('div'); box.className = 'row'; box.innerHTML = `<input id="d-name" maxlength="14" value="${KIN.name(k)}"><button class="btn" id="d-ok">OK</button>`;

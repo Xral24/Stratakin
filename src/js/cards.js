@@ -141,10 +141,38 @@ const Cards = (() => {
       c.globalAlpha = 0.9; const mx = x + w * 0.22, my = y + h * 0.16, mg = c.createRadialGradient(mx, my, 4, mx, my, 70); mg.addColorStop(0, 'rgba(230,240,255,0.9)'); mg.addColorStop(0.25, 'rgba(200,215,255,0.35)'); mg.addColorStop(1, 'rgba(0,0,0,0)'); c.fillStyle = mg; c.fillRect(x, y, w, h); c.fillStyle = '#eef3ff'; c.beginPath(); c.arc(mx, my, 16, 0, 6.3); c.fill(); c.restore(); }
   }
 
+  /* the picture: the scene (or the Kin's own painting) and the Kin standing in it. opts.noKin draws only what is behind, opts.kinOnly only the Kin, opts.live draws it small and quick for a screen that moves */
+  function art(c, k, opts, ax, ay, aw, ah, X) {
+    const { seed, e0, ec, fin, tilt, time } = X;
+    const own = ownArt(k), oim = own && img(own);
+    if (oim) { if (opts.kinOnly) return; const s = Math.max(aw / oim.naturalWidth, ah / oim.naturalHeight), iw = oim.naturalWidth * s, ih = oim.naturalHeight * s; c.drawImage(oim, ax + (aw - iw) * (opts.fx != null ? opts.fx : 0.7), ay, iw, ih); } // own paintings keep their top: the head is up there
+    else {
+      const PR = rng(seed * 2654435761 + 17), scene = opts.scene || k.scene || bgKey(k, e0, PR), flip = PR() < 0.5, zoomBg = 1 + PR() * 0.35, panX = PR(), panY = PR() * 0.5;
+      const abstract = !opts.scene && !k.scene && !(k.sp.dino || k.sp.home === 'lost') && PR() < 0.35, bim = abstract ? null : img(BG[scene]);
+      if (!opts.kinOnly) {
+      if (abstract) { aura(c, ax, ay, aw, ah, PR() < 0.5 ? 'swirl' : 'rays', ec, PR); if (fin.art === 'holo') holoFoil(c, ax, ay, aw, ah, seed, tilt, 0.85); else if (fin.art === 'secret') { secretFoil(c, ax, ay, aw, ah, seed, tilt); secretFoil(c, ax, ay, aw, ah, seed + 1, tilt); } }
+      else if (bim) { c.save(); if (flip) { c.translate(ax * 2 + aw, 0); c.scale(-1, 1); } const sc = Math.max(aw / bim.naturalWidth, ah / bim.naturalHeight) * zoomBg, iw = bim.naturalWidth * sc, ih = bim.naturalHeight * sc; c.drawImage(bim, ax + (aw - iw) * panX, ay + (ah - ih) * (0.3 + panY), iw, ih); c.restore(); grade(c, ax, ay, aw, ah, time, seed); if (fin.art === 'holo') holoFoil(c, ax, ay, aw, ah, seed, tilt, 0.85); else if (fin.art === 'secret') { secretFoil(c, ax, ay, aw, ah, seed, tilt); secretFoil(c, ax, ay, aw, ah, seed + 1, tilt); } } else { /* the scene behind is printed on foil, the Kin in front of it is not, so it stands out of the shine */ const bg = c.createRadialGradient((ax + aw / 2), ay + ah * 0.6, 40, (ax + aw / 2), ay + ah * 0.5, aw); bg.addColorStop(0, ec); bg.addColorStop(1, '#0c1016'); c.fillStyle = bg; c.fillRect(ax, ay, aw, ah); }
+      const fog = c.createLinearGradient(0, ay, 0, ay + ah); fog.addColorStop(0, 'rgba(255,255,255,0)'); fog.addColorStop(0.55, 'rgba(255,255,255,0.12)'); fog.addColorStop(1, 'rgba(0,0,0,0.25)'); c.fillStyle = fog; c.fillRect(ax, ay, aw, ah); // a little air between the scene and the Kin
+      const sh = c.createRadialGradient((ax + aw / 2), ay + ah * 0.88, 10, (ax + aw / 2), ay + ah * 0.88, aw * 0.4); sh.addColorStop(0, 'rgba(0,0,0,0.5)'); sh.addColorStop(1, 'rgba(0,0,0,0)'); c.fillStyle = sh; c.fillRect(ax, ay + ah * 0.68, aw, ah * 0.32);
+      }
+      if (opts.noKin) return; const PK = rng(seed * 40503 + 99);
+      const skinId = opts.skin || k.skin || 'plain', sk = SKINS[skinId], spx = sk ? Object.assign({}, k.sp, { colors: skinColors(k.sp.colors, sk) }) : k.sp;
+      const pc = document.createElement('canvas'), m = KIN.model(spx, k.stage);
+      const mesh = R.entityMesh('card:' + KIN.meshKey(k.sp, k.stage) + ':' + skinId, (mb) => KIN.buildMesh(mb, m));
+      /* how it stands on this card: turned one way or the other, a little nearer or further, off to one side */
+      const YAWS = [-0.62, -0.35, -0.95, -1.35, 0.62, 0.35, 0.95], yaw = opts.yaw != null ? opts.yaw : YAWS[Math.floor(PK() * YAWS.length)], pitch = -0.08 - PK() * 0.22, size = 0.92 + PK() * 0.22, shift = (PK() - 0.5) * 0.16;
+      const PN = Object.keys(POSES), poseId = opts.pose || k.pose || PN[Math.floor(PK() * PN.length)], P = POSES[poseId] || {}; const anim = Object.assign({ ph: 0, mv: 0, air: 0, seed: 0, lt: 0 }, P);
+      if (P.air && !(m.flyer || (k.sp.feat || {}).wings)) anim.air = 0;
+      if (R.renderPortrait(pc, mesh, m, opts.live ? 110 : 320, { yaw, pitch, anim })) { // a rim of the element's light round the Kin, then the Kin
+        const S = ah * 1.06 * size, px = ax + (aw - S) / 2 + shift * aw, py = ay + ah - S * 0.98; if (!opts.live) { c.save(); c.shadowColor = ec; c.shadowBlur = 28; c.drawImage(pc, px, py, S, S); c.restore(); } c.drawImage(pc, px, py, S, S); }
+    }
+    if (oim) { if (fin.art === 'holo') holoFoil(c, ax, ay, aw, ah, seed, tilt, 0.32); else if (fin.art === 'secret') secretFoil(c, ax, ay, aw, ah, seed, tilt); } /* a painting has no separate background, so its foil is kept light or it drowns the colours */
+  }
   /* eight digits printed in the corner, as on a real card: the same for every card of one kind of Kin, so a code is enough to tell which it is */
   function passcode(k) { let h = (k.sp.seed >>> 0) ^ 0x5bd1e995; h = Math.imul(h ^ (h >>> 15), 0x2c1b3c6d) >>> 0; return 10000000 + (h % 90000000); }
   /* draws the card for Kin k onto canvas cv (750 x 1050). opts.where: a line saying where it was caught. opts.tilt: where the holo shine sits, 0 to 1 */
   function draw(cv, k, opts = {}) {
+    opts = Object.assign({}, k.card, opts);
     cv.width = W; cv.height = H; const c = cv.getContext('2d');
     const rar = U.clamp(k.sp.rarity || 0, 0, 4), M = METAL[rar], fin = FINISH[opts.finish || k.finish || (k.holo ? 'ultra' : 'normal')] || FINISH.normal, holo = !!fin.art, shiny = !!k.shiny, tilt = opts.tilt != null ? opts.tilt : 0.45, time = opts.time || k.time || 'day';
     const seed = (k.id || 1) >>> 0;
@@ -167,26 +195,7 @@ const Cards = (() => {
     const ax = 58, ay = 132, aw = W - 116, ah = 500;
     rr(c, ax - 8, ay - 8, aw + 16, ah + 16, 12); c.fillStyle = 'rgba(0,0,0,0.55)'; c.fill(); bevel(c, ax - 8, ay - 8, aw + 16, ah + 16, 12, 4, 'rgba(0,0,0,0.6)', 'rgba(255,255,255,0.6)');
     c.save(); rr(c, ax, ay, aw, ah, 6); c.clip();
-    const own = ownArt(k), oim = own && img(own);
-    if (oim) { const s = Math.max(aw / oim.naturalWidth, ah / oim.naturalHeight), iw = oim.naturalWidth * s, ih = oim.naturalHeight * s; c.drawImage(oim, ax + (aw - iw) * (opts.fx != null ? opts.fx : 0.7), ay, iw, ih); } // own paintings keep their top: the head is up there
-    else {
-      const PR = rng(seed * 2654435761 + 17), scene = opts.scene || k.scene || bgKey(k, e0, PR), flip = PR() < 0.5, zoomBg = 1 + PR() * 0.35, panX = PR(), panY = PR() * 0.5;
-      const abstract = !opts.scene && !k.scene && !(k.sp.dino || k.sp.home === 'lost') && PR() < 0.35, bim = abstract ? null : img(BG[scene]);
-      if (abstract) { aura(c, ax, ay, aw, ah, PR() < 0.5 ? 'swirl' : 'rays', ec, PR); if (fin.art === 'holo') holoFoil(c, ax, ay, aw, ah, seed, tilt, 0.85); else if (fin.art === 'secret') { secretFoil(c, ax, ay, aw, ah, seed, tilt); secretFoil(c, ax, ay, aw, ah, seed + 1, tilt); } }
-      else if (bim) { c.save(); if (flip) { c.translate(ax * 2 + aw, 0); c.scale(-1, 1); } const sc = Math.max(aw / bim.naturalWidth, ah / bim.naturalHeight) * zoomBg, iw = bim.naturalWidth * sc, ih = bim.naturalHeight * sc; c.drawImage(bim, ax + (aw - iw) * panX, ay + (ah - ih) * (0.3 + panY), iw, ih); c.restore(); grade(c, ax, ay, aw, ah, time, seed); if (fin.art === 'holo') holoFoil(c, ax, ay, aw, ah, seed, tilt, 0.85); else if (fin.art === 'secret') { secretFoil(c, ax, ay, aw, ah, seed, tilt); secretFoil(c, ax, ay, aw, ah, seed + 1, tilt); } } else { /* the scene behind is printed on foil, the Kin in front of it is not, so it stands out of the shine */ const bg = c.createRadialGradient(W / 2, ay + ah * 0.6, 40, W / 2, ay + ah * 0.5, aw); bg.addColorStop(0, ec); bg.addColorStop(1, '#0c1016'); c.fillStyle = bg; c.fillRect(ax, ay, aw, ah); }
-      const fog = c.createLinearGradient(0, ay, 0, ay + ah); fog.addColorStop(0, 'rgba(255,255,255,0)'); fog.addColorStop(0.55, 'rgba(255,255,255,0.12)'); fog.addColorStop(1, 'rgba(0,0,0,0.25)'); c.fillStyle = fog; c.fillRect(ax, ay, aw, ah); // a little air between the scene and the Kin
-      const sh = c.createRadialGradient(W / 2, ay + ah * 0.88, 10, W / 2, ay + ah * 0.88, aw * 0.4); sh.addColorStop(0, 'rgba(0,0,0,0.5)'); sh.addColorStop(1, 'rgba(0,0,0,0)'); c.fillStyle = sh; c.fillRect(ax, ay + ah * 0.68, aw, ah * 0.32);
-      const skinId = opts.skin || k.skin || 'plain', sk = SKINS[skinId], spx = sk ? Object.assign({}, k.sp, { colors: skinColors(k.sp.colors, sk) }) : k.sp;
-      const pc = document.createElement('canvas'), m = KIN.model(spx, k.stage);
-      const mesh = R.entityMesh('card:' + KIN.meshKey(k.sp, k.stage) + ':' + skinId, (mb) => KIN.buildMesh(mb, m));
-      /* how it stands on this card: turned one way or the other, a little nearer or further, off to one side */
-      const YAWS = [-0.62, -0.35, -0.95, -1.35, 0.62, 0.35, 0.95], yaw = opts.yaw != null ? opts.yaw : YAWS[Math.floor(PR() * YAWS.length)], pitch = -0.08 - PR() * 0.22, size = 0.92 + PR() * 0.22, shift = (PR() - 0.5) * 0.16;
-      const PN = Object.keys(POSES), poseId = opts.pose || k.pose || PN[Math.floor(PR() * PN.length)], P = POSES[poseId] || {}; const anim = Object.assign({ ph: 0, mv: 0, air: 0, seed: 0, lt: 0 }, P);
-      if (P.air && !(m.flyer || (k.sp.feat || {}).wings)) anim.air = 0;
-      if (R.renderPortrait(pc, mesh, m, 320, { yaw, pitch, anim })) { // a rim of the element's light round the Kin, then the Kin
-        const S = ah * 1.06 * size, px = ax + (aw - S) / 2 + shift * aw, py = ay + ah - S * 0.98; c.save(); c.shadowColor = ec; c.shadowBlur = 28; c.drawImage(pc, px, py, S, S); c.restore(); c.drawImage(pc, px, py, S, S); }
-    }
-    if (oim) { if (fin.art === 'holo') holoFoil(c, ax, ay, aw, ah, seed, tilt, 0.32); else if (fin.art === 'secret') secretFoil(c, ax, ay, aw, ah, seed, tilt); } /* a painting has no separate background, so its foil is kept light or it drowns the colours */
+    art(c, k, opts, ax, ay, aw, ah, { seed, e0, ec, fin, tilt, time });
     const vg = c.createRadialGradient(W / 2, ay + ah / 2, ah * 0.4, W / 2, ay + ah / 2, ah * 0.9); vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,0.3)'); c.fillStyle = vg; c.fillRect(ax, ay, aw, ah);
     c.restore(); c.lineWidth = 2; c.strokeStyle = M.trim; rr(c, ax, ay, aw, ah, 6); c.stroke();
     // under the art, as on a real card: the edition on the left, the set code on the right
@@ -215,5 +224,81 @@ const Cards = (() => {
     c.save(); rr(c, 0, 0, W, H, 34); c.clip(); const gl = c.createLinearGradient(0, 0, W, H); gl.addColorStop(0, 'rgba(255,255,255,0.18)'); gl.addColorStop(0.35, 'rgba(255,255,255,0)'); gl.addColorStop(1, 'rgba(0,0,0,0.12)'); c.fillStyle = gl; c.fillRect(0, 0, W, H); c.restore();
     return cv;
   }
-  return { W, H, draw, preload, BG, OWN, FINISH, SKINS, SCENES, POSES, passcode };
+
+  /* ---------- the cartridge: the same card as a piece of hardware. A metal casing with a cut corner, a screen with the Kin alive on it, a readout, and contacts along the bottom ---------- */
+  const MONO = 'ui-monospace, "SF Mono", Menlo, Consolas, monospace';
+  const SCR = { x: 64, y: 146, w: 622, h: 520 };
+  function cartCtx(k, opts) { const rar = U.clamp(k.sp.rarity || 0, 0, 4), fin = FINISH[opts.finish || (k.holo ? 'ultra' : 'normal')] || FINISH.normal, seed = (k.id || 1) >>> 0;
+    const elems = k.sp.elem.map((w, i) => ({ e: KIN.E[i], w })).filter(x => x.w > 0.12).sort((a, b) => b.w - a.w).slice(0, 2), e0 = elems[0] ? elems[0].e : 'Stone';
+    return { rar, M: METAL[rar], fin, seed, elems, e0, ec: ELEM_COL[e0] || '#888', tilt: opts.tilt != null ? opts.tilt : 0.45, time: opts.time || 'day' }; }
+  function shell(c) { const r = 30, cut = 74; c.beginPath(); c.moveTo(r, 0); c.lineTo(W - cut, 0); c.lineTo(W, cut); c.lineTo(W, H - r); c.arcTo(W, H, W - r, H, r); c.lineTo(r, H); c.arcTo(0, H, 0, H - r, r); c.lineTo(0, r); c.arcTo(0, 0, r, 0, r); c.closePath(); }
+  function lcd(c, x, y, w, h, r, tint) { rr(c, x, y, w, h, r); const g = c.createLinearGradient(0, y, 0, y + h); g.addColorStop(0, '#05080c'); g.addColorStop(1, '#0d141c'); c.fillStyle = g; c.fill(); c.save(); rr(c, x, y, w, h, r); c.clip(); const gl = c.createRadialGradient(x + w / 2, y + h / 2, 10, x + w / 2, y + h / 2, w * 0.7); gl.addColorStop(0, tint); gl.addColorStop(1, 'rgba(0,0,0,0)'); c.globalAlpha = 0.16; c.fillStyle = gl; c.fillRect(x, y, w, h); c.globalAlpha = 0.12; c.fillStyle = '#000'; for (let yy = y; yy < y + h; yy += 4) c.fillRect(x, yy, w, 1.5); c.restore(); c.lineWidth = 3; c.strokeStyle = 'rgba(0,0,0,0.8)'; rr(c, x, y, w, h, r); c.stroke(); c.lineWidth = 1.5; c.strokeStyle = 'rgba(255,255,255,0.25)'; rr(c, x + 2, y + 2, w - 4, h - 4, r); c.stroke(); }
+  function glow(c, text, x, y, col, font) { c.font = font; c.save(); c.shadowColor = col; c.shadowBlur = 12; c.fillStyle = col; c.fillText(text, x, y); c.restore(); c.fillStyle = '#ffffff'; c.globalAlpha = 0.55; c.fillText(text, x, y); c.globalAlpha = 1; }
+  function screw(c, x, y) { c.beginPath(); c.arc(x, y, 9, 0, 6.3); const g = c.createRadialGradient(x - 3, y - 3, 1, x, y, 9); g.addColorStop(0, '#f2f2f2'); g.addColorStop(1, '#4a4f57'); c.fillStyle = g; c.fill(); c.strokeStyle = 'rgba(0,0,0,0.6)'; c.lineWidth = 1.5; c.stroke(); c.beginPath(); c.moveTo(x - 5, y - 3); c.lineTo(x + 5, y + 3); c.moveTo(x - 3, y + 5); c.lineTo(x + 3, y - 5); c.lineWidth = 2; c.stroke(); }
+  /* everything but the picture on the screen: drawn once and kept */
+  function casing(cv, k, opts = {}) {
+    opts = Object.assign({}, k.card, opts); cv.width = W; cv.height = H; const c = cv.getContext('2d'), X = cartCtx(k, opts), { M, rar, fin, seed, elems, ec } = X;
+    c.clearRect(0, 0, W, H); shell(c); metal(c, 0, 0, W, H, M, 30);
+    c.save(); shell(c); c.clip(); c.lineWidth = 12; const eg = c.createLinearGradient(0, 0, W, H); eg.addColorStop(0, 'rgba(255,255,255,0.7)'); eg.addColorStop(0.5, 'rgba(255,255,255,0.05)'); eg.addColorStop(1, 'rgba(0,0,0,0.6)'); c.strokeStyle = eg; shell(c); c.stroke();
+    // grip ridges down both sides, and a parting line where the two halves of the shell meet
+    for (const gx of [10, W - 30]) for (let gy = 700; gy < 930; gy += 14) { c.fillStyle = 'rgba(0,0,0,0.4)'; c.fillRect(gx, gy, 20, 6); c.fillStyle = 'rgba(255,255,255,0.35)'; c.fillRect(gx, gy + 6, 20, 2); }
+    c.strokeStyle = 'rgba(0,0,0,0.35)'; c.lineWidth = 2; c.beginPath(); c.moveTo(0, 946); c.lineTo(W, 946); c.stroke(); c.strokeStyle = 'rgba(255,255,255,0.3)'; c.beginPath(); c.moveTo(0, 948); c.lineTo(W, 948); c.stroke();
+    c.restore();
+    screw(c, 30, 30); screw(c, 30, H - 82); screw(c, W - 30, H - 82);
+    // the cut corner: which way it goes in
+    c.save(); c.translate(W - 46, 46); c.rotate(Math.PI / 4); c.fillStyle = M.ink; c.globalAlpha = 0.7; c.beginPath(); c.moveTo(0, -18); c.lineTo(12, 0); c.lineTo(-12, 0); c.closePath(); c.fill(); c.restore();
+    // the label: a strip of dark glass with the name lit in it
+    lcd(c, 56, 40, 566, 84, 12, ec); c.textBaseline = 'middle'; c.textAlign = 'left';
+    const nm = KIN.name(k).replace('✦ ', '').toUpperCase(), ncol = fin.foil === 'gold' ? '#ffd76a' : fin.foil === 'prism' ? '#d8f4ff' : fin.foil === 'silver' ? '#e8eef5' : hslHex(hexHsl(ec)[0], 0.9, 0.7);
+    let fs = 44; c.font = `700 ${fs}px ${MONO}`; while (c.measureText(nm).width > 380 && fs > 24) { fs -= 2; c.font = `700 ${fs}px ${MONO}`; }
+    if (fin.foil === 'prism') { const pg = c.createLinearGradient(76, 0, 460, 0); ['#ff9ac0', '#ffe39a', '#a8ffd0', '#9ae0ff', '#d0b0ff'].forEach((col, i) => pg.addColorStop(i / 4, col)); c.save(); c.shadowColor = '#ffffff'; c.shadowBlur = 14; c.fillStyle = pg; c.fillText(nm, 78, 83); c.restore(); } else glow(c, nm, 78, 83, ncol, `700 ${fs}px ${MONO}`);
+    c.textAlign = 'right'; glow(c, 'LV' + k.level, 604, 83, '#9fb4c8', `700 28px ${MONO}`);
+    // the screen's bezel
+    rr(c, SCR.x - 18, SCR.y - 18, SCR.w + 36, SCR.h + 36, 22); c.fillStyle = '#07090c'; c.fill(); bevel(c, SCR.x - 18, SCR.y - 18, SCR.w + 36, SCR.h + 36, 22, 5, 'rgba(0,0,0,0.85)', 'rgba(255,255,255,0.55)');
+    if (fin.foil) { c.lineWidth = 3; c.strokeStyle = fin.foil === 'gold' ? '#ffd76a' : fin.foil === 'silver' ? '#eef2f6' : '#c8f0ff'; rr(c, SCR.x - 7, SCR.y - 7, SCR.w + 14, SCR.h + 14, 12); c.stroke(); }
+    // status strip: lights for how rare it is, the printing, its elements
+    const sy = SCR.y + SCR.h + 30; for (let i = 0; i < 5; i++) { const on = i <= rar, lx = 66 + i * 30; c.beginPath(); c.arc(lx, sy + 20, 9, 0, 6.3); c.fillStyle = on ? (M.glow || '#bfe6c8') : '#1a1d22'; if (on) { c.save(); c.shadowColor = M.glow || '#bfe6c8'; c.shadowBlur = 14; c.fill(); c.restore(); } else c.fill(); c.lineWidth = 2; c.strokeStyle = 'rgba(0,0,0,0.6)'; c.stroke(); }
+    c.textAlign = 'left'; c.font = `700 21px ${MONO}`; engrave(c, ((SKINS[opts.skin] || {}).name ? SKINS[opts.skin].name.toUpperCase() + ' ' : '') + M.name.toUpperCase() + (fin.name ? ' / ' + fin.name.toUpperCase() : ''), 222, sy + 21, M);
+    let mx = W - 62; for (const el of elems.slice().reverse()) { medal(c, el.e, mx, sy + 20, 20); mx -= 48; }
+    // the readout
+    const ty = sy + 50, th = 168; lcd(c, 46, ty, W - 92, th, 12, ec);
+    const mv = KIN.moves(k), sig = mv.find(m => m.sig) || mv[mv.length - 1], hi = hslHex(hexHsl(ec)[0], 0.85, 0.72);
+    if (sig) { c.textAlign = 'left'; glow(c, (sig.sig ? '★ ' : '> ') + sig.name.toUpperCase(), 68, ty + 34, hi, `700 26px ${MONO}`); c.textAlign = 'right'; glow(c, String(sig.power || ''), W - 68, ty + 34, '#ffffff', `700 28px ${MONO}`);
+      c.textAlign = 'left'; c.fillStyle = '#8fa3b5'; c.font = `400 20px ${MONO}`; wrap(c, sig.desc || '', 68, ty + 68, W - 136, 25, 2); }
+    const st = KIN.stats(k), keys = [['HP', st.hp], ['ATK', st.atk], ['POW', st.pow], ['SPD', st.spd]];
+    keys.forEach(([n, v], i) => { const bx = 68 + i * ((W - 136) / 4); c.textAlign = 'left'; c.fillStyle = '#5f7386'; c.font = `700 16px ${MONO}`; c.fillText(n, bx, ty + th - 44); glow(c, String(v), bx, ty + th - 20, '#d6e6f2', `700 24px ${MONO}`); });
+    // etched into the shell: where it was caught, the edition, the serial
+    c.textAlign = 'center'; c.font = `400 19px ${MONO}`; engrave(c, (opts.where || 'CAUGHT IN THE WILD').toUpperCase().slice(0, 52), W / 2, ty + th + 22, M);
+    const setCode = (k.sp.dino ? 'LW' : 'EA') + '-' + String(((k.sp.seed >>> 0) % 997) + 1).padStart(3, '0');
+    c.font = `700 15px ${MONO}`; c.textAlign = 'left'; engrave(c, 'S/N ' + passcode(k) + (opts.first ? '  1ST EDITION' : ''), 60, 962, M); c.textAlign = 'right'; engrave(c, 'STRATAKIN  ' + setCode, W - 60, 962, M);
+    // the contacts
+    rr(c, 96, 978, W - 192, 72, 6); c.fillStyle = '#0c2a1c'; c.fill(); c.strokeStyle = 'rgba(0,0,0,0.7)'; c.lineWidth = 2; c.stroke();
+    for (let i = 0; i < 18; i++) { const px = 110 + i * ((W - 220) / 18), pw = (W - 220) / 18 - 7; const pg = c.createLinearGradient(px, 0, px + pw, 0); pg.addColorStop(0, '#8a6412'); pg.addColorStop(0.45, '#ffe59a'); pg.addColorStop(1, '#a87a1c'); c.fillStyle = pg; c.fillRect(px, 986, pw, i % 5 === 2 ? 46 : 58); }
+    return cv;
+  }
+  /* what is on the screen. bg: a canvas holding the scene, made once with screenBack */
+  function screenBack(k, opts = {}) { opts = Object.assign({}, k.card, opts); const X = cartCtx(k, opts), cv = document.createElement('canvas'); cv.width = SCR.w; cv.height = SCR.h; art(cv.getContext('2d'), k, Object.assign({}, opts, { noKin: true }), 0, 0, SCR.w, SCR.h, X); return cv; }
+  function screen(c, k, opts = {}, bg) { opts = Object.assign({}, k.card, opts); const X = cartCtx(k, opts), { x, y, w, h } = SCR, t = (opts.now || 0) / 1000;
+    c.save(); rr(c, x, y, w, h, 8); c.clip();
+    if (bg) c.drawImage(bg, x, y); else art(c, k, Object.assign({}, opts, { noKin: true }), x, y, w, h, X);
+    art(c, k, Object.assign({}, opts, { kinOnly: true }), x, y, w, h, X);
+    if (X.fin.art === 'holo') { c.save(); c.globalAlpha = 0.5; holoFoil(c, x, y, w, h, X.seed + 21, X.tilt, 0.25); c.restore(); }
+    // it is a screen: fine lines, a line that rolls down it, brackets and a little status text in the corners, light on the glass
+    c.fillStyle = 'rgba(0,0,0,0.13)'; for (let yy = y; yy < y + h; yy += 4) c.fillRect(x, yy, w, 1.4);
+    const ry = y + ((t * 60) % (h + 80)) - 40; const rg = c.createLinearGradient(0, ry, 0, ry + 40); rg.addColorStop(0, 'rgba(255,255,255,0)'); rg.addColorStop(0.5, 'rgba(255,255,255,0.07)'); rg.addColorStop(1, 'rgba(255,255,255,0)'); c.fillStyle = rg; c.fillRect(x, ry, w, 40);
+    c.strokeStyle = 'rgba(255,255,255,0.75)'; c.lineWidth = 3; const b = 26, m = 14; for (const [cx, cy, sx, sy2] of [[x + m, y + m, 1, 1], [x + w - m, y + m, -1, 1], [x + m, y + h - m, 1, -1], [x + w - m, y + h - m, -1, -1]]) { c.beginPath(); c.moveTo(cx + sx * b, cy); c.lineTo(cx, cy); c.lineTo(cx, cy + sy2 * b); c.stroke(); }
+    c.textBaseline = 'middle'; c.textAlign = 'left'; c.font = `700 17px ${MONO}`; c.fillStyle = (Math.floor(t * 1.5) % 2) ? '#ff5a5a' : 'rgba(255,90,90,0.25)'; c.beginPath(); c.arc(x + 34, y + 34, 6, 0, 6.3); c.fill(); c.fillStyle = 'rgba(255,255,255,0.85)'; c.fillText('LIVE', x + 48, y + 35);
+    c.textAlign = 'right'; c.fillText(opts.time === 'night' ? 'NIGHT' : opts.time === 'dusk' ? 'DUSK' : 'DAY', x + w - 30, y + 35);
+    for (let i = 0; i < 4; i++) { c.fillStyle = i < 1 + Math.round(2.5 + 1.4 * Math.sin(t * 2 + i)) ? 'rgba(255,255,255,0.85)' : 'rgba(255,255,255,0.25)'; c.fillRect(x + 28 + i * 9, y + h - 28 - i * 5, 6, 8 + i * 5); }
+    const gl = c.createLinearGradient(x, y, x + w, y + h); gl.addColorStop(0, 'rgba(255,255,255,0.20)'); gl.addColorStop(0.3 + X.tilt * 0.2, 'rgba(255,255,255,0.02)'); gl.addColorStop(0.5 + X.tilt * 0.2, 'rgba(255,255,255,0.10)'); gl.addColorStop(0.62 + X.tilt * 0.2, 'rgba(255,255,255,0)'); c.fillStyle = gl; c.fillRect(x, y, w, h);
+    const vg = c.createRadialGradient(x + w / 2, y + h / 2, h * 0.45, x + w / 2, y + h / 2, h * 0.95); vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,0.45)'); c.fillStyle = vg; c.fillRect(x, y, w, h);
+    c.restore(); }
+  function cartridge(cv, k, opts = {}) { casing(cv, k, opts); screen(cv.getContext('2d'), k, opts); return cv; }
+  /* a Kin by itself on a clear canvas, for the device's viewfinder */
+  function kinCanvas(k, size, o = {}) { const pc = document.createElement('canvas'), m = KIN.model(k.sp, k.stage), mesh = R.entityMesh('card:' + KIN.meshKey(k.sp, k.stage) + ':plain', (mb) => KIN.buildMesh(mb, m)); R.renderPortrait(pc, mesh, m, size || 160, { yaw: o.yaw != null ? o.yaw : -0.62, pitch: -0.15, anim: Object.assign({ ph: 0, mv: 0, air: 0, seed: 0, lt: 0 }, o.anim) }); return pc; }
+  /* what a catch is stamped with: its printing, now and then other colours, the hour, the place. Everything else about its picture comes from its own number */
+  function roll(k, ctx = {}) { const r = Math.random(), finish = r < 0.01 ? 'secret' : r < 0.04 ? 'ultra' : r < 0.11 ? 'super' : r < 0.26 ? 'rare' : 'normal'; const names = Object.keys(SKINS).filter(n => n !== 'plain');
+    const firsts = (typeof G !== 'undefined' && G.stats) ? (G.stats.cardFirsts || (G.stats.cardFirsts = {})) : {}; const key = String(k.sp.seed >>> 0), first = !firsts[key]; firsts[key] = 1;
+    const card = { finish, time: ctx.time || 'day', where: ctx.where || 'Caught in the wild', first }; if (Math.random() < 0.12) card.skin = names[Math.floor(Math.random() * names.length)]; return card; }
+  return { W, H, draw, preload, BG, OWN, FINISH, SKINS, SCENES, POSES, passcode, cartridge, casing, screen, screenBack, kinCanvas, roll, SCR, ELEM_COL };
 })();

@@ -369,6 +369,7 @@ const Battle = (() => {
     const { chance, item, gap, grip, hopeless } = catchChance();
     if (!G.player.take(item, 1)) return;
     if (typeof Npcs !== 'undefined' && Npcs.active('hunter')) Npcs.useCharge('hunter');
+    if (typeof Device !== 'undefined' && typeof Cards !== 'undefined' && !(typeof window !== 'undefined' && window.__noDevice)) return deviceCatch(item, chance, hopeless);
     busy = true;
     el.actions.querySelectorAll('button').forEach(b => b.disabled = true);
     const st = KIN.stats(wild);
@@ -387,6 +388,25 @@ const Battle = (() => {
     else if (gap > 1.2) log(`${KIN.name(wild)} is far above your net strength (${grip}). It will fight the net hard.`, 'bad');
     G.sfx('snare');
     requestAnimationFrame(snareFrame);
+  }
+  /* catching with the Kin-Link instead of a thrown net: the same catch chance underneath, but the three things the device has to do are yours to do, and doing them well is what a good throw was */
+  async function deviceCatch(item, chance, hopeless) {
+    busy = true; el.actions.querySelectorAll('button').forEach(b => b.disabled = true);
+    const st = KIN.stats(wild), rar = wild.sp.rarity || 0;
+    log(`You raise the Kin-Link${stealth ? ', quietly' : ''}. ${hopeless ? 'It can barely read this one.' : 'Lock on, and draw it in.'}`); G.sfx('snare');
+    const r = await Device.capture({ kin: wild, rar, hpFrac: wild.hp / st.hp, agi: st.agi, lull, chance });
+    const pHold = U.clamp(chance * (0.7 + 0.7 * (r.quality || 0)), hopeless ? 0 : 0.02, 0.97), roll = (typeof window !== 'undefined' && window.__netRoll != null) ? window.__netRoll : Math.random(), held = r.ok && roll < pHold;
+    if (held) {
+      const dl = R.state.dayLight != null ? R.state.dayLight : 1, hud = (document.getElementById('where') || {}).textContent || '', place = hud.split(' · y ')[0].split(' · ').filter(x => x && !/fps|wild/.test(x)).slice(-2).join(', ');
+      wild.card = Cards.roll(wild, { time: dl > 0.75 ? 'day' : dl < 0.3 ? 'night' : 'dusk', where: `Caught in ${place || 'the wild'}, day ${(G.dayCount || 0) + 1}` });
+      log(`The signal holds. ${KIN.name(wild)} is yours!`, 'good'); G.sfx('caught');
+      await Device.result(true, wild); return end('caught');
+    }
+    await Device.result(false, wild, r.ok ? 'The link was made, but it would not hold.' : r.failed === 'pull' ? 'The beam snapped.' : 'It slipped the ' + (r.failed || 'lock') + '.');
+    if (bossKin()) { log(`${KIN.name(wild)} tears free of the beam, and the effort finishes it. It falls. One chance, and it is gone.`, 'bad'); G.sfx('miss'); wild.hp = 0; refresh(); await sleep(1100); return end('won'); }
+    G.player.add(item, 1); // a missed catch does not use the net up, as before
+    log(r.ok ? `The link is made, and ${KIN.name(wild)} wrenches out of it! ${lullN ? 'Wear it down further.' : 'Wear it down, or give it a draught.'}` : `${KIN.name(wild)} breaks the beam${stealth ? ' and turns on you' : ''}.`, 'bad'); stealth = false;
+    await sleep(400); await useMove(wild, mine, wildChoose(), false); afterTurn();
   }
   function cancelSnare() {
     if (!snareState || snareState.done) return;

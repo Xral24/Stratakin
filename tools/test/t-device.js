@@ -1,0 +1,12 @@
+const { open } = require('./harness');
+(async () => { const h = await open({ device: true }); const { page, ev } = h; await h.newGame('look-3'); await h.calm();
+  const s0 = await ev(() => { window.__deviceAuto = true; window.__deviceHold = 5; R.render = () => {}; const p = G.player; p.add('snare', 5); G.trainerLevel = 40; let w = Wild.list.find(q => !q.isBoss && !q.high && !q.aquatic); if (!w) return { none: true }; w.kin.hp = 1; w.kin.sp.rarity = 2; Battle.start(w, false); return { wild: KIN.name(w.kin), n: G.kin.length }; });
+  console.log(JSON.stringify(s0)); await page.waitForTimeout(2500);
+  await ev(() => Cards.preload(Object.values(Cards.BG)));
+  await page.evaluate(() => { const b = [...document.querySelectorAll('#b-actions button')].find(b => /\bnet\b/i.test(b.textContent)); if (b) b.click(); }); await page.waitForTimeout(600);
+  await page.evaluate(() => { const b = [...document.querySelectorAll('#b-actions button, #battle button')].find(b => /\bnet\b/i.test(b.textContent) && b.offsetParent && b.id !== 'snare-cancel' && b.id !== 'snare-go'); if (b) b.click(); });
+  for (let i = 0; i < 14; i++) { await page.waitForTimeout(i < 9 ? 1500 : 1100); await page.screenshot({ path: `/home/claude/scratch/dev${i}.png` }); if (!(await ev(() => Device.open))) { console.log('closed after', i); break; } }
+  await page.waitForTimeout(2500);
+  const fs = require('fs'); const urls = await ev(() => { const k = G.kin[G.kin.length - 1], out = []; const mk = (o, c) => Object.assign({}, k, o, { card: Object.assign({}, k.card, c) }); const rare = (r) => Object.assign({}, k.sp, { rarity: r }); for (const kk of [mk({}, {}), mk({ id: 77, sp: rare(4) }, { finish: 'secret', time: 'night', first: true }), mk({ id: 4242, sp: rare(3) }, { finish: 'ultra', skin: 'dusk', time: 'dusk' }), mk({ id: 9, sp: rare(0) }, { finish: 'normal', skin: 'ember' })]) { const cv = document.createElement('canvas'); Cards.cartridge(cv, kk, { now: 3000 }); out.push(cv.toDataURL('image/png')); } return out; }); urls.forEach((u, i) => fs.writeFileSync(`/home/claude/scratch/cart${i}.png`, Buffer.from(u.split(',')[1], 'base64')));
+  console.log(JSON.stringify(await ev(() => ({ n: G.kin.length, card: G.kin[G.kin.length - 1].card, active: Battle.active, log: [...document.querySelectorAll('#b-log > *')].slice(-3).map(e => e.textContent) }))));
+  console.log('ERRORS:', h.errors.slice(0, 4).join(' | ') || 'none'); await h.close(); })().catch(e => { console.log('ERR', e.message); process.exit(1); });
