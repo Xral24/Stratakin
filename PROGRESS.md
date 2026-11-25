@@ -738,6 +738,14 @@ His go-ahead: the village kit, and "do the grass, the rock, the sand, the water"
 - `tools/test/t-rexcam.js [seed] [net]` starts the fight and photographs it.
 - He found the net easy on the Tyrannorex after a hard fight. Not changed; asked him.
 
+## Nets can fail now, and draughts (Nov 25)
+- He had never once had a net fail, a full-health Tyrannorex included. The catch chance was worked out and printed ("Catch chance 40% with a good throw") but never rolled: any net drawn shut kept its Kin.
+- **The roll**: when the cord is drawn shut on the last net needed, it holds with `catchChance().chance * (0.8 + 0.5 * q)`, q being half how near the centre it landed and half how open it was thrown. A fail is `res = 'burst'`: you keep the net, the wild one takes its turn (a boss's Kin still falls: one chance). Earlier nets over an epic or legendary are still skill only.
+- **Draughts**, as he asked ("craft potions... give one to them"): Calming Draught (x1.5; 3 berries + 2 fronds makes two) and Sleeping Draught (x2.2; 4 berries, 2 glowworms, a Bloom essence). A Draught button in the fight; costs the turn; two doses at most, the second adding 0.25; a boss's Kin refuses. Applied after the cap on legendaries (12%, or 50% under 15% health), so a worn-down Tyrannorex with a Sleeping Draught is about 95%. Sold by the alchemist too.
+- Aim a little harder, as he allowed: the Kin sways a bit faster and wider (speed 0.24, reach 0.27 base).
+- Tests: the harness sets `window.__netRoll = 0` so nets always hold unless `open({ realNet: true })`. `t-hold.js <roll> [draught]`.
+- Not tuned by play yet. With a Cast Net an unweakened common Kin is about 8%, a beaten-down one 40 to 50%.
+
 ## Still to do
 UI polish as feedback comes in. Card battle screen still used for scripted encounters (raids at the walls, thief, citadel duel, holds) and the snare mini-game; converting those to live is the next big step if wanted. (Old list: train/ships, combat animation, eggs, avatar hair/paint, buddy WEAR cosmetics, Silas and Finch, UI polish (item icons), quality toggles in settings (state.shadows, state.grassQuality, state.dprCap).
 

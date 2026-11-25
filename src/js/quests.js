@@ -42,6 +42,8 @@ const RECIPES = [
   { id: 'rod_iron', out: 'rod_iron', n: 1, needs: { rod: 1, iron: 3, copper: 2 }, cat: 'gear' },
   { id: 'rod_void', out: 'rod_void', n: 1, needs: { rod_iron: 1, void: 3, ess_Tide: 1 }, cat: 'gear' },
   { id: 'bait_berry', out: 'bait_berry', n: 4, needs: { berry: 2 }, cat: 'gear' },
+  { id: 'draught_calm', out: 'draught_calm', n: 2, needs: { berry: 3, frond: 2 }, cat: 'tonics' },
+  { id: 'draught_sleep', out: 'draught_sleep', n: 1, needs: { berry: 4, glowworm: 2, ess_Bloom: 1 }, cat: 'tonics' },
   { id: 'tonic_hush', out: 'tonic_hush', n: 1, needs: { frond: 4, snow: 2, glowworm: 1 }, cat: 'tonics' },
   { id: 'bait_glow', out: 'bait_glow', n: 3, needs: { glowworm: 1, berry: 1 }, cat: 'gear' },
   { id: 'bait_void', out: 'bait_void', n: 2, needs: { void: 1, berry: 2 }, cat: 'gear' },

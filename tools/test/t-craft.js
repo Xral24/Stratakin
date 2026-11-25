@@ -1,0 +1,4 @@
+const { open } = require('./harness');
+(async () => { const h = await open(); const { ev, page } = h; await h.newGame('gal-1'); await h.calm();
+  console.log(JSON.stringify(await ev(() => { const p = G.player; p.add('berry', 9); p.add('frond', 4); p.add('glowworm', 3); p.add('ess_Bloom', 1); UI.openPanel('craft'); const txt = document.getElementById('panel-body').textContent; const r = RECIPES.filter(r => /draught/.test(r.id)).map(r => [r.id, G.craft ? G.craft(r.id) : null, p.count(r.out)]); return { listed: /Calming Draught/.test(txt), tabs: [...document.querySelectorAll('#panel-body [data-cat], #panel-body .tab')].map(b => b.textContent).slice(0, 8), r }; })));
+  console.log('errors', JSON.stringify(h.errors)); await h.close(); })().catch(e => { console.log('ERR', e.message); process.exit(1); });

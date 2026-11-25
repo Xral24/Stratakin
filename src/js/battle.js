@@ -18,7 +18,7 @@ const Battle = (() => {
   function buffs() { return { guard: false, focus: false, coil: false, dash: false, ail: null }; }
   function start(e, isAmbush, opts = {}) {
     if (active) return;
-    stunUsed = false; stunned = false; lastMine = null; sigAt.m = sigAt.w = -9; if (stunTimer) { clearInterval(stunTimer); stunTimer = null; }
+    stunUsed = false; stunned = false; lastMine = null; lull = 1; lullN = 0; sigAt.m = sigAt.w = -9; if (stunTimer) { clearInterval(stunTimer); stunTimer = null; }
     const party = G.healthyKin();
     if (!party.length) { G.toast('All your Kin are down. Revive them at the Voodoo Hut or with a tonic.'); e.alert = 0; e.wait = 4; if (!e.chase) e.cool = 6; return; }
     if (e.chase) { Wild.disengage(e, 0); e.alert = 1; }
@@ -148,6 +148,7 @@ const Battle = (() => {
     html += `<button class="act snare" data-a="snare" ${(!snares.length || bagFull) ? 'disabled' : ''}><b>Net</b><small>${bagFull ? 'Bag full (20). Fuse first.' : snareLabel}</small></button>`;
     const th = G.player.count('tonic_heal');
     html += `<button class="act" data-a="tonic" ${th ? '' : 'disabled'}><b>Tonic</b><small>${th ? 'Heal Tonic ×' + th + ' · costs the turn' : 'no Heal Tonic'}</small></button>`;
+    { const dr = draughtOf(), boss = bossKin(), full = lullN >= 2; html += `<button class="act" data-a="draught" ${dr && !boss && !full ? '' : 'disabled'}><b>Draught</b><small>${boss ? 'it will not take one' : full ? 'it has had two' : dr ? ITEMS[dr].name + ' ×' + G.player.count(dr) + ' · easier to net' : 'none · craft under Tonics'}</small></button>`; }
     html += `<button class="act" data-a="swap"><b>Swap</b><small>${G.healthyKin().length - 1} ready</small></button>`;
     html += `<button class="act" data-a="run"><b>Run</b><small>leave</small></button>`;
     el.actions.innerHTML = html;
@@ -159,6 +160,7 @@ const Battle = (() => {
     if (b.dataset.i != null) { const mvv = KIN.moves(mine)[+b.dataset.i]; if (mvv.sig) { if (sigWait('m')) return; sigAt.m = turn + 1; } doTurn({ type: 'move', move: mvv }); }
     else if (b.dataset.a === 'snare') beginSnare();
     else if (b.dataset.a === 'tonic') doTurn({ type: 'tonic' });
+    else if (b.dataset.a === 'draught') doTurn({ type: 'draught' });
     else if (b.dataset.a === 'swap') showSwap();
     else if (b.dataset.a === 'run') doTurn({ type: 'run' });
   }
@@ -237,6 +239,14 @@ const Battle = (() => {
       await useMove(wild, mine, wildChoose(), false);
       return afterTurn();
     }
+    if (action.type === 'draught') { /* something for the wild one to drink: it settles, and a net holds it better for the rest of the fight */
+      const it = draughtOf(); if (!it || bossKin() || lullN >= 2 || !G.player.take(it, 1)) { busy = false; renderActions(); return; }
+      const m = ITEMS[it].lull; lull = lullN ? Math.max(lull, m) + 0.25 : m; lullN++;
+      if (wildE) arriveFx(wildE, 'Bloom');
+      log(`${KIN.name(mine)} sets down a ${ITEMS[it].name}. ${KIN.name(wild)} sniffs at it, and drinks. ${m >= 2 ? 'Its head sinks. It is fighting to stay on its feet.' : 'It is calmer.'}`, 'good'); G.sfx('util'); refresh(); await sleep(900);
+      await useMove(wild, mine, wildChoose(), false);
+      return afterTurn();
+    }
     if (action.type === 'swap') {
       mine = action.kin; mine.buffs = buffs(); placeMine(); if (mineE) arriveFx(mineE, KIN.dominant(mine.sp.elem, 1)[0]); refresh(); log(`Go, ${KIN.name(mine)}!`, 'good'); await sleep(500);
       await useMove(wild, mine, wildChoose(), false);
@@ -310,9 +320,13 @@ const Battle = (() => {
     if (typeof Npcs !== 'undefined' && Npcs.active('hunter')) c *= 1.5; // the Hunter's Amulet
     if (G.buffMul) c *= G.buffMul('luck');
     if (wild.sp.mythic || wild.sp.legend) c = frac < 0.15 ? Math.min(c, 0.5) : Math.min(c, 0.12);
-    return { chance: U.clamp(c, gap > 1.2 ? 0.002 : 0.04, 0.9), item, gap, grip };
+    c *= lull; /* after the cap on the great ones: a draught is the way past it */
+    return { chance: U.clamp(c, gap > 1.2 ? 0.002 : 0.04, 0.95), item, gap, grip };
   }
   let stunUsed = false, stunTimer = null, lastMine = null;
+  /* a draught given to the wild one: how much better a net holds it for the rest of this fight, and how many doses it has had */
+  let lull = 1, lullN = 0;
+  const draughtOf = () => G.player.count('draught_sleep') && !(lullN && lull >= 2.2) ? 'draught_sleep' : G.player.count('draught_calm') ? 'draught_calm' : G.player.count('draught_sleep') ? 'draught_sleep' : null;
   // what your Kin's hardest move would do to it, without a lucky crit (the best of a few rolls)
   function strongestHit() {
     let best = 0; for (const m of KIN.moves(mine)) { if (m.kind === 'util' || !m.power) continue; for (let i = 0; i < 4; i++) { const r = calcDamage(mine, wild, m); if (!r.crit) best = Math.max(best, r.dmg); } }
@@ -409,7 +423,7 @@ const Battle = (() => {
   function netStart() { const st = snareState, rar = wild.sp.rarity || 0; netFit(); { const ex = document.getElementById('explain'); if (ex) ex.classList.add('hidden'); } const p = G.player; let dx = wildE.x - p.x, dz = wildE.z - p.z, dl = Math.hypot(dx, dz) || 1;
     // where you throw from: a fixed few paces off, wherever you happened to be standing. Looked for all the way round, starting from your own side, until there is a clear line to the Kin with no trunk or wall in it
     if (!(st.net && st.net.base)) { const wh0 = (wildE.model.height || 1) * (wildE.scale || 1), D0 = 3.6 + wh0 * 1.9, a0 = Math.atan2(dz, dx), w = G.world; let best = a0; for (const da of [0, 0.5, -0.5, 1, -1, 1.6, -1.6, 2.3, -2.3, 3.14]) { const a = a0 + da; const clear = netClear(Math.cos(a), Math.sin(a)); /* judged from the very spot the lens will stand on, looking at what it will look at: a big one is watched from below its head, not from the middle of its flank, and a frond in front of the lens used to pass */ if (clear) { best = a; break; } } dx = Math.cos(best); dz = Math.sin(best); dl = 1; st.camDir = [dx, dz]; } else if (st.camDir) { dx = st.camDir[0]; dz = st.camDir[1]; dl = 1; }
-    st.net = { phase: 'aim', spin: 0, turn: 0, down: false, trail: [], hand: null, t: Math.random() * 9, kx: NW / 2, ky: NH * 0.35, kpx: 80, kfy: NH * 0.4, diff: st.hopeless ? 0.08 : U.clamp(0.8 + st.width * 1.2, 0.8, 1.25), speed: 0.2 + rar * 0.07, jit: rar * 0.12, last: performance.now(), res: null, resT: 0, base: (st.net && st.net.base) || { x: wildE.x, z: wildE.z }, lat: [-dz / dl, dx / dl], reach: 0.22 + rar * 0.2 }; /* it shifts from foot to foot more than it runs: a common Kin hardly moves, and only the rarest give you any trouble */ netKin(st.net); }
+    st.net = { phase: 'aim', spin: 0, turn: 0, down: false, trail: [], hand: null, t: Math.random() * 9, kx: NW / 2, ky: NH * 0.35, kpx: 80, kfy: NH * 0.4, diff: st.hopeless ? 0.08 : U.clamp(0.8 + st.width * 1.2, 0.8, 1.25), speed: 0.24 + rar * 0.07, jit: rar * 0.12, last: performance.now(), res: null, resT: 0, base: (st.net && st.net.base) || { x: wildE.x, z: wildE.z }, lat: [-dz / dl, dx / dl], reach: 0.27 + rar * 0.2 }; /* it shifts from foot to foot more than it runs: a common Kin hardly moves, and only the rarest give you any trouble */ netKin(st.net); }
   function netHome() { const n = snareState && snareState.net; if (n && n.base && wildE) { wildE.x = n.base.x; wildE.z = n.base.z; } }
   // the net itself: a wheel of mesh seen at a slant. r its radius on the screen, k how flat it lies (1 face on, 0.3 lying on the ground), wave how much the rim is still rippling
   // a length of rope: brown, with the lay of it showing as pale slanting ticks
@@ -458,7 +472,8 @@ const Battle = (() => {
     if (n.phase === 'aim' && !n.down) n.spin = Math.max(0, n.spin - dt * 0.25); // it closes again if you stop swinging
     if (n.phase === 'fly') { n.fly.u += dt / 0.6; if (n.fly.u >= 1) { n.fly.u = 1; const farR = netR(n), d = Math.hypot(n.fly.x1 - n.kx, (n.fly.y1 - (n.ky + n.kfy) / 2) * 1.15), reach = farR + n.kpx * 0.4, centre = U.clamp(1 - d / reach, 0, 1); /* if the net so much as touches the Kin it is in it. How near the middle it landed decides how long you get to draw it shut: dead centre is easy, a caught edge is a scramble */
         const on = !snareState.hopeless && d < reach; if (on) { n.centre = centre; n.phase = 'close'; n.tight = 0; n.esc = 0; n.cdir = -Math.sign(n.turn || 1); n.lastC = null; n.fly.x1 = n.kx; n.fly.y1 = n.kfy; n.lastP = null; n.window = U.clamp(2.3 - (wild.sp.rarity || 0) * 0.18 - (1 - n.spin) * 0.35, 1.3, 2.4) * (snareState.hits ? 0.9 : 1) * (0.62 + 0.6 * centre); if (G.player.has('seal')) n.window *= 1.2; /* the old weavers' knot */ } else { n.phase = 'land'; n.res = 'miss'; n.resT = 0.7; } } }
-    else if (n.phase === 'close') { n.esc += dt / n.window; if (n.tight >= 1) { n.phase = 'land'; n.res = 'ok'; n.resT = 0.6; } else if (n.esc >= 1) { n.phase = 'land'; n.res = 'loose'; n.resT = 0.75; } } // over it, and open: it has this long to get out from under, and you have this long to draw the cord. A net that was thrown wide open sits heavier and gives you longer
+    else if (n.phase === 'close') { n.esc += dt / n.window; if (n.tight >= 1) { n.phase = 'land'; n.res = 'ok'; n.resT = 0.6; /* drawn shut. Whether it HOLDS is the catch chance, which until now was only ever printed: every net that closed kept its Kin, a fresh Tyrannorex included. A net thrown wide open and landed dead centre holds better than one that caught an edge. Only the last net over a strong one is put to it */
+        if (snareState.hits + 1 >= snareState.need) { const q = 0.5 * (n.centre || 0) + 0.5 * U.clamp(n.spin || 0, 0, 1), pHold = U.clamp(catchChance().chance * (0.8 + 0.5 * q), 0.02, 0.97), roll = (typeof window !== 'undefined' && window.__netRoll != null) ? window.__netRoll : Math.random(); snareState.pHold = pHold; if (roll >= pHold) { n.res = 'burst'; n.resT = 0.9; } } } else if (n.esc >= 1) { n.phase = 'land'; n.res = 'loose'; n.resT = 0.75; } } // over it, and open: it has this long to get out from under, and you have this long to draw the cord. A net that was thrown wide open sits heavier and gives you longer
     else if (n.phase === 'land') { n.resT -= dt; if (n.resT <= 0) { n.phase = 'done'; netDraw(n); if (n.res !== 'ok') netHome(); el.net.getContext('2d').clearRect(0, 0, el.net.width, el.net.height); onSnareGo(n.res === 'ok'); return; } }
     netDraw(n); requestAnimationFrame(snareFrame);
   }
@@ -479,8 +494,9 @@ const Battle = (() => {
       await sleep(900); return end('caught');
     }
     if (bossKin()) { log(`${KIN.name(wild)} tears the net apart, and the effort finishes it. It falls. One chance, and it is gone.`, 'bad'); G.sfx('miss'); snareState = null; wild.hp = 0; refresh(); await sleep(1100); return end('won'); } // one try at a boss's Kin
+    const burst = snareState.net && snareState.net.res === 'burst';
     G.player.add(snareState.item, 1); // a net is not lost by missing with it: you haul it back in by the hand line. It only leaves your bag with a Kin in it
-    log(stealth ? `${KIN.name(wild)} gets clear and turns on you! You haul the net back in.` : `${KIN.name(wild)} gets clear. You haul the net back in.`, 'bad'); G.sfx('miss'); stealth = false;
+    log(burst ? `The cord draws tight, and ${KIN.name(wild)} heaves the whole net off its back! ${lullN ? 'Wear it down further.' : 'Wear it down, or give it a draught.'}` : stealth ? `${KIN.name(wild)} gets clear and turns on you! You haul the net back in.` : `${KIN.name(wild)} gets clear. You haul the net back in.`, 'bad'); G.sfx('miss'); stealth = false;
     await sleep(500);
     await useMove(wild, mine, wildChoose(), false);
     snareState = null;

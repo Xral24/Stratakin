@@ -7,7 +7,7 @@ async function open(opts = {}) {
   await new Promise(r => server.listen(port, r));
   const browser = await chromium.launch({ args: ['--use-gl=swiftshader', '--enable-webgl', '--ignore-gpu-blocklist'] });
   const ctx = await browser.newContext({ viewport: { width: 390, height: 780 }, hasTouch: true, isMobile: true, deviceScaleFactor: 1 });
-  const page = await ctx.newPage(); const errors = []; const logs = [];
+  const page = await ctx.newPage(); if (!opts.realNet) await page.addInitScript(() => { window.__netRoll = 0; }); /* nets always hold in tests unless a test asks for the real roll */ const errors = []; const logs = [];
   page.on('pageerror', e => errors.push('PAGEERROR ' + e.message + '\n' + e.stack));
   page.on('console', m => { if (m.type() === 'error' || m.type() === 'warning') logs.push(m.type() + ': ' + m.text()); });
   await page.goto(`http://localhost:${port}/index.html`); await page.waitForTimeout(400);
