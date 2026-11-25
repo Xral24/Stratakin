@@ -336,10 +336,26 @@ const Wild = (() => {
   }
   // settle a walker's height: a step up is taken at once (no foot sunk in bare rock while it catches up), a step down is eased
   function settleY(e, ty, dt, rate) { if (!e.flying && !e.aquatic && ty > e.y) e.y = ty; else e.y += (ty - e.y) * Math.min(1, dt * rate); }
+  /* how wide a walker's body is, for the things a body cannot pass through (less than the model's full reach, which takes in the tail and the neck) */
+  const bulk = (e) => Math.min(1.7, (e.model && e.model.radius || 0.5) * (e.scale || 1) * 0.42);
+  const TRUNK = new Set([B.LOG, B.JLOG, B.MEGA].filter(x => x != null));
+  /* how many tree trunks stand inside its body at a place. The stem of a tree fern does not count: it is a hand's width, and the valley is too thick with them for anything large to move otherwise */
+  function trunksIn(x, y, z, e) { const r = bulk(e), fy = Math.floor(y) + 1; let n = 0; const seen = trunksIn.seen; seen.length = 0;
+    for (let k = 0; k < 8; k++) { const a = k * 0.7854; for (const q of r > 1.2 ? [r, r * 0.5] : [r]) { const bx = Math.floor(x + Math.cos(a) * q), bz = Math.floor(z + Math.sin(a) * q), b = world.getBlock(bx, fy, bz); if (!TRUNK.has(b)) continue; const key = bx * 4096 + bz; if (seen.includes(key)) continue; seen.push(key);
+      if (b === B.JLOG && world.treeAt) { const t = world.treeAt(bx, bz, world.colInfo(U.mod(bx, WORLD_W), U.mod(bz, WORLD_W))); if (t && t.size === 'fern') continue; }
+      n++; } }
+    return n; }
+  trunksIn.seen = [];
+  /* two big animals do not stand in one another: where bodies overlap they ease apart, the smaller giving most of the way. (A long-neck was seen walking over a Tricrest and through it.) */
+  function crowd(dt) { const big = []; for (const e of list) { if (e.flying || e.aquatic || e.high || e.patrol || !e.model) continue; const r = Math.min(2.4, (e.model.radius || 0.5) * (e.scale || 1) * 0.4); if (r > 0.4) big.push([e, r]); }
+    for (let i = 0; i < big.length; i++) for (let j = i + 1; j < big.length; j++) { const [a, ra] = big[i], [b, rb] = big[j]; if (ra < 0.9 && rb < 0.9) continue; const dx = b.x - a.x, dz = b.z - a.z, d = Math.hypot(dx, dz), need = (ra + rb) * 0.85; if (d >= need || Math.abs(a.y - b.y) > 4) continue;
+      const ux = d > 0.01 ? dx / d : Math.cos(i * 2.4), uz = d > 0.01 ? dz / d : Math.sin(i * 2.4), push = Math.min(need - d, 2.5 * dt), wa = rb * rb / (ra * ra + rb * rb), wb = 1 - wa;
+      for (const [e, s, wgt] of [[a, -1, wa], [b, 1, wb]]) { const nx = e.x + ux * s * push * wgt, nz = e.z + uz * s * push * wgt, gy = findGround(nx, e.y, nz, e); if (gy != null) { e.x = nx; e.z = nz; if (e.dazed > 0 || e.sleep) e.y = gy; } } } }
   function findGround(x, y, z, e) {
     const bx = Math.floor(x), bz = Math.floor(z);
     if (e.aquatic) { for (const dy of [0, 1, -1, 2, -2]) { if (world.getBlock(bx, Math.floor(y) + dy, bz) === B.WATER) return Math.floor(y) + dy; } return null; }
     if (!e.flying) { const fy = Math.floor(y); for (let k = 0; k <= 1; k++) if (BARRIER.has(world.getBlock(bx, fy + k, bz))) return null; } // a fence in the way is a wall to a walker
+    if (!e.flying && bulk(e) > 0.9 && trunksIn(x, y, z, e) > trunksIn(e.x, e.y, e.z, e)) return null; /* a big body does not walk through a tree: only its middle was ever tested, and a Brachiotower's middle fits between any two trunks. One already in among them may always move to where it touches fewer */
     for (const dy of [0, 1, -1, 2, -2, -3]) { const yy = Math.floor(y) + dy; if (standable(bx, yy, bz, false)) return e.flying ? yy : R.standY(world, x, z, yy, Math.min(0.6, (e.model && e.model.radius || 0.5) * (e.scale || 1) * 0.6)); } // walkers stand on the drawn slope
     return null;
   }
@@ -352,6 +368,7 @@ const Wild = (() => {
 
   // returns a battle trigger or null
   function update(dt, player, time, battleActive) {
+    if (!battleActive) crowd(dt);
     hauntT -= dt; if (hauntT <= 0) { hauntT = 2.5; try { tendHaunts(player, G.trainerLevel || 1); } catch (e) {} }
     let trigger = null;
     const px = player.x, pz = player.z, py = player.y;
@@ -627,6 +644,6 @@ const Wild = (() => {
     return out;
   }
   function clear() { drops.length = 0; list.length = 0; mythicRef = null; legendRef = null; apexRefs.rex = apexRefs.mosa = null; }
-  const api = { haunts, leads, inTallGrass, isHigh, dropEntities, init, update, list, remove, nearest, pick, rings, roll, ensureHeart, ensureLegend, ensureApex, apexSea, apexLevel: APEX_LV, clear, makeEntity, zoneLevel, noSpawn: null, chaser: null, engage, disengage, strike, hitByKin, daze, focusText, engagedNear, unfinishable, scripted, get mythic() { return mythicRef; }, get legend() { return legendRef; } };
+  const api = { haunts, leads, inTallGrass, isHigh, dropEntities, init, update, list, remove, nearest, pick, rings, roll, ensureHeart, ensureLegend, ensureApex, apexSea, apexLevel: APEX_LV, clear, makeEntity, zoneLevel, noSpawn: null, chaser: null, engage, disengage, strike, hitByKin, daze, focusText, engagedNear, unfinishable, scripted, _ground: (x, y, z, e) => findGround(x, y, z, e), get mythic() { return mythicRef; }, get legend() { return legendRef; } };
   return api;
 })();

@@ -1,14 +1,7 @@
 const { open } = require('./harness');
-(async () => { const h = await open(); const { page, ev } = h; await h.newGame(process.env.SEED || 'look-3'); await h.calm();
-  await ev(() => { R.render = () => {}; setInterval(() => { const v = Village.active; if (v && v.boss) v.boss.fought = true; }, 20); });
-  const n = await ev(() => Village.townList().length);
-  for (let i = 0; i < Math.min(n, +(process.env.N || 3)); i++) {
-    await ev((i) => { const v = Village.townList()[i], p = G.player; p.x = v.x + 0.5; p.z = v.z + 0.5; p.y = v.y + 30; G.world.ensureAround(Math.floor(p.x / CH), Math.floor(p.z / CH), 4, 99999); }, i);
-    await page.waitForTimeout(2500);
-    console.log(JSON.stringify(await ev((i) => { const v = Village.townList()[i]; const rl = Village.layout(v).rail; if (!rl) return v.name + ' no rail'; const w = G.world; const base = rl.ax ? v.x : v.z; let row = '';
-      for (let d = -v.R; d <= v.R + 45; d++) { const a = base + rl.sgn * d; let ch = '.'; for (let k = 0; k <= 3 && ch === '.'; k = k > 0 ? -k : -k + 1) { const x = rl.ax ? a : rl.line + k, z = rl.ax ? rl.line + k : a; for (let y = v.y - 12; y <= v.y + 12; y++) { const b = w.getBlock(x, y, z); if (b === B.RAIL) { ch = k ? 'r' : 'R'; break; } if (b === B.TRACK) { ch = k ? 't' : 'T'; break; } } } row += ch; }
-      return { name: v.name, R: v.R, wr: Village.wallRadiusOf(v), row }; }, i)));
-  }
-  console.log(await ev(() => { const v = Village.townList()[0], w = G.world; let out = ''; for (let z = v.z - 150; z <= v.z + 150; z += 3) { let r = ''; for (let x = v.x - 180; x <= v.x + 180; x += 3) { let t = 0; for (let a = 0; a < 3; a++) for (let b = 0; b < 3; b++) if (w.trackAt(x + a, z + b)) t = 1; r += t ? '#' : (Math.hypot(x - v.x, z - v.z) < v.R ? 'o' : ' '); } out += r.replace(/ +$/, '') + '\n'; } return out; }));
-  console.log('errors', JSON.stringify(h.errors.slice(0, 4)));
-  await h.close(); })();
+(async () => { const h = await open(); const { ev, page } = h; await h.newGame(process.argv[2] || 'gal-1'); await h.calm();
+  const r = await ev(() => { const w = G.world, p = G.player, R = 700, cells = new Map(), X0 = Math.floor(p.x), Z0 = Math.floor(p.z); const ty = (x, z) => { const hh = w.colInfo(U.mod(x, WORLD_W), U.mod(z, WORLD_W)).h; return hh >= SEA ? hh + 1 : SEA + 2; };
+    for (let x = X0 - R; x <= X0 + R; x++) for (let z = Z0 - R; z <= Z0 + R; z++) if (w.trackAt(x, z)) cells.set(x + ',' + z, ty(x, z));
+    const hist = {}, ex = []; let wet = 0; for (const [k, y] of cells) { const [x, z] = k.split(',').map(Number); let worst = 0; for (const [a, b] of [[1, 0], [0, 1], [1, 1], [1, -1]]) { const y2 = cells.get((x + a) + ',' + (z + b)); if (y2 != null) worst = Math.max(worst, Math.abs(y2 - y)); } hist[worst] = (hist[worst] || 0) + 1; if (worst >= 2 && ex.length < 12) ex.push([x, z, y, w.colInfo(x, z).h, worst]); if (y === SEA + 2) wet++; }
+    return { SEA, n: cells.size, wet, hist, ex }; });
+  console.log(JSON.stringify(r)); await h.close(); })().catch(e => { console.log('ERR', e.message); process.exit(1); });

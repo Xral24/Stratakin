@@ -746,6 +746,14 @@ His go-ahead: the village kit, and "do the grass, the rock, the sand, the water"
 - Tests: the harness sets `window.__netRoll = 0` so nets always hold unless `open({ realNet: true })`. `t-hold.js <roll> [draught]`.
 - Not tuned by play yet. With a Cast Net an unweakened common Kin is about 8%, a beaten-down one 40 to 50%.
 
+## Four things from the Lost World and the railway (Nov 25)
+- **Dinosaurs through trees**: a walker's footing was only ever tested at its middle, so a Brachiotower's middle went between trunks and its body through them. `findGround` now refuses a step that puts more trunks inside the body (`bulk`, at most 1.7) than the step before; tree-fern stems do not count, or nothing large could move in the valley at all.
+- **One on top of another**: `crowd(dt)` in wild.js eases overlapping big walkers apart, the smaller giving most of the way. Not during a battle.
+- **The Tyrannorex's tail**: it has its own model (`P === 'x_rex'`, not the raptor case, which I edited first by mistake and put back). The tail began at the very end of the rump twice as thick as the rump there, open-ended. It now starts well inside the body at the body's own thickness.
+- **Railway onto a bridge**: on land level with the sea the line lay on the sand at 47 and the deck over water stood at 48, ending in a wall. Land at sea level is now banked with gravel to deck height.
+- Tests: t-dino.js, t-rail.js (step heights along the line), t-rail2.js, t-rexpic.js (a Kin's model from any side).
+- Not seen moving by me: only measured.
+
 ## Still to do
 UI polish as feedback comes in. Card battle screen still used for scripted encounters (raids at the walls, thief, citadel duel, holds) and the snare mini-game; converting those to live is the next big step if wanted. (Old list: train/ships, combat animation, eggs, avatar hair/paint, buddy WEAR cosmetics, Silas and Finch, UI polish (item icons), quality toggles in settings (state.shadows, state.grassQuality, state.dprCap).
 
