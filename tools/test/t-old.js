@@ -1,0 +1,5 @@
+const { open } = require('./harness');
+(async () => { const h = await open(); const { ev } = h; await h.newGame('gal-1'); await h.calm();
+  console.log(JSON.stringify(await ev(() => { const rexSp = KIN.apexSpecies('rex'); const mine = G.activeKin(); const a = KIN.create(mine.sp, 60), r = rexSp ? KIN.create(rexSp, 60) : null; if (!r) return 'no rex sp';
+    const mv = KIN.moves(a)[0], mr = KIN.moves(r)[0]; let x = 0, y = 0, z = 0; const b = KIN.create(mine.sp, 60); for (let i = 0; i < 400; i++) { x += Battle.calcDamage(a, r, mv).dmg; y += Battle.calcDamage(a, b, mv).dmg; z += Battle.calcDamage(r, a, mr).dmg; } return { kinOnRex: x / 400, kinOnKin: y / 400, rexOnKin: z / 400, told: G.stats.oldTold }; })));
+  await h.close(); })();
