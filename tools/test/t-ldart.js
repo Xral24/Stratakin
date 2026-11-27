@@ -1,0 +1,11 @@
+const { open } = require('./harness');
+(async () => { const h = await open(); const { ev, page } = h; await h.newGame('gal-1'); await h.calm();
+  await page.setViewportSize({ width: 412, height: 900 });
+  await ev(() => { const sps = KIN.dex('earth').filter(s => !s.fusion && s.home && (s.rarity||0) <= 2); for (let i = 0; i < 4; i++) G.addKin(KIN.create(sps[i * 7 % sps.length], 16 + i * 3)); G.kin[2].card = { finish: 'super' }; G.kin[3].card = { finish: 'ultra' }; G.kin[3].bonded = true; G.stats.threads = { rally: 1, thunderfall: 1, mirror: 1 }; });
+  await ev(() => Linkdown.play({ mode: 'friendly', champ: 'Pip Hollis', tier: 2, skill: 0.5, villageId: 'x' }));
+  await page.waitForTimeout(25000); await page.screenshot({ path: '/home/claude/scratch/a1.png' });
+  await ev(() => document.querySelector('#gamebox .gb-foot .btn.big').click()); await page.waitForTimeout(5000);
+  await ev(async () => { const S = Linkdown.state; while (S.me.hand.filter(c => c.type === 'kin').length < 1) S.api.drawCard(S.me); await S.api.summon(0, 'atk'); });
+  await page.waitForTimeout(1500); await ev(() => Linkdown.state.api.endTurn());
+  await page.waitForTimeout(20000); await page.screenshot({ path: '/home/claude/scratch/a2.png' });
+  console.log('errors', JSON.stringify(h.errors)); await h.close(); })().catch(e => { console.log('ERR', e.message); process.exit(1); });

@@ -648,6 +648,34 @@ body.cine-on #hud, body.cine-on #crosshair, body.cine-on #compass, body.cine-on 
 
 .tag.role { background: #ffffff14; color: #dde; } .tag.r-guardian { color: #9fd0ff; } .tag.r-bruiser { color: #ff9f7a; } .tag.r-mystic { color: #c9a7ff; } .tag.r-striker { color: #ff6a8a; } .tag.r-racer { color: #7dffb0; } .tag.r-allrounder { color: #ffe08a; }
 .stat.role-line { display: flex; gap: 6px; align-items: baseline; flex-wrap: wrap; } .stat.role-line small { color: var(--dim); font-size: 10.5px; flex-basis: 100%; }
+/* Linkdown with real cards and painted art */
+.ld-table { background-size: cover; background-position: center; border-radius: 14px; padding: 6px 4px; box-shadow: inset 0 0 40px #000a; }
+.ld-table .ld-lp span, .ld-table .ld-lp b, .ld-table .ld-mid { text-shadow: 0 1px 3px #000, 0 0 6px #000; color: #fff; }
+.ld-row.foe, .ld-row.me { background: #0006; }
+.ld-slot { border-color: #ffffff30; background: #0003; }
+.ld-c.ld-face { background-size: cover; background-position: center; border: 1px solid #0008; box-shadow: 0 3px 8px #000a; }
+.ld-face .ld-ad { position: absolute; left: 2px; right: 2px; bottom: 2px; justify-content: space-between; background: #000c; border-radius: 6px; padding: 1px 3px; }
+.ld-face .ld-ad b { font-size: 10px; } .ld-face .ld-ad b.on { font-size: 11.5px; color: #ffe27a; }
+.ld-face .ld-bond { top: 2px; background: #0009; }
+.ld-face.ld-ultra, .ld-face.ld-secret { box-shadow: 0 0 10px #ffd23c, 0 3px 8px #000a; }
+.ld-c.ld-th { background-size: cover; background-position: center; padding: 0; border-width: 2px; }
+.ld-th .ld-tn { width: 100%; padding: 2px 2px 3px; background: linear-gradient(#000d, #0000); border-radius: 7px 7px 0 0; text-shadow: 0 1px 2px #000; }
+.ld-th .ld-tt { margin-top: auto; width: 100%; padding: 2px 3px; background: #000c; font-size: 8px; color: #f2f2ff; }
+.ld-th i { background: #000c; width: 100%; text-align: center; margin: 0; border-radius: 0 0 7px 7px; padding-bottom: 1px; }
+.ld-c.ld-back { background-size: cover; background-position: center; border-color: #c9a84a; }
+.ld-c.ld-back span { background: #000a; padding: 1px 5px; border-radius: 5px; font-size: 11px; color: #ffe8a8; }
+.ld-cast { background-size: cover !important; background-position: center !important; min-height: 230px; display: flex; flex-direction: column; justify-content: space-between; }
+.ld-cast b, .ld-cast small { background: #000b; border-radius: 6px; padding: 3px 5px; }
+.ld-table { background: none !important; box-shadow: none !important; padding: 0 !important; }
+.ld-board { position: relative; width: min(100%, 340px); aspect-ratio: 540 / 707; margin: 2px auto; background-size: 100% 100%; border-radius: 16px; box-shadow: 0 6px 20px #000c; }
+.ld-spot { position: absolute; width: 20.7%; height: 20%; display: flex; align-items: center; justify-content: center; }
+.ld-spot.s0 { left: 14.1%; } .ld-spot.s1 { left: 40%; } .ld-spot.s2 { left: 65.8%; }
+.ld-spot.foe { top: 17%; } .ld-spot.me { top: 59.5%; }
+.ld-spot.trap { left: 41.5%; width: 17%; height: 13%; } .ld-spot.trap.foe { top: 3.2%; } .ld-spot.trap.me { top: 82%; }
+.ld-spot .ld-c { transform: scale(.9); } .ld-spot .ld-c.ld-def { transform: rotate(90deg) scale(.78); } .ld-spot .ld-c.sel { transform: scale(.95) translateY(-6px); }
+.ld-spot .ld-slot { border: 0; background: none; width: 100%; height: 100%; }
+.ld-board .ld-mid { position: absolute; left: 0; right: 0; top: 43.5%; display: flex; justify-content: space-between; padding: 0 6%; pointer-events: none; font-weight: 800; font-size: 10.5px; }
+.ld-board .ld-mid { text-shadow: 0 1px 3px #000, 0 0 8px #000; color: #ffe8a8; }
 
 </style>
 </head>
@@ -12791,6 +12819,21 @@ const Linkdown = (() => {
   const PIC = {};
   function picOf(k) { const key = k.sp.seed + ':' + (k.stage || 1); if (PIC[key] != null) return PIC[key]; try { const cv = document.createElement('canvas'); cv.width = cv.height = 96; KIN.portrait(cv, k.sp, k.stage || 1, 96); PIC[key] = cv.toDataURL(); } catch (e) { PIC[key] = ''; } return PIC[key]; }
 
+  // ---- the real cards: each Kin is drawn as its full trading card (Cards.draw, scene, frame, foil and all), shrunk and kept. Threads,
+  // the card back and the table itself are painted art ----
+  const ART = (f) => (typeof window !== 'undefined' && window.STRATAKIN_ASSETS && window.STRATAKIN_ASSETS[f]) || f;
+  const threadArt = (t) => ART('assets/ld_thread_' + t + '.jpg'), BACK = () => ART('assets/ld_back.jpg'), TABLE = () => ART('assets/ld_table.jpg');
+  const FACE = {}; let faceReady = null, onFaces = null;
+  const faceKey = (k) => (k.id || k.sp.seed) + ':' + ((k.card && k.card.finish) || '') + ':' + (k.bonded ? 1 : 0) + ':' + k.level;
+  function warmFaces(kins) {
+    if (typeof Cards === 'undefined') return; const todo = kins.filter(k => !FACE[faceKey(k)]); if (!todo.length) return;
+    const go = () => { const big = document.createElement('canvas'), sm = document.createElement('canvas'); sm.width = 180; sm.height = 252; let i = 0;
+      const step = () => { if (i >= todo.length) { if (onFaces) onFaces(); return; } const k = todo[i++];
+        try { Cards.draw(big, k, { tilt: 0.35 }); const c = sm.getContext('2d'); c.imageSmoothingQuality = 'high'; c.clearRect(0, 0, 180, 252); c.drawImage(big, 0, 0, 180, 252); FACE[faceKey(k)] = sm.toDataURL('image/jpeg', 0.86); } catch (e) { FACE[faceKey(k)] = ''; }
+        setTimeout(step, 40); }; step(); };
+    if (!faceReady) faceReady = Cards.preload(Object.values(Cards.BG).concat(Object.values(Cards.OWN || {}))); faceReady.then(go);
+  }
+
   // ---- the table ----
   let box = null, st = null;
   const fast = () => typeof window !== 'undefined' && window.__ldFast;
@@ -12805,12 +12848,15 @@ const Linkdown = (() => {
   function kinHTML(c, opts = {}) {
     if (!c) return `<div class="ld-slot ${opts.cls || ''}" ${opts.data || ''}></div>`;
     const a = c.atk + c.temp, hidden = c.pos === 'def' && opts.foe && !c.shown;
-    if (hidden) return `<div class="ld-c ld-back ld-def ${opts.cls || ''}" data-id="${c.id}" ${opts.data || ''}><span>DEF</span></div>`;
+    if (hidden) return `<div class="ld-c ld-back ld-def ${opts.cls || ''}" data-id="${c.id}" ${opts.data || ''} style="background-image:url('${BACK()}')"><span>DEF</span></div>`;
+    const face = FACE[faceKey(c.k)];
+    if (face) return `<div class="ld-c ld-face ld-${c.fin} ${c.pos === 'def' ? 'ld-def' : ''} ${opts.cls || ''} ${c.stun ? 'stun' : ''}" data-id="${c.id}" ${opts.data || ''} style="--ec:${ECOL[c.el] || '#aaa'};background-image:url('${face}')">
+      <div class="ld-bond ${c.k.bonded ? 'full' : ''}"><i style="width:${Math.round(bondOf(c.k) * 100)}%"></i></div><div class="ld-ad"><b class="${c.pos === 'atk' ? 'on' : ''}">⚔${a}</b><b class="${c.pos === 'def' ? 'on' : ''}">⛨${c.def}</b></div></div>`;
     return `<div class="ld-c ld-${c.fin} ${c.pos === 'def' ? 'ld-def' : ''} ${opts.cls || ''} ${c.stun ? 'stun' : ''}" data-id="${c.id}" ${opts.data || ''} style="--ec:${ECOL[c.el] || '#aaa'}">
       <div class="ld-bond ${c.k.bonded ? 'full' : ''}" title="bond"><i style="width:${Math.round(bondOf(c.k) * 100)}%"></i></div><img src="${picOf(c.k)}" alt=""><div class="ld-n">${KIN.name(c.k)}</div><div class="ld-ad"><b class="${c.pos === 'atk' ? 'on' : ''}">⚔${a}</b><b class="${c.pos === 'def' ? 'on' : ''}">⛨${c.def}</b></div><i>${c.el}</i></div>`;
   }
   function threadHTML(c, opts = {}) {
-    const T = THREADS[c.t]; return `<div class="ld-c ld-th ld-tr${T.rar} ${opts.cls || ''}" data-id="${c.id}" ${opts.data || ''}><div class="ld-tn">${T.name}</div><div class="ld-tt">${T.txt}</div><i>${RAR[T.rar]}${T.tgt === 'trap' ? ' trap' : ''}</i></div>`;
+    const T = THREADS[c.t]; return `<div class="ld-c ld-th ld-tr${T.rar} ${opts.cls || ''}" data-id="${c.id}" ${opts.data || ''} style="background-image:url('${threadArt(c.t)}')"><div class="ld-tn">${T.name}</div><div class="ld-tt">${T.txt}</div><i>${RAR[T.rar]}${T.tgt === 'trap' ? ' trap' : ''}</i></div>`;
   }
   const cardHTML = (c, o) => c.type === 'kin' ? kinHTML(c, o) : threadHTML(c, o);
 
@@ -12826,6 +12872,7 @@ const Linkdown = (() => {
     if (o.rematch) { o.train = townRec(o.villageId).titles; o.thread = titleThread(o.villageId, o.train); }
     const foe = deckFor(o); let aiStake = foe.kin.slice().sort((a, b) => value(b) - value(a))[0];
     if (o.prize) { const pk = prizeFor(o.villageId, o.tier); if (pk) { const weak = foe.kin.slice().sort((a, b) => power(a) - power(b))[0]; foe.kin[foe.kin.indexOf(weak)] = pk; aiStake = pk; } }
+    onFaces = () => { if (!st && box) draw(); }; warmFaces([...mine.slice().sort((a, b) => power(b) - power(a)).slice(0, 8), ...foe.kin]);
     function draw() {
       const tcount = Object.values(tpick).reduce((a, b) => a + b, 0);
       ui.stage.innerHTML = `<p class="small ld-note">Up to five Kin and three Threads. The table reads each cartridge's bond: the closer a Kin is to you, the harder it plays, and bonded Kin add to your life. ${o.mode === 'stake' ? `${o.rematch ? `They won't stake a Kin again. They put up a Thread: <b>${THREADS[o.thread].name}</b> (${RAR[THREADS[o.thread].rar]}).` : `${o.prize ? 'Their prize' : 'They put up'}: <b>${KIN.name(aiStake)}</b>, Lv ${aiStake.level}.`} Tap one of your chosen Kin again to stake it (not your starter, not a bonded Kin).` : ''}</p>
@@ -12850,7 +12897,7 @@ const Linkdown = (() => {
   function side(kin, th) { return { lp: LP0, deck: shuffle([...kin.map(kinCard), ...th.map(threadCard)]), hand: [], field: Array(SLOTS).fill(null), grave: [], trap: null, ward: false }; }
   function game(o, ui, myKin, myTh, foe, myStake, aiStake) {
     st = { o, me: side(myKin, myTh), ai: side(foe.kin, foe.th), used: [], turn: 'me', summoned: false, sel: null, pending: null, busy: false, over: false, n: 0, reveal: false };
-    const S = st; const name = (o.champ || 'They').split(' ')[0];
+    const S = st; const name = (o.champ || 'They').split(' ')[0]; onFaces = () => { if (st === S && !S.busy) render(); }; warmFaces([...myKin, ...foe.kin]);
     S.me.lp += bondLife(myKin); S.ai.lp += bondLife(foe.kin); S.me.lp0 = S.me.lp; S.ai.lp0 = S.ai.lp;
     const say = (t) => { if (!S.gone) ui.say.textContent = t; };
     function drawCard(sd) { const c = sd.deck.pop(); if (c) sd.hand.push(c); return c; }
@@ -12865,10 +12912,14 @@ const Linkdown = (() => {
       const lpBar = (sd, who) => `<div class="ld-lp ${who}"><span>${who === 'ai' ? name : 'You'}</span><div class="ld-lpbar"><i style="width:${U.clamp(sd.lp / (sd.lp0 || LP0), 0, 1) * 100}%"></i></div><b>${Math.max(0, sd.lp)}</b><small>deck ${sd.deck.length}</small></div>`;
       ui.stage.innerHTML = `<div class="ld-table">
         ${lpBar(S.ai, 'ai')}
-        <div class="ld-hand foe">${S.ai.hand.map(c => S.reveal ? cardHTML(c, { cls: 'mini' }) : `<div class="ld-c ld-back mini"><span>✦</span></div>`).join('')}</div>
-        <div class="ld-row foe">${S.ai.field.map((c, i) => kinHTML(c, { foe: true, data: `data-fs="${i}"` })).join('')}<div class="ld-trap">${S.ai.trap ? '<div class="ld-c ld-back mini"><span>✦</span></div>' : ''}</div></div>
-        <div class="ld-mid">${S.turn === 'me' ? 'Your turn' : name + "'s turn"} · ${S.n + 1}${S.me.ward ? ' · your side warded' : ''}${S.ai.ward ? ' · their side warded' : ''}</div>
-        <div class="ld-row me">${S.me.field.map((c, i) => kinHTML(c, { cls: (S.sel && c && S.sel.id === c.id) ? 'sel' : (c && c.pos === 'atk' && c.swings > 0 && !c.stun && S.turn === 'me' ? 'ready' : ''), data: `data-ms="${i}"` })).join('')}<div class="ld-trap">${S.me.trap ? threadHTML(S.me.trap, { cls: 'mini' }) : ''}</div></div>
+        <div class="ld-hand foe">${S.ai.hand.map(c => S.reveal ? cardHTML(c, { cls: 'mini' }) : `<div class="ld-c ld-back mini" style="background-image:url('${BACK()}')"></div>`).join('')}</div>
+        <div class="ld-board" style="background-image:url('${TABLE()}')">
+          <div class="ld-spot trap foe">${S.ai.trap ? `<div class="ld-c ld-back mini" style="background-image:url('${BACK()}')"></div>` : ''}</div>
+          ${S.ai.field.map((c, i) => `<div class="ld-spot foe s${i}">${kinHTML(c, { foe: true, data: `data-fs="${i}"` })}</div>`).join('')}
+          <div class="ld-mid">${S.turn === 'me' ? 'Your turn' : name + "'s turn"} · ${S.n + 1}${S.me.ward ? ' · your side warded' : ''}${S.ai.ward ? ' · their side warded' : ''}</div>
+          ${S.me.field.map((c, i) => `<div class="ld-spot me s${i}">${kinHTML(c, { cls: (S.sel && c && S.sel.id === c.id) ? 'sel' : (c && c.pos === 'atk' && c.swings > 0 && !c.stun && S.turn === 'me' ? 'ready' : ''), data: `data-ms="${i}"` })}</div>`).join('')}
+          <div class="ld-spot trap me">${S.me.trap ? threadHTML(S.me.trap, { cls: 'mini' }) : ''}</div>
+        </div>
         ${lpBar(S.me, 'me')}
         <div class="ld-hand me">${S.me.hand.map(c => cardHTML(c, { cls: (S.pending && S.pending.card === c) ? 'sel' : '', data: `data-h="${c.id}"` })).join('')}</div></div>`;
       bind(); foot();
@@ -12941,7 +12992,7 @@ const Linkdown = (() => {
     async function castThread(sd, c, tgt) {
       const T = THREADS[c.t], foe = other(sd), me = sd === S.me, who = me ? 'You' : name; sd.hand.splice(sd.hand.indexOf(c), 1); sd.grave.push(c); if (me) { S.pending = null; S.used.push(c.t); }
       S.busy = true; say(`${who} play${me ? '' : 's'} ${T.name}.`); render();
-      const card = $(`<div class="ld-cast ld-tr${T.rar}"><b>${T.name}</b><small>${T.txt}</small></div>`); ui.stage.appendChild(card); await sleep(700); card.remove();
+      const card = $(`<div class="ld-cast ld-tr${T.rar}" style="background-image:url('${threadArt(c.t)}')"><b>${T.name}</b><small>${T.txt}</small></div>`); ui.stage.appendChild(card); await sleep(700); card.remove();
       switch (c.t) {
         case 'mend': sd.lp += 1000; say(`${T.name}: +1000 life.`); break;
         case 'wind': sd.lp += 500; drawCard(sd); say(`${T.name}: a card and 500 life.`); break;
