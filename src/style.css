@@ -661,3 +661,21 @@ body.cine-on #hud, body.cine-on #crosshair, body.cine-on #compass, body.cine-on 
 .ld-spot .ld-slot { border: 0; background: none; width: 100%; height: 100%; }
 .ld-board .ld-mid { position: absolute; left: 0; right: 0; top: 43.5%; display: flex; justify-content: space-between; padding: 0 6%; pointer-events: none; font-weight: 800; font-size: 10.5px; }
 .ld-board .ld-mid { text-shadow: 0 1px 3px #000, 0 0 8px #000; color: #ffe8a8; }
+/* keep the say line and the buttons on screen: only the middle scrolls */
+#gamebox.ld .ld-card { max-height: 96vh; max-height: 96dvh; overflow: hidden; display: flex; flex-direction: column; }
+#gamebox.ld .gb-stage.ld-stage { flex: 1 1 auto; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+#gamebox.ld .gb-say, #gamebox.ld .gb-foot { flex: 0 0 auto; }
+#gamebox.ld .ld-pick { max-height: none; }
+/* fit the whole table on one phone screen: the mat shrinks with the screen height, hands sit in one sliding row */
+.ld-board { width: min(100%, 340px, calc((100dvh - 400px) * 0.764)); min-width: 220px; }
+.ld-hand { flex-wrap: nowrap; overflow-x: auto; justify-content: flex-start; padding: 2px 2px 4px; scrollbar-width: none; } .ld-hand::-webkit-scrollbar { display: none; }
+.ld-hand > * { flex: 0 0 auto; } .ld-hand.foe { justify-content: center; } .ld-hand.foe .ld-c.mini { width: 28px; height: 40px; }
+.ld-hand.me .ld-c { width: 64px; height: 89px; } .ld-hand.me .ld-tt { font-size: 7.5px; } .ld-hand.me .ld-tn { font-size: 9px; }
+.ld-hand.me::before, .ld-hand.me::after { content: ''; margin: auto; }
+.ld-board { width: min(100%, 340px, calc((100dvh - 450px) * 0.764)); }
+.ld-spot .ld-c:not(.mini) { width: auto; height: 100%; aspect-ratio: 5 / 7; transform: none; }
+.ld-spot .ld-c.ld-def { transform: rotate(90deg) scale(.85); } .ld-spot .ld-c.sel { transform: translateY(-5px) scale(1.06); }
+.ld-spot .ld-ad { gap: 1px; padding: 0 2px; } .ld-spot .ld-ad b { font-size: 7.5px; } .ld-spot .ld-ad b.on { font-size: 9.5px; }
+.ld-spot .ld-bond { height: 3px; left: 4px; right: 4px; }
+.ld-spot .ld-c.ld-back span { font-size: 8px; }
+.ld-spot .ld-ad b:not(.on) { display: none; } .ld-spot .ld-ad { justify-content: center; }

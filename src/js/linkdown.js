@@ -161,10 +161,11 @@ const Linkdown = (() => {
       ui.stage.querySelectorAll('[data-t]').forEach(el => el.addEventListener('click', () => { const t = el.dataset.t, cur = tpick[t] || 0;
         if (!ready(t)) { UI.toast(`${THREADS[t].name} is cooling down. Rarer Threads take longer.`); return; } if (cur < ready(t) && tcount < 3) tpick[t] = cur + 1; else delete tpick[t]; draw(); }));
       const ok = pick.size >= 3 && (o.mode !== 'stake' || stake);
+      const hint = pick.size < 3 ? `Pick at least three Kin (${pick.size} chosen).` : o.mode === 'stake' && !stake ? 'Now tap one of your chosen Kin again to stake it.' : `${pick.size} Kin and ${tcount} Thread${tcount === 1 ? '' : 's'} chosen. Tap Shuffle and deal.`;
       ui.foot.innerHTML = ''; const go = $(`<button class="btn big" ${ok ? '' : 'disabled'}>Shuffle and deal</button>`), back = $(`<button class="btn ghost">Leave the table</button>`);
       go.addEventListener('click', () => { const th = []; for (const t in tpick) for (let i = 0; i < tpick[t]; i++) th.push(t); game(o, ui, mine.filter(k => pick.has(k.id)), th, foe, stake ? mine.find(k => k.id === stake) : null, aiStake); });
       back.addEventListener('click', () => { close(); if (o.onEnd) o.onEnd('none'); }); ui.foot.append(go, back);
-      ui.say.textContent = o.rematch ? 'Win and the Thread is yours. Lose and they keep your Kin, and sell it back for double.' : o.mode === 'stake' ? 'Winner keeps both Kin. Lose yours and they sell it back for double.' : 'Knock their life from 4000 to nothing.';
+      ui.say.textContent = hint + ' ' + (o.rematch ? 'Win and the Thread is yours. Lose and they keep your Kin, and sell it back for double.' : o.mode === 'stake' ? 'Winner keeps both Kin. Lose yours and they sell it back for double.' : 'Knock their life from 4000 to nothing.');
     }
     draw();
   }
