@@ -1,0 +1,16 @@
+const { open } = require('./harness');
+(async () => { const h = await open(); const { ev, page } = h; await h.newGame('gal-1'); await h.calm();
+  await ev(() => { window.__ldFast = true; document.getElementById('hb-ld').click(); }); await page.waitForTimeout(3000);
+  await ev(() => document.querySelector('#gamebox .gb-foot .btn.big').click()); await page.waitForTimeout(2000);
+  const r = await ev(async () => { const S = Linkdown.state, sl = (m) => new Promise(r => setTimeout(r, m)); const out = [];
+    while (!S.me.hand.some(c => c.type === 'kin')) S.api.drawCard(S.me);
+    await S.api.summon(0, 'def'); S.me.deck.length = 0; S.ai.deck.length = 0;
+    S.api.endTurn(); for (let i = 0; i < 60 && (S.turn !== 'me' || S.busy); i++) await sl(100);
+    out.push(['after ai turn', S.turn, S.me.lp, S.ai.lp, document.querySelector('#gamebox .gb-say').textContent.slice(0, 90)]);
+    document.querySelector('[data-ms="0"]').click(); await sl(100);
+    const btns = [...document.querySelectorAll('#gamebox .gb-foot .btn')].map(b => b.textContent); out.push(['buttons', btns.join(' | ')]);
+    const sw = [...document.querySelectorAll('#gamebox .gb-foot .btn')].find(b => b.textContent.includes('Switch')); if (sw) sw.click(); await sl(300);
+    out.push(['pos now', S.api.kinsOf(S.me)[0] && S.api.kinsOf(S.me)[0].pos, document.querySelector('#gamebox .gb-say').textContent.slice(0, 90)]);
+    return out; });
+  console.log(JSON.stringify(r, null, 1));
+  console.log('errors', JSON.stringify(h.errors)); await h.close(); })().catch(e => { console.log('ERR', e.message); process.exit(1); });

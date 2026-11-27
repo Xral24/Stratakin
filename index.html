@@ -12956,7 +12956,8 @@ const Linkdown = (() => {
       if (S.gone) return; ui.foot.innerHTML = ''; if (S.over || S.turn !== 'me' || S.busy) return;
       const P = S.pending;
       if (P && P.card.type === 'kin') { for (const pos of ['atk', 'def']) { const b = $(`<button class="btn ${pos === 'atk' ? '' : 'ghost'}">${pos === 'atk' ? '⚔ Attack position' : '⛨ Defence, face down'}</button>`); b.addEventListener('click', () => summon(S.me, P.card, pos)); ui.foot.append(b); } }
-      if (S.sel && kinsOf(S.ai).length === 0) { const b = $('<button class="btn">Hit them direct</button>'); b.addEventListener('click', () => attack(S.me, S.sel, null)); ui.foot.append(b); }
+      if (S.sel && canSwitch(S.sel)) { const b = $(`<button class="btn ghost">${S.sel.pos === 'def' ? '⚔ Switch to attack' : '⛨ Switch to defence'}</button>`); b.addEventListener('click', () => switchPos(S.me, S.sel)); ui.foot.append(b); }
+      if (S.sel && S.sel.pos === 'atk' && S.sel.swings > 0 && !S.sel.stun && kinsOf(S.ai).length === 0) { const b = $('<button class="btn">Hit them direct</button>'); b.addEventListener('click', () => attack(S.me, S.sel, null)); ui.foot.append(b); }
       if (P || S.sel) { const c = $('<button class="btn ghost">Cancel</button>'); c.addEventListener('click', () => { S.pending = null; S.sel = null; render(); }); ui.foot.append(c); }
       const end = $('<button class="btn big">End turn</button>'); end.addEventListener('click', () => endTurn()); ui.foot.append(end);
     }
@@ -12974,17 +12975,24 @@ const Linkdown = (() => {
       ui.stage.querySelectorAll('[data-ms]').forEach(el => el.addEventListener('click', () => { const c = S.me.field[+el.dataset.ms]; const P = S.pending;
         if (P && P.card.type === 'thread' && c && (THREADS[P.card.t].tgt === 'own' || THREADS[P.card.t].tgt === 'any')) { castThread(S.me, P.card, c); return; }
         if (!c) return;
-        if (c.pos === 'def') { say('Face down in defence: it guards, it does not attack.'); return; }
-        if (c.stun) { say(`${KIN.name(c.k)} is tangled in a net this turn.`); return; }
-        if (c.swings <= 0) { say(`${KIN.name(c.k)} has already attacked this turn.`); return; }
-        S.sel = c; S.pending = null; say(`${KIN.name(c.k)} is ready. Tap one of their Kin${kinsOf(S.ai).length ? '' : ', or hit them direct'}.`); render(); }));
+        S.sel = c; S.pending = null;
+        if (c.pos === 'def') say(c.fresh ? `${KIN.name(c.k)} only just went down. It can switch to attack next turn.` : c.switched ? `${KIN.name(c.k)} already changed position this turn.` : `${KIN.name(c.k)} is guarding. Switch it to attack if you want it to fight.`);
+        else if (c.stun) say(`${KIN.name(c.k)} is tangled in a net this turn.`);
+        else if (c.swings <= 0) say(`${KIN.name(c.k)} has already attacked this turn.`);
+        else say(`${KIN.name(c.k)} is ready. Tap one of their Kin${kinsOf(S.ai).length ? '' : ', or hit them direct'}. Or switch it to defence.`);
+        render(); }));
       ui.stage.querySelectorAll('[data-fs]').forEach(el => el.addEventListener('click', () => { const c = S.ai.field[+el.dataset.fs]; if (!c) return; const P = S.pending;
         if (P && P.card.type === 'thread' && (THREADS[P.card.t].tgt === 'foe' || THREADS[P.card.t].tgt === 'any')) { castThread(S.me, P.card, c); return; }
-        if (S.sel) attack(S.me, S.sel, c); }));
+        if (S.sel && S.sel.pos === 'atk' && S.sel.swings > 0 && !S.sel.stun) attack(S.me, S.sel, c); }));
     }
+    // once a turn each Kin can change position: not the turn it went down, and not after it has attacked
+    const canSwitch = (c) => c && !c.fresh && !c.switched && !(c.pos === 'atk' && c.attacked);
+    async function switchPos(sd, c) { if (!canSwitch(c)) return; c.switched = true; c.shown = true; c.pos = c.pos === 'atk' ? 'def' : 'atk'; c.swings = c.pos === 'atk' && !c.stun ? 1 : 0; if (sd === S.me) S.sel = c.pos === 'atk' ? c : null;
+      render(); const el = ui.stage.querySelector(`[data-id="${c.id}"]`); if (el) el.classList.add('slam'); UI.sfx && UI.sfx('click');
+      say(c.pos === 'atk' ? `${sd === S.me ? 'You flip' : name + ' flips'} ${KIN.name(c.k)} up into attack: ${c.atk + c.temp}.${sd === S.me ? ' Tap one of their Kin to attack.' : ''}` : `${sd === S.me ? 'You turn' : name + ' turns'} ${KIN.name(c.k)} sideways to guard.`); await sleep(400); }
     // ---- summoning, with a slam ----
     async function summon(sd, c, pos) {
-      const i = freeSlot(sd); if (i < 0) return; sd.hand.splice(sd.hand.indexOf(c), 1); c.pos = pos; c.shown = pos === 'atk'; c.swings = pos === 'atk' ? 1 : 0; sd.field[i] = c; if (sd === S.me) { S.summoned = true; S.pending = null; }
+      const i = freeSlot(sd); if (i < 0) return; sd.hand.splice(sd.hand.indexOf(c), 1); c.pos = pos; c.shown = pos === 'atk'; c.swings = pos === 'atk' ? 1 : 0; c.fresh = true; c.switched = false; c.attacked = false; sd.field[i] = c; if (sd === S.me) { S.summoned = true; S.pending = null; }
       S.busy = true; render(); const el = ui.stage.querySelector(`[data-id="${c.id}"]`); if (el) el.classList.add('slam'); UI.sfx && UI.sfx('click');
       say(pos === 'atk' ? `${sd === S.me ? 'You put' : name + ' puts'} down ${KIN.name(c.k)} in attack: ${c.atk + c.temp}.` : `${sd === S.me ? 'You set' : name + ' sets'} a Kin face down in defence.`); if (bondOf(c.k) >= 0.5 && pos === 'atk') await floater(`[data-id="${c.id}"]`, c.k.bonded ? '♥ bonded ×1.6' : `♥ bond +${Math.round((bondBoost(c.k) - 1) * 100)}%`, 'bond'); else await sleep(450); S.busy = false; render();
     }
@@ -12994,7 +13002,7 @@ const Linkdown = (() => {
     async function hurt(sd, n) { if (n <= 0) return; sd.lp -= n; const who = sd === S.me ? 'me' : 'ai'; render(); const bar = ui.stage.querySelector(`.ld-lp.${who}`); if (bar) bar.classList.add('hit'); if (box) { box.classList.remove('shake'); void box.offsetWidth; box.classList.add('shake'); } UI.sfx && UI.sfx('hurt'); await floater(`.ld-lp.${who}`, `-${n}`, 'dmg'); }
     // ---- the fight: lunge, flash, numbers ----
     async function attack(sd, a, d) {
-      if (S.busy || S.over) return; S.busy = true; S.sel = null; const foe = other(sd); a.swings--; render();
+      if (S.busy || S.over) return; S.busy = true; S.sel = null; const foe = other(sd); a.swings--; a.attacked = true; render();
       const aEl = ui.stage.querySelector(`[data-id="${a.id}"]`), dEl = d ? ui.stage.querySelector(`[data-id="${d.id}"]`) : ui.stage.querySelector(`.ld-lp.${foe === S.me ? 'me' : 'ai'}`);
       if (aEl && dEl) { const r1 = aEl.getBoundingClientRect(), r2 = dEl.getBoundingClientRect(); aEl.style.transition = 'transform .22s ease-in'; aEl.style.transform = `translate(${(r2.left - r1.left) * 0.7}px, ${(r2.top - r1.top) * 0.7}px) scale(1.12)`; aEl.style.zIndex = 5; }
       await sleep(240);
@@ -13049,7 +13057,8 @@ const Linkdown = (() => {
       if (S.over || S.busy) return; S.pending = null; S.sel = null; cleanup(S.me); S.turn = 'ai'; S.reveal = false; render(); await sleep(400); await aiTurn();
     }
     function cleanup(sd) { for (const k of kinsOf(sd)) { k.temp = 0; if (k.borrowed) { const i = sd.field.indexOf(k), j = k.borrowed.field.indexOf(null); sd.field[i] = null; if (j >= 0) k.borrowed.field[j] = k; else k.borrowed.hand.push(k); k.borrowed = null; } } }
-    function startTurn(sd) { S.n++; sd.ward = false; for (const k of kinsOf(sd)) { k.swings = k.pos === 'atk' ? 1 : 0; if (k.stun) { k.stun--; if (k.stun) k.swings = 0; } } drawCard(sd); }
+    async function startTurn(sd) { S.n++; sd.ward = false; for (const k of kinsOf(sd)) { k.fresh = false; k.switched = false; k.attacked = false; k.swings = k.pos === 'atk' ? 1 : 0; if (k.stun) { k.stun--; if (k.stun) k.swings = 0; } }
+      if (!drawCard(sd)) { sd.dry = (sd.dry || 0) + 1; const n = 300 * sd.dry; say(`${sd === S.me ? 'Your' : name + "'s"} deck is empty. The table burns ${n} life for every draw that isn't there.`); await hurt(sd, n); await sleep(500); } }
     async function checkEnd() {
       if (S.over) return true; const lost = (sd) => sd.lp <= 0 || (!sd.deck.length && !sd.hand.some(c => c.type === 'kin') && !kinsOf(sd).length);
       if (!lost(S.me) && !lost(S.ai) && S.n < 40) return false; S.over = true;
@@ -13058,7 +13067,7 @@ const Linkdown = (() => {
       finish(res); return true;
     }
     async function aiTurn() {
-      if (S.over || S.gone) return; const A = S.ai, P = S.me, sk = U.clamp(o.skill == null ? 0.4 : o.skill, 0, 1); startTurn(A); render(); await sleep(500); if (await checkEnd()) return;
+      if (S.over || S.gone) return; const A = S.ai, P = S.me, sk = U.clamp(o.skill == null ? 0.4 : o.skill, 0, 1); await startTurn(A); render(); await sleep(500); if (await checkEnd()) return;
       const foeBest = () => Math.max(0, ...kinsOf(P).map(k => k.pos === 'atk' ? k.atk + k.temp : (k.shown ? k.def : 0)));
       // one Kin down first: attack if it can beat what's there, otherwise guard
       const hk = A.hand.filter(c => c.type === 'kin').sort((a, b) => (b.atk + b.def) - (a.atk + a.def));
@@ -13074,6 +13083,8 @@ const Linkdown = (() => {
         else if (t === 'rewind') use = A.grave.some(x => x.type === 'kin') && freeSlot(A) >= 0; else if (t === 'fusion') use = mk.length >= 2; else if (t === 'rally') use = mk.filter(k => k.pos === 'atk').length >= 2; else if (t === 'ward') use = mk.length >= 1 && pk.length >= 1;
         else if (t === 'flip') { tgt = mk.find(k => k.def > k.atk + 300 && k.pos === 'atk'); use = !!tgt; }
         if (use) { await castThread(A, c, tgt); if (S.over) return; await sleep(250); } }
+      // turn guards up when they can win a fight, or when there's nothing in the way
+      for (const d of kinsOf(A).filter(k => k.pos === 'def' && canSwitch(k))) { const AA = d.atk + d.temp, pk = kinsOf(P); if (!pk.length || pk.some(x => x.pos === 'atk' ? AA > x.atk + x.temp : (x.shown && AA > x.def))) { await switchPos(A, d); if (S.over) return; } }
       // attacks
       for (const a of kinsOf(A).filter(k => k.pos === 'atk' && k.swings > 0 && !k.stun)) {
         while (a.swings > 0 && A.field.includes(a) && !S.over && !S.gone) { const pk = kinsOf(P); const AA = a.atk + a.temp;
@@ -13081,7 +13092,7 @@ const Linkdown = (() => {
           else { const beat = pk.filter(d => d.pos === 'atk' ? AA > d.atk + d.temp : (d.shown ? AA > d.def : Math.random() < 0.4 + 0.3 * sk)).sort((x, y) => (y.pos === 'atk' ? 1 : 0) - (x.pos === 'atk' ? 1 : 0) || y.atk - x.atk); tgt = beat[0] || (Math.random() < 0.2 * (1 - sk) ? pk[0] : null); }
           if (!tgt) break; await attack(A, a, tgt === 'direct' ? null : tgt); await sleep(250); if (S.over) return; }
       }
-      cleanup(A); if (S.over || S.gone) return; S.turn = 'me'; S.summoned = false; startTurn(P); render(); if (await checkEnd()) return; say(`Your turn. You draw. ${P.hand.length} cards in your hand.`);
+      cleanup(A); if (S.over || S.gone) return; S.turn = 'me'; S.summoned = false; S.busy = true; await startTurn(P); S.busy = false; render(); if (await checkEnd()) return; if (P.deck.length || P.hand.length) say(`Your turn. ${P.hand.length} card${P.hand.length === 1 ? '' : 's'} in your hand. Tap one of your Kin on the table to attack or switch it.`);
     }
     function finish(res) {
       S.turn = 'done'; render();
