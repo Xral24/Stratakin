@@ -19,7 +19,7 @@ const Linkdown = (() => {
     return v;
   }
   const sums = (L) => L.map(l => [l.you.reduce((s, c) => s + laneVal(c, l, l.them), 0), l.them.reduce((s, c) => s + laneVal(c, l, l.you), 0)]);
-  const isStarter = (k) => { try { return KIN.starters(G.baseSeed).some(sp => sp.seed === k.sp.seed || (k.sp.line && sp.line === k.sp.line)); } catch (e) { return false; } };
+  const isStarter = (k) => { try { return KIN.starters(G.baseSeed).some(sp => sp.seed === k.sp.seed || (k.sp.line != null && sp.line != null && sp.line === k.sp.line)); } catch (e) { return false; } };
   const stakeable = (k) => !k.bonded && !isStarter(k);
 
   // the other player's deck: rarer and higher the further out the town is
@@ -30,6 +30,17 @@ const Linkdown = (() => {
       const fr = r(); k.card = { finish: fr < 0.04 * t ? 'ultra' : fr < 0.1 + 0.05 * t ? 'super' : fr < 0.3 + 0.05 * t ? 'rare' : 'normal' }; out.push(k); }
     return out;
   }
+  // every town's player keeps one prize Kin back. Beat them enough times (once in the first village, up to fifteen in the big cities)
+  // and they bring it out, staked and in their deck. It's the only way to get that printing of it
+  const NEED = [1, 2, 3, 5, 8, 12, 15];
+  const need = (tier) => NEED[U.clamp(tier || 0, 0, NEED.length - 1)];
+  function prizeFor(vid, tier) {
+    const r = U.rng(U.combine(U.strHash('prize:' + vid), 31)); const want = (tier || 0) >= 3 ? 3 : 2;
+    const pool = KIN.dex('earth').filter(sp => !sp.fusion && sp.home && sp.home.layer !== 'Core' && !sp.legend && !sp.mythic && !sp.dino && (sp.rarity || 0) === want);
+    if (!pool.length) return null; const sp = pool[r.int(pool.length)]; const k = KIN.create(sp, U.clamp(10 + (tier || 0) * 8, 8, KIN.capOf(sp)));
+    k.card = { finish: (tier || 0) >= 3 ? 'secret' : 'ultra', champion: true }; return k;
+  }
+  const townRec = (vid) => { const T = G.stats.ldTown || (G.stats.ldTown = {}); return T[vid] || (T[vid] = { wins: 0, prizeWon: false }); };
   // the other player's move: weigh every card in every lane, keep a little noise for a weaker player
   function aiMove(st) {
     const sk = U.clamp(st.o.skill == null ? 0.4 : st.o.skill, 0, 1); let best = null;
@@ -62,11 +73,12 @@ const Linkdown = (() => {
     if (mine.length < 3) { UI.toast('You need at least three Kin on cartridges to sit down at Linkdown.'); if (o.onEnd) o.onEnd('none'); return; }
     const ui = shell('Linkdown', `${o.champ || 'A local'} · ${o.mode === 'stake' ? 'Kin on the table' : 'a friendly game'}`);
     const pick = new Set(mine.slice().sort((a, b) => power(b) - power(a)).slice(0, Math.min(5, mine.length)).map(k => k.id)); let stake = null;
-    const ai = deckFor(o), aiStake = ai.slice().sort((a, b) => value(b) - value(a))[0];
+    const ai = deckFor(o); let aiStake = ai.slice().sort((a, b) => value(b) - value(a))[0];
+    if (o.prize) { const pk = prizeFor(o.villageId, o.tier); if (pk) { ai[ai.indexOf(ai.slice().sort((a, b) => power(a) - power(b))[0])] = pk; aiStake = pk; } }
     function draw() {
       ui.score.innerHTML = `<span class="gb-mid">Pick ${Math.min(5, mine.length)} cartridges${o.mode === 'stake' ? ', then the one you put on the table' : ''}</span>`;
       ui.stage.innerHTML = `<div class="ld-pick">${mine.map(k => { const c = card(k, true); return `<div class="ld-pk ${pick.has(k.id) ? 'on' : ''} ${stake === k.id ? 'stake' : ''}" data-k="${k.id}">${chip(c, true)}<small>${KIN.name(k)} · Lv ${k.level}${k.bonded ? ' · bonded' : ''}</small></div>`; }).join('')}</div>` +
-        (o.mode === 'stake' ? `<p class="small ld-note">They put up <b>${KIN.name(aiStake)}</b>, Lv ${aiStake.level}. Tap a chosen card again to stake it. Your starter and bonded Kin can't go on the table.</p>` : '');
+        (o.mode === 'stake' ? `<p class="small ld-note">${o.prize ? 'Their prize: ' : 'They put up '}<b>${KIN.name(aiStake)}</b>, Lv ${aiStake.level}. Tap a chosen card again to stake it. Your starter and bonded Kin can't go on the table.</p>` : '');
       ui.stage.querySelectorAll('.ld-pk').forEach(el => { const k = mine.find(x => x.id == el.dataset.k); const cv = el.querySelector('canvas'); if (cv) pic(cv, k);
         el.addEventListener('click', () => { if (!pick.has(k.id)) { if (pick.size >= 5) { UI.toast('Five cartridges. Drop one first.'); return; } pick.add(k.id); }
           else if (o.mode === 'stake' && stake !== k.id && stakeable(k)) stake = k.id; else { pick.delete(k.id); if (stake === k.id) stake = null; } draw(); }); });
@@ -123,7 +135,9 @@ const Linkdown = (() => {
       const ta = S.reduce((s, x) => s + x[0], 0), tb = S.reduce((s, x) => s + x[1], 0);
       const res = w > l ? 'win' : l > w ? 'lose' : ta > tb ? 'win' : ta < tb ? 'lose' : 'draw';
       let line = res === 'win' ? `${w} lanes to ${l}. ${name} pushes the cards over to you.` : res === 'lose' ? `${l} lanes to ${w}. ${name} grins.` : 'Dead level. Nobody wins, nobody pays.';
-      if (o.mode === 'stake' && res === 'win') { const k = KIN.create(aiStake.sp, aiStake.level); k.card = aiStake.card; G.addKin(k); line += ` ${KIN.name(k)} is yours now.`; }
+      if (o.mode === 'stake' && res === 'win') { const k = KIN.create(aiStake.sp, aiStake.level); k.card = aiStake.card; G.addKin(k); line += o.prize ? ` ${name} slides the prize over. ${KIN.name(k)}, champion's printing, is yours.` : ` ${KIN.name(k)} is yours now.`; }
+      if (o.villageId) { const t = townRec(o.villageId); if (res === 'win') { if (o.prize) t.prizeWon = true; else t.wins++; }
+        const left = need(o.tier) - t.wins; if (res === 'win' && !o.prize && !t.prizeWon) line += left > 0 ? ` "Beat me ${left} more time${left > 1 ? 's' : ''} and I'll bring out the one I keep back."` : ` "Fine. Next time I play my prize. You won't beat that."`; }
       if (o.mode === 'stake' && res === 'lose' && myStake) { lose(myStake, o); line += ` ${KIN.name(myStake)} goes with them. They'll sell it back for ◆ ${value(myStake) * 2}.`; }
       const s = G.stats.linkdown || (G.stats.linkdown = { won: 0, lost: 0 }); if (res === 'win') s.won++; else if (res === 'lose') s.lost++;
       ui.say.textContent = line; ui.foot.innerHTML = ''; const b = $('<button class="btn big">Done</button>'); b.addEventListener('click', () => { close(); if (o.onEnd) o.onEnd(res); if (G.save) G.save(); }); ui.foot.append(b);
@@ -140,5 +154,5 @@ const Linkdown = (() => {
   }
   function buyBack(i) { const L = G.stats.ldLost || []; const e = L[i]; if (!e) return false; if (G.shards < e.price) { UI.toast('Not enough Shards.', 'bad'); return false; }
     G.shards -= e.price; const k = KIN.deserialize(e.data); L.splice(i, 1); G.addKin(k); UI.toast(`${KIN.name(k)} is back on your cartridge.`, 'good'); return true; }
-  return { play, close, buyBack, power, value, stakeable, get state() { return st; } };
+  return { play, close, buyBack, prizeFor, need, townRec, power, value, stakeable, get state() { return st; } };
 })();
