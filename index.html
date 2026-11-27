@@ -588,6 +588,31 @@ body.cine-on #hud, body.cine-on #crosshair, body.cine-on #compass, body.cine-on 
 .cartslot canvas { width: 100%; height: auto; aspect-ratio: 150 / 210; filter: drop-shadow(0 4px 8px rgba(0,0,0,.5)); }
 .cartslot small { font-size: 12px; opacity: .85; text-align: center; }
 
+/* Linkdown */
+#gamebox.ld .ld-card { width: min(98vw, 520px); }
+#gamebox .gb-stage.ld-stage { width: 100%; display: block; height: auto; }
+.ld-tot b:first-child::after { content: ' them'; font-size: 9px; font-weight: 400; } .ld-tot b:last-child::after { content: ' you'; font-size: 9px; font-weight: 400; }
+.ld-pick { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 6px; max-height: 52vh; overflow-y: auto; }
+.ld-pk { border: 2px solid transparent; border-radius: 10px; padding: 3px; text-align: center; opacity: .55; }
+.ld-pk.on { opacity: 1; border-color: var(--line); } .ld-pk.stake { border-color: #ffb347; box-shadow: 0 0 10px #ffb34788; }
+.ld-pk small { display: block; font-size: 10.5px; color: var(--dim); line-height: 1.2; }
+.ld-c { position: relative; width: 58px; height: 74px; margin: 0 auto; border-radius: 8px; background: linear-gradient(160deg, #2a3442, #151b24); border: 2px solid var(--ec, #555); display: flex; flex-direction: column; align-items: center; font-size: 10px; }
+.ld-c canvas { width: 40px; height: 40px; margin-top: 2px; }
+.ld-c b { font-size: 15px; line-height: 1; color: #fff; } .ld-c i { font-style: normal; color: var(--ec); font-size: 9.5px; }
+.ld-c em { position: absolute; top: -7px; right: -6px; font-style: normal; font-size: 8.5px; font-weight: 800; padding: 1px 4px; border-radius: 6px; background: #c0c8d8; color: #111; }
+.ld-super em { background: linear-gradient(90deg,#9cf,#c9f,#fc9); } .ld-ultra em { background: #ffd23c; } .ld-secret em { background: linear-gradient(90deg,#f9c,#9ff,#ff9,#c9f); }
+.ld-rare { box-shadow: 0 0 6px #c0c8d8aa; } .ld-ultra, .ld-secret { box-shadow: 0 0 9px #ffd23caa; }
+.ld-back { background: repeating-linear-gradient(45deg, #2a3442 0 6px, #1d2530 6px 12px); border-color: #556; justify-content: center; } .ld-back span { font-size: 22px; color: #778; margin: auto; }
+.ld-lanes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.ld-lane { border: 2px solid #ffffff18; border-radius: 12px; padding: 4px; background: linear-gradient(180deg, #ffffff06, color-mix(in srgb, var(--ec) 14%, transparent)); min-height: 230px; display: flex; flex-direction: column; }
+.ld-lane.sel { border-color: var(--ec); } .ld-lane.tgt { border-style: dashed; border-color: #ffb347; }
+.ld-lt { text-align: center; font-weight: 800; font-size: 12px; } .ld-lt small { display: block; color: var(--ec); font-weight: 700; font-size: 10px; }
+.ld-side { display: flex; flex-wrap: wrap; gap: 3px; justify-content: center; min-height: 78px; } .ld-side .ld-c { transform: scale(.82); margin: -6px -5px; }
+.ld-tot { display: flex; flex-direction: column; align-items: center; font-size: 15px; color: var(--dim); } .ld-tot b.win { color: #7dff9a; }
+.ld-ghost { opacity: .55; }
+.ld-hand { display: flex; gap: 6px; justify-content: center; margin-top: 8px; flex-wrap: wrap; } .ld-h { border-radius: 10px; padding: 2px; border: 2px solid transparent; } .ld-h.on { border-color: #fff; transform: translateY(-4px); }
+.ld-note { margin-top: 6px; }
+
 </style>
 </head>
 <body>
@@ -12617,6 +12642,153 @@ const Games = (() => {
 
 </script>
 <script>
+'use strict';
+// ---- Linkdown: the cartridge card game every town plays. Your deck is five of your own Kin; each card's power comes from the Kin's
+// level and rarity. Three lanes, each with ground that favours one element. Five turns: each turn you both lay one cartridge face
+// down in a lane, then flip. Win two lanes of three. A printing is a trick you can spend once: rare Peek, super Shift, ultra Surge,
+// secret Overload. A friendly game for nothing, or a Kin each on the table and the winner keeps both. Lose yours and the one who won
+// it sells it back for double ----
+const Linkdown = (() => {
+  const $ = (h) => { const d = document.createElement('div'); d.innerHTML = h.trim(); return d.firstElementChild; };
+  const TRICK = { rare: ['Peek', 'see where they play this turn'], super: ['Shift', 'after the flip, move it to another lane'], ultra: ['Surge', '+3 power'], secret: ['Overload', '+5 power'] };
+  const ECOL = { Flame: '#ff7a3c', Tide: '#3ca8ff', Bloom: '#58c45a', Stone: '#b08a5a', Gale: '#9fd8e8', Frost: '#bfe6ff', Spark: '#ffd23c', Void: '#8a6cff', Light: '#fff0a8' };
+  const GROUND = { Flame: 'Ember flats', Tide: 'The shallows', Bloom: 'Long grass', Stone: 'Scree', Gale: 'Clifftop', Frost: 'Snowfield', Spark: 'Storm ridge', Void: 'Night hollow', Light: 'High noon' };
+  const value = (k) => Math.round([150, 420, 1600, 6500, 9000][Math.min(4, k.sp.rarity || 0)] * (1 + k.level / 40));
+  const power = (k) => U.clamp(2 + Math.round(k.level / 4) + (k.sp.rarity || 0) * 2, 2, 22);
+  const elemOf = (k) => (KIN.dominant(k.sp.elem, 1)[0]) || 'Stone';
+  const card = (k, mine) => ({ k, mine, pow: power(k), el: elemOf(k), fin: (k.card && k.card.finish) || 'normal', boost: 0, id: Math.random() });
+  function laneVal(c, lane, opp) {
+    let v = c.pow + c.boost + (c.el === lane.el ? 2 : 0);
+    if (opp.some(o => KIN.effectiveness(c.el, o.k) > 1.2)) v += 2; // it has the edge on something across the lane
+    return v;
+  }
+  const sums = (L) => L.map(l => [l.you.reduce((s, c) => s + laneVal(c, l, l.them), 0), l.them.reduce((s, c) => s + laneVal(c, l, l.you), 0)]);
+  const isStarter = (k) => { try { return KIN.starters(G.baseSeed).some(sp => sp.seed === k.sp.seed || (k.sp.line && sp.line === k.sp.line)); } catch (e) { return false; } };
+  const stakeable = (k) => !k.bonded && !isStarter(k);
+
+  // the other player's deck: rarer and higher the further out the town is
+  function deckFor(o) {
+    const t = o.tier || 0, r = U.rng(U.combine(U.strHash(o.champ || 'x'), 977 + t));
+    const maxR = Math.min(3, Math.floor(t / 2) + (t >= 1 ? 1 : 0)); const pool = KIN.dex('earth').filter(sp => !sp.fusion && sp.home && sp.home.layer !== 'Core' && !sp.legend && !sp.mythic && !sp.dino && (sp.rarity || 0) <= maxR);
+    const out = []; for (let i = 0; i < 5 && pool.length; i++) { const sp = pool[r.int(pool.length)]; const lv = U.clamp(Math.round(5 + t * 7 + r() * 6), 3, KIN.capOf(sp)); const k = KIN.create(sp, lv);
+      const fr = r(); k.card = { finish: fr < 0.04 * t ? 'ultra' : fr < 0.1 + 0.05 * t ? 'super' : fr < 0.3 + 0.05 * t ? 'rare' : 'normal' }; out.push(k); }
+    return out;
+  }
+  // the other player's move: weigh every card in every lane, keep a little noise for a weaker player
+  function aiMove(st) {
+    const sk = U.clamp(st.o.skill == null ? 0.4 : st.o.skill, 0, 1); let best = null;
+    const now = sums(st.L);
+    for (const c of st.ai) for (let li = 0; li < 3; li++) { const l = st.L[li];
+      const gain = laneVal(c, l, l.you); const [a, b] = now[li]; const after = b + gain;
+      let score = gain; if (after > a && b <= a) score += 6; if (b > a + 8) score -= 5; if (a > b + gain + 6) score -= 4; // swing a lane, do not pile onto a won one or a lost one
+      score += (Math.random() - 0.5) * 10 * (1 - sk);
+      if (!best || score > best.score) best = { c, li, score }; }
+    return best;
+  }
+
+  let box = null, st = null;
+  function close() { if (box) { box.remove(); box = null; } st = null; if (typeof G !== 'undefined' && G.setPaused) G.setPaused(false); }
+  function shell(title, sub) {
+    if (box) box.remove(); box = $(`<div id="gamebox" class="ld"><div class="gb-card ld-card"><div class="gb-head"><b class="gb-title"></b><span class="gb-sub"></span></div><div class="gb-score"></div><div class="gb-stage ld-stage"></div><div class="gb-say"></div><div class="gb-foot"></div></div></div>`);
+    box.querySelector('.gb-title').textContent = title; box.querySelector('.gb-sub').textContent = sub || ''; document.body.appendChild(box);
+    if (typeof G !== 'undefined' && G.setPaused) G.setPaused(true);
+    return { stage: box.querySelector('.gb-stage'), score: box.querySelector('.gb-score'), say: box.querySelector('.gb-say'), foot: box.querySelector('.gb-foot') };
+  }
+  function pic(cv, k) { try { KIN.portrait(cv, k.sp, k.stage || 1, 44); } catch (e) {} }
+  function chip(c, face) {
+    if (!face) return `<div class="ld-c ld-back"><span>?</span></div>`;
+    const tr = TRICK[c.fin]; return `<div class="ld-c ld-${c.fin}" data-cid="${c.id}" style="--ec:${ECOL[c.el] || '#aaa'}"><canvas width="44" height="44"></canvas><b>${c.pow + c.boost}</b><i>${c.el}</i>${tr ? `<em>${tr[0]}</em>` : ''}</div>`;
+  }
+
+  // ---- step one: pick your five, and your stake ----
+  function play(o) {
+    o = o || {}; const mine = [...G.kin, ...(G.box || []).map(KIN.deserialize)];
+    if (mine.length < 3) { UI.toast('You need at least three Kin on cartridges to sit down at Linkdown.'); if (o.onEnd) o.onEnd('none'); return; }
+    const ui = shell('Linkdown', `${o.champ || 'A local'} · ${o.mode === 'stake' ? 'Kin on the table' : 'a friendly game'}`);
+    const pick = new Set(mine.slice().sort((a, b) => power(b) - power(a)).slice(0, Math.min(5, mine.length)).map(k => k.id)); let stake = null;
+    const ai = deckFor(o), aiStake = ai.slice().sort((a, b) => value(b) - value(a))[0];
+    function draw() {
+      ui.score.innerHTML = `<span class="gb-mid">Pick ${Math.min(5, mine.length)} cartridges${o.mode === 'stake' ? ', then the one you put on the table' : ''}</span>`;
+      ui.stage.innerHTML = `<div class="ld-pick">${mine.map(k => { const c = card(k, true); return `<div class="ld-pk ${pick.has(k.id) ? 'on' : ''} ${stake === k.id ? 'stake' : ''}" data-k="${k.id}">${chip(c, true)}<small>${KIN.name(k)} · Lv ${k.level}${k.bonded ? ' · bonded' : ''}</small></div>`; }).join('')}</div>` +
+        (o.mode === 'stake' ? `<p class="small ld-note">They put up <b>${KIN.name(aiStake)}</b>, Lv ${aiStake.level}. Tap a chosen card again to stake it. Your starter and bonded Kin can't go on the table.</p>` : '');
+      ui.stage.querySelectorAll('.ld-pk').forEach(el => { const k = mine.find(x => x.id == el.dataset.k); const cv = el.querySelector('canvas'); if (cv) pic(cv, k);
+        el.addEventListener('click', () => { if (!pick.has(k.id)) { if (pick.size >= 5) { UI.toast('Five cartridges. Drop one first.'); return; } pick.add(k.id); }
+          else if (o.mode === 'stake' && stake !== k.id && stakeable(k)) stake = k.id; else { pick.delete(k.id); if (stake === k.id) stake = null; } draw(); }); });
+      const ready = pick.size === Math.min(5, mine.length) && (o.mode !== 'stake' || stake);
+      ui.foot.innerHTML = ''; const go = $(`<button class="btn big" ${ready ? '' : 'disabled'}>Deal</button>`), back = $(`<button class="btn ghost">Leave the table</button>`);
+      go.addEventListener('click', () => game(o, ui, mine.filter(k => pick.has(k.id)), ai, stake ? mine.find(k => k.id === stake) : null, aiStake));
+      back.addEventListener('click', () => { close(); if (o.onEnd) o.onEnd('none'); }); ui.foot.append(go, back);
+      ui.say.textContent = o.mode === 'stake' ? 'Winner keeps both Kin. Lose yours and they sell it back for double.' : 'Win two lanes of three. Ground that suits a Kin gives it +2.';
+    }
+    draw();
+  }
+
+  // ---- the game ----
+  function game(o, ui, deck, ai, myStake, aiStake) {
+    const r = U.rng(U.combine(U.strHash(o.champ || 'x'), (G.dayCount || 0) * 7 + 3)); const els = KIN.E.slice(); const lanes = [];
+    while (lanes.length < 3) { const e = els.splice(r.int(els.length), 1)[0]; lanes.push({ el: e, you: [], them: [] }); }
+    st = { o, L: lanes, hand: deck.map(k => card(k, true)), ai: ai.map(k => card(k, false)), turn: 0, sel: null, lane: null, peek: null, plan: null, shift: null, over: false };
+    const name = (o.champ || 'They').split(' ')[0];
+    function render() {
+      const S = sums(st.L);
+      ui.score.innerHTML = `<span class="gb-you">You <b>${S.filter(([a, b]) => a > b).length}</b></span><span class="gb-mid">turn ${Math.min(5, st.turn + 1)} of 5</span><span class="gb-them">${name} <b>${S.filter(([a, b]) => b > a).length}</b></span>`;
+      ui.stage.innerHTML = `<div class="ld-lanes">${st.L.map((l, i) => `<div class="ld-lane ${st.lane === i ? 'sel' : ''} ${st.shift ? 'tgt' : ''}" data-l="${i}" style="--ec:${ECOL[l.el]}">
+          <div class="ld-lt">${GROUND[l.el]}<small>${l.el} +2</small></div>
+          <div class="ld-side them">${l.them.map(c => chip(c, true)).join('')}${st.peek && st.peek.li === i ? `<div class="ld-ghost">${chip(st.peek.c, true)}</div>` : ''}</div>
+          <div class="ld-tot"><b class="${S[i][1] > S[i][0] ? 'win' : ''}">${S[i][1]}</b><b class="${S[i][0] > S[i][1] ? 'win' : ''}">${S[i][0]}</b></div>
+          <div class="ld-side you">${l.you.map(c => chip(c, true)).join('')}${st.lane === i && st.sel ? `<div class="ld-ghost">${chip(st.sel, true)}</div>` : ''}</div></div>`).join('')}</div>
+        <div class="ld-hand">${st.hand.map(c => `<div class="ld-h ${st.sel === c ? 'on' : ''}" data-h="${c.id}">${chip(c, true)}</div>`).join('')}</div>`;
+      ui.stage.querySelectorAll('[data-cid]').forEach(el => { const c = [...st.hand, ...st.L.flatMap(l => [...l.you, ...l.them]), st.peek && st.peek.c].find(x => x && x.id == el.dataset.cid); const cv = el.querySelector('canvas'); if (c && cv) pic(cv, c.k); });
+      ui.stage.querySelectorAll('[data-h]').forEach(el => el.addEventListener('click', () => { if (st.over || st.shift) return; st.sel = st.hand.find(c => c.id == el.dataset.h); render(); }));
+      ui.stage.querySelectorAll('[data-l]').forEach(el => el.addEventListener('click', () => { const i = +el.dataset.l;
+        if (st.shift) { const { c, from } = st.shift; if (i !== from) { st.L[from].you.splice(st.L[from].you.indexOf(c), 1); st.L[i].you.push(c); ui.say.textContent = `${KIN.name(c.k)} shifts across.`; } st.shift = null; next(); return; }
+        if (st.over || !st.sel) return; st.lane = i; render(); }));
+      foot();
+    }
+    function foot() {
+      ui.foot.innerHTML = ''; if (st.over) return;
+      if (st.shift) { const keep = $('<button class="btn ghost">Keep it there</button>'); keep.addEventListener('click', () => { st.shift = null; next(); }); ui.foot.append(keep); return; }
+      if (st.sel && st.sel.fin === 'rare' && !st.sel.used && !st.peek) { const pk = $('<button class="btn">Peek</button>'); pk.addEventListener('click', () => { st.sel.used = true; st.plan = st.plan || aiMove(st); st.peek = { c: st.plan.c, li: st.plan.li }; ui.say.textContent = `You glimpse their cartridge: ${KIN.name(st.plan.c.k)}, going ${GROUND[st.L[st.plan.li].el].toLowerCase()}.`; render(); }); ui.foot.append(pk); }
+      const flip = $(`<button class="btn big" ${st.sel && st.lane != null ? '' : 'disabled'}>Flip</button>`); flip.addEventListener('click', doFlip); ui.foot.append(flip);
+    }
+    function doFlip() {
+      const me = st.sel, li = st.lane, them = st.plan || aiMove(st); st.plan = null; st.peek = null;
+      if (me.fin === 'ultra' && !me.used) { me.boost += 3; me.used = true; } if (me.fin === 'secret' && !me.used) { me.boost += 5; me.used = true; }
+      if (them.c.fin === 'ultra' && !them.c.used) { them.c.boost += 3; them.c.used = true; }
+      st.hand.splice(st.hand.indexOf(me), 1); st.ai.splice(st.ai.indexOf(them.c), 1); st.L[li].you.push(me); st.L[them.li].them.push(them.c);
+      st.sel = null; st.lane = null; UI.sfx && UI.sfx('click');
+      ui.say.textContent = `${KIN.name(me.k)} to ${GROUND[st.L[li].el].toLowerCase()}. ${name} lays ${KIN.name(them.c.k)} on ${GROUND[st.L[them.li].el].toLowerCase()}.`;
+      if (me.fin === 'super' && !me.used) { me.used = true; st.shift = { c: me, from: li }; ui.say.textContent += ' Shift: tap a lane to move it.'; render(); return; }
+      next();
+    }
+    function next() { st.turn++; if (st.turn >= 5 || !st.hand.length || !st.ai.length) return end(); render(); }
+    function end() {
+      st.over = true; render(); const S = sums(st.L); const w = S.filter(([a, b]) => a > b).length, l = S.filter(([a, b]) => b > a).length;
+      const ta = S.reduce((s, x) => s + x[0], 0), tb = S.reduce((s, x) => s + x[1], 0);
+      const res = w > l ? 'win' : l > w ? 'lose' : ta > tb ? 'win' : ta < tb ? 'lose' : 'draw';
+      let line = res === 'win' ? `${w} lanes to ${l}. ${name} pushes the cards over to you.` : res === 'lose' ? `${l} lanes to ${w}. ${name} grins.` : 'Dead level. Nobody wins, nobody pays.';
+      if (o.mode === 'stake' && res === 'win') { const k = KIN.create(aiStake.sp, aiStake.level); k.card = aiStake.card; G.addKin(k); line += ` ${KIN.name(k)} is yours now.`; }
+      if (o.mode === 'stake' && res === 'lose' && myStake) { lose(myStake, o); line += ` ${KIN.name(myStake)} goes with them. They'll sell it back for ◆ ${value(myStake) * 2}.`; }
+      const s = G.stats.linkdown || (G.stats.linkdown = { won: 0, lost: 0 }); if (res === 'win') s.won++; else if (res === 'lose') s.lost++;
+      ui.say.textContent = line; ui.foot.innerHTML = ''; const b = $('<button class="btn big">Done</button>'); b.addEventListener('click', () => { close(); if (o.onEnd) o.onEnd(res); if (G.save) G.save(); }); ui.foot.append(b);
+      box.classList.add('gb-' + res); UI.sfx && UI.sfx(res === 'win' ? 'caught' : 'click');
+    }
+    ui.say.textContent = `Lanes: ${st.L.map(l => GROUND[l.el]).join(', ')}. Tap a cartridge, tap a lane, then flip.`; render();
+  }
+
+  // a staked Kin that was lost: off your cartridges, into the winner's case, for sale at double
+  function lose(k, o) {
+    let i = G.kin.indexOf(k); if (i >= 0) { G.kin.splice(i, 1); if (G.activeIdx >= G.kin.length) G.activeIdx = Math.max(0, G.kin.length - 1); }
+    else { const j = (G.box || []).findIndex(d => d.id === k.id); if (j >= 0) G.box.splice(j, 1); }
+    const L = G.stats.ldLost || (G.stats.ldLost = []); L.push({ data: KIN.serialize(k), price: value(k) * 2, champ: o.champ, at: o.villageId, day: G.dayCount || 0 });
+  }
+  function buyBack(i) { const L = G.stats.ldLost || []; const e = L[i]; if (!e) return false; if (G.shards < e.price) { UI.toast('Not enough Shards.', 'bad'); return false; }
+    G.shards -= e.price; const k = KIN.deserialize(e.data); L.splice(i, 1); G.addKin(k); UI.toast(`${KIN.name(k)} is back on your cartridge.`, 'good'); return true; }
+  return { play, close, buyBack, power, value, stakeable, get state() { return st; } };
+})();
+
+</script>
+<script>
 // ---- books you can take off a shelf and read. A shelf belongs to a place: the Shell School in Atlantis keeps the books the children learn the city's
 // history from. You pick one, turn its pages, put it back. What you have read is remembered, and some people care that you have ----
 const Books = (() => {
@@ -12833,7 +13005,14 @@ const Village = (() => {
   function gameStats(v) { const gs = G.stats.games || (G.stats.games = {}); return gs[v.id] || (gs[v.id] = { won: 0, lost: 0, day: -1, n: 0 }); }
   function gamesDef(v) { const g = gameOf(v), K = Games.KINDS[g.kind], st = gameStats(v), first = g.champ.split(' ')[0];
     const greet = st.won >= 3 ? `Champion of ${v.name}. That is you now, and I have not forgotten it. Sit down.` : st.won + st.lost === 0 ? `${K.blurb} I match whatever you put down. I do not lose often.` : `You have had ${st.won} off me. I have had ${st.lost} off you. Sit down.`;
-    return { title: `${K.name} · ${v.name}`, keeper: g.champ, greet, stock: g.stakes.map((stake, i) => ({ service: 'game', game: g.kind, stake, skill: g.skill, champ: g.champ, name: `${i === 0 ? 'A friendly game' : i === 1 ? 'A proper game' : 'For the title'}: ${stake} shards a side`, sub: i === 2 ? `Beat ${first} three times and the town calls you champion` : 'Winner takes both stakes', price: stake, btn: 'Play' })) }; }
+    return { title: `${K.name} · ${v.name}`, keeper: g.champ, greet, stock: g.stakes.map((stake, i) => ({ service: 'game', game: g.kind, stake, skill: g.skill, champ: g.champ, name: `${i === 0 ? 'A friendly game' : i === 1 ? 'A proper game' : 'For the title'}: ${stake} shards a side`, sub: i === 2 ? `Beat ${first} three times and the town calls you champion` : 'Winner takes both stakes', price: stake, btn: 'Play' })).concat(linkdownRows(v, g)) }; }
+  /* Linkdown, the cartridge card game, is played in every town as well: a friendly game, or a Kin each on the table. Whoever won one of yours keeps it in a case and sells it back for double */
+  const LD_NAMES = ['Pip Hollis', 'Corbin Ash', 'Nell Draper', 'Sol Ferro', 'Ada Wren', 'Rook Tamsin', 'Juno Bell', 'Feliks Moor', 'Tess Caird', 'Lowen Price'];
+  function linkdownRows(v, g) { const who = LD_NAMES[(U.strHash(v.id) >> 3) % LD_NAMES.length], tier = v.tier || 0, sk = U.clamp(0.2 + tier * 0.15, 0.2, 0.95);
+    const rows = [{ service: 'linkdown', mode: 'friendly', champ: who, tier, skill: sk, vid: v.id, name: `Linkdown with ${who}: a friendly game`, sub: 'Five of your cartridges against five of theirs. Three lanes, five turns.', price: 0, btn: 'Play' },
+      { service: 'linkdown', mode: 'stake', champ: who, tier, skill: sk, vid: v.id, name: `Linkdown with ${who}: Kin on the table`, sub: 'You each stake a Kin. The winner keeps both.', price: 0, btn: 'Play' }];
+    (G.stats.ldLost || []).forEach((e, i) => { if (e.at === v.id) rows.push({ service: 'ldbuy', idx: i, name: `Buy back ${e.data.nick || (e.data.sp && e.data.sp.names && e.data.sp.names[Math.max(0, (e.data.stage || 1) - 1)]) || 'your Kin'}`, sub: `${e.champ} has it in a case. Double what it's worth.`, price: e.price, btn: 'Buy back' }); });
+    return rows; }
   // the market stalls of Atlantis: small, one thing each, a little under what the halls ask
   const ATL_STALL_DEF = {
     stall_plums: { title: 'Sea Plums', keeper: 'Halia', greet: 'Off the kelp beds this morning. They do not keep, so eat them today.', stock: [{ item: 'berry', price: 3, n: 4 }, { item: 'smoothie', price: 14 }] },
@@ -15721,6 +15900,8 @@ const Village = (() => {
       const k = KIN.create(sp, lv); try { k.card = Cards.roll(k, { time: 'day', where: 'Sealed cartridge, Kin Sale Yard, day ' + (day + 1) }); } catch (e) {} G.addKin(k); if (G.seenDex) G.seenDex(k.sp, 'caught'); UI.sfx('caught');
       const LINE = ['Briggs shrugs. "Every one\'s somebody\'s favourite."', 'Briggs whistles. "Not bad at all."', 'Briggs drops his pencil. "Well I never. Don\'t tell the others where you got that."'];
       UI.toast(`The Link reads the cartridge: ${KIN.name(k)}, ${KIN.RARITY[rar].name}. ${LINE[rar]}`, rar ? 'good' : undefined); UI.closePanel(); if (typeof Device !== 'undefined' && Device.view) setTimeout(() => { try { Device.view(k, { eject: true }); } catch (e) {} }, 400); if (G.save) G.save(); return true; }
+    if (entry.service === 'linkdown') { UI.closePanel(); Linkdown.play({ mode: entry.mode, champ: entry.champ, tier: entry.tier, skill: entry.skill, villageId: entry.vid }); return true; }
+    if (entry.service === 'ldbuy') { if (Linkdown.buyBack(entry.idx)) { UI.sfx('caught'); UI.closePanel(); if (G.save) G.save(); return true; } return false; }
     if (entry.service === 'kin') { if (G.shards < price) { UI.toast('Not enough Shards.', 'bad'); return false; } const sp = KIN.bySeed(entry.seed); if (!sp) return false; const st0 = G.stats.boughtKin || (G.stats.boughtKin = {}); const key = (G.dayCount || 0) + ':' + entry.seed; if (st0[key]) { UI.toast('Sold already. Come back tomorrow.'); return false; } G.shards -= price; st0[key] = true; const k = KIN.create(sp, entry.level); const where = G.addKin(k); G.seenDex(k.sp, 'caught'); UI.sfx('caught'); UI.toast(`${KIN.name(k)} is yours${where === 'party' ? '' : ' (sent to storage: your party is full)'}.`, 'good'); return true; }
     if (entry.service === 'show') return Village.enterShow(active);
     if (entry.service === 'mend') return Combat.mend(entry.what);

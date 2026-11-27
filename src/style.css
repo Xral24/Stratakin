@@ -572,3 +572,28 @@ body.cine-on #hud, body.cine-on #crosshair, body.cine-on #compass, body.cine-on 
 .cartslot { background: none; border: 0; padding: 0; display: flex; flex-direction: column; align-items: center; gap: 4px; color: inherit; cursor: pointer; }
 .cartslot canvas { width: 100%; height: auto; aspect-ratio: 150 / 210; filter: drop-shadow(0 4px 8px rgba(0,0,0,.5)); }
 .cartslot small { font-size: 12px; opacity: .85; text-align: center; }
+
+/* Linkdown */
+#gamebox.ld .ld-card { width: min(98vw, 520px); }
+#gamebox .gb-stage.ld-stage { width: 100%; display: block; height: auto; }
+.ld-tot b:first-child::after { content: ' them'; font-size: 9px; font-weight: 400; } .ld-tot b:last-child::after { content: ' you'; font-size: 9px; font-weight: 400; }
+.ld-pick { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 6px; max-height: 52vh; overflow-y: auto; }
+.ld-pk { border: 2px solid transparent; border-radius: 10px; padding: 3px; text-align: center; opacity: .55; }
+.ld-pk.on { opacity: 1; border-color: var(--line); } .ld-pk.stake { border-color: #ffb347; box-shadow: 0 0 10px #ffb34788; }
+.ld-pk small { display: block; font-size: 10.5px; color: var(--dim); line-height: 1.2; }
+.ld-c { position: relative; width: 58px; height: 74px; margin: 0 auto; border-radius: 8px; background: linear-gradient(160deg, #2a3442, #151b24); border: 2px solid var(--ec, #555); display: flex; flex-direction: column; align-items: center; font-size: 10px; }
+.ld-c canvas { width: 40px; height: 40px; margin-top: 2px; }
+.ld-c b { font-size: 15px; line-height: 1; color: #fff; } .ld-c i { font-style: normal; color: var(--ec); font-size: 9.5px; }
+.ld-c em { position: absolute; top: -7px; right: -6px; font-style: normal; font-size: 8.5px; font-weight: 800; padding: 1px 4px; border-radius: 6px; background: #c0c8d8; color: #111; }
+.ld-super em { background: linear-gradient(90deg,#9cf,#c9f,#fc9); } .ld-ultra em { background: #ffd23c; } .ld-secret em { background: linear-gradient(90deg,#f9c,#9ff,#ff9,#c9f); }
+.ld-rare { box-shadow: 0 0 6px #c0c8d8aa; } .ld-ultra, .ld-secret { box-shadow: 0 0 9px #ffd23caa; }
+.ld-back { background: repeating-linear-gradient(45deg, #2a3442 0 6px, #1d2530 6px 12px); border-color: #556; justify-content: center; } .ld-back span { font-size: 22px; color: #778; margin: auto; }
+.ld-lanes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.ld-lane { border: 2px solid #ffffff18; border-radius: 12px; padding: 4px; background: linear-gradient(180deg, #ffffff06, color-mix(in srgb, var(--ec) 14%, transparent)); min-height: 230px; display: flex; flex-direction: column; }
+.ld-lane.sel { border-color: var(--ec); } .ld-lane.tgt { border-style: dashed; border-color: #ffb347; }
+.ld-lt { text-align: center; font-weight: 800; font-size: 12px; } .ld-lt small { display: block; color: var(--ec); font-weight: 700; font-size: 10px; }
+.ld-side { display: flex; flex-wrap: wrap; gap: 3px; justify-content: center; min-height: 78px; } .ld-side .ld-c { transform: scale(.82); margin: -6px -5px; }
+.ld-tot { display: flex; flex-direction: column; align-items: center; font-size: 15px; color: var(--dim); } .ld-tot b.win { color: #7dff9a; }
+.ld-ghost { opacity: .55; }
+.ld-hand { display: flex; gap: 6px; justify-content: center; margin-top: 8px; flex-wrap: wrap; } .ld-h { border-radius: 10px; padding: 2px; border: 2px solid transparent; } .ld-h.on { border-color: #fff; transform: translateY(-4px); }
+.ld-note { margin-top: 6px; }
