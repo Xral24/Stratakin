@@ -1,0 +1,12 @@
+const { open } = require('./harness');
+(async () => { const h = await open(); const { ev, page } = h; await h.newGame('gal-1'); await h.calm();
+  await page.setViewportSize({ width: 412, height: 860 }); await ev(() => { window.__ldFast = true; });
+  await ev(() => { const sps = KIN.dex('earth').filter(s => !s.fusion && s.home && (s.rarity||0) === 2); for (let i = 0; i < 4; i++) G.addKin(KIN.create(sps[i], 20)); G.stats.ldTown = { x: { wins: 3, prizeWon: true, titles: 1 } }; });
+  await ev(() => Linkdown.play({ mode: 'stake', rematch: true, champ: 'Pip Hollis', tier: 1, skill: 0.6, villageId: 'x' })); await page.waitForTimeout(400);
+  await ev(() => { const el = [...document.querySelectorAll('.ld-pk.on[data-k]')].pop(); el.click(); }); await page.waitForTimeout(200);
+  await page.screenshot({ path: '/home/claude/scratch/t1.png' });
+  await ev(() => document.querySelector('#gamebox .gb-foot .btn.big').click()); await page.waitForTimeout(300);
+  await ev(async () => { const S = Linkdown.state; S.ai.lp = 50; const i = S.me.hand.filter(c => c.type === 'kin').length ? 0 : -1; if (i < 0) S.api.drawCard(S.me); await S.api.summon(0, 'atk'); S.ai.field = [null, null, null]; S.ai.trap = null; await S.api.attack(0, null); });
+  await page.waitForTimeout(800); await page.screenshot({ path: '/home/claude/scratch/t2.png' });
+  console.log(JSON.stringify(await ev(() => ({ res: Linkdown.state && Linkdown.state.result, say: document.querySelector('#gamebox .gb-say').textContent, th: G.stats.threads, rec: Linkdown.townRec('x'), away: Linkdown.away('x') }))));
+  console.log('errors', JSON.stringify(h.errors)); await h.close(); })().catch(e => { console.log('ERR', e.message); process.exit(1); });

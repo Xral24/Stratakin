@@ -589,10 +589,30 @@ const KIN = (() => {
     k.hp = stats(k).hp;
     return k;
   }
+  // ---- roles: every species leans one way, like base stats do. A Guardian soaks hits, a Bruiser hits hard up close, a Mystic throws
+  // its element, a Striker hits hard both ways but breaks easily, a Racer goes first and is hard to touch, an Allrounder does a bit of
+  // everything. Picked from the species' seed, nudged by its body, so it never changes and older saves get one too. def is the guard
+  // stat: blows land against it ----
+  const ROLES = {
+    guardian:   { name: 'Guardian',   hp: 1.45, atk: 0.8,  pow: 0.8,  spd: 0.75, agi: 0.9,  def: 1.55, txt: 'Built to take hits. Slow, very hard to wear down.' },
+    bruiser:    { name: 'Bruiser',    hp: 1.15, atk: 1.4,  pow: 0.7,  spd: 0.9,  agi: 0.85, def: 1.1,  txt: 'Hits hard with its body, and can take a few back.' },
+    mystic:     { name: 'Mystic',     hp: 0.95,  atk: 0.7,  pow: 1.45, spd: 1.0,  agi: 1.05, def: 0.9,  txt: 'Throws its element hard. Fragile up close.' },
+    striker:    { name: 'Striker',    hp: 0.85, atk: 1.3,  pow: 1.25, spd: 1.1,  agi: 0.9,  def: 0.8,  txt: 'Hits hard every way, and breaks easily.' },
+    racer:      { name: 'Racer',      hp: 0.85, atk: 1.0,  pow: 0.9,  spd: 1.55, agi: 1.3,  def: 0.8,  txt: 'Moves first and is hard to land a blow on.' },
+    allrounder: { name: 'Allrounder', hp: 1,    atk: 1,    pow: 1,    spd: 1,    agi: 1,    def: 1,    txt: 'A bit of everything, no weak spot.' },
+  };
+  const ROLE_LEAN = { quadruped: { bruiser: 3, racer: 1 }, biped: { bruiser: 1, striker: 2, mystic: 1 }, serpent: { racer: 2, striker: 1 }, blob: { guardian: 4 }, bird: { racer: 3, striker: 1 }, floater: { mystic: 4 }, fish: { racer: 3 }, raptor: { striker: 2, racer: 2 }, longneck: { guardian: 4 }, horned: { guardian: 2, bruiser: 2 } };
+  const ROLE_MEMO = {};
+  function roleOf(sp) { if (!sp) return 'allrounder'; const key = sp.seed; if (ROLE_MEMO[key]) return ROLE_MEMO[key];
+    const w = { guardian: 2, bruiser: 2, mystic: 2, striker: 2, racer: 2, allrounder: 2 }; for (const r in (ROLE_LEAN[sp.shape] || {})) w[r] += ROLE_LEAN[sp.shape][r];
+    if (sp.legend || sp.mythic) { w.allrounder += 6; } const tot = Object.values(w).reduce((a, b) => a + b, 0); let x = ((U.strHash('role:' + sp.seed) >>> 0) % 1000) / 1000 * tot, out = 'allrounder';
+    for (const r in w) { x -= w[r]; if (x < 0) { out = r; break; } } return (ROLE_MEMO[key] = out); }
   function stats(k) {
     const g = growth(k.level) * (1 + 0.22 * maturity(k)) * Math.pow(1.08, k.sp.gen || 0);
     const s = {};
-    for (const key of STAT_KEYS) s[key] = Math.max(1, Math.round(k.sp.base[key] * g * k.iv[key]));
+    const R = ROLES[roleOf(k.sp)];
+    for (const key of STAT_KEYS) s[key] = Math.max(1, Math.round(k.sp.base[key] * g * k.iv[key] * R[key]));
+    s.def = Math.max(1, Math.round((k.sp.base.atk * k.iv.atk + k.sp.base.pow * k.iv.pow) / 2 * g * R.def));
     s.hp = Math.round(s.hp * 2.2);
     if (k.shiny) for (const key of STAT_KEYS) s[key] = Math.round(s[key] * 1.18); /* a shining one: the same creature, a sixth better at everything */
     if (k.equip) for (const slot in k.equip) { const id = k.equip[slot], it = ITEMS[id]; if (it && it.boost) { const m = it.relic && typeof Relics !== 'undefined' ? Relics.mul(id) : 1; for (const key in it.boost) s[key] = Math.round(s[key] * (1 + it.boost[key] * m)); } }
@@ -5061,5 +5081,5 @@ const KIN = (() => {
   function serialize(k) { return { id: k.id, sp: k.sp, level: k.level, xp: k.xp, iv: k.iv, stage: k.stage, hp: k.hp, nick: k.nick, shiny: k.shiny || undefined, equip: k.equip || null, tech: k.tech || null, wear: k.wear || null, trust: k.trust || 0, bond: k.bond || 0, tamed: k.tamed || false, card: k.card || undefined, bondT: k.bondT || undefined, bonded: k.bonded || undefined }; }
   function deserialize(d) { return Object.assign({ status: null }, d); }
 
-  return { NATIVE, NAT_STEM, nativeLine, nativeColors, nativeId, nativize, childify, formName, LINES, lineOf, maxStage, lookOf, formOf, partHelpers, dress, tyrSuit, landmarks, wearKey, E, EI, CHART, STAT_KEYS, STAT_NAMES, growth, xpToNext, dominant, species, speciesForContext, dex, bySeed, keptFor, migrateKin, migrateSeed, lives, KEPT, habitat, HABITATS, capOf, recipes, findRecipe, fuseRecipe, mythicSpecies, legendSpecies, apexSpecies, woodSpecies, WOODKIN, wardenSpecies, MAX_LEVEL, TECH, techFor, techByName, temperOf, starters, create, stats, name, moves, effectiveness, gainXp, fuse, fusionLevel, TRAITS, RARITY, roster, buildUniverse, decorate, makeStatue, statueModel, shardsFor, model, buildMesh, meshKey, portrait, serialize, deserialize, UTIL_DESC, eggModel, eggPortrait };
+  return { ROLES, roleOf, NATIVE, NAT_STEM, nativeLine, nativeColors, nativeId, nativize, childify, formName, LINES, lineOf, maxStage, lookOf, formOf, partHelpers, dress, tyrSuit, landmarks, wearKey, E, EI, CHART, STAT_KEYS, STAT_NAMES, growth, xpToNext, dominant, species, speciesForContext, dex, bySeed, keptFor, migrateKin, migrateSeed, lives, KEPT, habitat, HABITATS, capOf, recipes, findRecipe, fuseRecipe, mythicSpecies, legendSpecies, apexSpecies, woodSpecies, WOODKIN, wardenSpecies, MAX_LEVEL, TECH, techFor, techByName, temperOf, starters, create, stats, name, moves, effectiveness, gainXp, fuse, fusionLevel, TRAITS, RARITY, roster, buildUniverse, decorate, makeStatue, statueModel, shardsFor, model, buildMesh, meshKey, portrait, serialize, deserialize, UTIL_DESC, eggModel, eggPortrait };
 })();

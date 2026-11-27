@@ -40,7 +40,7 @@ const Linkdown = (() => {
   const elemOf = (k) => { try { return KIN.dominant(k.sp.elem, 1)[0] || 'Stone'; } catch (e) { return 'Stone'; } };
   function atkdef(k) {
     const P = 2 + k.level / 4 + (k.sp.rarity || 0) * 2; let ratio = 0.5;
-    try { const s = KIN.stats(k), a = Math.max(s.atk, s.pow), d = (s.hp / 4 + s.agi) / 2; ratio = U.clamp(a / (a + d), 0.3, 0.7); } catch (e) {}
+    try { const s = KIN.stats(k), a = Math.max(s.atk, s.pow), d = (s.def + s.hp / 4) / 2; ratio = U.clamp(0.5 + (a / (a + d) - 0.5) * 1.6, 0.25, 0.75); } catch (e) {}
     const f = FIN[(k.card && k.card.finish)] || [0, 0], B = bondBoost(k);
     return [Math.round(P * (0.5 + ratio) * B) * 100 + f[0], Math.round(P * (1.5 - ratio) * B) * 100 + f[1]];
   }
@@ -66,10 +66,10 @@ const Linkdown = (() => {
 
   // ---- the other player's deck, and the prize they keep back ----
   function deckFor(o) {
-    const t = o.tier || 0, r = U.rng(U.combine(U.strHash(o.champ || 'x'), 977 + t));
+    const t = o.tier || 0, tr = o.train || 0, r = U.rng(U.combine(U.strHash(o.champ || 'x'), 977 + t + tr * 131));
     const maxR = Math.min(3, Math.floor(t / 2) + (t >= 1 ? 1 : 0)); const pool = KIN.dex('earth').filter(sp => !sp.fusion && sp.home && sp.home.layer !== 'Core' && !sp.legend && !sp.mythic && !sp.dino && (sp.rarity || 0) <= maxR);
-    const kin = []; for (let i = 0; i < 5 && pool.length; i++) { const sp = pool[r.int(pool.length)]; const lv = U.clamp(Math.round(5 + t * 7 + r() * 6), 3, KIN.capOf(sp)); const k = KIN.create(sp, lv);
-      const fr = r(); k.bond = U.clamp(0.15 + t * 0.1 + r() * 0.2, 0, 0.8); k.card = { finish: fr < 0.04 * t ? 'ultra' : fr < 0.1 + 0.05 * t ? 'super' : fr < 0.3 + 0.05 * t ? 'rare' : 'normal' }; kin.push(k); }
+    const kin = []; for (let i = 0; i < 5 && pool.length; i++) { const sp = pool[r.int(pool.length)]; const lv = U.clamp(Math.round(5 + t * 7 + tr * 4 + r() * 6), 3, KIN.capOf(sp)); const k = KIN.create(sp, lv);
+      const fr = r(); k.bond = U.clamp(0.15 + t * 0.1 + tr * 0.2 + r() * 0.2, 0, 0.98); k.card = { finish: fr < 0.04 * t ? 'ultra' : fr < 0.1 + 0.05 * t ? 'super' : fr < 0.3 + 0.05 * t ? 'rare' : 'normal' }; kin.push(k); }
     const th = []; const nT = U.clamp(1 + Math.floor(t / 2), 1, 3); for (let i = 0; i < nT; i++) { const want = Math.min(3, r() < 0.15 * t ? 2 : r() < 0.35 + 0.1 * t ? 1 : 0); const p = TIDS.filter(x => THREADS[x].rar === want && x !== 'blacklink'); th.push(p[r.int(p.length)]); }
     return { kin, th };
   }
@@ -81,7 +81,11 @@ const Linkdown = (() => {
     if (!pool.length) return null; const sp = pool[r.int(pool.length)]; const k = KIN.create(sp, U.clamp(10 + (tier || 0) * 8, 8, KIN.capOf(sp)));
     k.bond = 0.9; k.card = { finish: (tier || 0) >= 3 ? 'secret' : 'ultra', champion: true }; return k;
   }
-  const townRec = (vid) => { const T = G.stats.ldTown || (G.stats.ldTown = {}); return T[vid] || (T[vid] = { wins: 0, prizeWon: false }); };
+  const townRec = (vid) => { const T = G.stats.ldTown || (G.stats.ldTown = {}); const t = T[vid] || (T[vid] = { wins: 0, prizeWon: false }); t.titles = t.titles || (t.prizeWon ? 1 : 0); return t; };
+  // after you take their prize, a town's player goes off to train their bonds, then comes back for a title rematch. They won't stake a
+  // Kin again: they stake a Thread instead. Second title, a rare one; from the third on, an ultra, and each loss sends them off for longer
+  const away = (vid) => { const t = townRec(vid); return Math.max(0, (t.awayUntil || 0) - (G.dayCount || 0)); };
+  function titleThread(vid, titles) { const want = titles >= 2 ? 3 : 2; const pool = TIDS.filter(x => THREADS[x].rar === want); return pool[(U.strHash('tt:' + vid + ':' + titles) >>> 0) % pool.length]; }
 
   // ---- pictures: one render per species, kept as an image ----
   const PIC = {};
@@ -115,14 +119,15 @@ const Linkdown = (() => {
     o = o || {}; const mine = [...G.kin, ...(G.box || []).map(KIN.deserialize)];
     if (mine.length < 3) { UI.toast('You need at least three Kin on cartridges to sit down at Linkdown.'); if (o.onEnd) o.onEnd('none'); return; }
     if (!G.stats.ldStarter) { G.stats.ldStarter = true; giveThread('mend'); giveThread('charge'); giveThread('quickdraw'); UI.toast('First game: the table gives you three Threads. Mend, Spark Charge and Quickdraw.', 'good'); }
-    const ui = shell('Linkdown', `${o.champ || 'A local'} · ${o.prize ? 'the prize' : o.mode === 'stake' ? 'Kin on the table' : 'a friendly game'}`);
+    const ui = shell('Linkdown', `${o.champ || 'A local'} · ${o.rematch ? 'title rematch' : o.prize ? 'the prize' : o.mode === 'stake' ? 'Kin on the table' : 'a friendly game'}`);
     const pick = new Set(mine.slice().sort((a, b) => power(b) - power(a)).slice(0, 5).map(k => k.id)); let stake = null;
     const own = owned(); const tpick = {}; let tn = 0; for (const t of TIDS) { const n = Math.min(ready(t), 3 - tn); if (n > 0) { tpick[t] = n; tn += n; } }
+    if (o.rematch) { o.train = townRec(o.villageId).titles; o.thread = titleThread(o.villageId, o.train); }
     const foe = deckFor(o); let aiStake = foe.kin.slice().sort((a, b) => value(b) - value(a))[0];
     if (o.prize) { const pk = prizeFor(o.villageId, o.tier); if (pk) { const weak = foe.kin.slice().sort((a, b) => power(a) - power(b))[0]; foe.kin[foe.kin.indexOf(weak)] = pk; aiStake = pk; } }
     function draw() {
       const tcount = Object.values(tpick).reduce((a, b) => a + b, 0);
-      ui.stage.innerHTML = `<p class="small ld-note">Up to five Kin and three Threads. The table reads each cartridge's bond: the closer a Kin is to you, the harder it plays, and bonded Kin add to your life. ${o.mode === 'stake' ? `${o.prize ? 'Their prize' : 'They put up'}: <b>${KIN.name(aiStake)}</b>, Lv ${aiStake.level}. Tap one of your chosen Kin again to stake it (not your starter, not a bonded Kin).` : ''}</p>
+      ui.stage.innerHTML = `<p class="small ld-note">Up to five Kin and three Threads. The table reads each cartridge's bond: the closer a Kin is to you, the harder it plays, and bonded Kin add to your life. ${o.mode === 'stake' ? `${o.rematch ? `They won't stake a Kin again. They put up a Thread: <b>${THREADS[o.thread].name}</b> (${RAR[THREADS[o.thread].rar]}).` : `${o.prize ? 'Their prize' : 'They put up'}: <b>${KIN.name(aiStake)}</b>, Lv ${aiStake.level}.`} Tap one of your chosen Kin again to stake it (not your starter, not a bonded Kin).` : ''}</p>
         <div class="ld-pick">${mine.map(k => `<div class="ld-pk ${pick.has(k.id) ? 'on' : ''} ${stake === k.id ? 'stake' : ''}" data-k="${k.id}">${kinHTML(kinCard(k))}<small>Lv ${k.level}${k.bonded ? ' · bonded' : ''}${stake === k.id ? ' · STAKED' : ''}</small></div>`).join('')}</div>
         <h4 class="ld-h4">Threads <small>${tcount}/3</small></h4><div class="ld-pick">${TIDS.filter(t => own[t]).map(t => `<div class="ld-pk ${tpick[t] ? 'on' : ''} ${ready(t) ? '' : 'cool'}" data-t="${t}">${threadHTML(threadCard(t))}<small>${ready(t) ? `${tpick[t] || 0} of ${ready(t)}` : ''}${(cds()[t] || []).length ? `${ready(t) ? ' · ' : ''}cooling ${Math.min(...cds()[t])} game${Math.min(...cds()[t]) > 1 ? 's' : ''}` : ''}</small></div>`).join('') || '<p class="small">No Threads yet. Win games to earn them. Each one you play cools down after: commons for a game, uncommons two, rares three, ultras five.</p>'}</div>`;
       ui.stage.querySelectorAll('[data-k]').forEach(el => el.addEventListener('click', () => { const k = mine.find(x => x.id == el.dataset.k);
@@ -134,7 +139,7 @@ const Linkdown = (() => {
       ui.foot.innerHTML = ''; const go = $(`<button class="btn big" ${ok ? '' : 'disabled'}>Shuffle and deal</button>`), back = $(`<button class="btn ghost">Leave the table</button>`);
       go.addEventListener('click', () => { const th = []; for (const t in tpick) for (let i = 0; i < tpick[t]; i++) th.push(t); game(o, ui, mine.filter(k => pick.has(k.id)), th, foe, stake ? mine.find(k => k.id === stake) : null, aiStake); });
       back.addEventListener('click', () => { close(); if (o.onEnd) o.onEnd('none'); }); ui.foot.append(go, back);
-      ui.say.textContent = o.mode === 'stake' ? 'Winner keeps both Kin. Lose yours and they sell it back for double.' : 'Knock their life from 4000 to nothing.';
+      ui.say.textContent = o.rematch ? 'Win and the Thread is yours. Lose and they keep your Kin, and sell it back for double.' : o.mode === 'stake' ? 'Winner keeps both Kin. Lose yours and they sell it back for double.' : 'Knock their life from 4000 to nothing.';
     }
     draw();
   }
@@ -301,10 +306,12 @@ const Linkdown = (() => {
     function finish(res) {
       S.turn = 'done'; render(); const ss = G.stats.linkdown || (G.stats.linkdown = { won: 0, lost: 0 }); if (res === 'win') ss.won++; else if (res === 'lose') ss.lost++;
       let line = res === 'win' ? `You win, ${Math.max(0, S.me.lp)} to ${Math.max(0, S.ai.lp)}.` : res === 'lose' ? `${name} wins, ${Math.max(0, S.ai.lp)} to ${Math.max(0, S.me.lp)}.` : 'Dead level. Nobody wins, nobody pays.';
-      if (o.mode === 'stake' && res === 'win') { const k = KIN.create(aiStake.sp, aiStake.level); k.card = aiStake.card; G.addKin(k); line += o.prize ? ` ${name} slides the prize over. ${KIN.name(k)}, champion's printing, is yours.` : ` ${KIN.name(k)} is yours now.`; }
+      if (o.rematch && res === 'win') { giveThread(o.thread); line += ` ${name} pushes the cartridge over: ${THREADS[o.thread].name}. "Keep it. I'll be back for it."`; }
+      else if (o.mode === 'stake' && res === 'win') { const k = KIN.create(aiStake.sp, aiStake.level); k.card = aiStake.card; G.addKin(k); line += o.prize ? ` ${name} slides the prize over. ${KIN.name(k)}, champion's printing, is yours.` : ` ${KIN.name(k)} is yours now.`; }
       if (o.mode === 'stake' && res === 'lose' && myStake) { lose(myStake, o); line += ` ${KIN.name(myStake)} goes with them. They'll sell it back for ◆ ${value(myStake) * 2}.`; }
       if (res === 'win') { const t = rollThread(o.tier || 0); giveThread(t); line += ` You win a Thread: ${THREADS[t].name}.`; if (o.prize) { const r2 = TIDS.filter(x => THREADS[x].rar === 2); const t2 = r2[Math.floor(Math.random() * r2.length)]; giveThread(t2); line += ` And a rare one: ${THREADS[t2].name}.`; } }
-      if (o.villageId) { const t = townRec(o.villageId); if (res === 'win') { if (o.prize) t.prizeWon = true; else t.wins++; }
+      if (o.villageId) { const t = townRec(o.villageId); if (res === 'win') { if (o.prize || o.rematch) { t.prizeWon = true; t.titles = (t.titles || 0) + 1; const days = t.titles >= 3 ? 12 : 3; t.awayUntil = (G.dayCount || 0) + days;
+          line += ` "That's it. I'm going out to train. Properly. ${days > 5 ? "Don't wait up." : 'Give me a few days.'}"`; } else t.wins++; }
         const left = need(o.tier) - t.wins; if (res === 'win' && !o.prize && !t.prizeWon) line += left > 0 ? ` "Beat me ${left} more time${left > 1 ? 's' : ''} and I'll bring out the one I keep back."` : ` "Fine. Next time I play my prize. You won't beat that."`; }
       tickCooldowns(S.used); if (S.used.length) line += ` ${S.used.map(t => THREADS[t].name).join(', ')} ${S.used.length > 1 ? 'need' : 'needs'} to cool down before you can play ${S.used.length > 1 ? 'them' : 'it'} again.`;
       say(line); ui.foot.innerHTML = ''; const b = $('<button class="btn big">Done</button>'); b.addEventListener('click', () => { close(); if (o.onEnd) o.onEnd(res); if (G.save) G.save(); }); ui.foot.append(b);
@@ -323,5 +330,5 @@ const Linkdown = (() => {
   }
   function buyBack(i) { const L = G.stats.ldLost || []; const e = L[i]; if (!e) return false; if (G.shards < e.price) { UI.toast('Not enough Shards.', 'bad'); return false; }
     G.shards -= e.price; const k = KIN.deserialize(e.data); L.splice(i, 1); G.addKin(k); UI.toast(`${KIN.name(k)} is back on your cartridge.`, 'good'); return true; }
-  return { play, close, buyBack, prizeFor, need, townRec, power, value, stakeable, bondBoost, THREADS, giveThread, ready, CD, rollThread, atkdef, get state() { return st; } };
+  return { play, close, buyBack, prizeFor, need, townRec, away, titleThread, power, value, stakeable, bondBoost, THREADS, giveThread, ready, CD, rollThread, atkdef, get state() { return st; } };
 })();

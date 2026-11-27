@@ -168,7 +168,7 @@ const Battle = (() => {
   function damage(att, def, move) {
     const sa = KIN.stats(att), sd = KIN.stats(def);
     const A = (move.kind === 'phys' ? sa.atk : sa.pow) * (att.buffs.focus ? 1.25 : 1);
-    const D = move.kind === 'phys' ? sd.atk : sd.pow;
+    const D = move.kind === 'phys' ? sd.def : (sd.pow + sd.def) / 2; /* a guard stat now: a Guardian shrugs off blows, a Striker feels every one */
     const eff = KIN.effectiveness(move.elem, def);
     const quick = U.clamp((sa.spd - sd.spd) / (sa.spd + sd.spd), -0.25, 0.25); /* the quicker Kin lands its blows better: speed was worth almost nothing before, and the fast elements lost four fights in five */
     let dmg = A * (move.power / 100) * 0.8 * (1 + quick * 0.7) * (A / (A + 0.5 * D)) * eff * (0.85 + Math.random() * 0.15); /* blows a little lighter: fights were over in three turns, before a burn or a poison could matter */
