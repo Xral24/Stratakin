@@ -1,0 +1,10 @@
+const { open } = require('./harness');
+(async () => { const h = await open(); const { ev, page } = h; await h.newGame('gal-1'); await h.calm();
+  await page.setViewportSize({ width: 412, height: 900 });
+  await ev(() => document.getElementById('hb-ld').click()); await page.waitForTimeout(70000);
+  await page.screenshot({ path: '/home/claude/scratch/p1.png', timeout: 90000 });
+  await ev(() => { window.__ldFast = true; document.querySelector('#gamebox .gb-foot .btn.big').click(); }); await page.waitForTimeout(3000);
+  await ev(async () => { const S = Linkdown.state; S.ai.lp = 50; while (!S.me.hand.some(c => c.type === 'kin')) S.api.drawCard(S.me); await S.api.summon(0, 'atk'); S.ai.field = [null, null, null]; S.ai.trap = null; await S.api.attack(0, null); });
+  await page.waitForTimeout(5000); await page.screenshot({ path: '/home/claude/scratch/p2.png', timeout: 90000 });
+  console.log(JSON.stringify(await ev(() => ({ say: document.querySelector('#gamebox .gb-say').textContent, kin: G.kin.length, stats: G.stats.linkdown || null, cd: G.stats.threadCd || null }))));
+  console.log('errors', JSON.stringify(h.errors)); await h.close(); })().catch(e => { console.log('ERR', e.message); process.exit(1); });

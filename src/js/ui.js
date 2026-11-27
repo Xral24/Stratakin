@@ -7,7 +7,8 @@ const UI = (() => {
   function init(game) {
     G = game;
     ['hud', 'hearts', 'breath', 'breath-fill', 'trainer-lvl', 'trainer-xp', 'where', 'weather', 'quest-hint', 'mine-bar', 'mine-fill', 'hotbar', 'item-name', 'touch-ui', 'toasts', 'panel', 'panel-title', 'panel-body', 'panel-close', 'start', 'start-buttons', 'starter-pick', 'starters', 'how', 'loading', 'kin-count', 'quest-dot', 'btn-jump', 'btn-sneak', 'vignette', 'hurt', 'crosshair'].forEach(id => el[id] = q(id));
-    document.querySelectorAll('.hbtn').forEach(b => b.addEventListener('click', () => openPanel(b.dataset.panel)));
+    document.querySelectorAll('.hbtn[data-panel]').forEach(b => b.addEventListener('click', () => openPanel(b.dataset.panel)));
+    { const ld = document.getElementById('hb-ld'); if (ld) ld.addEventListener('click', () => { if (typeof Linkdown === 'undefined' || (typeof Battle !== 'undefined' && Battle.active)) return; closePanel(); Linkdown.play({ practice: true, mode: 'friendly', champ: 'Dealer', tier: 2, skill: 0.5 }); }); }
     { // the bag pill: tap opens the bag, a swipe left or right moves to the next or previous thing you carry, no panel needed
       const bb = q('btn-bag'); let sx = null, swiped = false;
       bb.addEventListener('pointerdown', (e) => { sx = e.clientX; swiped = false; });
