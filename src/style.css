@@ -678,4 +678,11 @@ body.cine-on #hud, body.cine-on #crosshair, body.cine-on #compass, body.cine-on 
 .ld-spot .ld-ad { gap: 1px; padding: 0 2px; } .ld-spot .ld-ad b { font-size: 7.5px; } .ld-spot .ld-ad b.on { font-size: 9.5px; }
 .ld-spot .ld-bond { height: 3px; left: 4px; right: 4px; }
 .ld-spot .ld-c.ld-back span { font-size: 8px; }
-.ld-spot .ld-ad b:not(.on) { display: none; } .ld-spot .ld-ad { justify-content: center; }
+/* attack and defence stacked so both always fit, level in the corner */
+.ld-face .ld-ad { left: 2px; right: auto; bottom: 2px; flex-direction: column; align-items: flex-start; gap: 0; padding: 1px 4px; line-height: 1.1; border-radius: 5px; }
+.ld-face .ld-ad b { font-size: 9px; color: #b8c2d4; white-space: nowrap; } .ld-face .ld-ad b.on { font-size: 10.5px; color: #ffe27a; }
+.ld-lv { position: absolute; top: 7px; right: 3px; font-size: 8px; font-weight: 800; color: #fff; background: #000b; border-radius: 4px; padding: 0 3px; line-height: 1.4; }
+.ld-spot .ld-ad { padding: 0 2px; } .ld-spot .ld-ad b { font-size: 6.5px; } .ld-spot .ld-ad b.on { font-size: 8px; }
+.ld-spot .ld-lv { font-size: 6px; top: 5px; right: 2px; }
+.ld-hand.me .ld-face .ld-ad b { font-size: 8.5px; } .ld-hand.me .ld-face .ld-ad b.on { font-size: 10px; }
+.ld-c:not(.ld-face) .ld-ad { flex-direction: column; align-items: center; gap: 0; line-height: 1.1; } .ld-c:not(.ld-face) .ld-ad b { font-size: 9px; } .ld-c:not(.ld-face) .ld-ad b.on { font-size: 10.5px; }

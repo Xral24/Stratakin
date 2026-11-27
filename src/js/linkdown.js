@@ -123,7 +123,7 @@ const Linkdown = (() => {
     if (hidden) return `<div class="ld-c ld-back ld-def ${opts.cls || ''}" data-id="${c.id}" ${opts.data || ''} style="background-image:url('${BACK()}')"><span>DEF</span></div>`;
     const face = FACE[faceKey(c.k)];
     if (face) return `<div class="ld-c ld-face ld-${c.fin} ${c.pos === 'def' ? 'ld-def' : ''} ${opts.cls || ''} ${c.stun ? 'stun' : ''}" data-id="${c.id}" ${opts.data || ''} style="--ec:${ECOL[c.el] || '#aaa'};background-image:url('${face}')">
-      <div class="ld-bond ${c.k.bonded ? 'full' : ''}"><i style="width:${Math.round(bondOf(c.k) * 100)}%"></i></div><div class="ld-ad"><b class="${c.pos === 'atk' ? 'on' : ''}">⚔${a}</b><b class="${c.pos === 'def' ? 'on' : ''}">⛨${c.def}</b></div></div>`;
+      <div class="ld-bond ${c.k.bonded ? 'full' : ''}"><i style="width:${Math.round(bondOf(c.k) * 100)}%"></i></div><span class="ld-lv">Lv ${c.k.level}</span><div class="ld-ad"><b class="${c.pos === 'atk' ? 'on' : ''}">⚔${a}</b><b class="${c.pos === 'def' ? 'on' : ''}">⛨${c.def}</b></div></div>`;
     return `<div class="ld-c ld-${c.fin} ${c.pos === 'def' ? 'ld-def' : ''} ${opts.cls || ''} ${c.stun ? 'stun' : ''}" data-id="${c.id}" ${opts.data || ''} style="--ec:${ECOL[c.el] || '#aaa'}">
       <div class="ld-bond ${c.k.bonded ? 'full' : ''}" title="bond"><i style="width:${Math.round(bondOf(c.k) * 100)}%"></i></div><img src="${picOf(c.k)}" alt=""><div class="ld-n">${KIN.name(c.k)}</div><div class="ld-ad"><b class="${c.pos === 'atk' ? 'on' : ''}">⚔${a}</b><b class="${c.pos === 'def' ? 'on' : ''}">⛨${c.def}</b></div><i>${c.el}</i></div>`;
   }
