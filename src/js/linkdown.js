@@ -118,6 +118,7 @@ const Linkdown = (() => {
   function play(o) {
     o = o || {}; const mine = [...G.kin, ...(G.box || []).map(KIN.deserialize)];
     if (mine.length < 3) { UI.toast('You need at least three Kin on cartridges to sit down at Linkdown.'); if (o.onEnd) o.onEnd('none'); return; }
+    if (!G.stats.ldTruce && typeof G.explain === 'function') { G.stats.ldTruce = true; setTimeout(() => G.explain('Why the table?', "The Hearth Truce. After the tyrants, every town swore no Kin fights for real inside its walls unless it's protecting the place. So everything else gets settled here. Slot a cartridge into the table and it plays that Kin's echo, read off the thread, bond and all. The echo can break, your Kin can't. That's why you can stake a Kin and nobody gets hurt, and why a Kin that trusts you plays harder here."), 400); }
     if (!G.stats.ldStarter) { G.stats.ldStarter = true; giveThread('mend'); giveThread('charge'); giveThread('quickdraw'); UI.toast('First game: the table gives you three Threads. Mend, Spark Charge and Quickdraw.', 'good'); }
     const ui = shell('Linkdown', `${o.champ || 'A local'} · ${o.rematch ? 'title rematch' : o.prize ? 'the prize' : o.mode === 'stake' ? 'Kin on the table' : 'a friendly game'}`);
     const pick = new Set(mine.slice().sort((a, b) => power(b) - power(a)).slice(0, 5).map(k => k.id)); let stake = null;

@@ -18,6 +18,7 @@ const Battle = (() => {
   function buffs() { return { guard: false, focus: false, coil: false, dash: false, ail: null }; }
   function start(e, isAmbush, opts = {}) {
     if (active) return;
+    if (e && (e.thief || e.raider) && G.stats && !G.stats.truceTold && typeof G.explain === 'function') { G.stats.truceTold = true; setTimeout(() => G.explain('The Hearth Truce', "After the tyrants used Kin to flatten whole towns, every village swore no Kin would ever fight for real inside its walls again. Grudges, bets and who's the best Link in town all get settled on the Linkdown table instead, where only the echo on the cartridge can break. There's one exception, and everyone agrees on it: a Kin may fight in town to protect it. A thief in the flour store, raiders at the wall, a guard on the gate. That's a noble cause, and nobody will say a word."), 900); }
     stunUsed = false; stunned = false; lastMine = null; lull = 1; lullN = 0; sigAt.m = sigAt.w = -9; if (stunTimer) { clearInterval(stunTimer); stunTimer = null; }
     const party = G.healthyKin();
     if (!party.length) { G.toast('All your Kin are down. Revive them at the Voodoo Hut or with a tonic.'); e.alert = 0; e.wait = 4; if (!e.chase) e.cool = 6; return; }
