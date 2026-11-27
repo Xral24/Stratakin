@@ -595,6 +595,11 @@ body.cine-on #hud, body.cine-on #crosshair, body.cine-on #compass, body.cine-on 
 .ld-mid { text-align: center; font-size: 11px; color: var(--dim); letter-spacing: .05em; text-transform: uppercase; }
 .ld-c { position: relative; width: 74px; height: 102px; margin: 0 auto; border-radius: 9px; background: linear-gradient(160deg, #2a3442, #151b24); border: 2px solid var(--ec, #555); display: flex; flex-direction: column; align-items: center; font-size: 10px; transition: transform .25s, opacity .3s, filter .3s; cursor: pointer; user-select: none; }
 .ld-c img { width: 56px; height: 56px; margin-top: 2px; image-rendering: pixelated; }
+.ld-bond { position: absolute; top: 3px; left: 6px; right: 6px; height: 4px; border-radius: 3px; background: #ffffff18; overflow: hidden; } .ld-bond i { display: block; height: 100%; background: linear-gradient(90deg, #ff7fa8, #ff4f7d); }
+.ld-bond.full i { background: linear-gradient(90deg, #ffd23c, #ff7fa8, #7fffd4, #ffd23c); background-size: 200% 100%; animation: ldShine 2s linear infinite; }
+.ld-c img { margin-top: 7px !important; width: 48px !important; height: 48px !important; } .ld-float.bond { color: #ff7fa8; font-size: 13px; }
+.kbond { display: flex; align-items: center; gap: 5px; font-size: 10.5px; color: #ff9fbf; margin-top: 2px; } .kbond .bb { flex: 1; height: 5px; border-radius: 3px; background: #ffffff14; overflow: hidden; } .kbond .bb i { display: block; height: 100%; background: linear-gradient(90deg, #ff7fa8, #ff4f7d); }
+.kbond.full { color: #ffd23c; } .kbond.full .bb i { background: linear-gradient(90deg, #ffd23c, #ff7fa8, #7fffd4, #ffd23c); background-size: 200% 100%; animation: ldShine 2s linear infinite; }
 .ld-n { font-size: 9.5px; font-weight: 700; line-height: 1.05; text-align: center; padding: 0 2px; max-height: 2.1em; overflow: hidden; }
 .ld-ad { display: flex; gap: 4px; margin-top: auto; } .ld-ad b { font-size: 10.5px; color: #9aa6b8; font-weight: 700; } .ld-ad b.on { color: #fff; font-size: 12px; }
 .ld-c i { font-style: normal; color: var(--ec); font-size: 8.5px; margin-bottom: 2px; }

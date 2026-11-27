@@ -1,0 +1,14 @@
+const { open } = require('./harness');
+(async () => { const h = await open(); const { ev, page } = h; await h.newGame('gal-1'); await h.calm();
+  await page.setViewportSize({ width: 412, height: 860 });
+  const r = await ev(() => { const sps = KIN.dex('earth').filter(s => !s.fusion && s.home && (s.rarity||0) <= 2); for (let i = 0; i < 4; i++) G.addKin(KIN.create(sps[i * 7 % sps.length], 16)); G.kin[1].bond = 0.5; G.kin[2].bond = 0.95; G.kin[3].bonded = true; G.kin[3].bond = 1;
+    return G.kin.map(k => [KIN.name(k), k.bond, Linkdown.bondBoost(k).toFixed(2), Linkdown.atkdef(k)]); });
+  console.log(JSON.stringify(r));
+  await ev(() => UI.openPanel && UI.openPanel('kin')); await page.waitForTimeout(800); await page.screenshot({ path: '/home/claude/scratch/b1.png' }); await ev(() => UI.closePanel());
+  await ev(() => Linkdown.play({ mode: 'friendly', champ: 'Pip Hollis', tier: 1, skill: 0.5, villageId: 'x' })); await page.waitForTimeout(500);
+  await ev(() => document.querySelector('#gamebox .gb-foot .btn.big').click()); await page.waitForTimeout(600);
+  await ev(() => { const S = Linkdown.state; const c = S.me.hand.filter(c => c.type === 'kin').sort((a,b)=>Linkdown.bondBoost(b.k)-Linkdown.bondBoost(a.k))[0]; document.querySelector(`[data-h="${c.id}"]`).click(); });
+  await page.waitForTimeout(200); await ev(() => [...document.querySelectorAll('#gamebox .gb-foot .btn')][0].click()); await page.waitForTimeout(500);
+  await page.screenshot({ path: '/home/claude/scratch/b2.png' });
+  console.log(JSON.stringify(await ev(() => [Linkdown.state.me.lp, Linkdown.state.ai.lp])));
+  console.log('errors', JSON.stringify(h.errors)); await h.close(); })().catch(e => { console.log('ERR', e.message); process.exit(1); });

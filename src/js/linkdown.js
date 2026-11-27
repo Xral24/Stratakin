@@ -41,9 +41,14 @@ const Linkdown = (() => {
   function atkdef(k) {
     const P = 2 + k.level / 4 + (k.sp.rarity || 0) * 2; let ratio = 0.5;
     try { const s = KIN.stats(k), a = Math.max(s.atk, s.pow), d = (s.hp / 4 + s.agi) / 2; ratio = U.clamp(a / (a + d), 0.3, 0.7); } catch (e) {}
-    const f = FIN[(k.card && k.card.finish)] || [0, 0];
-    return [Math.round(P * (0.5 + ratio)) * 100 + f[0], Math.round(P * (1.5 - ratio)) * 100 + f[1]];
+    const f = FIN[(k.card && k.card.finish)] || [0, 0], B = bondBoost(k);
+    return [Math.round(P * (0.5 + ratio) * B) * 100 + f[0], Math.round(P * (1.5 - ratio) * B) * 100 + f[1]];
   }
+  // the table reads the bond on the cartridge: a Kin that trusts you plays harder for you. It grows slowly, then fast near the top,
+  // and a Kin bonded for good plays at its very best
+  const bondOf = (k) => k.bonded ? 1 : U.clamp(k.bond || 0, 0, 1);
+  const bondBoost = (k) => k.bonded ? 1.6 : 1 + 0.4 * Math.pow(bondOf(k), 1.5);
+  const bondLife = (kin) => kin.reduce((n, k) => n + (k.bonded ? 500 : (k.bond || 0) >= 0.5 ? 250 : 0), 0);
   const power = (k) => { const [a, d] = atkdef(k); return Math.round((a + d) / 200); };
   let uid = 1;
   const kinCard = (k) => { const [a, d] = atkdef(k); return { type: 'kin', k, atk: a, def: d, el: elemOf(k), fin: (k.card && k.card.finish) || 'normal', pos: 'atk', id: uid++, temp: 0, swings: 0, stun: 0 }; };
@@ -64,7 +69,7 @@ const Linkdown = (() => {
     const t = o.tier || 0, r = U.rng(U.combine(U.strHash(o.champ || 'x'), 977 + t));
     const maxR = Math.min(3, Math.floor(t / 2) + (t >= 1 ? 1 : 0)); const pool = KIN.dex('earth').filter(sp => !sp.fusion && sp.home && sp.home.layer !== 'Core' && !sp.legend && !sp.mythic && !sp.dino && (sp.rarity || 0) <= maxR);
     const kin = []; for (let i = 0; i < 5 && pool.length; i++) { const sp = pool[r.int(pool.length)]; const lv = U.clamp(Math.round(5 + t * 7 + r() * 6), 3, KIN.capOf(sp)); const k = KIN.create(sp, lv);
-      const fr = r(); k.card = { finish: fr < 0.04 * t ? 'ultra' : fr < 0.1 + 0.05 * t ? 'super' : fr < 0.3 + 0.05 * t ? 'rare' : 'normal' }; kin.push(k); }
+      const fr = r(); k.bond = U.clamp(0.15 + t * 0.1 + r() * 0.2, 0, 0.8); k.card = { finish: fr < 0.04 * t ? 'ultra' : fr < 0.1 + 0.05 * t ? 'super' : fr < 0.3 + 0.05 * t ? 'rare' : 'normal' }; kin.push(k); }
     const th = []; const nT = U.clamp(1 + Math.floor(t / 2), 1, 3); for (let i = 0; i < nT; i++) { const want = Math.min(3, r() < 0.15 * t ? 2 : r() < 0.35 + 0.1 * t ? 1 : 0); const p = TIDS.filter(x => THREADS[x].rar === want && x !== 'blacklink'); th.push(p[r.int(p.length)]); }
     return { kin, th };
   }
@@ -74,7 +79,7 @@ const Linkdown = (() => {
     const r = U.rng(U.combine(U.strHash('prize:' + vid), 31)); const want = (tier || 0) >= 3 ? 3 : 2;
     const pool = KIN.dex('earth').filter(sp => !sp.fusion && sp.home && sp.home.layer !== 'Core' && !sp.legend && !sp.mythic && !sp.dino && (sp.rarity || 0) === want);
     if (!pool.length) return null; const sp = pool[r.int(pool.length)]; const k = KIN.create(sp, U.clamp(10 + (tier || 0) * 8, 8, KIN.capOf(sp)));
-    k.card = { finish: (tier || 0) >= 3 ? 'secret' : 'ultra', champion: true }; return k;
+    k.bond = 0.9; k.card = { finish: (tier || 0) >= 3 ? 'secret' : 'ultra', champion: true }; return k;
   }
   const townRec = (vid) => { const T = G.stats.ldTown || (G.stats.ldTown = {}); return T[vid] || (T[vid] = { wins: 0, prizeWon: false }); };
 
@@ -98,7 +103,7 @@ const Linkdown = (() => {
     const a = c.atk + c.temp, hidden = c.pos === 'def' && opts.foe && !c.shown;
     if (hidden) return `<div class="ld-c ld-back ld-def ${opts.cls || ''}" data-id="${c.id}" ${opts.data || ''}><span>DEF</span></div>`;
     return `<div class="ld-c ld-${c.fin} ${c.pos === 'def' ? 'ld-def' : ''} ${opts.cls || ''} ${c.stun ? 'stun' : ''}" data-id="${c.id}" ${opts.data || ''} style="--ec:${ECOL[c.el] || '#aaa'}">
-      <img src="${picOf(c.k)}" alt=""><div class="ld-n">${KIN.name(c.k)}</div><div class="ld-ad"><b class="${c.pos === 'atk' ? 'on' : ''}">⚔${a}</b><b class="${c.pos === 'def' ? 'on' : ''}">⛨${c.def}</b></div><i>${c.el}</i></div>`;
+      <div class="ld-bond ${c.k.bonded ? 'full' : ''}" title="bond"><i style="width:${Math.round(bondOf(c.k) * 100)}%"></i></div><img src="${picOf(c.k)}" alt=""><div class="ld-n">${KIN.name(c.k)}</div><div class="ld-ad"><b class="${c.pos === 'atk' ? 'on' : ''}">⚔${a}</b><b class="${c.pos === 'def' ? 'on' : ''}">⛨${c.def}</b></div><i>${c.el}</i></div>`;
   }
   function threadHTML(c, opts = {}) {
     const T = THREADS[c.t]; return `<div class="ld-c ld-th ld-tr${T.rar} ${opts.cls || ''}" data-id="${c.id}" ${opts.data || ''}><div class="ld-tn">${T.name}</div><div class="ld-tt">${T.txt}</div><i>${RAR[T.rar]}${T.tgt === 'trap' ? ' trap' : ''}</i></div>`;
@@ -117,7 +122,7 @@ const Linkdown = (() => {
     if (o.prize) { const pk = prizeFor(o.villageId, o.tier); if (pk) { const weak = foe.kin.slice().sort((a, b) => power(a) - power(b))[0]; foe.kin[foe.kin.indexOf(weak)] = pk; aiStake = pk; } }
     function draw() {
       const tcount = Object.values(tpick).reduce((a, b) => a + b, 0);
-      ui.stage.innerHTML = `<p class="small ld-note">Up to five Kin and three Threads. ${o.mode === 'stake' ? `${o.prize ? 'Their prize' : 'They put up'}: <b>${KIN.name(aiStake)}</b>, Lv ${aiStake.level}. Tap one of your chosen Kin again to stake it (not your starter, not a bonded Kin).` : ''}</p>
+      ui.stage.innerHTML = `<p class="small ld-note">Up to five Kin and three Threads. The table reads each cartridge's bond: the closer a Kin is to you, the harder it plays, and bonded Kin add to your life. ${o.mode === 'stake' ? `${o.prize ? 'Their prize' : 'They put up'}: <b>${KIN.name(aiStake)}</b>, Lv ${aiStake.level}. Tap one of your chosen Kin again to stake it (not your starter, not a bonded Kin).` : ''}</p>
         <div class="ld-pick">${mine.map(k => `<div class="ld-pk ${pick.has(k.id) ? 'on' : ''} ${stake === k.id ? 'stake' : ''}" data-k="${k.id}">${kinHTML(kinCard(k))}<small>Lv ${k.level}${k.bonded ? ' · bonded' : ''}${stake === k.id ? ' · STAKED' : ''}</small></div>`).join('')}</div>
         <h4 class="ld-h4">Threads <small>${tcount}/3</small></h4><div class="ld-pick">${TIDS.filter(t => own[t]).map(t => `<div class="ld-pk ${tpick[t] ? 'on' : ''} ${ready(t) ? '' : 'cool'}" data-t="${t}">${threadHTML(threadCard(t))}<small>${ready(t) ? `${tpick[t] || 0} of ${ready(t)}` : ''}${(cds()[t] || []).length ? `${ready(t) ? ' · ' : ''}cooling ${Math.min(...cds()[t])} game${Math.min(...cds()[t]) > 1 ? 's' : ''}` : ''}</small></div>`).join('') || '<p class="small">No Threads yet. Win games to earn them. Each one you play cools down after: commons for a game, uncommons two, rares three, ultras five.</p>'}</div>`;
       ui.stage.querySelectorAll('[data-k]').forEach(el => el.addEventListener('click', () => { const k = mine.find(x => x.id == el.dataset.k);
@@ -140,6 +145,7 @@ const Linkdown = (() => {
   function game(o, ui, myKin, myTh, foe, myStake, aiStake) {
     st = { o, me: side(myKin, myTh), ai: side(foe.kin, foe.th), used: [], turn: 'me', summoned: false, sel: null, pending: null, busy: false, over: false, n: 0, reveal: false };
     const S = st; const name = (o.champ || 'They').split(' ')[0];
+    S.me.lp += bondLife(myKin); S.ai.lp += bondLife(foe.kin); S.me.lp0 = S.me.lp; S.ai.lp0 = S.ai.lp;
     const say = (t) => { if (!S.gone) ui.say.textContent = t; };
     function drawCard(sd) { const c = sd.deck.pop(); if (c) sd.hand.push(c); return c; }
     for (let i = 0; i < 4; i++) { drawCard(S.me); drawCard(S.ai); }
@@ -150,7 +156,7 @@ const Linkdown = (() => {
     const react = (good) => { const L = good ? ['"Ha! Didn\'t see that coming, did you?"', '"That\'s how it\'s done."', '"Keep up."'] : ['"Oh, come on."', '"Lucky."', '"Right. Fine. My turn next."', '"That was my best one!"']; return L[Math.floor(Math.random() * L.length)]; };
     function render() {
       if (S.gone) return;
-      const lpBar = (sd, who) => `<div class="ld-lp ${who}"><span>${who === 'ai' ? name : 'You'}</span><div class="ld-lpbar"><i style="width:${U.clamp(sd.lp / LP0, 0, 1) * 100}%"></i></div><b>${Math.max(0, sd.lp)}</b><small>deck ${sd.deck.length}</small></div>`;
+      const lpBar = (sd, who) => `<div class="ld-lp ${who}"><span>${who === 'ai' ? name : 'You'}</span><div class="ld-lpbar"><i style="width:${U.clamp(sd.lp / (sd.lp0 || LP0), 0, 1) * 100}%"></i></div><b>${Math.max(0, sd.lp)}</b><small>deck ${sd.deck.length}</small></div>`;
       ui.stage.innerHTML = `<div class="ld-table">
         ${lpBar(S.ai, 'ai')}
         <div class="ld-hand foe">${S.ai.hand.map(c => S.reveal ? cardHTML(c, { cls: 'mini' }) : `<div class="ld-c ld-back mini"><span>✦</span></div>`).join('')}</div>
@@ -195,7 +201,7 @@ const Linkdown = (() => {
     async function summon(sd, c, pos) {
       const i = freeSlot(sd); if (i < 0) return; sd.hand.splice(sd.hand.indexOf(c), 1); c.pos = pos; c.shown = pos === 'atk'; c.swings = pos === 'atk' ? 1 : 0; sd.field[i] = c; if (sd === S.me) { S.summoned = true; S.pending = null; }
       S.busy = true; render(); const el = ui.stage.querySelector(`[data-id="${c.id}"]`); if (el) el.classList.add('slam'); UI.sfx && UI.sfx('click');
-      say(pos === 'atk' ? `${sd === S.me ? 'You put' : name + ' puts'} down ${KIN.name(c.k)} in attack: ${c.atk + c.temp}.` : `${sd === S.me ? 'You set' : name + ' sets'} a Kin face down in defence.`); await sleep(450); S.busy = false; render();
+      say(pos === 'atk' ? `${sd === S.me ? 'You put' : name + ' puts'} down ${KIN.name(c.k)} in attack: ${c.atk + c.temp}.` : `${sd === S.me ? 'You set' : name + ' sets'} a Kin face down in defence.`); if (bondOf(c.k) >= 0.5 && pos === 'atk') await floater(`[data-id="${c.id}"]`, c.k.bonded ? '♥ bonded ×1.6' : `♥ bond +${Math.round((bondBoost(c.k) - 1) * 100)}%`, 'bond'); else await sleep(450); S.busy = false; render();
     }
     function breakKin(sd, c) { const i = sd.field.indexOf(c); if (i < 0 || sd.ward) return false; sd.field[i] = null; c.temp = 0; c.stun = 0; if (c.borrowed) { c.borrowed.grave.push(c); c.borrowed = null; } else sd.grave.push(c); return true; }
     async function crack(c) { const el = ui.stage.querySelector(`[data-id="${c.id}"]`); if (el) el.classList.add('crack'); await sleep(420); }
@@ -305,7 +311,7 @@ const Linkdown = (() => {
       box && box.classList.add('gb-' + res); UI.sfx && UI.sfx(res === 'win' ? 'caught' : 'click'); S.result = res;
     }
     S.api = { summon: (i, pos) => summon(S.me, S.me.hand.filter(c => c.type === 'kin')[i], pos), attack: (ai, di) => attack(S.me, kinsOf(S.me)[ai], di == null ? null : kinsOf(S.ai)[di]), cast: (t, tgt) => castThread(S.me, S.me.hand.find(c => c.type === 'thread' && c.t === t), tgt), endTurn, kinsOf, drawCard };
-    S.turn = 'me'; S.summoned = false; drawCard(S.me); S.n = 0; render(); say(`${name} shuffles. You go first. Tap a Kin in your hand to put it down.`);
+    S.turn = 'me'; S.summoned = false; drawCard(S.me); S.n = 0; render(); const extra = S.me.lp - LP0; say(`${name} shuffles. ${extra > 0 ? `The table reads your bonds: you start on ${S.me.lp} life. ` : ''}You go first. Tap a Kin in your hand to put it down.`);
   }
 
   // a staked Kin that was lost: off your cartridges, into the winner's case, for sale at double
@@ -317,5 +323,5 @@ const Linkdown = (() => {
   }
   function buyBack(i) { const L = G.stats.ldLost || []; const e = L[i]; if (!e) return false; if (G.shards < e.price) { UI.toast('Not enough Shards.', 'bad'); return false; }
     G.shards -= e.price; const k = KIN.deserialize(e.data); L.splice(i, 1); G.addKin(k); UI.toast(`${KIN.name(k)} is back on your cartridge.`, 'good'); return true; }
-  return { play, close, buyBack, prizeFor, need, townRec, power, value, stakeable, THREADS, giveThread, ready, CD, rollThread, atkdef, get state() { return st; } };
+  return { play, close, buyBack, prizeFor, need, townRec, power, value, stakeable, bondBoost, THREADS, giveThread, ready, CD, rollThread, atkdef, get state() { return st; } };
 })();
