@@ -150,7 +150,7 @@ const Village = (() => {
   /* Linkdown, the cartridge card game, is played in every town as well: a friendly game, or a Kin each on the table. Whoever won one of yours keeps it in a case and sells it back for double */
   const LD_NAMES = ['Pip Hollis', 'Corbin Ash', 'Nell Draper', 'Sol Ferro', 'Ada Wren', 'Rook Tamsin', 'Juno Bell', 'Feliks Moor', 'Tess Caird', 'Lowen Price'];
   function linkdownRows(v, g) { const who = LD_NAMES[(U.strHash(v.id) >> 3) % LD_NAMES.length], tier = v.tier || 0, sk = U.clamp(0.2 + tier * 0.15, 0.2, 0.95);
-    const rows = [{ service: 'linkdown', mode: 'friendly', champ: who, tier, skill: sk, vid: v.id, name: `Linkdown with ${who}: a friendly game`, sub: 'Five of your cartridges against five of theirs. Three lanes, five turns.', price: 0, btn: 'Play' },
+    const rows = [{ service: 'linkdown', mode: 'friendly', champ: who, tier, skill: sk, vid: v.id, name: `Linkdown with ${who}: a friendly game`, sub: 'Up to five Kin and three Threads each. Attack, defend, knock their life to nothing.', price: 0, btn: 'Play' },
       { service: 'linkdown', mode: 'stake', champ: who, tier, skill: sk, vid: v.id, name: `Linkdown with ${who}: Kin on the table`, sub: 'You each stake a Kin. The winner keeps both.', price: 0, btn: 'Play' }];
     { const t = Linkdown.townRec(v.id), n = Linkdown.need(tier), pz = Linkdown.prizeFor(v.id, tier);
       if (pz && !t.prizeWon) rows.push(t.wins >= n ? { service: 'linkdown', mode: 'stake', prize: true, champ: who, tier, skill: U.clamp(sk + 0.15, 0, 1), vid: v.id, name: `Linkdown with ${who}: the prize, ${KIN.name(pz)}`, sub: `${who.split(' ')[0]} plays their best deck and stakes the one Kin they keep back. Win and it's yours.`, price: 0, btn: 'Play' }
