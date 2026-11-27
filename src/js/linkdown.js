@@ -398,5 +398,13 @@ const Linkdown = (() => {
   }
   function buyBack(i) { const L = G.stats.ldLost || []; const e = L[i]; if (!e) return false; if (G.shards < e.price) { UI.toast('Not enough Shards.', 'bad'); return false; }
     G.shards -= e.price; const k = KIN.deserialize(e.data); L.splice(i, 1); G.addKin(k); UI.toast(`${KIN.name(k)} is back on your cartridge.`, 'good'); return true; }
-  return { play, close, buyBack, prizeFor, need, townRec, away, titleThread, power, value, stakeable, bondBoost, THREADS, giveThread, ready: readyT, CD, rollThread, atkdef, get state() { return st; } };
+  // Threads also come from the world: a job well done, a story beat, a stranger on the road
+  const GIFT_LINES = {
+    quest: ['Tucked in with the thanks there is a cartridge: {t}', 'Someone presses a Thread into your hand for the trouble: {t}'],
+    job: ['"Here, I won this off a Linkdown player years back. Never used it." {t}', '"Can\'t pay you in Shards, but take this." A Thread: {t}', 'They dig in a pocket and hand you a scuffed cartridge: {t}'],
+    stranger: ['A traveller on the road stops, looks at your Kin, and presses a cartridge into your hand. "You\'ll need it more than me." {t}', 'A kid runs up, shoves a cartridge at you and runs off giggling. {t}', 'An old Link nods at you as you pass and flicks you a Thread. {t}'],
+  };
+  function gift(kind, tier) { const t = rollThread(tier == null ? 1 : tier); if (!t) return null; giveThread(t); const L = GIFT_LINES[kind] || GIFT_LINES.stranger;
+    const T = THREADS[t]; const line = L[Math.floor(Math.random() * L.length)].replace('{t}', `${T.name} (${RAR[T.rar]}). ${T.txt}`); UI.toast(line + ' Play it at any Linkdown table.', 'good'); G.stats.threadGifts = (G.stats.threadGifts || 0) + 1; return t; }
+  return { gift, play, close, buyBack, prizeFor, need, townRec, away, titleThread, power, value, stakeable, bondBoost, THREADS, giveThread, ready: readyT, CD, rollThread, atkdef, get state() { return st; } };
 })();

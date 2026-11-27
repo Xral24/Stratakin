@@ -156,6 +156,7 @@ const Npcs = (() => {
     if (q.kind === 'night' || (q.kind === 'build' && (q.what === 'castle' || q.what === 'town')) || Math.random() < 0.12) { const pool = KIN.dex(world.preset.id).filter(sp => sp.rarity === 2 && sp.home && sp.home.layer === 'Surface'); const sp = pool[U.combine(w.seedN, q.round, 0xE6) % pool.length]; if (sp) setTimeout(() => { if (G.addEgg(sp, w.name, 500)) UI.toast(`${w.name} also hands you an egg. "Found it in the long grass. Keep it warm: walk with it."`, 'good'); }, 2600); }
     G.stats.questsDone = (G.stats.questsDone || 0) + 1;
     if (!G.stats.jobsBy) G.stats.jobsBy = {}; G.stats.jobsBy[world.preset.id] = (G.stats.jobsBy[world.preset.id] || 0) + 1;
+    if (typeof Linkdown !== 'undefined' && Math.random() < (q.kind === 'build' || q.kind === 'night' ? 0.5 : 0.25)) setTimeout(() => Linkdown.gift('job', 1 + (world.preset.id === 'earth' ? 0 : 1)), 3200);
   }
   function talkWanderer(n) {
     const w = n.wanderer; const q = questFor(w); const P = people(); const st = npcState(w.id);

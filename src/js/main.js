@@ -791,7 +791,7 @@ G.loop = function (t) {
   if (!this.paused) {
     const t0 = w.time; if (this.restLapse) { const L = this.restLapse; L.t += dt; w.time = (L.from + L.span * U.smooth(Math.min(1, L.t / L.secs))) % 1; if (w.time < t0) L.wrapped = true; } /* asleep: the hours run by in a few seconds */
     else w.time = (w.time + dt / 1500) % 1; // 25-minute days
-    if (w.time < t0) this.dayCount = (this.dayCount || 0) + 1;
+    if (w.time < t0) { this.dayCount = (this.dayCount || 0) + 1; if (typeof Linkdown !== 'undefined' && this.stats.ldStarter && Math.random() < 0.15 && !(typeof Battle !== 'undefined' && Battle.active)) setTimeout(() => Linkdown.gift('stranger', 1), 4000 + Math.random() * 20000); }
     const nightNow = Math.cos(w.time * Math.PI * 2) > 0.17;
     if (this.wasNight === true && !nightNow) this.onDawn();
     this.wasNight = nightNow;
@@ -877,7 +877,7 @@ G.loop = function (t) {
       if (this.questTimer > 0.5) {
         this.questTimer = 0;
         for (const ev of Quests.update()) {
-          if (ev.type === 'quest') { UI.sfx('quest'); UI.toast(`Quest complete: ${ev.q.title}`, 'good'); document.getElementById('quest-dot').classList.remove('hidden'); }
+          if (ev.type === 'quest') { UI.sfx('quest'); UI.toast(`Quest complete: ${ev.q.title}`, 'good'); document.getElementById('quest-dot').classList.remove('hidden'); if (typeof Linkdown !== 'undefined' && this.stats.ldStarter) { this.stats.questThreads = (this.stats.questThreads || 0); if (this.stats.questThreads < 2 || Math.random() < 0.35) { this.stats.questThreads++; setTimeout(() => Linkdown.gift('quest', 1 + Math.floor((this.stats.questsDone || 0) / 6)), 2500); } } }
           if (ev.type === 'bounty') { UI.sfx('quest'); UI.toast(`Bounty ${ev.round - 1} paid: a Cartridge and XP.`, 'good'); }
         }
       }

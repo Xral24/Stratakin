@@ -13177,7 +13177,15 @@ const Linkdown = (() => {
   }
   function buyBack(i) { const L = G.stats.ldLost || []; const e = L[i]; if (!e) return false; if (G.shards < e.price) { UI.toast('Not enough Shards.', 'bad'); return false; }
     G.shards -= e.price; const k = KIN.deserialize(e.data); L.splice(i, 1); G.addKin(k); UI.toast(`${KIN.name(k)} is back on your cartridge.`, 'good'); return true; }
-  return { play, close, buyBack, prizeFor, need, townRec, away, titleThread, power, value, stakeable, bondBoost, THREADS, giveThread, ready: readyT, CD, rollThread, atkdef, get state() { return st; } };
+  // Threads also come from the world: a job well done, a story beat, a stranger on the road
+  const GIFT_LINES = {
+    quest: ['Tucked in with the thanks there is a cartridge: {t}', 'Someone presses a Thread into your hand for the trouble: {t}'],
+    job: ['"Here, I won this off a Linkdown player years back. Never used it." {t}', '"Can\'t pay you in Shards, but take this." A Thread: {t}', 'They dig in a pocket and hand you a scuffed cartridge: {t}'],
+    stranger: ['A traveller on the road stops, looks at your Kin, and presses a cartridge into your hand. "You\'ll need it more than me." {t}', 'A kid runs up, shoves a cartridge at you and runs off giggling. {t}', 'An old Link nods at you as you pass and flicks you a Thread. {t}'],
+  };
+  function gift(kind, tier) { const t = rollThread(tier == null ? 1 : tier); if (!t) return null; giveThread(t); const L = GIFT_LINES[kind] || GIFT_LINES.stranger;
+    const T = THREADS[t]; const line = L[Math.floor(Math.random() * L.length)].replace('{t}', `${T.name} (${RAR[T.rar]}). ${T.txt}`); UI.toast(line + ' Play it at any Linkdown table.', 'good'); G.stats.threadGifts = (G.stats.threadGifts || 0) + 1; return t; }
+  return { gift, play, close, buyBack, prizeFor, need, townRec, away, titleThread, power, value, stakeable, bondBoost, THREADS, giveThread, ready: readyT, CD, rollThread, atkdef, get state() { return st; } };
 })();
 
 </script>
@@ -18819,6 +18827,7 @@ const Npcs = (() => {
     if (q.kind === 'night' || (q.kind === 'build' && (q.what === 'castle' || q.what === 'town')) || Math.random() < 0.12) { const pool = KIN.dex(world.preset.id).filter(sp => sp.rarity === 2 && sp.home && sp.home.layer === 'Surface'); const sp = pool[U.combine(w.seedN, q.round, 0xE6) % pool.length]; if (sp) setTimeout(() => { if (G.addEgg(sp, w.name, 500)) UI.toast(`${w.name} also hands you an egg. "Found it in the long grass. Keep it warm: walk with it."`, 'good'); }, 2600); }
     G.stats.questsDone = (G.stats.questsDone || 0) + 1;
     if (!G.stats.jobsBy) G.stats.jobsBy = {}; G.stats.jobsBy[world.preset.id] = (G.stats.jobsBy[world.preset.id] || 0) + 1;
+    if (typeof Linkdown !== 'undefined' && Math.random() < (q.kind === 'build' || q.kind === 'night' ? 0.5 : 0.25)) setTimeout(() => Linkdown.gift('job', 1 + (world.preset.id === 'earth' ? 0 : 1)), 3200);
   }
   function talkWanderer(n) {
     const w = n.wanderer; const q = questFor(w); const P = people(); const st = npcState(w.id);
@@ -25378,7 +25387,7 @@ G.loop = function (t) {
   if (!this.paused) {
     const t0 = w.time; if (this.restLapse) { const L = this.restLapse; L.t += dt; w.time = (L.from + L.span * U.smooth(Math.min(1, L.t / L.secs))) % 1; if (w.time < t0) L.wrapped = true; } /* asleep: the hours run by in a few seconds */
     else w.time = (w.time + dt / 1500) % 1; // 25-minute days
-    if (w.time < t0) this.dayCount = (this.dayCount || 0) + 1;
+    if (w.time < t0) { this.dayCount = (this.dayCount || 0) + 1; if (typeof Linkdown !== 'undefined' && this.stats.ldStarter && Math.random() < 0.15 && !(typeof Battle !== 'undefined' && Battle.active)) setTimeout(() => Linkdown.gift('stranger', 1), 4000 + Math.random() * 20000); }
     const nightNow = Math.cos(w.time * Math.PI * 2) > 0.17;
     if (this.wasNight === true && !nightNow) this.onDawn();
     this.wasNight = nightNow;
@@ -25464,7 +25473,7 @@ G.loop = function (t) {
       if (this.questTimer > 0.5) {
         this.questTimer = 0;
         for (const ev of Quests.update()) {
-          if (ev.type === 'quest') { UI.sfx('quest'); UI.toast(`Quest complete: ${ev.q.title}`, 'good'); document.getElementById('quest-dot').classList.remove('hidden'); }
+          if (ev.type === 'quest') { UI.sfx('quest'); UI.toast(`Quest complete: ${ev.q.title}`, 'good'); document.getElementById('quest-dot').classList.remove('hidden'); if (typeof Linkdown !== 'undefined' && this.stats.ldStarter) { this.stats.questThreads = (this.stats.questThreads || 0); if (this.stats.questThreads < 2 || Math.random() < 0.35) { this.stats.questThreads++; setTimeout(() => Linkdown.gift('quest', 1 + Math.floor((this.stats.questsDone || 0) / 6)), 2500); } } }
           if (ev.type === 'bounty') { UI.sfx('quest'); UI.toast(`Bounty ${ev.round - 1} paid: a Cartridge and XP.`, 'good'); }
         }
       }
