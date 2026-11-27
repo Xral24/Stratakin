@@ -35,6 +35,8 @@ const Linkdown = (() => {
     thunderfall:{ name: 'Thunderfall', rar: 3, tgt: 'none', txt: 'Every enemy Kin breaks.' },
   };
   const TIDS = Object.keys(THREADS);
+  const ROLE_ICON = { guardian: '⛨', bruiser: '✊', mystic: '✦', striker: '➹', racer: '➤', allrounder: '◈' };
+  const ROLE_TXT = { guardian: 'Guardian: they must attack it first.', bruiser: 'Bruiser: +300 attack when it attacks.', mystic: 'Mystic: draw a card when it breaks a Kin.', striker: 'Striker: hits through defence, the difference still lands.', racer: 'Racer: the first hit on it each turn misses.', allrounder: 'Allrounder: can switch position twice a turn.' };
   const FIN = { rare: [100, 0], super: [100, 100], ultra: [200, 200], secret: [300, 300] };
   const value = (k) => Math.round([150, 420, 1600, 6500, 9000][Math.min(4, k.sp.rarity || 0)] * (1 + k.level / 40));
   const elemOf = (k) => { try { return KIN.dominant(k.sp.elem, 1)[0] || 'Stone'; } catch (e) { return 'Stone'; } };
@@ -51,7 +53,7 @@ const Linkdown = (() => {
   const bondLife = (kin) => kin.reduce((n, k) => n + (k.bonded ? 500 : (k.bond || 0) >= 0.5 ? 250 : 0), 0);
   const power = (k) => { const [a, d] = atkdef(k); return Math.round((a + d) / 200); };
   let uid = 1;
-  const kinCard = (k) => { const [a, d] = atkdef(k); return { type: 'kin', k, atk: a, def: d, el: elemOf(k), fin: (k.card && k.card.finish) || 'normal', pos: 'atk', id: uid++, temp: 0, swings: 0, stun: 0 }; };
+  const kinCard = (k) => { const [a, d] = atkdef(k); return { type: 'kin', k, role: (KIN.roleOf ? KIN.roleOf(k.sp) : 'allrounder'), atk: a, def: d, el: elemOf(k), fin: (k.card && k.card.finish) || 'normal', pos: 'atk', id: uid++, temp: 0, swings: 0, stun: 0 }; };
   const threadCard = (t) => ({ type: 'thread', t, id: uid++ });
   const isStarter = (k) => { try { return KIN.starters(G.baseSeed).some(sp => sp.seed === k.sp.seed || (k.sp.line != null && sp.line != null && sp.line === k.sp.line)); } catch (e) { return false; } };
   const stakeable = (k) => !k.bonded && !isStarter(k);
@@ -122,8 +124,8 @@ const Linkdown = (() => {
     const a = c.atk + c.temp, hidden = c.pos === 'def' && opts.foe && !c.shown;
     if (hidden) return `<div class="ld-c ld-back ld-def ${opts.cls || ''}" data-id="${c.id}" ${opts.data || ''} style="background-image:url('${BACK()}')"><span>DEF</span></div>`;
     const face = FACE[faceKey(c.k)];
-    if (face) return `<div class="ld-c ld-face ld-${c.fin} ${c.pos === 'def' ? 'ld-def' : ''} ${opts.cls || ''} ${c.stun ? 'stun' : ''}" data-id="${c.id}" ${opts.data || ''} style="--ec:${ECOL[c.el] || '#aaa'};background-image:url('${face}')">
-      <div class="ld-bond ${c.k.bonded ? 'full' : ''}"><i style="width:${Math.round(bondOf(c.k) * 100)}%"></i></div><span class="ld-lv">Lv ${c.k.level}</span><div class="ld-ad"><b class="${c.pos === 'atk' ? 'on' : ''}">⚔${a}</b><b class="${c.pos === 'def' ? 'on' : ''}">⛨${c.def}</b></div></div>`;
+    if (face) return `<div class="ld-c ld-face ld-${c.fin} ${c.k.bonded ? 'bonded' : ''} ${c.pos === 'def' ? 'ld-def' : ''} ${opts.cls || ''} ${c.stun ? 'stun' : ''}" data-id="${c.id}" ${opts.data || ''} style="--ec:${ECOL[c.el] || '#aaa'};background-image:url('${face}')">
+      <div class="ld-bond ${c.k.bonded ? 'full' : ''}"><i style="width:${Math.round(bondOf(c.k) * 100)}%"></i></div><span class="ld-lv">Lv ${c.k.level}</span><span class="ld-role r-${c.role}" title="${ROLE_TXT[c.role]}">${ROLE_ICON[c.role]}</span><div class="ld-ad"><b class="${c.pos === 'atk' ? 'on' : ''}">⚔${a}</b><b class="${c.pos === 'def' ? 'on' : ''}">⛨${c.def}</b></div></div>`;
     return `<div class="ld-c ld-${c.fin} ${c.pos === 'def' ? 'ld-def' : ''} ${opts.cls || ''} ${c.stun ? 'stun' : ''}" data-id="${c.id}" ${opts.data || ''} style="--ec:${ECOL[c.el] || '#aaa'}">
       <div class="ld-bond ${c.k.bonded ? 'full' : ''}" title="bond"><i style="width:${Math.round(bondOf(c.k) * 100)}%"></i></div><img src="${picOf(c.k)}" alt=""><div class="ld-n">${KIN.name(c.k)}</div><div class="ld-ad"><b class="${c.pos === 'atk' ? 'on' : ''}">⚔${a}</b><b class="${c.pos === 'def' ? 'on' : ''}">⛨${c.def}</b></div><i>${c.el}</i></div>`;
   }
@@ -218,7 +220,7 @@ const Linkdown = (() => {
       if (S.over || S.turn !== 'me' || S.busy) return;
       ui.stage.querySelectorAll('[data-h]').forEach(el => el.addEventListener('click', () => {
         const c = S.me.hand.find(x => x.id == el.dataset.h); if (!c) return; S.sel = null;
-        if (c.type === 'kin') { if (S.summoned) { say('One Kin a turn. Play a Thread or attack.'); return; } if (freeSlot(S.me) < 0) { say('No room on your side of the table.'); return; } S.pending = { card: c }; say(`${KIN.name(c.k)}: attack position, or face down in defence?`); render(); return; }
+        if (c.type === 'kin') { if (S.summoned) { say('One Kin a turn. Play a Thread or attack.'); return; } if (freeSlot(S.me) < 0) { say('No room on your side of the table.'); return; } S.pending = { card: c }; say(`${KIN.name(c.k)} · ${ROLE_TXT[c.role]}${c.k.bonded ? ' Bonded: refuses to break once.' : ''} Attack, or face down in defence?`); render(); return; }
         const T = THREADS[c.t];
         if (T.tgt === 'trap') { if (S.me.trap) { say('You already have a trap set.'); return; } S.me.hand.splice(S.me.hand.indexOf(c), 1); S.me.trap = c; S.used.push(c.t); say('You set a Thread face down. It springs when they attack.'); render(); return; }
         if (T.tgt === 'none' || T.tgt === 'grave') { castThread(S.me, c, null); return; }
@@ -228,24 +230,38 @@ const Linkdown = (() => {
       ui.stage.querySelectorAll('[data-ms]').forEach(el => el.addEventListener('click', () => { const c = S.me.field[+el.dataset.ms]; const P = S.pending;
         if (P && P.card.type === 'thread' && c && (THREADS[P.card.t].tgt === 'own' || THREADS[P.card.t].tgt === 'any')) { castThread(S.me, P.card, c); return; }
         if (!c) return;
-        S.sel = c; S.pending = null;
-        if (c.pos === 'def') say(c.fresh ? `${KIN.name(c.k)} only just went down. It can switch to attack next turn.` : c.switched ? `${KIN.name(c.k)} already changed position this turn.` : `${KIN.name(c.k)} is guarding. Switch it to attack if you want it to fight.`);
+        S.sel = c; S.pending = null; const ab = ROLE_TXT[c.role] + (c.k.bonded && !c.held ? ' Bonded: refuses to break once.' : '');
+        if (false) {}
+        else if (c.pos === 'def') say(c.fresh ? `${KIN.name(c.k)} only just went down. It can switch to attack next turn.` : c.switched ? `${KIN.name(c.k)} already changed position this turn.` : `${KIN.name(c.k)} is guarding. Switch it to attack if you want it to fight.`);
         else if (c.stun) say(`${KIN.name(c.k)} is tangled in a net this turn.`);
         else if (c.swings <= 0) say(`${KIN.name(c.k)} has already attacked this turn.`);
-        else say(`${KIN.name(c.k)} is ready. Tap one of their Kin${kinsOf(S.ai).length ? '' : ', or hit them direct'}. Or switch it to defence.`);
+        else say(`${KIN.name(c.k)} is ready. Tap one of their Kin${kinsOf(S.ai).length ? '' : ', or hit them direct'}. ${ab}`);
         render(); }));
       ui.stage.querySelectorAll('[data-fs]').forEach(el => el.addEventListener('click', () => { const c = S.ai.field[+el.dataset.fs]; if (!c) return; const P = S.pending;
         if (P && P.card.type === 'thread' && (THREADS[P.card.t].tgt === 'foe' || THREADS[P.card.t].tgt === 'any')) { castThread(S.me, P.card, c); return; }
-        if (S.sel && S.sel.pos === 'atk' && S.sel.swings > 0 && !S.sel.stun) attack(S.me, S.sel, c); }));
+        if (S.sel && S.sel.pos === 'atk' && S.sel.swings > 0 && !S.sel.stun) { const g = guards(S.ai); if (g.length && c.role !== 'guardian') { say(`${KIN.name(g[0].k)} is a Guardian. You have to get through it first.`); return; } attack(S.me, S.sel, c); } }));
     }
+    // ---- abilities ----
+    async function ability(c, txt) { await floater(`[data-id="${c.id}"]`, txt, 'abil'); }
+    async function tryBreak(sd, c) { if (!sd.field.includes(c)) return false; if (sd.ward) return false;
+      if (c.k.bonded && !c.held) { c.held = true; await ability(c, '♥ Hold fast'); say(`${KIN.name(c.k)} is bonded. It refuses to break, this once.`); await sleep(300); return false; }
+      await crack(c); return breakKin(sd, c); }
+    async function mysticDraw(sd, c) { if (c.role !== 'mystic' || !sd.field.includes(c)) return; drawCard(sd); await ability(c, 'Mystic: draw'); }
+    const guards = (sd) => kinsOf(sd).filter(k => k.role === 'guardian');
+    // ---- element hit effects: a burst at the target in the attacker's element ----
+    function fx(sel, el, power) { const t = ui.stage.querySelector(sel); if (!t || fast()) return; const f = $(`<div class="ld-fx fx-${el}" style="--fc:${ECOL[el] || '#fff'}"></div>`);
+      const n = U.clamp(Math.round(power / 200), 6, 16); for (let i = 0; i < n; i++) { const p = document.createElement('i'), ang = Math.random() * Math.PI * 2, dist = 30 + Math.random() * 40;
+        p.style.setProperty('--dx', Math.cos(ang) * dist + 'px'); p.style.setProperty('--dy', Math.sin(ang) * dist + 'px'); p.style.animationDelay = (Math.random() * 0.08) + 's'; f.appendChild(p); }
+      if (el === 'Spark') f.insertAdjacentHTML('beforeend', '<svg viewBox="0 0 40 80"><path d="M24 0 L8 44 H20 L12 80 L34 30 H22 Z" fill="#fff6a8" stroke="#ffd23c" stroke-width="2"/></svg>');
+      t.appendChild(f); setTimeout(() => f.remove(), 900); }
     // once a turn each Kin can change position: not the turn it went down, and not after it has attacked
-    const canSwitch = (c) => c && !c.fresh && !c.switched && !(c.pos === 'atk' && c.attacked);
-    async function switchPos(sd, c) { if (!canSwitch(c)) return; c.switched = true; c.shown = true; c.pos = c.pos === 'atk' ? 'def' : 'atk'; c.swings = c.pos === 'atk' && !c.stun ? 1 : 0; if (sd === S.me) S.sel = c.pos === 'atk' ? c : null;
+    const canSwitch = (c) => c && !c.fresh && (c.switched || 0) < (c.role === 'allrounder' ? 2 : 1) && !(c.pos === 'atk' && c.attacked);
+    async function switchPos(sd, c) { if (!canSwitch(c)) return; c.switched = (c.switched || 0) + 1; c.shown = true; c.pos = c.pos === 'atk' ? 'def' : 'atk'; c.swings = c.pos === 'atk' && !c.stun ? 1 : 0; if (sd === S.me) S.sel = c.pos === 'atk' ? c : null;
       render(); const el = ui.stage.querySelector(`[data-id="${c.id}"]`); if (el) el.classList.add('slam'); UI.sfx && UI.sfx('click');
       say(c.pos === 'atk' ? `${sd === S.me ? 'You flip' : name + ' flips'} ${KIN.name(c.k)} up into attack: ${c.atk + c.temp}.${sd === S.me ? ' Tap one of their Kin to attack.' : ''}` : `${sd === S.me ? 'You turn' : name + ' turns'} ${KIN.name(c.k)} sideways to guard.`); await sleep(400); }
     // ---- summoning, with a slam ----
     async function summon(sd, c, pos) {
-      const i = freeSlot(sd); if (i < 0) return; sd.hand.splice(sd.hand.indexOf(c), 1); c.pos = pos; c.shown = pos === 'atk'; c.swings = pos === 'atk' ? 1 : 0; c.fresh = true; c.switched = false; c.attacked = false; sd.field[i] = c; if (sd === S.me) { S.summoned = true; S.pending = null; }
+      const i = freeSlot(sd); if (i < 0) return; sd.hand.splice(sd.hand.indexOf(c), 1); c.pos = pos; c.shown = pos === 'atk'; c.swings = pos === 'atk' ? 1 : 0; c.fresh = true; c.switched = 0; c.attacked = false; c.dodged = false; sd.field[i] = c; if (sd === S.me) { S.summoned = true; S.pending = null; }
       S.busy = true; render(); const el = ui.stage.querySelector(`[data-id="${c.id}"]`); if (el) el.classList.add('slam'); UI.sfx && UI.sfx('click');
       say(pos === 'atk' ? `${sd === S.me ? 'You put' : name + ' puts'} down ${KIN.name(c.k)} in attack: ${c.atk + c.temp}.` : `${sd === S.me ? 'You set' : name + ' sets'} a Kin face down in defence.`); if (bondOf(c.k) >= 0.5 && pos === 'atk') await floater(`[data-id="${c.id}"]`, c.k.bonded ? '♥ bonded ×1.6' : `♥ bond +${Math.round((bondBoost(c.k) - 1) * 100)}%`, 'bond'); else await sleep(450); S.busy = false; render();
     }
@@ -262,17 +278,22 @@ const Linkdown = (() => {
       // their trap springs on the first attack
       if (foe.trap && THREADS[foe.trap.t].tgt === 'trap') { const t = foe.trap; foe.trap = null; foe.grave.push(t); say(`Trap! ${THREADS[t.t].name}: every Kin attacking for ${sd === S.me ? 'you' : name} breaks.`); box && box.classList.add('flash');
         const gone = kinsOf(sd).filter(c => c.pos === 'atk'); for (const c of gone) await crack(c); for (const c of gone) breakKin(sd, c); await sleep(500); box && box.classList.remove('flash'); S.busy = false; render(); if (sd === S.me) say(`Trap! Mirror Shell. ${name}: ${react(true)}`); await checkEnd(); return; }
-      const edge = d ? elemEdge(a, d) : false, A = a.atk + a.temp + (edge ? 300 : 0);
-      if (dEl) dEl.classList.add('hitfx'); if (edge) await floater(`[data-id="${a.id}"]`, `${a.el} edge +300`, 'edge');
+      const edge = d ? elemEdge(a, d) : false, brute = a.role === 'bruiser' ? 300 : 0, A = a.atk + a.temp + (edge ? 300 : 0) + brute;
+      if (dEl) dEl.classList.add('hitfx'); fx(d ? `[data-id="${d.id}"]` : `.ld-lp.${foe === S.me ? 'me' : 'ai'}`, a.el, A);
+      if (brute) await ability(a, 'Bruiser +300'); if (edge) await floater(`[data-id="${a.id}"]`, `${a.el} edge +300`, 'edge');
       await sleep(200); if (d) { d.shown = true; render(); await sleep(250); }
+      // a Racer slips the first hit each turn
+      if (d && d.role === 'racer' && !d.dodged) { d.dodged = true; await ability(d, 'Dodged!'); say(`${KIN.name(d.k)} is a Racer: it slips the first hit each turn.`); S.busy = false; render(); return; }
       const mine = sd === S.me; let goodForThem = !mine;
+      if (A >= 2000) { if (box) box.classList.add('slowmo'); await sleep(350); if (box) box.classList.remove('slowmo'); }
       if (!d) { say(`${KIN.name(a.k)} hits ${foe === S.me ? 'you' : name} straight on for ${A}.`); await hurt(foe, A); }
       else if (d.pos === 'atk') { const D = d.atk + d.temp;
-        if (A > D) { if (foe.ward) { say(`${KIN.name(d.k)} is warded. It holds, but the hit still lands.`); } else { await crack(d); breakKin(foe, d); say(`${KIN.name(a.k)} (${A}) breaks ${KIN.name(d.k)} (${D}).`); } await hurt(foe, A - D); }
-        else if (A < D) { if (!sd.ward) { await crack(a); breakKin(sd, a); } say(`${KIN.name(d.k)} (${D}) is stronger. ${KIN.name(a.k)} ${sd.ward ? 'is warded, but it hurts' : 'breaks'}.`); await hurt(sd, D - A); goodForThem = mine; }
-        else { await crack(a); await crack(d); breakKin(sd, a); breakKin(foe, d); say(`${A} each. Both break.`); } }
+        if (A > D) { if (await tryBreak(foe, d)) { say(`${KIN.name(a.k)} (${A}) breaks ${KIN.name(d.k)} (${D}).`); await mysticDraw(sd, a); } else say(`${KIN.name(d.k)} holds on, but the hit still lands.`); await hurt(foe, A - D); }
+        else if (A < D) { const b = await tryBreak(sd, a); say(`${KIN.name(d.k)} (${D}) is stronger. ${KIN.name(a.k)} ${b ? 'breaks' : 'holds on, but it hurts'}.`); if (b) await mysticDraw(foe, d); await hurt(sd, D - A); goodForThem = mine; }
+        else { await tryBreak(sd, a); await tryBreak(foe, d); say(`${A} each. Both crash together.`); } }
       else { const D = d.def;
-        if (A > D) { if (foe.ward) say(`${KIN.name(d.k)} is warded. It holds.`); else { await crack(d); breakKin(foe, d); say(`${KIN.name(a.k)} (${A}) smashes through ${KIN.name(d.k)}'s defence (${D}).`); } }
+        if (A > D) { if (await tryBreak(foe, d)) { say(`${KIN.name(a.k)} (${A}) smashes through ${KIN.name(d.k)}'s defence (${D}).`); await mysticDraw(sd, a); } else say(`${KIN.name(d.k)} holds.`);
+          if (a.role === 'striker') { await ability(a, 'Pierce'); say(ui.say.textContent + ` Striker: it pierces, ${A - D} goes through.`); await hurt(foe, A - D); } }
         else if (A < D) { say(`${KIN.name(d.k)}'s defence (${D}) holds. ${D - A} comes back.`); await hurt(sd, D - A); goodForThem = mine; }
         else say(`${A} into ${D}. Nothing gives.`); }
       S.busy = false; render(); if (!(await checkEnd()) && mine && Math.random() < 0.6) say(ui.say.textContent + ` ${name}: ${react(goodForThem)}`);
@@ -310,7 +331,7 @@ const Linkdown = (() => {
       if (S.over || S.busy) return; S.pending = null; S.sel = null; cleanup(S.me); S.turn = 'ai'; S.reveal = false; render(); await sleep(400); await aiTurn();
     }
     function cleanup(sd) { for (const k of kinsOf(sd)) { k.temp = 0; if (k.borrowed) { const i = sd.field.indexOf(k), j = k.borrowed.field.indexOf(null); sd.field[i] = null; if (j >= 0) k.borrowed.field[j] = k; else k.borrowed.hand.push(k); k.borrowed = null; } } }
-    async function startTurn(sd) { S.n++; sd.ward = false; for (const k of kinsOf(sd)) { k.fresh = false; k.switched = false; k.attacked = false; k.swings = k.pos === 'atk' ? 1 : 0; if (k.stun) { k.stun--; if (k.stun) k.swings = 0; } }
+    async function startTurn(sd) { S.n++; sd.ward = false; for (const k of kinsOf(other(sd))) k.dodged = false; for (const k of kinsOf(sd)) { k.fresh = false; k.switched = 0; k.attacked = false; k.dodged = false; k.swings = k.pos === 'atk' ? 1 : 0; if (k.stun) { k.stun--; if (k.stun) k.swings = 0; } }
       if (!drawCard(sd)) { sd.dry = (sd.dry || 0) + 1; const n = 300 * sd.dry; say(`${sd === S.me ? 'Your' : name + "'s"} deck is empty. The table burns ${n} life for every draw that isn't there.`); await hurt(sd, n); await sleep(500); } }
     async function checkEnd() {
       if (S.over) return true; const lost = (sd) => sd.lp <= 0 || (!sd.deck.length && !sd.hand.some(c => c.type === 'kin') && !kinsOf(sd).length);
@@ -342,13 +363,13 @@ const Linkdown = (() => {
       for (const a of kinsOf(A).filter(k => k.pos === 'atk' && k.swings > 0 && !k.stun)) {
         while (a.swings > 0 && A.field.includes(a) && !S.over && !S.gone) { const pk = kinsOf(P); const AA = a.atk + a.temp;
           let tgt = null; if (!pk.length) tgt = 'direct';
-          else { const beat = pk.filter(d => d.pos === 'atk' ? AA > d.atk + d.temp : (d.shown ? AA > d.def : Math.random() < 0.4 + 0.3 * sk)).sort((x, y) => (y.pos === 'atk' ? 1 : 0) - (x.pos === 'atk' ? 1 : 0) || y.atk - x.atk); tgt = beat[0] || (Math.random() < 0.2 * (1 - sk) ? pk[0] : null); }
+          else { const gp = guards(P); const pool = gp.length ? gp : pk; const beat = pool.filter(d => d.pos === 'atk' ? AA > d.atk + d.temp : (d.shown ? AA > d.def : Math.random() < 0.4 + 0.3 * sk)).sort((x, y) => (y.pos === 'atk' ? 1 : 0) - (x.pos === 'atk' ? 1 : 0) || y.atk - x.atk); tgt = beat[0] || (Math.random() < 0.2 * (1 - sk) ? pool[0] : null); }
           if (!tgt) break; await attack(A, a, tgt === 'direct' ? null : tgt); await sleep(250); if (S.over) return; }
       }
       cleanup(A); if (S.over || S.gone) return; S.turn = 'me'; S.summoned = false; S.busy = true; await startTurn(P); S.busy = false; render(); if (await checkEnd()) return; if (P.deck.length || P.hand.length) say(`Your turn. ${P.hand.length} card${P.hand.length === 1 ? '' : 's'} in your hand. Tap one of your Kin on the table to attack or switch it.`);
     }
     function finish(res) {
-      S.turn = 'done'; render();
+      S.turn = 'done'; render(); { const loser = res === 'win' ? 'foe' : res === 'lose' ? 'me' : null; if (loser && !fast()) ui.stage.querySelectorAll(`.ld-spot.${loser} .ld-c, .ld-lp.${loser === 'me' ? 'me' : 'ai'}`).forEach(e => e.classList.add('ko')); if (box && loser) box.classList.add('final'); }
       if (o.practice) { S.result = res; say(res === 'win' ? `You win, ${Math.max(0, S.me.lp)} to ${Math.max(0, S.ai.lp)}. Practice, so nothing changes hands.` : res === 'lose' ? `The table wins, ${Math.max(0, S.ai.lp)} to ${Math.max(0, S.me.lp)}. Practice, so nothing's lost.` : 'Dead level.');
         ui.foot.innerHTML = ''; const again = $('<button class="btn big">Play again</button>'), done = $('<button class="btn ghost">Done</button>'); again.addEventListener('click', () => { close(); play(o); }); done.addEventListener('click', () => close()); ui.foot.append(again, done); box && box.classList.add('gb-' + res); return; }
       const ss = G.stats.linkdown || (G.stats.linkdown = { won: 0, lost: 0 }); if (res === 'win') ss.won++; else if (res === 'lose') ss.lost++;
