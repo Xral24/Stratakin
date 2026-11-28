@@ -819,9 +819,9 @@ G.loop = function (t) {
       p.trainerLevel = this.trainerLevel;
       const tr = this.traits();
       p.speedMul = (tr.includes('Swift') ? 1.25 : 1) * (Npcs.active('haste') ? 1.6 : 1); p.mineMul = tr.includes('Miner') ? 1.6 : 1; p.breathMul = tr.includes('Diver') ? 4 : 1;
-      { const heavy = this.worldId === 'halo', suit = heavy && p.has && p.has('stridersuit'); p.gravity = heavy ? (suit ? 1.0 : 1.3) : this.world.preset.gravity; if (heavy && !suit) p.speedMul *= 0.6; /* Halo's heavy air: a crawl and a low jump until you buy a Strider Suit */
+      { const heavy = this.worldId === 'halo', suit = heavy && p.has && p.has('stridersuit'); p.gravity = heavy ? (suit ? 1.0 : 1.12) : this.world.preset.gravity; if (heavy && !suit) p.speedMul *= 0.6; if (!heavy && p.has && p.has('stridersuit')) p.speedMul *= 1.12; /* Halo's heavy air: a crawl and a low jump until you buy a Strider Suit */
         if (heavy && !suit && !this.stats.heavyTold && typeof this.explain === 'function') { this.stats.heavyTold = true; setTimeout(() => this.explain('Heavy air', "Halo's air is thick and its pull drags at you. Every step is work and you can barely clear a ledge. The caravan people wear Strider Suits, braced leather and spring-steel: every Caravan Store on Halo sells one. Get one first."), 1500); } }
-      p.jumpMul = tr.includes('Climber') ? 1.15 : 1; p.autoJumpTrait = tr.includes('Climber') || !!(p.mount && p.mount.sp.climber); p.lavaMul = tr.includes('Warm') ? 0.5 : 1; p.senseMul = tr.includes('Stalker') ? 0.7 : 1;
+      p.jumpMul = (tr.includes('Climber') ? 1.15 : 1) * (this.worldId !== 'halo' && p.has && p.has('stridersuit') ? (this.worldId === 'moon' ? 1.2 : 1.3) : 1); /* spring-steel built for Halo's drag: anywhere lighter it throws you high */ p.autoJumpTrait = tr.includes('Climber') || !!(p.mount && p.mount.sp.climber); p.lavaMul = tr.includes('Warm') ? 0.5 : 1; p.senseMul = tr.includes('Stalker') ? 0.7 : 1;
       const healMul = tr.includes('Mender') ? 2 : 1;
       const hpBefore = p.hp;
       for (const k of this.kin) if (k !== p.mount && k.trust > 0) k.trust = Math.max(0, k.trust - dt / 21600); // trust drains over six hours of play without riding (only while the game runs)
