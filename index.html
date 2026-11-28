@@ -778,7 +778,7 @@ body.cine-on #hud, body.cine-on #crosshair, body.cine-on #compass, body.cine-on 
     <button id="btn-jump">▲</button>
     <button id="btn-sneak" aria-label="Down">▼</button>
     <button id="btn-deploy" class="hidden">Deploy Kin</button>
-    <button id="btn-snare" class="hidden">Set net</button>
+    <button id="btn-snare" class="hidden">Link it</button>
     <div id="fishbar" class="hidden"><div class="snare-tip">A bite! Tap when the marker is in the glow.</div><div class="snare-track"><div class="snare-zone"></div><div class="snare-marker"></div></div></div>
     <button id="btn-ride" class="hidden">Ride</button>
     <button id="btn-block" class="hidden" aria-label="Shield">🛡<small>SHIELD</small></button>
@@ -16835,20 +16835,26 @@ const Battle = (() => {
   async function deviceCatch(item, chance, hopeless) {
     busy = true; el.actions.querySelectorAll('button').forEach(b => b.disabled = true);
     const st = KIN.stats(wild), rar = wild.sp.rarity || 0;
-    log(`You raise the Kin-Link${stealth ? ', quietly' : ''}. ${hopeless ? 'It can barely read this one.' : 'Lock on, and draw it in.'}`); G.sfx('snare');
+    { const hp0 = wild.hp / st.hp; log(`You raise the Kin-Link${stealth ? ', quietly' : ''}. ${hopeless ? 'It can barely read this one.' : `Lock on, and draw it in. With a clean lock and pull, the hold is about ${Math.round(Math.min(0.97, chance * 1.8 + 0.12 + 0.08 * (wild._linkTries || 0)) * 100)}%.${hp0 > 0.5 ? ' Its health is high: wear it down first and the odds jump.' : ''}`}`); } G.sfx('snare');
     const ring = (G.player.has('lariat') ? 1.5 : 1) * (typeof Wood !== 'undefined' && Wood.has('spider') ? 1.3 : 1) * ((G.stats.caught || 0) < 1 ? 1.2 : 1); /* the lariat wire and Bobbinlegs widen the lock ring, as they widened the net */
-    const r = await Device.capture({ kin: wild, rar, hpFrac: wild.hp / st.hp, agi: st.agi, lull, chance, ring, seal: G.player.has('seal') });
-    const pHold = U.clamp(chance * (0.7 + 0.7 * (r.quality || 0)), hopeless ? 0 : 0.02, 0.97), roll = (typeof window !== 'undefined' && window.__netRoll != null) ? window.__netRoll : Math.random(), held = r.ok && roll < pHold;
+    let pHoldAt = 0; const tries0 = wild._linkTries || 0, holdFor = (q) => hopeless ? 0 : U.clamp(chance * (0.6 + 1.2 * q) + 0.12 * q * q + 0.08 * tries0, 0.03, 0.97);
+    const r = await Device.capture({ kin: wild, rar, hpFrac: wild.hp / st.hp, agi: st.agi, lull, chance, ring, seal: G.player.has('seal'),
+      decide: (q) => { pHoldAt = holdFor(q); const roll = (typeof window !== 'undefined' && window.__netRoll != null) ? window.__netRoll : Math.random(); return roll < pHoldAt; } }); /* the hold is decided the moment the pull is done, so the device shows the truth: SIGNAL HELD or PULLED FREE */
+    /* doing the device well matters a lot: a clean lock and pull nearly doubles the odds and adds a flat edge on top, and every link it has
+       already fought off this battle has tired it (+8% each) */
+    const tries = tries0, pHold = pHoldAt, held = !!(r.ok && r.held);
     if (held) {
       const dl = R.state.dayLight != null ? R.state.dayLight : 1, hud = (document.getElementById('where') || {}).textContent || '', place = hud.split(' · y ')[0].split(' · ').filter(x => x && !/fps|wild/.test(x)).slice(-2).join(', ');
       wild.card = Cards.roll(wild, { time: dl > 0.75 ? 'day' : dl < 0.3 ? 'night' : 'dusk', where: `Caught in ${place || 'the wild'}, day ${(G.dayCount || 0) + 1}` });
       log(`The signal holds. ${KIN.name(wild)} is yours!`, 'good'); G.sfx('caught');
       await Device.result(true, wild); return end('caught');
     }
-    await Device.result(false, wild, r.ok ? 'The link was made, but it would not hold.' : r.failed === 'pull' ? 'The beam snapped.' : 'It slipped the ' + (r.failed || 'lock') + '.');
+    wild._linkTries = tries + 1;
+    const hpF = wild.hp / st.hp, why = !r.ok ? '' : hopeless ? ' It is far too strong for your link: level up first.' : hpF > 0.5 ? ` It still has ${Math.round(hpF * 100)}% of its health and the strength to pull free. Wear it down first, under a third is best.` : wild.level > mine.level + 3 ? ' It is above your Kin\'s level and pulled free. Wear it down a little more, or try again: each try tires it.' : ' Unlucky. Each try tires it, so the next link holds better.';
+    await Device.result(false, wild, r.ok ? `The link was made, but it would not hold (about ${Math.round(pHold * 100)}% this time).${why}` : r.failed === 'pull' ? 'The beam snapped.' : 'It slipped the ' + (r.failed || 'lock') + '.');
     if (bossKin()) { log(`${KIN.name(wild)} tears free of the beam, and the effort finishes it. It falls. One chance, and it is gone.`, 'bad'); G.sfx('miss'); wild.hp = 0; refresh(); await sleep(1100); return end('won'); }
     G.player.add(item, 1); // a missed catch does not use the net up, as before
-    log(r.ok ? `The link is made, and ${KIN.name(wild)} wrenches out of it! ${lullN ? 'Wear it down further.' : 'Wear it down, or give it a draught.'}` : `${KIN.name(wild)} breaks the beam${stealth ? ' and turns on you' : ''}.`, 'bad'); stealth = false;
+    log(r.ok ? `The link is made, and ${KIN.name(wild)} wrenches out of it! (The hold was about ${Math.round(pHold * 100)}%.)${why} You keep the cartridge.` : `${KIN.name(wild)} breaks the beam${stealth ? ' and turns on you' : ''}.`, 'bad'); stealth = false;
     await sleep(400); await useMove(wild, mine, wildChoose(), false); afterTurn();
   }
   function cancelSnare() {
@@ -20243,7 +20249,7 @@ const Device = (() => {
       let pic = null; try { pic = Cards.kinCanvas(k, 150); } catch (_) {}
       const st = { i: 0, t: 0, fill: 0, scores: [], msgT: 0, tx: 0.5, ty: 0.45, rx: 0.5, ry: 0.7, ph: Math.random() * 9, ft: 0.3 + Math.random() * 0.4, fp: 0.5, jump: 2, prog: 0, tens: 0, maxTens: 0, surge: 1.4, sT: 1.8, /* a moment to get the feel of pulling before the first surge */ mode: 'calm', intro: 1.1, over: null, parts: [] };
       const lightsOf = () => ['lock', 'tune', 'pull'].map(n => { const ix = stages.indexOf(n); return ix < 0 ? 'skip' : st.over === 'fail' && ix === st.i ? 'fail' : ix < st.i || st.over === 'ok' ? 'done' : ix === st.i ? 'on' : 'off'; });
-      const next = (score) => { st.scores.push(U.clamp(score, 0, 1)); st.i++; st.t = 0; st.fill = 0; st.intro = 0.9; if (typeof G !== 'undefined' && G.sfx) G.sfx('util'); if (st.i >= stages.length) { st.over = 'ok'; st.t = 0; } };
+      const next = (score) => { st.scores.push(U.clamp(score, 0, 1)); st.i++; st.t = 0; st.fill = 0; st.intro = 0.9; if (typeof G !== 'undefined' && G.sfx) G.sfx('util'); if (st.i >= stages.length) { const q = st.scores.reduce((a, b) => a + b, 0) / st.scores.length; st.q = q; st.held = cfg.decide ? !!cfg.decide(q) : true; st.over = st.held ? 'ok' : 'free'; st.t = 0; if (!st.held && typeof G !== 'undefined' && G.sfx) G.sfx('miss'); } };
       const fail = () => { if (st.over) return; st.over = 'fail'; st.t = 0; if (typeof G !== 'undefined' && G.sfx) G.sfx('miss'); };
       S = { done, tiltIn: 0.5, frame(dt, now) {
         const L = body(now, lightsOf(), st.i, st.over === 'ok' ? '#5dff9a' : null), { scr, ctl } = L, stage = stages[st.i]; st.t += dt;
@@ -20252,9 +20258,9 @@ const Device = (() => {
         const drawKin = (alpha, sc = 1) => { if (!pic) { c.globalAlpha = alpha; c.fillStyle = col; c.beginPath(); c.arc(kx, ky, ks * 0.3 * sc, 0, 6.3); c.fill(); c.globalAlpha = 1; return; } c.globalAlpha = alpha; c.drawImage(pic, kx - ks * sc / 2, ky - ks * sc / 2 + Math.sin(now / 300) * 3, ks * sc, ks * sc); c.globalAlpha = 1; };
         if (st.over) { // the last moment: it goes into the device, or it breaks away
           if (st.over === 'ok') { const u = Math.min(1, st.t / 0.9); drawKin(1 - u, 1 - u * 0.6); for (let i = 0; i < 40; i++) { const a = i * 2.4 + now / 200, r = (1 - u) * scr.w * 0.4 * ((i % 7) / 7 + 0.3); c.fillStyle = i % 3 ? col : '#fff'; c.globalAlpha = 0.8; c.fillRect(kx + Math.cos(a) * r, ky + Math.sin(a) * r + u * (scr.y + scr.h - ky) * 0.8, 3, 3); } c.globalAlpha = 1; text('SIGNAL HELD', scr.x + scr.w / 2, scr.y + scr.h * 0.86, `700 20px ${MONO}`, '#5dff9a', 'center', '#5dff9a'); }
-          else { drawKin(1, 1 + Math.sin(st.t * 40) * 0.04); c.fillStyle = `rgba(255,60,60,${0.35 * (1 - Math.min(1, st.t / 0.9))})`; c.fillRect(scr.x, scr.y, scr.w, scr.h); text('BEAM LOST', scr.x + scr.w / 2, scr.y + scr.h * 0.86, `700 22px ${MONO}`, '#ff6a6a', 'center', '#ff5a5a'); }
-          endScreen(scr); text(st.over === 'ok' ? 'Reading it in…' : 'It broke away.', ctl.x + ctl.w / 2, ctl.y + ctl.h * 0.4, `600 17px system-ui, sans-serif`, '#d6e2ee');
-          if (st.t > 1.0) { const q = st.scores.length ? st.scores.reduce((a, b) => a + b, 0) / st.scores.length : 0, ok = st.over === 'ok'; S.frame = (dt2, now2) => { body(now2, lightsOf(), st.i, null); }; done({ ok, quality: ok ? q : 0, failed: ok ? null : stage }); }
+          else { drawKin(1, 1 + Math.sin(st.t * 40) * 0.04); c.fillStyle = `rgba(255,60,60,${0.35 * (1 - Math.min(1, st.t / 0.9))})`; c.fillRect(scr.x, scr.y, scr.w, scr.h); text(st.over === 'free' ? 'PULLED FREE' : 'BEAM LOST', scr.x + scr.w / 2, scr.y + scr.h * 0.86, `700 22px ${MONO}`, '#ff6a6a', 'center', '#ff5a5a'); }
+          endScreen(scr); text(st.over === 'ok' ? 'Reading it in…' : st.over === 'free' ? 'Linked, but it tore loose.' : 'It broke away.', ctl.x + ctl.w / 2, ctl.y + ctl.h * 0.4, `600 17px system-ui, sans-serif`, '#d6e2ee');
+          if (st.t > 1.0) { const q = st.scores.length ? st.scores.reduce((a, b) => a + b, 0) / st.scores.length : 0, ok = st.over === 'ok' || st.over === 'free'; S.frame = (dt2, now2) => { body(now2, lightsOf(), st.i, null); }; done({ ok, held: st.over === 'ok', quality: ok ? q : 0, failed: ok ? null : stage }); }
           return; }
         const A = auto(); if (st.intro > 0) st.intro -= dt;
         const live = st.intro <= 0;

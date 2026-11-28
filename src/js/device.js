@@ -51,7 +51,7 @@ const Device = (() => {
       let pic = null; try { pic = Cards.kinCanvas(k, 150); } catch (_) {}
       const st = { i: 0, t: 0, fill: 0, scores: [], msgT: 0, tx: 0.5, ty: 0.45, rx: 0.5, ry: 0.7, ph: Math.random() * 9, ft: 0.3 + Math.random() * 0.4, fp: 0.5, jump: 2, prog: 0, tens: 0, maxTens: 0, surge: 1.4, sT: 1.8, /* a moment to get the feel of pulling before the first surge */ mode: 'calm', intro: 1.1, over: null, parts: [] };
       const lightsOf = () => ['lock', 'tune', 'pull'].map(n => { const ix = stages.indexOf(n); return ix < 0 ? 'skip' : st.over === 'fail' && ix === st.i ? 'fail' : ix < st.i || st.over === 'ok' ? 'done' : ix === st.i ? 'on' : 'off'; });
-      const next = (score) => { st.scores.push(U.clamp(score, 0, 1)); st.i++; st.t = 0; st.fill = 0; st.intro = 0.9; if (typeof G !== 'undefined' && G.sfx) G.sfx('util'); if (st.i >= stages.length) { st.over = 'ok'; st.t = 0; } };
+      const next = (score) => { st.scores.push(U.clamp(score, 0, 1)); st.i++; st.t = 0; st.fill = 0; st.intro = 0.9; if (typeof G !== 'undefined' && G.sfx) G.sfx('util'); if (st.i >= stages.length) { const q = st.scores.reduce((a, b) => a + b, 0) / st.scores.length; st.q = q; st.held = cfg.decide ? !!cfg.decide(q) : true; st.over = st.held ? 'ok' : 'free'; st.t = 0; if (!st.held && typeof G !== 'undefined' && G.sfx) G.sfx('miss'); } };
       const fail = () => { if (st.over) return; st.over = 'fail'; st.t = 0; if (typeof G !== 'undefined' && G.sfx) G.sfx('miss'); };
       S = { done, tiltIn: 0.5, frame(dt, now) {
         const L = body(now, lightsOf(), st.i, st.over === 'ok' ? '#5dff9a' : null), { scr, ctl } = L, stage = stages[st.i]; st.t += dt;
@@ -60,9 +60,9 @@ const Device = (() => {
         const drawKin = (alpha, sc = 1) => { if (!pic) { c.globalAlpha = alpha; c.fillStyle = col; c.beginPath(); c.arc(kx, ky, ks * 0.3 * sc, 0, 6.3); c.fill(); c.globalAlpha = 1; return; } c.globalAlpha = alpha; c.drawImage(pic, kx - ks * sc / 2, ky - ks * sc / 2 + Math.sin(now / 300) * 3, ks * sc, ks * sc); c.globalAlpha = 1; };
         if (st.over) { // the last moment: it goes into the device, or it breaks away
           if (st.over === 'ok') { const u = Math.min(1, st.t / 0.9); drawKin(1 - u, 1 - u * 0.6); for (let i = 0; i < 40; i++) { const a = i * 2.4 + now / 200, r = (1 - u) * scr.w * 0.4 * ((i % 7) / 7 + 0.3); c.fillStyle = i % 3 ? col : '#fff'; c.globalAlpha = 0.8; c.fillRect(kx + Math.cos(a) * r, ky + Math.sin(a) * r + u * (scr.y + scr.h - ky) * 0.8, 3, 3); } c.globalAlpha = 1; text('SIGNAL HELD', scr.x + scr.w / 2, scr.y + scr.h * 0.86, `700 20px ${MONO}`, '#5dff9a', 'center', '#5dff9a'); }
-          else { drawKin(1, 1 + Math.sin(st.t * 40) * 0.04); c.fillStyle = `rgba(255,60,60,${0.35 * (1 - Math.min(1, st.t / 0.9))})`; c.fillRect(scr.x, scr.y, scr.w, scr.h); text('BEAM LOST', scr.x + scr.w / 2, scr.y + scr.h * 0.86, `700 22px ${MONO}`, '#ff6a6a', 'center', '#ff5a5a'); }
-          endScreen(scr); text(st.over === 'ok' ? 'Reading it in…' : 'It broke away.', ctl.x + ctl.w / 2, ctl.y + ctl.h * 0.4, `600 17px system-ui, sans-serif`, '#d6e2ee');
-          if (st.t > 1.0) { const q = st.scores.length ? st.scores.reduce((a, b) => a + b, 0) / st.scores.length : 0, ok = st.over === 'ok'; S.frame = (dt2, now2) => { body(now2, lightsOf(), st.i, null); }; done({ ok, quality: ok ? q : 0, failed: ok ? null : stage }); }
+          else { drawKin(1, 1 + Math.sin(st.t * 40) * 0.04); c.fillStyle = `rgba(255,60,60,${0.35 * (1 - Math.min(1, st.t / 0.9))})`; c.fillRect(scr.x, scr.y, scr.w, scr.h); text(st.over === 'free' ? 'PULLED FREE' : 'BEAM LOST', scr.x + scr.w / 2, scr.y + scr.h * 0.86, `700 22px ${MONO}`, '#ff6a6a', 'center', '#ff5a5a'); }
+          endScreen(scr); text(st.over === 'ok' ? 'Reading it in…' : st.over === 'free' ? 'Linked, but it tore loose.' : 'It broke away.', ctl.x + ctl.w / 2, ctl.y + ctl.h * 0.4, `600 17px system-ui, sans-serif`, '#d6e2ee');
+          if (st.t > 1.0) { const q = st.scores.length ? st.scores.reduce((a, b) => a + b, 0) / st.scores.length : 0, ok = st.over === 'ok' || st.over === 'free'; S.frame = (dt2, now2) => { body(now2, lightsOf(), st.i, null); }; done({ ok, held: st.over === 'ok', quality: ok ? q : 0, failed: ok ? null : stage }); }
           return; }
         const A = auto(); if (st.intro > 0) st.intro -= dt;
         const live = st.intro <= 0;

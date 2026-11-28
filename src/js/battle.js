@@ -401,20 +401,26 @@ const Battle = (() => {
   async function deviceCatch(item, chance, hopeless) {
     busy = true; el.actions.querySelectorAll('button').forEach(b => b.disabled = true);
     const st = KIN.stats(wild), rar = wild.sp.rarity || 0;
-    log(`You raise the Kin-Link${stealth ? ', quietly' : ''}. ${hopeless ? 'It can barely read this one.' : 'Lock on, and draw it in.'}`); G.sfx('snare');
+    { const hp0 = wild.hp / st.hp; log(`You raise the Kin-Link${stealth ? ', quietly' : ''}. ${hopeless ? 'It can barely read this one.' : `Lock on, and draw it in. With a clean lock and pull, the hold is about ${Math.round(Math.min(0.97, chance * 1.8 + 0.12 + 0.08 * (wild._linkTries || 0)) * 100)}%.${hp0 > 0.5 ? ' Its health is high: wear it down first and the odds jump.' : ''}`}`); } G.sfx('snare');
     const ring = (G.player.has('lariat') ? 1.5 : 1) * (typeof Wood !== 'undefined' && Wood.has('spider') ? 1.3 : 1) * ((G.stats.caught || 0) < 1 ? 1.2 : 1); /* the lariat wire and Bobbinlegs widen the lock ring, as they widened the net */
-    const r = await Device.capture({ kin: wild, rar, hpFrac: wild.hp / st.hp, agi: st.agi, lull, chance, ring, seal: G.player.has('seal') });
-    const pHold = U.clamp(chance * (0.7 + 0.7 * (r.quality || 0)), hopeless ? 0 : 0.02, 0.97), roll = (typeof window !== 'undefined' && window.__netRoll != null) ? window.__netRoll : Math.random(), held = r.ok && roll < pHold;
+    let pHoldAt = 0; const tries0 = wild._linkTries || 0, holdFor = (q) => hopeless ? 0 : U.clamp(chance * (0.6 + 1.2 * q) + 0.12 * q * q + 0.08 * tries0, 0.03, 0.97);
+    const r = await Device.capture({ kin: wild, rar, hpFrac: wild.hp / st.hp, agi: st.agi, lull, chance, ring, seal: G.player.has('seal'),
+      decide: (q) => { pHoldAt = holdFor(q); const roll = (typeof window !== 'undefined' && window.__netRoll != null) ? window.__netRoll : Math.random(); return roll < pHoldAt; } }); /* the hold is decided the moment the pull is done, so the device shows the truth: SIGNAL HELD or PULLED FREE */
+    /* doing the device well matters a lot: a clean lock and pull nearly doubles the odds and adds a flat edge on top, and every link it has
+       already fought off this battle has tired it (+8% each) */
+    const tries = tries0, pHold = pHoldAt, held = !!(r.ok && r.held);
     if (held) {
       const dl = R.state.dayLight != null ? R.state.dayLight : 1, hud = (document.getElementById('where') || {}).textContent || '', place = hud.split(' · y ')[0].split(' · ').filter(x => x && !/fps|wild/.test(x)).slice(-2).join(', ');
       wild.card = Cards.roll(wild, { time: dl > 0.75 ? 'day' : dl < 0.3 ? 'night' : 'dusk', where: `Caught in ${place || 'the wild'}, day ${(G.dayCount || 0) + 1}` });
       log(`The signal holds. ${KIN.name(wild)} is yours!`, 'good'); G.sfx('caught');
       await Device.result(true, wild); return end('caught');
     }
-    await Device.result(false, wild, r.ok ? 'The link was made, but it would not hold.' : r.failed === 'pull' ? 'The beam snapped.' : 'It slipped the ' + (r.failed || 'lock') + '.');
+    wild._linkTries = tries + 1;
+    const hpF = wild.hp / st.hp, why = !r.ok ? '' : hopeless ? ' It is far too strong for your link: level up first.' : hpF > 0.5 ? ` It still has ${Math.round(hpF * 100)}% of its health and the strength to pull free. Wear it down first, under a third is best.` : wild.level > mine.level + 3 ? ' It is above your Kin\'s level and pulled free. Wear it down a little more, or try again: each try tires it.' : ' Unlucky. Each try tires it, so the next link holds better.';
+    await Device.result(false, wild, r.ok ? `The link was made, but it would not hold (about ${Math.round(pHold * 100)}% this time).${why}` : r.failed === 'pull' ? 'The beam snapped.' : 'It slipped the ' + (r.failed || 'lock') + '.');
     if (bossKin()) { log(`${KIN.name(wild)} tears free of the beam, and the effort finishes it. It falls. One chance, and it is gone.`, 'bad'); G.sfx('miss'); wild.hp = 0; refresh(); await sleep(1100); return end('won'); }
     G.player.add(item, 1); // a missed catch does not use the net up, as before
-    log(r.ok ? `The link is made, and ${KIN.name(wild)} wrenches out of it! ${lullN ? 'Wear it down further.' : 'Wear it down, or give it a draught.'}` : `${KIN.name(wild)} breaks the beam${stealth ? ' and turns on you' : ''}.`, 'bad'); stealth = false;
+    log(r.ok ? `The link is made, and ${KIN.name(wild)} wrenches out of it! (The hold was about ${Math.round(pHold * 100)}%.)${why} You keep the cartridge.` : `${KIN.name(wild)} breaks the beam${stealth ? ' and turns on you' : ''}.`, 'bad'); stealth = false;
     await sleep(400); await useMove(wild, mine, wildChoose(), false); afterTurn();
   }
   function cancelSnare() {
