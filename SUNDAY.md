@@ -139,6 +139,12 @@ The full version is in the doc's story section and its open questions.
 - `js/glb.js` already loads GLB models (what Higgsfield's 3D generation makes) with skeletons and animation, but only for the human cast, and it's switched off (`CAST_ON = false`, glb.js:235).
 - Kin today are procedural meshes from `KIN` species data.
 
+**Test done (28 Nov):** Cindrel stage 1, from its four turnaround views cut into separate images, with Higgsfield `multi_image_to_3d` (Meshy), textured, symmetry on, 8,000 target polys. Files in `art/models/test/`.
+- **Cost:** 30 credits per textured model (20 untextured, 30 for single-image too). All 158 turnaround Kin would be about 4,740 credits, over the 3,000 limit and far over the ~276 left. Only a handful of Kin can get models unless the budget changes: starters, legendaries, the ones on screen most.
+- **Size:** 3.5 MB per file and about 25k triangles, even with 8,000 asked for. That's heavy for a phone with several Kin on screen. Decimate or ask for fewer polygons before shipping.
+- **Look:** very faithful to the turnaround (the glowing spots, throat sac and smoke ring all came through) and it loads and renders through `glb.js` (`GLB.load` + `GLB.portrait`). Dressing the live buddy in the world didn't show up in my quick test: the buddy entity needs wiring the same way the cast is.
+- **Watch out:** on 23 Nov Dude switched the human cast models off because generated models "looked AI-made and clashed with a world drawn in code" (`CAST_ON = false`, glb.js:235). Show him this Kin next to the code-drawn world before doing more. He may prefer the painted turnarounds on cards and in the Kindex and keep code-built Kin in the world.
+
 **Plan:**
 1. Price one Kin model with Higgsfield `generate_3d` from its turnaround first. The credit limit is 3,000 total and about 306 are left, so check the cost before batching.
 2. Extend `glb.js` so a species seed can map to a model file, loaded the same way as the cast.
