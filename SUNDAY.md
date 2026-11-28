@@ -14,7 +14,7 @@ Suggested order: fusion-only evolution first (it changes the numbers everything 
 - `js/kin.js` ~line 785, `gainXp`: `if (k.stage < maxStage(k.sp) && k.level >= k.sp.evolveAt[k.stage - 1]) { k.stage++ ... }`. This is the levelling evolution to remove.
 - `js/kin.js:587` in `create()`: the stage is also derived from level at creation. Wild Kin at high level spawn evolved. Decide: wild Kin keep their natural stage by area, or always stage 1.
 - `MAX_LEVEL = 200` (kin.js:56) and `capOf(sp)` (kin.js:769). Halo legendaries sit near 200, and battle, wild and arena levels are all tuned for that range.
-- The fusion lab and recipes: `fuseRecipe` (kin.js:355), `fuse` (kin.js ~818), `js/lab.js`. A fused Kin now keeps the strongest bond that went in, including `bonded` (`carryBond`, done 28 Nov).
+- The fusion lab and recipes: `fuseRecipe` (kin.js:355), `fuse` (kin.js ~818), `js/lab.js`. Bond already feeds fusion (`fusionBond` in kin.js, done 28 Nov): the new Kin starts at 70% of the average bond that went in, never bonded for good straight away, and gets up to +4 levels and +8% on every stat when everything that went in was bonded. Keep this when fusion becomes the only way to evolve.
 - The "peaked" explainer already says "Only a fusion recipe takes it further" (main.js:614, wild.js:600).
 
 **Plan:**

@@ -356,7 +356,7 @@ const KIN = (() => {
     const level = Math.min(MAX_LEVEL, Math.round(kins.reduce((a, k) => a + k.level, 0) / kins.length) + 2 + (kins.length - 2) * 2);
     const k = create(branch === 'alt' && rc.alt ? rc.alt.out : rc.out, level);
     k.iv = {}; for (const key of STAT_KEYS) k.iv[key] = Math.max(...kins.map(x => x.iv[key]));
-    k.hp = stats(k).hp; carryBond(k, kins);
+    fusionBond(k, kins); k.hp = stats(k).hp;
     return k;
   }
   /* ---- old saves: a Kin of a species that was cut becomes the nearest kept one of its world: the same element, the same kind of body if there is one ----
@@ -813,8 +813,13 @@ const KIN = (() => {
     return Math.min(MAX_LEVEL, Math.round(median + bonus));
   }
   // Fusion of 2..16 Kin plus any number of element items -> a brand new species. Deterministic: same inputs, same result.
-  // a fused Kin keeps the strongest bond that went into it: if any of them was bonded for good, so is the new one
-  function carryBond(k, kins) { const b = Math.max(0, ...kins.map(x => x.bonded ? 1 : (x.bond || 0))); if (b > (k.bond || 0)) k.bond = b; if (kins.some(x => x.bonded)) k.bonded = true; k.bondT = Math.max(k.bondT || 0, ...kins.map(x => x.bondT || 0)); return k; }
+  // bond goes into a fusion. The new Kin starts at 70% of the average bond of the Kin that went in (two bonded for good make a Kin at
+  // 70%), and the trust shows in it: up to four extra levels and up to 8% more on every stat when everything that went in was bonded
+  function fusionBond(k, kins) { const avg = kins.reduce((a, x) => a + (x.bonded ? 1 : U.clamp(x.bond || 0, 0, 1)), 0) / kins.length;
+    k.bond = Math.round(0.7 * avg * 100) / 100; k.bonded = false; k.bondT = 0;
+    const lv = Math.round(avg * 4), cap = Math.min(MAX_LEVEL, capOf(k.sp)), before = k.level; k.level = Math.min(cap, k.level + lv); k.xp = 0;
+    const pct = 0.08 * avg; for (const key of STAT_KEYS) k.iv[key] = Math.min(1.3, k.iv[key] * (1 + pct));
+    k.fusedBond = { avg: Math.round(avg * 100), lv: k.level - before, pct: Math.round(pct * 100) }; return k; }
   function fuse(kins, elemItems) {
     const n = kins.length;
     const sorted = kins.slice().sort((a, b) => (a.sp.seed - b.sp.seed) || (a.level - b.level));
@@ -858,7 +863,7 @@ const KIN = (() => {
     { const from = shape === lead.sp.shape ? lead.sp : other.sp; inheritBody(sp, from, from === lead.sp ? other.sp : lead.sp); }
     const k = create(sp, level, r);
     k.iv = {}; for (const key of STAT_KEYS) k.iv[key] = Math.max(...kins.map(x => x.iv[key]));
-    k.hp = stats(k).hp; carryBond(k, kins);
+    fusionBond(k, kins); k.hp = stats(k).hp;
     return k;
   }
 
