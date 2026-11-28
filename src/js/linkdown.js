@@ -205,7 +205,7 @@ const Linkdown = (() => {
           <div class="ld-spot trap foe">${S.ai.trap ? `<div class="ld-c ld-back mini" style="background-image:url('${BACK()}')"></div>` : ''}</div>
           ${S.ai.field.map((c, i) => `<div class="ld-spot foe s${i}">${kinHTML(c, { foe: true, data: `data-fs="${i}"` })}</div>`).join('')}
           <div class="ld-mid">${S.turn === 'me' ? 'Your turn' : name + "'s turn"} · ${S.n + 1}${S.me.ward ? ' · your side warded' : ''}${S.ai.ward ? ' · their side warded' : ''}</div>
-          ${S.me.field.map((c, i) => `<div class="ld-spot me s${i}">${kinHTML(c, { cls: (S.sel && c && S.sel.id === c.id) ? 'sel' : (c && c.pos === 'atk' && c.swings > 0 && !c.stun && S.turn === 'me' ? 'ready' : ''), data: `data-ms="${i}"` })}</div>`).join('')}
+          ${S.me.field.map((c, i) => `<div class="ld-spot me s${i}">${kinHTML(c, { cls: (S.sel && c && S.sel.id === c.id) ? 'sel' : (c && c.pos === 'atk' && c.swings > 0 && !c.stun && S.turn === 'me' && S.n > 0 ? 'ready' : ''), data: `data-ms="${i}"` })}</div>`).join('')}
           <div class="ld-spot trap me">${S.me.trap ? threadHTML(S.me.trap, { cls: 'mini' }) : ''}</div>
         </div>
         ${lpBar(S.me, 'me')}
@@ -276,7 +276,7 @@ const Linkdown = (() => {
     async function hurt(sd, n) { if (n <= 0) return; sd.lp -= n; const who = sd === S.me ? 'me' : 'ai'; render(); const bar = ui.stage.querySelector(`.ld-lp.${who}`); if (bar) bar.classList.add('hit'); if (box) { box.classList.remove('shake'); void box.offsetWidth; box.classList.add('shake'); } UI.sfx && UI.sfx('hurt'); await floater(`.ld-lp.${who}`, `-${n}`, 'dmg'); }
     // ---- the fight: lunge, flash, numbers ----
     async function attack(sd, a, d) {
-      if (S.busy || S.over) return; S.busy = true; S.sel = null; const foe = other(sd); a.swings--; a.attacked = true; render();
+      if (S.busy || S.over) return; if (S.n === 0) { say('Nobody attacks on the very first turn. Put your Kin down and end your turn.'); return; } S.busy = true; S.sel = null; const foe = other(sd); a.swings--; a.attacked = true; render();
       const aEl = ui.stage.querySelector(`[data-id="${a.id}"]`), dEl = d ? ui.stage.querySelector(`[data-id="${d.id}"]`) : ui.stage.querySelector(`.ld-lp.${foe === S.me ? 'me' : 'ai'}`);
       if (aEl && dEl) { const r1 = aEl.getBoundingClientRect(), r2 = dEl.getBoundingClientRect(); aEl.style.transition = 'transform .22s ease-in'; aEl.style.transform = `translate(${(r2.left - r1.left) * 0.7}px, ${(r2.top - r1.top) * 0.7}px) scale(1.12)`; aEl.style.zIndex = 5; }
       await sleep(240);
