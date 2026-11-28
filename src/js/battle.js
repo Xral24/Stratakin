@@ -165,9 +165,10 @@ const Battle = (() => {
     else if (b.dataset.a === 'swap') showSwap();
     else if (b.dataset.a === 'run') doTurn({ type: 'run' });
   }
-  function dodgeChance(att, def) { const sa = KIN.stats(att), sd = KIN.stats(def); let agi = sd.agi * (def.buffs.coil ? 1.4 : 1); return U.clamp(0.04 + (agi - sa.agi) / (agi + sa.agi) * 0.3, 0.02, 0.4); }
+  function airStats(k) { const s = KIN.stats(k), aw = KIN.awayOf(k); if (aw.spd >= 1) return s; return Object.assign({}, s, { spd: Math.max(1, Math.round(s.spd * aw.spd)), agi: Math.max(1, Math.round(s.agi * (0.5 + aw.spd / 2))) }); }
+  function dodgeChance(att, def) { const sa = airStats(att), sd = airStats(def); let agi = sd.agi * (def.buffs.coil ? 1.4 : 1); return U.clamp(0.04 + (agi - sa.agi) / (agi + sa.agi) * 0.3, 0.02, 0.4); }
   function damage(att, def, move) {
-    const sa = KIN.stats(att), sd = KIN.stats(def);
+    const sa = airStats(att), sd = airStats(def);
     const A = (move.kind === 'phys' ? sa.atk : sa.pow) * (att.buffs.focus ? 1.25 : 1);
     const D = move.kind === 'phys' ? sd.def : (sd.pow + sd.def) / 2; /* a guard stat now: a Guardian shrugs off blows, a Striker feels every one */
     const eff = KIN.effectiveness(move.elem, def);
@@ -177,9 +178,8 @@ const Battle = (() => {
     const crit = Math.random() < (move.crit ? 0.3 : 0.06); if (crit) dmg *= 1.6;
     const oldD = !!(def.sp && def.sp.dino), oldA = !!(att.sp && att.sp.dino), ancient = (att.sp && att.sp.ancient) || (def.sp && def.sp.ancient);
     if (oldA && !oldD && !ancient) dmg *= att.sp.apex ? 0.25 : 0.45; /* and the other way: an unwoven jaw closes on something that is partly not there. A grown Tyrannorex cannot bully its way through the woven world. The first Kin the Loom ever made, Umbrarch among them, are old enough to be half real, and take it full */
-    { const bodyOf = (x) => x && x.sp && !x.sp.dino ? ((x.sp.home && x.sp.home.body) || (x.sp.recipe && x.sp.recipe.body) || null) : null, here = G.worldId || 'earth', bA = bodyOf(att), bD = bodyOf(def);
-      if (bA && bD && bA !== here && bD === here) { dmg *= 0.5; /* a Kin far from home is fighting in the wrong air: wrong gravity, wrong light, wrong ground. Against a Kin born here, it lands half as hard. Two strangers on the same ground are even */
-        if (G.stats && !G.stats.awayTold && typeof G.explain === 'function') { G.stats.awayTold = true; setTimeout(() => G.explain('Far from home', `Every Kin is woven for the world it was born on. Take one off it and it fights in the wrong air, under the wrong gravity, on ground that doesn't answer it. Against a Kin born here, its blows land half as hard. It works the other way too: bring a Moon or Halo Kin down to Earth and Earth's own Kin have the edge. Away from home, the fight is fairest against other strangers, or you catch and raise Kin from the world you're on.`), 1200); } } }
+    { const aw = KIN.awayOf(att); if (aw.hit < 1) { dmg *= aw.hit; /* the wrong air: see AIR in kin.js */
+        const here = G.worldId || 'earth'; if (G.stats && !(G.stats.airTold || {})[here] && typeof G.explain === 'function') { (G.stats.airTold = G.stats.airTold || {})[here] = 1; const T = { moon: ['Weightless', "Every Kin is woven for the world it was born on. Up here there's almost no pull. Kin from Earth and Halo can't get their footing: their blows land half as hard, and Halo Kin, built for a heavy world, have nothing to push against and slow to a crawl. Moon Kin are at home. Catch and raise Kin from the world you're on."], halo: ['Heavy air', "Halo's air is thick and its pull drags at everything. Kin from Earth hit half as hard and move half as fast. Moon Kin, grown with no weight on them, have no muscle for it: they're close to worthless here. Halo Kin are at home. Catch and raise Kin from the world you're on."], earth: ['Far from home', "Kin from the Moon and Halo are out of their air on Earth: they hit half as hard and move slower. Earth's own Kin are at home."] }[here]; setTimeout(() => G.explain(T[0], T[1]), 1200); } } }
     if (oldD && !oldA && !ancient) { dmg *= def.sp.apex ? 0.45 : 0.7; /* a Kin is woven, written out of the Loom; the beasts of the Lost World never were. A woven blow lands on them like rain on slate, and the oldest barely feel it */
       if (G.stats && !G.stats.oldTold && typeof G.explain === 'function') { G.stats.oldTold = true; setTimeout(() => G.explain('Older than the Loom', 'Every Kin is woven: written out of the Loom, the way a Link writes it onto a cartridge. The beasts of the Lost World never were. Woven blows hit them far softer, and the Tyrannorex hardly feels them. It cuts both ways: their teeth and horns pass half through a Kin, so they cannot rule the woven world either. Only the very first Kin, the ancient ones, are old enough to meet them blow for blow.'), 1200); } }
     if (def.buffs.guard && !move.pierce) { dmg *= 0.5; if (def.buffs.guard2) def.buffs.guard2 = false; else def.buffs.guard = false; }
@@ -232,7 +232,7 @@ const Battle = (() => {
     busy = true; turn++;
     el.actions.querySelectorAll('button').forEach(b => b.disabled = true);
     if (action.type === 'run') {
-      const sm = KIN.stats(mine), sw = KIN.stats(wild);
+      const sm = airStats(mine), sw = airStats(wild);
       const tw = (wildE && !wildE.isBoss && wildE.model) ? (wildE.model.temper || 0) % 5 : 0; /* a shy one lets you go nearly every time, a drowsy one cannot be bothered to stop you, a cross one takes it personally */
       const p = (wild.sp.mythic || wild.sp.legend) ? 0.9 : U.clamp(0.45 + (sm.spd - sw.spd) / 120 + (tw === 1 ? 0.45 : tw === 4 ? 0.25 : tw === 2 ? -0.22 : 0), tw === 2 ? 0.12 : 0.2, 0.97);
       if (Math.random() < p) { log(tw === 1 ? `You back away. ${KIN.name(wild)} is glad to see you go.` : 'You slip away.'); await sleep(500); end('ran'); return; }
@@ -261,7 +261,7 @@ const Battle = (() => {
       return afterTurn();
     }
     const myMove = action.move, theirMove = wildChoose();
-    const sm = KIN.stats(mine), sw = KIN.stats(wild);
+    const sm = airStats(mine), sw = airStats(wild);
     let meFirst = (turn === 1 && ambush) || mine.buffs.dash || (!wild.buffs.dash && (sm.spd > sw.spd || (sm.spd === sw.spd && Math.random() < 0.5)));
     mine.buffs.dash = false; wild.buffs.dash = false;
     const order = meFirst ? [[mine, wild, myMove, true], [wild, mine, theirMove, false]] : [[wild, mine, theirMove, false], [mine, wild, myMove, true]];

@@ -1,0 +1,10 @@
+const { open } = require('./harness');
+(async () => { const h = await open(); const { ev, page } = h; await h.newGame('gal-1'); await h.calm();
+  const r = await ev(() => { const pick = (b) => KIN.create(KIN.dex(b).find(s => !s.fusion && s.home), 20); const e = pick('earth'), m = pick('moon'), hk = pick('halo'); const out = {};
+    for (const w of ['earth', 'moon', 'halo']) out[w] = [e, m, hk].map(k => KIN.homeBody(k.sp) + ':' + JSON.stringify(KIN.awayOf(k, w)));
+    Linkdown.play({ practice: true, world: 'halo', champ: 'Besh' }); const S = 0; return out; });
+  console.log(JSON.stringify(r, null, 1));
+  await page.waitForTimeout(2000); await ev(() => { window.__ldFast = true; document.querySelector('#gamebox .gb-foot .btn.big').click(); }); await page.waitForTimeout(2000);
+  console.log(JSON.stringify(await ev(() => { const S = Linkdown.state; return S.me.deck.concat(S.me.hand).filter(c => c.type === 'kin').map(c => KIN.homeBody(c.k.sp) + ':' + c.atk + ':' + c.away); })));
+  console.log(JSON.stringify(await ev(() => ({ suit: !!ITEMS.stridersuit, grav: G.player.gravity }))));
+  console.log('errors', JSON.stringify(h.errors)); await h.close(); })().catch(e => { console.log('ERR', e.message); process.exit(1); });

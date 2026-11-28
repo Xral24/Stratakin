@@ -607,6 +607,18 @@ const KIN = (() => {
     const w = { guardian: 2, bruiser: 2, mystic: 2, striker: 2, racer: 2, allrounder: 2 }; for (const r in (ROLE_LEAN[sp.shape] || {})) w[r] += ROLE_LEAN[sp.shape][r];
     if (sp.legend || sp.mythic) { w.allrounder += 6; } const tot = Object.values(w).reduce((a, b) => a + b, 0); let x = ((U.strHash('role:' + sp.seed) >>> 0) % 1000) / 1000 * tot, out = 'allrounder';
     for (const r in w) { x -= w[r]; if (x < 0) { out = r; break; } } return (ROLE_MEMO[key] = out); }
+  // ---- three worlds, three airs. Earth is the middle. The Moon is near-weightless: Kin from heavier worlds can't get their footing
+  // and hit like they're swinging underwater. Halo is heavy, thick air and a pull that drags: Moon Kin have no muscle for it and are
+  // close to worthless there, and Halo Kin taken to the Moon have nothing to push against and slow to a crawl. Two Kin from the same
+  // world fighting away from home are cut alike ----
+  const AIR = {
+    earth: { moon: { hit: 0.5, spd: 0.7 }, halo: { hit: 0.5, spd: 0.5 } },
+    moon:  { earth: { hit: 0.5, spd: 0.7 }, halo: { hit: 0.2, spd: 0.4 } },
+    halo:  { earth: { hit: 0.5, spd: 0.6 }, moon: { hit: 0.55, spd: 0.1 } },
+  };
+  const HOME = { hit: 1, spd: 1 };
+  function homeBody(sp) { return sp && !sp.dino ? ((sp.home && sp.home.body) || (sp.recipe && sp.recipe.body) || null) : null; }
+  function awayOf(k, here) { here = here || (typeof G !== 'undefined' && G.worldId) || 'earth'; const b = homeBody(k && k.sp); return (b && b !== here && AIR[b] && AIR[b][here]) || HOME; }
   function stats(k) {
     const g = growth(k.level) * (1 + 0.22 * maturity(k)) * Math.pow(1.08, k.sp.gen || 0);
     const s = {};
@@ -5088,5 +5100,5 @@ const KIN = (() => {
   function serialize(k) { return { id: k.id, sp: k.sp, level: k.level, xp: k.xp, iv: k.iv, stage: k.stage, hp: k.hp, nick: k.nick, shiny: k.shiny || undefined, equip: k.equip || null, tech: k.tech || null, wear: k.wear || null, trust: k.trust || 0, bond: k.bond || 0, tamed: k.tamed || false, card: k.card || undefined, bondT: k.bondT || undefined, bonded: k.bonded || undefined }; }
   function deserialize(d) { return Object.assign({ status: null }, d); }
 
-  return { ROLES, roleOf, NATIVE, NAT_STEM, nativeLine, nativeColors, nativeId, nativize, childify, formName, LINES, lineOf, maxStage, lookOf, formOf, partHelpers, dress, tyrSuit, landmarks, wearKey, E, EI, CHART, STAT_KEYS, STAT_NAMES, growth, xpToNext, dominant, species, speciesForContext, dex, bySeed, keptFor, migrateKin, migrateSeed, lives, KEPT, habitat, HABITATS, capOf, recipes, findRecipe, fuseRecipe, mythicSpecies, legendSpecies, apexSpecies, woodSpecies, WOODKIN, wardenSpecies, MAX_LEVEL, TECH, techFor, techByName, temperOf, starters, create, stats, name, moves, effectiveness, gainXp, fuse, fusionLevel, TRAITS, RARITY, roster, buildUniverse, decorate, makeStatue, statueModel, shardsFor, model, buildMesh, meshKey, portrait, serialize, deserialize, UTIL_DESC, eggModel, eggPortrait };
+  return { AIR, awayOf, homeBody, ROLES, roleOf, NATIVE, NAT_STEM, nativeLine, nativeColors, nativeId, nativize, childify, formName, LINES, lineOf, maxStage, lookOf, formOf, partHelpers, dress, tyrSuit, landmarks, wearKey, E, EI, CHART, STAT_KEYS, STAT_NAMES, growth, xpToNext, dominant, species, speciesForContext, dex, bySeed, keptFor, migrateKin, migrateSeed, lives, KEPT, habitat, HABITATS, capOf, recipes, findRecipe, fuseRecipe, mythicSpecies, legendSpecies, apexSpecies, woodSpecies, WOODKIN, wardenSpecies, MAX_LEVEL, TECH, techFor, techByName, temperOf, starters, create, stats, name, moves, effectiveness, gainXp, fuse, fusionLevel, TRAITS, RARITY, roster, buildUniverse, decorate, makeStatue, statueModel, shardsFor, model, buildMesh, meshKey, portrait, serialize, deserialize, UTIL_DESC, eggModel, eggPortrait };
 })();

@@ -105,7 +105,7 @@ const Village = (() => {
       bakery: { title: 'Dune Oven', keeper: 'Sefa', greet: 'Flatbread from the oven, hot as the sand.', stock: [{ item: 'bread', price: 12 }, { item: 'torch', price: 8, n: 4 }, { item: 'sulfur', price: 8, n: 3 }] },
       juice: { title: 'Brine Bar', keeper: 'Tali', greet: 'Not the brine outside. Mine mends.', stock: [{ item: 'smoothie', price: 16 }, { item: 'tonic_heal', price: 12 }, { item: 'tonic_might', price: 40 }, { item: 'amber', price: 16, n: 2 }] },
       voodoo: { title: 'Sand Healer', keeper: 'Orun', greet: 'The fainted wake under my hands. Shards first.', stock: [{ service: 'rest', name: 'Revive and heal the whole party', price: 24 }, { item: 'tonic_revive', price: 28 }, { item: 'tonic_heal', price: 12 }] },
-      trader: { title: 'Caravan Store', keeper: 'Besh', greet: 'Amber, sulfur, ring shards when the sky drops them. I buy anything that shines.', sell: true, stock: [{ item: 'snare2', price: 45 }, { item: 'amber', price: 18, n: 2 }, { item: 'sulfur', price: 10, n: 3 }, { item: 'ringshard', price: 60 }, { item: 'iron', price: 20, n: 2 }, { item: 'void', price: 30 }, { item: 'stone', price: 2, n: 16 }] },
+      trader: { title: 'Caravan Store', keeper: 'Besh', greet: 'Amber, sulfur, ring shards when the sky drops them. I buy anything that shines.', sell: true, stock: [{ item: 'stridersuit', price: 220 }, { item: 'snare2', price: 45 }, { item: 'amber', price: 18, n: 2 }, { item: 'sulfur', price: 10, n: 3 }, { item: 'ringshard', price: 60 }, { item: 'iron', price: 20, n: 2 }, { item: 'void', price: 30 }, { item: 'stone', price: 2, n: 16 }] },
       post: { title: 'Caravanserai', keeper: 'Kadu', greet: 'Caravans leave their odds and ends. New stock every two days.', stock: [] },
     },
     frontier: {

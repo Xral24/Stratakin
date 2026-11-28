@@ -5768,6 +5768,7 @@ const ITEMS = {
   tidelung: { name: 'Tidal Lung', col: '#3fd4ff', gear: true, keep: true, desc: 'Atlantean. A band of living pearl worn at the throat: you breathe water as if it were air, for as long as you like. Does everything a Breathing Bulb does.' },
   abysstooth: { name: 'Abyssaurus Tooth', col: '#e8e2d0', keep: true, desc: 'As long as your forearm, and still sharp. The Tideforge in Atlantis wants one for the trident.' },
   bulb: { name: 'Breathing Bulb', col: '#9fd8ff', gear: true, desc: 'Breathe underwater for two minutes.' },
+  stridersuit: { name: 'Strider Suit', col: '#c8823a', gear: true, desc: 'A caravan suit of braced leather and spring-steel ribs. Halo\'s air is thick and its pull drags; without this you trudge at a crawl and barely clear a step. In it you walk like you were born there. Sold at every Caravan Store on Halo.' },
   glider: { name: 'Glider', col: '#f0d090', gear: true, desc: 'Hold ▲ while falling to glide. Stick sideways turns, forward dives, back brakes. Pull back just before the ground to flare and land soft. On the Moon there is no air for it: it only lets you down slowly. On Halo the dust columns over the pans will lift you.' },
   lavasuit: { name: 'Lava Suit', col: '#ff9050', gear: true, desc: 'Keeps the heat of the Core off you. Without it the heat down there wears you down, the way the cold does on the peaks. It does not make lava safe: nothing does. Stay out of it.' },
   voidshard: { name: 'Void Shard', col: '#8a4ad8', gear: true, desc: 'A splinter of the Kinmaster\'s own table. Carry it and every Fusion Table you stand at takes dark materials: Void Crystal, Void Essence and Void Stones.' },
@@ -7244,6 +7245,18 @@ const KIN = (() => {
     const w = { guardian: 2, bruiser: 2, mystic: 2, striker: 2, racer: 2, allrounder: 2 }; for (const r in (ROLE_LEAN[sp.shape] || {})) w[r] += ROLE_LEAN[sp.shape][r];
     if (sp.legend || sp.mythic) { w.allrounder += 6; } const tot = Object.values(w).reduce((a, b) => a + b, 0); let x = ((U.strHash('role:' + sp.seed) >>> 0) % 1000) / 1000 * tot, out = 'allrounder';
     for (const r in w) { x -= w[r]; if (x < 0) { out = r; break; } } return (ROLE_MEMO[key] = out); }
+  // ---- three worlds, three airs. Earth is the middle. The Moon is near-weightless: Kin from heavier worlds can't get their footing
+  // and hit like they're swinging underwater. Halo is heavy, thick air and a pull that drags: Moon Kin have no muscle for it and are
+  // close to worthless there, and Halo Kin taken to the Moon have nothing to push against and slow to a crawl. Two Kin from the same
+  // world fighting away from home are cut alike ----
+  const AIR = {
+    earth: { moon: { hit: 0.5, spd: 0.7 }, halo: { hit: 0.5, spd: 0.5 } },
+    moon:  { earth: { hit: 0.5, spd: 0.7 }, halo: { hit: 0.2, spd: 0.4 } },
+    halo:  { earth: { hit: 0.5, spd: 0.6 }, moon: { hit: 0.55, spd: 0.1 } },
+  };
+  const HOME = { hit: 1, spd: 1 };
+  function homeBody(sp) { return sp && !sp.dino ? ((sp.home && sp.home.body) || (sp.recipe && sp.recipe.body) || null) : null; }
+  function awayOf(k, here) { here = here || (typeof G !== 'undefined' && G.worldId) || 'earth'; const b = homeBody(k && k.sp); return (b && b !== here && AIR[b] && AIR[b][here]) || HOME; }
   function stats(k) {
     const g = growth(k.level) * (1 + 0.22 * maturity(k)) * Math.pow(1.08, k.sp.gen || 0);
     const s = {};
@@ -11725,7 +11738,7 @@ const KIN = (() => {
   function serialize(k) { return { id: k.id, sp: k.sp, level: k.level, xp: k.xp, iv: k.iv, stage: k.stage, hp: k.hp, nick: k.nick, shiny: k.shiny || undefined, equip: k.equip || null, tech: k.tech || null, wear: k.wear || null, trust: k.trust || 0, bond: k.bond || 0, tamed: k.tamed || false, card: k.card || undefined, bondT: k.bondT || undefined, bonded: k.bonded || undefined }; }
   function deserialize(d) { return Object.assign({ status: null }, d); }
 
-  return { ROLES, roleOf, NATIVE, NAT_STEM, nativeLine, nativeColors, nativeId, nativize, childify, formName, LINES, lineOf, maxStage, lookOf, formOf, partHelpers, dress, tyrSuit, landmarks, wearKey, E, EI, CHART, STAT_KEYS, STAT_NAMES, growth, xpToNext, dominant, species, speciesForContext, dex, bySeed, keptFor, migrateKin, migrateSeed, lives, KEPT, habitat, HABITATS, capOf, recipes, findRecipe, fuseRecipe, mythicSpecies, legendSpecies, apexSpecies, woodSpecies, WOODKIN, wardenSpecies, MAX_LEVEL, TECH, techFor, techByName, temperOf, starters, create, stats, name, moves, effectiveness, gainXp, fuse, fusionLevel, TRAITS, RARITY, roster, buildUniverse, decorate, makeStatue, statueModel, shardsFor, model, buildMesh, meshKey, portrait, serialize, deserialize, UTIL_DESC, eggModel, eggPortrait };
+  return { AIR, awayOf, homeBody, ROLES, roleOf, NATIVE, NAT_STEM, nativeLine, nativeColors, nativeId, nativize, childify, formName, LINES, lineOf, maxStage, lookOf, formOf, partHelpers, dress, tyrSuit, landmarks, wearKey, E, EI, CHART, STAT_KEYS, STAT_NAMES, growth, xpToNext, dominant, species, speciesForContext, dex, bySeed, keptFor, migrateKin, migrateSeed, lives, KEPT, habitat, HABITATS, capOf, recipes, findRecipe, fuseRecipe, mythicSpecies, legendSpecies, apexSpecies, woodSpecies, WOODKIN, wardenSpecies, MAX_LEVEL, TECH, techFor, techByName, temperOf, starters, create, stats, name, moves, effectiveness, gainXp, fuse, fusionLevel, TRAITS, RARITY, roster, buildUniverse, decorate, makeStatue, statueModel, shardsFor, model, buildMesh, meshKey, portrait, serialize, deserialize, UTIL_DESC, eggModel, eggPortrait };
 })();
 
 </script>
@@ -12844,9 +12857,9 @@ const Linkdown = (() => {
   const TW = () => tableWorld;
   // a Kin far from home plays a weaker echo: the table is in this world's air too
   const homeOf = (k) => (k.sp.home && k.sp.home.body) || (k.sp.recipe && k.sp.recipe.body) || null;
-  const isAway = (k) => { const h = homeOf(k); return !!h && h !== tableWorld; };
-  const AWAY = 0.75;
-  const kinCard = (k) => { let [a, d] = atkdef(k); const away = isAway(k); if (away) { a = Math.round(a * AWAY / 100) * 100; d = Math.round(d * AWAY / 100) * 100; } return { type: 'kin', k, away, role: (KIN.roleOf ? KIN.roleOf(k.sp) : 'allrounder'), atk: a, def: d, el: elemOf(k), fin: (k.card && k.card.finish) || 'normal', pos: 'atk', id: uid++, temp: 0, swings: 0, stun: 0 }; };
+  const airHit = (k) => (KIN.awayOf ? KIN.awayOf(k, tableWorld).hit : 1);
+  const isAway = (k) => airHit(k) < 1;
+  const kinCard = (k) => { let [a, d] = atkdef(k); const away = isAway(k), m = airHit(k); if (away) { a = Math.max(100, Math.round(a * m / 100) * 100); d = Math.max(100, Math.round(d * m / 100) * 100); } return { type: 'kin', k, away, role: (KIN.roleOf ? KIN.roleOf(k.sp) : 'allrounder'), atk: a, def: d, el: elemOf(k), fin: (k.card && k.card.finish) || 'normal', pos: 'atk', id: uid++, temp: 0, swings: 0, stun: 0 }; };
   const threadCard = (t) => ({ type: 'thread', t, id: uid++ });
   const isStarter = (k) => { try { return KIN.starters(G.baseSeed).some(sp => sp.seed === k.sp.seed || (k.sp.line != null && sp.line != null && sp.line === k.sp.line)); } catch (e) { return false; } };
   const stakeable = (k) => !k.bonded && !isStarter(k);
@@ -12918,7 +12931,7 @@ const Linkdown = (() => {
     if (hidden) return `<div class="ld-c ld-back ld-def ${opts.cls || ''}" data-id="${c.id}" ${opts.data || ''} style="background-image:url('${BACK()}')"><span>DEF</span></div>`;
     const face = FACE[faceKey(c.k)];
     if (face) return `<div class="ld-c ld-face ld-${c.fin} ${c.k.bonded ? 'bonded' : ''} ${c.pos === 'def' ? 'ld-def' : ''} ${opts.cls || ''} ${c.stun ? 'stun' : ''}" data-id="${c.id}" ${opts.data || ''} style="--ec:${ECOL[c.el] || '#aaa'};background-image:url('${face}')">
-      <div class="ld-bond ${c.k.bonded ? 'full' : ''}"><i style="width:${Math.round(bondOf(c.k) * 100)}%"></i></div><span class="ld-lv">Lv ${c.k.level}</span>${c.away ? '<span class="ld-away" title="Far from home: plays at 75% here">away</span>' : ''}<span class="ld-role r-${c.role}" title="${ROLE_TXT[c.role]}">${ROLE_ICON[c.role]}</span><div class="ld-ad"><b class="${c.pos === 'atk' ? 'on' : ''}">⚔${a}</b><b class="${c.pos === 'def' ? 'on' : ''}">⛨${c.def}</b></div></div>`;
+      <div class="ld-bond ${c.k.bonded ? 'full' : ''}"><i style="width:${Math.round(bondOf(c.k) * 100)}%"></i></div><span class="ld-lv">Lv ${c.k.level}</span>${c.away ? `<span class="ld-away" title="Wrong air: plays at ${Math.round(airHit(c.k) * 100)}% here">×${airHit(c.k)}</span>` : ''}<span class="ld-role r-${c.role}" title="${ROLE_TXT[c.role]}">${ROLE_ICON[c.role]}</span><div class="ld-ad"><b class="${c.pos === 'atk' ? 'on' : ''}">⚔${a}</b><b class="${c.pos === 'def' ? 'on' : ''}">⛨${c.def}</b></div></div>`;
     return `<div class="ld-c ld-${c.fin} ${c.pos === 'def' ? 'ld-def' : ''} ${opts.cls || ''} ${c.stun ? 'stun' : ''}" data-id="${c.id}" ${opts.data || ''} style="--ec:${ECOL[c.el] || '#aaa'}">
       <div class="ld-bond ${c.k.bonded ? 'full' : ''}" title="bond"><i style="width:${Math.round(bondOf(c.k) * 100)}%"></i></div><img src="${picOf(c.k)}" alt=""><div class="ld-n">${KIN.name(c.k)}</div><div class="ld-ad"><b class="${c.pos === 'atk' ? 'on' : ''}">⚔${a}</b><b class="${c.pos === 'def' ? 'on' : ''}">⛨${c.def}</b></div><i>${c.el}</i></div>`;
   }
@@ -12946,7 +12959,7 @@ const Linkdown = (() => {
     onFaces = () => { if (!st && box) draw(); }; warmFaces([...mine.slice().sort((a, b) => power(b) - power(a)).slice(0, 8), ...foe.kin]);
     function draw() {
       const tcount = Object.values(tpick).reduce((a, b) => a + b, 0);
-      ui.stage.innerHTML = `${P ? `<div class="ld-diff">${[['Easy', 0, 0.25], ['Town', 2, 0.5], ['Champion', 4, 0.85]].map(([n, t, k]) => `<button class="btn ${o.tier === t ? '' : 'ghost'}" data-diff="${t}" data-sk="${k}">${n}</button>`).join('')}</div><p class="small ld-note">Practice table: nothing's won or lost, and you can borrow every Thread.${mine.some(k => k.loaner) ? ' The table has lent you a few Kin to make up a deck.' : ''}</p>` : ''}${mine.some(isAway) ? `<p class="small ld-note">This table is on ${tableWorld === 'moon' ? 'the Moon' : tableWorld === 'halo' ? 'Halo' : 'Earth'}. Kin from anywhere else play a weaker echo here, 75% of their numbers.</p>` : ''}<p class="small ld-note">Up to five Kin and three Threads. The table reads each cartridge's bond: the closer a Kin is to you, the harder it plays, and bonded Kin add to your life. ${o.mode === 'stake' ? `${o.rematch ? `They won't stake a Kin again. They put up a Thread: <b>${THREADS[o.thread].name}</b> (${RAR[THREADS[o.thread].rar]}).` : `${o.prize ? 'Their prize' : 'They put up'}: <b>${KIN.name(aiStake)}</b>, Lv ${aiStake.level}.`} Tap one of your chosen Kin again to stake it (not your starter, not a bonded Kin).` : ''}</p>
+      ui.stage.innerHTML = `${P ? `<div class="ld-diff">${[['Easy', 0, 0.25], ['Town', 2, 0.5], ['Champion', 4, 0.85]].map(([n, t, k]) => `<button class="btn ${o.tier === t ? '' : 'ghost'}" data-diff="${t}" data-sk="${k}">${n}</button>`).join('')}</div><p class="small ld-note">Practice table: nothing's won or lost, and you can borrow every Thread.${mine.some(k => k.loaner) ? ' The table has lent you a few Kin to make up a deck.' : ''}</p>` : ''}${mine.some(isAway) ? `<p class="small ld-note">This table is on ${tableWorld === 'moon' ? 'the Moon' : tableWorld === 'halo' ? 'Halo' : 'Earth'}. ${tableWorld === 'moon' ? 'Almost no pull here: Earth Kin play at half, Halo Kin at about half.' : tableWorld === 'halo' ? 'Heavy air here: Earth Kin play at half, Moon Kin at a fifth.' : 'Moon and Halo Kin play at half here.'}</p>` : ''}<p class="small ld-note">Up to five Kin and three Threads. The table reads each cartridge's bond: the closer a Kin is to you, the harder it plays, and bonded Kin add to your life. ${o.mode === 'stake' ? `${o.rematch ? `They won't stake a Kin again. They put up a Thread: <b>${THREADS[o.thread].name}</b> (${RAR[THREADS[o.thread].rar]}).` : `${o.prize ? 'Their prize' : 'They put up'}: <b>${KIN.name(aiStake)}</b>, Lv ${aiStake.level}.`} Tap one of your chosen Kin again to stake it (not your starter, not a bonded Kin).` : ''}</p>
         <div class="ld-pick">${mine.map(k => `<div class="ld-pk ${pick.has(k.id) ? 'on' : ''} ${stake === k.id ? 'stake' : ''}" data-k="${k.id}">${kinHTML(kinCard(k))}<small>Lv ${k.level}${k.bonded ? ' · bonded' : ''}${stake === k.id ? ' · STAKED' : ''}</small></div>`).join('')}</div>
         <h4 class="ld-h4">Threads <small>${tcount}/3</small></h4><div class="ld-pick">${TIDS.filter(t => own[t]).map(t => `<div class="ld-pk ${tpick[t] ? 'on' : ''} ${ready(t) ? '' : 'cool'}" data-t="${t}">${threadHTML(threadCard(t))}<small>${ready(t) ? `${tpick[t] || 0} of ${ready(t)}` : ''}${(cds()[t] || []).length ? `${ready(t) ? ' · ' : ''}cooling ${Math.min(...cds()[t])} game${Math.min(...cds()[t]) > 1 ? 's' : ''}` : ''}</small></div>`).join('') || '<p class="small">No Threads yet. Win games to earn them. Each one you play cools down after: commons for a game, uncommons two, rares three, ultras five.</p>'}</div>`;
       ui.stage.querySelectorAll('[data-diff]').forEach(b => b.addEventListener('click', () => { o.tier = +b.dataset.diff; o.skill = +b.dataset.sk; foe = deckFor(o); aiStake = foe.kin[0]; warmFaces(foe.kin); draw(); }));
@@ -13013,7 +13026,7 @@ const Linkdown = (() => {
       if (S.over || S.turn !== 'me' || S.busy) return;
       ui.stage.querySelectorAll('[data-h]').forEach(el => el.addEventListener('click', () => {
         const c = S.me.hand.find(x => x.id == el.dataset.h); if (!c) return; S.sel = null;
-        if (c.type === 'kin') { if (S.summoned) { say('One Kin a turn. Play a Thread or attack.'); return; } if (freeSlot(S.me) < 0) { say('No room on your side of the table.'); return; } S.pending = { card: c }; say(`${KIN.name(c.k)} · ${ROLE_TXT[c.role]}${c.k.bonded ? ' Bonded: refuses to break once.' : ''} ${c.away ? ' Far from home here, so it plays at 75%.' : ''} Attack, or face down in defence?`); render(); return; }
+        if (c.type === 'kin') { if (S.summoned) { say('One Kin a turn. Play a Thread or attack.'); return; } if (freeSlot(S.me) < 0) { say('No room on your side of the table.'); return; } S.pending = { card: c }; say(`${KIN.name(c.k)} · ${ROLE_TXT[c.role]}${c.k.bonded ? ' Bonded: refuses to break once.' : ''} ${c.away ? ` Out of its air here, so it plays at ${Math.round(airHit(c.k) * 100)}%.` : ''} Attack, or face down in defence?`); render(); return; }
         const T = THREADS[c.t];
         if (T.tgt === 'trap') { if (S.me.trap) { say('You already have a trap set.'); return; } S.me.hand.splice(S.me.hand.indexOf(c), 1); S.me.trap = c; S.used.push(c.t); say('You set a Thread face down. It springs when they attack.'); render(); return; }
         if (T.tgt === 'none' || T.tgt === 'grave') { castThread(S.me, c, null); return; }
@@ -13379,7 +13392,7 @@ const Village = (() => {
       bakery: { title: 'Dune Oven', keeper: 'Sefa', greet: 'Flatbread from the oven, hot as the sand.', stock: [{ item: 'bread', price: 12 }, { item: 'torch', price: 8, n: 4 }, { item: 'sulfur', price: 8, n: 3 }] },
       juice: { title: 'Brine Bar', keeper: 'Tali', greet: 'Not the brine outside. Mine mends.', stock: [{ item: 'smoothie', price: 16 }, { item: 'tonic_heal', price: 12 }, { item: 'tonic_might', price: 40 }, { item: 'amber', price: 16, n: 2 }] },
       voodoo: { title: 'Sand Healer', keeper: 'Orun', greet: 'The fainted wake under my hands. Shards first.', stock: [{ service: 'rest', name: 'Revive and heal the whole party', price: 24 }, { item: 'tonic_revive', price: 28 }, { item: 'tonic_heal', price: 12 }] },
-      trader: { title: 'Caravan Store', keeper: 'Besh', greet: 'Amber, sulfur, ring shards when the sky drops them. I buy anything that shines.', sell: true, stock: [{ item: 'snare2', price: 45 }, { item: 'amber', price: 18, n: 2 }, { item: 'sulfur', price: 10, n: 3 }, { item: 'ringshard', price: 60 }, { item: 'iron', price: 20, n: 2 }, { item: 'void', price: 30 }, { item: 'stone', price: 2, n: 16 }] },
+      trader: { title: 'Caravan Store', keeper: 'Besh', greet: 'Amber, sulfur, ring shards when the sky drops them. I buy anything that shines.', sell: true, stock: [{ item: 'stridersuit', price: 220 }, { item: 'snare2', price: 45 }, { item: 'amber', price: 18, n: 2 }, { item: 'sulfur', price: 10, n: 3 }, { item: 'ringshard', price: 60 }, { item: 'iron', price: 20, n: 2 }, { item: 'void', price: 30 }, { item: 'stone', price: 2, n: 16 }] },
       post: { title: 'Caravanserai', keeper: 'Kadu', greet: 'Caravans leave their odds and ends. New stock every two days.', stock: [] },
     },
     frontier: {
@@ -16586,9 +16599,10 @@ const Battle = (() => {
     else if (b.dataset.a === 'swap') showSwap();
     else if (b.dataset.a === 'run') doTurn({ type: 'run' });
   }
-  function dodgeChance(att, def) { const sa = KIN.stats(att), sd = KIN.stats(def); let agi = sd.agi * (def.buffs.coil ? 1.4 : 1); return U.clamp(0.04 + (agi - sa.agi) / (agi + sa.agi) * 0.3, 0.02, 0.4); }
+  function airStats(k) { const s = KIN.stats(k), aw = KIN.awayOf(k); if (aw.spd >= 1) return s; return Object.assign({}, s, { spd: Math.max(1, Math.round(s.spd * aw.spd)), agi: Math.max(1, Math.round(s.agi * (0.5 + aw.spd / 2))) }); }
+  function dodgeChance(att, def) { const sa = airStats(att), sd = airStats(def); let agi = sd.agi * (def.buffs.coil ? 1.4 : 1); return U.clamp(0.04 + (agi - sa.agi) / (agi + sa.agi) * 0.3, 0.02, 0.4); }
   function damage(att, def, move) {
-    const sa = KIN.stats(att), sd = KIN.stats(def);
+    const sa = airStats(att), sd = airStats(def);
     const A = (move.kind === 'phys' ? sa.atk : sa.pow) * (att.buffs.focus ? 1.25 : 1);
     const D = move.kind === 'phys' ? sd.def : (sd.pow + sd.def) / 2; /* a guard stat now: a Guardian shrugs off blows, a Striker feels every one */
     const eff = KIN.effectiveness(move.elem, def);
@@ -16598,9 +16612,8 @@ const Battle = (() => {
     const crit = Math.random() < (move.crit ? 0.3 : 0.06); if (crit) dmg *= 1.6;
     const oldD = !!(def.sp && def.sp.dino), oldA = !!(att.sp && att.sp.dino), ancient = (att.sp && att.sp.ancient) || (def.sp && def.sp.ancient);
     if (oldA && !oldD && !ancient) dmg *= att.sp.apex ? 0.25 : 0.45; /* and the other way: an unwoven jaw closes on something that is partly not there. A grown Tyrannorex cannot bully its way through the woven world. The first Kin the Loom ever made, Umbrarch among them, are old enough to be half real, and take it full */
-    { const bodyOf = (x) => x && x.sp && !x.sp.dino ? ((x.sp.home && x.sp.home.body) || (x.sp.recipe && x.sp.recipe.body) || null) : null, here = G.worldId || 'earth', bA = bodyOf(att), bD = bodyOf(def);
-      if (bA && bD && bA !== here && bD === here) { dmg *= 0.5; /* a Kin far from home is fighting in the wrong air: wrong gravity, wrong light, wrong ground. Against a Kin born here, it lands half as hard. Two strangers on the same ground are even */
-        if (G.stats && !G.stats.awayTold && typeof G.explain === 'function') { G.stats.awayTold = true; setTimeout(() => G.explain('Far from home', `Every Kin is woven for the world it was born on. Take one off it and it fights in the wrong air, under the wrong gravity, on ground that doesn't answer it. Against a Kin born here, its blows land half as hard. It works the other way too: bring a Moon or Halo Kin down to Earth and Earth's own Kin have the edge. Away from home, the fight is fairest against other strangers, or you catch and raise Kin from the world you're on.`), 1200); } } }
+    { const aw = KIN.awayOf(att); if (aw.hit < 1) { dmg *= aw.hit; /* the wrong air: see AIR in kin.js */
+        const here = G.worldId || 'earth'; if (G.stats && !(G.stats.airTold || {})[here] && typeof G.explain === 'function') { (G.stats.airTold = G.stats.airTold || {})[here] = 1; const T = { moon: ['Weightless', "Every Kin is woven for the world it was born on. Up here there's almost no pull. Kin from Earth and Halo can't get their footing: their blows land half as hard, and Halo Kin, built for a heavy world, have nothing to push against and slow to a crawl. Moon Kin are at home. Catch and raise Kin from the world you're on."], halo: ['Heavy air', "Halo's air is thick and its pull drags at everything. Kin from Earth hit half as hard and move half as fast. Moon Kin, grown with no weight on them, have no muscle for it: they're close to worthless here. Halo Kin are at home. Catch and raise Kin from the world you're on."], earth: ['Far from home', "Kin from the Moon and Halo are out of their air on Earth: they hit half as hard and move slower. Earth's own Kin are at home."] }[here]; setTimeout(() => G.explain(T[0], T[1]), 1200); } } }
     if (oldD && !oldA && !ancient) { dmg *= def.sp.apex ? 0.45 : 0.7; /* a Kin is woven, written out of the Loom; the beasts of the Lost World never were. A woven blow lands on them like rain on slate, and the oldest barely feel it */
       if (G.stats && !G.stats.oldTold && typeof G.explain === 'function') { G.stats.oldTold = true; setTimeout(() => G.explain('Older than the Loom', 'Every Kin is woven: written out of the Loom, the way a Link writes it onto a cartridge. The beasts of the Lost World never were. Woven blows hit them far softer, and the Tyrannorex hardly feels them. It cuts both ways: their teeth and horns pass half through a Kin, so they cannot rule the woven world either. Only the very first Kin, the ancient ones, are old enough to meet them blow for blow.'), 1200); } }
     if (def.buffs.guard && !move.pierce) { dmg *= 0.5; if (def.buffs.guard2) def.buffs.guard2 = false; else def.buffs.guard = false; }
@@ -16653,7 +16666,7 @@ const Battle = (() => {
     busy = true; turn++;
     el.actions.querySelectorAll('button').forEach(b => b.disabled = true);
     if (action.type === 'run') {
-      const sm = KIN.stats(mine), sw = KIN.stats(wild);
+      const sm = airStats(mine), sw = airStats(wild);
       const tw = (wildE && !wildE.isBoss && wildE.model) ? (wildE.model.temper || 0) % 5 : 0; /* a shy one lets you go nearly every time, a drowsy one cannot be bothered to stop you, a cross one takes it personally */
       const p = (wild.sp.mythic || wild.sp.legend) ? 0.9 : U.clamp(0.45 + (sm.spd - sw.spd) / 120 + (tw === 1 ? 0.45 : tw === 4 ? 0.25 : tw === 2 ? -0.22 : 0), tw === 2 ? 0.12 : 0.2, 0.97);
       if (Math.random() < p) { log(tw === 1 ? `You back away. ${KIN.name(wild)} is glad to see you go.` : 'You slip away.'); await sleep(500); end('ran'); return; }
@@ -16682,7 +16695,7 @@ const Battle = (() => {
       return afterTurn();
     }
     const myMove = action.move, theirMove = wildChoose();
-    const sm = KIN.stats(mine), sw = KIN.stats(wild);
+    const sm = airStats(mine), sw = airStats(wild);
     let meFirst = (turn === 1 && ambush) || mine.buffs.dash || (!wild.buffs.dash && (sm.spd > sw.spd || (sm.spd === sw.spd && Math.random() < 0.5)));
     mine.buffs.dash = false; wild.buffs.dash = false;
     const order = meFirst ? [[mine, wild, myMove, true], [wild, mine, theirMove, false]] : [[wild, mine, theirMove, false], [mine, wild, myMove, true]];
@@ -25429,6 +25442,8 @@ G.loop = function (t) {
       p.trainerLevel = this.trainerLevel;
       const tr = this.traits();
       p.speedMul = (tr.includes('Swift') ? 1.25 : 1) * (Npcs.active('haste') ? 1.6 : 1); p.mineMul = tr.includes('Miner') ? 1.6 : 1; p.breathMul = tr.includes('Diver') ? 4 : 1;
+      { const heavy = this.worldId === 'halo', suit = heavy && p.has && p.has('stridersuit'); p.gravity = heavy ? (suit ? 1.0 : 1.3) : this.world.preset.gravity; if (heavy && !suit) p.speedMul *= 0.6; /* Halo's heavy air: a crawl and a low jump until you buy a Strider Suit */
+        if (heavy && !suit && !this.stats.heavyTold && typeof this.explain === 'function') { this.stats.heavyTold = true; setTimeout(() => this.explain('Heavy air', "Halo's air is thick and its pull drags at you. Every step is work and you can barely clear a ledge. The caravan people wear Strider Suits, braced leather and spring-steel: every Caravan Store on Halo sells one. Get one first."), 1500); } }
       p.jumpMul = tr.includes('Climber') ? 1.15 : 1; p.autoJumpTrait = tr.includes('Climber') || !!(p.mount && p.mount.sp.climber); p.lavaMul = tr.includes('Warm') ? 0.5 : 1; p.senseMul = tr.includes('Stalker') ? 0.7 : 1;
       const healMul = tr.includes('Mender') ? 2 : 1;
       const hpBefore = p.hp;
