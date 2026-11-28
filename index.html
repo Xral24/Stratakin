@@ -6992,7 +6992,7 @@ const KIN = (() => {
     const level = Math.min(MAX_LEVEL, Math.round(kins.reduce((a, k) => a + k.level, 0) / kins.length) + 2 + (kins.length - 2) * 2);
     const k = create(branch === 'alt' && rc.alt ? rc.alt.out : rc.out, level);
     k.iv = {}; for (const key of STAT_KEYS) k.iv[key] = Math.max(...kins.map(x => x.iv[key]));
-    k.hp = stats(k).hp;
+    k.hp = stats(k).hp; carryBond(k, kins);
     return k;
   }
   /* ---- old saves: a Kin of a species that was cut becomes the nearest kept one of its world: the same element, the same kind of body if there is one ----
@@ -7449,6 +7449,8 @@ const KIN = (() => {
     return Math.min(MAX_LEVEL, Math.round(median + bonus));
   }
   // Fusion of 2..16 Kin plus any number of element items -> a brand new species. Deterministic: same inputs, same result.
+  // a fused Kin keeps the strongest bond that went into it: if any of them was bonded for good, so is the new one
+  function carryBond(k, kins) { const b = Math.max(0, ...kins.map(x => x.bonded ? 1 : (x.bond || 0))); if (b > (k.bond || 0)) k.bond = b; if (kins.some(x => x.bonded)) k.bonded = true; k.bondT = Math.max(k.bondT || 0, ...kins.map(x => x.bondT || 0)); return k; }
   function fuse(kins, elemItems) {
     const n = kins.length;
     const sorted = kins.slice().sort((a, b) => (a.sp.seed - b.sp.seed) || (a.level - b.level));
@@ -7492,7 +7494,7 @@ const KIN = (() => {
     { const from = shape === lead.sp.shape ? lead.sp : other.sp; inheritBody(sp, from, from === lead.sp ? other.sp : lead.sp); }
     const k = create(sp, level, r);
     k.iv = {}; for (const key of STAT_KEYS) k.iv[key] = Math.max(...kins.map(x => x.iv[key]));
-    k.hp = stats(k).hp;
+    k.hp = stats(k).hp; carryBond(k, kins);
     return k;
   }
 
