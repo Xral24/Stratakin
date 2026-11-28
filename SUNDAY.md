@@ -23,6 +23,7 @@ Suggested order: fusion-only evolution first (it changes the numbers everything 
 - Rescale levels to a 50 cap. Multiply wild, tyrant, arena and quest levels by about 0.25, or remap through one curve function, so the progression feel stays.
 - Stats keep scaling with stage so fusing is the big power jump.
 - Save migration: existing Kin above 50 clamp to 50 and keep their stage.
+- Wild Kin (Dude's call, 28 Nov): nearly everything wild is stage 1. Evolved forms do turn up now and then, but rarely, and they're shy: they keep their distance, bolt when you come close, and are harder to catch (lower link chance). Seeing one should feel like an event.
 
 **Done when:**
 - A Kin levelled from 1 to 50 never changes stage.
@@ -151,4 +152,3 @@ The full version is in the doc's story section and its open questions.
 ## Small open choices to ask Dude
 
 - The away-from-home rule on the Linkdown table is 75%. Real fights use half. Should the table match?
-- With the 50 cap, do wild Kin keep evolved forms in harder areas, or is everything wild stage 1?
